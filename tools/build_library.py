@@ -16,6 +16,7 @@ Steps:
      build_webui.py                                             the main menu's web UI (webui/, Next.js) -> godot/webui
      make_music.py                                              Quake 3's soundtrack -> Ogg (godot/library/music)
   6. Godot --import
+     flag_3d_textures.py, Godot --import                        3D textures get mipmaps and VRAM compression up front
      build_cards.py                                             player card catalog + art (renders in Godot, windowed)
   7. Godot --import again, then tests/selftest.tscn             headless checks of the whole library
 Player models are built separately: python remaster_model.py --all
@@ -97,6 +98,10 @@ subprocess.run([godot, "--headless", "--path", out, "--import", "--log-file", lo
                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 errs = [l for l in open(log, encoding="utf-8", errors="replace") if "SCRIPT ERROR" in l or l.startswith("ERROR")]
 print("== godot import: %d error line(s)%s" % (len(errs), (": " + errs[0].strip()) if errs else ""))
+# new textures import as 2D; flag the 3D ones now, or the editor switches them mid-import later
+run("3D texture imports", [py, T("flag_3d_textures.py"), "--godot", out])
+subprocess.run([godot, "--headless", "--path", out, "--import", "--log-file", log],
+               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 # player cards render from the imported library (characters, skies, world materials), then go back in
 run("player cards", [py, T("build_cards.py"), a.extracted, os.path.join(a.work, "_cards"), "--godot", godot]
     + (["--no-render"] if a.skip_card_renders else []))

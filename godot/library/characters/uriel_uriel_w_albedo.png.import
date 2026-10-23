@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bhy3agypd4lls"
-path="res://.godot/imported/uriel_uriel_w_albedo.png-e7b81f4a3ab36492ca059b3b8dd72f1e.ctex"
+path.s3tc="res://.godot/imported/uriel_uriel_w_albedo.png-e7b81f4a3ab36492ca059b3b8dd72f1e.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "6eddaea86214e767467f5052d39167a2"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://library/characters/uriel_uriel_w_albedo.png"
-dest_files=["res://.godot/imported/uriel_uriel_w_albedo.png-e7b81f4a3ab36492ca059b3b8dd72f1e.ctex"]
+dest_files=["res://.godot/imported/uriel_uriel_w_albedo.png-e7b81f4a3ab36492ca059b3b8dd72f1e.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

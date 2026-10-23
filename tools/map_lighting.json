@@ -1,0 +1,11 @@
+{
+ "_note": "Per-map light scale (all lights, sun and sky), from comparing the first bake's mean light with Quake 3's own lightmaps (2026-10-22): maps more than 0.85-1.65x the original are pulled to 1.3x (bounce light makes the remaster a little brighter by design). q3map clips bright panels at 255; Godot doesn't, so maps with 4000-10000 surface lights over-light.",
+ "q3tourney6": 0.58,
+ "q3tourney6_ctf": 0.743,
+ "q3tourney3": 0.711,
+ "q3dm16": 2.105,
+ "q3dm13": 0.773,
+ "q3dm18": 0.235,
+ "q3dm7": 0.781,
+ "q3dm15": 0.625
+}

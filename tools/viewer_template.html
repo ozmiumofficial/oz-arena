@@ -1,0 +1,765 @@
+<title>{{TITLE}} Remaster</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a full-width viewing bay (two synced panes) over a single reading column of workflow notes. */
+:root {
+  color-scheme: dark;
+  --bg: #120f0e;          /* forge graphite, warm bias */
+  --panel: #1b1715;
+  --panel-2: #231d1a;
+  --line: #352c27;
+  --fg: #eee5dc;
+  --muted: #a8998c;
+  --bronze: #c99a5c;
+  --molten: #ff6a2b;
+  --steel: #8f9aa6;
+  --display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --s-1: 0.8125rem; --s0: 1rem; --s1: 1.25rem; --s2: 1.75rem; --s3: 2.75rem;
+  --r: 6px;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--bg); color: var(--fg); }
+body {
+  font-family: var(--body); font-size: var(--s0); line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 56px;
+}
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 28px; }
+.col { max-width: 760px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: 0.01em; text-wrap: balance; margin: 0; line-height: 1.1; }
+h1 { font-size: clamp(2.2rem, 6vw, var(--s3)); text-transform: uppercase; }
+h1 .thin { color: var(--bronze); font-weight: 500; }
+h2 { font-size: var(--s2); text-transform: uppercase; }
+h3 { font-size: var(--s1); }
+p { margin: 0; }
+.eyebrow { font-family: var(--mono); font-size: var(--s-1); color: var(--molten); letter-spacing: 0.08em; text-transform: uppercase; }
+.lede { color: var(--muted); font-size: 1.0625rem; max-width: 68ch; }
+header { display: grid; gap: 10px; }
+
+/* viewing bay */
+.bay { display: grid; gap: 12px; }
+.panes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; touch-action: none; }
+.panes.solo { grid-template-columns: 1fr; }
+.panes.solo .pane.orig { display: none; }
+.pane { position: relative; margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; aspect-ratio: 4 / 4.6; max-height: 74vh; min-width: 0; max-width: 100%; }
+.panes.solo .pane { aspect-ratio: 16 / 10; }
+.pane canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+.pane canvas:active { cursor: grabbing; }
+.tagline { position: absolute; left: 12px; top: 10px; display: grid; gap: 2px; pointer-events: none; }
+.tagline b { font-family: var(--display); font-size: 1.35rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+.tagline span { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+.pane.rem .tagline b { color: var(--molten); }
+.pane .load { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-family: var(--mono); font-size: var(--s-1); }
+.hint { position: absolute; right: 12px; bottom: 10px; font-family: var(--mono); font-size: 0.7rem; color: var(--muted); pointer-events: none; }
+
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.ctl { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.ctl > label, .ctl .lbl { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+select, button, input[type=range] { font: inherit; color: var(--fg); }
+select { width: 100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 7px 8px; }
+select:disabled { opacity: 0.45; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+button.btn { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+button.btn:hover { border-color: var(--bronze); }
+button.btn.primary { border-color: var(--molten); color: var(--molten); }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 5px 9px; font-size: 0.86rem; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed=true] { color: var(--bg); background: var(--bronze); border-color: var(--bronze); }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.92rem; cursor: pointer; }
+.check input { accent-color: var(--molten); width: 16px; height: 16px; }
+input[type=range] { accent-color: var(--molten); width: 100%; }
+:focus-visible { outline: 2px solid var(--molten); outline-offset: 2px; }
+.readout { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* spec strip */
+.spec { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.spec > div { padding: 14px 16px; display: grid; gap: 6px; background: var(--panel); min-width: 0; }
+.spec > div + div { border-left: 1px solid var(--line); }
+.spec dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.92rem; }
+.spec dt { color: var(--muted); }
+.spec dd { margin: 0; font-variant-numeric: tabular-nums; }
+.spec h3 { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.spec .rem h3 { color: var(--molten); }
+@media (max-width: 620px) { .spec > div + div { border-left: 0; border-top: 1px solid var(--line); } }
+
+/* workflow */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: step; border-top: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 56px 1fr; gap: 4px 16px; padding: 18px 0; border-bottom: 1px solid var(--line); counter-increment: step; }
+.steps li::before { content: counter(step, decimal-leading-zero); font-family: var(--display); font-size: 1.9rem; color: var(--bronze); line-height: 1; grid-row: span 3; }
+.steps h3 { text-transform: uppercase; letter-spacing: 0.03em; }
+.steps p { color: var(--fg); max-width: 66ch; }
+.steps .num { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+code, .path { font-family: var(--mono); font-size: 0.86em; background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; overflow-wrap: anywhere; }
+
+.maps { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.maps figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+.maps img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); background: var(--panel); image-rendering: auto; }
+.maps img.px { image-rendering: pixelated; }
+.maps.head img { aspect-ratio: 1; }
+.maps figcaption { font-size: 0.84rem; color: var(--muted); line-height: 1.35; }
+.maps figcaption b { color: var(--fg); font-weight: 600; display: block; }
+
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+.list { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; }
+.list li::marker { color: var(--molten); }
+.note { border-left: 3px solid var(--molten); background: var(--panel); padding: 12px 16px; border-radius: 0 var(--r) var(--r) 0; color: var(--fg); max-width: 760px; }
+.files { font-family: var(--mono); font-size: 0.82rem; display: grid; gap: 4px; color: var(--muted); overflow-x: auto; }
+.files b { color: var(--fg); font-weight: 500; }
+section { display: grid; gap: 14px; }
+@media (max-width: 760px) {
+  .panes { grid-template-columns: 1fr; }
+  .pane { aspect-ratio: 1 / 1.05; }
+  .panes.solo .pane { aspect-ratio: 1 / 1.1; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Remaster study · built from your own pak0.pk3</div>
+    <h1>{{TITLE}} <span class="thin">1999 → now</span></h1>
+    <p class="lede">The Original pane shows the Quake III Arena {{TITLE}} model exactly as the game drew it: three vertex-animated pieces and hand-painted textures. The Remaster pane shows the same character after an automated remaster pass: one smoothed mesh, PBR materials, and a skeleton with skin weights recovered from the original animation frames. Both panes share one camera and one clock.</p>
+  </header>
+
+  <section class="bay" aria-label="Model viewer">
+    <div class="panes" id="stage">
+      <figure class="pane orig">
+        <canvas id="cOrig" aria-label="Original {{TITLE}} model"></canvas>
+        <div class="tagline"><b>Original</b><span id="tagOrig"></span></div>
+        <div class="load" id="loadOrig">Loading model…</div>
+      </figure>
+      <figure class="pane rem">
+        <canvas id="cRem" aria-label="Remastered {{TITLE}} model"></canvas>
+        <div class="tagline"><b>Remaster</b><span id="tagRem"></span></div>
+        <div class="load" id="loadRem">Loading model…</div>
+        <div class="hint">drag to orbit · scroll to zoom</div>
+      </figure>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="legs">Legs clip</label>
+        <select id="legs"></select>
+        <label for="torso">Torso clip</label>
+        <select id="torso"></select>
+        <div class="readout" id="clipInfo"></div>
+      </div>
+      <div class="ctl">
+        <span class="lbl">Playback</span>
+        <div class="row">
+          <button class="btn primary" id="play" type="button">Pause</button>
+          <button class="btn" id="solo" type="button" aria-pressed="false">Remaster only</button>
+        </div>
+        <label for="speed">Speed <span class="readout" id="speedVal">1.00×</span></label>
+        <input id="speed" type="range" min="0.1" max="2" step="0.05" value="1">
+        <label class="check"><input id="spin" type="checkbox" checked> Turntable</label>
+      </div>
+      <div class="ctl">
+        <span class="lbl">Remaster view</span>
+        <div class="seg" id="views" role="group" aria-label="Remaster view">
+          <button type="button" data-v="lit" aria-pressed="true">Lit</button>
+          <button type="button" data-v="albedo" aria-pressed="false">Albedo</button>
+          <button type="button" data-v="normal" aria-pressed="false">Normal</button>
+          <button type="button" data-v="rough" aria-pressed="false">Roughness</button>
+          <button type="button" data-v="metal" aria-pressed="false">Metal</button>
+          <button type="button" data-v="ao" aria-pressed="false">AO</button>
+          <button type="button" data-v="emissive" aria-pressed="false">Emissive</button>
+          <button type="button" data-v="weights" aria-pressed="false">Bone weights</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="lbl">Overlays</span>
+        <label class="check"><input id="skel" type="checkbox"> Skeleton</label>
+        <label class="check"><input id="ghost" type="checkbox"> Original mesh over remaster</label>
+        <label class="check"><input id="wire" type="checkbox"> Wireframe</label>
+        <label for="glow">Heat glow <span class="readout" id="glowVal">1.6</span></label>
+        <input id="glow" type="range" min="0" max="6" step="0.1" value="1.6">
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Before and after numbers">
+    <div class="spec">
+      <div>
+        <h3>Original (1999)</h3>
+        <dl>
+          <dt>Geometry</dt><dd id="sO1">3 pieces · 812 triangles · 819 vertices</dd>
+          <dt>Texture</dt><dd id="sO2"></dd>
+          <dt>Animation</dt><dd id="sO3">344 baked vertex frames, 15–25 fps</dd>
+          <dt>Shading</dt><dd>Gouraud diffuse, no specular</dd>
+        </dl>
+      </div>
+      <div class="rem">
+        <h3>Remaster</h3>
+        <dl>
+          <dt>Geometry</dt><dd id="sR1">1 skinned mesh · 12,960 triangles</dd>
+          <dt>Texture</dt><dd id="sR2"></dd>
+          <dt>Animation</dt><dd id="sR3">21-bone skeleton, 25 clips at 60 fps</dd>
+          <dt>Fit error</dt><dd id="sR4">legs 5.4 mm · torso 6.5 mm RMS</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="col" aria-labelledby="wf">
+    <div class="eyebrow">Workflow</div>
+    <h2 id="wf">How this version was made</h2>
+    <p class="lede">Every step is a script you can rerun, so the pipeline works for any id Tech 3 player model, including this one.</p>
+    <ol class="steps">
+      <li>
+        <h3>Extract</h3>
+        <p>A <code>.pk3</code> is a zip. <code>models/players/{{MODEL}}/</code> holds three MD3 meshes (legs, torso, head) joined at tag points, an <code>animation.cfg</code> with the frame ranges, and the painted TGAs.</p>
+        <span class="num">pak0.pk3 → 28 files</span>
+      </li>
+      <li>
+        <h3>Weld and smooth</h3>
+        <p>MD3 duplicates every vertex along a UV seam. Merging duplicates that match in all frames gives a clean cage. Two levels of Loop subdivision round it off, and edges sharper than 50° stay creased so the armor keeps its hard lines.</p>
+        <span class="num" id="wf2"></span>
+      </li>
+      <li>
+        <h3>Recover the skeleton</h3>
+        <p>MD3 stores no bones, only vertex positions per frame. Skinning decomposition finds the rigid bone motions and per-vertex weights that best rebuild every frame, then places each joint where neighboring bones agree. Legs and torso are fitted separately so they still animate independently, as they did in the game.</p>
+        <span class="num" id="wf3"></span>
+      </li>
+      <li>
+        <h3>Assemble the rig</h3>
+        <p>Blender merges the pieces into one mesh, carries the weights through the subdivision, and writes one action per <code>animation.cfg</code> entry. Leg clips key only leg bones and torso clips only torso bones, so any pair layers cleanly. Try Run with Attack above.</p>
+        <span class="num">.blend · .fbx · .glb</span>
+      </li>
+      <li>
+        <h3>Build PBR maps from the painting</h3>
+        <p>The UV islands are padded so seams don't bleed, then upscaled 8× with edge-preserving cleanup. Each texel is sorted by color into a material class. The painted light and shadow move out of the albedo into ambient occlusion. Height comes from luminance and the class relief, and normals and curvature follow from it. Edge wear, scratches and grunge are added on top.</p>
+        <span class="num" id="wf5"></span>
+      </li>
+      <li>
+        <h3>Bring it into Unity</h3>
+        <p>Import the FBX as a Generic rig with two avatar masks (legs, torso) on separate Animator layers, the same split the game used. In URP Lit, metallic and smoothness share one texture, so the AO/rough/metal map is repacked as metal in red and smoothness (1 − roughness) in alpha.</p>
+        <span class="num">FBX + 8 textures</span>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="mp">
+    <div class="eyebrow">Texture maps</div>
+    <h2 id="mp">From one painting to a material set</h2>
+    <div id="mapsHost" style="display:grid;gap:18px"></div>
+  </section>
+
+  <section class="two" aria-label="What comes next">
+    <div style="display:grid;gap:12px;min-width:0">
+      <div class="eyebrow">What this pass can't do</div>
+      <h2>Limits of an automated remaster</h2>
+      <ul class="list">
+        <li><b>Detail:</b> upscaling invents nothing. The 2048² maps are sharper and properly lit, but every shape still comes from the original painted pixels.</li>
+        <li><b>Form:</b> subdivision only rounds the 1999 shapes. Plates get softer, not more detailed.</li>
+        <li><b>Bending:</b> the original topology has no edge loops at elbows or knees, so joints bend stiffly. The rig reproduces the old animation well (about 6 mm average error) but it isn't built for new motion yet.</li>
+        <li><b>Materials:</b> the classes come from color alone, so a few rust-orange plate accents and dark recesses are still guessed.</li>
+      </ul>
+    </div>
+    <div style="display:grid;gap:12px;min-width:0">
+      <div class="eyebrow">Production path</div>
+      <h2>What a full remaster adds</h2>
+      <ul class="list">
+        <li>Sculpt a high-poly {{TITLE}} over this silhouette (ZBrush or Blender), using the remaster as the proportion and pose reference.</li>
+        <li>Retopologize to a 20–40k triangle game mesh with loops at the joints, then bake normal, AO and curvature from the sculpt.</li>
+        <li>Texture in Substance Painter, with these class masks as the starting ID map.</li>
+        <li>Map the skeleton to a Unity Humanoid avatar so modern animation libraries can drive it, keeping the recovered 1999 clips as reference.</li>
+        <li>Run an AI upscaler on the original painting to get reference detail for the repaint.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section aria-label="Files">
+    <div class="note">This is id Software's character art. It's fine for private study and as reference, but it can't ship in OZMIUM or a public mod without a license. This page stays private unless you share it.</div>
+    <div class="files">
+      <div><b>work\{{MODEL}}\export\</b> {{MODEL}}_rigged.blend · .fbx · .glb · textures\ · unity\</div>
+      <div><b>tools\</b> remaster_model.py runs every step for any player model</div>
+    </div>
+  </section>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const $ = (id) => document.getElementById(id);
+const CLIP_NAMES = {
+  BOTH_DEATH1: 'Death 1', BOTH_DEAD1: 'Dead 1', BOTH_DEATH2: 'Death 2', BOTH_DEAD2: 'Dead 2',
+  BOTH_DEATH3: 'Death 3', BOTH_DEAD3: 'Dead 3', TORSO_GESTURE: 'Gesture (taunt)', TORSO_ATTACK: 'Attack',
+  TORSO_ATTACK2: 'Attack (gauntlet)', TORSO_DROP: 'Weapon drop', TORSO_RAISE: 'Weapon raise',
+  TORSO_STAND: 'Stand', TORSO_STAND2: 'Stand (gauntlet)', LEGS_WALKCR: 'Crouch walk', LEGS_WALK: 'Walk',
+  LEGS_RUN: 'Run', LEGS_BACK: 'Backpedal', LEGS_SWIM: 'Swim', LEGS_JUMP: 'Jump', LEGS_LAND: 'Land',
+  LEGS_JUMPB: 'Jump back', LEGS_LANDB: 'Land back', LEGS_IDLE: 'Idle', LEGS_IDLECR: 'Crouch idle',
+  LEGS_TURN: 'Turn in place', TORSO_GETFLAG: 'Get flag', TORSO_GUARDBASE: 'Guard base',
+  TORSO_PATROL: 'Patrol', TORSO_FOLLOWME: 'Follow me', TORSO_AFFIRMATIVE: 'Affirmative', TORSO_NEGATIVE: 'Negative'
+};
+
+// ---------------------------------------------------------------- texture map gallery (static)
+const MAPS = [
+  ['original', 'Original', 'The 1999 painting, shown with hard pixels', true],
+  ['classes', 'Material classes', 'Bronze armor, dark steel, heat, fiber, skin'],
+  ['upscaled', 'Upscaled', '8× with edge-preserving cleanup'],
+  ['albedo', 'Albedo', 'Painted lighting divided out, wear added'],
+  ['normal', 'Normal', 'From luminance relief and class height'],
+  ['rough', 'Roughness', 'Per class, plus grunge, cavities, wear'],
+  ['metal', 'Metal', 'Armor and steel metallic, worn edges bare'],
+  ['ao', 'AO', 'The painted shading, moved here'],
+  ['emissive', 'Emissive', 'Cores of the red heat pockets'],
+];
+function fillMaps(el, tag, label) {
+  el.innerHTML = MAPS.map(([k, t, d, px]) =>
+    `<figure><img ${px ? 'class="px"' : ''} src="prev_${tag}_${k}.jpg" alt="${label} ${t.toLowerCase()} map" loading="lazy"><figcaption><b>${label} · ${t}</b>${d}</figcaption></figure>`).join('');
+}
+
+
+// ---------------------------------------------------------------- data
+let man, bin, rig;
+try {
+  [man, bin, rig] = await Promise.all([
+    fetch('mesh.json').then(r => r.json()),
+    // binary arrays ship base64-wrapped in JSON (artifacts serve text and media types only)
+    fetch('mesh_bin.json').then(r => r.json()).then(j => Uint8Array.from(atob(j.b64), c => c.charCodeAt(0)).buffer),
+    fetch('rig.json').then(r => r.json()),
+  ]);
+} catch (e) {
+  $('loadOrig').textContent = $('loadRem').textContent = 'The model data did not load. Reload the page to try again.';
+  throw e;
+}
+const TYPES = { int16: Int16Array, int32: Int32Array, uint16: Uint16Array, float32: Float32Array };
+const A = (name) => { const a = man.arrays[name]; return new TYPES[a.dtype](bin, a.offset, a.length); };
+const anims = man.anims, SKIP = man.legsSkip;
+
+// id Tech 3 (x fwd, y left, z up, 32 units per meter) -> three (z toward camera, y up), feet at 0
+const K = new THREE.Matrix4().set(0, 1 / 32, 0, 0, 0, 0, 1 / 32, 24 / 32, 1 / 32, 0, 0, 0, 0, 0, 0, 1);
+
+// md3 normal lookup: lat/lng bytes
+const NLUT = new Float32Array(65536 * 3);
+for (let n = 0; n < 65536; n++) {
+  const lat = ((n >> 8) & 255) * 2 * Math.PI / 255, lng = (n & 255) * 2 * Math.PI / 255;
+  NLUT[n * 3] = Math.cos(lat) * Math.sin(lng); NLUT[n * 3 + 1] = Math.sin(lat) * Math.sin(lng); NLUT[n * 3 + 2] = Math.cos(lng);
+}
+
+function tagMatrix(arr, a, b, t, out) {
+  const v = new Float32Array(12);
+  for (let i = 0; i < 12; i++) v[i] = arr[a * 12 + i] * (1 - t) + arr[b * 12 + i] * t;
+  const x = new THREE.Vector3(v[3], v[4], v[5]).normalize();
+  const y = new THREE.Vector3(v[6], v[7], v[8]);
+  y.addScaledVector(x, -y.dot(x)).normalize();
+  const z = new THREE.Vector3().crossVectors(x, y);
+  return out.set(x.x, y.x, z.x, v[0], x.y, y.y, z.y, v[1], x.z, y.z, z.z, v[2], 0, 0, 0, 1);
+}
+
+// the original model: three md3 parts, vertex frames lerped, tags chained, md3 normals
+class Md3Model {
+  constructor(mats) {
+    this.group = new THREE.Group();
+    this.group.matrixAutoUpdate = false;
+    this.group.matrix.copy(K);
+    this.parts = {};
+    for (const pname of ['lower', 'upper', 'head']) {
+      const p = man.parts[pname], ar = p.arrays;
+      const weld = A(ar.weld), st = A(ar.st), tris = A(ar.otris), omat = A(ar.omat);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(p.md3Verts * 3), 3));
+      g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(p.md3Verts * 3), 3));
+      g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(st), 2));
+      const order = [...Array(omat.length).keys()].sort((i, j) => omat[i] - omat[j]);
+      const idx = new Uint32Array(tris.length);
+      order.forEach((ti, k) => { idx[k * 3] = tris[ti * 3]; idx[k * 3 + 1] = tris[ti * 3 + 1]; idx[k * 3 + 2] = tris[ti * 3 + 2]; });
+      g.setIndex(new THREE.BufferAttribute(idx, 1));
+      let start = 0;
+      for (let m = 0; m < p.textures.length; m++) {
+        const count = order.filter(ti => omat[ti] === p.textures[m]).length * 3;
+        g.addGroup(start, count, m); start += count;
+      }
+      g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 64);
+      const mesh = new THREE.Mesh(g, p.textures.map(t => mats(man.textures[t].stem)));
+      mesh.matrixAutoUpdate = false;
+      mesh.frustumCulled = false;
+      this.group.add(mesh);
+      this.parts[pname] = { p, mesh, weld, wpos: A(ar.wpos), nrm: A(ar.nrm), tags: Object.fromEntries(['tag_torso', 'tag_head', 'tag_weapon'].filter(n => ar[n]).map(n => [n, A(ar[n])])) };
+    }
+    this.m1 = new THREE.Matrix4(); this.m2 = new THREE.Matrix4();
+  }
+  setFrames(lf, uf) {
+    this.writePart(this.parts.lower, lf);
+    this.writePart(this.parts.upper, uf);
+    this.writePart(this.parts.head, [0, 0, 0]);
+    const torso = tagMatrix(this.parts.lower.tags.tag_torso, lf[0], lf[1], lf[2], this.m1);
+    this.parts.lower.mesh.matrix.identity();
+    this.parts.upper.mesh.matrix.copy(torso);
+    const head = tagMatrix(this.parts.upper.tags.tag_head, uf[0], uf[1], uf[2], this.m2);
+    this.parts.head.mesh.matrix.multiplyMatrices(torso, head);
+  }
+  writePart(part, [a, b, t]) {
+    const { p, mesh, weld, wpos, nrm } = part;
+    const pos = mesh.geometry.attributes.position.array, nor = mesh.geometry.attributes.normal.array;
+    const nw = p.welded, nm = p.md3Verts;
+    for (let i = 0; i < nm; i++) {
+      const w = weld[i], ia = (a * nw + w) * 3, ib = (b * nw + w) * 3;
+      pos[i * 3] = (wpos[ia] * (1 - t) + wpos[ib] * t) / 64;
+      pos[i * 3 + 1] = (wpos[ia + 1] * (1 - t) + wpos[ib + 1] * t) / 64;
+      pos[i * 3 + 2] = (wpos[ia + 2] * (1 - t) + wpos[ib + 2] * t) / 64;
+      const na = nrm[a * nm + i] * 3, nb = nrm[b * nm + i] * 3;
+      let x = NLUT[na] * (1 - t) + NLUT[nb] * t, y = NLUT[na + 1] * (1 - t) + NLUT[nb + 1] * t, z = NLUT[na + 2] * (1 - t) + NLUT[nb + 2] * t;
+      const l = Math.hypot(x, y, z) || 1;
+      nor[i * 3] = x / l; nor[i * 3 + 1] = y / l; nor[i * 3 + 2] = z / l;
+    }
+    mesh.geometry.attributes.position.needsUpdate = true;
+    mesh.geometry.attributes.normal.needsUpdate = true;
+  }
+}
+
+// ---------------------------------------------------------------- shared stage helpers
+function floor(scene, receiveShadow) {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(128, 128, 10, 128, 128, 128);
+  g.addColorStop(0, 'rgba(74,58,48,0.85)'); g.addColorStop(0.55, 'rgba(40,32,27,0.6)'); g.addColorStop(1, 'rgba(18,15,14,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(2.4, 64), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
+  disc.rotation.x = -Math.PI / 2; scene.add(disc);
+  if (receiveShadow) {
+    const sh = new THREE.Mesh(new THREE.CircleGeometry(2.4, 64), new THREE.ShadowMaterial({ opacity: 0.55 }));
+    sh.rotation.x = -Math.PI / 2; sh.position.y = 0.002; sh.receiveShadow = true; scene.add(sh);
+  }
+}
+const BG = new THREE.Color(0x1b1715);
+
+// original stage: Q3-like lighting (ambient + one directed light, diffuse only)
+const rO = new THREE.WebGLRenderer({ canvas: $('cOrig'), antialias: true });
+rO.setPixelRatio(Math.min(devicePixelRatio, 2));
+const sO = new THREE.Scene(); sO.background = BG;
+sO.add(new THREE.AmbientLight(0xffffff, 1.1));
+const dO = new THREE.DirectionalLight(0xffffff, 1.9); dO.position.set(2.5, 4, 3); sO.add(dO);
+floor(sO, false);
+const texLoader = new THREE.TextureLoader();
+function tex(url, srgb, opts = {}) {
+  const t = texLoader.load(url);
+  t.flipY = false;
+  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  t.anisotropy = 8;
+  Object.assign(t, opts);
+  return t;
+}
+const origTex = {};
+const origMat = (name) => {
+  if (!origTex[name]) {
+    // browsers can't decode TGA; orig_<stem>.png holds the same pixels
+    const url = `orig_${name}.png`;
+    origTex[name] = new THREE.MeshLambertMaterial({ map: tex(url, true, { magFilter: THREE.LinearFilter }) });
+  }
+  return origTex[name];
+};
+const modelO = new Md3Model(origMat);
+sO.add(modelO.group);
+
+// remaster stage: IBL + key/rim lights, shadows, ACES, bloom for the heat glow
+const rR = new THREE.WebGLRenderer({ canvas: $('cRem'), antialias: true });
+rR.setPixelRatio(Math.min(devicePixelRatio, 2));
+rR.toneMapping = THREE.ACESFilmicToneMapping;
+rR.toneMappingExposure = 1.1;
+rR.shadowMap.enabled = true;
+rR.shadowMap.type = THREE.PCFSoftShadowMap;
+const sR = new THREE.Scene(); sR.background = BG;
+const pmrem = new THREE.PMREMGenerator(rR);
+sR.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+sR.environmentIntensity = 0.6;
+const key = new THREE.DirectionalLight(0xffe0c2, 2.3); key.position.set(2.2, 4.2, 3.0);
+key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -1.6, right: 1.6, top: 2.6, bottom: -0.4, near: 0.5, far: 12 });
+key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
+sR.add(key);
+const rim = new THREE.DirectionalLight(0x9db8ff, 1.4); rim.position.set(-3, 2.6, -3.2); sR.add(rim);
+sR.add(new THREE.HemisphereLight(0x6a5a50, 0x1a1412, 0.35));
+floor(sR, true);
+
+const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 50);
+camera.position.set(2.4, 1.6, 5.6);
+const camO = camera.clone();
+const controls = new OrbitControls(camera, $('stage'));
+controls.target.set(0, 1.0, 0);
+controls.enableDamping = true;
+controls.minDistance = 1.2; controls.maxDistance = 12;
+controls.maxPolarAngle = Math.PI * 0.52;
+controls.autoRotate = true; controls.autoRotateSpeed = 0.6;
+controls.update();
+// on touch screens keep vertical swipes for page scrolling; horizontal drags still orbit
+if (matchMedia('(pointer: coarse)').matches) $('stage').style.touchAction = 'pan-y';
+controls.addEventListener('start', () => { if ($('spin').checked) { $('spin').checked = false; controls.autoRotate = false; } });
+
+const composer = new EffectComposer(rR);
+composer.addPass(new RenderPass(sR, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.55, 0.45, 0.82);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+// ---------------------------------------------------------------- remaster materials
+const M = {};
+for (const tag of rig.materials) {
+  const albedo = tex(`${tag}_albedo.jpg`, true), normal = tex(`${tag}_normal.jpg`, false);
+  const orm = tex(`${tag}_orm.jpg`, false), emis = tex(`${tag}_emissive.jpg`, true);
+  // maps are OpenGL-style (green up in the image); with flipY off, v runs down the image, so flip Y
+  const lit = new THREE.MeshStandardMaterial({
+    map: albedo, normalMap: normal, normalScale: new THREE.Vector2(1, -1),
+    roughnessMap: orm, metalnessMap: orm, aoMap: orm, aoMapIntensity: 1,
+    roughness: 1, metalness: 1, emissive: 0xffffff, emissiveMap: emis, emissiveIntensity: 1.6,
+  });
+  const view = (map, swz, linear) => {
+    const m = new THREE.MeshBasicMaterial({ map, toneMapped: false });
+    m.onBeforeCompile = (s) => {
+      s.fragmentShader = s.fragmentShader.replace('#include <map_fragment>',
+        `vec4 sampledDiffuseColor = texture2D( map, vMapUv ); vec3 c = sampledDiffuseColor.${swz};` +
+        (linear ? 'c = pow(c, vec3(2.2));' : '') + 'diffuseColor.rgb = c;');
+    };
+    m.customProgramCacheKey = () => swz + (linear ? 'L' : 'S');
+    return m;
+  };
+  M[tag] = {
+    lit, albedo: view(albedo, 'rgb', false), normal: view(normal, 'rgb', true), rough: view(orm, 'ggg', true),
+    metal: view(orm, 'bbb', true), ao: view(orm, 'rrr', true), emissive: view(emis, 'rgb', false),
+    weights: new THREE.MeshLambertMaterial({ vertexColors: true }),
+  };
+}
+
+// ---------------------------------------------------------------- remaster model + clips
+const legsBones = new Set(rig.bones.filter(b => b.half === 'legs').map(b => b.name));
+const torsoBones = new Set(rig.bones.filter(b => b.half === 'torso').map(b => b.name));
+let mixer, skinned = [], skelHelper, clips = {}, actions = { legs: null, torso: null };
+const modelGhost = new Md3Model(() => new THREE.MeshBasicMaterial({ color: 0xff6a2b, wireframe: true, transparent: true, opacity: 0.35 }));
+modelGhost.group.visible = false;
+sR.add(modelGhost.group);
+
+const gltf = await new GLTFLoader().loadAsync('rigged.json').catch((e) => {
+  $('loadRem').textContent = 'The rigged model did not load. Reload the page to try again.'; throw e;
+});
+const model = gltf.scene;
+model.traverse((o) => {
+  if (o.isSkinnedMesh) {
+    const tag = M[o.material.name] ? o.material.name : rig.materials[0];
+    o.userData.tag = tag;
+    o.material = M[tag].lit;
+    o.castShadow = true;
+    o.frustumCulled = false;
+    skinned.push(o);
+  }
+});
+sR.add(model);
+mixer = new THREE.AnimationMixer(model);
+// skeleton overlay: bone segments + joint dots drawn over the mesh (WebGL lines are 1 px, so dots carry it)
+const skelBones = skinned[0].skeleton.bones;
+const segPos = new Float32Array(skelBones.length * 6), ptPos = new Float32Array(skelBones.length * 3);
+const segGeo = new THREE.BufferGeometry(); segGeo.setAttribute('position', new THREE.BufferAttribute(segPos, 3));
+const ptGeo = new THREE.BufferGeometry(); ptGeo.setAttribute('position', new THREE.BufferAttribute(ptPos, 3));
+skelHelper = new THREE.Group();
+const segs = new THREE.LineSegments(segGeo, new THREE.LineBasicMaterial({ color: 0xffd2a8, depthTest: false, transparent: true }));
+const pts = new THREE.Points(ptGeo, new THREE.PointsMaterial({ color: 0xff6a2b, size: 8, sizeAttenuation: false, depthTest: false, transparent: true }));
+for (const o of [segs, pts]) { o.renderOrder = 999; o.frustumCulled = false; skelHelper.add(o); }
+skelHelper.visible = false;
+sR.add(skelHelper);
+const _w = new THREE.Vector3();
+function updateSkeleton() {
+  skelBones.forEach((b, i) => {
+    b.getWorldPosition(_w); _w.toArray(ptPos, i * 3);
+    _w.toArray(segPos, i * 6 + 3);
+    if (b.parent && b.parent.isBone) b.parent.getWorldPosition(_w);
+    _w.toArray(segPos, i * 6);
+  });
+  segGeo.attributes.position.needsUpdate = true;
+  ptGeo.attributes.position.needsUpdate = true;
+}
+
+// bone-weight colors: one hue per bone, blended by weight
+(() => {
+  const bones = skinned[0].skeleton.bones;
+  const pal = bones.map((b, i) => new THREE.Color().setHSL((i * 0.618) % 1, 0.7, 0.55));
+  for (const m of skinned) {
+    const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
+    const col = new Float32Array(si.count * 3);
+    for (let v = 0; v < si.count; v++) {
+      let r = 0, g = 0, b = 0;
+      for (let k = 0; k < 4; k++) {
+        const w = sw.getComponent(v, k), c = pal[si.getComponent(v, k)];
+        r += c.r * w; g += c.g * w; b += c.b * w;
+      }
+      col[v * 3] = r; col[v * 3 + 1] = g; col[v * 3 + 2] = b;
+    }
+    m.geometry.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  }
+})();
+
+for (const c of gltf.animations) {
+  const t0 = Math.min(...c.tracks.map(t => t.times[0]));
+  const pick = (set) => new THREE.AnimationClip(c.name, -1, c.tracks.filter(t => set.has(t.name.split('.')[0])));
+  clips[c.name] = {
+    t0,
+    legs: pick(c.name.startsWith('BOTH') ? new Set([...legsBones, ...torsoBones]) : legsBones),
+    torso: pick(torsoBones),
+  };
+}
+$('loadOrig').hidden = true; $('loadRem').hidden = true;
+
+// ---------------------------------------------------------------- clip state
+const legsSel = $('legs'), torsoSel = $('torso');
+const optList = (names) => names.map(n => `<option value="${n}">${CLIP_NAMES[n] || n}</option>`).join('');
+const names = Object.keys(anims);
+legsSel.innerHTML = `<optgroup label="Legs">${optList(names.filter(n => n.startsWith('LEGS')))}</optgroup>` +
+  `<optgroup label="Whole body">${optList(names.filter(n => n.startsWith('BOTH')))}</optgroup>`;
+torsoSel.innerHTML = optList(names.filter(n => n.startsWith('TORSO')));
+legsSel.value = 'LEGS_IDLE'; torsoSel.value = 'TORSO_GESTURE';
+
+const dur = (a) => (a.loop > 0 ? a.num : Math.max(a.num - 1, 1)) / a.fps;
+const state = { tl: 0, tt: 0, playing: true, speed: 1 };
+function setClips() {
+  const L = legsSel.value, both = L.startsWith('BOTH');
+  torsoSel.disabled = both;
+  for (const k of ['legs', 'torso']) { if (actions[k]) { actions[k].stop(); actions[k] = null; } }
+  actions.legs = mixer.clipAction(clips[L].legs); actions.legs.play();
+  if (!both) { actions.torso = mixer.clipAction(clips[torsoSel.value].torso); actions.torso.play(); }
+  state.tl = state.tt = 0;
+  const a = anims[L], b = anims[torsoSel.value];
+  $('clipInfo').textContent = both
+    ? `${L} · ${a.num} frames @ ${a.fps} fps`
+    : `${L} ${a.num}f@${a.fps} · ${torsoSel.value} ${b.num}f@${b.fps}`;
+}
+legsSel.addEventListener('change', setClips);
+torsoSel.addEventListener('change', setClips);
+setClips();
+
+function frameOf(a, t, first) {
+  const n = a.num;
+  let f = t * a.fps;
+  if (a.loop > 0) { f = f % n; const i = Math.floor(f); return [first + i, first + (i + 1) % n, f - i]; }
+  f = Math.min(f, n - 1); const i = Math.floor(f); return [first + i, first + Math.min(i + 1, n - 1), f - i];
+}
+function advance(t, a, dt) {
+  const d = dur(a);
+  t += dt;
+  if (a.loop > 0) return t % d;
+  return t > d + 0.9 ? 0 : t;  // hold the last pose briefly, then replay
+}
+
+// ---------------------------------------------------------------- UI
+$('play').addEventListener('click', () => {
+  state.playing = !state.playing; $('play').textContent = state.playing ? 'Pause' : 'Play';
+});
+$('speed').addEventListener('input', (e) => { state.speed = +e.target.value; $('speedVal').textContent = state.speed.toFixed(2) + '×'; });
+$('spin').addEventListener('change', (e) => { controls.autoRotate = e.target.checked; });
+$('solo').addEventListener('click', () => {
+  const on = $('stage').classList.toggle('solo');
+  $('solo').setAttribute('aria-pressed', String(on));
+  $('solo').textContent = on ? 'Side by side' : 'Remaster only';
+  resize();
+});
+let viewMode = 'lit';
+function applyView() {
+  for (const m of skinned) {
+    const mat = M[m.userData.tag][viewMode];
+    mat.wireframe = $('wire').checked;
+    m.material = mat;
+  }
+  for (const part of Object.values(modelO.parts)) for (const mt of [].concat(part.mesh.material)) mt.wireframe = $('wire').checked;
+  bloom.enabled = viewMode === 'lit';
+}
+$('views').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  viewMode = b.dataset.v;
+  for (const x of $('views').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+  applyView();
+});
+$('wire').addEventListener('change', applyView);
+$('skel').addEventListener('change', (e) => { skelHelper.visible = e.target.checked; });
+$('ghost').addEventListener('change', (e) => { modelGhost.group.visible = e.target.checked; });
+$('glow').addEventListener('input', (e) => {
+  const v = +e.target.value; $('glowVal').textContent = v.toFixed(1);
+  for (const k in M) M[k].lit.emissiveIntensity = v;
+});
+
+// numbers from the data, not hand-typed
+(() => {
+  const P = man.parts, tris = P.lower.origTris + P.upper.origTris + P.head.origTris;
+  const verts = P.lower.md3Verts + P.upper.md3Verts + P.head.md3Verts;
+  $('sO1').textContent = `3 pieces · ${tris} triangles · ${verts} vertices`;
+  $('sO3').textContent = `${P.lower.frames + P.upper.frames} baked vertex frames (legs ${P.lower.frames}, torso ${P.upper.frames}), 15–25 fps`;
+  const T = man.textures.filter(t => rig.materials.includes(t.stem));
+  const px = (t, k) => `${t.w * k}×${t.h * k}`;
+  $('tagOrig').textContent = `${tris} tris · ${T.map(t => px(t, 1)).join(' + ')} diffuse · vertex frames`;
+  $('sO2').textContent = `${T.map(t => px(t, 1)).join(' + ')}, lighting painted in`;
+  $('sR2').textContent = `${T.map(t => px(t, t.up)).join(' + ')} albedo, normal, AO/rough/metal, emissive`;
+  const cage = P.lower.welded + P.upper.welded + P.head.welded;
+  const hiT = P.lower.hiTris + P.upper.hiTris + P.head.hiTris;
+  $('wf2').textContent = `${verts} → ${cage} cage vertices · ${tris} → ${hiT.toLocaleString()} triangles`;
+  const nl = rig.bones.filter(b => b.half === 'legs').length - 1, nt = rig.bones.filter(b => b.half === 'torso').length;
+  $('wf3').textContent = `${nl} leg bones from ${P.lower.frames} frames · ${nt} torso bones from ${P.upper.frames} frames · plus root and tag bones`;
+  $('wf5').textContent = `${T.map(t => px(t, 1) + ' → ' + px(t, t.up)).join(' · ')} · 4 maps per material`;
+  for (const t of T) {
+    const el = document.createElement('div'); el.className = 'maps';
+    $('mapsHost').appendChild(el);
+    fillMaps(el, t.stem, t.stem);
+  }
+  $('sR1').textContent = `1 skinned mesh · ${rig.tris.toLocaleString()} triangles · ${rig.verts.toLocaleString()} vertices`;
+  $('sR3').textContent = `${rig.bones.length}-bone skeleton · ${rig.clips.length} clips at 60 fps`;
+  $('sR4').textContent = `legs ${rig.fit.lower_rms_mm.toFixed(1)} mm · torso ${rig.fit.upper_rms_mm.toFixed(1)} mm RMS`;
+  $('tagRem').textContent = `${rig.tris.toLocaleString()} tris · 2K PBR · ${rig.bones.length}-bone rig`;
+})();
+
+// ---------------------------------------------------------------- sizing + loop
+function sizeOf(canvas) { const r = canvas.parentElement.getBoundingClientRect(); return [Math.max(1, r.width), Math.max(1, r.height)]; }
+function resize() {
+  const [wo, ho] = sizeOf(rO.domElement); rO.setSize(wo, ho, false); camO.aspect = wo / ho; camO.updateProjectionMatrix();
+  const [wr, hr] = sizeOf(rR.domElement); rR.setSize(wr, hr, false); composer.setSize(wr, hr);
+  camera.aspect = wr / hr; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe($('stage'));
+resize();
+
+let visible = true;
+new IntersectionObserver((e) => { visible = e[0].isIntersecting; }).observe($('stage'));
+const clock = new THREE.Clock();
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  if (!visible) return;
+  const L = legsSel.value, both = L.startsWith('BOTH');
+  const aL = anims[L], aT = both ? aL : anims[torsoSel.value];
+  if (state.playing) {
+    state.tl = advance(state.tl, aL, dt * state.speed);
+    state.tt = both ? state.tl : advance(state.tt, aT, dt * state.speed);
+  }
+  const lf = frameOf(aL, state.tl, both ? aL.first : aL.first - SKIP);
+  const uf = frameOf(aT, state.tt, aT.first);
+  modelO.setFrames(lf, uf);
+  if (modelGhost.group.visible) modelGhost.setFrames(lf, uf);
+  const tl = Math.min(state.tl, dur(aL)), tt = Math.min(state.tt, dur(aT));
+  actions.legs.time = clips[L].t0 + tl;
+  if (actions.torso) actions.torso.time = clips[torsoSel.value].t0 + tt;
+  mixer.update(0);
+  if (skelHelper.visible) { model.updateMatrixWorld(true); updateSkeleton(); }
+  controls.update();
+  camO.position.copy(camera.position); camO.quaternion.copy(camera.quaternion);
+  if (!$('stage').classList.contains('solo')) rO.render(sO, camO);
+  composer.render();
+}
+applyView();
+tick();
+</script>

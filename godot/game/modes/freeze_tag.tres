@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Q3GameMode" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/match/game_mode.gd" id="1_mode"]
+
+[resource]
+script = ExtResource("1_mode")
+id = "freeze_tag"
+display_name = "Freeze Tag"
+description = "Kills freeze instead of kill; teammates thaw you by standing next to you. Freeze the whole enemy team to win the round."
+team_based = true
+rounds = true
+map_types = PackedStringArray("team", "ffa")
+rules = {
+"roundlimit": 10,
+"max_players": 10,
+"warmup": 10
+}
+modifiers = {}

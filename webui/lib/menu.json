@@ -1,0 +1,128 @@
+{
+  "_note": "The menu tree. Every page id has a component in components/pages; every action is handled by Godot's menu bridge (scenes/main_menu/menu_bridge.gd). The Godot self-test reads this file from res://webui/menu.json.",
+  "main": [
+    {
+      "id": "single_player",
+      "label": "Single Player",
+      "hint": "Quake III Arena's campaign: tiers of arenas up to the final duel",
+      "page": "single_player"
+    },
+    {
+      "id": "play",
+      "label": "Play",
+      "hint": "Matchmaking, servers, bots and training",
+      "page": "play"
+    },
+    {
+      "id": "map_editor",
+      "label": "Map Editor",
+      "hint": "Build arenas or import Quake 3's maps",
+      "action": "map_editor"
+    },
+    {
+      "id": "profile",
+      "label": "Profile",
+      "hint": "Character, colors, stats",
+      "page": "profile"
+    },
+    {
+      "id": "workshop",
+      "label": "Workshop",
+      "hint": "Maps, models, skins and mods",
+      "page": "workshop"
+    },
+    {
+      "id": "cinematics",
+      "label": "Cinematics",
+      "hint": "Quake 3's movies: the intro, the tier movies, the ending",
+      "page": "cinematics"
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "hint": "Video, audio, controls and more",
+      "page": "settings"
+    },
+    {
+      "id": "credits",
+      "label": "Credits",
+      "hint": "The people behind it",
+      "page": "credits"
+    },
+    {
+      "id": "quit",
+      "label": "Quit",
+      "hint": "Back to the desktop",
+      "page": "quit"
+    }
+  ],
+  "play": [
+    {
+      "id": "continue",
+      "label": "Continue",
+      "hint": "Rejoin your last match",
+      "action": "continue",
+      "when": "continue"
+    },
+    {
+      "id": "quick_play",
+      "label": "Quick Play",
+      "hint": "Matchmaking into a casual game",
+      "page": "quick_play"
+    },
+    {
+      "id": "ranked",
+      "label": "Ranked",
+      "hint": "Competitive queues with a ladder",
+      "page": "ranked"
+    },
+    {
+      "id": "server_browser",
+      "label": "Server Browser",
+      "hint": "Find a server: filters, favorites, history",
+      "page": "server_browser"
+    },
+    {
+      "id": "create_match",
+      "label": "Create Match",
+      "hint": "Mode, map, rules, modifiers and bots",
+      "page": "create_match"
+    },
+    {
+      "id": "offline_bots",
+      "label": "Offline vs Bots",
+      "hint": "A quick game against bots",
+      "page": "offline_bots"
+    },
+    {
+      "id": "training",
+      "label": "Training",
+      "hint": "Practice movement, aim and duels",
+      "page": "training"
+    }
+  ],
+  "pages": [
+    "single_player",
+    "play",
+    "quick_play",
+    "ranked",
+    "server_browser",
+    "create_match",
+    "offline_bots",
+    "training",
+    "profile",
+    "workshop",
+    "settings",
+    "credits",
+    "quit",
+    "cinematics"
+  ],
+  "actions": [
+    "map_editor",
+    "continue",
+    "start",
+    "quit",
+    "campaign_start",
+    "cinematic"
+  ]
+}

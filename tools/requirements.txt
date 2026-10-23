@@ -1,0 +1,5 @@
+# Python packages for the Q3Remaster tools (Blender's own Python needs nothing extra)
+numpy>=2.0
+scipy>=1.13
+opencv-python>=4.10
+pillow>=10.0

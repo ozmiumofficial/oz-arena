@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Q3GameMode" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/match/game_mode.gd" id="1_mode"]
+
+[resource]
+script = ExtResource("1_mode")
+id = "ffa"
+display_name = "Free For All"
+description = "Every player for themselves. Most frags wins."
+team_based = false
+rounds = false
+map_types = PackedStringArray("ffa")
+rules = {
+"fraglimit": 20,
+"timelimit": 15,
+"max_players": 12,
+"warmup": 0
+}
+modifiers = {}

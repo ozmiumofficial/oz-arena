@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Q3GameMode" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/match/game_mode.gd" id="1_mode"]
+
+[resource]
+script = ExtResource("1_mode")
+id = "clan_arena"
+display_name = "Clan Arena"
+description = "Rounds, no pickups, everyone spawns with every weapon and full armor. Last team standing wins the round."
+team_based = true
+rounds = true
+map_types = PackedStringArray("team", "ffa", "tourney")
+rules = {
+"roundlimit": 10,
+"max_players": 8,
+"warmup": 10
+}
+modifiers = {
+"weapon_set": "all_weapons",
+"item_set": "no_items"
+}

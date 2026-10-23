@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "webui",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "webui", "run", "dev", "--", "--port", "3217"],
+      "port": 3217
+    }
+  ]
+}

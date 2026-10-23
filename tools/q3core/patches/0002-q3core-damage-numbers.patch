@@ -1,0 +1,19 @@
+diff --git a/code/game/g_combat.c b/code/game/g_combat.c
+--- a/code/game/g_combat.c
++++ b/code/game/g_combat.c
+@@ -1037,6 +1037,15 @@
+ 		targ->client->lasthurt_mod = mod;
+ 	}
+ 
++	// q3core addition (not gameplay): tell a human attacker what the hit did, for damage numbers,
++	// and everyone when armor took part of a hit, for the armor shell (armor left after the hit)
++	if ( attacker && attacker->client && targ->client && attacker != targ && ( take + asave ) > 0
++		&& !( attacker->r.svFlags & SVF_BOT ) ) {
++		trap_SendServerCommand( attacker - g_entities, va( "dmg %i %i %i", targ->s.number, take + asave, asave ) );
++	}
++	if ( targ->client && asave > 0 ) {
++		trap_SendServerCommand( -1, va( "armorhit %i %i", targ->s.number, targ->client->ps.stats[STAT_ARMOR] ) );
++	}
+ 
+ 	// do the damage
+ 	if (take) {

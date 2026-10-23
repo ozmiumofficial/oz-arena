@@ -1,0 +1,4 @@
+{
+  "_comment": "Per-model overrides for remaster_model.py. Any key can be left out. lower/upper = bone counts (otherwise picked automatically), face_band = image height (0..1) above which the head texture is face/skin, skin = which .skin set to use.",
+  "keel": { "lower": 7, "upper": 10, "face_band": 0.62 }
+}

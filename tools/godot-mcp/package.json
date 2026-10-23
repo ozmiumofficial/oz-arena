@@ -1,0 +1,23 @@
+{
+  "name": "godot-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for controlling Godot 4.x: run projects, edit scenes, drive the live editor",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "godot-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "node harness/test.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.9",
+    "typescript": "^7.0.2"
+  }
+}

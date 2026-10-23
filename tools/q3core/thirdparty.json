@@ -1,0 +1,6 @@
+{
+ "_note": "Pinned sources for q3core (tools/build_q3core.py fetches them). ioq3 is what compiles; id-q3a is id's original 1.32 release, kept to audit ioquake3's game-code changes against.",
+ "ioq3": {"url": "https://github.com/ioquake/ioq3.git", "commit": "87a99d18206e878a20289f05ac3c16005dcae5c3"},
+ "godot-cpp": {"url": "https://github.com/godotengine/godot-cpp.git", "commit": "8070599885b6df675fcad033dd032ce44be2b850"},
+ "id-q3a": {"url": "https://github.com/id-Software/Quake-III-Arena.git", "commit": "dbe4ddb10315479fc00086f08e25d968b4b43c49"}
+}

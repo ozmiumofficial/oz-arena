@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Q3GameMode" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/match/game_mode.gd" id="1_mode"]
+
+[resource]
+script = ExtResource("1_mode")
+id = "instagib"
+display_name = "Instagib"
+description = "Railguns only, one hit kills, no pickups."
+team_based = false
+rounds = false
+map_types = PackedStringArray("ffa", "tourney", "team")
+rules = {
+"fraglimit": 30,
+"timelimit": 10,
+"max_players": 12,
+"warmup": 0
+}
+modifiers = {
+"weapon_set": "railgun_only",
+"item_set": "no_items",
+"damage": "instagib"
+}

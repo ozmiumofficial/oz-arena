@@ -1,0 +1,5 @@
+godot_wry v1.0.2 (MIT) - https://github.com/doceazedo/godot_wry/releases/tag/v1.0.2
+godot_wry.zip sha256 706b407aca47df0626df26997a3e825a49c91985a199cead3d0b75d35fca783c
+Native webview (WebView2 on Windows, WebKit on macOS, WebKitGTK on Linux/X11) used by the main menu UI.
+Examples and the demo index.html were left out.
+WRY.gdextension: reloadable set to false (WebView can't hot-reload; avoids an editor error).

@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+"""q3core: id's GPL Quake III Arena game code (ioquake3) as a Godot 4.7 GDExtension.
+
+Built by tools/build_q3core.py (scons platform=windows target=template_debug|template_release).
+Two libraries:
+  bin/q3core.<platform>.<target>.<arch>   the GDExtension: ioquake3's dedicated-server engine
+      (collision, server, botlib, file system over the player's paks, cvars, commands) with
+      src/engine/q3_sys.c in place of sys_main.c, plus the Godot classes in src/*.cpp
+  bin/baseq3/qagame<arch>                 the game module, loaded by the engine like ioquake3 loads
+      it (FS_FindVM in fs_basepath/baseq3), so its symbols never meet the engine's
+id's C files only talk to Godot through src/q3_api.h (plain C), so q_shared.h never meets godot-cpp.
+"""
+import os
+
+env = SConscript("thirdparty/godot-cpp/SConstruct", {"api_version": "4.7"})
+
+CODE = "thirdparty/ioq3/code/"
+ZLIB = CODE + "thirdparty/zlib-1.3.1/"
+
+# ioquake3's dedicated server (cmake/server.cmake + shared_sources.cmake), minus sys_main.c,
+# the console and the JIT compilers.
+ENGINE = [
+    "qcommon/cm_load.c", "qcommon/cm_patch.c", "qcommon/cm_polylib.c", "qcommon/cm_test.c",
+    "qcommon/cm_trace.c", "qcommon/cmd.c", "qcommon/common.c", "qcommon/cvar.c", "qcommon/files.c",
+    "qcommon/md4.c", "qcommon/md5.c", "qcommon/msg.c", "qcommon/net_chan.c", "qcommon/net_ip.c",
+    "qcommon/huffman.c", "qcommon/q_math.c", "qcommon/q_shared.c", "qcommon/unzip.c",
+    "qcommon/ioapi.c", "qcommon/vm.c", "qcommon/vm_interpreted.c",
+    "server/sv_bot.c", "server/sv_client.c", "server/sv_ccmds.c", "server/sv_game.c",
+    "server/sv_init.c", "server/sv_main.c", "server/sv_net_chan.c", "server/sv_snapshot.c",
+    "server/sv_world.c",
+    "botlib/be_aas_bspq3.c", "botlib/be_aas_cluster.c", "botlib/be_aas_debug.c",
+    "botlib/be_aas_entity.c", "botlib/be_aas_file.c", "botlib/be_aas_main.c", "botlib/be_aas_move.c",
+    "botlib/be_aas_optimize.c", "botlib/be_aas_reach.c", "botlib/be_aas_route.c",
+    "botlib/be_aas_routealt.c", "botlib/be_aas_sample.c", "botlib/be_ai_char.c", "botlib/be_ai_chat.c",
+    "botlib/be_ai_gen.c", "botlib/be_ai_goal.c", "botlib/be_ai_move.c", "botlib/be_ai_weap.c",
+    "botlib/be_ai_weight.c", "botlib/be_ea.c", "botlib/be_interface.c", "botlib/l_crc.c",
+    "botlib/l_libvar.c", "botlib/l_log.c", "botlib/l_memory.c", "botlib/l_precomp.c",
+    "botlib/l_script.c", "botlib/l_struct.c",
+    "null/null_client.c", "null/null_input.c", "null/null_snddma.c",
+    "sys/con_log.c", "sys/sys_win32.c",
+    # client-side prediction (Q3Pmove) runs the same movement code the game module does
+    "game/bg_misc.c", "game/bg_pmove.c", "game/bg_slidemove.c",
+]
+ZLIB_SOURCES = ["adler32.c", "crc32.c", "inffast.c", "inflate.c", "inftrees.c", "zutil.c"]
+
+# The game module (cmake/basegame.cmake GAME_SOURCES + shared + g_syscalls.c).
+GAME = [
+    "game/g_main.c", "game/ai_chat.c", "game/ai_cmd.c", "game/ai_dmnet.c", "game/ai_dmq3.c",
+    "game/ai_main.c", "game/ai_team.c", "game/ai_vcmd.c", "game/bg_misc.c", "game/bg_pmove.c",
+    "game/bg_slidemove.c", "game/bg_lib.c", "game/g_active.c", "game/g_arenas.c", "game/g_bot.c",
+    "game/g_client.c", "game/g_cmds.c", "game/g_combat.c", "game/g_items.c", "game/g_mem.c",
+    "game/g_misc.c", "game/g_missile.c", "game/g_mover.c", "game/g_session.c", "game/g_spawn.c",
+    "game/g_svcmds.c", "game/g_target.c", "game/g_team.c", "game/g_trigger.c", "game/g_utils.c",
+    "game/g_weapon.c", "game/g_syscalls.c", "qcommon/q_math.c", "qcommon/q_shared.c",
+]
+
+QUIET = ["/wd4244", "/wd4267", "/wd4305", "/wd4996", "/wd4018", "/wd4146", "/wd4334", "/wd4311", "/wd4312"]
+
+
+def c_env(defines):
+    e = env.Clone()
+    e.Append(CPPDEFINES=defines + ["_CRT_SECURE_NO_WARNINGS", "_WINSOCK_DEPRECATED_NO_WARNINGS"])
+    e.Append(CPPPATH=[ZLIB])
+    if e.get("is_msvc", False):
+        e.Append(CCFLAGS=QUIET)
+    return e
+
+
+def objects(e, prefix, files, root):
+    return [e.SharedObject("build/%s/%s" % (prefix, f.replace("/", "_")[:-2]), root + f) for f in files]
+
+
+eenv = c_env(["DEDICATED", "BOTLIB", "NO_VM_COMPILED"])
+engine_objs = objects(eenv, "engine", ENGINE, CODE) + objects(eenv, "zlib", ZLIB_SOURCES, ZLIB)
+engine_objs += [eenv.SharedObject("build/q3core/" + os.path.basename(str(s))[:-2], s)
+                for s in Glob("src/*.c") + Glob("src/engine/*.c")]
+
+env.Append(CPPPATH=["src/"])
+if env["platform"] == "windows":
+    env.Append(LIBS=["ws2_32", "winmm", "psapi", "advapi32", "shell32", "user32", "ole32"])
+library = env.SharedLibrary(
+    "bin/q3core{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+    source=Glob("src/*.cpp") + engine_objs,
+)
+
+genv = c_env(["QAGAME"])
+genv["LIBS"] = []
+arch = {"x86_64": "x86_64", "x86_32": "x86", "arm64": "arm64"}.get(env["arch"], env["arch"])
+game = genv.SharedLibrary(
+    "bin/baseq3/qagame" + arch + env["SHLIBSUFFIX"],
+    source=objects(genv, "game", GAME, CODE),
+)
+env.NoCache([library, game])
+Default([library, game])

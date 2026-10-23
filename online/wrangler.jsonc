@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Placeholder name: rename with the project (no "Quake" anywhere, PLAN.md "Licensing").
+  "name": "arena-online",
+  // Ozmium's personal Cloudflare account (2026-10-22): keeps the fan project off the business account and its free-tier
+  // request allowance separate from TRAC3R's.
+  "account_id": "00b8548d3b88fa36a1b2ff2e1b5dad07",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-26",
+  "workers_dev": true,
+  // One Durable Object ("global") holds identities, friends, requests, parties and live presence in its own
+  // SQLite. Sockets use hibernation, so idle players cost nothing (Workers Free plan).
+  "durable_objects": {
+    "bindings": [{ "name": "HUB", "class_name": "Hub" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Hub"] }]
+}

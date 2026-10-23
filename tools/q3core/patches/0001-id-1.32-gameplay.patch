@@ -1,0 +1,547 @@
+diff --git a/code/game/ai_dmnet.c b/code/game/ai_dmnet.c
+index b107895..ec90382 100644
+--- a/code/game/ai_dmnet.c
++++ b/code/game/ai_dmnet.c
+@@ -1291,6 +1291,7 @@ int AINode_Respawn(bot_state_t *bs) {
+ BotSelectActivateWeapon
+ ==================
+ */
++// q3core: id 1.32's BotSelectActivateWeapon (audit R11): no grenade launcher for buttons
+ int BotSelectActivateWeapon(bot_state_t *bs) {
+ 	//
+ 	if (bs->inventory[INVENTORY_MACHINEGUN] > 0 && bs->inventory[INVENTORY_BULLETS] > 0)
+@@ -1306,11 +1307,7 @@ int BotSelectActivateWeapon(bot_state_t *bs) {
+ 		return WEAPONINDEX_CHAINGUN;
+ 	else if (bs->inventory[INVENTORY_NAILGUN] > 0 && bs->inventory[INVENTORY_NAILS] > 0)
+ 		return WEAPONINDEX_NAILGUN;
+-	else if (bs->inventory[INVENTORY_PROXLAUNCHER] > 0 && bs->inventory[INVENTORY_MINES] > 0)
+-		return WEAPONINDEX_PROXLAUNCHER;
+ #endif
+-	else if (bs->inventory[INVENTORY_GRENADELAUNCHER] > 0 && bs->inventory[INVENTORY_GRENADES] > 0)
+-		return WEAPONINDEX_GRENADE_LAUNCHER;
+ 	else if (bs->inventory[INVENTORY_RAILGUN] > 0 && bs->inventory[INVENTORY_SLUGS] > 0)
+ 		return WEAPONINDEX_RAILGUN;
+ 	else if (bs->inventory[INVENTORY_ROCKETLAUNCHER] > 0 && bs->inventory[INVENTORY_ROCKETS] > 0)
+@@ -1969,7 +1966,7 @@ void AIEnter_Battle_Fight(bot_state_t *bs, char *s) {
+ 	BotRecordNodeSwitch(bs, "battle fight", "", s);
+ 	trap_BotResetLastAvoidReach(bs->ms);
+ 	bs->ainode = AINode_Battle_Fight;
+-	bs->flags &= ~BFL_FIGHTSUICIDAL;
++	// q3core: id 1.32 (audit A5, Ozmium 2026-10-22): BFL_FIGHTSUICIDAL stays set once a bot fought with no way out
+ }
+ 
+ /*
+diff --git a/code/game/ai_dmq3.c b/code/game/ai_dmq3.c
+index eb9b585..834a537 100644
+--- a/code/game/ai_dmq3.c
++++ b/code/game/ai_dmq3.c
+@@ -3679,6 +3679,8 @@ void BotCheckAttack(bot_state_t *bs) {
+ BotMapScripts
+ ==================
+ */
++// q3core: id 1.32's BotMapScripts (audit R12): the q3tourney6 crusher rule as shipped
++// (ioquake3 has no maxclients global; level.maxclients holds the same value)
+ void BotMapScripts(bot_state_t *bs) {
+ 	char info[1024];
+ 	char mapname[128];
+@@ -3689,29 +3691,25 @@ void BotMapScripts(bot_state_t *bs) {
+ 
+ 	trap_GetServerinfo(info, sizeof(info));
+ 
+-	Q_strncpyz(mapname, Info_ValueForKey( info, "mapname" ), sizeof(mapname));
++	strncpy(mapname, Info_ValueForKey( info, "mapname" ), sizeof(mapname)-1);
++	mapname[sizeof(mapname)-1] = '\0';
+ 
+-	if (!Q_stricmp(mapname, "q3tourney6") || !Q_stricmp(mapname, "q3tourney6_ctf") || !Q_stricmp(mapname, "mpq3tourney6")) {
+-		vec3_t mins = {694, 200, 480}, maxs = {968, 472, 680};
++	if (!Q_stricmp(mapname, "q3tourney6")) {
++		vec3_t mins = {700, 204, 672}, maxs = {964, 468, 680};
+ 		vec3_t buttonorg = {304, 352, 920};
+ 		//NOTE: NEVER use the func_bobbing in q3tourney6
+ 		bs->tfl &= ~TFL_FUNCBOB;
+-		//crush area is higher in mpq3tourney6
+-		if (!Q_stricmp(mapname, "mpq3tourney6")) {
+-			mins[2] += 64;
+-			maxs[2] += 64;
+-		}
+-		//if the bot is in the bounding box of the crush area
++		//if the bot is below the bounding box
+ 		if (bs->origin[0] > mins[0] && bs->origin[0] < maxs[0]) {
+ 			if (bs->origin[1] > mins[1] && bs->origin[1] < maxs[1]) {
+-				if (bs->origin[2] > mins[2] && bs->origin[2] < maxs[2]) {
++				if (bs->origin[2] < mins[2]) {
+ 					return;
+ 				}
+ 			}
+ 		}
+ 		shootbutton = qfalse;
+-		//if an enemy is in the bounding box then shoot the button
+-		for (i = 0; i < level.maxclients; i++) {
++		//if an enemy is below this bounding box then shoot the button
++		for (i = 0; i < level.maxclients && i < MAX_CLIENTS; i++) {
+ 
+ 			if (i == bs->client) continue;
+ 			//
+@@ -3723,13 +3721,13 @@ void BotMapScripts(bot_state_t *bs) {
+ 			//
+ 			if (entinfo.origin[0] > mins[0] && entinfo.origin[0] < maxs[0]) {
+ 				if (entinfo.origin[1] > mins[1] && entinfo.origin[1] < maxs[1]) {
+-					if (entinfo.origin[2] > mins[2] && entinfo.origin[2] < maxs[2]) {
++					if (entinfo.origin[2] < mins[2]) {
+ 						//if there's a team mate below the crusher
+ 						if (BotSameTeam(bs, i)) {
+ 							shootbutton = qfalse;
+ 							break;
+ 						}
+-						else if (gametype < GT_CTF || bs->enemy == i) {
++						else {
+ 							shootbutton = qtrue;
+ 						}
+ 					}
+@@ -3751,6 +3749,10 @@ void BotMapScripts(bot_state_t *bs) {
+ 			}
+ 		}
+ 	}
++	else if (!Q_stricmp(mapname, "mpq3tourney6")) {
++		//NOTE: NEVER use the func_bobbing in mpq3tourney6
++		bs->tfl &= ~TFL_FUNCBOB;
++	}
+ }
+ 
+ /*
+diff --git a/code/game/ai_main.c b/code/game/ai_main.c
+index ed5653d..7337019 100644
+--- a/code/game/ai_main.c
++++ b/code/game/ai_main.c
+@@ -814,14 +814,17 @@ void BotChangeViewAngles(bot_state_t *bs, float thinktime) {
+ BotInputToUserCommand
+ ==============
+ */
++// q3core: id 1.32's BotInputToUserCommand (audit R10): move input projected on the view axes,
++// keyboard actions added, so bots strafe-while-aiming slower than full speed as they did in 1.32
+ void BotInputToUserCommand(bot_input_t *bi, usercmd_t *ucmd, int delta_angles[3], int time) {
+ 	vec3_t angles, forward, right;
+ 	short temp;
+ 	int j;
+-	float f, r, u, m;
+ 
+ 	//clear the whole structure
+ 	memset(ucmd, 0, sizeof(usercmd_t));
++	//
++	//Com_Printf("dir = %f %f %f speed = %f\n", bi->dir[0], bi->dir[1], bi->dir[2], bi->speed);
+ 	//the duration for the user command in milli seconds
+ 	ucmd->serverTime = time;
+ 	//
+@@ -872,37 +875,21 @@ void BotInputToUserCommand(bot_input_t *bi, usercmd_t *ucmd, int delta_angles[3]
+ 	//bot input speed is in the range [0, 400]
+ 	bi->speed = bi->speed * 127 / 400;
+ 	//set the view independent movement
+-	f = DotProduct(forward, bi->dir);
+-	r = DotProduct(right, bi->dir);
+-	u = fabs(forward[2]) * bi->dir[2];
+-	m = fabs(f);
+-
+-	if (fabs(r) > m) {
+-		m = fabs(r);
+-	}
+-
+-	if (fabs(u) > m) {
+-		m = fabs(u);
+-	}
+-
+-	if (m > 0) {
+-		f *= bi->speed / m;
+-		r *= bi->speed / m;
+-		u *= bi->speed / m;
+-	}
+-
+-	ucmd->forwardmove = f;
+-	ucmd->rightmove = r;
+-	ucmd->upmove = u;
+-
+-	if (bi->actionflags & ACTION_MOVEFORWARD) ucmd->forwardmove = 127;
+-	if (bi->actionflags & ACTION_MOVEBACK) ucmd->forwardmove = -127;
+-	if (bi->actionflags & ACTION_MOVELEFT) ucmd->rightmove = -127;
+-	if (bi->actionflags & ACTION_MOVERIGHT) ucmd->rightmove = 127;
++	ucmd->forwardmove = DotProduct(forward, bi->dir) * bi->speed;
++	ucmd->rightmove = DotProduct(right, bi->dir) * bi->speed;
++	ucmd->upmove = abs(forward[2]) * bi->dir[2] * bi->speed;
++	//normal keyboard movement
++	if (bi->actionflags & ACTION_MOVEFORWARD) ucmd->forwardmove += 127;
++	if (bi->actionflags & ACTION_MOVEBACK) ucmd->forwardmove -= 127;
++	if (bi->actionflags & ACTION_MOVELEFT) ucmd->rightmove -= 127;
++	if (bi->actionflags & ACTION_MOVERIGHT) ucmd->rightmove += 127;
+ 	//jump/moveup
+-	if (bi->actionflags & ACTION_JUMP) ucmd->upmove = 127;
++	if (bi->actionflags & ACTION_JUMP) ucmd->upmove += 127;
+ 	//crouch/movedown
+-	if (bi->actionflags & ACTION_CROUCH) ucmd->upmove = -127;
++	if (bi->actionflags & ACTION_CROUCH) ucmd->upmove -= 127;
++	//
++	//Com_Printf("forward = %d right = %d up = %d\n", ucmd.forwardmove, ucmd.rightmove, ucmd.upmove);
++	//Com_Printf("ucmd->serverTime = %d\n", ucmd->serverTime);
+ }
+ 
+ /*
+diff --git a/code/game/ai_team.c b/code/game/ai_team.c
+index fba03f2..39e6bba 100644
+--- a/code/game/ai_team.c
++++ b/code/game/ai_team.c
+@@ -445,6 +445,7 @@ void BotCTFOrders_BothFlagsNotAtBase(bot_state_t *bs) {
+ BotCTFOrders
+ ==================
+ */
++// q3core: id 1.32's BotCTFOrders_FlagNotAtBase (audit R13): the shipped CTF leader orders
+ void BotCTFOrders_FlagNotAtBase(bot_state_t *bs) {
+ 	int numteammates, defenders, attackers, i;
+ 	int teammates[MAX_CLIENTS];
+@@ -459,11 +460,11 @@ void BotCTFOrders_FlagNotAtBase(bot_state_t *bs) {
+ 			case 1: break;
+ 			case 2:
+ 			{
+-				// keep one near the base for when the flag is returned
++				//both will go for the enemy flag
+ 				ClientName(teammates[0], name, sizeof(name));
+ 				BotAI_BotInitialChat(bs, "cmd_defendbase", name, NULL);
+ 				BotSayTeamOrder(bs, teammates[0]);
+-				BotSayVoiceTeamOrder(bs, teammates[0], VOICECHAT_DEFEND);
++				BotSayVoiceTeamOrder(bs, teammates[0], VOICECHAT_GETFLAG);
+ 				//
+ 				ClientName(teammates[1], name, sizeof(name));
+ 				BotAI_BotInitialChat(bs, "cmd_getflag", name, NULL);
+@@ -495,7 +496,7 @@ void BotCTFOrders_FlagNotAtBase(bot_state_t *bs) {
+ 				//keep some people near the base for when the flag is returned
+ 				defenders = (int) (float) numteammates * 0.3 + 0.5;
+ 				if (defenders > 3) defenders = 3;
+-				attackers = (int) (float) numteammates * 0.6 + 0.5;
++				attackers = (int) (float) numteammates * 0.7 + 0.5;
+ 				if (attackers > 6) attackers = 6;
+ 				for (i = 0; i < defenders; i++) {
+ 					//
+@@ -538,7 +539,7 @@ void BotCTFOrders_FlagNotAtBase(bot_state_t *bs) {
+ 			{
+ 				//everyone go for the flag
+ 				ClientName(teammates[0], name, sizeof(name));
+-				BotAI_BotInitialChat(bs, "cmd_getflag", name, NULL);
++				BotAI_BotInitialChat(bs, "cmd_defendbase", name, NULL);
+ 				BotSayTeamOrder(bs, teammates[0]);
+ 				BotSayVoiceTeamOrder(bs, teammates[0], VOICECHAT_GETFLAG);
+ 				//
+diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
+index c754174..504aefe 100644
+--- a/code/game/bg_pmove.c
++++ b/code/game/bg_pmove.c
+@@ -424,7 +424,7 @@ static qboolean	PM_CheckWaterJump( void ) {
+ 
+ 	spot[2] += 16;
+ 	cont = pm->pointcontents (spot, pm->ps->clientNum );
+-	if ( cont & (CONTENTS_SOLID|CONTENTS_PLAYERCLIP|CONTENTS_BODY) ) {
++	if ( cont ) {	// q3core: id 1.32 (audit R1): any contents above the ledge blocks the water jump
+ 		return qfalse;
+ 	}
+ 
+diff --git a/code/game/g_active.c b/code/game/g_active.c
+index 8c9a784..8e37a70 100644
+--- a/code/game/g_active.c
++++ b/code/game/g_active.c
+@@ -128,6 +128,16 @@ void P_WorldEffects( gentity_t *ent ) {
+ 				if (ent->damage > 15)
+ 					ent->damage = 15;
+ 
++				// q3core: id 1.32 (audit R5): the game plays the gurp / drown sound
++				// play a gurp sound instead of a normal pain sound
++				if (ent->health <= ent->damage) {
++					G_Sound(ent, CHAN_VOICE, G_SoundIndex("*drown.wav"));
++				} else if (rand()&1) {
++					G_Sound(ent, CHAN_VOICE, G_SoundIndex("sound/player/gurp1.wav"));
++				} else {
++					G_Sound(ent, CHAN_VOICE, G_SoundIndex("sound/player/gurp2.wav"));
++				}
++
+ 				// don't play a normal pain sound
+ 				ent->pain_debounce_time = level.time + 200;
+ 
+diff --git a/code/game/g_combat.c b/code/game/g_combat.c
+index b8f7448..1cae5db 100644
+--- a/code/game/g_combat.c
++++ b/code/game/g_combat.c
+@@ -561,7 +561,22 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
+ 		}
+ 	}
+ 
+-	TossClientItems( self );
++	// q3core: id 1.32 (audit R4): in a nodrop area drop nothing, but return CTF flags
++	contents = trap_PointContents( self->r.currentOrigin, -1 );
++	if ( !( contents & CONTENTS_NODROP )) {
++		TossClientItems( self );
++	}
++	else {
++		if ( self->client->ps.powerups[PW_NEUTRALFLAG] ) {		// only happens in One Flag CTF
++			Team_ReturnFlag( TEAM_FREE );
++		}
++		else if ( self->client->ps.powerups[PW_REDFLAG] ) {		// only happens in standard CTF
++			Team_ReturnFlag( TEAM_RED );
++		}
++		else if ( self->client->ps.powerups[PW_BLUEFLAG] ) {	// only happens in standard CTF
++			Team_ReturnFlag( TEAM_BLUE );
++		}
++	}
+ #ifdef MISSIONPACK
+ 	TossClientPersistantPowerups( self );
+ 	if( g_gametype.integer == GT_HARVESTER ) {
+@@ -954,8 +969,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
+ 	}
+ 
+ 	// add to the attacker's hit counter (if the target isn't a general entity like a prox mine)
+-	if ( attacker->client && client
+-			&& targ != attacker && targ->health > 0
++	// q3core: id 1.32 (audit R3): shootable doors and buttons beep too
++	if ( attacker->client && targ != attacker && targ->health > 0
+ 			&& targ->s.eType != ET_MISSILE
+ 			&& targ->s.eType != ET_GENERAL) {
+ 		if ( OnSameTeam( targ, attacker ) ) {
+@@ -1055,97 +1070,52 @@ Returns qtrue if the inflictor can directly damage the target.  Used for
+ explosions and melee attacks.
+ ============
+ */
++// q3core: id 1.32's CanDamage (audit R2): center plus 4 corners at the center's height
+ qboolean CanDamage (gentity_t *targ, vec3_t origin) {
+ 	vec3_t	dest;
+ 	trace_t	tr;
+ 	vec3_t	midpoint;
+-	vec3_t	offsetmins = {-15, -15, -15};
+-	vec3_t	offsetmaxs = {15, 15, 15};
+ 
+ 	// use the midpoint of the bounds instead of the origin, because
+ 	// bmodels may have their origin is 0,0,0
+ 	VectorAdd (targ->r.absmin, targ->r.absmax, midpoint);
+ 	VectorScale (midpoint, 0.5, midpoint);
+ 
+-	VectorCopy(midpoint, dest);
+-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+-
++	VectorCopy (midpoint, dest);
++	trap_Trace ( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+ 	if (tr.fraction == 1.0 || tr.entityNum == targ->s.number)
+ 		return qtrue;
+ 
+ 	// this should probably check in the plane of projection, 
+-	// rather than in world coordinate
+-	VectorCopy(midpoint, dest);
+-	dest[0] += offsetmaxs[0];
+-	dest[1] += offsetmaxs[1];
+-	dest[2] += offsetmaxs[2];
+-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+-
++	// rather than in world coordinate, and also include Z
++	VectorCopy (midpoint, dest);
++	dest[0] += 15.0;
++	dest[1] += 15.0;
++	trap_Trace ( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+ 	if (tr.fraction == 1.0)
+ 		return qtrue;
+ 
+-	VectorCopy(midpoint, dest);
+-	dest[0] += offsetmaxs[0];
+-	dest[1] += offsetmins[1];
+-	dest[2] += offsetmaxs[2];
+-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+-
++	VectorCopy (midpoint, dest);
++	dest[0] += 15.0;
++	dest[1] -= 15.0;
++	trap_Trace ( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+ 	if (tr.fraction == 1.0)
+ 		return qtrue;
+ 
+-	VectorCopy(midpoint, dest);
+-	dest[0] += offsetmins[0];
+-	dest[1] += offsetmaxs[1];
+-	dest[2] += offsetmaxs[2];
+-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+-
++	VectorCopy (midpoint, dest);
++	dest[0] -= 15.0;
++	dest[1] += 15.0;
++	trap_Trace ( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+ 	if (tr.fraction == 1.0)
+ 		return qtrue;
+ 
+-	VectorCopy(midpoint, dest);
+-	dest[0] += offsetmins[0];
+-	dest[1] += offsetmins[1];
+-	dest[2] += offsetmaxs[2];
+-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+-
+-	if (tr.fraction == 1.0)
+-		return qtrue;
+-
+-	VectorCopy(midpoint, dest);
+-	dest[0] += offsetmaxs[0];
+-	dest[1] += offsetmaxs[1];
+-	dest[2] += offsetmins[2];
+-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+-
+-	if (tr.fraction == 1.0)
+-		return qtrue;
+-
+-	VectorCopy(midpoint, dest);
+-	dest[0] += offsetmaxs[0];
+-	dest[1] += offsetmins[1];
+-	dest[2] += offsetmins[2];
+-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+-
+-	if (tr.fraction == 1.0)
+-		return qtrue;
+-
+-	VectorCopy(midpoint, dest);
+-	dest[0] += offsetmins[0];
+-	dest[1] += offsetmaxs[1];
+-	dest[2] += offsetmins[2];
+-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+-
++	VectorCopy (midpoint, dest);
++	dest[0] -= 15.0;
++	dest[1] -= 15.0;
++	trap_Trace ( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+ 	if (tr.fraction == 1.0)
+ 		return qtrue;
+ 
+-	VectorCopy(midpoint, dest);
+-	dest[0] += offsetmins[0];
+-	dest[1] += offsetmins[1];
+-	dest[2] += offsetmins[2];
+-	trap_Trace(&tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID);
+-
+-	if (tr.fraction == 1.0)
+-		return qtrue;
+ 
+ 	return qfalse;
+ }
+diff --git a/code/game/g_main.c b/code/game/g_main.c
+index ed5d4ea..e232633 100644
+--- a/code/game/g_main.c
++++ b/code/game/g_main.c
+@@ -498,6 +498,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
+ 
+ 	if( g_gametype.integer == GT_SINGLE_PLAYER || trap_Cvar_VariableIntegerValue( "com_buildScript" ) ) {
+ 		G_ModelIndex( SP_PODIUM_MODEL );
++		G_SoundIndex( "sound/player/gurp1.wav" );	// q3core: id 1.32 (audit R5)
++		G_SoundIndex( "sound/player/gurp2.wav" );
+ 	}
+ 
+ 	if ( trap_Cvar_VariableIntegerValue( "bot_enable" ) ) {
+@@ -1380,6 +1382,11 @@ void CheckExitRules( void ) {
+ 		}
+ 	}
+ 
++	// q3core: id 1.32 (audit R8): frag and capture limits need two players
++	if ( level.numPlayingClients < 2 ) {
++		return;
++	}
++
+ 	if ( g_fraglimit.integer < 0 ) {
+ 		G_Printf( "fraglimit %i is out of range, defaulting to 0\n", g_fraglimit.integer );
+ 		trap_Cvar_Set( "fraglimit", "0" );
+diff --git a/code/game/g_team.c b/code/game/g_team.c
+index ada16f1..c92c2bc 100644
+--- a/code/game/g_team.c
++++ b/code/game/g_team.c
+@@ -366,6 +366,26 @@ void Team_FragBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker
+ 		return;
+ 	}
+ 
++	// q3core: id 1.32 (audit R6): the second carrier-danger block, which also rewards the flag
++	// carrier himself for killing someone who recently hurt him
++	if (targ->client->pers.teamState.lasthurtcarrier &&
++		level.time - targ->client->pers.teamState.lasthurtcarrier < CTF_CARRIER_DANGER_PROTECT_TIMEOUT) {
++		// attacker is on the same team as the skull carrier and
++		AddScore(attacker, targ->r.currentOrigin, CTF_CARRIER_DANGER_PROTECT_BONUS);
++
++		attacker->client->pers.teamState.carrierdefense++;
++		targ->client->pers.teamState.lasthurtcarrier = 0;
++
++		attacker->client->ps.persistant[PERS_DEFEND_COUNT]++;
++		team = attacker->client->sess.sessionTeam;
++		// add the sprite over the player's head
++		attacker->client->ps.eFlags &= ~(EF_AWARD_IMPRESSIVE | EF_AWARD_EXCELLENT | EF_AWARD_GAUNTLET | EF_AWARD_ASSIST | EF_AWARD_DEFEND | EF_AWARD_CAP );
++		attacker->client->ps.eFlags |= EF_AWARD_DEFEND;
++		attacker->client->rewardTime = level.time + REWARD_SPRITE_TIME;
++
++		return;
++	}
++
+ 	// flag and flag carrier area defense bonuses
+ 
+ 	// we have to find the flag and carrier entities
+@@ -446,7 +466,8 @@ void Team_FragBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker
+ 
+ 	if (carrier && carrier != attacker) {
+ 		VectorSubtract(targ->r.currentOrigin, carrier->r.currentOrigin, v1);
+-		VectorSubtract(attacker->r.currentOrigin, carrier->r.currentOrigin, v2);
++		// q3core: id 1.32 (audit A2, Ozmium 2026-10-22): id's typo, v2 keeps the attacker-to-base vector
++		VectorSubtract(attacker->r.currentOrigin, carrier->r.currentOrigin, v1);
+ 
+ 		if ( ( ( VectorLength(v1) < CTF_ATTACKER_PROTECT_RADIUS &&
+ 			trap_InPVS(carrier->r.currentOrigin, targ->r.currentOrigin ) ) ||
+@@ -748,11 +769,10 @@ int Team_TouchOurFlag( gentity_t *ent, gentity_t *other, int team ) {
+ 	Team_CaptureFlagSound( ent, team );
+ 
+ 	// Ok, let's do the player loop, hand out the bonuses
++	// q3core: id 1.32 (audit R7): the capturer is in the assist loop, one assist type per player
+ 	for (i = 0; i < g_maxclients.integer; i++) {
+ 		player = &g_entities[i];
+-
+-		// also make sure we don't award assist bonuses to the flag carrier himself.
+-		if (!player->inuse || player == other)
++		if (!player->inuse)
+ 			continue;
+ 
+ 		if (player->client->sess.sessionTeam !=
+@@ -760,9 +780,8 @@ int Team_TouchOurFlag( gentity_t *ent, gentity_t *other, int team ) {
+ 			player->client->pers.teamState.lasthurtcarrier = -5;
+ 		} else if (player->client->sess.sessionTeam ==
+ 			cl->sess.sessionTeam) {
+-#ifdef MISSIONPACK
+-			AddScore(player, ent->r.currentOrigin, CTF_TEAM_BONUS);
+-#endif
++			if (player != other)
++				AddScore(player, ent->r.currentOrigin, CTF_TEAM_BONUS);
+ 			// award extra points for capture assists
+ 			if (player->client->pers.teamState.lastreturnedflag + 
+ 				CTF_RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
+@@ -775,8 +794,7 @@ int Team_TouchOurFlag( gentity_t *ent, gentity_t *other, int team ) {
+ 				player->client->ps.eFlags |= EF_AWARD_ASSIST;
+ 				player->client->rewardTime = level.time + REWARD_SPRITE_TIME;
+ 
+-			} 
+-			if (player->client->pers.teamState.lastfraggedcarrier + 
++			} else if (player->client->pers.teamState.lastfraggedcarrier + 
+ 				CTF_FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
+ 				AddScore(player, ent->r.currentOrigin, CTF_FRAG_CARRIER_ASSIST_BONUS);
+ 				other->client->pers.teamState.assists++;
+diff --git a/code/game/g_trigger.c b/code/game/g_trigger.c
+index a468d46..f43163a 100644
+--- a/code/game/g_trigger.c
++++ b/code/game/g_trigger.c
+@@ -390,13 +390,15 @@ void SP_trigger_hurt( gentity_t *self ) {
+ 		self->damage = 5;
+ 	}
+ 
+-	self->use = hurt_use;
++	// q3core: id 1.32 (audit R9): only spawnflag 2 makes a trigger_hurt toggleable
++	self->r.contents = CONTENTS_TRIGGER;
+ 
+-	// link in to the world if starting active
+-	if ( self->spawnflags & 1 ) {
+-		trap_UnlinkEntity (self);
++	if ( self->spawnflags & 2 ) {
++		self->use = hurt_use;
+ 	}
+-	else {
++
++	// link in to the world if starting active
++	if ( ! (self->spawnflags & 1) ) {
+ 		trap_LinkEntity (self);
+ 	}
+ }

@@ -1,0 +1,13 @@
+; q3core: id's GPL Quake III Arena game code (ioquake3) as a GDExtension.
+; Source and build: tools/q3core, tools/build_q3core.py.
+
+[configuration]
+entry_symbol = "q3core_library_init"
+compatibility_minimum = "4.7"
+reloadable = true
+
+[libraries]
+windows.debug.x86_64 = "res://addons/q3core/bin/q3core.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "res://addons/q3core/bin/q3core.windows.template_release.x86_64.dll"
+linux.debug.x86_64 = "res://addons/q3core/bin/libq3core.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "res://addons/q3core/bin/libq3core.linux.template_release.x86_64.so"

@@ -1,0 +1,25 @@
+{
+ "_note": "Gameplay modifiers: stack on any mode (a mode may force some, see game/modes/*.tres). Values follow Quake 3's cvars where one exists.",
+ "modifiers": [
+  {"id": "weapon_set", "label": "Weapons", "default": "standard", "tip": "Which weapons spawn and what players start with.",
+   "options": [["standard", "Standard pickups"], ["all_weapons", "Spawn with every weapon"], ["railgun_only", "Railgun only"], ["rockets_only", "Rockets only"], ["no_bfg", "No BFG"]]},
+  {"id": "item_set", "label": "Items", "default": "standard", "tip": "Which items spawn on the map.",
+   "options": [["standard", "Standard"], ["no_powerups", "No powerups"], ["no_health", "No health"], ["no_items", "No items"]]},
+  {"id": "physics", "label": "Physics", "default": "vq3", "tip": "Movement rules. VQ3 is Quake 3's own bg_pmove.c; CPM adds air control and double jumps.",
+   "options": [["vq3", "VQ3 (original)"], ["cpm", "CPM (Promode)"]]},
+  {"id": "spawn_rules", "label": "Spawns", "default": "far_random", "tip": "How spawn points are picked. Quake 3 picks randomly among the points farthest from the killer.",
+   "options": [["far_random", "Random far (original)"], ["random", "Fully random"], ["farthest", "Always farthest"]]},
+  {"id": "damage", "label": "Damage", "default": "normal", "tip": "Instagib: any hit kills.",
+   "options": [["normal", "Normal"], ["instagib", "Instagib"]]},
+  {"id": "quad_factor", "label": "Quad factor", "default": 3, "tip": "Quad Damage multiplier (g_quadfactor).",
+   "options": [[3, "x3 (original)"], [4, "x4"], [2, "x2"]]},
+  {"id": "gravity", "label": "Gravity", "default": 800, "tip": "g_gravity in units/s^2.",
+   "options": [[800, "800 (original)"], [400, "400 (low)"], [1200, "1200 (heavy)"]]},
+  {"id": "weapon_respawn", "label": "Weapon respawn", "default": 5, "tip": "Seconds before a picked-up weapon returns (g_weaponrespawn; team modes use 30).",
+   "options": [[5, "5 s (original)"], [30, "30 s"], [1, "1 s"]]},
+  {"id": "friendly_fire", "label": "Friendly fire", "default": false, "tip": "Team modes: teammates can hurt each other.",
+   "options": [[false, "Off"], [true, "On"]]},
+  {"id": "overtime", "label": "Overtime", "default": "sudden_death", "tip": "What happens on a tie when time runs out.",
+   "options": [["sudden_death", "Sudden death"], ["extra_time", "Two minutes extra"], ["draw", "Draw"]]}
+ ]
+}

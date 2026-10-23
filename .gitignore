@@ -1,0 +1,50 @@
+# Q3Remaster: source code only. id Software's assets, and everything converted from them, never go in
+# the repository (PLAN.md "Licensing"). Everything below is either id content, build output, or
+# something a tool refetches/rebuilds.
+
+# --- id assets and their remastered derivatives ---
+/extracted/
+/work/
+/godot/library/
+/godot/webui/
+/case_study_keel/fbx/
+/case_study_keel/q3_original/
+/case_study_keel/remaster/
+/case_study_keel/notes/images/
+
+# --- build output ---
+/build/
+.godot/
+**/addons/q3core/bin/
+/tools/q3core/bin/
+/tools/q3core/build/
+/tools/q3core/.sconsign.dblite
+*.obj
+*.dll.old*
+~*.TMP
+
+# --- refetched by tools/build_q3core.py (tools/q3core/thirdparty.json) ---
+/tools/q3core/thirdparty/
+
+# --- npm / Next.js / Wrangler ---
+node_modules/
+.next/
+/webui/out/
+.wrangler/
+*.tsbuildinfo
+
+# --- Python ---
+__pycache__/
+*.pyc
+
+# --- secrets ---
+.env*
+.dev.vars*
+*.pem
+*.key
+
+# --- test captures and scratch ---
+/work/_fx_test/
+/work/_pause_test/
+*.zip
+*.part

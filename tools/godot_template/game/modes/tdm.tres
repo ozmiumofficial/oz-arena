@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Q3GameMode" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/match/game_mode.gd" id="1_mode"]
+
+[resource]
+script = ExtResource("1_mode")
+id = "tdm"
+display_name = "Team Deathmatch"
+description = "Red against blue. The team with the most frags wins."
+team_based = true
+rounds = false
+map_types = PackedStringArray("team")
+rules = {
+"fraglimit": 0,
+"timelimit": 20,
+"max_players": 8,
+"warmup": 10
+}
+modifiers = {}

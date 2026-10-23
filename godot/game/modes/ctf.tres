@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Q3GameMode" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/match/game_mode.gd" id="1_mode"]
+
+[resource]
+script = ExtResource("1_mode")
+id = "ctf"
+display_name = "Capture the Flag"
+description = "Take the enemy flag to your own base while yours is home."
+team_based = true
+rounds = false
+map_types = PackedStringArray("ctf")
+rules = {
+"capturelimit": 8,
+"timelimit": 20,
+"max_players": 10,
+"warmup": 10
+}
+modifiers = {}

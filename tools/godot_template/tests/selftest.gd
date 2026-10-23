@@ -94,7 +94,7 @@ func _menu_checks() -> void:
 	add_child(splash)
 	var said: String = splash.text()
 	check("splash: fan-project disclaimer", said.contains("fan project") and said.contains("belong to id Software")
-			and said.contains("Quake III Arena on Steam is required"), "%d lines" % said.count("\n"))
+			and said.contains("Quake III Arena is required to play"), "%d lines" % said.count("\n"))
 	splash.free()
 	var menu: Node = load(Session.MAIN_MENU).instantiate()
 	add_child(menu)
@@ -373,6 +373,8 @@ func _map_checks() -> void:
 			var txt := FileAccess.get_file_as_string(base + ".tscn")
 			if txt.contains(".lmbake"):
 				baked += 1
+		if not FileAccess.file_exists(base + ".json"):   # portal/ holds shared portal assets, not a map
+			continue
 		var info: Variant = JSON.parse_string(FileAccess.get_file_as_string(base + ".json"))
 		if info is Dictionary:
 			unresolved += info["report"]["missing"].size()

@@ -199,8 +199,14 @@ ode_modules`.
   - The ioquake3 sources compile unmodified. The MASM files are replaced by SSE intrinsics (`src/engine/q3_asm.c`, same instructions), and the QVM JIT is stubbed, so QVMs run interpreted.
 - **Runtime:** `Q3Host.start()` (`scripts/game/q3_host.gd`) runs Com_Init.
   - It sets `fs_basepath` to the addon's `bin/`, `fs_homepath` to `user://q3`, `net_enabled 0`, `sv_fps 125`, `pmove_fixed 1` and `pmove_msec 8`.
-  - ioquake3 finds the Steam install itself (`fs_steampath`) and checks pak0.
-  - It runs once per process. After an ERR_FATAL the engine is stopped until Godot restarts.
+  - It hands the engine the baseq3 folder the setup screen verified (`Q3Ownership.remembered()`) as `fs_steampath`. Without one, ioquake3 finds the Steam install itself. Either way the engine checks pak0 too.
+  - It runs once per process.
+- **Ownership gate (2026-10-23, Ozmium's design):** the splash shows `scenes/splash/setup_gate.gd` until a retail pak0.pk3 is verified, and the game can't go on without one.
+  - The player drags pak0.pk3, another pak, baseq3 or the game folder onto the window (`Window.files_dropped`), or uses Browse.
+  - `Q3Ownership` computes files.c's pak checksum (MD4 over the central directory's CRCs, digest words xored; Godot has no MD4, so it's in GDScript) against `pak_checksums`. The demo pak0 is refused.
+  - It remembers the folder in `user://q3/ownership.cfg` (nothing is copied) and re-checks it every launch.
+  - Tests: `ownership_test.tscn` (headless) and `setup_gate_test.tscn` (windowed; fires `files_dropped` itself). Both save and restore the remembered folder.
+  - Don't make a gate test wait past the splash's fade: `after_splash` changes scene and frees the test before it prints. After an ERR_FATAL the engine is stopped until Godot restarts.
 - **Server loop:** never call `SV_Frame` without a map. In DEDICATED builds it does `Sys_Sleep(-1)` and blocks forever; `q3_host_frame` checks `com_sv_running`.
 - **Local player:** a loopback client set up like `SV_DirectConnect` that never reads its packets.
   - Usercmds go straight to `SV_ClientThink`.

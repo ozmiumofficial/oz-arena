@@ -9,8 +9,9 @@ const SKIP_AFTER := 1.5
 const LINES := [
 	"Q3Remaster is a non-commercial fan project. It is not made, endorsed or supported by id Software, Bethesda or Microsoft.",
 	"All models, textures, sounds and maps are derived from id Software's Quake III Arena and belong to id Software.",
-	"Quake III Arena on Steam is required to play.",
+	"Your own copy of Quake III Arena is required to play.",
 ]
+const SETUP_GATE := preload("res://scenes/splash/setup_gate.gd")
 
 var _t := 0.0
 var _loaded := false
@@ -18,6 +19,8 @@ var _leaving := false
 var _status: Label
 var _bar: ColorRect
 var _paths: PackedStringArray = []
+var _box: Control
+var _gate: Control   ## the setup screen, while no verified Quake III Arena is known
 
 
 func _ready() -> void:
@@ -62,6 +65,7 @@ func _build() -> void:
 	box.add_theme_constant_override("separation", 22)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	add_child(box)
+	_box = box
 	var head := Label.new()
 	head.text = "FAN PROJECT"
 	head.theme_type_variation = "HeaderLabel"
@@ -154,9 +158,25 @@ func _input(ev: InputEvent) -> void:
 
 
 func _leave() -> void:
-	if _leaving:
+	if _leaving or _gate:
+		return
+	if Q3Ownership.verified() == "":
+		_show_gate()
 		return
 	_leaving = true
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", 0.0, 0.5)
 	tw.tween_callback(Session.after_splash)
+
+
+## No verified Quake III Arena yet: the disclaimer gives way to the setup screen, and the game goes
+## on only once the player's retail pak0.pk3 is accepted.
+func _show_gate() -> void:
+	for c in [_box, _bar, _status]:
+		c.visible = false
+	_gate = SETUP_GATE.new()
+	_gate.verified.connect(func():
+		_gate.queue_free()
+		_gate = null
+		_leave())
+	add_child(_gate)

@@ -2,8 +2,9 @@ class_name Q3Host
 extends RefCounted
 ## Starts id's game code (the q3core extension: ioquake3's server, game module and botlib) inside
 ## Godot, once per process. Game data (.bsp collision, .aas bot navigation, botfiles, scripts)
-## comes from the player's own pak0-8.pk3; ioquake3 finds the Steam install itself
-## (fs_steampath) and checks pak0, which is the ownership check.
+## comes from the player's own pak0-8.pk3: the baseq3 folder the setup screen verified
+## (Q3Ownership), handed to ioquake3 as fs_steampath. Without one, ioquake3 looks for the Steam
+## install itself. Either way it checks pak0 again (FS_CheckPak0).
 ##
 ## Q3Server is the extension's raw API; this class adds the paths, the 125 Hz setup and helpers.
 
@@ -25,12 +26,14 @@ static func available() -> bool:
 
 
 ## Starts the engine; "" on success, else the reason. `q3_path` (a baseq3 folder) overrides the
-## Steam auto-detection.
+## folder the setup screen verified, which overrides the Steam auto-detection.
 static func start(q3_path := "", extra := {}) -> String:
 	if not available():
 		return "The q3core extension isn't built (python tools/build_q3core.py)."
 	if Q3Server.is_ready():
 		return ""
+	if q3_path == "":
+		q3_path = Q3Ownership.remembered()
 	var home := ProjectSettings.globalize_path(HOME)
 	DirAccess.make_dir_recursive_absolute(home)
 	var cvars := BOOT_CVARS.duplicate()

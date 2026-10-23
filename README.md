@@ -4,7 +4,7 @@
 
 **The 1999 arena shooter, rebuilt for today without touching what made it great.**
 
-Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the roster, now with modern characters, lighting, effects, menus and online features. It's an unofficial, non-commercial fan project. You need your own copy of Quake III Arena on Steam to play.
+Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the roster, now with modern characters, lighting, effects, menus and online features. It's an unofficial, non-commercial fan project. You need your own copy of Quake III Arena to play.
 
 ### Menus
 
@@ -91,7 +91,16 @@ There's no ready-made download yet. The game is built from this source code and 
 **You'll need:**
 
 - Windows.
-- Quake III Arena on Steam. The remaster reads your own copy; id's original game files aren't included here.
+- Quake III Arena, the full game (Steam, GOG or the CD release), not the demo.
+
+**First launch:** the game asks for your copy before it goes any further.
+
+1. Start the remaster. After the disclaimer you'll see **Quake III Arena required**.
+2. Open your Quake III Arena folder (on Steam: `Steam\steamapps\common\Quake 3 Arena\baseq3`). If the game finds an install, **Open that folder** takes you there.
+3. Drag `pak0.pk3` onto the game window. You can also drag the `baseq3` folder or the whole game folder, or use **Browse**.
+4. The game checks the file against id's retail release, the same check Quake 3 itself runs. If it matches, the game starts. If it doesn't, the game won't launch.
+
+Nothing is copied or uploaded. The game remembers where the file is and checks it again every time it starts, so if you move or remove your Quake III Arena, it asks again.
 
 ## For developers
 

@@ -121,6 +121,8 @@ Tests:
 ```
 godot --headless --path godot res://tests/selftest.tscn
 godot --headless --path godot res://tests/q3core_match.tscn -- map=q3dm17 seconds=60 bots=3
+godot --headless --path godot res://tests/ownership_test.tscn   # the pak0 check: checksums, every kind of drop (23 checks)
+godot --path godot res://tests/setup_gate_test.tscn -- window=1600x900   # the launch gate: blocks, refuses a fake, accepts the real pak0 (5 checks)
 godot --headless --path godot res://tests/gameplay_smoke.tscn
 godot --path godot res://tests/weapon_fx.tscn -- out=C:/temp/wfx [move=1 pitch=8 preset=classic]   # every weapon fired, frames saved
 godot --path godot res://tests/pause_menu.tscn   # pause menu, crosshair editor live, resume (6 checks)

@@ -237,6 +237,9 @@ export function handle(m: Msg) {
     case "quit":
       notice("Browser preview: Godot would quit here.");
       break;
+    case "open_url":
+      window.open(String(m.url), "_blank", "noopener");
+      break;
     case "social":
       socialOp(m);
       break;

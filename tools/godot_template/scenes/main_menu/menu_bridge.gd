@@ -56,7 +56,7 @@ const TYPES := ["ready", "sound", "hover", "page", "layout", "set", "reset", "re
 	"resume", "leave_match", "restart_match", "ready_up", "crosshair_preview",
 	"card_set", "card_showcase", "card_seen", "taunt"]
 ## Hosts open_url may send the player's browser to; nothing else leaves the game.
-const URL_HOSTS := ["store.steampowered.com", "steamcommunity.com", "github.com"]
+const URL_HOSTS := ["store.steampowered.com", "steamcommunity.com", "github.com", "discord.gg"]
 
 
 func handle_json(text: String) -> void:

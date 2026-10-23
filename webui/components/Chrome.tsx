@@ -4,6 +4,8 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMenu } from "@/lib/store";
+import { send } from "@/lib/bridge";
+import { sfx } from "@/lib/sound";
 import { cn } from "@/lib/cn";
 import { FriendsButton, OnlinePill, PartyStrip, Q3Name } from "./Social";
 import { Banner } from "./PlayerCard";
@@ -36,6 +38,7 @@ export function TopBar() {
       transition={{ delay: 0.25, duration: 0.5 }}
       className="absolute right-[4.5rem] top-7 flex items-center gap-5"
     >
+      <DiscordButton />
       <OnlinePill />
       <PartyStrip />
       <div className="flex items-center gap-2 font-q3 text-[0.7rem] tracking-[0.2em] text-dim">
@@ -72,6 +75,27 @@ export function TopBar() {
         )}
       </div>
     </motion.div>
+  );
+}
+
+// The community server; Godot opens it in the player's browser (open_url allows discord.gg).
+const DISCORD = "https://discord.gg/HbrAUzkEbJ";
+
+function DiscordButton() {
+  return (
+    <button
+      onClick={() => {
+        sfx.move();
+        void send("open_url", { url: DISCORD });
+      }}
+      title="Join us on Discord"
+      className="group flex h-9 items-center gap-2 rounded-full border border-[#5865f2]/50 bg-[#5865f2]/15 px-3.5 text-ink transition-colors hover:border-[#5865f2] hover:bg-[#5865f2]/35 hover:text-ink-hot"
+    >
+      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current text-[#8b93ff] transition-colors group-hover:text-ink-hot">
+        <path d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18.2 18.2 0 0 0-5.5 0L8.6 3a19.6 19.6 0 0 0-4.9 1.5C.6 9.1-.3 13.7.2 18.2a19.8 19.8 0 0 0 6 3l1.3-2.1a12.8 12.8 0 0 1-2-1l.5-.4a14.1 14.1 0 0 0 12 0l.5.4c-.6.4-1.3.7-2 1l1.3 2.1a19.7 19.7 0 0 0 6-3c.5-5.2-.9-9.8-3.5-13.8ZM8.3 15.4c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4Zm7.4 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4Z" />
+      </svg>
+      <span className="font-q3 text-[0.7rem] tracking-[0.15em]">Join us on Discord</span>
+    </button>
   );
 }
 

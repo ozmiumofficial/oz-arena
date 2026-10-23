@@ -1,0 +1,20 @@
+[gd_resource type="ShaderMaterial" load_steps=4 format=3]
+
+[ext_resource type="Shader" path="res://shaders/world/liquid.gdshader" id="1_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/liquids__slime7c_albedo.jpg" id="2_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/liquids__slime7c_normal.jpg" id="3_r"]
+
+[resource]
+resource_name = "textures/liquids/slime1_2000"
+shader = ExtResource("1_r")
+shader_parameter/albedo_tex = ExtResource("2_r")
+shader_parameter/normal_tex = ExtResource("3_r")
+shader_parameter/kind = 1.0
+shader_parameter/scroll = Vector2(0.01, 0.01)
+shader_parameter/turb = Vector4(0.3, 0.2, 1.0, 0.05)
+shader_parameter/opacity = 0.85
+shader_parameter/emission_energy = 1.2
+shader_parameter/roughness = 0.5
+shader_parameter/wave_amp = 0.03125
+shader_parameter/wave_freq = 0.5
+shader_parameter/wave_spread = 2.01062

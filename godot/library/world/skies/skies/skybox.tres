@@ -1,0 +1,14 @@
+[gd_resource type="Sky" format=3 uid="uid://32qhdthrsug3"]
+
+[ext_resource type="Shader" uid="uid://0yf83gx4ifta" path="res://shaders/world/sky_panorama.gdshader" id="1_r"]
+[ext_resource type="Texture2D" uid="uid://2vsmi3wn1yh3" path="res://library/world/skies/env_space1_rt_pano.png" id="2_r"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+resource_name = "textures/skies/skybox"
+shader = ExtResource("1_r")
+shader_parameter/panorama = ExtResource("2_r")
+shader_parameter/energy = 1.0
+
+[resource]
+resource_name = "textures/skies/skybox"
+sky_material = SubResource("ShaderMaterial_sky")

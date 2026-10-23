@@ -1,0 +1,390 @@
+{
+ "model": "bones",
+ "bones": [
+  {
+   "name": "root",
+   "parent": null,
+   "half": null
+  },
+  {
+   "name": "pelvis",
+   "parent": "root",
+   "half": "legs"
+  },
+  {
+   "name": "thigh_L",
+   "parent": "pelvis",
+   "half": "legs"
+  },
+  {
+   "name": "thigh_R",
+   "parent": "pelvis",
+   "half": "legs"
+  },
+  {
+   "name": "thigh_R_2",
+   "parent": "pelvis",
+   "half": "legs"
+  },
+  {
+   "name": "hips",
+   "parent": "pelvis",
+   "half": "legs"
+  },
+  {
+   "name": "waist",
+   "parent": "pelvis",
+   "half": "legs"
+  },
+  {
+   "name": "calf_L",
+   "parent": "thigh_L",
+   "half": "legs"
+  },
+  {
+   "name": "calf_R",
+   "parent": "thigh_R",
+   "half": "legs"
+  },
+  {
+   "name": "calf_L_2",
+   "parent": "thigh_L",
+   "half": "legs"
+  },
+  {
+   "name": "spine",
+   "parent": "waist",
+   "half": "torso"
+  },
+  {
+   "name": "foot_L",
+   "parent": "calf_L_2",
+   "half": "legs"
+  },
+  {
+   "name": "belly",
+   "parent": "spine",
+   "half": "torso"
+  },
+  {
+   "name": "upperarm_R",
+   "parent": "spine",
+   "half": "torso"
+  },
+  {
+   "name": "upperarm_R_2",
+   "parent": "spine",
+   "half": "torso"
+  },
+  {
+   "name": "upperarm_R_3",
+   "parent": "spine",
+   "half": "torso"
+  },
+  {
+   "name": "upperarm_R_4",
+   "parent": "spine",
+   "half": "torso"
+  },
+  {
+   "name": "belly_2",
+   "parent": "spine",
+   "half": "torso"
+  },
+  {
+   "name": "belly_3",
+   "parent": "spine",
+   "half": "torso"
+  },
+  {
+   "name": "forearm_R",
+   "parent": "upperarm_R",
+   "half": "torso"
+  },
+  {
+   "name": "chest",
+   "parent": "belly_3",
+   "half": "torso"
+  },
+  {
+   "name": "weapon",
+   "parent": "upperarm_R_4",
+   "half": "torso"
+  },
+  {
+   "name": "neck",
+   "parent": "chest",
+   "half": "torso"
+  },
+  {
+   "name": "head",
+   "parent": "neck",
+   "half": "torso"
+  }
+ ],
+ "clips": [
+  {
+   "name": "BOTH_DEATH1",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 30,
+   "seconds": 1.45
+  },
+  {
+   "name": "BOTH_DEAD1",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 1,
+   "seconds": 0.05
+  },
+  {
+   "name": "BOTH_DEATH2",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 30,
+   "seconds": 1.45
+  },
+  {
+   "name": "BOTH_DEAD2",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 1,
+   "seconds": 0.05
+  },
+  {
+   "name": "BOTH_DEATH3",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 30,
+   "seconds": 1.45
+  },
+  {
+   "name": "BOTH_DEAD3",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 1,
+   "seconds": 0.05
+  },
+  {
+   "name": "TORSO_GESTURE",
+   "part": "torso",
+   "loop": false,
+   "fps": 20,
+   "frames": 40,
+   "seconds": 1.95
+  },
+  {
+   "name": "TORSO_ATTACK",
+   "part": "torso",
+   "loop": false,
+   "fps": 15,
+   "frames": 6,
+   "seconds": 0.3333333333333333
+  },
+  {
+   "name": "TORSO_ATTACK2",
+   "part": "torso",
+   "loop": false,
+   "fps": 15,
+   "frames": 6,
+   "seconds": 0.3333333333333333
+  },
+  {
+   "name": "TORSO_DROP",
+   "part": "torso",
+   "loop": false,
+   "fps": 20,
+   "frames": 5,
+   "seconds": 0.2
+  },
+  {
+   "name": "TORSO_RAISE",
+   "part": "torso",
+   "loop": false,
+   "fps": 20,
+   "frames": 4,
+   "seconds": 0.15
+  },
+  {
+   "name": "TORSO_STAND",
+   "part": "torso",
+   "loop": false,
+   "fps": 15,
+   "frames": 1,
+   "seconds": 0.06666666666666667
+  },
+  {
+   "name": "TORSO_STAND2",
+   "part": "torso",
+   "loop": false,
+   "fps": 15,
+   "frames": 1,
+   "seconds": 0.06666666666666667
+  },
+  {
+   "name": "LEGS_WALKCR",
+   "part": "legs",
+   "loop": true,
+   "fps": 20,
+   "frames": 8,
+   "seconds": 0.4
+  },
+  {
+   "name": "LEGS_WALK",
+   "part": "legs",
+   "loop": true,
+   "fps": 20,
+   "frames": 10,
+   "seconds": 0.5
+  },
+  {
+   "name": "LEGS_RUN",
+   "part": "legs",
+   "loop": true,
+   "fps": 18,
+   "frames": 9,
+   "seconds": 0.5
+  },
+  {
+   "name": "LEGS_BACK",
+   "part": "legs",
+   "loop": true,
+   "fps": 20,
+   "frames": 10,
+   "seconds": 0.5
+  },
+  {
+   "name": "LEGS_SWIM",
+   "part": "legs",
+   "loop": true,
+   "fps": 15,
+   "frames": 10,
+   "seconds": 0.6666666666666666
+  },
+  {
+   "name": "LEGS_JUMP",
+   "part": "legs",
+   "loop": false,
+   "fps": 15,
+   "frames": 9,
+   "seconds": 0.5333333333333333
+  },
+  {
+   "name": "LEGS_LAND",
+   "part": "legs",
+   "loop": false,
+   "fps": 15,
+   "frames": 8,
+   "seconds": 0.4666666666666667
+  },
+  {
+   "name": "LEGS_JUMPB",
+   "part": "legs",
+   "loop": false,
+   "fps": 15,
+   "frames": 9,
+   "seconds": 0.5333333333333333
+  },
+  {
+   "name": "LEGS_LANDB",
+   "part": "legs",
+   "loop": false,
+   "fps": 15,
+   "frames": 5,
+   "seconds": 0.26666666666666666
+  },
+  {
+   "name": "LEGS_IDLE",
+   "part": "legs",
+   "loop": true,
+   "fps": 15,
+   "frames": 10,
+   "seconds": 0.6666666666666666
+  },
+  {
+   "name": "LEGS_IDLECR",
+   "part": "legs",
+   "loop": true,
+   "fps": 15,
+   "frames": 10,
+   "seconds": 0.6666666666666666
+  },
+  {
+   "name": "LEGS_TURN",
+   "part": "legs",
+   "loop": true,
+   "fps": 15,
+   "frames": 6,
+   "seconds": 0.4
+  }
+ ],
+ "verts": 4539,
+ "tris": 8800,
+ "materials": [
+  "xray"
+ ],
+ "fit": {
+  "lower_rms_mm": 4.68,
+  "lower_max_mm": 62.1,
+  "upper_rms_mm": 4.24,
+  "upper_max_mm": 48.5
+ },
+ "tags": {
+  "weapon": {
+   "origin": [
+    -0.311322,
+    1.25293,
+    0.181368
+   ],
+   "x": [
+    0.057657,
+    0.025395,
+    0.998013
+   ],
+   "y": [
+    0.994769,
+    0.082974,
+    -0.059581
+   ],
+   "z": [
+    -0.084322,
+    0.996228,
+    -0.020478
+   ]
+  },
+  "head": {
+   "origin": [
+    -0.033811,
+    1.702148,
+    0.053743
+   ],
+   "x": [
+    0.041446,
+    -0.049959,
+    0.997891
+   ],
+   "y": [
+    0.998938,
+    0.022211,
+    -0.040378
+   ],
+   "z": [
+    -0.020147,
+    0.998504,
+    0.050827
+   ]
+  }
+ },
+ "material_modes": {
+  "xray": {
+   "blend": "add",
+   "two_sided": true
+  }
+ }
+}

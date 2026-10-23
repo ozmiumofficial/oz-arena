@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/sfx/proto_hellfog"
+density = 0.192
+albedo = Color(0.275, 0.012, 0.0, 1)

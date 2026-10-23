@@ -1,0 +1,14 @@
+[gd_resource type="Sky" load_steps=4 format=3]
+
+[ext_resource type="Shader" path="res://shaders/world/sky_panorama.gdshader" id="1_r"]
+[ext_resource type="Texture2D" path="res://library/world/skies/env_xnight2_rt_pano.png" id="2_r"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+resource_name = "textures/skies/nightsky_xian_dm15"
+shader = ExtResource("1_r")
+shader_parameter/panorama = ExtResource("2_r")
+shader_parameter/energy = 1.0
+
+[resource]
+resource_name = "textures/skies/nightsky_xian_dm15"
+sky_material = SubResource("ShaderMaterial_sky")

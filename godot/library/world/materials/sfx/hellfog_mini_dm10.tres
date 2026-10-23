@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/sfx/hellfog_mini_dm10"
+density = 6.0
+albedo = Color(0.5, 0.12, 0.1, 1)

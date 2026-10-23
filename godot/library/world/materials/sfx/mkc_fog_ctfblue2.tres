@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/sfx/mkc_fog_ctfblue2"
+density = 0.3
+albedo = Color(0.1, 0.1, 0.3, 1)

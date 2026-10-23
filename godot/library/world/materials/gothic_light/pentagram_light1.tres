@@ -1,0 +1,20 @@
+[gd_resource type="ShaderMaterial" load_steps=5 format=3]
+
+[ext_resource type="Shader" path="res://shaders/world/world_opaque.gdshader" id="1_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/gothic_light__pentagram_light1_albedo.jpg" id="2_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/gothic_light__pentagram_light1_normal.jpg" id="3_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/gothic_light__pentagram_light1_orm.jpg" id="4_r"]
+
+[resource]
+resource_name = "textures/gothic_light/pentagram_light1"
+shader = ExtResource("1_r")
+shader_parameter/albedo_tex = ExtResource("2_r")
+shader_parameter/normal_tex = ExtResource("3_r")
+shader_parameter/orm_tex = ExtResource("4_r")
+shader_parameter/base_scale = Vector2(1.0, 1.0)
+shader_parameter/base_rotate = 0.0
+shader_parameter/base_scroll = Vector2(0.0, 0.0)
+shader_parameter/base_turb = Vector4(0.0, 0.0, 0.0, 0.0)
+shader_parameter/emission_energy = 1.0
+shader_parameter/alpha_cut = 0.0
+shader_parameter/stochastic = false

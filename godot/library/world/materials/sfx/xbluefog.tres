@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/sfx/xbluefog"
+density = 0.75
+albedo = Color(0.3, 0.3, 0.9, 1)

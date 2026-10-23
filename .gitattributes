@@ -1,0 +1,19 @@
+# The remastered asset library's binaries go through Git LFS (PLAN.md "Licensing", decided 2026-10-23).
+# Text resources (.tres, .tscn, .json, .import) stay in plain git.
+godot/library/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+godot/library/**/*.png filter=lfs diff=lfs merge=lfs -text
+godot/library/**/*.exr filter=lfs diff=lfs merge=lfs -text
+godot/library/**/*.glb filter=lfs diff=lfs merge=lfs -text
+godot/library/**/*.ogg filter=lfs diff=lfs merge=lfs -text
+godot/library/**/*.ogv filter=lfs diff=lfs merge=lfs -text
+godot/library/**/*.wav filter=lfs diff=lfs merge=lfs -text
+godot/library/**/*.ttf filter=lfs diff=lfs merge=lfs -text
+godot/library/**/*.lmbake filter=lfs diff=lfs merge=lfs -text
+godot/library/**/*.unwrap_cache filter=lfs diff=lfs merge=lfs -text
+godot/webui/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+godot/webui/**/*.png filter=lfs diff=lfs merge=lfs -text
+godot/webui/**/*.ogg filter=lfs diff=lfs merge=lfs -text
+godot/webui/**/*.wav filter=lfs diff=lfs merge=lfs -text
+godot/webui/**/*.ttf filter=lfs diff=lfs merge=lfs -text
+godot/webui/**/*.woff2 filter=lfs diff=lfs merge=lfs -text
+godot/webui/**/*.ico filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/sfx/xlightgreyfog"
+density = 0.0686
+albedo = Color(0.7, 0.7, 0.7, 1)

@@ -1,0 +1,5600 @@
+{
+ "_note": "Player card catalog (tools/card_catalog.py, baked by build_cards.py). Structure from trac3r's cosmetics.ts/achievements.ts; see PLAN.md 'Player cards, progression and ranked'.",
+ "version": 1,
+ "levels": {
+  "max": 100,
+  "xp_base": 1000,
+  "xp_step": 25,
+  "_note": "XP to go from level L to L+1 = xp_base + xp_step * (L - 1)"
+ },
+ "default_card": {
+  "banner": "void",
+  "emblem": "head_sarge",
+  "frame": "plain",
+  "title": "title_fresh_meat",
+  "accent": "accent_red",
+  "taunt": "taunt_sarge",
+  "rail": "rail_blue",
+  "stats": [
+   "frags",
+   "wins",
+   "excellents"
+  ],
+  "badges": []
+ },
+ "card_stats": [
+  {
+   "id": "frags",
+   "label": "FRAGS",
+   "value": "frags"
+  },
+  {
+   "id": "wins",
+   "label": "WINS",
+   "value": "wins"
+  },
+  {
+   "id": "kd",
+   "label": "K/D",
+   "value": "=kd"
+  },
+  {
+   "id": "excellents",
+   "label": "EXCELLENTS",
+   "value": "medal.excellent"
+  },
+  {
+   "id": "impressives",
+   "label": "IMPRESSIVES",
+   "value": "medal.impressive"
+  },
+  {
+   "id": "gauntlets",
+   "label": "HUMILIATIONS",
+   "value": "medal.gauntlet"
+  },
+  {
+   "id": "captures",
+   "label": "CAPTURES",
+   "value": "medal.capture"
+  },
+  {
+   "id": "duel_wins",
+   "label": "DUEL WINS",
+   "value": "duel_wins"
+  },
+  {
+   "id": "rail_acc",
+   "label": "BEST RAIL ACC",
+   "value": "best.rail_accuracy"
+  },
+  {
+   "id": "top_speed",
+   "label": "TOP SPEED",
+   "value": "best.speed"
+  },
+  {
+   "id": "ranked_peak",
+   "label": "RANKED PEAK",
+   "value": "ranked_peak"
+  },
+  {
+   "id": "arenas_won",
+   "label": "ARENAS WON",
+   "value": "=arenas_won"
+  },
+  {
+   "id": "achievements",
+   "label": "ACHIEVEMENTS",
+   "value": "=achievements"
+  },
+  {
+   "id": "hours",
+   "label": "HOURS",
+   "value": "=hours"
+  }
+ ],
+ "medal_colors": {
+  "bronze": "#e08a4f",
+  "silver": "#c9d6df",
+  "gold": "#ffd24a"
+ },
+ "ranked_tiers": [
+  {
+   "id": "i_can_win",
+   "name": "I Can Win",
+   "min": 0
+  },
+  {
+   "id": "bring_it_on",
+   "name": "Bring It On",
+   "min": 1000
+  },
+  {
+   "id": "hurt_me_plenty",
+   "name": "Hurt Me Plenty",
+   "min": 1300
+  },
+  {
+   "id": "hardcore",
+   "name": "Hardcore",
+   "min": 1600
+  },
+  {
+   "id": "nightmare",
+   "name": "Nightmare!",
+   "min": 1900
+  },
+  {
+   "id": "arena_master",
+   "name": "Arena Master",
+   "min": 2200
+  }
+ ],
+ "skills": [
+  "I Can Win",
+  "Bring It On",
+  "Hurt Me Plenty",
+  "Hardcore",
+  "Nightmare!"
+ ],
+ "stats_doc": {
+  "matches": "matches played to the end",
+  "wins": "matches won",
+  "frags": "frags",
+  "deaths": "deaths",
+  "playtime": "seconds in matches",
+  "wins_mode.<mode>": "wins per game mode (ffa, duel, tdm, ctf, ca, ft, instagib)",
+  "wins_map.<map>": "wins per arena",
+  "matches_model.<model>": "matches played as each character",
+  "matches_skin.<model>/<skin>": "matches played in each skin (red/blue for team skins)",
+  "frags_weapon.<weapon>": "frags per weapon (gauntlet, machinegun, shotgun, grenade, rocket, lightning, railgun, plasma, bfg)",
+  "frags_powerup.<powerup>": "frags while holding each powerup",
+  "medal.<award>": "Quake 3 awards: excellent, impressive, gauntlet, capture, assist, defend, perfect",
+  "pickups.<item>": "item pickups (quad, regen, haste, battlesuit, invis, flight, mega, armor_red, armor_yellow, medkit, teleporter)",
+  "deaths_by.<cause>": "deaths by lava, slime, fall, drown, telefrag, crush",
+  "telefrags": "telefrags",
+  "rocket_jumps": "rocket jumps",
+  "plasma_climbs": "plasma climbs",
+  "air_rocket_frags": "rocket frags while airborne after a rocket jump",
+  "flag_returns": "flags returned",
+  "ca_clutches": "Clan Arena rounds won as the last one standing",
+  "thaws": "Freeze Tag thaws",
+  "flawless_ffa": "Free For All wins with no deaths",
+  "trifectas": "matches with an Excellent, an Impressive and a Gauntlet",
+  "best.speed": "top horizontal speed (ups)",
+  "best.rail_streak": "most rail hits in a row",
+  "best.rail_accuracy": "best railgun accuracy in a match (%, 10+ shots)",
+  "duel_wins": "Tournament wins",
+  "ranked_matches": "ranked matches",
+  "ranked_peak": "highest ranked rating"
+ },
+ "parts": {
+  "banners": [
+   {
+    "id": "void",
+    "name": "The Void",
+    "unlock": {
+     "free": true
+    },
+    "kind": "pattern",
+    "desc": "Smoke drifting in the dark"
+   },
+   {
+    "id": "map_q3dm1",
+    "name": "Arena Gate",
+    "unlock": {
+     "stat": "wins_map.q3dm1",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Arena Gate",
+    "art": "cards/banners/map_q3dm1.jpg"
+   },
+   {
+    "id": "map_q3dm2",
+    "name": "House Of Pain",
+    "unlock": {
+     "stat": "wins_map.q3dm2",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on House Of Pain",
+    "art": "cards/banners/map_q3dm2.jpg"
+   },
+   {
+    "id": "map_q3dm3",
+    "name": "Arena Of Death",
+    "unlock": {
+     "stat": "wins_map.q3dm3",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Arena Of Death",
+    "art": "cards/banners/map_q3dm3.jpg"
+   },
+   {
+    "id": "map_q3tourney1",
+    "name": "Powerstation 0218",
+    "unlock": {
+     "stat": "wins_map.q3tourney1",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Powerstation 0218",
+    "art": "cards/banners/map_q3tourney1.jpg"
+   },
+   {
+    "id": "map_q3dm4",
+    "name": "The Place Of Many Deaths",
+    "unlock": {
+     "stat": "wins_map.q3dm4",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Place Of Many Deaths",
+    "art": "cards/banners/map_q3dm4.jpg"
+   },
+   {
+    "id": "map_q3dm5",
+    "name": "The Forgotten Place",
+    "unlock": {
+     "stat": "wins_map.q3dm5",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Forgotten Place",
+    "art": "cards/banners/map_q3dm5.jpg"
+   },
+   {
+    "id": "map_q3dm6",
+    "name": "The Camping Grounds",
+    "unlock": {
+     "stat": "wins_map.q3dm6",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Camping Grounds",
+    "art": "cards/banners/map_q3dm6.jpg"
+   },
+   {
+    "id": "map_q3tourney2",
+    "name": "The Proving Grounds",
+    "unlock": {
+     "stat": "wins_map.q3tourney2",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Proving Grounds",
+    "art": "cards/banners/map_q3tourney2.jpg"
+   },
+   {
+    "id": "map_q3dm7",
+    "name": "Temple of Retribution",
+    "unlock": {
+     "stat": "wins_map.q3dm7",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Temple of Retribution",
+    "art": "cards/banners/map_q3dm7.jpg"
+   },
+   {
+    "id": "map_q3dm8",
+    "name": "Brimstone Abbey",
+    "unlock": {
+     "stat": "wins_map.q3dm8",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Brimstone Abbey",
+    "art": "cards/banners/map_q3dm8.jpg"
+   },
+   {
+    "id": "map_q3dm9",
+    "name": "Hero's Keep",
+    "unlock": {
+     "stat": "wins_map.q3dm9",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Hero's Keep",
+    "art": "cards/banners/map_q3dm9.jpg"
+   },
+   {
+    "id": "map_q3tourney3",
+    "name": "Hell's Gate",
+    "unlock": {
+     "stat": "wins_map.q3tourney3",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Hell's Gate",
+    "art": "cards/banners/map_q3tourney3.jpg"
+   },
+   {
+    "id": "map_q3dm10",
+    "name": "The Nameless Place",
+    "unlock": {
+     "stat": "wins_map.q3dm10",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Nameless Place",
+    "art": "cards/banners/map_q3dm10.jpg"
+   },
+   {
+    "id": "map_q3dm11",
+    "name": "Deva Station",
+    "unlock": {
+     "stat": "wins_map.q3dm11",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Deva Station",
+    "art": "cards/banners/map_q3dm11.jpg"
+   },
+   {
+    "id": "map_q3dm12",
+    "name": "The Dredwerkz",
+    "unlock": {
+     "stat": "wins_map.q3dm12",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Dredwerkz",
+    "art": "cards/banners/map_q3dm12.jpg"
+   },
+   {
+    "id": "map_q3tourney4",
+    "name": "Vertical Vengeance",
+    "unlock": {
+     "stat": "wins_map.q3tourney4",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Vertical Vengeance",
+    "art": "cards/banners/map_q3tourney4.jpg"
+   },
+   {
+    "id": "map_q3dm13",
+    "name": "Lost World",
+    "unlock": {
+     "stat": "wins_map.q3dm13",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Lost World",
+    "art": "cards/banners/map_q3dm13.jpg"
+   },
+   {
+    "id": "map_q3dm14",
+    "name": "Grim Dungeons",
+    "unlock": {
+     "stat": "wins_map.q3dm14",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Grim Dungeons",
+    "art": "cards/banners/map_q3dm14.jpg"
+   },
+   {
+    "id": "map_q3dm15",
+    "name": "Demon Keep",
+    "unlock": {
+     "stat": "wins_map.q3dm15",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Demon Keep",
+    "art": "cards/banners/map_q3dm15.jpg"
+   },
+   {
+    "id": "map_q3tourney5",
+    "name": "Fatal Instinct",
+    "unlock": {
+     "stat": "wins_map.q3tourney5",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Fatal Instinct",
+    "art": "cards/banners/map_q3tourney5.jpg"
+   },
+   {
+    "id": "map_q3dm16",
+    "name": "The Bouncy Map",
+    "unlock": {
+     "stat": "wins_map.q3dm16",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Bouncy Map",
+    "art": "cards/banners/map_q3dm16.jpg"
+   },
+   {
+    "id": "map_q3dm17",
+    "name": "The Longest Yard",
+    "unlock": {
+     "stat": "wins_map.q3dm17",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Longest Yard",
+    "art": "cards/banners/map_q3dm17.jpg"
+   },
+   {
+    "id": "map_q3dm18",
+    "name": "Space Chamber",
+    "unlock": {
+     "stat": "wins_map.q3dm18",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Space Chamber",
+    "art": "cards/banners/map_q3dm18.jpg"
+   },
+   {
+    "id": "map_q3dm19",
+    "name": "Apocalypse Void",
+    "unlock": {
+     "stat": "wins_map.q3dm19",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Apocalypse Void",
+    "art": "cards/banners/map_q3dm19.jpg"
+   },
+   {
+    "id": "map_q3dm0",
+    "name": "Introduction",
+    "unlock": {
+     "stat": "wins_map.q3dm0",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Introduction",
+    "art": "cards/banners/map_q3dm0.jpg"
+   },
+   {
+    "id": "map_q3tourney6",
+    "name": "The Very End Of You",
+    "unlock": {
+     "stat": "wins_map.q3tourney6",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Very End Of You",
+    "art": "cards/banners/map_q3tourney6.jpg"
+   },
+   {
+    "id": "map_q3ctf1",
+    "name": "Dueling Keeps",
+    "unlock": {
+     "stat": "wins_map.q3ctf1",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Dueling Keeps",
+    "art": "cards/banners/map_q3ctf1.jpg"
+   },
+   {
+    "id": "map_q3ctf2",
+    "name": "Troubled Waters",
+    "unlock": {
+     "stat": "wins_map.q3ctf2",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Troubled Waters",
+    "art": "cards/banners/map_q3ctf2.jpg"
+   },
+   {
+    "id": "map_q3ctf3",
+    "name": "The Stronghold",
+    "unlock": {
+     "stat": "wins_map.q3ctf3",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Stronghold",
+    "art": "cards/banners/map_q3ctf3.jpg"
+   },
+   {
+    "id": "map_q3ctf4",
+    "name": "Space CTF",
+    "unlock": {
+     "stat": "wins_map.q3ctf4",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Space CTF",
+    "art": "cards/banners/map_q3ctf4.jpg"
+   },
+   {
+    "id": "map_pro-q3tourney2",
+    "name": "The Proving Grounds II",
+    "unlock": {
+     "stat": "wins_map.pro-q3tourney2",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Proving Grounds II",
+    "art": "cards/banners/map_pro-q3tourney2.jpg"
+   },
+   {
+    "id": "map_pro-q3tourney4",
+    "name": "Vertical Vengeance II",
+    "unlock": {
+     "stat": "wins_map.pro-q3tourney4",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Vertical Vengeance II",
+    "art": "cards/banners/map_pro-q3tourney4.jpg"
+   },
+   {
+    "id": "map_pro-q3dm6",
+    "name": "The Campgrounds II",
+    "unlock": {
+     "stat": "wins_map.pro-q3dm6",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on The Campgrounds II",
+    "art": "cards/banners/map_pro-q3dm6.jpg"
+   },
+   {
+    "id": "map_pro-q3dm13",
+    "name": "Lost World II",
+    "unlock": {
+     "stat": "wins_map.pro-q3dm13",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Lost World II",
+    "art": "cards/banners/map_pro-q3dm13.jpg"
+   },
+   {
+    "id": "map_q3tourney6_ctf",
+    "name": "Across Space",
+    "unlock": {
+     "stat": "wins_map.q3tourney6_ctf",
+     "min": 1
+    },
+    "kind": "image",
+    "desc": "Win a match on Across Space",
+    "art": "cards/banners/map_q3tourney6_ctf.jpg"
+   },
+   {
+    "id": "sky_hellsky",
+    "name": "Hell Sky",
+    "unlock": {
+     "level": 2
+    },
+    "kind": "image",
+    "fx": "pan",
+    "art": "cards/banners/sky_hellsky.jpg"
+   },
+   {
+    "id": "sky_hellsky2bright",
+    "name": "Hellsky2bright",
+    "unlock": {
+     "level": 6
+    },
+    "kind": "image",
+    "fx": "pan",
+    "art": "cards/banners/sky_hellsky2bright.jpg"
+   },
+   {
+    "id": "sky_kc_dm10sky",
+    "name": "DM10SKY",
+    "unlock": {
+     "level": 8
+    },
+    "kind": "image",
+    "fx": "pan",
+    "art": "cards/banners/sky_kc_dm10sky.jpg"
+   },
+   {
+    "id": "sky_kcbasesky_arena1_sky",
+    "name": "Basesky",
+    "unlock": {
+     "level": 13
+    },
+    "kind": "image",
+    "fx": "pan",
+    "art": "cards/banners/sky_kcbasesky_arena1_sky.jpg"
+   },
+   {
+    "id": "sky_killsky",
+    "name": "Kill Sky",
+    "unlock": {
+     "level": 20
+    },
+    "kind": "image",
+    "fx": "pan",
+    "art": "cards/banners/sky_killsky.jpg"
+   },
+   {
+    "id": "sky_nightsky_xian_dm1",
+    "name": "Night Sky Xian DM1",
+    "unlock": {
+     "level": 25
+    },
+    "kind": "image",
+    "fx": "pan",
+    "art": "cards/banners/sky_nightsky_xian_dm1.jpg"
+   },
+   {
+    "id": "sky_skybox",
+    "name": "Skybox",
+    "unlock": {
+     "level": 32
+    },
+    "kind": "image",
+    "fx": "pan",
+    "art": "cards/banners/sky_skybox.jpg"
+   },
+   {
+    "id": "char_anarki",
+    "name": "Anarki",
+    "unlock": {
+     "any": [
+      {
+       "campaign": [
+        "q3tourney4"
+       ],
+       "skill": 1
+      },
+      {
+       "stat": "matches_model.anarki",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Anarki in the campaign, or play 25 matches as Anarki",
+    "art": "cards/banners/char_anarki.jpg"
+   },
+   {
+    "id": "char_biker",
+    "name": "Biker",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm11"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm12"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.biker",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Biker in the campaign, or play 25 matches as Biker",
+    "art": "cards/banners/char_biker.jpg"
+   },
+   {
+    "id": "char_bitterman",
+    "name": "Bitterman",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm4"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm6"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm8"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.bitterman",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Bitterman in the campaign, or play 25 matches as Bitterman",
+    "art": "cards/banners/char_bitterman.jpg"
+   },
+   {
+    "id": "char_bones",
+    "name": "Bones",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm16"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm18"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.bones",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Bones in the campaign, or play 25 matches as Bones",
+    "art": "cards/banners/char_bones.jpg"
+   },
+   {
+    "id": "char_brandon",
+    "name": "Brandon",
+    "unlock": {
+     "stat": "matches_model.brandon",
+     "min": 25
+    },
+    "kind": "image",
+    "desc": "Play 25 matches as Brandon",
+    "art": "cards/banners/char_brandon.jpg"
+   },
+   {
+    "id": "char_carmack",
+    "name": "Carmack",
+    "unlock": {
+     "stat": "matches_model.carmack",
+     "min": 25
+    },
+    "kind": "image",
+    "desc": "Play 25 matches as Carmack",
+    "art": "cards/banners/char_carmack.jpg"
+   },
+   {
+    "id": "char_cash",
+    "name": "Cash",
+    "unlock": {
+     "stat": "matches_model.cash",
+     "min": 25
+    },
+    "kind": "image",
+    "desc": "Play 25 matches as Cash",
+    "art": "cards/banners/char_cash.jpg"
+   },
+   {
+    "id": "char_crash",
+    "name": "Crash",
+    "unlock": {
+     "any": [
+      {
+       "campaign": [
+        "q3dm0"
+       ],
+       "skill": 1
+      },
+      {
+       "stat": "matches_model.crash",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Crash in the campaign, or play 25 matches as Crash",
+    "art": "cards/banners/char_crash.jpg"
+   },
+   {
+    "id": "char_doom",
+    "name": "Doom",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm16"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm17"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm19"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.doom",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Doom in the campaign, or play 25 matches as Doom",
+    "art": "cards/banners/char_doom.jpg"
+   },
+   {
+    "id": "char_grunt",
+    "name": "Grunt",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm4"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm6"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm7"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.grunt",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Grunt in the campaign, or play 25 matches as Grunt",
+    "art": "cards/banners/char_grunt.jpg"
+   },
+   {
+    "id": "char_hunter",
+    "name": "Hunter",
+    "unlock": {
+     "any": [
+      {
+       "campaign": [
+        "q3tourney2"
+       ],
+       "skill": 1
+      },
+      {
+       "stat": "matches_model.hunter",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Hunter in the campaign, or play 25 matches as Hunter",
+    "art": "cards/banners/char_hunter.jpg"
+   },
+   {
+    "id": "char_keel",
+    "name": "Keel",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm14"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm15"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm18"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.keel",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Keel in the campaign, or play 25 matches as Keel",
+    "art": "cards/banners/char_keel.jpg"
+   },
+   {
+    "id": "char_klesk",
+    "name": "Klesk",
+    "unlock": {
+     "any": [
+      {
+       "campaign": [
+        "q3tourney3"
+       ],
+       "skill": 1
+      },
+      {
+       "stat": "matches_model.klesk",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Klesk in the campaign, or play 25 matches as Klesk",
+    "art": "cards/banners/char_klesk.jpg"
+   },
+   {
+    "id": "char_lucy",
+    "name": "Lucy",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm11"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm12"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.lucy",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Lucy in the campaign, or play 25 matches as Lucy",
+    "art": "cards/banners/char_lucy.jpg"
+   },
+   {
+    "id": "char_major",
+    "name": "Major",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm17"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm18"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.major",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Major in the campaign, or play 25 matches as Major",
+    "art": "cards/banners/char_major.jpg"
+   },
+   {
+    "id": "char_mynx",
+    "name": "Mynx",
+    "unlock": {
+     "any": [
+      {
+       "campaign": [
+        "q3dm3"
+       ],
+       "skill": 1
+      },
+      {
+       "stat": "matches_model.mynx",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Mynx in the campaign, or play 25 matches as Mynx",
+    "art": "cards/banners/char_mynx.jpg"
+   },
+   {
+    "id": "char_orbb",
+    "name": "Orbb",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm3"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm4"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm6"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.orbb",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Orbb in the campaign, or play 25 matches as Orbb",
+    "art": "cards/banners/char_orbb.jpg"
+   },
+   {
+    "id": "char_paulj",
+    "name": "Paulj",
+    "unlock": {
+     "stat": "matches_model.paulj",
+     "min": 25
+    },
+    "kind": "image",
+    "desc": "Play 25 matches as Paulj",
+    "art": "cards/banners/char_paulj.jpg"
+   },
+   {
+    "id": "char_ranger",
+    "name": "Ranger",
+    "unlock": {
+     "any": [
+      {
+       "campaign": [
+        "q3dm1"
+       ],
+       "skill": 1
+      },
+      {
+       "stat": "matches_model.ranger",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Ranger in the campaign, or play 25 matches as Ranger",
+    "art": "cards/banners/char_ranger.jpg"
+   },
+   {
+    "id": "char_razor",
+    "name": "Razor",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm13"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm14"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm15"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.razor",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Razor in the campaign, or play 25 matches as Razor",
+    "art": "cards/banners/char_razor.jpg"
+   },
+   {
+    "id": "char_sarge",
+    "name": "Sarge",
+    "unlock": {
+     "any": [
+      {
+       "campaign": [
+        "q3tourney1"
+       ],
+       "skill": 1
+      },
+      {
+       "stat": "matches_model.sarge",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Sarge in the campaign, or play 25 matches as Sarge",
+    "art": "cards/banners/char_sarge.jpg"
+   },
+   {
+    "id": "char_slash",
+    "name": "Slash",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm7"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm8"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm9"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm12"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.slash",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Slash in the campaign, or play 25 matches as Slash",
+    "art": "cards/banners/char_slash.jpg"
+   },
+   {
+    "id": "char_sorlag",
+    "name": "Sorlag",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm17"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm18"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm19"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.sorlag",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Sorlag in the campaign, or play 25 matches as Sorlag",
+    "art": "cards/banners/char_sorlag.jpg"
+   },
+   {
+    "id": "char_tankjr",
+    "name": "TankJr",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm10"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm11"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.tankjr",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat TankJr in the campaign, or play 25 matches as TankJr",
+    "art": "cards/banners/char_tankjr.jpg"
+   },
+   {
+    "id": "char_tim",
+    "name": "Tim",
+    "unlock": {
+     "stat": "matches_model.tim",
+     "min": 25
+    },
+    "kind": "image",
+    "desc": "Play 25 matches as Tim",
+    "art": "cards/banners/char_tim.jpg"
+   },
+   {
+    "id": "char_uriel",
+    "name": "Uriel",
+    "unlock": {
+     "any": [
+      {
+       "campaign": [
+        "q3tourney5"
+       ],
+       "skill": 1
+      },
+      {
+       "stat": "matches_model.uriel",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Uriel in the campaign, or play 25 matches as Uriel",
+    "art": "cards/banners/char_uriel.jpg"
+   },
+   {
+    "id": "char_visor",
+    "name": "Visor",
+    "unlock": {
+     "any": [
+      {
+       "any": [
+        {
+         "campaign": [
+          "q3dm13"
+         ],
+         "skill": 1
+        },
+        {
+         "campaign": [
+          "q3dm14"
+         ],
+         "skill": 1
+        }
+       ]
+      },
+      {
+       "stat": "matches_model.visor",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Visor in the campaign, or play 25 matches as Visor",
+    "art": "cards/banners/char_visor.jpg"
+   },
+   {
+    "id": "char_xaero",
+    "name": "Xaero",
+    "unlock": {
+     "any": [
+      {
+       "campaign": [
+        "q3tourney6"
+       ],
+       "skill": 1
+      },
+      {
+       "stat": "matches_model.xaero",
+       "min": 25
+      }
+     ]
+    },
+    "kind": "image",
+    "desc": "Beat Xaero in the campaign, or play 25 matches as Xaero",
+    "art": "cards/banners/char_xaero.jpg"
+   },
+   {
+    "id": "char_xian",
+    "name": "Xian",
+    "unlock": {
+     "stat": "matches_model.xian",
+     "min": 25
+    },
+    "kind": "image",
+    "desc": "Play 25 matches as Xian",
+    "art": "cards/banners/char_xian.jpg"
+   },
+   {
+    "id": "mat_q3a_banner",
+    "name": "Arena Banner",
+    "unlock": {
+     "level": 3
+    },
+    "kind": "image",
+    "material": "textures/base_wall/main_q3abanner",
+    "fx": "animated",
+    "art": "cards/banners/mat_q3a_banner.jpg"
+   },
+   {
+    "id": "mat_proto_banner",
+    "name": "Proto Banner",
+    "unlock": {
+     "level": 7
+    },
+    "kind": "image",
+    "material": "textures/base_wall/protobanner",
+    "fx": "animated",
+    "art": "cards/banners/mat_proto_banner.jpg"
+   },
+   {
+    "id": "mat_gothic_blocks",
+    "name": "Gothic Blocks",
+    "unlock": {
+     "level": 11
+    },
+    "kind": "image",
+    "material": "textures/gothic_block/blocks15_ow",
+    "art": "cards/banners/mat_gothic_blocks.jpg"
+   },
+   {
+    "id": "mat_bloody_blocks",
+    "name": "Bloody Blocks",
+    "unlock": {
+     "level": 16
+    },
+    "kind": "image",
+    "material": "textures/gothic_block/blocks17bloody",
+    "art": "cards/banners/mat_bloody_blocks.jpg"
+   },
+   {
+    "id": "mat_skull_arch",
+    "name": "Skull Arch",
+    "unlock": {
+     "level": 23
+    },
+    "kind": "image",
+    "material": "textures/gothic_door/skullarch_b",
+    "art": "cards/banners/mat_skull_arch.jpg"
+   },
+   {
+    "id": "mat_pentagram",
+    "name": "Pentagram",
+    "unlock": {
+     "level": 30
+    },
+    "kind": "image",
+    "material": "textures/gothic_light/pentagram_light1",
+    "art": "cards/banners/mat_pentagram.jpg"
+   },
+   {
+    "id": "mat_flesh",
+    "name": "Flesh Wall",
+    "unlock": {
+     "level": 34
+    },
+    "kind": "image",
+    "material": "textures/skin/proto_skin2",
+    "art": "cards/banners/mat_flesh.jpg"
+   },
+   {
+    "id": "mat_rusty_grate",
+    "name": "Rusty Grate",
+    "unlock": {
+     "level": 39
+    },
+    "kind": "image",
+    "material": "textures/base_floor/proto_rustygrate",
+    "art": "cards/banners/mat_rusty_grate.jpg"
+   },
+   {
+    "id": "mat_blue_metal",
+    "name": "Blue Metal",
+    "unlock": {
+     "level": 41
+    },
+    "kind": "image",
+    "material": "textures/base_wall/bluemetal1b_chrome",
+    "art": "cards/banners/mat_blue_metal.jpg"
+   },
+   {
+    "id": "mat_jump_pad",
+    "name": "Jump Pad",
+    "unlock": {
+     "level": 44
+    },
+    "kind": "image",
+    "material": "textures/sfx/xq1metalbig_jumppad",
+    "fx": "animated",
+    "art": "cards/banners/mat_jump_pad.jpg"
+   },
+   {
+    "id": "mat_glow_floor",
+    "name": "Glow Floor",
+    "unlock": {
+     "level": 48
+    },
+    "kind": "image",
+    "material": "textures/gothic_floor/glowfloor1",
+    "fx": "animated",
+    "art": "cards/banners/mat_glow_floor.jpg"
+   },
+   {
+    "id": "mat_lava",
+    "name": "Lava",
+    "unlock": {
+     "level": 51
+    },
+    "kind": "image",
+    "material": "textures/liquids/lavahell",
+    "fx": "animated",
+    "art": "cards/banners/mat_lava.jpg"
+   },
+   {
+    "id": "mat_slime",
+    "name": "Slime",
+    "unlock": {
+     "level": 53
+    },
+    "kind": "image",
+    "material": "textures/liquids/slime1",
+    "fx": "animated",
+    "art": "cards/banners/mat_slime.jpg"
+   },
+   {
+    "id": "mat_hellfire",
+    "name": "Hellfire",
+    "unlock": {
+     "level": 58
+    },
+    "kind": "image",
+    "material": "textures/sfx/flame2",
+    "fx": "animated",
+    "art": "cards/banners/mat_hellfire.jpg"
+   },
+   {
+    "id": "mat_electric_slime",
+    "name": "Electric Slime",
+    "unlock": {
+     "level": 60
+    },
+    "kind": "image",
+    "material": "textures/sfx/electricslime",
+    "fx": "animated",
+    "art": "cards/banners/mat_electric_slime.jpg"
+   },
+   {
+    "id": "mat_ornate_door",
+    "name": "Ornate Door",
+    "unlock": {
+     "level": 63
+    },
+    "kind": "image",
+    "material": "textures/gothic_door/door02_i_ornate5_fin",
+    "art": "cards/banners/mat_ornate_door.jpg"
+   },
+   {
+    "id": "mat_red_flag",
+    "name": "Red Flag",
+    "unlock": {
+     "level": 67
+    },
+    "kind": "image",
+    "material": "textures/ctf/ctf_redflag",
+    "fx": "animated",
+    "art": "cards/banners/mat_red_flag.jpg"
+   },
+   {
+    "id": "mat_blue_flag",
+    "name": "Blue Flag",
+    "unlock": {
+     "level": 70
+    },
+    "kind": "image",
+    "material": "textures/ctf/ctf_blueflag",
+    "fx": "animated",
+    "art": "cards/banners/mat_blue_flag.jpg"
+   },
+   {
+    "id": "mat_blue_pentagram",
+    "name": "Blue Pentagram",
+    "unlock": {
+     "level": 72
+    },
+    "kind": "image",
+    "material": "textures/sfx/pentagramfloor_blue3glowtest",
+    "fx": "animated",
+    "art": "cards/banners/mat_blue_pentagram.jpg"
+   },
+   {
+    "id": "mat_lava_grate",
+    "name": "Lava Grate",
+    "unlock": {
+     "level": 77
+    },
+    "kind": "image",
+    "material": "textures/base_floor/clang_floor3blava",
+    "fx": "animated",
+    "art": "cards/banners/mat_lava_grate.jpg"
+   },
+   {
+    "id": "mat_bloody_bridge",
+    "name": "Bloody Bridge",
+    "unlock": {
+     "level": 79
+    },
+    "kind": "image",
+    "material": "textures/gothic_floor/metalbridge06b_blood",
+    "art": "cards/banners/mat_bloody_bridge.jpg"
+   },
+   {
+    "id": "mat_arena_tower",
+    "name": "Arena Tower",
+    "unlock": {
+     "level": 81
+    },
+    "kind": "image",
+    "material": "textures/gothic_trim/km_arena1tower4fx",
+    "fx": "animated",
+    "art": "cards/banners/mat_arena_tower.jpg"
+   },
+   {
+    "id": "mat_red_light",
+    "name": "Red Light",
+    "unlock": {
+     "level": 86
+    },
+    "kind": "image",
+    "material": "textures/base_light/proto_lightred",
+    "art": "cards/banners/mat_red_light.jpg"
+   },
+   {
+    "id": "mat_hell_rock",
+    "name": "Hell Rock",
+    "unlock": {
+     "level": 88
+    },
+    "kind": "image",
+    "material": "textures/organics/pjrock7d",
+    "art": "cards/banners/mat_hell_rock.jpg"
+   },
+   {
+    "id": "mat_head_wall",
+    "name": "Head Wall",
+    "unlock": {
+     "level": 91
+    },
+    "kind": "image",
+    "material": "textures/gothic_block/blocks18cbloodhead",
+    "art": "cards/banners/mat_head_wall.jpg"
+   },
+   {
+    "id": "mat_slime_blocks",
+    "name": "Slime Blocks",
+    "unlock": {
+     "level": 95
+    },
+    "kind": "image",
+    "material": "textures/gothic_block/blocks17slime",
+    "fx": "animated",
+    "art": "cards/banners/mat_slime_blocks.jpg"
+   },
+   {
+    "id": "mat_electric_wall",
+    "name": "Electric Wall",
+    "unlock": {
+     "level": 98
+    },
+    "kind": "image",
+    "material": "textures/base_trim/electricwall",
+    "fx": "animated",
+    "art": "cards/banners/mat_electric_wall.jpg"
+   },
+   {
+    "id": "trophy_wall",
+    "name": "Trophy Wall",
+    "unlock": {
+     "achievement": "medal_collector"
+    },
+    "kind": "stat",
+    "desc": "Your three best medal counts"
+   },
+   {
+    "id": "weapon_mastery",
+    "name": "Weapon Mastery",
+    "unlock": {
+     "achievement": "arsenal"
+    },
+    "kind": "stat",
+    "desc": "Your best weapon and its frags"
+   },
+   {
+    "id": "favorite_arena",
+    "name": "Favorite Arena",
+    "unlock": {
+     "achievement": "home_turf"
+    },
+    "kind": "stat",
+    "desc": "The arena you've won most"
+   },
+   {
+    "id": "rank_crest",
+    "name": "Rank Crest",
+    "unlock": {
+     "achievement": "ranked_hurt_me_plenty"
+    },
+    "kind": "stat",
+    "desc": "Your ranked tier's colors"
+   },
+   {
+    "id": "season",
+    "name": "Season",
+    "unlock": {
+     "achievement": "ranked_hardcore"
+    },
+    "kind": "stat",
+    "desc": "A new design every ranked season"
+   },
+   {
+    "id": "campaign_map",
+    "name": "Campaign Map",
+    "unlock": {
+     "achievement": "campaign_training"
+    },
+    "kind": "stat",
+    "desc": "Every campaign arena and the skill you won it at"
+   },
+   {
+    "id": "quad_damage",
+    "name": "Quad Damage",
+    "unlock": {
+     "achievement": "quad_god"
+    },
+    "kind": "prestige",
+    "fx": "animated",
+    "base": "map_q3dm17",
+    "desc": "The card pulses with the Quad shell"
+   },
+   {
+    "id": "lava_bath",
+    "name": "Lava Bath",
+    "unlock": {
+     "achievement": "lava_bath"
+    },
+    "kind": "prestige",
+    "fx": "animated",
+    "base": "mat_lava",
+    "desc": "Your favorite arena sinks into rising lava"
+   },
+   {
+    "id": "longest_yard",
+    "name": "The Longest Yard",
+    "unlock": {
+     "achievement": "rail_streak"
+    },
+    "kind": "prestige",
+    "fx": "animated",
+    "base": "map_q3dm17",
+    "desc": "Rail trails cross the void"
+   },
+   {
+    "id": "gibbed",
+    "name": "Gibbed",
+    "unlock": {
+     "achievement": "medal_gauntlet_1000"
+    },
+    "kind": "prestige",
+    "fx": "animated",
+    "base": "mat_bloody_blocks",
+    "desc": "A gauntlet kill's gib fountain"
+   },
+   {
+    "id": "nightmare",
+    "name": "Nightmare!",
+    "unlock": {
+     "achievement": "campaign_nightmare"
+    },
+    "kind": "prestige",
+    "fx": "animated",
+    "base": "char_xaero",
+    "desc": "Xaero above the final arena"
+   }
+  ],
+  "emblems": [
+   {
+    "id": "head_anarki",
+    "name": "Anarki",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_anarki.png"
+   },
+   {
+    "id": "head_anarki_blue",
+    "name": "Anarki (Blue)",
+    "unlock": {
+     "stat": "matches_skin.anarki/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_anarki_blue.png"
+   },
+   {
+    "id": "head_anarki_red",
+    "name": "Anarki (Red)",
+    "unlock": {
+     "stat": "matches_skin.anarki/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_anarki_red.png"
+   },
+   {
+    "id": "head_biker",
+    "name": "Biker",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_biker.png"
+   },
+   {
+    "id": "head_biker_blue",
+    "name": "Biker (Blue)",
+    "unlock": {
+     "stat": "matches_skin.biker/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_biker_blue.png"
+   },
+   {
+    "id": "head_biker_red",
+    "name": "Biker (Red)",
+    "unlock": {
+     "stat": "matches_skin.biker/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_biker_red.png"
+   },
+   {
+    "id": "head_biker_cadavre",
+    "name": "Biker (Cadavre)",
+    "unlock": {
+     "stat": "matches_skin.biker/cadavre",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_biker_cadavre.png"
+   },
+   {
+    "id": "head_biker_hossman",
+    "name": "Biker (Hossman)",
+    "unlock": {
+     "stat": "matches_skin.biker/hossman",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_biker_hossman.png"
+   },
+   {
+    "id": "head_biker_slammer",
+    "name": "Biker (Slammer)",
+    "unlock": {
+     "stat": "matches_skin.biker/slammer",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_biker_slammer.png"
+   },
+   {
+    "id": "head_biker_stroggo",
+    "name": "Biker (Stroggo)",
+    "unlock": {
+     "stat": "matches_skin.biker/stroggo",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_biker_stroggo.png"
+   },
+   {
+    "id": "head_bitterman",
+    "name": "Bitterman",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_bitterman.png"
+   },
+   {
+    "id": "head_bitterman_blue",
+    "name": "Bitterman (Blue)",
+    "unlock": {
+     "stat": "matches_skin.bitterman/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_bitterman_blue.png"
+   },
+   {
+    "id": "head_bitterman_red",
+    "name": "Bitterman (Red)",
+    "unlock": {
+     "stat": "matches_skin.bitterman/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_bitterman_red.png"
+   },
+   {
+    "id": "head_bones",
+    "name": "Bones",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_bones.png"
+   },
+   {
+    "id": "head_bones_blue",
+    "name": "Bones (Blue)",
+    "unlock": {
+     "stat": "matches_skin.bones/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_bones_blue.png"
+   },
+   {
+    "id": "head_bones_red",
+    "name": "Bones (Red)",
+    "unlock": {
+     "stat": "matches_skin.bones/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_bones_red.png"
+   },
+   {
+    "id": "head_bones_bones",
+    "name": "Bones (Bones)",
+    "unlock": {
+     "stat": "matches_skin.bones/bones",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_bones_bones.png"
+   },
+   {
+    "id": "head_brandon",
+    "name": "Brandon",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_brandon.png"
+   },
+   {
+    "id": "head_carmack",
+    "name": "Carmack",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_carmack.png"
+   },
+   {
+    "id": "head_cash",
+    "name": "Cash",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_cash.png"
+   },
+   {
+    "id": "head_crash",
+    "name": "Crash",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_crash.png"
+   },
+   {
+    "id": "head_crash_blue",
+    "name": "Crash (Blue)",
+    "unlock": {
+     "stat": "matches_skin.crash/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_crash_blue.png"
+   },
+   {
+    "id": "head_crash_red",
+    "name": "Crash (Red)",
+    "unlock": {
+     "stat": "matches_skin.crash/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_crash_red.png"
+   },
+   {
+    "id": "head_doom",
+    "name": "Doom",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_doom.png"
+   },
+   {
+    "id": "head_doom_blue",
+    "name": "Doom (Blue)",
+    "unlock": {
+     "stat": "matches_skin.doom/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_doom_blue.png"
+   },
+   {
+    "id": "head_doom_red",
+    "name": "Doom (Red)",
+    "unlock": {
+     "stat": "matches_skin.doom/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_doom_red.png"
+   },
+   {
+    "id": "head_doom_phobos",
+    "name": "Doom (Phobos)",
+    "unlock": {
+     "stat": "matches_skin.doom/phobos",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_doom_phobos.png"
+   },
+   {
+    "id": "head_grunt",
+    "name": "Grunt",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_grunt.png"
+   },
+   {
+    "id": "head_grunt_blue",
+    "name": "Grunt (Blue)",
+    "unlock": {
+     "stat": "matches_skin.grunt/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_grunt_blue.png"
+   },
+   {
+    "id": "head_grunt_red",
+    "name": "Grunt (Red)",
+    "unlock": {
+     "stat": "matches_skin.grunt/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_grunt_red.png"
+   },
+   {
+    "id": "head_grunt_stripe",
+    "name": "Grunt (Stripe)",
+    "unlock": {
+     "stat": "matches_skin.grunt/stripe",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_grunt_stripe.png"
+   },
+   {
+    "id": "head_hunter",
+    "name": "Hunter",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_hunter.png"
+   },
+   {
+    "id": "head_hunter_blue",
+    "name": "Hunter (Blue)",
+    "unlock": {
+     "stat": "matches_skin.hunter/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_hunter_blue.png"
+   },
+   {
+    "id": "head_hunter_red",
+    "name": "Hunter (Red)",
+    "unlock": {
+     "stat": "matches_skin.hunter/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_hunter_red.png"
+   },
+   {
+    "id": "head_hunter_harpy",
+    "name": "Hunter (Harpy)",
+    "unlock": {
+     "stat": "matches_skin.hunter/harpy",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_hunter_harpy.png"
+   },
+   {
+    "id": "head_keel",
+    "name": "Keel",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_keel.png"
+   },
+   {
+    "id": "head_keel_blue",
+    "name": "Keel (Blue)",
+    "unlock": {
+     "stat": "matches_skin.keel/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_keel_blue.png"
+   },
+   {
+    "id": "head_keel_red",
+    "name": "Keel (Red)",
+    "unlock": {
+     "stat": "matches_skin.keel/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_keel_red.png"
+   },
+   {
+    "id": "head_klesk",
+    "name": "Klesk",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_klesk.png"
+   },
+   {
+    "id": "head_klesk_blue",
+    "name": "Klesk (Blue)",
+    "unlock": {
+     "stat": "matches_skin.klesk/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_klesk_blue.png"
+   },
+   {
+    "id": "head_klesk_red",
+    "name": "Klesk (Red)",
+    "unlock": {
+     "stat": "matches_skin.klesk/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_klesk_red.png"
+   },
+   {
+    "id": "head_klesk_flisk",
+    "name": "Klesk (Flisk)",
+    "unlock": {
+     "stat": "matches_skin.klesk/flisk",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_klesk_flisk.png"
+   },
+   {
+    "id": "head_lucy",
+    "name": "Lucy",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_lucy.png"
+   },
+   {
+    "id": "head_lucy_blue",
+    "name": "Lucy (Blue)",
+    "unlock": {
+     "stat": "matches_skin.lucy/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_lucy_blue.png"
+   },
+   {
+    "id": "head_lucy_red",
+    "name": "Lucy (Red)",
+    "unlock": {
+     "stat": "matches_skin.lucy/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_lucy_red.png"
+   },
+   {
+    "id": "head_lucy_angel",
+    "name": "Lucy (Angel)",
+    "unlock": {
+     "stat": "matches_skin.lucy/angel",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_lucy_angel.png"
+   },
+   {
+    "id": "head_major",
+    "name": "Major",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_major.png"
+   },
+   {
+    "id": "head_major_blue",
+    "name": "Major (Blue)",
+    "unlock": {
+     "stat": "matches_skin.major/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_major_blue.png"
+   },
+   {
+    "id": "head_major_red",
+    "name": "Major (Red)",
+    "unlock": {
+     "stat": "matches_skin.major/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_major_red.png"
+   },
+   {
+    "id": "head_major_daemia",
+    "name": "Major (Daemia)",
+    "unlock": {
+     "stat": "matches_skin.major/daemia",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_major_daemia.png"
+   },
+   {
+    "id": "head_mynx",
+    "name": "Mynx",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_mynx.png"
+   },
+   {
+    "id": "head_mynx_blue",
+    "name": "Mynx (Blue)",
+    "unlock": {
+     "stat": "matches_skin.mynx/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_mynx_blue.png"
+   },
+   {
+    "id": "head_mynx_red",
+    "name": "Mynx (Red)",
+    "unlock": {
+     "stat": "matches_skin.mynx/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_mynx_red.png"
+   },
+   {
+    "id": "head_orbb",
+    "name": "Orbb",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_orbb.png"
+   },
+   {
+    "id": "head_orbb_blue",
+    "name": "Orbb (Blue)",
+    "unlock": {
+     "stat": "matches_skin.orbb/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_orbb_blue.png"
+   },
+   {
+    "id": "head_orbb_red",
+    "name": "Orbb (Red)",
+    "unlock": {
+     "stat": "matches_skin.orbb/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_orbb_red.png"
+   },
+   {
+    "id": "head_paulj",
+    "name": "Paulj",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_paulj.png"
+   },
+   {
+    "id": "head_ranger",
+    "name": "Ranger",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_ranger.png"
+   },
+   {
+    "id": "head_ranger_blue",
+    "name": "Ranger (Blue)",
+    "unlock": {
+     "stat": "matches_skin.ranger/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_ranger_blue.png"
+   },
+   {
+    "id": "head_ranger_red",
+    "name": "Ranger (Red)",
+    "unlock": {
+     "stat": "matches_skin.ranger/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_ranger_red.png"
+   },
+   {
+    "id": "head_ranger_wrack",
+    "name": "Ranger (Wrack)",
+    "unlock": {
+     "stat": "matches_skin.ranger/wrack",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_ranger_wrack.png"
+   },
+   {
+    "id": "head_razor",
+    "name": "Razor",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_razor.png"
+   },
+   {
+    "id": "head_razor_blue",
+    "name": "Razor (Blue)",
+    "unlock": {
+     "stat": "matches_skin.razor/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_razor_blue.png"
+   },
+   {
+    "id": "head_razor_red",
+    "name": "Razor (Red)",
+    "unlock": {
+     "stat": "matches_skin.razor/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_razor_red.png"
+   },
+   {
+    "id": "head_razor_id",
+    "name": "Razor (Id)",
+    "unlock": {
+     "stat": "matches_skin.razor/id",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_razor_id.png"
+   },
+   {
+    "id": "head_razor_patriot",
+    "name": "Razor (Patriot)",
+    "unlock": {
+     "stat": "matches_skin.razor/patriot",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_razor_patriot.png"
+   },
+   {
+    "id": "head_sarge",
+    "name": "Sarge",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_sarge.png"
+   },
+   {
+    "id": "head_sarge_blue",
+    "name": "Sarge (Blue)",
+    "unlock": {
+     "stat": "matches_skin.sarge/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_sarge_blue.png"
+   },
+   {
+    "id": "head_sarge_red",
+    "name": "Sarge (Red)",
+    "unlock": {
+     "stat": "matches_skin.sarge/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_sarge_red.png"
+   },
+   {
+    "id": "head_sarge_krusade",
+    "name": "Sarge (Krusade)",
+    "unlock": {
+     "stat": "matches_skin.sarge/krusade",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_sarge_krusade.png"
+   },
+   {
+    "id": "head_sarge_roderic",
+    "name": "Sarge (Roderic)",
+    "unlock": {
+     "stat": "matches_skin.sarge/roderic",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_sarge_roderic.png"
+   },
+   {
+    "id": "head_slash",
+    "name": "Slash",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_slash.png"
+   },
+   {
+    "id": "head_slash_blue",
+    "name": "Slash (Blue)",
+    "unlock": {
+     "stat": "matches_skin.slash/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_slash_blue.png"
+   },
+   {
+    "id": "head_slash_red",
+    "name": "Slash (Red)",
+    "unlock": {
+     "stat": "matches_skin.slash/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_slash_red.png"
+   },
+   {
+    "id": "head_slash_grrl",
+    "name": "Slash (Grrl)",
+    "unlock": {
+     "stat": "matches_skin.slash/grrl",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_slash_grrl.png"
+   },
+   {
+    "id": "head_slash_yuriko",
+    "name": "Slash (Yuriko)",
+    "unlock": {
+     "stat": "matches_skin.slash/yuriko",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_slash_yuriko.png"
+   },
+   {
+    "id": "head_sorlag",
+    "name": "Sorlag",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_sorlag.png"
+   },
+   {
+    "id": "head_sorlag_blue",
+    "name": "Sorlag (Blue)",
+    "unlock": {
+     "stat": "matches_skin.sorlag/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_sorlag_blue.png"
+   },
+   {
+    "id": "head_sorlag_red",
+    "name": "Sorlag (Red)",
+    "unlock": {
+     "stat": "matches_skin.sorlag/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_sorlag_red.png"
+   },
+   {
+    "id": "head_tankjr",
+    "name": "Tankjr",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_tankjr.png"
+   },
+   {
+    "id": "head_tankjr_blue",
+    "name": "Tankjr (Blue)",
+    "unlock": {
+     "stat": "matches_skin.tankjr/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_tankjr_blue.png"
+   },
+   {
+    "id": "head_tankjr_red",
+    "name": "Tankjr (Red)",
+    "unlock": {
+     "stat": "matches_skin.tankjr/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_tankjr_red.png"
+   },
+   {
+    "id": "head_tim",
+    "name": "Tim",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_tim.png"
+   },
+   {
+    "id": "head_uriel",
+    "name": "Uriel",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_uriel.png"
+   },
+   {
+    "id": "head_uriel_blue",
+    "name": "Uriel (Blue)",
+    "unlock": {
+     "stat": "matches_skin.uriel/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_uriel_blue.png"
+   },
+   {
+    "id": "head_uriel_red",
+    "name": "Uriel (Red)",
+    "unlock": {
+     "stat": "matches_skin.uriel/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_uriel_red.png"
+   },
+   {
+    "id": "head_uriel_zael",
+    "name": "Uriel (Zael)",
+    "unlock": {
+     "stat": "matches_skin.uriel/zael",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_uriel_zael.png"
+   },
+   {
+    "id": "head_visor",
+    "name": "Visor",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_visor.png"
+   },
+   {
+    "id": "head_visor_blue",
+    "name": "Visor (Blue)",
+    "unlock": {
+     "stat": "matches_skin.visor/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_visor_blue.png"
+   },
+   {
+    "id": "head_visor_red",
+    "name": "Visor (Red)",
+    "unlock": {
+     "stat": "matches_skin.visor/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_visor_red.png"
+   },
+   {
+    "id": "head_visor_gorre",
+    "name": "Visor (Gorre)",
+    "unlock": {
+     "stat": "matches_skin.visor/gorre",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "skins",
+    "art": "cards/emblems/head_visor_gorre.png"
+   },
+   {
+    "id": "head_xaero",
+    "name": "Xaero",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_xaero.png"
+   },
+   {
+    "id": "head_xaero_blue",
+    "name": "Xaero (Blue)",
+    "unlock": {
+     "stat": "matches_skin.xaero/blue",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_xaero_blue.png"
+   },
+   {
+    "id": "head_xaero_red",
+    "name": "Xaero (Red)",
+    "unlock": {
+     "stat": "matches_skin.xaero/red",
+     "min": 10
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_xaero_red.png"
+   },
+   {
+    "id": "head_xian",
+    "name": "Xian",
+    "unlock": {
+     "free": true
+    },
+    "kind": "image",
+    "group": "heads",
+    "art": "cards/emblems/head_xian.png"
+   },
+   {
+    "id": "iconw_gauntlet",
+    "name": "Gauntlet",
+    "unlock": {
+     "achievement": "medal_gauntlet_100"
+    },
+    "kind": "image",
+    "group": "weapons",
+    "art": "cards/emblems/iconw_gauntlet.png"
+   },
+   {
+    "id": "iconw_machinegun",
+    "name": "Machinegun",
+    "unlock": {
+     "achievement": "weapon_machinegun_100"
+    },
+    "kind": "image",
+    "group": "weapons",
+    "art": "cards/emblems/iconw_machinegun.png"
+   },
+   {
+    "id": "iconw_shotgun",
+    "name": "Shotgun",
+    "unlock": {
+     "achievement": "weapon_shotgun_100"
+    },
+    "kind": "image",
+    "group": "weapons",
+    "art": "cards/emblems/iconw_shotgun.png"
+   },
+   {
+    "id": "iconw_grenade",
+    "name": "Grenade Launcher",
+    "unlock": {
+     "achievement": "weapon_grenade_100"
+    },
+    "kind": "image",
+    "group": "weapons",
+    "art": "cards/emblems/iconw_grenade.png"
+   },
+   {
+    "id": "iconw_rocket",
+    "name": "Rocket Launcher",
+    "unlock": {
+     "achievement": "weapon_rocket_100"
+    },
+    "kind": "image",
+    "group": "weapons",
+    "art": "cards/emblems/iconw_rocket.png"
+   },
+   {
+    "id": "iconw_lightning",
+    "name": "Lightning Gun",
+    "unlock": {
+     "achievement": "weapon_lightning_100"
+    },
+    "kind": "image",
+    "group": "weapons",
+    "art": "cards/emblems/iconw_lightning.png"
+   },
+   {
+    "id": "iconw_railgun",
+    "name": "Railgun",
+    "unlock": {
+     "achievement": "weapon_railgun_100"
+    },
+    "kind": "image",
+    "group": "weapons",
+    "art": "cards/emblems/iconw_railgun.png"
+   },
+   {
+    "id": "iconw_plasma",
+    "name": "Plasma Gun",
+    "unlock": {
+     "achievement": "weapon_plasma_100"
+    },
+    "kind": "image",
+    "group": "weapons",
+    "art": "cards/emblems/iconw_plasma.png"
+   },
+   {
+    "id": "iconw_bfg",
+    "name": "BFG10K",
+    "unlock": {
+     "achievement": "weapon_bfg_100"
+    },
+    "kind": "image",
+    "group": "weapons",
+    "art": "cards/emblems/iconw_bfg.png"
+   },
+   {
+    "id": "quad",
+    "name": "Quad Damage",
+    "unlock": {
+     "stat": "pickups.quad",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Quad Damage 50 times",
+    "art": "cards/emblems/quad.png"
+   },
+   {
+    "id": "regen",
+    "name": "Regeneration",
+    "unlock": {
+     "stat": "pickups.regen",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Regeneration 50 times",
+    "art": "cards/emblems/regen.png"
+   },
+   {
+    "id": "haste",
+    "name": "Haste",
+    "unlock": {
+     "stat": "pickups.haste",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Haste 50 times",
+    "art": "cards/emblems/haste.png"
+   },
+   {
+    "id": "envirosuit",
+    "name": "Battle Suit",
+    "unlock": {
+     "stat": "pickups.battlesuit",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Battle Suit 50 times",
+    "art": "cards/emblems/envirosuit.png"
+   },
+   {
+    "id": "invis",
+    "name": "Invisibility",
+    "unlock": {
+     "stat": "pickups.invis",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Invisibility 50 times",
+    "art": "cards/emblems/invis.png"
+   },
+   {
+    "id": "flight",
+    "name": "Flight",
+    "unlock": {
+     "stat": "pickups.flight",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Flight 50 times",
+    "art": "cards/emblems/flight.png"
+   },
+   {
+    "id": "iconh_mega",
+    "name": "Mega Health",
+    "unlock": {
+     "stat": "pickups.mega",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Mega Health 50 times",
+    "art": "cards/emblems/iconh_mega.png"
+   },
+   {
+    "id": "iconr_red",
+    "name": "Heavy Armor",
+    "unlock": {
+     "stat": "pickups.armor_red",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Heavy Armor 50 times",
+    "art": "cards/emblems/iconr_red.png"
+   },
+   {
+    "id": "iconr_yellow",
+    "name": "Armor",
+    "unlock": {
+     "stat": "pickups.armor_yellow",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Armor 50 times",
+    "art": "cards/emblems/iconr_yellow.png"
+   },
+   {
+    "id": "medkit",
+    "name": "Medkit",
+    "unlock": {
+     "stat": "pickups.medkit",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Medkit 50 times",
+    "art": "cards/emblems/medkit.png"
+   },
+   {
+    "id": "teleporter",
+    "name": "Personal Teleporter",
+    "unlock": {
+     "stat": "pickups.teleporter",
+     "min": 50
+    },
+    "kind": "image",
+    "group": "items",
+    "desc": "Pick up Personal Teleporter 50 times",
+    "art": "cards/emblems/teleporter.png"
+   },
+   {
+    "id": "iconf_red",
+    "name": "Red Flag",
+    "unlock": {
+     "achievement": "medal_capture_10"
+    },
+    "kind": "image",
+    "group": "items",
+    "art": "cards/emblems/iconf_red.png"
+   },
+   {
+    "id": "iconf_blu",
+    "name": "Blue Flag",
+    "unlock": {
+     "achievement": "flag_returns"
+    },
+    "kind": "image",
+    "group": "items",
+    "art": "cards/emblems/iconf_blu.png"
+   },
+   {
+    "id": "medal_excellent",
+    "name": "Excellent",
+    "unlock": {
+     "achievement": "medal_excellent_100"
+    },
+    "kind": "image",
+    "group": "medals",
+    "art": "cards/emblems/medal_excellent.png"
+   },
+   {
+    "id": "medal_impressive",
+    "name": "Impressive",
+    "unlock": {
+     "achievement": "medal_impressive_100"
+    },
+    "kind": "image",
+    "group": "medals",
+    "art": "cards/emblems/medal_impressive.png"
+   },
+   {
+    "id": "medal_gauntlet",
+    "name": "Gauntlet",
+    "unlock": {
+     "achievement": "medal_gauntlet_100"
+    },
+    "kind": "image",
+    "group": "medals",
+    "art": "cards/emblems/medal_gauntlet.png"
+   },
+   {
+    "id": "medal_capture",
+    "name": "Capture",
+    "unlock": {
+     "achievement": "medal_capture_100"
+    },
+    "kind": "image",
+    "group": "medals",
+    "art": "cards/emblems/medal_capture.png"
+   },
+   {
+    "id": "medal_assist",
+    "name": "Assist",
+    "unlock": {
+     "achievement": "medal_assist_100"
+    },
+    "kind": "image",
+    "group": "medals",
+    "art": "cards/emblems/medal_assist.png"
+   },
+   {
+    "id": "medal_defend",
+    "name": "Defend",
+    "unlock": {
+     "achievement": "medal_defend_100"
+    },
+    "kind": "image",
+    "group": "medals",
+    "art": "cards/emblems/medal_defend.png"
+   },
+   {
+    "id": "medal_accuracy",
+    "name": "Accuracy",
+    "unlock": {
+     "achievement": "rail_accuracy"
+    },
+    "kind": "image",
+    "group": "medals",
+    "art": "cards/emblems/medal_accuracy.png"
+   },
+   {
+    "id": "medal_frags",
+    "name": "Frags",
+    "unlock": {
+     "achievement": "frags_1000"
+    },
+    "kind": "image",
+    "group": "medals",
+    "art": "cards/emblems/medal_frags.png"
+   },
+   {
+    "id": "medal_victory",
+    "name": "Victory",
+    "unlock": {
+     "achievement": "wins_100"
+    },
+    "kind": "image",
+    "group": "medals",
+    "art": "cards/emblems/medal_victory.png"
+   }
+  ],
+  "frames": [
+   {
+    "id": "plain",
+    "name": "Plain",
+    "unlock": {
+     "free": true
+    },
+    "style": "plain"
+   },
+   {
+    "id": "frame_rusted_iron",
+    "name": "Rusted Iron",
+    "unlock": {
+     "level": 10
+    },
+    "style": "material",
+    "material": "textures/gothic_trim/pitted_rust3",
+    "tint": "#b06a3a",
+    "art": "cards/frames/frame_rusted_iron.jpg"
+   },
+   {
+    "id": "frame_riveted_steel",
+    "name": "Riveted Steel",
+    "unlock": {
+     "level": 20
+    },
+    "style": "material",
+    "material": "textures/gothic_trim/chrome_rivet",
+    "tint": "#c8ccd0",
+    "art": "cards/frames/frame_riveted_steel.jpg"
+   },
+   {
+    "id": "frame_gothic_stone",
+    "name": "Gothic Stone",
+    "unlock": {
+     "level": 30
+    },
+    "style": "material",
+    "material": "textures/gothic_block/blocks15_ow",
+    "tint": "#a89c8c",
+    "art": "cards/frames/frame_gothic_stone.jpg"
+   },
+   {
+    "id": "frame_base_tech",
+    "name": "Base Tech",
+    "unlock": {
+     "level": 40
+    },
+    "style": "material",
+    "material": "textures/base_trim/panel_shiny",
+    "tint": "#9fb4c8",
+    "art": "cards/frames/frame_base_tech.jpg"
+   },
+   {
+    "id": "frame_bloodstained",
+    "name": "Bloodstained",
+    "unlock": {
+     "level": 50
+    },
+    "style": "material",
+    "material": "textures/gothic_block/blocks18cblood",
+    "tint": "#a01818",
+    "art": "cards/frames/frame_bloodstained.jpg"
+   },
+   {
+    "id": "frame_bronze",
+    "name": "Bronze",
+    "unlock": {
+     "level": 60
+    },
+    "style": "material",
+    "material": "textures/gothic_trim/chrome_rivet",
+    "tint": "#cd7f32",
+    "art": "cards/frames/frame_bronze.jpg"
+   },
+   {
+    "id": "frame_silver",
+    "name": "Silver",
+    "unlock": {
+     "level": 70
+    },
+    "style": "material",
+    "material": "textures/gothic_trim/chrome_rivet",
+    "tint": "#e6e8ee",
+    "art": "cards/frames/frame_silver.jpg"
+   },
+   {
+    "id": "frame_gold",
+    "name": "Gold",
+    "unlock": {
+     "level": 80
+    },
+    "style": "material",
+    "material": "textures/gothic_wall/goldbrick",
+    "tint": "#ffd24a",
+    "art": "cards/frames/frame_gold.jpg"
+   },
+   {
+    "id": "frame_arena_master",
+    "name": "Arena Master",
+    "unlock": {
+     "level": 90
+    },
+    "style": "material",
+    "material": "textures/gothic_trim/skullsvertgray02a",
+    "tint": "#ff4a1a",
+    "art": "cards/frames/frame_arena_master.jpg"
+   },
+   {
+    "id": "frame_quad",
+    "name": "Quad Damage",
+    "unlock": {
+     "achievement": "powerup_quad"
+    },
+    "style": "shell",
+    "shell": "quad",
+    "fx": "animated",
+    "art": "cards/frames/frame_quad.jpg"
+   },
+   {
+    "id": "frame_battlesuit",
+    "name": "Battle Suit",
+    "unlock": {
+     "achievement": "powerup_battlesuit"
+    },
+    "style": "shell",
+    "shell": "battlesuit",
+    "fx": "animated",
+    "art": "cards/frames/frame_battlesuit.jpg"
+   },
+   {
+    "id": "frame_regen",
+    "name": "Regeneration",
+    "unlock": {
+     "achievement": "powerup_regen"
+    },
+    "style": "shell",
+    "shell": "regen",
+    "fx": "animated",
+    "art": "cards/frames/frame_regen.jpg"
+   },
+   {
+    "id": "frame_haste",
+    "name": "Haste",
+    "unlock": {
+     "achievement": "powerup_haste"
+    },
+    "style": "shell",
+    "shell": "haste",
+    "fx": "animated",
+    "art": "cards/frames/frame_haste.jpg"
+   },
+   {
+    "id": "frame_invis",
+    "name": "Invisibility",
+    "unlock": {
+     "achievement": "powerup_invis"
+    },
+    "style": "shell",
+    "shell": "invis",
+    "fx": "animated",
+    "art": "cards/frames/frame_invis.jpg"
+   },
+   {
+    "id": "frame_training",
+    "name": "Training",
+    "unlock": {
+     "campaign": [
+      "q3dm0"
+     ],
+     "skill": 1
+    },
+    "style": "campaign",
+    "desc": "Win every arena of Training"
+   },
+   {
+    "id": "frame_tier1",
+    "name": "Tier 1",
+    "unlock": {
+     "campaign": [
+      "q3dm1",
+      "q3dm2",
+      "q3dm3",
+      "q3tourney1"
+     ],
+     "skill": 1
+    },
+    "style": "campaign",
+    "desc": "Win every arena of Tier 1"
+   },
+   {
+    "id": "frame_tier2",
+    "name": "Tier 2",
+    "unlock": {
+     "campaign": [
+      "q3dm4",
+      "q3dm5",
+      "q3dm6",
+      "q3tourney2"
+     ],
+     "skill": 1
+    },
+    "style": "campaign",
+    "desc": "Win every arena of Tier 2"
+   },
+   {
+    "id": "frame_tier3",
+    "name": "Tier 3",
+    "unlock": {
+     "campaign": [
+      "q3dm7",
+      "q3dm8",
+      "q3dm9",
+      "q3tourney3"
+     ],
+     "skill": 1
+    },
+    "style": "campaign",
+    "desc": "Win every arena of Tier 3"
+   },
+   {
+    "id": "frame_tier4",
+    "name": "Tier 4",
+    "unlock": {
+     "campaign": [
+      "q3dm10",
+      "q3dm11",
+      "q3dm12",
+      "q3tourney4"
+     ],
+     "skill": 1
+    },
+    "style": "campaign",
+    "desc": "Win every arena of Tier 4"
+   },
+   {
+    "id": "frame_tier5",
+    "name": "Tier 5",
+    "unlock": {
+     "campaign": [
+      "q3dm13",
+      "q3dm14",
+      "q3dm15",
+      "q3tourney5"
+     ],
+     "skill": 1
+    },
+    "style": "campaign",
+    "desc": "Win every arena of Tier 5"
+   },
+   {
+    "id": "frame_tier6",
+    "name": "Tier 6",
+    "unlock": {
+     "campaign": [
+      "q3dm16",
+      "q3dm17",
+      "q3dm18",
+      "q3dm19"
+     ],
+     "skill": 1
+    },
+    "style": "campaign",
+    "desc": "Win every arena of Tier 6"
+   },
+   {
+    "id": "frame_final",
+    "name": "Final",
+    "unlock": {
+     "campaign": [
+      "q3tourney6"
+     ],
+     "skill": 1
+    },
+    "style": "campaign",
+    "desc": "Win every arena of Final"
+   },
+   {
+    "id": "frame_nightmare",
+    "name": "Nightmare!",
+    "unlock": {
+     "achievement": "campaign_nightmare"
+    },
+    "style": "campaign",
+    "fx": "animated"
+   },
+   {
+    "id": "frame_ranked_bring_it_on",
+    "name": "Bring It On",
+    "unlock": {
+     "stat": "ranked_peak",
+     "min": 1000
+    },
+    "style": "ranked",
+    "desc": "Reach Bring It On in ranked"
+   },
+   {
+    "id": "frame_ranked_hurt_me_plenty",
+    "name": "Hurt Me Plenty",
+    "unlock": {
+     "stat": "ranked_peak",
+     "min": 1300
+    },
+    "style": "ranked",
+    "desc": "Reach Hurt Me Plenty in ranked"
+   },
+   {
+    "id": "frame_ranked_hardcore",
+    "name": "Hardcore",
+    "unlock": {
+     "stat": "ranked_peak",
+     "min": 1600
+    },
+    "style": "ranked",
+    "desc": "Reach Hardcore in ranked"
+   },
+   {
+    "id": "frame_ranked_nightmare",
+    "name": "Nightmare!",
+    "unlock": {
+     "stat": "ranked_peak",
+     "min": 1900
+    },
+    "style": "ranked",
+    "desc": "Reach Nightmare! in ranked"
+   },
+   {
+    "id": "frame_ranked_arena_master",
+    "name": "Arena Master",
+    "unlock": {
+     "stat": "ranked_peak",
+     "min": 2200
+    },
+    "style": "ranked",
+    "desc": "Reach Arena Master in ranked"
+   }
+  ],
+  "titles": [
+   {
+    "id": "title_fresh_meat",
+    "name": "Fresh Meat",
+    "unlock": {
+     "free": true
+    }
+   },
+   {
+    "id": "title_initiate",
+    "name": "Initiate",
+    "unlock": {
+     "level": 5
+    }
+   },
+   {
+    "id": "title_fragger",
+    "name": "Fragger",
+    "unlock": {
+     "level": 10
+    }
+   },
+   {
+    "id": "title_contender",
+    "name": "Contender",
+    "unlock": {
+     "level": 15
+    }
+   },
+   {
+    "id": "title_gladiator",
+    "name": "Gladiator",
+    "unlock": {
+     "level": 20
+    }
+   },
+   {
+    "id": "title_veteran",
+    "name": "Arena Veteran",
+    "unlock": {
+     "level": 30
+    }
+   },
+   {
+    "id": "title_warlord",
+    "name": "Warlord",
+    "unlock": {
+     "level": 40
+    }
+   },
+   {
+    "id": "title_champion",
+    "name": "Champion",
+    "unlock": {
+     "level": 50
+    }
+   },
+   {
+    "id": "title_immortal",
+    "name": "Immortal",
+    "unlock": {
+     "level": 60
+    }
+   },
+   {
+    "id": "title_vadrigars_chosen",
+    "name": "Vadrigar's Chosen",
+    "unlock": {
+     "level": 70
+    }
+   },
+   {
+    "id": "title_deathbringer",
+    "name": "Deathbringer",
+    "unlock": {
+     "level": 80
+    }
+   },
+   {
+    "id": "title_arena_lord",
+    "name": "Arena Lord",
+    "unlock": {
+     "level": 90
+    }
+   },
+   {
+    "id": "title_xaeros_equal",
+    "name": "Xaero's Equal",
+    "unlock": {
+     "level": 100
+    }
+   },
+   {
+    "id": "title_excellent",
+    "name": "Excellent!",
+    "unlock": {
+     "achievement": "medal_excellent_100"
+    }
+   },
+   {
+    "id": "title_impressive",
+    "name": "Impressive!",
+    "unlock": {
+     "achievement": "medal_impressive_100"
+    }
+   },
+   {
+    "id": "title_humiliator",
+    "name": "Humiliator",
+    "unlock": {
+     "achievement": "medal_gauntlet_100"
+    }
+   },
+   {
+    "id": "title_flag_runner",
+    "name": "Flag Runner",
+    "unlock": {
+     "achievement": "medal_capture_100"
+    }
+   },
+   {
+    "id": "title_defender",
+    "name": "Defender",
+    "unlock": {
+     "achievement": "medal_defend_100"
+    }
+   },
+   {
+    "id": "title_team_player",
+    "name": "Team Player",
+    "unlock": {
+     "achievement": "medal_assist_100"
+    }
+   },
+   {
+    "id": "title_rail_god",
+    "name": "Rail God",
+    "unlock": {
+     "achievement": "weapon_railgun_1000"
+    }
+   },
+   {
+    "id": "title_rocket_scientist",
+    "name": "Rocket Scientist",
+    "unlock": {
+     "achievement": "weapon_rocket_1000"
+    }
+   },
+   {
+    "id": "title_plasma_junkie",
+    "name": "Plasma Junkie",
+    "unlock": {
+     "achievement": "weapon_plasma_1000"
+    }
+   },
+   {
+    "id": "title_shaft_master",
+    "name": "Shaft Master",
+    "unlock": {
+     "achievement": "weapon_lightning_1000"
+    }
+   },
+   {
+    "id": "title_buckshot",
+    "name": "Buckshot",
+    "unlock": {
+     "achievement": "weapon_shotgun_1000"
+    }
+   },
+   {
+    "id": "title_grenadier",
+    "name": "Grenadier",
+    "unlock": {
+     "achievement": "weapon_grenade_1000"
+    }
+   },
+   {
+    "id": "title_pea_shooter",
+    "name": "Pea Shooter",
+    "unlock": {
+     "achievement": "weapon_machinegun_1000"
+    }
+   },
+   {
+    "id": "title_bfg_bandit",
+    "name": "BFG Bandit",
+    "unlock": {
+     "achievement": "weapon_bfg_100"
+    }
+   },
+   {
+    "id": "title_strafe_jumper",
+    "name": "Strafe Jumper",
+    "unlock": {
+     "achievement": "speed_600"
+    }
+   },
+   {
+    "id": "title_speed_demon",
+    "name": "Speed Demon",
+    "unlock": {
+     "achievement": "speed_800"
+    }
+   },
+   {
+    "id": "title_rocket_jumper",
+    "name": "Rocket Jumper",
+    "unlock": {
+     "achievement": "rocket_jumper"
+    }
+   },
+   {
+    "id": "title_plasma_climber",
+    "name": "Plasma Climber",
+    "unlock": {
+     "achievement": "plasma_climber"
+    }
+   },
+   {
+    "id": "title_xaero_slayer",
+    "name": "Xaero Slayer",
+    "unlock": {
+     "achievement": "campaign_final"
+    }
+   },
+   {
+    "id": "title_arena_eternal",
+    "name": "Arena Eternal",
+    "unlock": {
+     "achievement": "campaign_hardcore"
+    }
+   },
+   {
+    "id": "title_nightmare_walker",
+    "name": "Nightmare Walker",
+    "unlock": {
+     "achievement": "campaign_nightmare"
+    }
+   },
+   {
+    "id": "title_recruit",
+    "name": "Recruit",
+    "unlock": {
+     "achievement": "campaign_training"
+    }
+   },
+   {
+    "id": "title_cratered",
+    "name": "Cratered",
+    "unlock": {
+     "achievement": "cratered"
+    }
+   },
+   {
+    "id": "title_lava_swimmer",
+    "name": "Lava Swimmer",
+    "unlock": {
+     "achievement": "lava_swimmer"
+    }
+   },
+   {
+    "id": "title_telefragged",
+    "name": "Telefragged",
+    "unlock": {
+     "achievement": "telefragged"
+    }
+   },
+   {
+    "id": "title_sank",
+    "name": "Sank Like a Rock",
+    "unlock": {
+     "achievement": "sank"
+    }
+   },
+   {
+    "id": "title_perfect",
+    "name": "Perfect",
+    "unlock": {
+     "achievement": "perfect"
+    }
+   },
+   {
+    "id": "title_untouchable",
+    "name": "Untouchable",
+    "unlock": {
+     "achievement": "untouchable"
+    }
+   },
+   {
+    "id": "title_telefragger",
+    "name": "Telefragger",
+    "unlock": {
+     "achievement": "telefragger"
+    }
+   },
+   {
+    "id": "title_tourist",
+    "name": "Tourist",
+    "unlock": {
+     "achievement": "tourist"
+    }
+   },
+   {
+    "id": "title_collector",
+    "name": "Full Roster",
+    "unlock": {
+     "achievement": "roster"
+    }
+   },
+   {
+    "id": "title_show_off",
+    "name": "Show-Off",
+    "unlock": {
+     "achievement": "trifecta"
+    }
+   },
+   {
+    "id": "title_duelist",
+    "name": "Duelist",
+    "unlock": {
+     "achievement": "duelist"
+    }
+   },
+   {
+    "id": "title_clutch",
+    "name": "Last One Standing",
+    "unlock": {
+     "achievement": "clutch"
+    }
+   },
+   {
+    "id": "title_quad_god",
+    "name": "Quad God",
+    "unlock": {
+     "achievement": "quad_god"
+    }
+   },
+   {
+    "id": "title_deadeye",
+    "name": "Deadeye",
+    "unlock": {
+     "achievement": "rail_accuracy"
+    }
+   },
+   {
+    "id": "title_ranked_bring_it_on",
+    "name": "Bring It On",
+    "unlock": {
+     "stat": "ranked_peak",
+     "min": 1000
+    },
+    "desc": "Reach Bring It On in ranked"
+   },
+   {
+    "id": "title_ranked_hurt_me_plenty",
+    "name": "Hurt Me Plenty",
+    "unlock": {
+     "stat": "ranked_peak",
+     "min": 1300
+    },
+    "desc": "Reach Hurt Me Plenty in ranked"
+   },
+   {
+    "id": "title_ranked_hardcore",
+    "name": "Hardcore",
+    "unlock": {
+     "stat": "ranked_peak",
+     "min": 1600
+    },
+    "desc": "Reach Hardcore in ranked"
+   },
+   {
+    "id": "title_ranked_nightmare",
+    "name": "Nightmare!",
+    "unlock": {
+     "stat": "ranked_peak",
+     "min": 1900
+    },
+    "desc": "Reach Nightmare! in ranked"
+   },
+   {
+    "id": "title_ranked_arena_master",
+    "name": "Arena Master",
+    "unlock": {
+     "stat": "ranked_peak",
+     "min": 2200
+    },
+    "desc": "Reach Arena Master in ranked"
+   }
+  ],
+  "accents": [
+   {
+    "id": "accent_red",
+    "name": "Red",
+    "unlock": {
+     "free": true
+    },
+    "value": "#ff2020"
+   },
+   {
+    "id": "accent_green",
+    "name": "Green",
+    "unlock": {
+     "free": true
+    },
+    "value": "#20ff20"
+   },
+   {
+    "id": "accent_yellow",
+    "name": "Yellow",
+    "unlock": {
+     "free": true
+    },
+    "value": "#ffff20"
+   },
+   {
+    "id": "accent_blue",
+    "name": "Blue",
+    "unlock": {
+     "free": true
+    },
+    "value": "#3050ff"
+   },
+   {
+    "id": "accent_cyan",
+    "name": "Cyan",
+    "unlock": {
+     "free": true
+    },
+    "value": "#20ffff"
+   },
+   {
+    "id": "accent_magenta",
+    "name": "Magenta",
+    "unlock": {
+     "free": true
+    },
+    "value": "#ff20ff"
+   },
+   {
+    "id": "accent_white",
+    "name": "White",
+    "unlock": {
+     "free": true
+    },
+    "value": "#ffffff"
+   },
+   {
+    "id": "accent_rust",
+    "name": "Rust",
+    "unlock": {
+     "level": 4
+    },
+    "value": "#b0502a"
+   },
+   {
+    "id": "accent_bronze",
+    "name": "Bronze",
+    "unlock": {
+     "level": 9
+    },
+    "value": "#cd7f32"
+   },
+   {
+    "id": "accent_chrome",
+    "name": "Chrome",
+    "unlock": {
+     "level": 18
+    },
+    "value": "#c8d2dc"
+   },
+   {
+    "id": "accent_plasma",
+    "name": "Plasma",
+    "unlock": {
+     "level": 27
+    },
+    "value": "#5ab4ff"
+   },
+   {
+    "id": "accent_slime",
+    "name": "Slime",
+    "unlock": {
+     "level": 37
+    },
+    "value": "#8cff3a"
+   },
+   {
+    "id": "accent_quad",
+    "name": "Quad Blue",
+    "unlock": {
+     "level": 46
+    },
+    "value": "#4a6bff"
+   },
+   {
+    "id": "accent_lava",
+    "name": "Lava",
+    "unlock": {
+     "level": 55
+    },
+    "value": "#ff6a1a"
+   },
+   {
+    "id": "accent_gold",
+    "name": "Gold",
+    "unlock": {
+     "achievement": "wins_1000"
+    },
+    "value": "#ffd24a"
+   }
+  ],
+  "rails": [
+   {
+    "id": "rail_red",
+    "name": "Red",
+    "unlock": {
+     "free": true
+    },
+    "value": "#ff0000"
+   },
+   {
+    "id": "rail_green",
+    "name": "Green",
+    "unlock": {
+     "free": true
+    },
+    "value": "#00ff00"
+   },
+   {
+    "id": "rail_yellow",
+    "name": "Yellow",
+    "unlock": {
+     "free": true
+    },
+    "value": "#ffff00"
+   },
+   {
+    "id": "rail_blue",
+    "name": "Blue",
+    "unlock": {
+     "free": true
+    },
+    "value": "#0000ff"
+   },
+   {
+    "id": "rail_cyan",
+    "name": "Cyan",
+    "unlock": {
+     "free": true
+    },
+    "value": "#00ffff"
+   },
+   {
+    "id": "rail_magenta",
+    "name": "Magenta",
+    "unlock": {
+     "free": true
+    },
+    "value": "#ff00ff"
+   },
+   {
+    "id": "rail_white",
+    "name": "White",
+    "unlock": {
+     "free": true
+    },
+    "value": "#ffffff"
+   },
+   {
+    "id": "rail_orange",
+    "name": "Orange",
+    "unlock": {
+     "level": 65
+    },
+    "value": "#ff8000"
+   },
+   {
+    "id": "rail_purple",
+    "name": "Purple",
+    "unlock": {
+     "level": 74
+    },
+    "value": "#8020ff"
+   },
+   {
+    "id": "rail_pink",
+    "name": "Pink",
+    "unlock": {
+     "level": 84
+    },
+    "value": "#ff70b0"
+   },
+   {
+    "id": "rail_lime",
+    "name": "Lime",
+    "unlock": {
+     "level": 93
+    },
+    "value": "#b0ff00"
+   },
+   {
+    "id": "rail_pulse",
+    "name": "Pulsing Core",
+    "unlock": {
+     "level": 100
+    },
+    "value": "#ffffff",
+    "fx": "pulse"
+   },
+   {
+    "id": "rail_team",
+    "name": "Team Colored",
+    "unlock": {
+     "achievement": "medal_capture_10"
+    },
+    "value": "team",
+    "fx": "team"
+   },
+   {
+    "id": "rail_gold",
+    "name": "Gold",
+    "unlock": {
+     "achievement": "weapon_railgun_1000"
+    },
+    "value": "#ffd24a"
+   },
+   {
+    "id": "rail_rainbow",
+    "name": "Rainbow Spiral",
+    "unlock": {
+     "achievement": "rail_streak"
+    },
+    "value": "spectrum",
+    "fx": "spectrum"
+   }
+  ],
+  "taunts": [
+   {
+    "id": "taunt_anarki",
+    "name": "Anarki",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/anarki/taunt.wav"
+   },
+   {
+    "id": "taunt_biker",
+    "name": "Cadavre",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/biker/taunt.wav"
+   },
+   {
+    "id": "taunt_bitterman",
+    "name": "Bitterman",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/bitterman/taunt.wav"
+   },
+   {
+    "id": "taunt_bones",
+    "name": "Bones",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/bones/taunt.wav"
+   },
+   {
+    "id": "taunt_brandon",
+    "name": "Brandon",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/brandon/taunt.wav"
+   },
+   {
+    "id": "taunt_carmack",
+    "name": "Carmack",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/carmack/taunt.wav"
+   },
+   {
+    "id": "taunt_cash",
+    "name": "Cash",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/cash/taunt.wav"
+   },
+   {
+    "id": "taunt_crash",
+    "name": "Crash",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/crash/taunt.wav"
+   },
+   {
+    "id": "taunt_doom",
+    "name": "Phobos",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/doom/taunt.wav"
+   },
+   {
+    "id": "taunt_grunt",
+    "name": "Stripe",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/grunt/taunt.wav"
+   },
+   {
+    "id": "taunt_hunter",
+    "name": "Hunter",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/hunter/taunt.wav"
+   },
+   {
+    "id": "taunt_keel",
+    "name": "Keel",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/keel/taunt.wav"
+   },
+   {
+    "id": "taunt_klesk",
+    "name": "Klesk",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/klesk/taunt.wav"
+   },
+   {
+    "id": "taunt_lucy",
+    "name": "Angel",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/lucy/taunt.wav"
+   },
+   {
+    "id": "taunt_major",
+    "name": "Daemia",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/major/taunt.wav"
+   },
+   {
+    "id": "taunt_mynx",
+    "name": "Mynx",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/mynx/taunt.wav"
+   },
+   {
+    "id": "taunt_orbb",
+    "name": "Orbb",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/orbb/taunt.wav"
+   },
+   {
+    "id": "taunt_paulj",
+    "name": "Paulj",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/paulj/taunt.wav"
+   },
+   {
+    "id": "taunt_ranger",
+    "name": "Wrack",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/ranger/taunt.wav"
+   },
+   {
+    "id": "taunt_razor",
+    "name": "Patriot",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/razor/taunt.wav"
+   },
+   {
+    "id": "taunt_sarge",
+    "name": "Sarge",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/sarge/taunt.wav"
+   },
+   {
+    "id": "taunt_slash",
+    "name": "Slash",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/slash/taunt.wav"
+   },
+   {
+    "id": "taunt_sorlag",
+    "name": "Sorlag",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/sorlag/taunt.wav"
+   },
+   {
+    "id": "taunt_tankjr",
+    "name": "TankJr",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/tankjr/taunt.wav"
+   },
+   {
+    "id": "taunt_tim",
+    "name": "Tim",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/tim/taunt.wav"
+   },
+   {
+    "id": "taunt_uriel",
+    "name": "Uriel",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/uriel/taunt.wav"
+   },
+   {
+    "id": "taunt_visor",
+    "name": "Gorre",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/visor/taunt.wav"
+   },
+   {
+    "id": "taunt_xaero",
+    "name": "Xaero",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/xaero/taunt.wav"
+   },
+   {
+    "id": "taunt_xian",
+    "name": "Xian",
+    "unlock": {
+     "free": true
+    },
+    "sound": "sound/player/xian/taunt.wav"
+   }
+  ]
+ },
+ "achievements": [
+  {
+   "id": "medal_excellent_10",
+   "name": "Excellent x10",
+   "desc": "Earn 10 Excellent medals",
+   "medal": "bronze",
+   "target": 10,
+   "progress": {
+    "stat": "medal.excellent"
+   },
+   "icon": "emblem:medal_excellent",
+   "hidden": false
+  },
+  {
+   "id": "medal_excellent_100",
+   "name": "Excellent x100",
+   "desc": "Earn 100 Excellent medals",
+   "medal": "silver",
+   "target": 100,
+   "progress": {
+    "stat": "medal.excellent"
+   },
+   "icon": "emblem:medal_excellent",
+   "hidden": false
+  },
+  {
+   "id": "medal_excellent_1000",
+   "name": "Excellent x1000",
+   "desc": "Earn 1000 Excellent medals",
+   "medal": "gold",
+   "target": 1000,
+   "progress": {
+    "stat": "medal.excellent"
+   },
+   "icon": "emblem:medal_excellent",
+   "hidden": false
+  },
+  {
+   "id": "medal_impressive_10",
+   "name": "Impressive x10",
+   "desc": "Earn 10 Impressive medals",
+   "medal": "bronze",
+   "target": 10,
+   "progress": {
+    "stat": "medal.impressive"
+   },
+   "icon": "emblem:medal_impressive",
+   "hidden": false
+  },
+  {
+   "id": "medal_impressive_100",
+   "name": "Impressive x100",
+   "desc": "Earn 100 Impressive medals",
+   "medal": "silver",
+   "target": 100,
+   "progress": {
+    "stat": "medal.impressive"
+   },
+   "icon": "emblem:medal_impressive",
+   "hidden": false
+  },
+  {
+   "id": "medal_impressive_1000",
+   "name": "Impressive x1000",
+   "desc": "Earn 1000 Impressive medals",
+   "medal": "gold",
+   "target": 1000,
+   "progress": {
+    "stat": "medal.impressive"
+   },
+   "icon": "emblem:medal_impressive",
+   "hidden": false
+  },
+  {
+   "id": "medal_gauntlet_10",
+   "name": "Humiliation x10",
+   "desc": "Earn 10 Humiliation medals",
+   "medal": "bronze",
+   "target": 10,
+   "progress": {
+    "stat": "medal.gauntlet"
+   },
+   "icon": "emblem:medal_gauntlet",
+   "hidden": false
+  },
+  {
+   "id": "medal_gauntlet_100",
+   "name": "Humiliation x100",
+   "desc": "Earn 100 Humiliation medals",
+   "medal": "silver",
+   "target": 100,
+   "progress": {
+    "stat": "medal.gauntlet"
+   },
+   "icon": "emblem:medal_gauntlet",
+   "hidden": false
+  },
+  {
+   "id": "medal_gauntlet_1000",
+   "name": "Humiliation x1000",
+   "desc": "Earn 1000 Humiliation medals",
+   "medal": "gold",
+   "target": 1000,
+   "progress": {
+    "stat": "medal.gauntlet"
+   },
+   "icon": "emblem:medal_gauntlet",
+   "hidden": false
+  },
+  {
+   "id": "medal_capture_10",
+   "name": "Capture x10",
+   "desc": "Earn 10 Capture medals",
+   "medal": "bronze",
+   "target": 10,
+   "progress": {
+    "stat": "medal.capture"
+   },
+   "icon": "emblem:medal_capture",
+   "hidden": false
+  },
+  {
+   "id": "medal_capture_100",
+   "name": "Capture x100",
+   "desc": "Earn 100 Capture medals",
+   "medal": "silver",
+   "target": 100,
+   "progress": {
+    "stat": "medal.capture"
+   },
+   "icon": "emblem:medal_capture",
+   "hidden": false
+  },
+  {
+   "id": "medal_assist_10",
+   "name": "Assist x10",
+   "desc": "Earn 10 Assist medals",
+   "medal": "bronze",
+   "target": 10,
+   "progress": {
+    "stat": "medal.assist"
+   },
+   "icon": "emblem:medal_assist",
+   "hidden": false
+  },
+  {
+   "id": "medal_assist_100",
+   "name": "Assist x100",
+   "desc": "Earn 100 Assist medals",
+   "medal": "silver",
+   "target": 100,
+   "progress": {
+    "stat": "medal.assist"
+   },
+   "icon": "emblem:medal_assist",
+   "hidden": false
+  },
+  {
+   "id": "medal_defend_10",
+   "name": "Defense x10",
+   "desc": "Earn 10 Defense medals",
+   "medal": "bronze",
+   "target": 10,
+   "progress": {
+    "stat": "medal.defend"
+   },
+   "icon": "emblem:medal_defend",
+   "hidden": false
+  },
+  {
+   "id": "medal_defend_100",
+   "name": "Defense x100",
+   "desc": "Earn 100 Defense medals",
+   "medal": "silver",
+   "target": 100,
+   "progress": {
+    "stat": "medal.defend"
+   },
+   "icon": "emblem:medal_defend",
+   "hidden": false
+  },
+  {
+   "id": "weapon_machinegun_100",
+   "name": "Machinegun Blooded",
+   "desc": "100 frags with the Machinegun",
+   "medal": "bronze",
+   "target": 100,
+   "progress": {
+    "stat": "frags_weapon.machinegun"
+   },
+   "icon": "emblem:iconw_machinegun",
+   "hidden": false
+  },
+  {
+   "id": "weapon_machinegun_1000",
+   "name": "Machinegun Master",
+   "desc": "1000 frags with the Machinegun",
+   "medal": "silver",
+   "target": 1000,
+   "progress": {
+    "stat": "frags_weapon.machinegun"
+   },
+   "icon": "emblem:iconw_machinegun",
+   "hidden": false
+  },
+  {
+   "id": "weapon_shotgun_100",
+   "name": "Shotgun Blooded",
+   "desc": "100 frags with the Shotgun",
+   "medal": "bronze",
+   "target": 100,
+   "progress": {
+    "stat": "frags_weapon.shotgun"
+   },
+   "icon": "emblem:iconw_shotgun",
+   "hidden": false
+  },
+  {
+   "id": "weapon_shotgun_1000",
+   "name": "Shotgun Master",
+   "desc": "1000 frags with the Shotgun",
+   "medal": "silver",
+   "target": 1000,
+   "progress": {
+    "stat": "frags_weapon.shotgun"
+   },
+   "icon": "emblem:iconw_shotgun",
+   "hidden": false
+  },
+  {
+   "id": "weapon_grenade_100",
+   "name": "Grenade Launcher Blooded",
+   "desc": "100 frags with the Grenade Launcher",
+   "medal": "bronze",
+   "target": 100,
+   "progress": {
+    "stat": "frags_weapon.grenade"
+   },
+   "icon": "emblem:iconw_grenade",
+   "hidden": false
+  },
+  {
+   "id": "weapon_grenade_1000",
+   "name": "Grenade Launcher Master",
+   "desc": "1000 frags with the Grenade Launcher",
+   "medal": "silver",
+   "target": 1000,
+   "progress": {
+    "stat": "frags_weapon.grenade"
+   },
+   "icon": "emblem:iconw_grenade",
+   "hidden": false
+  },
+  {
+   "id": "weapon_rocket_100",
+   "name": "Rocket Launcher Blooded",
+   "desc": "100 frags with the Rocket Launcher",
+   "medal": "bronze",
+   "target": 100,
+   "progress": {
+    "stat": "frags_weapon.rocket"
+   },
+   "icon": "emblem:iconw_rocket",
+   "hidden": false
+  },
+  {
+   "id": "weapon_rocket_1000",
+   "name": "Rocket Launcher Master",
+   "desc": "1000 frags with the Rocket Launcher",
+   "medal": "silver",
+   "target": 1000,
+   "progress": {
+    "stat": "frags_weapon.rocket"
+   },
+   "icon": "emblem:iconw_rocket",
+   "hidden": false
+  },
+  {
+   "id": "weapon_lightning_100",
+   "name": "Lightning Gun Blooded",
+   "desc": "100 frags with the Lightning Gun",
+   "medal": "bronze",
+   "target": 100,
+   "progress": {
+    "stat": "frags_weapon.lightning"
+   },
+   "icon": "emblem:iconw_lightning",
+   "hidden": false
+  },
+  {
+   "id": "weapon_lightning_1000",
+   "name": "Lightning Gun Master",
+   "desc": "1000 frags with the Lightning Gun",
+   "medal": "silver",
+   "target": 1000,
+   "progress": {
+    "stat": "frags_weapon.lightning"
+   },
+   "icon": "emblem:iconw_lightning",
+   "hidden": false
+  },
+  {
+   "id": "weapon_railgun_100",
+   "name": "Railgun Blooded",
+   "desc": "100 frags with the Railgun",
+   "medal": "bronze",
+   "target": 100,
+   "progress": {
+    "stat": "frags_weapon.railgun"
+   },
+   "icon": "emblem:iconw_railgun",
+   "hidden": false
+  },
+  {
+   "id": "weapon_railgun_1000",
+   "name": "Railgun Master",
+   "desc": "1000 frags with the Railgun",
+   "medal": "silver",
+   "target": 1000,
+   "progress": {
+    "stat": "frags_weapon.railgun"
+   },
+   "icon": "emblem:iconw_railgun",
+   "hidden": false
+  },
+  {
+   "id": "weapon_plasma_100",
+   "name": "Plasma Gun Blooded",
+   "desc": "100 frags with the Plasma Gun",
+   "medal": "bronze",
+   "target": 100,
+   "progress": {
+    "stat": "frags_weapon.plasma"
+   },
+   "icon": "emblem:iconw_plasma",
+   "hidden": false
+  },
+  {
+   "id": "weapon_plasma_1000",
+   "name": "Plasma Gun Master",
+   "desc": "1000 frags with the Plasma Gun",
+   "medal": "silver",
+   "target": 1000,
+   "progress": {
+    "stat": "frags_weapon.plasma"
+   },
+   "icon": "emblem:iconw_plasma",
+   "hidden": false
+  },
+  {
+   "id": "weapon_bfg_100",
+   "name": "BFG10K Blooded",
+   "desc": "100 frags with the BFG10K",
+   "medal": "bronze",
+   "target": 100,
+   "progress": {
+    "stat": "frags_weapon.bfg"
+   },
+   "icon": "emblem:iconw_bfg",
+   "hidden": false
+  },
+  {
+   "id": "weapon_bfg_1000",
+   "name": "BFG10K Master",
+   "desc": "1000 frags with the BFG10K",
+   "medal": "silver",
+   "target": 1000,
+   "progress": {
+    "stat": "frags_weapon.bfg"
+   },
+   "icon": "emblem:iconw_bfg",
+   "hidden": false
+  },
+  {
+   "id": "arsenal",
+   "name": "Arsenal",
+   "desc": "100 frags with every weapon",
+   "medal": "gold",
+   "target": 9,
+   "progress": {
+    "set": "frags_weapon",
+    "of": [
+     "gauntlet",
+     "machinegun",
+     "shotgun",
+     "grenade",
+     "rocket",
+     "lightning",
+     "railgun",
+     "plasma",
+     "bfg"
+    ],
+    "min": 100
+   },
+   "icon": "emblem:iconw_bfg",
+   "hidden": false
+  },
+  {
+   "id": "powerup_quad",
+   "name": "Quad Damage Fragger",
+   "desc": "25 frags while holding Quad Damage",
+   "medal": "bronze",
+   "target": 25,
+   "progress": {
+    "stat": "frags_powerup.quad"
+   },
+   "icon": "emblem:quad",
+   "hidden": false
+  },
+  {
+   "id": "powerup_regen",
+   "name": "Regeneration Fragger",
+   "desc": "25 frags while holding Regeneration",
+   "medal": "bronze",
+   "target": 25,
+   "progress": {
+    "stat": "frags_powerup.regen"
+   },
+   "icon": "emblem:regen",
+   "hidden": false
+  },
+  {
+   "id": "powerup_haste",
+   "name": "Haste Fragger",
+   "desc": "25 frags while holding Haste",
+   "medal": "bronze",
+   "target": 25,
+   "progress": {
+    "stat": "frags_powerup.haste"
+   },
+   "icon": "emblem:haste",
+   "hidden": false
+  },
+  {
+   "id": "powerup_battlesuit",
+   "name": "Battle Suit Fragger",
+   "desc": "25 frags while holding Battle Suit",
+   "medal": "bronze",
+   "target": 25,
+   "progress": {
+    "stat": "frags_powerup.battlesuit"
+   },
+   "icon": "emblem:envirosuit",
+   "hidden": false
+  },
+  {
+   "id": "powerup_invis",
+   "name": "Invisibility Fragger",
+   "desc": "25 frags while holding Invisibility",
+   "medal": "bronze",
+   "target": 25,
+   "progress": {
+    "stat": "frags_powerup.invis"
+   },
+   "icon": "emblem:invis",
+   "hidden": false
+  },
+  {
+   "id": "powerup_flight",
+   "name": "Flight Fragger",
+   "desc": "25 frags while holding Flight",
+   "medal": "bronze",
+   "target": 25,
+   "progress": {
+    "stat": "frags_powerup.flight"
+   },
+   "icon": "emblem:flight",
+   "hidden": false
+  },
+  {
+   "id": "every_powerup",
+   "name": "Juiced",
+   "desc": "A frag under every powerup",
+   "medal": "silver",
+   "target": 6,
+   "progress": {
+    "set": "frags_powerup",
+    "of": [
+     "quad",
+     "regen",
+     "haste",
+     "battlesuit",
+     "invis",
+     "flight"
+    ]
+   },
+   "icon": "emblem:quad",
+   "hidden": false
+  },
+  {
+   "id": "quad_god",
+   "name": "Quad God",
+   "desc": "250 frags with Quad Damage",
+   "medal": "gold",
+   "target": 250,
+   "progress": {
+    "stat": "frags_powerup.quad"
+   },
+   "icon": "emblem:quad",
+   "hidden": false
+  },
+  {
+   "id": "perfect",
+   "name": "Perfect",
+   "desc": "Win a match without dying (the postgame Perfect)",
+   "medal": "silver",
+   "target": 1,
+   "progress": {
+    "stat": "medal.perfect"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "untouchable",
+   "name": "Untouchable",
+   "desc": "Win Free For All with no deaths",
+   "medal": "gold",
+   "target": 1,
+   "progress": {
+    "stat": "flawless_ffa"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "rail_streak",
+   "name": "The Longest Yard",
+   "desc": "Five rail hits in a row",
+   "medal": "gold",
+   "target": 5,
+   "progress": {
+    "stat": "best.rail_streak"
+   },
+   "icon": "emblem:iconw_railgun",
+   "hidden": false
+  },
+  {
+   "id": "rail_accuracy",
+   "name": "Deadeye",
+   "desc": "50% railgun accuracy in a match (10+ shots)",
+   "medal": "silver",
+   "target": 50,
+   "progress": {
+    "stat": "best.rail_accuracy"
+   },
+   "icon": "emblem:medal_accuracy",
+   "hidden": false
+  },
+  {
+   "id": "air_rocket",
+   "name": "Air Rocket",
+   "desc": "A rocket frag while flying from your own rocket jump",
+   "medal": "silver",
+   "target": 1,
+   "progress": {
+    "stat": "air_rocket_frags"
+   },
+   "icon": "emblem:iconw_rocket",
+   "hidden": false
+  },
+  {
+   "id": "telefragger",
+   "name": "Telefragger",
+   "desc": "Telefrag 10 players",
+   "medal": "bronze",
+   "target": 10,
+   "progress": {
+    "stat": "telefrags"
+   },
+   "icon": "emblem:teleporter",
+   "hidden": false
+  },
+  {
+   "id": "trifecta",
+   "name": "Show-Off",
+   "desc": "An Excellent, an Impressive and a Gauntlet in one match",
+   "medal": "silver",
+   "target": 1,
+   "progress": {
+    "stat": "trifectas"
+   },
+   "icon": "emblem:medal_impressive",
+   "hidden": false
+  },
+  {
+   "id": "speed_600",
+   "name": "Strafe Jumper",
+   "desc": "Reach 600 ups",
+   "medal": "bronze",
+   "target": 600,
+   "progress": {
+    "stat": "best.speed"
+   },
+   "icon": "emblem:haste",
+   "hidden": false
+  },
+  {
+   "id": "speed_800",
+   "name": "Speed Demon",
+   "desc": "Reach 800 ups",
+   "medal": "silver",
+   "target": 800,
+   "progress": {
+    "stat": "best.speed"
+   },
+   "icon": "emblem:haste",
+   "hidden": false
+  },
+  {
+   "id": "speed_1000",
+   "name": "Light Speed",
+   "desc": "Reach 1000 ups",
+   "medal": "gold",
+   "target": 1000,
+   "progress": {
+    "stat": "best.speed"
+   },
+   "icon": "emblem:haste",
+   "hidden": false
+  },
+  {
+   "id": "rocket_jumper",
+   "name": "Rocket Jumper",
+   "desc": "100 rocket jumps",
+   "medal": "bronze",
+   "target": 100,
+   "progress": {
+    "stat": "rocket_jumps"
+   },
+   "icon": "emblem:iconw_rocket",
+   "hidden": false
+  },
+  {
+   "id": "plasma_climber",
+   "name": "Plasma Climber",
+   "desc": "25 plasma climbs",
+   "medal": "silver",
+   "target": 25,
+   "progress": {
+    "stat": "plasma_climbs"
+   },
+   "icon": "emblem:iconw_plasma",
+   "hidden": false
+  },
+  {
+   "id": "lava_swimmer",
+   "name": "Lava Swimmer",
+   "desc": "Die in lava 50 times",
+   "medal": "bronze",
+   "target": 50,
+   "progress": {
+    "stat": "deaths_by.lava"
+   },
+   "icon": "emblem:medal_frags",
+   "hidden": true
+  },
+  {
+   "id": "lava_bath",
+   "name": "Does a Back Flip into the Lava",
+   "desc": "Die in lava 100 times",
+   "medal": "gold",
+   "target": 100,
+   "progress": {
+    "stat": "deaths_by.lava"
+   },
+   "icon": "emblem:medal_frags",
+   "hidden": true
+  },
+  {
+   "id": "cratered",
+   "name": "Cratered",
+   "desc": "Fall to your death 50 times",
+   "medal": "bronze",
+   "target": 50,
+   "progress": {
+    "stat": "deaths_by.fall"
+   },
+   "icon": "emblem:medal_frags",
+   "hidden": true
+  },
+  {
+   "id": "sank",
+   "name": "Sank Like a Rock",
+   "desc": "Drown 25 times",
+   "medal": "bronze",
+   "target": 25,
+   "progress": {
+    "stat": "deaths_by.drown"
+   },
+   "icon": "emblem:medal_frags",
+   "hidden": true
+  },
+  {
+   "id": "telefragged",
+   "name": "Wrong Place",
+   "desc": "Get telefragged 10 times",
+   "medal": "bronze",
+   "target": 10,
+   "progress": {
+    "stat": "deaths_by.telefrag"
+   },
+   "icon": "emblem:medal_frags",
+   "hidden": true
+  },
+  {
+   "id": "duelist",
+   "name": "Duelist",
+   "desc": "Win 25 Tournament matches",
+   "medal": "bronze",
+   "target": 25,
+   "progress": {
+    "stat": "duel_wins"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "duel_100",
+   "name": "Tournament Champion",
+   "desc": "Win 100 Tournament matches",
+   "medal": "gold",
+   "target": 100,
+   "progress": {
+    "stat": "duel_wins"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "flag_returns",
+   "name": "Defender of the Flag",
+   "desc": "Return 50 flags",
+   "medal": "bronze",
+   "target": 50,
+   "progress": {
+    "stat": "flag_returns"
+   },
+   "icon": "emblem:medal_defend",
+   "hidden": false
+  },
+  {
+   "id": "clutch",
+   "name": "Last One Standing",
+   "desc": "Win a Clan Arena round alone",
+   "medal": "silver",
+   "target": 1,
+   "progress": {
+    "stat": "ca_clutches"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "thaws",
+   "name": "Thawer",
+   "desc": "Thaw 100 teammates in Freeze Tag",
+   "medal": "bronze",
+   "target": 100,
+   "progress": {
+    "stat": "thaws"
+   },
+   "icon": "emblem:medal_assist",
+   "hidden": false
+  },
+  {
+   "id": "instagib",
+   "name": "Instagibber",
+   "desc": "Win 25 Instagib matches",
+   "medal": "bronze",
+   "target": 25,
+   "progress": {
+    "stat": "wins_mode.instagib"
+   },
+   "icon": "emblem:iconw_railgun",
+   "hidden": false
+  },
+  {
+   "id": "matches_10",
+   "name": "Arena Regular",
+   "desc": "Play 10 matches to the end",
+   "medal": "bronze",
+   "target": 10,
+   "progress": {
+    "stat": "matches"
+   },
+   "icon": "emblem:medal_frags",
+   "hidden": false
+  },
+  {
+   "id": "wins_10",
+   "name": "Victor x10",
+   "desc": "Win 10 matches",
+   "medal": "bronze",
+   "target": 10,
+   "progress": {
+    "stat": "wins"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "matches_100",
+   "name": "Arena Fixture",
+   "desc": "Play 100 matches to the end",
+   "medal": "silver",
+   "target": 100,
+   "progress": {
+    "stat": "matches"
+   },
+   "icon": "emblem:medal_frags",
+   "hidden": false
+  },
+  {
+   "id": "wins_100",
+   "name": "Victor x100",
+   "desc": "Win 100 matches",
+   "medal": "silver",
+   "target": 100,
+   "progress": {
+    "stat": "wins"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "matches_1000",
+   "name": "Arena Eternal",
+   "desc": "Play 1000 matches to the end",
+   "medal": "gold",
+   "target": 1000,
+   "progress": {
+    "stat": "matches"
+   },
+   "icon": "emblem:medal_frags",
+   "hidden": false
+  },
+  {
+   "id": "wins_1000",
+   "name": "Victor x1000",
+   "desc": "Win 1000 matches",
+   "medal": "gold",
+   "target": 1000,
+   "progress": {
+    "stat": "wins"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "frags_1000",
+   "name": "Fragmaster",
+   "desc": "1,000 frags",
+   "medal": "silver",
+   "target": 1000,
+   "progress": {
+    "stat": "frags"
+   },
+   "icon": "emblem:medal_frags",
+   "hidden": false
+  },
+  {
+   "id": "frags_10000",
+   "name": "Fraglord",
+   "desc": "10,000 frags",
+   "medal": "gold",
+   "target": 10000,
+   "progress": {
+    "stat": "frags"
+   },
+   "icon": "emblem:medal_frags",
+   "hidden": false
+  },
+  {
+   "id": "campaign_tier1",
+   "name": "Tier 1 Cleared",
+   "desc": "Win every arena of Tier 1",
+   "medal": "bronze",
+   "target": 4,
+   "progress": {
+    "campaign": [
+     "q3dm1",
+     "q3dm2",
+     "q3dm3",
+     "q3tourney1"
+    ],
+    "skill": 1
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "campaign_tier2",
+   "name": "Tier 2 Cleared",
+   "desc": "Win every arena of Tier 2",
+   "medal": "bronze",
+   "target": 4,
+   "progress": {
+    "campaign": [
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2"
+    ],
+    "skill": 1
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "campaign_tier3",
+   "name": "Tier 3 Cleared",
+   "desc": "Win every arena of Tier 3",
+   "medal": "bronze",
+   "target": 4,
+   "progress": {
+    "campaign": [
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3"
+    ],
+    "skill": 1
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "campaign_tier4",
+   "name": "Tier 4 Cleared",
+   "desc": "Win every arena of Tier 4",
+   "medal": "bronze",
+   "target": 4,
+   "progress": {
+    "campaign": [
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4"
+    ],
+    "skill": 1
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "campaign_tier5",
+   "name": "Tier 5 Cleared",
+   "desc": "Win every arena of Tier 5",
+   "medal": "bronze",
+   "target": 4,
+   "progress": {
+    "campaign": [
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5"
+    ],
+    "skill": 1
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "campaign_tier6",
+   "name": "Tier 6 Cleared",
+   "desc": "Win every arena of Tier 6",
+   "medal": "bronze",
+   "target": 4,
+   "progress": {
+    "campaign": [
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19"
+    ],
+    "skill": 1
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "campaign_training",
+   "name": "Arena Eligible",
+   "desc": "Finish Training",
+   "medal": "bronze",
+   "target": 1,
+   "progress": {
+    "campaign": [
+     "q3dm0"
+    ],
+    "skill": 1
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "campaign_final",
+   "name": "Xaero Slayer",
+   "desc": "Beat Xaero in the Final",
+   "medal": "silver",
+   "target": 1,
+   "progress": {
+    "campaign": [
+     "q3tourney6"
+    ],
+    "skill": 1
+   },
+   "icon": "emblem:head_xaero",
+   "hidden": false
+  },
+  {
+   "id": "campaign_hardcore",
+   "name": "Arena Eternal",
+   "desc": "Win every campaign arena on Hardcore",
+   "medal": "silver",
+   "target": 26,
+   "progress": {
+    "campaign": [
+     "q3dm0",
+     "q3dm1",
+     "q3dm2",
+     "q3dm3",
+     "q3tourney1",
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2",
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3",
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4",
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5",
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19",
+     "q3tourney6"
+    ],
+    "skill": 4
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "campaign_nightmare",
+   "name": "Nightmare Walker",
+   "desc": "Win every campaign arena on Nightmare!",
+   "medal": "gold",
+   "target": 26,
+   "progress": {
+    "campaign": [
+     "q3dm0",
+     "q3dm1",
+     "q3dm2",
+     "q3dm3",
+     "q3tourney1",
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2",
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3",
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4",
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5",
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19",
+     "q3tourney6"
+    ],
+    "skill": 5
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "tourist",
+   "name": "Tourist",
+   "desc": "Win on every original arena",
+   "medal": "gold",
+   "target": 35,
+   "progress": {
+    "set": "wins_map",
+    "of": [
+     "q3dm1",
+     "q3dm2",
+     "q3dm3",
+     "q3tourney1",
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2",
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3",
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4",
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5",
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19",
+     "q3dm0",
+     "q3tourney6",
+     "q3ctf1",
+     "q3ctf2",
+     "q3ctf3",
+     "q3ctf4",
+     "pro-q3tourney2",
+     "pro-q3tourney4",
+     "pro-q3dm6",
+     "pro-q3dm13",
+     "q3tourney6_ctf"
+    ]
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "home_turf",
+   "name": "Home Turf",
+   "desc": "Win 25 matches on one arena",
+   "medal": "silver",
+   "target": 25,
+   "progress": {
+    "max": "wins_map"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "roster",
+   "name": "Full Roster",
+   "desc": "Play a match as every character",
+   "medal": "silver",
+   "target": 29,
+   "progress": {
+    "set": "matches_model",
+    "of": [
+     "anarki",
+     "biker",
+     "bitterman",
+     "bones",
+     "brandon",
+     "carmack",
+     "cash",
+     "crash",
+     "doom",
+     "grunt",
+     "hunter",
+     "keel",
+     "klesk",
+     "lucy",
+     "major",
+     "mynx",
+     "orbb",
+     "paulj",
+     "ranger",
+     "razor",
+     "sarge",
+     "slash",
+     "sorlag",
+     "tankjr",
+     "tim",
+     "uriel",
+     "visor",
+     "xaero",
+     "xian"
+    ]
+   },
+   "icon": "emblem:head_sarge",
+   "hidden": false
+  },
+  {
+   "id": "medal_collector",
+   "name": "Medal Collector",
+   "desc": "Earn every kind of medal",
+   "medal": "silver",
+   "target": 7,
+   "progress": {
+    "set": "medal",
+    "of": [
+     "excellent",
+     "impressive",
+     "gauntlet",
+     "capture",
+     "assist",
+     "defend",
+     "perfect"
+    ]
+   },
+   "icon": "emblem:medal_excellent",
+   "hidden": false
+  },
+  {
+   "id": "ranked_hurt_me_plenty",
+   "name": "Hurt Me Plenty",
+   "desc": "Reach Hurt Me Plenty in ranked (1300)",
+   "medal": "bronze",
+   "target": 1300,
+   "progress": {
+    "stat": "ranked_peak"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "ranked_hardcore",
+   "name": "Hardcore",
+   "desc": "Reach Hardcore in ranked (1600)",
+   "medal": "silver",
+   "target": 1600,
+   "progress": {
+    "stat": "ranked_peak"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "ranked_nightmare",
+   "name": "Nightmare!",
+   "desc": "Reach Nightmare! in ranked (1900)",
+   "medal": "gold",
+   "target": 1900,
+   "progress": {
+    "stat": "ranked_peak"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  },
+  {
+   "id": "ranked_arena_master",
+   "name": "Arena Master",
+   "desc": "Reach Arena Master in ranked (2200)",
+   "medal": "gold",
+   "target": 2200,
+   "progress": {
+    "stat": "ranked_peak"
+   },
+   "icon": "emblem:medal_victory",
+   "hidden": false
+  }
+ ]
+}

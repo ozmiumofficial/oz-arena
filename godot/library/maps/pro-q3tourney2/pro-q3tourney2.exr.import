@@ -1,0 +1,29 @@
+[remap]
+
+importer="2d_array_texture"
+type="CompressedTexture2DArray"
+uid="uid://bsgmamefi6lwr"
+path.bptc="res://.godot/imported/pro-q3tourney2.exr-485f32c0577835f21834b5bc2c3b5410.bptc.ctexarray"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+
+[deps]
+
+source_file="res://library/maps/pro-q3tourney2/pro-q3tourney2.exr"
+dest_files=["res://.godot/imported/pro-q3tourney2.exr-485f32c0577835f21834b5bc2c3b5410.bptc.ctexarray"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/channel_pack=1
+mipmaps/generate=false
+mipmaps/limit=-1
+slices/horizontal=1
+slices/vertical=12

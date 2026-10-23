@@ -1,0 +1,24 @@
+[gd_resource type="Sky" format=3 uid="uid://d1t18r2jbd4j"]
+
+[ext_resource type="Shader" uid="uid://dq0mlas8eo1ou" path="res://shaders/world/sky_clouds.gdshader" id="1_r"]
+[ext_resource type="Texture2D" uid="uid://dje6onajsiv1u" path="res://library/world/textures/skies__bluedimclouds__sky.jpg" id="2_r"]
+[ext_resource type="Texture2D" uid="uid://b4oaxqwdw10kd" path="res://library/world/textures/skies__topclouds__sky.jpg" id="3_r"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+resource_name = "textures/skies/toxicskytim_dm2"
+shader = ExtResource("1_r")
+shader_parameter/layer1 = ExtResource("2_r")
+shader_parameter/scale1 = Vector2(3, 2)
+shader_parameter/scroll1 = Vector2(0.15, 0.15)
+shader_parameter/layer2 = ExtResource("3_r")
+shader_parameter/scale2 = Vector2(3, 3)
+shader_parameter/scroll2 = Vector2(0.05, 0.05)
+shader_parameter/layer2_add = true
+shader_parameter/layer2_mix = 0.5
+shader_parameter/cloud_height = 512.0
+shader_parameter/horizon_color = Color(0.1231, 0.069, 0.0337, 1)
+shader_parameter/energy = 1.0
+
+[resource]
+resource_name = "textures/skies/toxicskytim_dm2"
+sky_material = SubResource("ShaderMaterial_sky")

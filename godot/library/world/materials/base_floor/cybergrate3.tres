@@ -1,0 +1,26 @@
+[gd_resource type="ShaderMaterial" load_steps=6 format=3]
+
+[ext_resource type="Shader" path="res://shaders/world/world_opaque_2s.gdshader" id="1_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/base_floor__cybergrate3_albedo.png" id="2_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/base_floor__cybergrate3_normal.jpg" id="3_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/base_floor__cybergrate3_orm.jpg" id="4_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/sfx__hologirl__glow_emissive.jpg" id="5_r"]
+
+[resource]
+resource_name = "textures/base_floor/cybergrate3"
+shader = ExtResource("1_r")
+shader_parameter/albedo_tex = ExtResource("2_r")
+shader_parameter/normal_tex = ExtResource("3_r")
+shader_parameter/orm_tex = ExtResource("4_r")
+shader_parameter/glow1_tex = ExtResource("5_r")
+shader_parameter/base_scale = Vector2(1.0, 1.0)
+shader_parameter/base_rotate = 0.0
+shader_parameter/base_scroll = Vector2(0.0, 0.0)
+shader_parameter/base_turb = Vector4(0.0, 0.0, 0.0, 0.0)
+shader_parameter/emission_energy = 1.0
+shader_parameter/alpha_cut = 0.5
+shader_parameter/stochastic = false
+shader_parameter/glow1_scale = Vector2(1.2, 0.5)
+shader_parameter/glow1_motion = Vector3(3.1, 1.1, 0.0)
+shader_parameter/glow1_wave = Vector4(0.0, 1.0, 0.0, 0.0)
+shader_parameter/glow1_phase = 0.0

@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/sfx/fog_timdm8"
+density = 0.384
+albedo = Color(0.211, 0.231, 0.094, 1)

@@ -1,0 +1,7 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/test/fogtestshader"
+density = 8.0
+albedo = Color(0.2, 0.225, 0.25, 1)
+shader_parameter/env_map = true

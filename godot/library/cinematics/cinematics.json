@@ -1,0 +1,84 @@
+{
+ "cinematics": [
+  {
+   "id": "idlogo",
+   "title": "id Software",
+   "unlock": "always",
+   "seconds": 7.0,
+   "file": "idlogo.ogv",
+   "thumb": "thumbs/idlogo.jpg"
+  },
+  {
+   "id": "intro",
+   "title": "Intro",
+   "unlock": "always",
+   "seconds": 89.83,
+   "file": "intro.ogv",
+   "thumb": "thumbs/intro.jpg"
+  },
+  {
+   "id": "tier1",
+   "title": "Tier 1",
+   "unlock": "tier:1",
+   "seconds": 12.2,
+   "file": "tier1.ogv",
+   "thumb": "thumbs/tier1.jpg"
+  },
+  {
+   "id": "tier2",
+   "title": "Tier 2",
+   "unlock": "tier:2",
+   "seconds": 12.2,
+   "file": "tier2.ogv",
+   "thumb": "thumbs/tier2.jpg"
+  },
+  {
+   "id": "tier3",
+   "title": "Tier 3",
+   "unlock": "tier:3",
+   "seconds": 12.2,
+   "file": "tier3.ogv",
+   "thumb": "thumbs/tier3.jpg"
+  },
+  {
+   "id": "tier4",
+   "title": "Tier 4",
+   "unlock": "tier:4",
+   "seconds": 12.2,
+   "file": "tier4.ogv",
+   "thumb": "thumbs/tier4.jpg"
+  },
+  {
+   "id": "tier5",
+   "title": "Tier 5",
+   "unlock": "tier:5",
+   "seconds": 12.2,
+   "file": "tier5.ogv",
+   "thumb": "thumbs/tier5.jpg"
+  },
+  {
+   "id": "tier6",
+   "title": "Tier 6",
+   "unlock": "tier:6",
+   "seconds": 12.2,
+   "file": "tier6.ogv",
+   "thumb": "thumbs/tier6.jpg"
+  },
+  {
+   "id": "tier7",
+   "title": "Tier 7",
+   "unlock": "tier:7",
+   "seconds": 12.2,
+   "file": "tier7.ogv",
+   "thumb": "thumbs/tier7.jpg"
+  },
+  {
+   "id": "end",
+   "title": "Ending",
+   "unlock": "final",
+   "seconds": 64.07,
+   "file": "end.ogv",
+   "thumb": "thumbs/end.jpg"
+  }
+ ]
+}

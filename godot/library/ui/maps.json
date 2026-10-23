@@ -1,0 +1,739 @@
+{
+ "maps": [
+  {
+   "map": "q3dm1",
+   "name": "Arena Gate",
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ],
+   "special": "",
+   "bots": [
+    "ranger"
+   ],
+   "fraglimit": 10,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm1.jpg"
+  },
+  {
+   "map": "q3dm2",
+   "name": "House Of Pain",
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ],
+   "special": "",
+   "bots": [
+    "phobos"
+   ],
+   "fraglimit": 10,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm2.jpg"
+  },
+  {
+   "map": "q3dm3",
+   "name": "Arena Of Death",
+   "types": [
+    "single",
+    "ffa"
+   ],
+   "special": "",
+   "bots": [
+    "mynx",
+    "orbb"
+   ],
+   "fraglimit": 15,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm3.jpg"
+  },
+  {
+   "map": "q3tourney1",
+   "name": "Powerstation 0218",
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ],
+   "special": "",
+   "bots": [
+    "sarge"
+   ],
+   "fraglimit": 10,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3tourney1.jpg"
+  },
+  {
+   "map": "q3dm4",
+   "name": "The Place Of Many Deaths",
+   "types": [
+    "single",
+    "ffa"
+   ],
+   "special": "",
+   "bots": [
+    "orbb",
+    "bitterman",
+    "grunt"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm4.jpg"
+  },
+  {
+   "map": "q3dm5",
+   "name": "The Forgotten Place",
+   "types": [
+    "single",
+    "ffa"
+   ],
+   "special": "",
+   "bots": [
+    "hossman",
+    "daemia"
+   ],
+   "fraglimit": 15,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm5.jpg"
+  },
+  {
+   "map": "q3dm6",
+   "name": "The Camping Grounds",
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "orbb",
+    "hossman",
+    "daemia",
+    "bitterman",
+    "grunt"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm6.jpg"
+  },
+  {
+   "map": "q3tourney2",
+   "name": "The Proving Grounds",
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ],
+   "special": "",
+   "bots": [
+    "hunter"
+   ],
+   "fraglimit": 10,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3tourney2.jpg"
+  },
+  {
+   "map": "q3dm7",
+   "name": "Temple of Retribution",
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "daemia",
+    "wrack",
+    "grunt",
+    "slash"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm7.jpg"
+  },
+  {
+   "map": "q3dm8",
+   "name": "Brimstone Abbey",
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "gorre",
+    "bitterman",
+    "slash",
+    "angel"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm8.jpg"
+  },
+  {
+   "map": "q3dm9",
+   "name": "Hero's Keep",
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "angel",
+    "gorre",
+    "wrack",
+    "slash"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm9.jpg"
+  },
+  {
+   "map": "q3tourney3",
+   "name": "Hell's Gate",
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ],
+   "special": "",
+   "bots": [
+    "klesk"
+   ],
+   "fraglimit": 10,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3tourney3.jpg"
+  },
+  {
+   "map": "q3dm10",
+   "name": "The Nameless Place",
+   "types": [
+    "single",
+    "ffa"
+   ],
+   "special": "",
+   "bots": [
+    "angel",
+    "tankjr",
+    "wrack"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm10.jpg"
+  },
+  {
+   "map": "q3dm11",
+   "name": "Deva Station",
+   "types": [
+    "single",
+    "ffa"
+   ],
+   "special": "",
+   "bots": [
+    "lucy",
+    "biker",
+    "patriot",
+    "tankjr"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm11.jpg"
+  },
+  {
+   "map": "q3dm12",
+   "name": "The Dredwerkz",
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "slash",
+    "gorre",
+    "lucy",
+    "biker",
+    "patriot",
+    "wrack"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm12.jpg"
+  },
+  {
+   "map": "q3tourney4",
+   "name": "Vertical Vengeance",
+   "types": [
+    "single",
+    "ffa",
+    "tourney",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "anarki"
+   ],
+   "fraglimit": 10,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3tourney4.jpg"
+  },
+  {
+   "map": "q3dm13",
+   "name": "Lost World",
+   "types": [
+    "single",
+    "ffa"
+   ],
+   "special": "",
+   "bots": [
+    "visor",
+    "razor",
+    "stripe"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm13.jpg"
+  },
+  {
+   "map": "q3dm14",
+   "name": "Grim Dungeons",
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "visor",
+    "razor",
+    "keel",
+    "stripe"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm14.jpg"
+  },
+  {
+   "map": "q3dm15",
+   "name": "Demon Keep",
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "razor",
+    "keel",
+    "stripe"
+   ],
+   "fraglimit": 15,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm15.jpg"
+  },
+  {
+   "map": "q3tourney5",
+   "name": "Fatal Instinct",
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ],
+   "special": "",
+   "bots": [
+    "uriel"
+   ],
+   "fraglimit": 10,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3tourney5.jpg"
+  },
+  {
+   "map": "q3dm16",
+   "name": "The Bouncy Map",
+   "types": [
+    "single",
+    "ffa"
+   ],
+   "special": "",
+   "bots": [
+    "cadavre",
+    "bones",
+    "doom"
+   ],
+   "fraglimit": 15,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm16.jpg"
+  },
+  {
+   "map": "q3dm17",
+   "name": "The Longest Yard",
+   "types": [
+    "single",
+    "ffa"
+   ],
+   "special": "",
+   "bots": [
+    "major",
+    "sorlag",
+    "doom"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm17.jpg"
+  },
+  {
+   "map": "q3dm18",
+   "name": "Space Chamber",
+   "types": [
+    "single",
+    "ffa"
+   ],
+   "special": "",
+   "bots": [
+    "major",
+    "sorlag",
+    "cadavre",
+    "bones",
+    "keel"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm18.jpg"
+  },
+  {
+   "map": "q3dm19",
+   "name": "Apocalypse Void",
+   "types": [
+    "single",
+    "ffa"
+   ],
+   "special": "",
+   "bots": [
+    "sorlag",
+    "doom",
+    "cadavre"
+   ],
+   "fraglimit": 20,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm19.jpg"
+  },
+  {
+   "map": "q3dm0",
+   "name": "Introduction",
+   "types": [
+    "single"
+   ],
+   "special": "Training",
+   "bots": [
+    "crash"
+   ],
+   "fraglimit": 5,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3dm0.jpg"
+  },
+  {
+   "map": "q3tourney6",
+   "name": "The Very End Of You",
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ],
+   "special": "Final",
+   "bots": [
+    "xaero"
+   ],
+   "fraglimit": 10,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3tourney6.jpg"
+  },
+  {
+   "map": "q3ctf1",
+   "name": "Dueling Keeps",
+   "types": [
+    "ctf"
+   ],
+   "special": "",
+   "bots": [],
+   "fraglimit": 0,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3ctf1.jpg"
+  },
+  {
+   "map": "q3ctf2",
+   "name": "Troubled Waters",
+   "types": [
+    "ctf"
+   ],
+   "special": "",
+   "bots": [],
+   "fraglimit": 0,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3ctf2.jpg"
+  },
+  {
+   "map": "q3ctf3",
+   "name": "The Stronghold",
+   "types": [
+    "ctf"
+   ],
+   "special": "",
+   "bots": [],
+   "fraglimit": 0,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3ctf3.jpg"
+  },
+  {
+   "map": "q3ctf4",
+   "name": "Space CTF",
+   "types": [
+    "ctf"
+   ],
+   "special": "",
+   "bots": [],
+   "fraglimit": 0,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3ctf4.jpg"
+  },
+  {
+   "map": "pro-q3tourney2",
+   "name": "The Proving Grounds II",
+   "types": [
+    "tourney",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "sarge"
+   ],
+   "fraglimit": 0,
+   "timelimit": 10,
+   "levelshot": "levelshots/pro-q3tourney2.jpg"
+  },
+  {
+   "map": "pro-q3tourney4",
+   "name": "Vertical Vengeance II",
+   "types": [
+    "tourney",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "visor"
+   ],
+   "fraglimit": 0,
+   "timelimit": 10,
+   "levelshot": "levelshots/pro-q3tourney4.jpg"
+  },
+  {
+   "map": "pro-q3dm6",
+   "name": "The Campgrounds II",
+   "types": [
+    "tourney",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "doom"
+   ],
+   "fraglimit": 0,
+   "timelimit": 10,
+   "levelshot": "levelshots/pro-q3dm6.jpg"
+  },
+  {
+   "map": "pro-q3dm13",
+   "name": "Lost World II",
+   "types": [
+    "tourney",
+    "ffa",
+    "team"
+   ],
+   "special": "",
+   "bots": [
+    "uriel"
+   ],
+   "fraglimit": 0,
+   "timelimit": 10,
+   "levelshot": "levelshots/pro-q3dm13.jpg"
+  },
+  {
+   "map": "q3tourney6_ctf",
+   "name": "Across Space",
+   "types": [
+    "ctf"
+   ],
+   "special": "",
+   "bots": [],
+   "fraglimit": 0,
+   "timelimit": 0,
+   "levelshot": "levelshots/q3tourney6_ctf.jpg"
+  }
+ ],
+ "bots": [
+  {
+   "name": "Xaero",
+   "model": "xaero",
+   "skin": "default"
+  },
+  {
+   "name": "Orbb",
+   "model": "orbb",
+   "skin": "default"
+  },
+  {
+   "name": "Slash",
+   "model": "slash",
+   "skin": "default"
+  },
+  {
+   "name": "Sorlag",
+   "model": "sorlag",
+   "skin": "default"
+  },
+  {
+   "name": "Daemia",
+   "model": "major",
+   "skin": "daemia"
+  },
+  {
+   "name": "Uriel",
+   "model": "uriel",
+   "skin": "default"
+  },
+  {
+   "name": "Wrack",
+   "model": "ranger",
+   "skin": "wrack"
+  },
+  {
+   "name": "Keel",
+   "model": "keel",
+   "skin": "default"
+  },
+  {
+   "name": "Bitterman",
+   "model": "bitterman",
+   "skin": "default"
+  },
+  {
+   "name": "Gorre",
+   "model": "visor",
+   "skin": "gorre"
+  },
+  {
+   "name": "Anarki",
+   "model": "anarki",
+   "skin": "default"
+  },
+  {
+   "name": "TankJr",
+   "model": "tankjr",
+   "skin": "default"
+  },
+  {
+   "name": "Patriot",
+   "model": "razor",
+   "skin": "patriot"
+  },
+  {
+   "name": "Cadavre",
+   "model": "biker",
+   "skin": "cadavre"
+  },
+  {
+   "name": "Angel",
+   "model": "lucy",
+   "skin": "angel"
+  },
+  {
+   "name": "Klesk",
+   "model": "klesk",
+   "skin": "default"
+  },
+  {
+   "name": "Phobos",
+   "model": "doom",
+   "skin": "phobos"
+  },
+  {
+   "name": "Mynx",
+   "model": "mynx",
+   "skin": "default"
+  },
+  {
+   "name": "Visor",
+   "model": "visor",
+   "skin": "default"
+  },
+  {
+   "name": "Lucy",
+   "model": "lucy",
+   "skin": "default"
+  },
+  {
+   "name": "Hunter",
+   "model": "hunter",
+   "skin": "default"
+  },
+  {
+   "name": "Razor",
+   "model": "razor",
+   "skin": "default"
+  },
+  {
+   "name": "Major",
+   "model": "major",
+   "skin": "default"
+  },
+  {
+   "name": "Biker",
+   "model": "biker",
+   "skin": "default"
+  },
+  {
+   "name": "Sarge",
+   "model": "sarge",
+   "skin": "default"
+  },
+  {
+   "name": "Stripe",
+   "model": "grunt",
+   "skin": "stripe"
+  },
+  {
+   "name": "Grunt",
+   "model": "grunt",
+   "skin": "default"
+  },
+  {
+   "name": "Ranger",
+   "model": "ranger",
+   "skin": "default"
+  },
+  {
+   "name": "Doom",
+   "model": "doom",
+   "skin": "default"
+  },
+  {
+   "name": "Hossman",
+   "model": "biker",
+   "skin": "hossman"
+  },
+  {
+   "name": "Bones",
+   "model": "bones",
+   "skin": "default"
+  },
+  {
+   "name": "Crash",
+   "model": "crash",
+   "skin": "default"
+  }
+ ]
+}

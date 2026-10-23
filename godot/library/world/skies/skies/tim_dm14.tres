@@ -1,0 +1,23 @@
+[gd_resource type="Sky" load_steps=5 format=3]
+
+[ext_resource type="Shader" path="res://shaders/world/sky_clouds.gdshader" id="1_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/skies__killsky_1__sky.jpg" id="2_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/skies__killsky_2__sky.jpg" id="3_r"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+resource_name = "textures/skies/tim_dm14"
+shader = ExtResource("1_r")
+shader_parameter/layer1 = ExtResource("2_r")
+shader_parameter/layer2 = ExtResource("3_r")
+shader_parameter/cloud_height = 512.0
+shader_parameter/energy = 1.0
+shader_parameter/scale1 = Vector2(2.0, 2.0)
+shader_parameter/scroll1 = Vector2(0.05, 0.1)
+shader_parameter/horizon_color = Color(0.1206, 0.0010, 0.0007, 1)
+shader_parameter/scale2 = Vector2(3.0, 2.0)
+shader_parameter/scroll2 = Vector2(0.05, 0.06)
+shader_parameter/layer2_add = true
+
+[resource]
+resource_name = "textures/skies/tim_dm14"
+sky_material = SubResource("ShaderMaterial_sky")

@@ -105,6 +105,7 @@ id Software's art, maps and sounds are copyrighted. The game code is GPL, but th
 - Free and fully open source.
 - Players must own Quake III Arena to run it.
 - It ships the remastered asset library made with these tools: modified and modernized id assets with rigged skeletons. Nothing is converted on the player's machine.
+- **The public repository carries that library too (decided 2026-10-23):** `godot/library` and `godot/webui`, through Git LFS. id's original files (`extracted/`, the paks) and the tools' working files (`work/`) stay out, and the game still reads the player's `pak0.pk3`. A DMCA notice to GitHub would take down the whole repository, code included, so keep a local mirror.
 
 **Risk, stated plainly:**
 - **Ownership doesn't grant rights.** Remastered assets made from id's files are derivative works, and distributing them needs the rights holder's permission even when every player owns the original.

@@ -1,0 +1,24 @@
+[gd_resource type="Sky" format=3 uid="uid://dyxdxfevq8yfm"]
+
+[ext_resource type="Shader" uid="uid://dq0mlas8eo1ou" path="res://shaders/world/sky_clouds.gdshader" id="1_r"]
+[ext_resource type="Texture2D" uid="uid://bbm2i581st80q" path="res://library/world/textures/skies__killsky_1__sky.jpg" id="2_r"]
+[ext_resource type="Texture2D" uid="uid://bnugrf8kn31vx" path="res://library/world/textures/skies__killsky_2__sky.jpg" id="3_r"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+resource_name = "textures/skies/tim_km2"
+shader = ExtResource("1_r")
+shader_parameter/layer1 = ExtResource("2_r")
+shader_parameter/scale1 = Vector2(2, 2)
+shader_parameter/scroll1 = Vector2(0.05, 0.1)
+shader_parameter/layer2 = ExtResource("3_r")
+shader_parameter/scale2 = Vector2(3, 2)
+shader_parameter/scroll2 = Vector2(0.05, 0.06)
+shader_parameter/layer2_add = true
+shader_parameter/layer2_mix = 0.5
+shader_parameter/cloud_height = 512.0
+shader_parameter/horizon_color = Color(0.1206, 0.001, 0.0007, 1)
+shader_parameter/energy = 1.0
+
+[resource]
+resource_name = "textures/skies/tim_km2"
+sky_material = SubResource("ShaderMaterial_sky")

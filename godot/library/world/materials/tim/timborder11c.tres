@@ -1,0 +1,32 @@
+[gd_resource type="ShaderMaterial" load_steps=7 format=3]
+
+[ext_resource type="Shader" path="res://shaders/world/world_opaque.gdshader" id="1_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/base_trim__border11c_albedo.jpg" id="2_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/base_trim__border11c_normal.jpg" id="3_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/base_trim__border11c_orm.jpg" id="4_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/base_trim__border11c_light__glow_emissive.jpg" id="5_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/tim__tim11c_pulse1__glow_emissive.jpg" id="6_r"]
+
+[resource]
+resource_name = "textures/tim/timborder11c"
+shader = ExtResource("1_r")
+shader_parameter/albedo_tex = ExtResource("2_r")
+shader_parameter/normal_tex = ExtResource("3_r")
+shader_parameter/orm_tex = ExtResource("4_r")
+shader_parameter/glow1_tex = ExtResource("5_r")
+shader_parameter/glow2_tex = ExtResource("6_r")
+shader_parameter/base_scale = Vector2(1.0, 1.0)
+shader_parameter/base_rotate = 0.0
+shader_parameter/base_scroll = Vector2(0.0, 0.0)
+shader_parameter/base_turb = Vector4(0.0, 0.0, 0.0, 0.0)
+shader_parameter/emission_energy = 0.45
+shader_parameter/alpha_cut = 0.0
+shader_parameter/stochastic = false
+shader_parameter/glow1_scale = Vector2(1.0, 1.0)
+shader_parameter/glow1_motion = Vector3(0.0, 0.0, 0.0)
+shader_parameter/glow1_wave = Vector4(1.0, 1.0, 0.1, 5.0)
+shader_parameter/glow1_phase = 0.0
+shader_parameter/glow2_scale = Vector2(0.035, 1.0)
+shader_parameter/glow2_motion = Vector3(-0.65, 0.0, 0.0)
+shader_parameter/glow2_wave = Vector4(0.0, 1.0, 0.0, 0.0)
+shader_parameter/glow2_phase = 0.0

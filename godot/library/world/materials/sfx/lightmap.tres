@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/sfx/lightmap"
+density = 1.5
+albedo = Color(0.7, 0.1, 0.1, 1)

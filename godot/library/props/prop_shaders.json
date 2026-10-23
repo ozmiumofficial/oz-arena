@@ -1,0 +1,2312 @@
+{
+ "grenade": {
+  "shader": "models/ammo/grenade",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_ammo_grenade.png",
+    "mode": 1,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_ammo_grenade_r.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "skull_env": {
+  "shader": "models/flags/pole",
+  "two_sided": false,
+  "add": false,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/models_flags_skull.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ },
+ "b_flag2__2s": {
+  "shader": "models/flags/b_flag2",
+  "two_sided": true,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_flags_b_flag2.png",
+    "mode": 1,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_flags_blue_fx.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_flags_b_flag2.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "r_flag2__2s": {
+  "shader": "models/flags/r_flag2",
+  "two_sided": true,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_flags_r_flag2.png",
+    "mode": 1,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_flags_red_fx.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_flags_r_flag2.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "q3banner02_add__add__2s": {
+  "shader": "models/mapobjects/banner/q3banner02",
+  "two_sided": true,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_mapobjects_banner_q3banner02.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     2.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.33,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     1,
+     0.5,
+     0.5,
+     0.0,
+     0.2
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_mapobjects_banner_q3banner02.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     3.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     -0.45,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     1,
+     0.5,
+     0.5,
+     0.0,
+     0.2
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_mapobjects_banner_q3banner02x.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     4.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     1.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "jet_1_add__add__2s": {
+  "shader": "models/mapobjects/jets/jet_1",
+  "two_sided": true,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_mapobjects_jets_jet_1.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     0.5,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     6.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_mapobjects_jets_jet_2.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     3.0,
+     -0.5
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     5,
+     -0.3,
+     1.3,
+     0.0,
+     0.5
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "electricslime_old_add__add__2s": {
+  "shader": "models/mapobjects/pipe/pipe02x",
+  "two_sided": true,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_tinfx2b.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     2.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/textures_sfx_electricslime_old.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     7.2,
+     1.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "podiumfx1_add__add__2s": {
+  "shader": "models/mapobjects/podium/podiumfx2",
+  "two_sided": true,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_mapobjects_podium_podiumfx1.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     0.5
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.8,
+     -0.3
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     5,
+     0.0,
+     1.0,
+     0.7,
+     0.6
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_mapobjects_podium_podiumfx1b.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     0.5
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     -1.7,
+     -0.3
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     5,
+     0.0,
+     1.0,
+     0.7,
+     0.6
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_mapobjects_podium_podiumfx1b.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     0.5
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     -1.1,
+     -0.3
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     5,
+     0.0,
+     1.0,
+     0.7,
+     0.6
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "xray_add__add__2s": {
+  "shader": "models/mapobjects/skel/xray",
+  "two_sided": true,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_mapobjects_skel_xray.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     1,
+     1.0,
+     0.8,
+     0.0,
+     0.3
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_mapobjects_bitch_hologirl2.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     -6.0,
+     -0.2
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmapbfg__2s": {
+  "shader": "models/powerups/ammo/bfgammo",
+  "two_sided": true,
+  "add": false,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapbfg.png",
+    "mode": 1,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 350.0,
+    "scroll": [
+     3.0,
+     1.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/textures_effects_tinfx2.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_ammo_bfgammo.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ },
+ "grenammo": {
+  "shader": "models/powerups/ammo/grenammo",
+  "two_sided": false,
+  "add": false,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_tinfx2d.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_ammo_grenammo.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ },
+ "envmapligh": {
+  "shader": "models/powerups/ammo/lighammo",
+  "two_sided": false,
+  "add": false,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapligh.png",
+    "mode": 1,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 350.0,
+    "scroll": [
+     3.0,
+     1.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_ammo_lighammo.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ },
+ "machammo": {
+  "shader": "models/powerups/ammo/machammo",
+  "two_sided": false,
+  "add": false,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_tinfx2d.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_ammo_machammo.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ },
+ "envmapplas": {
+  "shader": "models/powerups/ammo/plasammo",
+  "two_sided": false,
+  "add": false,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapplas.png",
+    "mode": 1,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 350.0,
+    "scroll": [
+     3.0,
+     1.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_ammo_plasammo.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ },
+ "envmaprail": {
+  "shader": "models/powerups/ammo/railammo",
+  "two_sided": false,
+  "add": false,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmaprail.png",
+    "mode": 1,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 350.0,
+    "scroll": [
+     3.0,
+     1.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_ammo_railammo.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ },
+ "rockammo": {
+  "shader": "models/powerups/ammo/rockammo",
+  "two_sided": false,
+  "add": false,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_tinfx2d.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_ammo_rockammo.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ },
+ "shotammo": {
+  "shader": "models/powerups/ammo/shotammo",
+  "two_sided": false,
+  "add": false,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_tinfx2c.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_ammo_shotammo.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ },
+ "newred": {
+  "shader": "models/powerups/armor/newred",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_sfx_specular.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_armor_newred.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "energy_red1_add__add": {
+  "shader": "models/powerups/armor/energy_red1",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_powerups_armor_energy_red1.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     7.4,
+     1.3
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "newyellow": {
+  "shader": "models/powerups/armor/newyellow",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_sfx_specular.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_armor_newyellow.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "energy_yel3_add__add": {
+  "shader": "models/powerups/armor/energy_yel1",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_powerups_armor_energy_yel3.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     7.4,
+     1.3
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "shard2": {
+  "shader": "models/powerups/armor/shard2",
+  "two_sided": false,
+  "add": false,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_tinfx2c.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_powerups_armor_shard2.png",
+    "mode": 3,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ },
+ "envmaprail_envadd__add": {
+  "shader": "models/powerups/armor/energy_grn1",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmaprail.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 30.0,
+    "scroll": [
+     1.0,
+     1.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     3,
+     -0.3,
+     1.3,
+     0.0,
+     0.3
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "kenelectric_add__add": {
+  "shader": "models/powerups/health/red",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapgold.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/textures_sfx_kenelectric.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     2.0,
+     2.0
+    ],
+    "rotate": 333.0,
+    "scroll": [
+     9.0,
+     9.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmapgold2_envadd__add": {
+  "shader": "models/powerups/health/red_sphere",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapgold2.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 33.0,
+    "scroll": [
+     1.0,
+     1.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmapyel_env": {
+  "shader": "models/powerups/health/yellow",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapyel.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "tinfx2b_envadd__add": {
+  "shader": "models/powerups/health/yellow_sphere",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_tinfx2b.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmapblue2_envadd__add": {
+  "shader": "models/powerups/health/mega1",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapblue2.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 33.0,
+    "scroll": [
+     1.0,
+     1.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmaprail_env": {
+  "shader": "models/powerups/health/green",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmaprail.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "medkit_fluid_add__add": {
+  "shader": "models/powerups/holdable/medkit_fluid",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_powerups_holdable_medkit_fluid.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     2.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmapdim_envadd__add": {
+  "shader": "models/powerups/holdable/medkit_sphere",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapdim.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmap_env": {
+  "shader": "models/powerups/holdable/medkit_base",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmap.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "teleport_fluid_add__add": {
+  "shader": "models/powerups/holdable/teleport_fluid",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_powerups_holdable_teleport_fluid.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     2.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmapgold_env": {
+  "shader": "models/powerups/instant/enviro",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapgold.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmappurp_env": {
+  "shader": "models/powerups/instant/flight",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmappurp.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "tinfx2c_envadd__add": {
+  "shader": "models/powerups/instant/invis",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_tinfx2c.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmapblue_env": {
+  "shader": "models/powerups/instant/quad",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapblue.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "envmapred_env": {
+  "shader": "models/powerups/instant/regen",
+  "two_sided": false,
+  "add": false,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_envmapred.png",
+    "mode": 1,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "bfg01_add__add__2s": {
+  "shader": "models/weaphits/bfg01",
+  "two_sided": true,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_weaphits_bfg01.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 333.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_weaphits_bfg01.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": -100.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "bfg03_add__add__2s": {
+  "shader": "models/weaphits/bfg02",
+  "two_sided": true,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_weaphits_bfg03.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     2.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_weaphits_bfg02.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     3.0,
+     0.0
+    ],
+    "turb": [
+     0.25,
+     1.6
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "electric_add__add__2s": {
+  "shader": "models/weaphits/electric",
+  "two_sided": true,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_weaphits_electric.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 360.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     3,
+     0.8,
+     2.0,
+     0.0,
+     9.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_weaphits_electric.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": -202.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     3,
+     1.0,
+     1.4,
+     0.0,
+     9.5
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "f_bfg_add__add__2s": {
+  "shader": "models/weapons2/bfg/f_bfg",
+  "two_sided": true,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_weapons2_bfg_f_bfg.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 360.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_weapons2_bfg_f_bfg2.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": -129.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "trail2_add__add": {
+  "shader": "models/weapons2/lightning/trail2",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_weapons2_lightning_trail2.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     3.1,
+     1.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     3,
+     1.0,
+     2.0,
+     0.0,
+     7.0
+    ],
+    "lit": false
+   },
+   {
+    "tex": "stagetex/models_weapons2_lightning_trail2.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     -1.7,
+     1.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     3,
+     1.0,
+     1.1,
+     0.0,
+     5.1
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "button_add__add": {
+  "shader": "models/weapons2/lightning/button",
+  "two_sided": false,
+  "add": true,
+  "lit": false,
+  "stages": [
+   {
+    "tex": "stagetex/models_weapons2_lightning_button.png",
+    "mode": 2,
+    "env": false,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.0,
+     0.0
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     1,
+     1.0,
+     1.0,
+     0.0,
+     1.0
+    ],
+    "lit": false
+   }
+  ]
+ },
+ "tinfxb_envadd__add": {
+  "shader": "models/weapons2/plasma/plasma_glass",
+  "two_sided": false,
+  "add": true,
+  "lit": true,
+  "stages": [
+   {
+    "tex": "stagetex/textures_effects_tinfxb.png",
+    "mode": 2,
+    "env": true,
+    "scale": [
+     1.0,
+     1.0
+    ],
+    "rotate": 0.0,
+    "scroll": [
+     0.01,
+     0.02
+    ],
+    "turb": [
+     0.0,
+     0.0
+    ],
+    "wave": [
+     0,
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lit": true
+   }
+  ]
+ }
+}

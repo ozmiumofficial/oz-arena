@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/dont_use/foglightshader"
+density = 0.1875
+albedo = Color(0.5, 0.5, 0.5, 1)

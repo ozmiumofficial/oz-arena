@@ -1,0 +1,745 @@
+{
+ "textures": {
+  "rocket_explosion": {
+   "file": "textures/rocket_explosion.png",
+   "frames": 8,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "rocketExplosion",
+   "animmap_fps": 8
+  },
+  "grenade_explosion": {
+   "file": "textures/grenade_explosion.png",
+   "frames": 3,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "grenadeExplosion",
+   "animmap_fps": 5
+  },
+  "bfg_explosion": {
+   "file": "textures/bfg_explosion.png",
+   "frames": 3,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "bfgExplosion",
+   "animmap_fps": 5
+  },
+  "bullet_explosion": {
+   "file": "textures/bullet_explosion.png",
+   "frames": 3,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "bulletExplosion",
+   "animmap_fps": 5
+  },
+  "rail_explosion": {
+   "file": "textures/rail_explosion.png",
+   "frames": 4,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "blend",
+   "source_shader": "railExplosion",
+   "animmap_fps": 5
+  },
+  "blood_explosion": {
+   "file": "textures/blood_explosion.png",
+   "frames": 5,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "blend",
+   "source_shader": "bloodExplosion",
+   "animmap_fps": 5
+  },
+  "plasma_explosion": {
+   "file": "textures/plasma_explosion.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "plasmaExplosion",
+   "animmap_fps": 0
+  },
+  "smoke_puff": {
+   "file": "textures/smoke_puff.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "blend",
+   "source_shader": "smokePuff",
+   "animmap_fps": 0
+  },
+  "shotgun_smoke": {
+   "file": "textures/shotgun_smoke.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "blend",
+   "source_shader": "shotgunSmokePuff",
+   "animmap_fps": 0
+  },
+  "rail_core": {
+   "file": "textures/rail_core.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "railCore",
+   "animmap_fps": 0
+  },
+  "rail_disc": {
+   "file": "textures/rail_disc.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "railDisc",
+   "animmap_fps": 0
+  },
+  "lightning_bolt": {
+   "file": "textures/lightning_bolt.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    256
+   ],
+   "mode": "add",
+   "source_shader": "lightningBoltNew",
+   "animmap_fps": 0
+  },
+  "teleport": {
+   "file": "textures/teleport.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "teleportEffect",
+   "animmap_fps": 0
+  },
+  "bubble": {
+   "file": "textures/bubble.png",
+   "frames": 1,
+   "frame_size": [
+    256,
+    256
+   ],
+   "mode": "blend",
+   "source_shader": "waterBubble",
+   "animmap_fps": 0
+  },
+  "tracer": {
+   "file": "textures/tracer.png",
+   "frames": 1,
+   "frame_size": [
+    128,
+    128
+   ],
+   "mode": "add",
+   "source_shader": "gfx/misc/tracer",
+   "animmap_fps": 0
+  },
+  "plasma_ball": {
+   "file": "textures/plasma_ball.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "sprites/plasma1",
+   "animmap_fps": 0
+  },
+  "bfg_ball": {
+   "file": "textures/bfg_ball.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "models/weaphits/bfg01",
+   "animmap_fps": 0
+  },
+  "electric": {
+   "file": "textures/electric.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "models/weaphits/electric",
+   "animmap_fps": 0
+  },
+  "flare": {
+   "file": "textures/flare.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "flareShader",
+   "animmap_fps": 0
+  },
+  "splash": {
+   "file": "textures/splash.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "add",
+   "source_shader": "wake",
+   "animmap_fps": 0
+  },
+  "mark_bullet": {
+   "file": "textures/mark_bullet.png",
+   "frames": 1,
+   "frame_size": [
+    128,
+    128
+   ],
+   "mode": "darken",
+   "source_shader": "gfx/damage/bullet_mrk",
+   "animmap_fps": 0
+  },
+  "mark_burn": {
+   "file": "textures/mark_burn.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "darken",
+   "source_shader": "gfx/damage/burn_med_mrk",
+   "animmap_fps": 0
+  },
+  "mark_hole": {
+   "file": "textures/mark_hole.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "darken",
+   "source_shader": "gfx/damage/hole_lg_mrk",
+   "animmap_fps": 0
+  },
+  "mark_energy": {
+   "file": "textures/mark_energy.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "blend",
+   "source_shader": "gfx/damage/plasma_mrk",
+   "animmap_fps": 0
+  },
+  "mark_blood": {
+   "file": "textures/mark_blood.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "blend",
+   "source_shader": "bloodMark",
+   "animmap_fps": 0
+  },
+  "shell_quad": {
+   "file": "textures/shell_quad.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "env",
+   "source_shader": "powerups/quad",
+   "animmap_fps": 0
+  },
+  "shell_battlesuit": {
+   "file": "textures/shell_battlesuit.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "env",
+   "source_shader": "powerups/battleSuit",
+   "animmap_fps": 0
+  },
+  "shell_regen": {
+   "file": "textures/shell_regen.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "env",
+   "source_shader": "powerups/regen",
+   "animmap_fps": 0
+  },
+  "shell_invis": {
+   "file": "textures/shell_invis.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "env",
+   "source_shader": "powerups/invisibility",
+   "animmap_fps": 0
+  },
+  "blood_screen": {
+   "file": "textures/blood_screen.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "blend",
+   "source_shader": "viewBloodBlend",
+   "animmap_fps": 0
+  }
+ },
+ "effects": {
+  "_note": "Values from Quake III Arena GPL source: cg_weapons.c (CG_RegisterWeapon, CG_MissileHitWall, CG_RocketTrail, CG_PlasmaTrail, CG_RailTrail, CG_*EjectBrass, CG_LightningBolt) and cg_effects.c (CG_MakeExplosion, CG_Bleed, CG_GibPlayer, CG_SpawnEffect, CG_SmokePuff, CG_BubbleTrail). cvar defaults used: cg_railTrailTime 400, cg_brassTime 2500, cg_tracerLength 100. MUZZLE_FLASH_TIME 20 ms in the original; the remaster stretches the flash light fade to 60 ms.",
+  "explosions": {
+   "rocket": {
+    "sprite": "rocket_explosion",
+    "model": "weaphits/boom01",
+    "duration": 1000,
+    "radius": 64,
+    "light": 300,
+    "light_color": [
+     1,
+     0.75,
+     0
+    ],
+    "mark": "mark_burn",
+    "mark_radius": 64,
+    "smoke": true,
+    "sparks": true
+   },
+   "grenade": {
+    "sprite": "grenade_explosion",
+    "model": "weaphits/boom01",
+    "duration": 600,
+    "radius": 64,
+    "light": 300,
+    "light_color": [
+     1,
+     1,
+     0
+    ],
+    "mark": "mark_burn",
+    "mark_radius": 64,
+    "smoke": true,
+    "sparks": true
+   },
+   "bfg": {
+    "sprite": "bfg_explosion",
+    "model": "weaphits/boom01",
+    "duration": 600,
+    "radius": 32,
+    "light": 300,
+    "light_color": [
+     0.2,
+     1,
+     0.2
+    ],
+    "mark": "mark_burn",
+    "mark_radius": 32,
+    "smoke": false,
+    "sparks": true
+   },
+   "plasma": {
+    "sprite": "plasma_explosion",
+    "model": "weaphits/ring02",
+    "duration": 600,
+    "radius": 16,
+    "light": 0,
+    "light_color": [
+     0.6,
+     0.6,
+     1
+    ],
+    "mark": "mark_energy",
+    "mark_radius": 16,
+    "mark_fade": true
+   },
+   "rail": {
+    "sprite": "rail_explosion",
+    "model": "weaphits/ring02",
+    "duration": 600,
+    "radius": 24,
+    "light": 0,
+    "light_color": [
+     1,
+     0.5,
+     0
+    ],
+    "mark": "mark_energy",
+    "mark_radius": 24,
+    "mark_fade": true,
+    "tint_player": true
+   },
+   "bullet": {
+    "sprite": "bullet_explosion",
+    "model": "weaphits/bullet",
+    "duration": 600,
+    "radius": 8,
+    "light": 0,
+    "light_color": [
+     1,
+     1,
+     0
+    ],
+    "mark": "mark_bullet",
+    "mark_radius": 8,
+    "sparks": true
+   },
+   "shotgun_pellet": {
+    "sprite": "bullet_explosion",
+    "model": "weaphits/bullet",
+    "duration": 600,
+    "radius": 4,
+    "light": 0,
+    "light_color": [
+     1,
+     1,
+     0
+    ],
+    "mark": "mark_bullet",
+    "mark_radius": 4,
+    "sparks": true
+   },
+   "lightning": {
+    "sprite": null,
+    "model": null,
+    "duration": 0,
+    "radius": 12,
+    "light": 0,
+    "light_color": [
+     0.6,
+     0.6,
+     1
+    ],
+    "mark": "mark_hole",
+    "mark_radius": 12
+   }
+  },
+  "muzzle_flash": {
+   "gauntlet": [
+    0.6,
+    0.6,
+    1.0
+   ],
+   "machinegun": [
+    1,
+    1,
+    0
+   ],
+   "shotgun": [
+    1,
+    1,
+    0
+   ],
+   "grenadel": [
+    1,
+    0.7,
+    0
+   ],
+   "rocketl": [
+    1,
+    0.75,
+    0
+   ],
+   "lightning": [
+    0.6,
+    0.6,
+    1.0
+   ],
+   "railgun": [
+    1,
+    0.5,
+    0
+   ],
+   "plasma": [
+    0.6,
+    0.6,
+    1.0
+   ],
+   "bfg": [
+    1,
+    0.7,
+    1
+   ],
+   "grapple": [
+    0.6,
+    0.6,
+    1.0
+   ],
+   "_light_radius": 300,
+   "_flash_ms": 20
+  },
+  "projectiles": {
+   "rocket": {
+    "model": "ammo/rocket/rocket",
+    "light": 200,
+    "light_color": [
+     1,
+     0.75,
+     0
+    ],
+    "trail": "smoke",
+    "trail_step": 50,
+    "trail_radius": 64,
+    "trail_life": 2000,
+    "trail_alpha": 0.33
+   },
+   "grenade": {
+    "model": "ammo/grenade1",
+    "light": 0,
+    "trail": "smoke",
+    "trail_step": 50,
+    "trail_radius": 32,
+    "trail_life": 700,
+    "trail_alpha": 0.33
+   },
+   "plasma": {
+    "sprite": "plasma_ball",
+    "radius": 16,
+    "light": 0,
+    "trail": "plasma_sparks",
+    "trail_step": 50,
+    "trail_life": 600
+   },
+   "bfg": {
+    "model": "weaphits/bfg",
+    "sprite": "bfg_ball",
+    "light": 0
+   }
+  },
+  "rail_trail": {
+   "core": "rail_core",
+   "disc": "rail_disc",
+   "core_life": 400,
+   "radius": 4,
+   "spacing": 5,
+   "rotation_step_deg": 10,
+   "disc_radius": 1.1,
+   "disc_life": 600,
+   "disc_speed": 6,
+   "core_start": 20
+  },
+  "lightning_beam": {
+   "sprite": "lightning_bolt",
+   "impact_model": "weaphits/crackle",
+   "impact_back": 16,
+   "scroll": [
+    -5,
+    -7.2
+   ],
+   "wave_hz": [
+    7.1,
+    8.1
+   ]
+  },
+  "smoke": {
+   "rocket_trail": {
+    "sprite": "smoke_puff",
+    "alpha": 0.33
+   },
+   "shotgun": {
+    "sprite": "shotgun_smoke",
+    "radius": 32,
+    "alpha": 0.33,
+    "life": 900,
+    "rise": 8
+   }
+  },
+  "brass": {
+   "machinegun": {
+    "model": "weapons2/shells/m_shell",
+    "vel": [
+     0,
+     [
+      -50,
+      -10
+     ],
+     [
+      100,
+      150
+     ]
+    ],
+    "life": [
+     2500,
+     3125
+    ],
+    "bounce": 0.4,
+    "offset": [
+     8,
+     -4,
+     24
+    ]
+   },
+   "shotgun": {
+    "model": "weapons2/shells/s_shell",
+    "count": 2,
+    "vel": [
+     [
+      60,
+      120
+     ],
+     40,
+     [
+      100,
+      150
+     ]
+    ],
+    "life": [
+     7500,
+     10000
+    ],
+    "bounce": 0.3,
+    "offset": [
+     8,
+     0,
+     24
+    ]
+   }
+  },
+  "blood": {
+   "sprite": "blood_explosion",
+   "duration": 500,
+   "radius": 24,
+   "mark": "mark_blood"
+  },
+  "gibs": {
+   "models": [
+    "gibs/skull",
+    "gibs/abdomen",
+    "gibs/arm",
+    "gibs/chest",
+    "gibs/fist",
+    "gibs/foot",
+    "gibs/forearm",
+    "gibs/intestine",
+    "gibs/leg",
+    "gibs/leg"
+   ],
+   "velocity_xy": 250,
+   "velocity_z": [
+    0,
+    500
+   ],
+   "life": [
+    5000,
+    8000
+   ],
+   "bounce": 0.6
+  },
+  "teleport": {
+   "model": "misc/telep",
+   "sprite": "teleport",
+   "duration": 500,
+   "z_offset": -24,
+   "scroll": [
+    0,
+    2
+   ],
+   "scale": [
+    1,
+    4
+   ]
+  },
+  "bubbles": {
+   "sprite": "bubble",
+   "radius": 3,
+   "life": [
+    1000,
+    1250
+   ],
+   "speed_z": 6,
+   "jitter": 5
+  },
+  "tracer": {
+   "sprite": "tracer",
+   "length": 100,
+   "width": 1,
+   "chance": 0.4
+  },
+  "powerup_shells": {
+   "quad": {
+    "map": "shell_quad",
+    "grow": 3,
+    "grow_weapon": 0.5,
+    "rotate": 30,
+    "scroll": [
+     1,
+     0.1
+    ]
+   },
+   "battlesuit": {
+    "map": "shell_battlesuit",
+    "grow": 1,
+    "grow_weapon": 0.5,
+    "rotate": 333,
+    "scroll": [
+     0.3,
+     0.3
+    ]
+   },
+   "regen": {
+    "map": "shell_regen",
+    "grow": 3,
+    "grow_weapon": 0.5,
+    "rotate": 30,
+    "scroll": [
+     1,
+     0.1
+    ]
+   },
+   "invis": {
+    "map": "shell_invis",
+    "grow": 0,
+    "grow_weapon": 0,
+    "rotate": 0,
+    "scroll": [
+     0,
+     0
+    ]
+   }
+  }
+ }
+}

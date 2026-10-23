@@ -1,0 +1,811 @@
+{
+ "_note": "Items from bg_misc.c bg_itemlist; respawn seconds from g_items.c; map entities from g_spawn.c. Model ids are paths under models/ without .md3 and match library/props/<id>.glb.",
+ "pickup_display": {
+  "spin_period_ms": 2048,
+  "bob_units": 4,
+  "bob_rate": 0.005,
+  "weapon_scale": 1.5
+ },
+ "items": [
+  {
+   "classname": "item_armor_shard",
+   "name": "Armor Shard",
+   "type": "armor",
+   "tag": "",
+   "quantity": 5,
+   "respawn": 25,
+   "models": [
+    "powerups/armor/shard",
+    "powerups/armor/shard_sphere"
+   ],
+   "pickup_sound": "sound/misc/ar1_pkup.wav",
+   "icon": "icons/iconr_shard",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_armor_combat",
+   "name": "Armor",
+   "type": "armor",
+   "tag": "",
+   "quantity": 50,
+   "respawn": 25,
+   "models": [
+    "powerups/armor/armor_yel"
+   ],
+   "pickup_sound": "sound/misc/ar2_pkup.wav",
+   "icon": "icons/iconr_yellow",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_armor_body",
+   "name": "Heavy Armor",
+   "type": "armor",
+   "tag": "",
+   "quantity": 100,
+   "respawn": 25,
+   "models": [
+    "powerups/armor/armor_red"
+   ],
+   "pickup_sound": "sound/misc/ar2_pkup.wav",
+   "icon": "icons/iconr_red",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_health_small",
+   "name": "5 Health",
+   "type": "health",
+   "tag": "",
+   "quantity": 5,
+   "respawn": 35,
+   "models": [
+    "powerups/health/small_cross",
+    "powerups/health/small_sphere"
+   ],
+   "pickup_sound": "sound/items/s_health.wav",
+   "icon": "icons/iconh_green",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_health",
+   "name": "25 Health",
+   "type": "health",
+   "tag": "",
+   "quantity": 25,
+   "respawn": 35,
+   "models": [
+    "powerups/health/medium_cross",
+    "powerups/health/medium_sphere"
+   ],
+   "pickup_sound": "sound/items/n_health.wav",
+   "icon": "icons/iconh_yellow",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_health_large",
+   "name": "50 Health",
+   "type": "health",
+   "tag": "",
+   "quantity": 50,
+   "respawn": 35,
+   "models": [
+    "powerups/health/large_cross",
+    "powerups/health/large_sphere"
+   ],
+   "pickup_sound": "sound/items/l_health.wav",
+   "icon": "icons/iconh_red",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_health_mega",
+   "name": "Mega Health",
+   "type": "health",
+   "tag": "",
+   "quantity": 100,
+   "respawn": 35,
+   "models": [
+    "powerups/health/mega_cross",
+    "powerups/health/mega_sphere"
+   ],
+   "pickup_sound": "sound/items/m_health.wav",
+   "icon": "icons/iconh_mega",
+   "scale": 1.0
+  },
+  {
+   "classname": "weapon_gauntlet",
+   "name": "Gauntlet",
+   "type": "weapon",
+   "tag": "WP_GAUNTLET",
+   "quantity": 0,
+   "respawn": 5,
+   "models": [
+    "weapons2/gauntlet/gauntlet"
+   ],
+   "pickup_sound": "sound/misc/w_pkup.wav",
+   "icon": "icons/iconw_gauntlet",
+   "scale": 1.5
+  },
+  {
+   "classname": "weapon_shotgun",
+   "name": "Shotgun",
+   "type": "weapon",
+   "tag": "WP_SHOTGUN",
+   "quantity": 10,
+   "respawn": 5,
+   "models": [
+    "weapons2/shotgun/shotgun"
+   ],
+   "pickup_sound": "sound/misc/w_pkup.wav",
+   "icon": "icons/iconw_shotgun",
+   "scale": 1.5
+  },
+  {
+   "classname": "weapon_machinegun",
+   "name": "Machinegun",
+   "type": "weapon",
+   "tag": "WP_MACHINEGUN",
+   "quantity": 40,
+   "respawn": 5,
+   "models": [
+    "weapons2/machinegun/machinegun"
+   ],
+   "pickup_sound": "sound/misc/w_pkup.wav",
+   "icon": "icons/iconw_machinegun",
+   "scale": 1.5
+  },
+  {
+   "classname": "weapon_grenadelauncher",
+   "name": "Grenade Launcher",
+   "type": "weapon",
+   "tag": "WP_GRENADE_LAUNCHER",
+   "quantity": 10,
+   "respawn": 5,
+   "models": [
+    "weapons2/grenadel/grenadel"
+   ],
+   "pickup_sound": "sound/misc/w_pkup.wav",
+   "icon": "icons/iconw_grenade",
+   "scale": 1.5
+  },
+  {
+   "classname": "weapon_rocketlauncher",
+   "name": "Rocket Launcher",
+   "type": "weapon",
+   "tag": "WP_ROCKET_LAUNCHER",
+   "quantity": 10,
+   "respawn": 5,
+   "models": [
+    "weapons2/rocketl/rocketl"
+   ],
+   "pickup_sound": "sound/misc/w_pkup.wav",
+   "icon": "icons/iconw_rocket",
+   "scale": 1.5
+  },
+  {
+   "classname": "weapon_lightning",
+   "name": "Lightning Gun",
+   "type": "weapon",
+   "tag": "WP_LIGHTNING",
+   "quantity": 100,
+   "respawn": 5,
+   "models": [
+    "weapons2/lightning/lightning"
+   ],
+   "pickup_sound": "sound/misc/w_pkup.wav",
+   "icon": "icons/iconw_lightning",
+   "scale": 1.5
+  },
+  {
+   "classname": "weapon_railgun",
+   "name": "Railgun",
+   "type": "weapon",
+   "tag": "WP_RAILGUN",
+   "quantity": 10,
+   "respawn": 5,
+   "models": [
+    "weapons2/railgun/railgun"
+   ],
+   "pickup_sound": "sound/misc/w_pkup.wav",
+   "icon": "icons/iconw_railgun",
+   "scale": 1.5
+  },
+  {
+   "classname": "weapon_plasmagun",
+   "name": "Plasma Gun",
+   "type": "weapon",
+   "tag": "WP_PLASMAGUN",
+   "quantity": 50,
+   "respawn": 5,
+   "models": [
+    "weapons2/plasma/plasma"
+   ],
+   "pickup_sound": "sound/misc/w_pkup.wav",
+   "icon": "icons/iconw_plasma",
+   "scale": 1.5
+  },
+  {
+   "classname": "weapon_bfg",
+   "name": "BFG10K",
+   "type": "weapon",
+   "tag": "WP_BFG",
+   "quantity": 20,
+   "respawn": 5,
+   "models": [
+    "weapons2/bfg/bfg"
+   ],
+   "pickup_sound": "sound/misc/w_pkup.wav",
+   "icon": "icons/iconw_bfg",
+   "scale": 1.5
+  },
+  {
+   "classname": "weapon_grapplinghook",
+   "name": "Grappling Hook",
+   "type": "weapon",
+   "tag": "WP_GRAPPLING_HOOK",
+   "quantity": 0,
+   "respawn": 5,
+   "models": [
+    "weapons2/grapple/grapple"
+   ],
+   "pickup_sound": "sound/misc/w_pkup.wav",
+   "icon": "icons/iconw_grapple",
+   "scale": 1.5
+  },
+  {
+   "classname": "ammo_shells",
+   "name": "Shells",
+   "type": "ammo",
+   "tag": "WP_SHOTGUN",
+   "quantity": 10,
+   "respawn": 40,
+   "models": [
+    "powerups/ammo/shotgunam"
+   ],
+   "pickup_sound": "sound/misc/am_pkup.wav",
+   "icon": "icons/icona_shotgun",
+   "scale": 1.0
+  },
+  {
+   "classname": "ammo_bullets",
+   "name": "Bullets",
+   "type": "ammo",
+   "tag": "WP_MACHINEGUN",
+   "quantity": 50,
+   "respawn": 40,
+   "models": [
+    "powerups/ammo/machinegunam"
+   ],
+   "pickup_sound": "sound/misc/am_pkup.wav",
+   "icon": "icons/icona_machinegun",
+   "scale": 1.0
+  },
+  {
+   "classname": "ammo_grenades",
+   "name": "Grenades",
+   "type": "ammo",
+   "tag": "WP_GRENADE_LAUNCHER",
+   "quantity": 5,
+   "respawn": 40,
+   "models": [
+    "powerups/ammo/grenadeam"
+   ],
+   "pickup_sound": "sound/misc/am_pkup.wav",
+   "icon": "icons/icona_grenade",
+   "scale": 1.0
+  },
+  {
+   "classname": "ammo_cells",
+   "name": "Cells",
+   "type": "ammo",
+   "tag": "WP_PLASMAGUN",
+   "quantity": 30,
+   "respawn": 40,
+   "models": [
+    "powerups/ammo/plasmaam"
+   ],
+   "pickup_sound": "sound/misc/am_pkup.wav",
+   "icon": "icons/icona_plasma",
+   "scale": 1.0
+  },
+  {
+   "classname": "ammo_lightning",
+   "name": "Lightning",
+   "type": "ammo",
+   "tag": "WP_LIGHTNING",
+   "quantity": 60,
+   "respawn": 40,
+   "models": [
+    "powerups/ammo/lightningam"
+   ],
+   "pickup_sound": "sound/misc/am_pkup.wav",
+   "icon": "icons/icona_lightning",
+   "scale": 1.0
+  },
+  {
+   "classname": "ammo_rockets",
+   "name": "Rockets",
+   "type": "ammo",
+   "tag": "WP_ROCKET_LAUNCHER",
+   "quantity": 5,
+   "respawn": 40,
+   "models": [
+    "powerups/ammo/rocketam"
+   ],
+   "pickup_sound": "sound/misc/am_pkup.wav",
+   "icon": "icons/icona_rocket",
+   "scale": 1.0
+  },
+  {
+   "classname": "ammo_slugs",
+   "name": "Slugs",
+   "type": "ammo",
+   "tag": "WP_RAILGUN",
+   "quantity": 10,
+   "respawn": 40,
+   "models": [
+    "powerups/ammo/railgunam"
+   ],
+   "pickup_sound": "sound/misc/am_pkup.wav",
+   "icon": "icons/icona_railgun",
+   "scale": 1.0
+  },
+  {
+   "classname": "ammo_bfg",
+   "name": "Bfg Ammo",
+   "type": "ammo",
+   "tag": "WP_BFG",
+   "quantity": 15,
+   "respawn": 40,
+   "models": [
+    "powerups/ammo/bfgam"
+   ],
+   "pickup_sound": "sound/misc/am_pkup.wav",
+   "icon": "icons/icona_bfg",
+   "scale": 1.0
+  },
+  {
+   "classname": "holdable_teleporter",
+   "name": "Personal Teleporter",
+   "type": "holdable",
+   "tag": "HI_TELEPORTER",
+   "quantity": 60,
+   "respawn": 60,
+   "models": [
+    "powerups/holdable/teleporter"
+   ],
+   "pickup_sound": "sound/items/holdable.wav",
+   "icon": "icons/teleporter",
+   "scale": 1.0
+  },
+  {
+   "classname": "holdable_medkit",
+   "name": "Medkit",
+   "type": "holdable",
+   "tag": "HI_MEDKIT",
+   "quantity": 60,
+   "respawn": 60,
+   "models": [
+    "powerups/holdable/medkit"
+   ],
+   "pickup_sound": "sound/items/holdable.wav",
+   "icon": "icons/medkit",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_quad",
+   "name": "Quad Damage",
+   "type": "powerup",
+   "tag": "PW_QUAD",
+   "quantity": 30,
+   "respawn": 120,
+   "models": [
+    "powerups/instant/quad",
+    "powerups/instant/quad_ring"
+   ],
+   "pickup_sound": "sound/items/quaddamage.wav",
+   "icon": "icons/quad",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_enviro",
+   "name": "Battle Suit",
+   "type": "powerup",
+   "tag": "PW_BATTLESUIT",
+   "quantity": 30,
+   "respawn": 120,
+   "models": [
+    "powerups/instant/enviro",
+    "powerups/instant/enviro_ring"
+   ],
+   "pickup_sound": "sound/items/protect.wav",
+   "icon": "icons/envirosuit",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_haste",
+   "name": "Speed",
+   "type": "powerup",
+   "tag": "PW_HASTE",
+   "quantity": 30,
+   "respawn": 120,
+   "models": [
+    "powerups/instant/haste",
+    "powerups/instant/haste_ring"
+   ],
+   "pickup_sound": "sound/items/haste.wav",
+   "icon": "icons/haste",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_invis",
+   "name": "Invisibility",
+   "type": "powerup",
+   "tag": "PW_INVIS",
+   "quantity": 30,
+   "respawn": 120,
+   "models": [
+    "powerups/instant/invis",
+    "powerups/instant/invis_ring"
+   ],
+   "pickup_sound": "sound/items/invisibility.wav",
+   "icon": "icons/invis",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_regen",
+   "name": "Regeneration",
+   "type": "powerup",
+   "tag": "PW_REGEN",
+   "quantity": 30,
+   "respawn": 120,
+   "models": [
+    "powerups/instant/regen",
+    "powerups/instant/regen_ring"
+   ],
+   "pickup_sound": "sound/items/regeneration.wav",
+   "icon": "icons/regen",
+   "scale": 1.0
+  },
+  {
+   "classname": "item_flight",
+   "name": "Flight",
+   "type": "powerup",
+   "tag": "PW_FLIGHT",
+   "quantity": 60,
+   "respawn": 120,
+   "models": [
+    "powerups/instant/flight",
+    "powerups/instant/flight_ring"
+   ],
+   "pickup_sound": "sound/items/flight.wav",
+   "icon": "icons/flight",
+   "scale": 1.0
+  },
+  {
+   "classname": "team_CTF_redflag",
+   "name": "Red Flag",
+   "type": "team",
+   "tag": "PW_REDFLAG",
+   "quantity": 0,
+   "respawn": 0,
+   "models": [
+    "flags/r_flag"
+   ],
+   "pickup_sound": null,
+   "icon": "icons/iconf_red1",
+   "scale": 1.0
+  },
+  {
+   "classname": "team_CTF_blueflag",
+   "name": "Blue Flag",
+   "type": "team",
+   "tag": "PW_BLUEFLAG",
+   "quantity": 0,
+   "respawn": 0,
+   "models": [
+    "flags/b_flag"
+   ],
+   "pickup_sound": null,
+   "icon": "icons/iconf_blu1",
+   "scale": 1.0
+  }
+ ],
+ "map_entities": [
+  {
+   "classname": "worldspawn",
+   "category": "world",
+   "description": "Map settings: message, music, gravity, ambient light",
+   "models": []
+  },
+  {
+   "classname": "info_player_start",
+   "category": "spawn",
+   "description": "Player spawn (old name, same as info_player_deathmatch)",
+   "models": []
+  },
+  {
+   "classname": "info_player_deathmatch",
+   "category": "spawn",
+   "description": "Deathmatch spawn point",
+   "models": []
+  },
+  {
+   "classname": "info_player_intermission",
+   "category": "spawn",
+   "description": "Intermission camera position",
+   "models": []
+  },
+  {
+   "classname": "team_CTF_redplayer",
+   "category": "spawn",
+   "description": "Red team initial spawn",
+   "models": []
+  },
+  {
+   "classname": "team_CTF_blueplayer",
+   "category": "spawn",
+   "description": "Blue team initial spawn",
+   "models": []
+  },
+  {
+   "classname": "team_CTF_redspawn",
+   "category": "spawn",
+   "description": "Red team respawn",
+   "models": []
+  },
+  {
+   "classname": "team_CTF_bluespawn",
+   "category": "spawn",
+   "description": "Blue team respawn",
+   "models": []
+  },
+  {
+   "classname": "info_null",
+   "category": "marker",
+   "description": "Removed on load; used as a light target",
+   "models": []
+  },
+  {
+   "classname": "info_notnull",
+   "category": "marker",
+   "description": "Positional target",
+   "models": []
+  },
+  {
+   "classname": "info_camp",
+   "category": "marker",
+   "description": "Bot camping spot",
+   "models": []
+  },
+  {
+   "classname": "path_corner",
+   "category": "marker",
+   "description": "Waypoint for func_train",
+   "models": []
+  },
+  {
+   "classname": "target_position",
+   "category": "marker",
+   "description": "Destination for jump pads and targets",
+   "models": []
+  },
+  {
+   "classname": "misc_teleporter_dest",
+   "category": "teleport",
+   "description": "Teleporter exit",
+   "models": []
+  },
+  {
+   "classname": "trigger_teleport",
+   "category": "teleport",
+   "description": "Teleporter volume",
+   "models": []
+  },
+  {
+   "classname": "target_teleporter",
+   "category": "teleport",
+   "description": "Teleports the activator",
+   "models": []
+  },
+  {
+   "classname": "trigger_push",
+   "category": "movement",
+   "description": "Jump pad volume, aims at its target",
+   "models": []
+  },
+  {
+   "classname": "target_push",
+   "category": "movement",
+   "description": "Push the activator",
+   "models": []
+  },
+  {
+   "classname": "func_door",
+   "category": "mover",
+   "description": "Sliding door",
+   "models": []
+  },
+  {
+   "classname": "func_button",
+   "category": "mover",
+   "description": "Button",
+   "models": []
+  },
+  {
+   "classname": "func_plat",
+   "category": "mover",
+   "description": "Lift platform",
+   "models": []
+  },
+  {
+   "classname": "func_rotating",
+   "category": "mover",
+   "description": "Constantly rotating brush",
+   "models": []
+  },
+  {
+   "classname": "func_bobbing",
+   "category": "mover",
+   "description": "Bobbing brush",
+   "models": []
+  },
+  {
+   "classname": "func_pendulum",
+   "category": "mover",
+   "description": "Swinging brush",
+   "models": []
+  },
+  {
+   "classname": "func_train",
+   "category": "mover",
+   "description": "Brush following path_corners",
+   "models": []
+  },
+  {
+   "classname": "func_static",
+   "category": "mover",
+   "description": "Static brush model",
+   "models": []
+  },
+  {
+   "classname": "func_timer",
+   "category": "logic",
+   "description": "Fires targets on a timer",
+   "models": []
+  },
+  {
+   "classname": "func_group",
+   "category": "world",
+   "description": "Editor grouping, merged into the world",
+   "models": []
+  },
+  {
+   "classname": "trigger_always",
+   "category": "logic",
+   "description": "Fires once at map start",
+   "models": []
+  },
+  {
+   "classname": "trigger_multiple",
+   "category": "logic",
+   "description": "Repeatable trigger volume",
+   "models": []
+  },
+  {
+   "classname": "trigger_hurt",
+   "category": "hazard",
+   "description": "Damage volume (lava, void)",
+   "models": []
+  },
+  {
+   "classname": "target_give",
+   "category": "logic",
+   "description": "Gives items to the activator",
+   "models": []
+  },
+  {
+   "classname": "target_remove_powerups",
+   "category": "logic",
+   "description": "Strips powerups",
+   "models": []
+  },
+  {
+   "classname": "target_delay",
+   "category": "logic",
+   "description": "Delayed relay",
+   "models": []
+  },
+  {
+   "classname": "target_relay",
+   "category": "logic",
+   "description": "Relay",
+   "models": []
+  },
+  {
+   "classname": "target_kill",
+   "category": "logic",
+   "description": "Kills the activator",
+   "models": []
+  },
+  {
+   "classname": "target_speaker",
+   "category": "audio",
+   "description": "Sound emitter",
+   "models": []
+  },
+  {
+   "classname": "target_print",
+   "category": "logic",
+   "description": "Prints a message",
+   "models": []
+  },
+  {
+   "classname": "target_laser",
+   "category": "hazard",
+   "description": "Damaging laser",
+   "models": []
+  },
+  {
+   "classname": "target_score",
+   "category": "logic",
+   "description": "Adds score",
+   "models": []
+  },
+  {
+   "classname": "target_location",
+   "category": "marker",
+   "description": "Named location for team chat",
+   "models": []
+  },
+  {
+   "classname": "light",
+   "category": "world",
+   "description": "Light, baked by the map compiler",
+   "models": []
+  },
+  {
+   "classname": "misc_model",
+   "category": "decoration",
+   "description": "Static model placed in the map (models/mapobjects)",
+   "models": [
+    "mapobjects/banner/banner5",
+    "mapobjects/bitch/fembotbig",
+    "mapobjects/jets/jets01",
+    "mapobjects/pipe/pipe02",
+    "mapobjects/pipe/pipe02b",
+    "mapobjects/podium/podium4",
+    "mapobjects/skel/xray",
+    "mapobjects/skel/xraybig"
+   ]
+  },
+  {
+   "classname": "misc_portal_surface",
+   "category": "render",
+   "description": "Mirror or portal surface",
+   "models": []
+  },
+  {
+   "classname": "misc_portal_camera",
+   "category": "render",
+   "description": "Portal view camera",
+   "models": []
+  },
+  {
+   "classname": "shooter_rocket",
+   "category": "hazard",
+   "description": "Fires rockets",
+   "models": []
+  },
+  {
+   "classname": "shooter_grenade",
+   "category": "hazard",
+   "description": "Fires grenades",
+   "models": []
+  },
+  {
+   "classname": "shooter_plasma",
+   "category": "hazard",
+   "description": "Fires plasma",
+   "models": []
+  }
+ ]
+}

@@ -1,0 +1,29 @@
+[remap]
+
+importer="2d_array_texture"
+type="CompressedTexture2DArray"
+uid="uid://dhoaxs8jiq8fm"
+path.bptc="res://.godot/imported/q3dm15.exr-3a7a7ef21085102a4e36db72a123d387.bptc.ctexarray"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+
+[deps]
+
+source_file="res://library/maps/q3dm15/q3dm15.exr"
+dest_files=["res://.godot/imported/q3dm15.exr-3a7a7ef21085102a4e36db72a123d387.bptc.ctexarray"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/channel_pack=1
+mipmaps/generate=false
+mipmaps/limit=-1
+slices/horizontal=1
+slices/vertical=8

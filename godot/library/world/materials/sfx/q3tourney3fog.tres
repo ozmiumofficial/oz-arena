@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/sfx/q3tourney3fog"
+density = 0.25
+albedo = Color(0.55, 0.11, 0.1, 1)

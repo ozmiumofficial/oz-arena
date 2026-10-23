@@ -1,0 +1,27 @@
+[gd_resource type="ShaderMaterial" load_steps=6 format=3]
+
+[ext_resource type="Shader" path="res://shaders/world/world_opaque.gdshader" id="1_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/models__mapobjects__corpse__torso_albedo.png" id="2_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/models__mapobjects__corpse__torso_normal.jpg" id="3_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/models__mapobjects__corpse__torso_orm.jpg" id="4_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/liquids__proto_grueldark_albedo.jpg" id="5_r"]
+
+[resource]
+resource_name = "models/mapobjects/corpse/torso"
+shader = ExtResource("1_r")
+shader_parameter/albedo_tex = ExtResource("2_r")
+shader_parameter/normal_tex = ExtResource("3_r")
+shader_parameter/orm_tex = ExtResource("4_r")
+shader_parameter/base_scale = Vector2(1.0, 1.0)
+shader_parameter/base_rotate = 0.0
+shader_parameter/base_scroll = Vector2(0.0, 0.0)
+shader_parameter/base_turb = Vector4(0.0, 0.0, 0.0, 0.0)
+shader_parameter/emission_energy = 1.0
+shader_parameter/alpha_cut = 0.0
+shader_parameter/stochastic = false
+shader_parameter/under_tex = ExtResource("5_r")
+shader_parameter/has_under = true
+shader_parameter/under_env = false
+shader_parameter/under_scale = Vector2(4.0, 4.0)
+shader_parameter/under_motion = Vector3(0.0, -0.09, 0.0)
+shader_parameter/under_turb = Vector4(0.0, 0.05, 0.0, 0.05)

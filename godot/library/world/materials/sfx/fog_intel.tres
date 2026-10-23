@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/sfx/fog_intel"
+density = 0.12
+albedo = Color(0.75, 0.38, 0.0, 1)

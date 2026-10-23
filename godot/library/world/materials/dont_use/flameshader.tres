@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/dont_use/flameshader"
+density = 8.0
+albedo = Color(0.3, 0.1, 0.1, 1)

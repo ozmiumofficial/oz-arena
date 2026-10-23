@@ -1,0 +1,5512 @@
+{
+ "banner": {
+  "ascent": 120.0,
+  "descent": 24.0,
+  "file": "fonts/q3_banner.png",
+  "gap": 16.0,
+  "glyphs": {
+   "100": [
+    506.0,
+    0.0,
+    164.0,
+    184.0
+   ],
+   "101": [
+    672.0,
+    0.0,
+    124.0,
+    184.0
+   ],
+   "102": [
+    798.0,
+    0.0,
+    128.0,
+    184.0
+   ],
+   "103": [
+    928.0,
+    0.0,
+    168.0,
+    184.0
+   ],
+   "104": [
+    1098.0,
+    0.0,
+    164.0,
+    184.0
+   ],
+   "105": [
+    1264.0,
+    0.0,
+    96.0,
+    184.0
+   ],
+   "106": [
+    1362.0,
+    0.0,
+    156.0,
+    184.0
+   ],
+   "107": [
+    1520.0,
+    0.0,
+    164.0,
+    184.0
+   ],
+   "108": [
+    1686.0,
+    0.0,
+    124.0,
+    184.0
+   ],
+   "109": [
+    1812.0,
+    0.0,
+    200.0,
+    184.0
+   ],
+   "110": [
+    0.0,
+    186.0,
+    168.0,
+    184.0
+   ],
+   "111": [
+    170.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "112": [
+    336.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "113": [
+    502.0,
+    186.0,
+    160.0,
+    184.0
+   ],
+   "114": [
+    664.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "115": [
+    830.0,
+    186.0,
+    160.0,
+    184.0
+   ],
+   "116": [
+    992.0,
+    186.0,
+    140.0,
+    184.0
+   ],
+   "117": [
+    1134.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "118": [
+    1300.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "119": [
+    1466.0,
+    186.0,
+    240.0,
+    184.0
+   ],
+   "120": [
+    1708.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "121": [
+    1874.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "122": [
+    0.0,
+    372.0,
+    140.0,
+    184.0
+   ],
+   "65": [
+    0.0,
+    0.0,
+    172.0,
+    184.0
+   ],
+   "66": [
+    174.0,
+    0.0,
+    164.0,
+    184.0
+   ],
+   "67": [
+    340.0,
+    0.0,
+    164.0,
+    184.0
+   ],
+   "68": [
+    506.0,
+    0.0,
+    164.0,
+    184.0
+   ],
+   "69": [
+    672.0,
+    0.0,
+    124.0,
+    184.0
+   ],
+   "70": [
+    798.0,
+    0.0,
+    128.0,
+    184.0
+   ],
+   "71": [
+    928.0,
+    0.0,
+    168.0,
+    184.0
+   ],
+   "72": [
+    1098.0,
+    0.0,
+    164.0,
+    184.0
+   ],
+   "73": [
+    1264.0,
+    0.0,
+    96.0,
+    184.0
+   ],
+   "74": [
+    1362.0,
+    0.0,
+    156.0,
+    184.0
+   ],
+   "75": [
+    1520.0,
+    0.0,
+    164.0,
+    184.0
+   ],
+   "76": [
+    1686.0,
+    0.0,
+    124.0,
+    184.0
+   ],
+   "77": [
+    1812.0,
+    0.0,
+    200.0,
+    184.0
+   ],
+   "78": [
+    0.0,
+    186.0,
+    168.0,
+    184.0
+   ],
+   "79": [
+    170.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "80": [
+    336.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "81": [
+    502.0,
+    186.0,
+    160.0,
+    184.0
+   ],
+   "82": [
+    664.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "83": [
+    830.0,
+    186.0,
+    160.0,
+    184.0
+   ],
+   "84": [
+    992.0,
+    186.0,
+    140.0,
+    184.0
+   ],
+   "85": [
+    1134.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "86": [
+    1300.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "87": [
+    1466.0,
+    186.0,
+    240.0,
+    184.0
+   ],
+   "88": [
+    1708.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "89": [
+    1874.0,
+    186.0,
+    164.0,
+    184.0
+   ],
+   "90": [
+    0.0,
+    372.0,
+    140.0,
+    184.0
+   ],
+   "97": [
+    0.0,
+    0.0,
+    172.0,
+    184.0
+   ],
+   "98": [
+    174.0,
+    0.0,
+    164.0,
+    184.0
+   ],
+   "99": [
+    340.0,
+    0.0,
+    164.0,
+    184.0
+   ]
+  },
+  "kind": "bitmap",
+  "margin": 20.0,
+  "scale": 4.0,
+  "sdf_range": 32.0,
+  "size": 144.0,
+  "space": 48.0
+ },
+ "bots": [
+  {
+   "model": "xaero",
+   "name": "Xaero",
+   "skin": "default"
+  },
+  {
+   "model": "orbb",
+   "name": "Orbb",
+   "skin": "default"
+  },
+  {
+   "model": "slash",
+   "name": "Slash",
+   "skin": "default"
+  },
+  {
+   "model": "sorlag",
+   "name": "Sorlag",
+   "skin": "default"
+  },
+  {
+   "model": "major",
+   "name": "Daemia",
+   "skin": "daemia"
+  },
+  {
+   "model": "uriel",
+   "name": "Uriel",
+   "skin": "default"
+  },
+  {
+   "model": "ranger",
+   "name": "Wrack",
+   "skin": "wrack"
+  },
+  {
+   "model": "keel",
+   "name": "Keel",
+   "skin": "default"
+  },
+  {
+   "model": "bitterman",
+   "name": "Bitterman",
+   "skin": "default"
+  },
+  {
+   "model": "visor",
+   "name": "Gorre",
+   "skin": "gorre"
+  },
+  {
+   "model": "anarki",
+   "name": "Anarki",
+   "skin": "default"
+  },
+  {
+   "model": "tankjr",
+   "name": "TankJr",
+   "skin": "default"
+  },
+  {
+   "model": "razor",
+   "name": "Patriot",
+   "skin": "patriot"
+  },
+  {
+   "model": "biker",
+   "name": "Cadavre",
+   "skin": "cadavre"
+  },
+  {
+   "model": "lucy",
+   "name": "Angel",
+   "skin": "angel"
+  },
+  {
+   "model": "klesk",
+   "name": "Klesk",
+   "skin": "default"
+  },
+  {
+   "model": "doom",
+   "name": "Phobos",
+   "skin": "phobos"
+  },
+  {
+   "model": "mynx",
+   "name": "Mynx",
+   "skin": "default"
+  },
+  {
+   "model": "visor",
+   "name": "Visor",
+   "skin": "default"
+  },
+  {
+   "model": "lucy",
+   "name": "Lucy",
+   "skin": "default"
+  },
+  {
+   "model": "hunter",
+   "name": "Hunter",
+   "skin": "default"
+  },
+  {
+   "model": "razor",
+   "name": "Razor",
+   "skin": "default"
+  },
+  {
+   "model": "major",
+   "name": "Major",
+   "skin": "default"
+  },
+  {
+   "model": "biker",
+   "name": "Biker",
+   "skin": "default"
+  },
+  {
+   "model": "sarge",
+   "name": "Sarge",
+   "skin": "default"
+  },
+  {
+   "model": "grunt",
+   "name": "Stripe",
+   "skin": "stripe"
+  },
+  {
+   "model": "grunt",
+   "name": "Grunt",
+   "skin": "default"
+  },
+  {
+   "model": "ranger",
+   "name": "Ranger",
+   "skin": "default"
+  },
+  {
+   "model": "doom",
+   "name": "Doom",
+   "skin": "default"
+  },
+  {
+   "model": "biker",
+   "name": "Hossman",
+   "skin": "hossman"
+  },
+  {
+   "model": "bones",
+   "name": "Bones",
+   "skin": "default"
+  },
+  {
+   "model": "crash",
+   "name": "Crash",
+   "skin": "default"
+  }
+ ],
+ "campaign": {
+  "award_names": [
+   "accuracy",
+   "impressive",
+   "excellent",
+   "gauntlet",
+   "frags",
+   "perfect"
+  ],
+  "awards": {
+   "assist": 0.0,
+   "captures": 0.0,
+   "defend": 0.0,
+   "excellent": 0.0,
+   "gauntlet": 0.0,
+   "impressive": 0.0,
+   "perfect": 1.0
+  },
+  "skill": 3,
+  "tiers": [
+   {
+    "arenas": [
+     {
+      "bots": [
+       {
+        "model": "crash",
+        "name": "Crash"
+       }
+      ],
+      "fraglimit": 5.0,
+      "levelshot": "levelshots/q3dm0.jpg",
+      "map": "q3dm0",
+      "name": "Introduction",
+      "won": 3
+     }
+    ],
+    "complete": true,
+    "name": "Training",
+    "open": true
+   },
+   {
+    "arenas": [
+     {
+      "bots": [
+       {
+        "model": "ranger",
+        "name": "Ranger"
+       }
+      ],
+      "fraglimit": 10.0,
+      "levelshot": "levelshots/q3dm1.jpg",
+      "map": "q3dm1",
+      "name": "Arena Gate",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "doom",
+        "name": "Phobos"
+       }
+      ],
+      "fraglimit": 10.0,
+      "levelshot": "levelshots/q3dm2.jpg",
+      "map": "q3dm2",
+      "name": "House Of Pain",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "mynx",
+        "name": "Mynx"
+       },
+       {
+        "model": "orbb",
+        "name": "Orbb"
+       }
+      ],
+      "fraglimit": 15.0,
+      "levelshot": "levelshots/q3dm3.jpg",
+      "map": "q3dm3",
+      "name": "Arena Of Death",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "sarge",
+        "name": "Sarge"
+       }
+      ],
+      "fraglimit": 10.0,
+      "levelshot": "levelshots/q3tourney1.jpg",
+      "map": "q3tourney1",
+      "name": "Powerstation 0218",
+      "won": 0
+     }
+    ],
+    "complete": false,
+    "name": "Tier 1",
+    "open": true
+   },
+   {
+    "arenas": [
+     {
+      "bots": [
+       {
+        "model": "orbb",
+        "name": "Orbb"
+       },
+       {
+        "model": "bitterman",
+        "name": "Bitterman"
+       },
+       {
+        "model": "grunt",
+        "name": "Grunt"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm4.jpg",
+      "map": "q3dm4",
+      "name": "The Place Of Many Deaths",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "biker",
+        "name": "Hossman"
+       },
+       {
+        "model": "major",
+        "name": "Daemia"
+       }
+      ],
+      "fraglimit": 15.0,
+      "levelshot": "levelshots/q3dm5.jpg",
+      "map": "q3dm5",
+      "name": "The Forgotten Place",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "orbb",
+        "name": "Orbb"
+       },
+       {
+        "model": "biker",
+        "name": "Hossman"
+       },
+       {
+        "model": "major",
+        "name": "Daemia"
+       },
+       {
+        "model": "bitterman",
+        "name": "Bitterman"
+       },
+       {
+        "model": "grunt",
+        "name": "Grunt"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm6.jpg",
+      "map": "q3dm6",
+      "name": "The Camping Grounds",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "hunter",
+        "name": "Hunter"
+       }
+      ],
+      "fraglimit": 10.0,
+      "levelshot": "levelshots/q3tourney2.jpg",
+      "map": "q3tourney2",
+      "name": "The Proving Grounds",
+      "won": 0
+     }
+    ],
+    "complete": false,
+    "name": "Tier 2",
+    "open": false
+   },
+   {
+    "arenas": [
+     {
+      "bots": [
+       {
+        "model": "major",
+        "name": "Daemia"
+       },
+       {
+        "model": "ranger",
+        "name": "Wrack"
+       },
+       {
+        "model": "grunt",
+        "name": "Grunt"
+       },
+       {
+        "model": "slash",
+        "name": "Slash"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm7.jpg",
+      "map": "q3dm7",
+      "name": "Temple of Retribution",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "visor",
+        "name": "Gorre"
+       },
+       {
+        "model": "bitterman",
+        "name": "Bitterman"
+       },
+       {
+        "model": "slash",
+        "name": "Slash"
+       },
+       {
+        "model": "lucy",
+        "name": "Angel"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm8.jpg",
+      "map": "q3dm8",
+      "name": "Brimstone Abbey",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "lucy",
+        "name": "Angel"
+       },
+       {
+        "model": "visor",
+        "name": "Gorre"
+       },
+       {
+        "model": "ranger",
+        "name": "Wrack"
+       },
+       {
+        "model": "slash",
+        "name": "Slash"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm9.jpg",
+      "map": "q3dm9",
+      "name": "Hero's Keep",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "klesk",
+        "name": "Klesk"
+       }
+      ],
+      "fraglimit": 10.0,
+      "levelshot": "levelshots/q3tourney3.jpg",
+      "map": "q3tourney3",
+      "name": "Hell's Gate",
+      "won": 0
+     }
+    ],
+    "complete": false,
+    "name": "Tier 3",
+    "open": false
+   },
+   {
+    "arenas": [
+     {
+      "bots": [
+       {
+        "model": "lucy",
+        "name": "Angel"
+       },
+       {
+        "model": "tankjr",
+        "name": "TankJr"
+       },
+       {
+        "model": "ranger",
+        "name": "Wrack"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm10.jpg",
+      "map": "q3dm10",
+      "name": "The Nameless Place",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "lucy",
+        "name": "Lucy"
+       },
+       {
+        "model": "biker",
+        "name": "Biker"
+       },
+       {
+        "model": "razor",
+        "name": "Patriot"
+       },
+       {
+        "model": "tankjr",
+        "name": "TankJr"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm11.jpg",
+      "map": "q3dm11",
+      "name": "Deva Station",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "slash",
+        "name": "Slash"
+       },
+       {
+        "model": "visor",
+        "name": "Gorre"
+       },
+       {
+        "model": "lucy",
+        "name": "Lucy"
+       },
+       {
+        "model": "biker",
+        "name": "Biker"
+       },
+       {
+        "model": "razor",
+        "name": "Patriot"
+       },
+       {
+        "model": "ranger",
+        "name": "Wrack"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm12.jpg",
+      "map": "q3dm12",
+      "name": "The Dredwerkz",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "anarki",
+        "name": "Anarki"
+       }
+      ],
+      "fraglimit": 10.0,
+      "levelshot": "levelshots/q3tourney4.jpg",
+      "map": "q3tourney4",
+      "name": "Vertical Vengeance",
+      "won": 0
+     }
+    ],
+    "complete": false,
+    "name": "Tier 4",
+    "open": false
+   },
+   {
+    "arenas": [
+     {
+      "bots": [
+       {
+        "model": "visor",
+        "name": "Visor"
+       },
+       {
+        "model": "razor",
+        "name": "Razor"
+       },
+       {
+        "model": "grunt",
+        "name": "Stripe"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm13.jpg",
+      "map": "q3dm13",
+      "name": "Lost World",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "visor",
+        "name": "Visor"
+       },
+       {
+        "model": "razor",
+        "name": "Razor"
+       },
+       {
+        "model": "keel",
+        "name": "Keel"
+       },
+       {
+        "model": "grunt",
+        "name": "Stripe"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm14.jpg",
+      "map": "q3dm14",
+      "name": "Grim Dungeons",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "razor",
+        "name": "Razor"
+       },
+       {
+        "model": "keel",
+        "name": "Keel"
+       },
+       {
+        "model": "grunt",
+        "name": "Stripe"
+       }
+      ],
+      "fraglimit": 15.0,
+      "levelshot": "levelshots/q3dm15.jpg",
+      "map": "q3dm15",
+      "name": "Demon Keep",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "uriel",
+        "name": "Uriel"
+       }
+      ],
+      "fraglimit": 10.0,
+      "levelshot": "levelshots/q3tourney5.jpg",
+      "map": "q3tourney5",
+      "name": "Fatal Instinct",
+      "won": 0
+     }
+    ],
+    "complete": false,
+    "name": "Tier 5",
+    "open": false
+   },
+   {
+    "arenas": [
+     {
+      "bots": [
+       {
+        "model": "biker",
+        "name": "Cadavre"
+       },
+       {
+        "model": "bones",
+        "name": "Bones"
+       },
+       {
+        "model": "doom",
+        "name": "Doom"
+       }
+      ],
+      "fraglimit": 15.0,
+      "levelshot": "levelshots/q3dm16.jpg",
+      "map": "q3dm16",
+      "name": "The Bouncy Map",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "major",
+        "name": "Major"
+       },
+       {
+        "model": "sorlag",
+        "name": "Sorlag"
+       },
+       {
+        "model": "doom",
+        "name": "Doom"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm17.jpg",
+      "map": "q3dm17",
+      "name": "The Longest Yard",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "major",
+        "name": "Major"
+       },
+       {
+        "model": "sorlag",
+        "name": "Sorlag"
+       },
+       {
+        "model": "biker",
+        "name": "Cadavre"
+       },
+       {
+        "model": "bones",
+        "name": "Bones"
+       },
+       {
+        "model": "keel",
+        "name": "Keel"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm18.jpg",
+      "map": "q3dm18",
+      "name": "Space Chamber",
+      "won": 0
+     },
+     {
+      "bots": [
+       {
+        "model": "sorlag",
+        "name": "Sorlag"
+       },
+       {
+        "model": "doom",
+        "name": "Doom"
+       },
+       {
+        "model": "biker",
+        "name": "Cadavre"
+       }
+      ],
+      "fraglimit": 20.0,
+      "levelshot": "levelshots/q3dm19.jpg",
+      "map": "q3dm19",
+      "name": "Apocalypse Void",
+      "won": 0
+     }
+    ],
+    "complete": false,
+    "name": "Tier 6",
+    "open": false
+   },
+   {
+    "arenas": [
+     {
+      "bots": [
+       {
+        "model": "xaero",
+        "name": "Xaero"
+       }
+      ],
+      "fraglimit": 10.0,
+      "levelshot": "levelshots/q3tourney6.jpg",
+      "map": "q3tourney6",
+      "name": "The Very End Of You",
+      "won": 0
+     }
+    ],
+    "complete": false,
+    "name": "Final",
+    "open": false
+   }
+  ]
+ },
+ "characters": [
+  "anarki",
+  "biker",
+  "bitterman",
+  "bones",
+  "brandon",
+  "carmack",
+  "cash",
+  "crash",
+  "doom",
+  "grunt",
+  "hunter",
+  "keel",
+  "klesk",
+  "lucy",
+  "major",
+  "mynx",
+  "orbb",
+  "paulj",
+  "ranger",
+  "razor",
+  "sarge",
+  "slash",
+  "sorlag",
+  "tankjr",
+  "tim",
+  "uriel",
+  "visor",
+  "xaero",
+  "xian"
+ ],
+ "cinematics": [
+  {
+   "file": "idlogo.ogv",
+   "id": "idlogo",
+   "seconds": 7.0,
+   "thumb": "thumbs/idlogo.jpg",
+   "title": "id Software",
+   "unlock": "always",
+   "unlocked": true
+  },
+  {
+   "file": "intro.ogv",
+   "id": "intro",
+   "seconds": 89.83,
+   "thumb": "thumbs/intro.jpg",
+   "title": "Intro",
+   "unlock": "always",
+   "unlocked": true
+  },
+  {
+   "file": "tier1.ogv",
+   "id": "tier1",
+   "seconds": 12.2,
+   "thumb": "thumbs/tier1.jpg",
+   "title": "Tier 1",
+   "unlock": "tier:1",
+   "unlocked": true
+  },
+  {
+   "file": "tier2.ogv",
+   "id": "tier2",
+   "seconds": 12.2,
+   "thumb": "thumbs/tier2.jpg",
+   "title": "Tier 2",
+   "unlock": "tier:2",
+   "unlocked": false
+  },
+  {
+   "file": "tier3.ogv",
+   "id": "tier3",
+   "seconds": 12.2,
+   "thumb": "thumbs/tier3.jpg",
+   "title": "Tier 3",
+   "unlock": "tier:3",
+   "unlocked": false
+  },
+  {
+   "file": "tier4.ogv",
+   "id": "tier4",
+   "seconds": 12.2,
+   "thumb": "thumbs/tier4.jpg",
+   "title": "Tier 4",
+   "unlock": "tier:4",
+   "unlocked": false
+  },
+  {
+   "file": "tier5.ogv",
+   "id": "tier5",
+   "seconds": 12.2,
+   "thumb": "thumbs/tier5.jpg",
+   "title": "Tier 5",
+   "unlock": "tier:5",
+   "unlocked": false
+  },
+  {
+   "file": "tier6.ogv",
+   "id": "tier6",
+   "seconds": 12.2,
+   "thumb": "thumbs/tier6.jpg",
+   "title": "Tier 6",
+   "unlock": "tier:6",
+   "unlocked": false
+  },
+  {
+   "file": "tier7.ogv",
+   "id": "tier7",
+   "seconds": 12.2,
+   "thumb": "thumbs/tier7.jpg",
+   "title": "Tier 7",
+   "unlock": "tier:7",
+   "unlocked": false
+  },
+  {
+   "file": "end.ogv",
+   "id": "end",
+   "seconds": 64.07,
+   "thumb": "thumbs/end.jpg",
+   "title": "Ending",
+   "unlock": "final",
+   "unlocked": false
+  }
+ ],
+ "context": "menu",
+ "continue": "",
+ "crosshairs": [
+  "a",
+  "b",
+  "c",
+  "d",
+  "e",
+  "f",
+  "g",
+  "h",
+  "i",
+  "j"
+ ],
+ "m_yaw": 0.022,
+ "maps": [
+  {
+   "bots": [
+    "ranger"
+   ],
+   "fraglimit": 10.0,
+   "levelshot": "levelshots/q3dm1.jpg",
+   "map": "q3dm1",
+   "name": "Arena Gate",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ]
+  },
+  {
+   "bots": [
+    "phobos"
+   ],
+   "fraglimit": 10.0,
+   "levelshot": "levelshots/q3dm2.jpg",
+   "map": "q3dm2",
+   "name": "House Of Pain",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ]
+  },
+  {
+   "bots": [
+    "mynx",
+    "orbb"
+   ],
+   "fraglimit": 15.0,
+   "levelshot": "levelshots/q3dm3.jpg",
+   "map": "q3dm3",
+   "name": "Arena Of Death",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa"
+   ]
+  },
+  {
+   "bots": [
+    "sarge"
+   ],
+   "fraglimit": 10.0,
+   "levelshot": "levelshots/q3tourney1.jpg",
+   "map": "q3tourney1",
+   "name": "Powerstation 0218",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ]
+  },
+  {
+   "bots": [
+    "orbb",
+    "bitterman",
+    "grunt"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm4.jpg",
+   "map": "q3dm4",
+   "name": "The Place Of Many Deaths",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa"
+   ]
+  },
+  {
+   "bots": [
+    "hossman",
+    "daemia"
+   ],
+   "fraglimit": 15.0,
+   "levelshot": "levelshots/q3dm5.jpg",
+   "map": "q3dm5",
+   "name": "The Forgotten Place",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa"
+   ]
+  },
+  {
+   "bots": [
+    "orbb",
+    "hossman",
+    "daemia",
+    "bitterman",
+    "grunt"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm6.jpg",
+   "map": "q3dm6",
+   "name": "The Camping Grounds",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "hunter"
+   ],
+   "fraglimit": 10.0,
+   "levelshot": "levelshots/q3tourney2.jpg",
+   "map": "q3tourney2",
+   "name": "The Proving Grounds",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ]
+  },
+  {
+   "bots": [
+    "daemia",
+    "wrack",
+    "grunt",
+    "slash"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm7.jpg",
+   "map": "q3dm7",
+   "name": "Temple of Retribution",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "gorre",
+    "bitterman",
+    "slash",
+    "angel"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm8.jpg",
+   "map": "q3dm8",
+   "name": "Brimstone Abbey",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "angel",
+    "gorre",
+    "wrack",
+    "slash"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm9.jpg",
+   "map": "q3dm9",
+   "name": "Hero's Keep",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "klesk"
+   ],
+   "fraglimit": 10.0,
+   "levelshot": "levelshots/q3tourney3.jpg",
+   "map": "q3tourney3",
+   "name": "Hell's Gate",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ]
+  },
+  {
+   "bots": [
+    "angel",
+    "tankjr",
+    "wrack"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm10.jpg",
+   "map": "q3dm10",
+   "name": "The Nameless Place",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa"
+   ]
+  },
+  {
+   "bots": [
+    "lucy",
+    "biker",
+    "patriot",
+    "tankjr"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm11.jpg",
+   "map": "q3dm11",
+   "name": "Deva Station",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa"
+   ]
+  },
+  {
+   "bots": [
+    "slash",
+    "gorre",
+    "lucy",
+    "biker",
+    "patriot",
+    "wrack"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm12.jpg",
+   "map": "q3dm12",
+   "name": "The Dredwerkz",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "anarki"
+   ],
+   "fraglimit": 10.0,
+   "levelshot": "levelshots/q3tourney4.jpg",
+   "map": "q3tourney4",
+   "name": "Vertical Vengeance",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "tourney",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "visor",
+    "razor",
+    "stripe"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm13.jpg",
+   "map": "q3dm13",
+   "name": "Lost World",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa"
+   ]
+  },
+  {
+   "bots": [
+    "visor",
+    "razor",
+    "keel",
+    "stripe"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm14.jpg",
+   "map": "q3dm14",
+   "name": "Grim Dungeons",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "razor",
+    "keel",
+    "stripe"
+   ],
+   "fraglimit": 15.0,
+   "levelshot": "levelshots/q3dm15.jpg",
+   "map": "q3dm15",
+   "name": "Demon Keep",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "uriel"
+   ],
+   "fraglimit": 10.0,
+   "levelshot": "levelshots/q3tourney5.jpg",
+   "map": "q3tourney5",
+   "name": "Fatal Instinct",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ]
+  },
+  {
+   "bots": [
+    "cadavre",
+    "bones",
+    "doom"
+   ],
+   "fraglimit": 15.0,
+   "levelshot": "levelshots/q3dm16.jpg",
+   "map": "q3dm16",
+   "name": "The Bouncy Map",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa"
+   ]
+  },
+  {
+   "bots": [
+    "major",
+    "sorlag",
+    "doom"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm17.jpg",
+   "map": "q3dm17",
+   "name": "The Longest Yard",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa"
+   ]
+  },
+  {
+   "bots": [
+    "major",
+    "sorlag",
+    "cadavre",
+    "bones",
+    "keel"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm18.jpg",
+   "map": "q3dm18",
+   "name": "Space Chamber",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa"
+   ]
+  },
+  {
+   "bots": [
+    "sorlag",
+    "doom",
+    "cadavre"
+   ],
+   "fraglimit": 20.0,
+   "levelshot": "levelshots/q3dm19.jpg",
+   "map": "q3dm19",
+   "name": "Apocalypse Void",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa"
+   ]
+  },
+  {
+   "bots": [
+    "crash"
+   ],
+   "fraglimit": 5.0,
+   "levelshot": "levelshots/q3dm0.jpg",
+   "map": "q3dm0",
+   "name": "Introduction",
+   "special": "Training",
+   "timelimit": 0.0,
+   "types": [
+    "single"
+   ]
+  },
+  {
+   "bots": [
+    "xaero"
+   ],
+   "fraglimit": 10.0,
+   "levelshot": "levelshots/q3tourney6.jpg",
+   "map": "q3tourney6",
+   "name": "The Very End Of You",
+   "special": "Final",
+   "timelimit": 0.0,
+   "types": [
+    "single",
+    "ffa",
+    "tourney"
+   ]
+  },
+  {
+   "bots": [],
+   "fraglimit": 0.0,
+   "levelshot": "levelshots/q3ctf1.jpg",
+   "map": "q3ctf1",
+   "name": "Dueling Keeps",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "ctf"
+   ]
+  },
+  {
+   "bots": [],
+   "fraglimit": 0.0,
+   "levelshot": "levelshots/q3ctf2.jpg",
+   "map": "q3ctf2",
+   "name": "Troubled Waters",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "ctf"
+   ]
+  },
+  {
+   "bots": [],
+   "fraglimit": 0.0,
+   "levelshot": "levelshots/q3ctf3.jpg",
+   "map": "q3ctf3",
+   "name": "The Stronghold",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "ctf"
+   ]
+  },
+  {
+   "bots": [],
+   "fraglimit": 0.0,
+   "levelshot": "levelshots/q3ctf4.jpg",
+   "map": "q3ctf4",
+   "name": "Space CTF",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "ctf"
+   ]
+  },
+  {
+   "bots": [
+    "sarge"
+   ],
+   "fraglimit": 0.0,
+   "levelshot": "levelshots/pro-q3tourney2.jpg",
+   "map": "pro-q3tourney2",
+   "name": "The Proving Grounds II",
+   "special": "",
+   "timelimit": 10.0,
+   "types": [
+    "tourney",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "visor"
+   ],
+   "fraglimit": 0.0,
+   "levelshot": "levelshots/pro-q3tourney4.jpg",
+   "map": "pro-q3tourney4",
+   "name": "Vertical Vengeance II",
+   "special": "",
+   "timelimit": 10.0,
+   "types": [
+    "tourney",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "doom"
+   ],
+   "fraglimit": 0.0,
+   "levelshot": "levelshots/pro-q3dm6.jpg",
+   "map": "pro-q3dm6",
+   "name": "The Campgrounds II",
+   "special": "",
+   "timelimit": 10.0,
+   "types": [
+    "tourney",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [
+    "uriel"
+   ],
+   "fraglimit": 0.0,
+   "levelshot": "levelshots/pro-q3dm13.jpg",
+   "map": "pro-q3dm13",
+   "name": "Lost World II",
+   "special": "",
+   "timelimit": 10.0,
+   "types": [
+    "tourney",
+    "ffa",
+    "team"
+   ]
+  },
+  {
+   "bots": [],
+   "fraglimit": 0.0,
+   "levelshot": "levelshots/q3tourney6_ctf.jpg",
+   "map": "q3tourney6_ctf",
+   "name": "Across Space",
+   "special": "",
+   "timelimit": 0.0,
+   "types": [
+    "ctf"
+   ]
+  }
+ ],
+ "match": {},
+ "modes": [
+  {
+   "description": "Every player for themselves. Most frags wins.",
+   "id": "ffa",
+   "map_types": [
+    "ffa"
+   ],
+   "modifiers": {},
+   "name": "Free For All",
+   "rounds": false,
+   "rules": {
+    "fraglimit": 20,
+    "max_players": 12,
+    "timelimit": 15,
+    "warmup": 0
+   },
+   "team": false
+  },
+  {
+   "description": "One on one (Quake 3's Tournament). The rest wait in the queue.",
+   "id": "duel",
+   "map_types": [
+    "tourney"
+   ],
+   "modifiers": {},
+   "name": "Duel",
+   "rounds": false,
+   "rules": {
+    "fraglimit": 0,
+    "max_players": 2,
+    "timelimit": 10,
+    "warmup": 10
+   },
+   "team": false
+  },
+  {
+   "description": "Red against blue. The team with the most frags wins.",
+   "id": "tdm",
+   "map_types": [
+    "team"
+   ],
+   "modifiers": {},
+   "name": "Team Deathmatch",
+   "rounds": false,
+   "rules": {
+    "fraglimit": 0,
+    "max_players": 8,
+    "timelimit": 20,
+    "warmup": 10
+   },
+   "team": true
+  },
+  {
+   "description": "Take the enemy flag to your own base while yours is home.",
+   "id": "ctf",
+   "map_types": [
+    "ctf"
+   ],
+   "modifiers": {},
+   "name": "Capture the Flag",
+   "rounds": false,
+   "rules": {
+    "capturelimit": 8,
+    "max_players": 10,
+    "timelimit": 20,
+    "warmup": 10
+   },
+   "team": true
+  },
+  {
+   "description": "Rounds, no pickups, everyone spawns with every weapon and full armor. Last team standing wins the round.",
+   "id": "clan_arena",
+   "map_types": [
+    "team",
+    "ffa",
+    "tourney"
+   ],
+   "modifiers": {
+    "item_set": "no_items",
+    "weapon_set": "all_weapons"
+   },
+   "name": "Clan Arena",
+   "rounds": true,
+   "rules": {
+    "max_players": 8,
+    "roundlimit": 10,
+    "warmup": 10
+   },
+   "team": true
+  },
+  {
+   "description": "Kills freeze instead of kill; teammates thaw you by standing next to you. Freeze the whole enemy team to win the round.",
+   "id": "freeze_tag",
+   "map_types": [
+    "team",
+    "ffa"
+   ],
+   "modifiers": {},
+   "name": "Freeze Tag",
+   "rounds": true,
+   "rules": {
+    "max_players": 10,
+    "roundlimit": 10,
+    "warmup": 10
+   },
+   "team": true
+  },
+  {
+   "description": "Railguns only, one hit kills, no pickups.",
+   "id": "instagib",
+   "map_types": [
+    "ffa",
+    "tourney",
+    "team"
+   ],
+   "modifiers": {
+    "damage": "instagib",
+    "item_set": "no_items",
+    "weapon_set": "railgun_only"
+   },
+   "name": "Instagib",
+   "rounds": false,
+   "rules": {
+    "fraglimit": 30,
+    "max_players": 12,
+    "timelimit": 10,
+    "warmup": 0
+   },
+   "team": false
+  }
+ ],
+ "modifiers": [
+  {
+   "default": "standard",
+   "id": "weapon_set",
+   "label": "Weapons",
+   "options": [
+    [
+     "standard",
+     "Standard pickups"
+    ],
+    [
+     "all_weapons",
+     "Spawn with every weapon"
+    ],
+    [
+     "railgun_only",
+     "Railgun only"
+    ],
+    [
+     "rockets_only",
+     "Rockets only"
+    ],
+    [
+     "no_bfg",
+     "No BFG"
+    ]
+   ],
+   "tip": "Which weapons spawn and what players start with."
+  },
+  {
+   "default": "standard",
+   "id": "item_set",
+   "label": "Items",
+   "options": [
+    [
+     "standard",
+     "Standard"
+    ],
+    [
+     "no_powerups",
+     "No powerups"
+    ],
+    [
+     "no_health",
+     "No health"
+    ],
+    [
+     "no_items",
+     "No items"
+    ]
+   ],
+   "tip": "Which items spawn on the map."
+  },
+  {
+   "default": "vq3",
+   "id": "physics",
+   "label": "Physics",
+   "options": [
+    [
+     "vq3",
+     "VQ3 (original)"
+    ],
+    [
+     "cpm",
+     "CPM (Promode)"
+    ]
+   ],
+   "tip": "Movement rules. VQ3 is Quake 3's own bg_pmove.c; CPM adds air control and double jumps."
+  },
+  {
+   "default": "far_random",
+   "id": "spawn_rules",
+   "label": "Spawns",
+   "options": [
+    [
+     "far_random",
+     "Random far (original)"
+    ],
+    [
+     "random",
+     "Fully random"
+    ],
+    [
+     "farthest",
+     "Always farthest"
+    ]
+   ],
+   "tip": "How spawn points are picked. Quake 3 picks randomly among the points farthest from the killer."
+  },
+  {
+   "default": "normal",
+   "id": "damage",
+   "label": "Damage",
+   "options": [
+    [
+     "normal",
+     "Normal"
+    ],
+    [
+     "instagib",
+     "Instagib"
+    ]
+   ],
+   "tip": "Instagib: any hit kills."
+  },
+  {
+   "default": 3.0,
+   "id": "quad_factor",
+   "label": "Quad factor",
+   "options": [
+    [
+     3.0,
+     "x3 (original)"
+    ],
+    [
+     4.0,
+     "x4"
+    ],
+    [
+     2.0,
+     "x2"
+    ]
+   ],
+   "tip": "Quad Damage multiplier (g_quadfactor)."
+  },
+  {
+   "default": 800.0,
+   "id": "gravity",
+   "label": "Gravity",
+   "options": [
+    [
+     800.0,
+     "800 (original)"
+    ],
+    [
+     400.0,
+     "400 (low)"
+    ],
+    [
+     1200.0,
+     "1200 (heavy)"
+    ]
+   ],
+   "tip": "g_gravity in units/s^2."
+  },
+  {
+   "default": 5.0,
+   "id": "weapon_respawn",
+   "label": "Weapon respawn",
+   "options": [
+    [
+     5.0,
+     "5 s (original)"
+    ],
+    [
+     30.0,
+     "30 s"
+    ],
+    [
+     1.0,
+     "1 s"
+    ]
+   ],
+   "tip": "Seconds before a picked-up weapon returns (g_weaponrespawn; team modes use 30)."
+  },
+  {
+   "default": false,
+   "id": "friendly_fire",
+   "label": "Friendly fire",
+   "options": [
+    [
+     false,
+     "Off"
+    ],
+    [
+     true,
+     "On"
+    ]
+   ],
+   "tip": "Team modes: teammates can hurt each other."
+  },
+  {
+   "default": "sudden_death",
+   "id": "overtime",
+   "label": "Overtime",
+   "options": [
+    [
+     "sudden_death",
+     "Sudden death"
+    ],
+    [
+     "extra_time",
+     "Two minutes extra"
+    ],
+    [
+     "draw",
+     "Draw"
+    ]
+   ],
+   "tip": "What happens on a tie when time runs out."
+  }
+ ],
+ "progress": {
+  "level": 1,
+  "ranked_level": 30
+ },
+ "rules": {
+  "capturelimit": {
+   "label": "Capture limit",
+   "max": 99,
+   "min": 0,
+   "tip": "Flag captures to win. 0 = no limit.",
+   "unit": ""
+  },
+  "fraglimit": {
+   "label": "Frag limit",
+   "max": 999,
+   "min": 0,
+   "tip": "Frags to win. 0 = no limit.",
+   "unit": ""
+  },
+  "max_players": {
+   "label": "Max players",
+   "max": 64,
+   "min": 2,
+   "tip": "Players and bots together.",
+   "unit": ""
+  },
+  "roundlimit": {
+   "label": "Round limit",
+   "max": 99,
+   "min": 1,
+   "tip": "Rounds a team must win.",
+   "unit": ""
+  },
+  "timelimit": {
+   "label": "Time limit",
+   "max": 999,
+   "min": 0,
+   "tip": "Match length in minutes. 0 = no limit.",
+   "unit": "min"
+  },
+  "warmup": {
+   "label": "Warmup",
+   "max": 120,
+   "min": 0,
+   "tip": "Warmup before the match starts. 0 = none.",
+   "unit": "s"
+  }
+ },
+ "schema": [
+  {
+   "default": "windowed",
+   "group": "Display",
+   "key": "video/display_mode",
+   "label": "Display mode",
+   "options": [
+    [
+     "windowed",
+     "Windowed"
+    ],
+    [
+     "borderless",
+     "Borderless"
+    ],
+    [
+     "fullscreen",
+     "Full screen"
+    ],
+    [
+     "exclusive",
+     "Exclusive full screen"
+    ]
+   ],
+   "restart": false,
+   "tab": "video",
+   "tip": "Windowed, borderless full screen, or exclusive full screen (lowest latency).",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "1600x900",
+   "group": "Display",
+   "key": "video/resolution",
+   "label": "Window size",
+   "options": [
+    [
+     "1280x720",
+     "1280 x 720"
+    ],
+    [
+     "1600x900",
+     "1600 x 900"
+    ],
+    [
+     "1920x1080",
+     "1920 x 1080"
+    ],
+    [
+     "2560x1440",
+     "2560 x 1440"
+    ],
+    [
+     "3840x2160",
+     "3840 x 2160"
+    ]
+   ],
+   "restart": false,
+   "tab": "video",
+   "tip": "Window size in windowed mode. Full screen always uses the monitor's resolution; use Render scale to change the 3D resolution there.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": 0,
+   "group": "Display",
+   "key": "video/monitor",
+   "label": "Monitor",
+   "max": 7,
+   "min": 0,
+   "restart": false,
+   "step": 1,
+   "tab": "video",
+   "tip": "Which monitor the game opens on.",
+   "type": "int",
+   "wired": true
+  },
+  {
+   "default": "off",
+   "group": "Display",
+   "key": "video/vsync",
+   "label": "VSync",
+   "options": [
+    [
+     "off",
+     "Off"
+    ],
+    [
+     "on",
+     "On"
+    ],
+    [
+     "adaptive",
+     "Adaptive"
+    ],
+    [
+     "mailbox",
+     "Mailbox (fast)"
+    ]
+   ],
+   "restart": false,
+   "tab": "video",
+   "tip": "Off gives the lowest input latency. Adaptive syncs only when above the refresh rate.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": 0,
+   "group": "Display",
+   "key": "video/max_fps",
+   "label": "Frame cap",
+   "max": 1000,
+   "min": 0,
+   "restart": false,
+   "step": 5,
+   "tab": "video",
+   "tip": "Maximum frames per second. 0 = uncapped. Physics runs at its own fixed rate, so the cap never changes movement (no 125 fps jump quirk).",
+   "type": "int",
+   "unit": "fps",
+   "wired": true
+  },
+  {
+   "default": 90.0,
+   "group": "View",
+   "key": "video/fov",
+   "label": "Field of view",
+   "max": 130.0,
+   "min": 60.0,
+   "restart": false,
+   "step": 1.0,
+   "tab": "video",
+   "tip": "Horizontal degrees at 4:3, like Quake 3's cg_fov. Wider screens see more at the sides (Hor+), so it's correct at any aspect. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "float",
+   "unit": "deg",
+   "wired": false
+  },
+  {
+   "default": 1.0,
+   "group": "Rendering",
+   "key": "video/render_scale",
+   "label": "Render scale",
+   "max": 2.0,
+   "min": 0.5,
+   "restart": false,
+   "step": 0.05,
+   "tab": "video",
+   "tip": "3D resolution relative to the window. The menu and HUD always render at full resolution.",
+   "type": "float",
+   "unit": "x",
+   "wired": true
+  },
+  {
+   "default": "bilinear",
+   "group": "Rendering",
+   "key": "video/upscaler",
+   "label": "Upscaler",
+   "options": [
+    [
+     "bilinear",
+     "Off (bilinear)"
+    ],
+    [
+     "fsr",
+     "AMD FSR 1"
+    ],
+    [
+     "fsr2",
+     "AMD FSR 2"
+    ]
+   ],
+   "restart": false,
+   "tab": "video",
+   "tip": "How the 3D image is scaled when render scale isn't 1.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": 1.0,
+   "group": "Rendering",
+   "key": "video/brightness",
+   "label": "Brightness",
+   "max": 2.0,
+   "min": 0.5,
+   "restart": false,
+   "step": 0.05,
+   "tab": "video",
+   "tip": "Overall brightness of the 3D image.",
+   "type": "float",
+   "unit": "x",
+   "wired": true
+  },
+  {
+   "default": 1.0,
+   "group": "Rendering",
+   "key": "video/contrast",
+   "label": "Contrast",
+   "max": 1.5,
+   "min": 0.5,
+   "restart": false,
+   "step": 0.05,
+   "tab": "video",
+   "tip": "Contrast of the 3D image.",
+   "type": "float",
+   "unit": "x",
+   "wired": true
+  },
+  {
+   "default": "high",
+   "group": "Quality",
+   "key": "graphics/preset",
+   "label": "Preset",
+   "options": [
+    [
+     "low",
+     "Low"
+    ],
+    [
+     "medium",
+     "Medium"
+    ],
+    [
+     "high",
+     "High"
+    ],
+    [
+     "ultra",
+     "Ultra"
+    ],
+    [
+     "custom",
+     "Custom"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Sets every quality setting below. Changing one of them switches this to Custom.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "high",
+   "group": "Lighting",
+   "key": "graphics/shadows",
+   "label": "Shadows",
+   "options": [
+    [
+     "off",
+     "Off"
+    ],
+    [
+     "low",
+     "Low"
+    ],
+    [
+     "medium",
+     "Medium"
+    ],
+    [
+     "high",
+     "High"
+    ],
+    [
+     "ultra",
+     "Ultra"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Shadow map resolution and filtering.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "off",
+   "group": "Lighting",
+   "key": "graphics/gi",
+   "label": "Global illumination",
+   "options": [
+    [
+     "off",
+     "Off"
+    ],
+    [
+     "sdfgi",
+     "SDFGI"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Real-time bounce light (SDFGI). Maps are relit in-engine instead of using baked lightmaps.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Lighting",
+   "key": "graphics/reflections",
+   "label": "Screen-space reflections",
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Reflections on wet and polished floors.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": "medium",
+   "group": "Lighting",
+   "key": "graphics/ao",
+   "label": "Ambient occlusion",
+   "options": [
+    [
+     "off",
+     "Off"
+    ],
+    [
+     "low",
+     "Low"
+    ],
+    [
+     "medium",
+     "Medium"
+    ],
+    [
+     "high",
+     "High"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Contact shadows in corners and creases (SSAO).",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Lighting",
+   "key": "graphics/volumetric_fog",
+   "label": "Volumetric fog",
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Light shafts and the menu's drifting smoke.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Lighting",
+   "key": "graphics/bloom",
+   "label": "Bloom",
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Glow around bright light and energy weapons.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": "msaa4",
+   "group": "Image",
+   "key": "graphics/antialiasing",
+   "label": "Anti-aliasing",
+   "options": [
+    [
+     "off",
+     "Off"
+    ],
+    [
+     "fxaa",
+     "FXAA"
+    ],
+    [
+     "msaa2",
+     "MSAA 2x"
+    ],
+    [
+     "msaa4",
+     "MSAA 4x"
+    ],
+    [
+     "msaa8",
+     "MSAA 8x"
+    ],
+    [
+     "taa",
+     "TAA"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Smooths jagged edges. TAA is smoothest but softens motion.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": 16,
+   "group": "Image",
+   "key": "graphics/anisotropy",
+   "label": "Anisotropic filtering",
+   "options": [
+    [
+     2,
+     "2x"
+    ],
+    [
+     4,
+     "4x"
+    ],
+    [
+     8,
+     "8x"
+    ],
+    [
+     16,
+     "16x"
+    ]
+   ],
+   "restart": true,
+   "tab": "graphics",
+   "tip": "Sharpness of textures seen at an angle.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "high",
+   "group": "Image",
+   "key": "graphics/texture_quality",
+   "label": "Texture quality",
+   "options": [
+    [
+     "low",
+     "Low"
+    ],
+    [
+     "medium",
+     "Medium"
+    ],
+    [
+     "high",
+     "High"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Lower settings use smaller mipmaps (less video memory).",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "high",
+   "group": "Image",
+   "key": "graphics/detail",
+   "label": "Model detail",
+   "options": [
+    [
+     "low",
+     "Low"
+    ],
+    [
+     "medium",
+     "Medium"
+    ],
+    [
+     "high",
+     "High"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "How soon distant models switch to simpler meshes.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "high",
+   "group": "Effects",
+   "key": "graphics/particles",
+   "label": "Particles",
+   "options": [
+    [
+     "low",
+     "Low"
+    ],
+    [
+     "medium",
+     "Medium"
+    ],
+    [
+     "high",
+     "High"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Amount of smoke, sparks and embers.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": 1.0,
+   "group": "Effects",
+   "key": "graphics/effect_intensity",
+   "label": "Effect intensity",
+   "max": 1.0,
+   "min": 0.25,
+   "restart": false,
+   "step": 0.05,
+   "tab": "graphics",
+   "tip": "Brightness of explosions and weapon effects. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "float",
+   "unit": "x",
+   "wired": false
+  },
+  {
+   "default": true,
+   "group": "Effects",
+   "key": "graphics/decals",
+   "label": "Marks and decals",
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Bullet holes, burns and blood on walls. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Effects",
+   "key": "graphics/gibs",
+   "label": "Gibs",
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Bodies burst into gibs on big hits (cg_gibs). Stored now; takes effect once the Gameplay scene exists.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": 100,
+   "group": "Volume",
+   "key": "audio/vol_master",
+   "label": "Master",
+   "max": 100,
+   "min": 0,
+   "restart": false,
+   "step": 1,
+   "tab": "audio",
+   "tip": "Master volume.",
+   "type": "int",
+   "unit": "%",
+   "wired": true
+  },
+  {
+   "default": 80,
+   "group": "Volume",
+   "key": "audio/vol_music",
+   "label": "Music",
+   "max": 100,
+   "min": 0,
+   "restart": false,
+   "step": 1,
+   "tab": "audio",
+   "tip": "Music volume.",
+   "type": "int",
+   "unit": "%",
+   "wired": true
+  },
+  {
+   "default": 100,
+   "group": "Volume",
+   "key": "audio/vol_effects",
+   "label": "Effects",
+   "max": 100,
+   "min": 0,
+   "restart": false,
+   "step": 1,
+   "tab": "audio",
+   "tip": "Effects volume.",
+   "type": "int",
+   "unit": "%",
+   "wired": true
+  },
+  {
+   "default": 100,
+   "group": "Volume",
+   "key": "audio/vol_voice",
+   "label": "Voice chat",
+   "max": 100,
+   "min": 0,
+   "restart": false,
+   "step": 1,
+   "tab": "audio",
+   "tip": "Voice chat volume.",
+   "type": "int",
+   "unit": "%",
+   "wired": true
+  },
+  {
+   "default": 100,
+   "group": "Volume",
+   "key": "audio/vol_announcer",
+   "label": "Announcer",
+   "max": 100,
+   "min": 0,
+   "restart": false,
+   "step": 1,
+   "tab": "audio",
+   "tip": "Announcer volume.",
+   "type": "int",
+   "unit": "%",
+   "wired": true
+  },
+  {
+   "default": 100,
+   "group": "Volume",
+   "key": "audio/vol_ui",
+   "label": "Menu sounds",
+   "max": 100,
+   "min": 0,
+   "restart": false,
+   "step": 1,
+   "tab": "audio",
+   "tip": "Menu sounds volume.",
+   "type": "int",
+   "unit": "%",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Volume",
+   "key": "audio/menu_ambient",
+   "label": "Menu ambience",
+   "restart": false,
+   "tab": "audio",
+   "tip": "A quiet ambient drone in the menu. Quake 3's menu had no music, so it's off by default.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Volume",
+   "key": "audio/mute_unfocused",
+   "label": "Mute when in background",
+   "restart": false,
+   "tab": "audio",
+   "tip": "Silence the game while its window isn't focused.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": "Default",
+   "group": "Devices",
+   "key": "audio/output_device",
+   "label": "Output device",
+   "options": [
+    [
+     "Default",
+     "Default"
+    ]
+   ],
+   "restart": false,
+   "tab": "audio",
+   "tip": "Where sound plays.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "Default",
+   "group": "Devices",
+   "key": "audio/input_device",
+   "label": "Voice chat device",
+   "options": [
+    [
+     "Default",
+     "Default"
+    ]
+   ],
+   "restart": false,
+   "tab": "audio",
+   "tip": "Microphone for voice chat.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "push",
+   "group": "Devices",
+   "key": "audio/voice_mode",
+   "label": "Voice chat",
+   "options": [
+    [
+     "off",
+     "Off"
+    ],
+    [
+     "push",
+     "Push to talk"
+    ],
+    [
+     "open",
+     "Open mic"
+    ]
+   ],
+   "restart": false,
+   "tab": "audio",
+   "tip": "Push to talk uses the Push to talk bind. Voice chat comes with Steam.",
+   "type": "enum",
+   "wired": false
+  },
+  {
+   "default": "classic",
+   "group": "Game sounds",
+   "key": "audio/hit_sound",
+   "label": "Hit sound",
+   "options": [
+    [
+     "off",
+     "Off"
+    ],
+    [
+     "classic",
+     "Quake 3 classic"
+    ],
+    [
+     "pitch",
+     "Pitch by damage"
+    ]
+   ],
+   "restart": false,
+   "tab": "audio",
+   "tip": "The beep when you hit an enemy. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "enum",
+   "wired": false
+  },
+  {
+   "default": true,
+   "group": "Game sounds",
+   "key": "audio/spatial",
+   "label": "Spatial audio (HRTF)",
+   "restart": false,
+   "tab": "audio",
+   "tip": "3D positional sound for headphones. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": true,
+   "group": "Game sounds",
+   "key": "audio/announcer",
+   "label": "Announcer",
+   "restart": false,
+   "tab": "audio",
+   "tip": "\"Excellent!\", \"Impressive!\", lead changes. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": [
+    "key:W",
+    "key:Up",
+    ""
+   ],
+   "group": "Movement",
+   "key": "controls/forward",
+   "label": "Move forward",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for move forward: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:S",
+    "key:Down",
+    ""
+   ],
+   "group": "Movement",
+   "key": "controls/back",
+   "label": "Move back",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for move back: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:A",
+    "key:Left",
+    ""
+   ],
+   "group": "Movement",
+   "key": "controls/moveleft",
+   "label": "Strafe left",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for strafe left: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:D",
+    "key:Right",
+    ""
+   ],
+   "group": "Movement",
+   "key": "controls/moveright",
+   "label": "Strafe right",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for strafe right: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Space",
+    "",
+    "joy:0"
+   ],
+   "group": "Movement",
+   "key": "controls/jump",
+   "label": "Jump / swim up",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for jump / swim up: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:C",
+    "key:Ctrl",
+    "joy:1"
+   ],
+   "group": "Movement",
+   "key": "controls/crouch",
+   "label": "Crouch / swim down",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for crouch / swim down: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Shift",
+    "",
+    "joy:7"
+   ],
+   "group": "Movement",
+   "key": "controls/walk",
+   "label": "Walk",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for walk: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "mouse:1",
+    "",
+    "joyaxis:5:1"
+   ],
+   "group": "Weapons",
+   "key": "controls/attack",
+   "label": "Attack",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for attack: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "mouse:2",
+    "",
+    "joyaxis:4:1"
+   ],
+   "group": "Weapons",
+   "key": "controls/zoom",
+   "label": "Zoom",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for zoom: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "mouse:5",
+    "",
+    "joy:10"
+   ],
+   "group": "Weapons",
+   "key": "controls/weapnext",
+   "label": "Next weapon",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for next weapon: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "mouse:4",
+    "",
+    "joy:9"
+   ],
+   "group": "Weapons",
+   "key": "controls/weapprev",
+   "label": "Previous weapon",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for previous weapon: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:1",
+    "",
+    ""
+   ],
+   "group": "Weapons",
+   "key": "controls/weapon1",
+   "label": "Gauntlet",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for gauntlet: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:2",
+    "",
+    ""
+   ],
+   "group": "Weapons",
+   "key": "controls/weapon2",
+   "label": "Machine gun",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for machine gun: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:3",
+    "",
+    ""
+   ],
+   "group": "Weapons",
+   "key": "controls/weapon3",
+   "label": "Shotgun",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for shotgun: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:4",
+    "",
+    ""
+   ],
+   "group": "Weapons",
+   "key": "controls/weapon4",
+   "label": "Grenade launcher",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for grenade launcher: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:5",
+    "",
+    ""
+   ],
+   "group": "Weapons",
+   "key": "controls/weapon5",
+   "label": "Rocket launcher",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for rocket launcher: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:6",
+    "",
+    ""
+   ],
+   "group": "Weapons",
+   "key": "controls/weapon6",
+   "label": "Lightning gun",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for lightning gun: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:7",
+    "",
+    ""
+   ],
+   "group": "Weapons",
+   "key": "controls/weapon7",
+   "label": "Railgun",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for railgun: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:8",
+    "",
+    ""
+   ],
+   "group": "Weapons",
+   "key": "controls/weapon8",
+   "label": "Plasma gun",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for plasma gun: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:9",
+    "",
+    ""
+   ],
+   "group": "Weapons",
+   "key": "controls/weapon9",
+   "label": "BFG10K",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for bfg10k: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Enter",
+    "",
+    "joy:3"
+   ],
+   "group": "Actions",
+   "key": "controls/use_item",
+   "label": "Use item",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for use item: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:G",
+    "",
+    ""
+   ],
+   "group": "Actions",
+   "key": "controls/gesture",
+   "label": "Gesture",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for gesture: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Tab",
+    "",
+    "joy:4"
+   ],
+   "group": "Actions",
+   "key": "controls/scores",
+   "label": "Scoreboard",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for scoreboard: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:T",
+    "",
+    ""
+   ],
+   "group": "Actions",
+   "key": "controls/chat",
+   "label": "Chat",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for chat: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Y",
+    "",
+    ""
+   ],
+   "group": "Actions",
+   "key": "controls/teamchat",
+   "label": "Team chat",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for team chat: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:V",
+    "",
+    ""
+   ],
+   "group": "Actions",
+   "key": "controls/voice",
+   "label": "Push to talk",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for push to talk: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:F12",
+    "",
+    ""
+   ],
+   "group": "Actions",
+   "key": "controls/screenshot",
+   "label": "Screenshot",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for screenshot: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:QuoteLeft",
+    "",
+    ""
+   ],
+   "group": "Actions",
+   "key": "controls/console",
+   "label": "Console",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for console: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Options",
+   "key": "controls/toggle_crouch",
+   "label": "Toggle crouch",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Tap to crouch instead of holding. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": false,
+   "group": "Options",
+   "key": "controls/toggle_zoom",
+   "label": "Toggle zoom",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Tap to zoom instead of holding. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": 0.15,
+   "group": "Options",
+   "key": "controls/pad_deadzone",
+   "label": "Stick deadzone",
+   "max": 0.5,
+   "min": 0.0,
+   "restart": false,
+   "step": 0.01,
+   "tab": "controls",
+   "tip": "Controller stick deadzone, menus included.",
+   "type": "float",
+   "wired": true
+  },
+  {
+   "default": 3.0,
+   "group": "Options",
+   "key": "controls/pad_look",
+   "label": "Stick look speed",
+   "max": 8.0,
+   "min": 0.5,
+   "restart": false,
+   "step": 0.1,
+   "tab": "controls",
+   "tip": "Controller look speed in turns per second at full tilt. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "float",
+   "wired": false
+  },
+  {
+   "default": "default",
+   "group": "Options",
+   "key": "controls/steam_input",
+   "label": "Steam Input layout",
+   "options": [
+    [
+     "default",
+     "Default"
+    ],
+    [
+     "community",
+     "Community layout"
+    ]
+   ],
+   "restart": false,
+   "tab": "controls",
+   "tip": "Community controller layouts through Steam Input. Comes with Steam.",
+   "type": "enum",
+   "wired": false
+  },
+  {
+   "default": 5.0,
+   "group": "Sensitivity",
+   "key": "mouse/sensitivity",
+   "label": "Sensitivity",
+   "max": 30.0,
+   "min": 0.1,
+   "restart": false,
+   "step": 0.05,
+   "tab": "mouse",
+   "tip": "Quake 3 units: degrees per count = sensitivity x 0.022 (m_yaw). The cm/360 below is the distance for a full turn. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "float",
+   "wired": false
+  },
+  {
+   "default": 800,
+   "group": "Sensitivity",
+   "key": "mouse/dpi",
+   "label": "Mouse DPI",
+   "max": 32000,
+   "min": 100,
+   "restart": false,
+   "step": 50,
+   "tab": "mouse",
+   "tip": "Your mouse's DPI (counts per inch). Only used to show cm/360.",
+   "type": "int",
+   "wired": true
+  },
+  {
+   "default": 1.0,
+   "group": "Sensitivity",
+   "key": "mouse/zoom_sensitivity",
+   "label": "Zoom sensitivity",
+   "max": 2.0,
+   "min": 0.1,
+   "restart": false,
+   "step": 0.05,
+   "tab": "mouse",
+   "tip": "Multiplier while zoomed. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "float",
+   "unit": "x",
+   "wired": false
+  },
+  {
+   "default": true,
+   "group": "Input",
+   "key": "mouse/raw_input",
+   "label": "Raw input",
+   "restart": false,
+   "tab": "mouse",
+   "tip": "Read the mouse directly, skipping Windows pointer speed and acceleration. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": 0.0,
+   "group": "Input",
+   "key": "mouse/acceleration",
+   "label": "Acceleration",
+   "max": 1.0,
+   "min": 0.0,
+   "restart": false,
+   "step": 0.01,
+   "tab": "mouse",
+   "tip": "Quake 3's cl_mouseAccel. 0 = off. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "float",
+   "wired": false
+  },
+  {
+   "default": false,
+   "group": "Input",
+   "key": "mouse/invert",
+   "label": "Invert vertical",
+   "restart": false,
+   "tab": "mouse",
+   "tip": "Mouse up looks down. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": "c",
+   "group": "Shape",
+   "key": "crosshair/shape",
+   "label": "Crosshair",
+   "options": [
+    [
+     "none",
+     "None"
+    ],
+    [
+     "a",
+     "Quake 3 A"
+    ],
+    [
+     "b",
+     "Quake 3 B"
+    ],
+    [
+     "c",
+     "Quake 3 C"
+    ],
+    [
+     "d",
+     "Quake 3 D"
+    ],
+    [
+     "e",
+     "Quake 3 E"
+    ],
+    [
+     "f",
+     "Quake 3 F"
+    ],
+    [
+     "g",
+     "Quake 3 G"
+    ],
+    [
+     "h",
+     "Quake 3 H"
+    ],
+    [
+     "i",
+     "Quake 3 I"
+    ],
+    [
+     "j",
+     "Quake 3 J"
+    ],
+    [
+     "cross",
+     "Vector cross"
+    ],
+    [
+     "dot",
+     "Vector dot"
+    ],
+    [
+     "circle",
+     "Vector circle"
+    ],
+    [
+     "t",
+     "Vector T"
+    ]
+   ],
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Quake 3's ten crosshairs or a vector shape.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": 24,
+   "group": "Shape",
+   "key": "crosshair/size",
+   "label": "Size",
+   "max": 96,
+   "min": 8,
+   "restart": false,
+   "step": 1,
+   "tab": "crosshair",
+   "tip": "Size in pixels at 1080p (cg_crosshairSize).",
+   "type": "int",
+   "unit": "px",
+   "wired": true
+  },
+  {
+   "default": 2,
+   "group": "Shape",
+   "key": "crosshair/thickness",
+   "label": "Thickness",
+   "max": 8,
+   "min": 1,
+   "restart": false,
+   "step": 1,
+   "tab": "crosshair",
+   "tip": "Line thickness of vector shapes.",
+   "type": "int",
+   "unit": "px",
+   "wired": true
+  },
+  {
+   "default": 4,
+   "group": "Shape",
+   "key": "crosshair/gap",
+   "label": "Gap",
+   "max": 32,
+   "min": 0,
+   "restart": false,
+   "step": 1,
+   "tab": "crosshair",
+   "tip": "Space in the middle of vector shapes.",
+   "type": "int",
+   "unit": "px",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Shape",
+   "key": "crosshair/dot",
+   "label": "Center dot",
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Adds a dot in the middle.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": "#ffffff",
+   "group": "Color",
+   "key": "crosshair/color",
+   "label": "Color",
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Crosshair color.",
+   "type": "color",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Color",
+   "key": "crosshair/outline",
+   "label": "Outline",
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Dark outline so it reads on bright walls.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": "#ff3326",
+   "group": "Color",
+   "key": "crosshair/hit_color",
+   "label": "Hit color",
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Flashes this color when you hit an enemy.",
+   "type": "color",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Color",
+   "key": "crosshair/health_color",
+   "label": "Color by health",
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Quake 3's cg_crosshairHealth: tint by your health.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Per weapon",
+   "key": "crosshair/per_weapon",
+   "label": "Per-weapon crosshairs",
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Use a different crosshair for each weapon.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": "default",
+   "group": "Per weapon",
+   "key": "crosshair/weapon_gauntlet",
+   "label": "Gauntlet",
+   "options": [
+    [
+     "default",
+     "Same as above"
+    ],
+    [
+     "none",
+     "None"
+    ],
+    [
+     "a",
+     "Quake 3 A"
+    ],
+    [
+     "b",
+     "Quake 3 B"
+    ],
+    [
+     "c",
+     "Quake 3 C"
+    ],
+    [
+     "d",
+     "Quake 3 D"
+    ],
+    [
+     "e",
+     "Quake 3 E"
+    ],
+    [
+     "f",
+     "Quake 3 F"
+    ],
+    [
+     "g",
+     "Quake 3 G"
+    ],
+    [
+     "h",
+     "Quake 3 H"
+    ],
+    [
+     "i",
+     "Quake 3 I"
+    ],
+    [
+     "j",
+     "Quake 3 J"
+    ],
+    [
+     "cross",
+     "Vector cross"
+    ],
+    [
+     "dot",
+     "Vector dot"
+    ],
+    [
+     "circle",
+     "Vector circle"
+    ],
+    [
+     "t",
+     "Vector T"
+    ]
+   ],
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Crosshair for the gauntlet when per-weapon crosshairs are on.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "default",
+   "group": "Per weapon",
+   "key": "crosshair/weapon_machinegun",
+   "label": "Machine gun",
+   "options": [
+    [
+     "default",
+     "Same as above"
+    ],
+    [
+     "none",
+     "None"
+    ],
+    [
+     "a",
+     "Quake 3 A"
+    ],
+    [
+     "b",
+     "Quake 3 B"
+    ],
+    [
+     "c",
+     "Quake 3 C"
+    ],
+    [
+     "d",
+     "Quake 3 D"
+    ],
+    [
+     "e",
+     "Quake 3 E"
+    ],
+    [
+     "f",
+     "Quake 3 F"
+    ],
+    [
+     "g",
+     "Quake 3 G"
+    ],
+    [
+     "h",
+     "Quake 3 H"
+    ],
+    [
+     "i",
+     "Quake 3 I"
+    ],
+    [
+     "j",
+     "Quake 3 J"
+    ],
+    [
+     "cross",
+     "Vector cross"
+    ],
+    [
+     "dot",
+     "Vector dot"
+    ],
+    [
+     "circle",
+     "Vector circle"
+    ],
+    [
+     "t",
+     "Vector T"
+    ]
+   ],
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Crosshair for the machine gun when per-weapon crosshairs are on.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "default",
+   "group": "Per weapon",
+   "key": "crosshair/weapon_shotgun",
+   "label": "Shotgun",
+   "options": [
+    [
+     "default",
+     "Same as above"
+    ],
+    [
+     "none",
+     "None"
+    ],
+    [
+     "a",
+     "Quake 3 A"
+    ],
+    [
+     "b",
+     "Quake 3 B"
+    ],
+    [
+     "c",
+     "Quake 3 C"
+    ],
+    [
+     "d",
+     "Quake 3 D"
+    ],
+    [
+     "e",
+     "Quake 3 E"
+    ],
+    [
+     "f",
+     "Quake 3 F"
+    ],
+    [
+     "g",
+     "Quake 3 G"
+    ],
+    [
+     "h",
+     "Quake 3 H"
+    ],
+    [
+     "i",
+     "Quake 3 I"
+    ],
+    [
+     "j",
+     "Quake 3 J"
+    ],
+    [
+     "cross",
+     "Vector cross"
+    ],
+    [
+     "dot",
+     "Vector dot"
+    ],
+    [
+     "circle",
+     "Vector circle"
+    ],
+    [
+     "t",
+     "Vector T"
+    ]
+   ],
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Crosshair for the shotgun when per-weapon crosshairs are on.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "default",
+   "group": "Per weapon",
+   "key": "crosshair/weapon_grenadel",
+   "label": "Grenade launcher",
+   "options": [
+    [
+     "default",
+     "Same as above"
+    ],
+    [
+     "none",
+     "None"
+    ],
+    [
+     "a",
+     "Quake 3 A"
+    ],
+    [
+     "b",
+     "Quake 3 B"
+    ],
+    [
+     "c",
+     "Quake 3 C"
+    ],
+    [
+     "d",
+     "Quake 3 D"
+    ],
+    [
+     "e",
+     "Quake 3 E"
+    ],
+    [
+     "f",
+     "Quake 3 F"
+    ],
+    [
+     "g",
+     "Quake 3 G"
+    ],
+    [
+     "h",
+     "Quake 3 H"
+    ],
+    [
+     "i",
+     "Quake 3 I"
+    ],
+    [
+     "j",
+     "Quake 3 J"
+    ],
+    [
+     "cross",
+     "Vector cross"
+    ],
+    [
+     "dot",
+     "Vector dot"
+    ],
+    [
+     "circle",
+     "Vector circle"
+    ],
+    [
+     "t",
+     "Vector T"
+    ]
+   ],
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Crosshair for the grenade launcher when per-weapon crosshairs are on.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "default",
+   "group": "Per weapon",
+   "key": "crosshair/weapon_rocketl",
+   "label": "Rocket launcher",
+   "options": [
+    [
+     "default",
+     "Same as above"
+    ],
+    [
+     "none",
+     "None"
+    ],
+    [
+     "a",
+     "Quake 3 A"
+    ],
+    [
+     "b",
+     "Quake 3 B"
+    ],
+    [
+     "c",
+     "Quake 3 C"
+    ],
+    [
+     "d",
+     "Quake 3 D"
+    ],
+    [
+     "e",
+     "Quake 3 E"
+    ],
+    [
+     "f",
+     "Quake 3 F"
+    ],
+    [
+     "g",
+     "Quake 3 G"
+    ],
+    [
+     "h",
+     "Quake 3 H"
+    ],
+    [
+     "i",
+     "Quake 3 I"
+    ],
+    [
+     "j",
+     "Quake 3 J"
+    ],
+    [
+     "cross",
+     "Vector cross"
+    ],
+    [
+     "dot",
+     "Vector dot"
+    ],
+    [
+     "circle",
+     "Vector circle"
+    ],
+    [
+     "t",
+     "Vector T"
+    ]
+   ],
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Crosshair for the rocket launcher when per-weapon crosshairs are on.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "default",
+   "group": "Per weapon",
+   "key": "crosshair/weapon_lightning",
+   "label": "Lightning gun",
+   "options": [
+    [
+     "default",
+     "Same as above"
+    ],
+    [
+     "none",
+     "None"
+    ],
+    [
+     "a",
+     "Quake 3 A"
+    ],
+    [
+     "b",
+     "Quake 3 B"
+    ],
+    [
+     "c",
+     "Quake 3 C"
+    ],
+    [
+     "d",
+     "Quake 3 D"
+    ],
+    [
+     "e",
+     "Quake 3 E"
+    ],
+    [
+     "f",
+     "Quake 3 F"
+    ],
+    [
+     "g",
+     "Quake 3 G"
+    ],
+    [
+     "h",
+     "Quake 3 H"
+    ],
+    [
+     "i",
+     "Quake 3 I"
+    ],
+    [
+     "j",
+     "Quake 3 J"
+    ],
+    [
+     "cross",
+     "Vector cross"
+    ],
+    [
+     "dot",
+     "Vector dot"
+    ],
+    [
+     "circle",
+     "Vector circle"
+    ],
+    [
+     "t",
+     "Vector T"
+    ]
+   ],
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Crosshair for the lightning gun when per-weapon crosshairs are on.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "default",
+   "group": "Per weapon",
+   "key": "crosshair/weapon_railgun",
+   "label": "Railgun",
+   "options": [
+    [
+     "default",
+     "Same as above"
+    ],
+    [
+     "none",
+     "None"
+    ],
+    [
+     "a",
+     "Quake 3 A"
+    ],
+    [
+     "b",
+     "Quake 3 B"
+    ],
+    [
+     "c",
+     "Quake 3 C"
+    ],
+    [
+     "d",
+     "Quake 3 D"
+    ],
+    [
+     "e",
+     "Quake 3 E"
+    ],
+    [
+     "f",
+     "Quake 3 F"
+    ],
+    [
+     "g",
+     "Quake 3 G"
+    ],
+    [
+     "h",
+     "Quake 3 H"
+    ],
+    [
+     "i",
+     "Quake 3 I"
+    ],
+    [
+     "j",
+     "Quake 3 J"
+    ],
+    [
+     "cross",
+     "Vector cross"
+    ],
+    [
+     "dot",
+     "Vector dot"
+    ],
+    [
+     "circle",
+     "Vector circle"
+    ],
+    [
+     "t",
+     "Vector T"
+    ]
+   ],
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Crosshair for the railgun when per-weapon crosshairs are on.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "default",
+   "group": "Per weapon",
+   "key": "crosshair/weapon_plasma",
+   "label": "Plasma gun",
+   "options": [
+    [
+     "default",
+     "Same as above"
+    ],
+    [
+     "none",
+     "None"
+    ],
+    [
+     "a",
+     "Quake 3 A"
+    ],
+    [
+     "b",
+     "Quake 3 B"
+    ],
+    [
+     "c",
+     "Quake 3 C"
+    ],
+    [
+     "d",
+     "Quake 3 D"
+    ],
+    [
+     "e",
+     "Quake 3 E"
+    ],
+    [
+     "f",
+     "Quake 3 F"
+    ],
+    [
+     "g",
+     "Quake 3 G"
+    ],
+    [
+     "h",
+     "Quake 3 H"
+    ],
+    [
+     "i",
+     "Quake 3 I"
+    ],
+    [
+     "j",
+     "Quake 3 J"
+    ],
+    [
+     "cross",
+     "Vector cross"
+    ],
+    [
+     "dot",
+     "Vector dot"
+    ],
+    [
+     "circle",
+     "Vector circle"
+    ],
+    [
+     "t",
+     "Vector T"
+    ]
+   ],
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Crosshair for the plasma gun when per-weapon crosshairs are on.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "default",
+   "group": "Per weapon",
+   "key": "crosshair/weapon_bfg",
+   "label": "BFG10K",
+   "options": [
+    [
+     "default",
+     "Same as above"
+    ],
+    [
+     "none",
+     "None"
+    ],
+    [
+     "a",
+     "Quake 3 A"
+    ],
+    [
+     "b",
+     "Quake 3 B"
+    ],
+    [
+     "c",
+     "Quake 3 C"
+    ],
+    [
+     "d",
+     "Quake 3 D"
+    ],
+    [
+     "e",
+     "Quake 3 E"
+    ],
+    [
+     "f",
+     "Quake 3 F"
+    ],
+    [
+     "g",
+     "Quake 3 G"
+    ],
+    [
+     "h",
+     "Quake 3 H"
+    ],
+    [
+     "i",
+     "Quake 3 I"
+    ],
+    [
+     "j",
+     "Quake 3 J"
+    ],
+    [
+     "cross",
+     "Vector cross"
+    ],
+    [
+     "dot",
+     "Vector dot"
+    ],
+    [
+     "circle",
+     "Vector circle"
+    ],
+    [
+     "t",
+     "Vector T"
+    ]
+   ],
+   "restart": false,
+   "tab": "crosshair",
+   "tip": "Crosshair for the bfg10k when per-weapon crosshairs are on.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "modern",
+   "group": "Layout",
+   "key": "hud/preset",
+   "label": "HUD preset",
+   "options": [
+    [
+     "classic",
+     "Quake 3 classic"
+    ],
+    [
+     "modern",
+     "Modern (Quake Live style)"
+    ],
+    [
+     "minimal",
+     "Minimal"
+    ],
+    [
+     "competitive",
+     "Competitive"
+    ]
+   ],
+   "restart": false,
+   "tab": "hud",
+   "tip": "Layout of the HUD: Modern (glass panels and bars), Competitive (smaller, compact), Minimal (numbers only), or Quake 3 classic (ammo, health and armor in one row).",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": 1.0,
+   "group": "Layout",
+   "key": "hud/scale",
+   "label": "HUD scale",
+   "max": 2.0,
+   "min": 0.5,
+   "restart": false,
+   "step": 0.05,
+   "tab": "hud",
+   "tip": "Size of the HUD.",
+   "type": "float",
+   "unit": "x",
+   "wired": true
+  },
+  {
+   "default": 1.0,
+   "group": "Layout",
+   "key": "hud/opacity",
+   "label": "HUD opacity",
+   "max": 1.0,
+   "min": 0.2,
+   "restart": false,
+   "step": 0.05,
+   "tab": "hud",
+   "tip": "Transparency of the HUD.",
+   "type": "float",
+   "unit": "x",
+   "wired": true
+  },
+  {
+   "default": "arc",
+   "group": "Elements",
+   "key": "hud/speedometer",
+   "label": "Speedometer",
+   "options": [
+    [
+     "arc",
+     "Arc gauge"
+    ],
+    [
+     "compact",
+     "Compact"
+    ],
+    [
+     "off",
+     "Off"
+    ]
+   ],
+   "restart": false,
+   "tab": "hud",
+   "tip": "Your speed in units per second, with the strafe-jump readout (speed at each takeoff and the gain on the last).",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Elements",
+   "key": "hud/item_timers",
+   "label": "Item timers",
+   "restart": false,
+   "tab": "hud",
+   "tip": "Respawn timers for major items, where the mode allows them.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": true,
+   "group": "Elements",
+   "key": "hud/damage_numbers",
+   "label": "Damage numbers",
+   "restart": false,
+   "tab": "hud",
+   "tip": "Damage dealt floats over the target.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Elements",
+   "key": "hud/kill_feed",
+   "label": "Kill feed",
+   "restart": false,
+   "tab": "hud",
+   "tip": "Who killed whom, top right.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Elements",
+   "key": "hud/ammo_bar",
+   "label": "Ammo bar",
+   "restart": false,
+   "tab": "hud",
+   "tip": "Ammo for every weapon along the bottom.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Elements",
+   "key": "hud/net_graph",
+   "label": "Net graph",
+   "restart": false,
+   "tab": "hud",
+   "tip": "Latency, loss and jitter overlay.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": false,
+   "group": "Elements",
+   "key": "hud/fps",
+   "label": "Show FPS",
+   "restart": false,
+   "tab": "hud",
+   "tip": "Frame rate counter.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": "better",
+   "group": "Weapons",
+   "key": "gameplay/autoswitch",
+   "label": "Switch on pickup",
+   "options": [
+    [
+     "never",
+     "Never"
+    ],
+    [
+     "better",
+     "If better"
+    ],
+    [
+     "always",
+     "Always"
+    ]
+   ],
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Switch to a weapon you pick up (cg_autoswitch).",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "right",
+   "group": "Weapons",
+   "key": "gameplay/draw_gun",
+   "label": "Gun position",
+   "options": [
+    [
+     "right",
+     "Right"
+    ],
+    [
+     "center",
+     "Center"
+    ],
+    [
+     "left",
+     "Left"
+    ],
+    [
+     "hidden",
+     "Hidden"
+    ]
+   ],
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Where your gun is drawn (cg_drawGun).",
+   "type": "enum",
+   "wired": false
+  },
+  {
+   "default": 90.0,
+   "group": "Weapons",
+   "key": "gameplay/gun_fov",
+   "label": "Gun field of view",
+   "max": 120.0,
+   "min": 54.0,
+   "restart": false,
+   "step": 1.0,
+   "tab": "gameplay",
+   "tip": "Field of view of the gun model only.",
+   "type": "float",
+   "unit": "deg",
+   "wired": false
+  },
+  {
+   "default": true,
+   "group": "Weapons",
+   "key": "gameplay/view_bob",
+   "label": "View bob",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "The view bobs as you run (cg_bobup/cg_bobpitch).",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": "off",
+   "group": "Players",
+   "key": "gameplay/force_model",
+   "label": "Force enemy model",
+   "options": [
+    [
+     "off",
+     "Off"
+    ],
+    [
+     "anarki",
+     "Anarki"
+    ],
+    [
+     "biker",
+     "Biker"
+    ],
+    [
+     "bitterman",
+     "Bitterman"
+    ],
+    [
+     "bones",
+     "Bones"
+    ],
+    [
+     "brandon",
+     "Brandon"
+    ],
+    [
+     "carmack",
+     "Carmack"
+    ],
+    [
+     "cash",
+     "Cash"
+    ],
+    [
+     "crash",
+     "Crash"
+    ],
+    [
+     "doom",
+     "Doom"
+    ],
+    [
+     "grunt",
+     "Grunt"
+    ],
+    [
+     "hunter",
+     "Hunter"
+    ],
+    [
+     "keel",
+     "Keel"
+    ],
+    [
+     "klesk",
+     "Klesk"
+    ],
+    [
+     "lucy",
+     "Lucy"
+    ],
+    [
+     "major",
+     "Major"
+    ],
+    [
+     "mynx",
+     "Mynx"
+    ],
+    [
+     "orbb",
+     "Orbb"
+    ],
+    [
+     "paulj",
+     "Paulj"
+    ],
+    [
+     "ranger",
+     "Ranger"
+    ],
+    [
+     "razor",
+     "Razor"
+    ],
+    [
+     "sarge",
+     "Sarge"
+    ],
+    [
+     "slash",
+     "Slash"
+    ],
+    [
+     "sorlag",
+     "Sorlag"
+    ],
+    [
+     "tankjr",
+     "Tankjr"
+    ],
+    [
+     "tim",
+     "Tim"
+    ],
+    [
+     "uriel",
+     "Uriel"
+    ],
+    [
+     "visor",
+     "Visor"
+    ],
+    [
+     "xaero",
+     "Xaero"
+    ],
+    [
+     "xian",
+     "Xian"
+    ]
+   ],
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Show every enemy as one model (cg_forceModel).",
+   "type": "enum",
+   "wired": false
+  },
+  {
+   "default": false,
+   "group": "Players",
+   "key": "gameplay/bright_skins",
+   "label": "Bright skins",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Flat bright enemy colors for visibility.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": "#4dff33",
+   "group": "Players",
+   "key": "gameplay/enemy_color",
+   "label": "Enemy color",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Bright skin color for enemies.",
+   "type": "color",
+   "wired": false
+  },
+  {
+   "default": "#3399ff",
+   "group": "Players",
+   "key": "gameplay/team_color",
+   "label": "Team color",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Bright skin color for teammates.",
+   "type": "color",
+   "wired": false
+  },
+  {
+   "default": "first",
+   "group": "Cinematics",
+   "key": "gameplay/intro",
+   "label": "Intro movie",
+   "options": [
+    [
+     "first",
+     "First launch only"
+    ],
+    [
+     "always",
+     "Every launch"
+    ],
+    [
+     "never",
+     "Never"
+    ]
+   ],
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Quake 3's id logo and intro when the game starts.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Cinematics",
+   "key": "gameplay/tier_movies",
+   "label": "Tier movies",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Play Quake 3's tier movie when you finish a campaign tier. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": true,
+   "group": "Players",
+   "key": "gameplay/spawn_effect",
+   "label": "Spawn effects",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Teleport flash when players spawn.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": "auto",
+   "group": "Connection",
+   "key": "network/region",
+   "label": "Region",
+   "options": [
+    [
+     "auto",
+     "Automatic"
+    ],
+    [
+     "na_east",
+     "North America East"
+    ],
+    [
+     "na_west",
+     "North America West"
+    ],
+    [
+     "eu",
+     "Europe"
+    ],
+    [
+     "sa",
+     "South America"
+    ],
+    [
+     "asia",
+     "Asia"
+    ],
+    [
+     "oce",
+     "Oceania"
+    ]
+   ],
+   "restart": false,
+   "tab": "network",
+   "tip": "Matchmaking region.",
+   "type": "enum",
+   "wired": false
+  },
+  {
+   "default": 120,
+   "group": "Connection",
+   "key": "network/max_ping",
+   "label": "Max ping",
+   "max": 400,
+   "min": 20,
+   "restart": false,
+   "step": 10,
+   "tab": "network",
+   "tip": "Hide servers and matches above this ping.",
+   "type": "int",
+   "unit": "ms",
+   "wired": false
+  },
+  {
+   "default": "fast",
+   "group": "Connection",
+   "key": "network/rate",
+   "label": "Connection speed",
+   "options": [
+    [
+     "slow",
+     "Slow (25 KB/s)"
+    ],
+    [
+     "medium",
+     "Medium (50 KB/s)"
+    ],
+    [
+     "fast",
+     "Fast (100 KB/s)"
+    ],
+    [
+     "lan",
+     "LAN (unlimited)"
+    ]
+   ],
+   "restart": false,
+   "tab": "network",
+   "tip": "Bandwidth the server may use (rate).",
+   "type": "enum",
+   "wired": false
+  },
+  {
+   "default": 16,
+   "group": "Connection",
+   "key": "network/interp",
+   "label": "Interpolation",
+   "max": 100,
+   "min": 0,
+   "restart": false,
+   "step": 1,
+   "tab": "network",
+   "tip": "Delay before other players are drawn, which smooths their motion. Lower is sharper, higher is smoother.",
+   "type": "int",
+   "unit": "ms",
+   "wired": false
+  },
+  {
+   "default": true,
+   "group": "Online",
+   "key": "network/online",
+   "label": "Online services",
+   "restart": false,
+   "tab": "network",
+   "tip": "Friends, parties and presence. Off keeps you offline.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": "",
+   "group": "Online",
+   "key": "network/online_server",
+   "label": "Online server",
+   "max": 200,
+   "restart": false,
+   "tab": "network",
+   "tip": "Leave empty for the default. A local test server is ws://127.0.0.1:8787.",
+   "type": "string",
+   "wired": true
+  },
+  {
+   "default": 1.0,
+   "group": "Display",
+   "key": "accessibility/ui_scale",
+   "label": "Menu and text size",
+   "max": 1.5,
+   "min": 0.75,
+   "restart": false,
+   "step": 0.05,
+   "tab": "accessibility",
+   "tip": "Size of the menu, text and HUD.",
+   "type": "float",
+   "unit": "x",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Display",
+   "key": "accessibility/high_contrast",
+   "label": "High-contrast menus",
+   "restart": false,
+   "tab": "accessibility",
+   "tip": "Solid backgrounds and brighter text in menus.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Display",
+   "key": "accessibility/reduced_flashing",
+   "label": "Reduced flashing",
+   "restart": false,
+   "tab": "accessibility",
+   "tip": "Calms pulsing, embers, muzzle flashes and screen flashes.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": "off",
+   "group": "Display",
+   "key": "accessibility/colorblind",
+   "label": "Colorblind mode",
+   "options": [
+    [
+     "off",
+     "Off"
+    ],
+    [
+     "protanopia",
+     "Protanopia"
+    ],
+    [
+     "deuteranopia",
+     "Deuteranopia"
+    ],
+    [
+     "tritanopia",
+     "Tritanopia"
+    ]
+   ],
+   "restart": false,
+   "tab": "accessibility",
+   "tip": "Shifts team and item colors. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "enum",
+   "wired": false
+  },
+  {
+   "default": false,
+   "group": "Captions",
+   "key": "accessibility/subtitles",
+   "label": "Subtitles",
+   "restart": false,
+   "tab": "accessibility",
+   "tip": "Captions for the announcer and voice callouts. Stored now; takes effect once the Gameplay scene exists.",
+   "type": "bool",
+   "wired": false
+  },
+  {
+   "default": "medium",
+   "group": "Captions",
+   "key": "accessibility/subtitle_size",
+   "label": "Subtitle size",
+   "options": [
+    [
+     "low",
+     "Low"
+    ],
+    [
+     "medium",
+     "Medium"
+    ],
+    [
+     "high",
+     "High"
+    ]
+   ],
+   "restart": false,
+   "tab": "accessibility",
+   "tip": "Caption text size.",
+   "type": "enum",
+   "wired": false
+  },
+  {
+   "default": "Player",
+   "group": "Profile",
+   "key": "profile/name",
+   "label": "Player name",
+   "max": 32,
+   "restart": false,
+   "tab": "profile",
+   "tip": "Your name in matches.",
+   "type": "string",
+   "wired": true
+  },
+  {
+   "default": "sarge",
+   "group": "Profile",
+   "key": "profile/model",
+   "label": "Character",
+   "options": [
+    [
+     "anarki",
+     "Anarki"
+    ],
+    [
+     "biker",
+     "Biker"
+    ],
+    [
+     "bitterman",
+     "Bitterman"
+    ],
+    [
+     "bones",
+     "Bones"
+    ],
+    [
+     "brandon",
+     "Brandon"
+    ],
+    [
+     "carmack",
+     "Carmack"
+    ],
+    [
+     "cash",
+     "Cash"
+    ],
+    [
+     "crash",
+     "Crash"
+    ],
+    [
+     "doom",
+     "Doom"
+    ],
+    [
+     "grunt",
+     "Grunt"
+    ],
+    [
+     "hunter",
+     "Hunter"
+    ],
+    [
+     "keel",
+     "Keel"
+    ],
+    [
+     "klesk",
+     "Klesk"
+    ],
+    [
+     "lucy",
+     "Lucy"
+    ],
+    [
+     "major",
+     "Major"
+    ],
+    [
+     "mynx",
+     "Mynx"
+    ],
+    [
+     "orbb",
+     "Orbb"
+    ],
+    [
+     "paulj",
+     "Paulj"
+    ],
+    [
+     "ranger",
+     "Ranger"
+    ],
+    [
+     "razor",
+     "Razor"
+    ],
+    [
+     "sarge",
+     "Sarge"
+    ],
+    [
+     "slash",
+     "Slash"
+    ],
+    [
+     "sorlag",
+     "Sorlag"
+    ],
+    [
+     "tankjr",
+     "Tankjr"
+    ],
+    [
+     "tim",
+     "Tim"
+    ],
+    [
+     "uriel",
+     "Uriel"
+    ],
+    [
+     "visor",
+     "Visor"
+    ],
+    [
+     "xaero",
+     "Xaero"
+    ],
+    [
+     "xian",
+     "Xian"
+    ]
+   ],
+   "restart": false,
+   "tab": "profile",
+   "tip": "Your character.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "default",
+   "group": "Profile",
+   "key": "profile/skin",
+   "label": "Skin",
+   "options": [
+    [
+     "default",
+     "Default"
+    ]
+   ],
+   "restart": false,
+   "tab": "profile",
+   "tip": "Team skins aren't converted yet.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "#d9140a",
+   "group": "Profile",
+   "key": "profile/team_color",
+   "label": "Accent color",
+   "restart": false,
+   "tab": "profile",
+   "tip": "Your color: the menu's rim light and your rail trail.",
+   "type": "color",
+   "wired": true
+  }
+ ],
+ "skills": [
+  "I Can Win",
+  "Bring It On",
+  "Hurt Me Plenty",
+  "Hardcore",
+  "Nightmare!"
+ ],
+ "tabs": [
+  [
+   "video",
+   "Video"
+  ],
+  [
+   "graphics",
+   "Graphics"
+  ],
+  [
+   "audio",
+   "Audio"
+  ],
+  [
+   "controls",
+   "Controls"
+  ],
+  [
+   "mouse",
+   "Mouse"
+  ],
+  [
+   "crosshair",
+   "Crosshair"
+  ],
+  [
+   "hud",
+   "HUD"
+  ],
+  [
+   "gameplay",
+   "Gameplay"
+  ],
+  [
+   "network",
+   "Network"
+  ],
+  [
+   "accessibility",
+   "Accessibility"
+  ]
+ ],
+ "type": "init",
+ "values": {
+  "accessibility/colorblind": "off",
+  "accessibility/high_contrast": false,
+  "accessibility/reduced_flashing": false,
+  "accessibility/subtitle_size": "medium",
+  "accessibility/subtitles": false,
+  "accessibility/ui_scale": 1.0,
+  "audio/announcer": true,
+  "audio/hit_sound": "classic",
+  "audio/input_device": "Default",
+  "audio/menu_ambient": false,
+  "audio/mute_unfocused": true,
+  "audio/output_device": "Default",
+  "audio/spatial": true,
+  "audio/voice_mode": "push",
+  "audio/vol_announcer": 100,
+  "audio/vol_effects": 100,
+  "audio/vol_master": 100,
+  "audio/vol_music": 80,
+  "audio/vol_ui": 100,
+  "audio/vol_voice": 100,
+  "controls/attack": [
+   "mouse:1",
+   "",
+   "joyaxis:5:1"
+  ],
+  "controls/back": [
+   "key:S",
+   "key:Down",
+   ""
+  ],
+  "controls/chat": [
+   "key:T",
+   "",
+   ""
+  ],
+  "controls/console": [
+   "key:QuoteLeft",
+   "",
+   ""
+  ],
+  "controls/crouch": [
+   "key:C",
+   "key:Ctrl",
+   "joy:1"
+  ],
+  "controls/forward": [
+   "key:W",
+   "key:Up",
+   ""
+  ],
+  "controls/gesture": [
+   "key:G",
+   "",
+   ""
+  ],
+  "controls/jump": [
+   "key:Space",
+   "",
+   "joy:0"
+  ],
+  "controls/moveleft": [
+   "key:A",
+   "key:Left",
+   ""
+  ],
+  "controls/moveright": [
+   "key:D",
+   "key:Right",
+   ""
+  ],
+  "controls/pad_deadzone": 0.15,
+  "controls/pad_look": 3.0,
+  "controls/scores": [
+   "key:Tab",
+   "",
+   "joy:4"
+  ],
+  "controls/screenshot": [
+   "key:F12",
+   "",
+   ""
+  ],
+  "controls/steam_input": "default",
+  "controls/teamchat": [
+   "key:Y",
+   "",
+   ""
+  ],
+  "controls/toggle_crouch": false,
+  "controls/toggle_zoom": false,
+  "controls/use_item": [
+   "key:Enter",
+   "",
+   "joy:3"
+  ],
+  "controls/voice": [
+   "key:V",
+   "",
+   ""
+  ],
+  "controls/walk": [
+   "key:Shift",
+   "",
+   "joy:7"
+  ],
+  "controls/weapnext": [
+   "mouse:5",
+   "",
+   "joy:10"
+  ],
+  "controls/weapon1": [
+   "key:1",
+   "",
+   ""
+  ],
+  "controls/weapon2": [
+   "key:2",
+   "",
+   ""
+  ],
+  "controls/weapon3": [
+   "key:3",
+   "",
+   ""
+  ],
+  "controls/weapon4": [
+   "key:4",
+   "",
+   ""
+  ],
+  "controls/weapon5": [
+   "key:5",
+   "",
+   ""
+  ],
+  "controls/weapon6": [
+   "key:6",
+   "",
+   ""
+  ],
+  "controls/weapon7": [
+   "key:7",
+   "",
+   ""
+  ],
+  "controls/weapon8": [
+   "key:8",
+   "",
+   ""
+  ],
+  "controls/weapon9": [
+   "key:9",
+   "",
+   ""
+  ],
+  "controls/weapprev": [
+   "mouse:4",
+   "",
+   "joy:9"
+  ],
+  "controls/zoom": [
+   "mouse:2",
+   "",
+   "joyaxis:4:1"
+  ],
+  "crosshair/color": "#ffffff",
+  "crosshair/dot": false,
+  "crosshair/gap": 4,
+  "crosshair/health_color": false,
+  "crosshair/hit_color": "#ff3326",
+  "crosshair/outline": true,
+  "crosshair/per_weapon": false,
+  "crosshair/shape": "c",
+  "crosshair/size": 24,
+  "crosshair/thickness": 2,
+  "crosshair/weapon_bfg": "default",
+  "crosshair/weapon_gauntlet": "default",
+  "crosshair/weapon_grenadel": "default",
+  "crosshair/weapon_lightning": "default",
+  "crosshair/weapon_machinegun": "default",
+  "crosshair/weapon_plasma": "default",
+  "crosshair/weapon_railgun": "default",
+  "crosshair/weapon_rocketl": "default",
+  "crosshair/weapon_shotgun": "default",
+  "gameplay/autoswitch": "better",
+  "gameplay/bright_skins": false,
+  "gameplay/draw_gun": "right",
+  "gameplay/enemy_color": "#4dff33",
+  "gameplay/force_model": "off",
+  "gameplay/gun_fov": 90.0,
+  "gameplay/intro": "first",
+  "gameplay/spawn_effect": true,
+  "gameplay/team_color": "#3399ff",
+  "gameplay/tier_movies": true,
+  "gameplay/view_bob": true,
+  "graphics/anisotropy": 16,
+  "graphics/antialiasing": "msaa4",
+  "graphics/ao": "medium",
+  "graphics/bloom": true,
+  "graphics/decals": true,
+  "graphics/detail": "high",
+  "graphics/effect_intensity": 1.0,
+  "graphics/gi": "off",
+  "graphics/gibs": true,
+  "graphics/particles": "high",
+  "graphics/preset": "high",
+  "graphics/reflections": true,
+  "graphics/shadows": "high",
+  "graphics/texture_quality": "high",
+  "graphics/volumetric_fog": true,
+  "hud/ammo_bar": true,
+  "hud/damage_numbers": true,
+  "hud/fps": false,
+  "hud/item_timers": false,
+  "hud/kill_feed": true,
+  "hud/net_graph": false,
+  "hud/opacity": 1.0,
+  "hud/preset": "modern",
+  "hud/scale": 1.0,
+  "hud/speedometer": "arc",
+  "mouse/acceleration": 0.0,
+  "mouse/dpi": 800,
+  "mouse/invert": false,
+  "mouse/raw_input": true,
+  "mouse/sensitivity": 5.0,
+  "mouse/zoom_sensitivity": 1.0,
+  "network/interp": 16,
+  "network/max_ping": 120,
+  "network/online": true,
+  "network/online_server": "",
+  "network/rate": "fast",
+  "network/region": "auto",
+  "profile/model": "sarge",
+  "profile/name": "Player",
+  "profile/skin": "default",
+  "profile/team_color": "#d9140a",
+  "video/brightness": 1.0,
+  "video/contrast": 1.0,
+  "video/display_mode": "windowed",
+  "video/fov": 90.0,
+  "video/max_fps": 0,
+  "video/monitor": 0,
+  "video/render_scale": 1.0,
+  "video/resolution": "1600x900",
+  "video/upscaler": "bilinear",
+  "video/vsync": "off"
+ },
+ "version": "0.1.0-dev"
+}

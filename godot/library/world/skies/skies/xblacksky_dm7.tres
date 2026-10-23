@@ -1,0 +1,22 @@
+[gd_resource type="Sky" format=3 uid="uid://db6ytl5h07b62"]
+
+[ext_resource type="Shader" uid="uid://dq0mlas8eo1ou" path="res://shaders/world/sky_clouds.gdshader" id="1_r"]
+[ext_resource type="Texture2D" uid="uid://bivkrmux8sfw3" path="res://library/world/textures/gfx__colors__black__sky.jpg" id="2_r"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+resource_name = "textures/skies/xblacksky_dm7"
+shader = ExtResource("1_r")
+shader_parameter/layer1 = ExtResource("2_r")
+shader_parameter/scale1 = Vector2(1, 1)
+shader_parameter/scroll1 = Vector2(0, 0)
+shader_parameter/scale2 = Vector2(1, 1)
+shader_parameter/scroll2 = Vector2(0, 0)
+shader_parameter/layer2_add = true
+shader_parameter/layer2_mix = 0.5
+shader_parameter/cloud_height = 512.0
+shader_parameter/horizon_color = Color(0, 0, 0, 1)
+shader_parameter/energy = 1.0
+
+[resource]
+resource_name = "textures/skies/xblacksky_dm7"
+sky_material = SubResource("ShaderMaterial_sky")

@@ -33,11 +33,12 @@ Ozmium is planning a complete modern remaster of Quake III Arena in Unity or God
 
 ## Rules
 
-- id Software's assets (models, textures, maps, sounds) are copyrighted. Ozmium's chosen distribution model and its risks are in PLAN.md "Licensing". Until a release decision is final, outputs stay private (don't publish them anywhere public).
+- id Software's assets (models, textures, maps, sounds) are copyrighted. Ozmium's chosen distribution model and its risks are in PLAN.md "Licensing". The finished asset library is public in the repo (Ozmium's decision, 2026-10-23); id's original files and the tools' working files stay private.
 - **The source code is public** (Ozmium's decision, 2026-10-23): https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project (`origin`, branch `main`). Anything committed is published.
-  - The root `.gitignore` keeps out id assets and everything derived from them: `extracted/`, `work/`, `godot/library/`, `godot/webui/`, and the case study's models. It also keeps out builds and refetched code.
-  - Check `git add --dry-run` for binaries or media before committing; a pattern with a slash in the middle is anchored to the repo root, so use `**/` for nested paths.
-  - Licensed GPL-2.0 (`LICENSE`, the same text as id's and ioquake3's releases), because q3core runs ioquake3's game code. README "License" says it covers code only, not id's assets.
+  - The repo carries the remastered asset library, `godot/library/` and `godot/webui/`, with its binaries in Git LFS (`.gitattributes`). GitHub's free LFS quota is 10 GiB of storage and 10 GiB of downloads a month, about four full clones; every regenerated texture adds storage.
+  - The root `.gitignore` keeps out id's original files (`extracted/`), the tools' working files (`work/`) and the case study's models. It also keeps out builds and refetched code.
+  - Check `git add --dry-run` for binaries or media outside the library before committing, and give a new binary type in the library an LFS rule in `.gitattributes`; a pattern with a slash in the middle is anchored to the repo root, so use `**/` for nested paths.
+  - Licensed GPL-2.0 (`LICENSE`, the same text as id's and ioquake3's releases), because q3core runs ioquake3's game code. README "License" says it covers code only; the assets in the repo stay id's.
 - This project is separate from the GAME/OZMIUM Unity project (`C:\gAME\GAME` on the work PC), which must never contain Quake naming or id assets.
 - American spelling ("color", "meter").
 - Give effort estimates in hours, not days.

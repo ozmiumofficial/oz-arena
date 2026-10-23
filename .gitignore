@@ -1,12 +1,11 @@
-# Q3Remaster: source code only. id Software's assets, and everything converted from them, never go in
-# the repository (PLAN.md "Licensing"). Everything below is either id content, build output, or
-# something a tool refetches/rebuilds.
+# Q3Remaster: code plus the finished remastered asset library (godot/library, godot/webui, through
+# Git LFS; see .gitattributes and PLAN.md "Licensing"). id's original files and the tools' working
+# files stay out. Everything below is either id content, working files, build output, or something a
+# tool refetches/rebuilds.
 
-# --- id assets and their remastered derivatives ---
+# --- id's original files and the asset tools' working files ---
 /extracted/
 /work/
-/godot/library/
-/godot/webui/
 /case_study_keel/fbx/
 /case_study_keel/q3_original/
 /case_study_keel/remaster/

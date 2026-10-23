@@ -1,0 +1,411 @@
+{
+ "model": "carmack",
+ "bones": [
+  {
+   "name": "root",
+   "parent": null,
+   "half": null
+  },
+  {
+   "name": "pelvis",
+   "parent": "root",
+   "half": "legs"
+  },
+  {
+   "name": "hips",
+   "parent": "pelvis",
+   "half": "legs"
+  },
+  {
+   "name": "thigh_L",
+   "parent": "pelvis",
+   "half": "legs"
+  },
+  {
+   "name": "thigh_R",
+   "parent": "pelvis",
+   "half": "legs"
+  },
+  {
+   "name": "waist",
+   "parent": "pelvis",
+   "half": "legs"
+  },
+  {
+   "name": "hips_2",
+   "parent": "hips",
+   "half": "legs"
+  },
+  {
+   "name": "thigh_L_2",
+   "parent": "hips",
+   "half": "legs"
+  },
+  {
+   "name": "spine",
+   "parent": "waist",
+   "half": "torso"
+  },
+  {
+   "name": "calf_L",
+   "parent": "thigh_L_2",
+   "half": "legs"
+  },
+  {
+   "name": "calf_L_2",
+   "parent": "thigh_L_2",
+   "half": "legs"
+  },
+  {
+   "name": "thigh_R_2",
+   "parent": "hips_2",
+   "half": "legs"
+  },
+  {
+   "name": "neck",
+   "parent": "spine",
+   "half": "torso"
+  },
+  {
+   "name": "belly_2",
+   "parent": "spine",
+   "half": "torso"
+  },
+  {
+   "name": "calf_R",
+   "parent": "thigh_R_2",
+   "half": "legs"
+  },
+  {
+   "name": "foot_L",
+   "parent": "calf_L_2",
+   "half": "legs"
+  },
+  {
+   "name": "belly",
+   "parent": "neck",
+   "half": "torso"
+  },
+  {
+   "name": "upperarm_L",
+   "parent": "neck",
+   "half": "torso"
+  },
+  {
+   "name": "belly_3",
+   "parent": "neck",
+   "half": "torso"
+  },
+  {
+   "name": "head",
+   "parent": "neck",
+   "half": "torso"
+  },
+  {
+   "name": "foot_R",
+   "parent": "calf_R",
+   "half": "legs"
+  },
+  {
+   "name": "upperarm_R",
+   "parent": "belly_3",
+   "half": "torso"
+  },
+  {
+   "name": "forearm_L",
+   "parent": "upperarm_L",
+   "half": "torso"
+  },
+  {
+   "name": "forearm_R",
+   "parent": "upperarm_R",
+   "half": "torso"
+  },
+  {
+   "name": "hand_L",
+   "parent": "forearm_L",
+   "half": "torso"
+  },
+  {
+   "name": "finger_L_2",
+   "parent": "hand_L",
+   "half": "torso"
+  },
+  {
+   "name": "weapon",
+   "parent": "forearm_R",
+   "half": "torso"
+  },
+  {
+   "name": "finger_L",
+   "parent": "finger_L_2",
+   "half": "torso"
+  }
+ ],
+ "clips": [
+  {
+   "name": "BOTH_DEATH1",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 30,
+   "seconds": 1.45
+  },
+  {
+   "name": "BOTH_DEAD1",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 1,
+   "seconds": 0.05
+  },
+  {
+   "name": "BOTH_DEATH2",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 30,
+   "seconds": 1.45
+  },
+  {
+   "name": "BOTH_DEAD2",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 1,
+   "seconds": 0.05
+  },
+  {
+   "name": "BOTH_DEATH3",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 30,
+   "seconds": 1.45
+  },
+  {
+   "name": "BOTH_DEAD3",
+   "part": "both",
+   "loop": false,
+   "fps": 20,
+   "frames": 1,
+   "seconds": 0.05
+  },
+  {
+   "name": "TORSO_GESTURE",
+   "part": "torso",
+   "loop": false,
+   "fps": 20,
+   "frames": 40,
+   "seconds": 1.95
+  },
+  {
+   "name": "TORSO_ATTACK",
+   "part": "torso",
+   "loop": false,
+   "fps": 15,
+   "frames": 6,
+   "seconds": 0.3333333333333333
+  },
+  {
+   "name": "TORSO_ATTACK2",
+   "part": "torso",
+   "loop": false,
+   "fps": 15,
+   "frames": 6,
+   "seconds": 0.3333333333333333
+  },
+  {
+   "name": "TORSO_DROP",
+   "part": "torso",
+   "loop": false,
+   "fps": 20,
+   "frames": 5,
+   "seconds": 0.2
+  },
+  {
+   "name": "TORSO_RAISE",
+   "part": "torso",
+   "loop": false,
+   "fps": 20,
+   "frames": 4,
+   "seconds": 0.15
+  },
+  {
+   "name": "TORSO_STAND",
+   "part": "torso",
+   "loop": false,
+   "fps": 15,
+   "frames": 1,
+   "seconds": 0.06666666666666667
+  },
+  {
+   "name": "TORSO_STAND2",
+   "part": "torso",
+   "loop": false,
+   "fps": 15,
+   "frames": 1,
+   "seconds": 0.06666666666666667
+  },
+  {
+   "name": "LEGS_WALKCR",
+   "part": "legs",
+   "loop": true,
+   "fps": 20,
+   "frames": 8,
+   "seconds": 0.4
+  },
+  {
+   "name": "LEGS_WALK",
+   "part": "legs",
+   "loop": true,
+   "fps": 20,
+   "frames": 12,
+   "seconds": 0.6
+  },
+  {
+   "name": "LEGS_RUN",
+   "part": "legs",
+   "loop": true,
+   "fps": 18,
+   "frames": 8,
+   "seconds": 0.4444444444444445
+  },
+  {
+   "name": "LEGS_BACK",
+   "part": "legs",
+   "loop": true,
+   "fps": 20,
+   "frames": 10,
+   "seconds": 0.5
+  },
+  {
+   "name": "LEGS_SWIM",
+   "part": "legs",
+   "loop": true,
+   "fps": 15,
+   "frames": 10,
+   "seconds": 0.6666666666666666
+  },
+  {
+   "name": "LEGS_JUMP",
+   "part": "legs",
+   "loop": false,
+   "fps": 15,
+   "frames": 7,
+   "seconds": 0.4
+  },
+  {
+   "name": "LEGS_LAND",
+   "part": "legs",
+   "loop": false,
+   "fps": 15,
+   "frames": 2,
+   "seconds": 0.06666666666666667
+  },
+  {
+   "name": "LEGS_JUMPB",
+   "part": "legs",
+   "loop": false,
+   "fps": 15,
+   "frames": 8,
+   "seconds": 0.4666666666666667
+  },
+  {
+   "name": "LEGS_LANDB",
+   "part": "legs",
+   "loop": false,
+   "fps": 15,
+   "frames": 1,
+   "seconds": 0.06666666666666667
+  },
+  {
+   "name": "LEGS_IDLE",
+   "part": "legs",
+   "loop": true,
+   "fps": 15,
+   "frames": 10,
+   "seconds": 0.6666666666666666
+  },
+  {
+   "name": "LEGS_IDLECR",
+   "part": "legs",
+   "loop": true,
+   "fps": 15,
+   "frames": 10,
+   "seconds": 0.6666666666666666
+  },
+  {
+   "name": "LEGS_TURN",
+   "part": "legs",
+   "loop": true,
+   "fps": 15,
+   "frames": 8,
+   "seconds": 0.5333333333333333
+  }
+ ],
+ "verts": 5213,
+ "tris": 10240,
+ "materials": [
+  "john05",
+  "john04",
+  "john03",
+  "john07",
+  "john01",
+  "john02",
+  "john06"
+ ],
+ "fit": {
+  "lower_rms_mm": 6.26,
+  "lower_max_mm": 49.8,
+  "upper_rms_mm": 8.7,
+  "upper_max_mm": 82.5
+ },
+ "tags": {
+  "weapon": {
+   "origin": [
+    -0.270975,
+    1.160091,
+    0.077188
+   ],
+   "x": [
+    -0.028263,
+    -0.022493,
+    0.999347
+   ],
+   "y": [
+    0.999368,
+    -0.022213,
+    0.027763
+   ],
+   "z": [
+    0.021574,
+    0.9995,
+    0.023106
+   ]
+  },
+  "head": {
+   "origin": [
+    0.004217,
+    1.45582,
+    0.010346
+   ],
+   "x": [
+    -0.174666,
+    -0.212318,
+    0.961464
+   ],
+   "y": [
+    0.983878,
+    0.000467,
+    0.178841
+   ],
+   "z": [
+    -0.03842,
+    0.977201,
+    0.208813
+   ]
+  }
+ },
+ "material_modes": {}
+}

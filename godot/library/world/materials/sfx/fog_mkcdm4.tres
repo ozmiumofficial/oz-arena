@@ -1,0 +1,6 @@
+[gd_resource type="FogMaterial" format=3]
+
+[resource]
+resource_name = "textures/sfx/fog_mkcdm4"
+density = 1.0
+albedo = Color(0.5, 0.0, 0.0, 1)

@@ -132,6 +132,23 @@ func _apply(m: BaseMaterial3D) -> bool:
 
 # ---------------------------------------------------------------- maps
 
+## The importer's name suffixes (nodes/use_name_suffixes) strip "_alpha" and "_vcol" from material
+## names and turn on transparency or vertex color instead. build_maps.py writes every map material
+## opaque with no vertex color, so those flags say which suffix to put back. Without this,
+## textures/base_wall/atech1_alpha arrived as "atech1", missed, and the Proving Grounds' column was gray.
+static func _shader_name(mat: Material) -> String:
+	if mat == null:
+		return ""
+	var name := mat.resource_name
+	var bm := mat as BaseMaterial3D
+	if bm:
+		if bm.vertex_color_use_as_albedo:
+			name += "_vcol"
+		if bm.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
+			name += "_alpha"
+	return name
+
+
 ## Shader names -> world materials. world_* chunks are static (baked by LightmapGI, UV2 from the
 ## importer's light_baking setting); model_* nodes are movers, lit dynamically; sprite_* nodes are
 ## camera-facing quads, left out of the bake.
@@ -149,7 +166,7 @@ func _map_import(scene: Node) -> void:
 		var m := mi as MeshInstance3D
 		var see_through := true
 		for i in m.mesh.get_surface_count():
-			var name := m.mesh.surface_get_material(i).resource_name if m.mesh.surface_get_material(i) else ""
+			var name := _shader_name(m.mesh.surface_get_material(i))
 			if not cache.has(name):
 				var e: Dictionary = wm.get(name, {})
 				var res := String(e.get("res", ""))

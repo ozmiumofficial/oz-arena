@@ -73,6 +73,7 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
 - **godot-mcp:** in `tools/godot-mcp`, 19 tools; register it per TOOLS.md.
 - **Headless tests:** run them as scenes (`res://tests/selftest.tscn`), never with `--script`. A `--script` main loop compiles before autoloads exist, so `Q3` is "Identifier not found" and Godot idles forever. Add `--quit-after N` as a backstop.
 - **Import script:** `[importer_defaults] scene={"import_script/path": ...}` in project.godot applies `scripts/import/q3_post_import.gd` to every GLB. After changing that script, delete the `.glb.import` files (or `.godot/`) to force a re-import.
+  - The scene importer's name suffixes (`nodes/use_name_suffixes`) strip `_alpha` / `_vcol` from material names and turn on transparency or vertex color. `q3_post_import._shader_name()` puts the suffix back from those flags; before it did, `textures/base_wall/atech1_alpha` missed and the tech columns in q3tourney1/2/6 drew the gray `missing` fallback (2026-10-23).
 - **Material modes:** names carry `__add` / `__mask` / `__blend` / `__2s`. Additive materials swap the emission texture into albedo and render unshaded with additive blending.
 - **Character clips:** every glTF clip keys every bone, so `Q3Character` filters torso bone paths in a Blend2. Restarting clips uses TimeSeek nodes.
 - **Effects:** all built at runtime by `Q3FX` from `fx.json`; nothing is pre-baked as scenes.

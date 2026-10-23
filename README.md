@@ -219,3 +219,9 @@ Q3Remaster/
 - **Unshipped shaders:** 369 world shaders (336 surfaces, 33 skies) reference images id cut from the retail paks. They're listed in the catalog as `unshipped`.
 - **Water preview:** water is transparent and refractive, so in the material browser, with nothing behind it, it reads dark.
 - **Missing model:** the medkit's sphere model isn't in the retail paks.
+
+## License
+
+The code in this repository is licensed under the GNU General Public License v2.0 (`LICENSE`), the license of id Software's Quake III Arena source release and ioquake3, whose game code q3core runs.
+
+The license covers code only. Quake III Arena's assets (models, textures, maps, sounds, music) belong to id Software and aren't in this repository; you need your own copy of Quake 3. This is an unofficial fan project, not affiliated with or endorsed by id Software, Bethesda or ZeniMax. Quake is a trademark of ZeniMax Media.

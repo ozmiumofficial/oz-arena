@@ -91,7 +91,7 @@ There's no ready-made download yet. The game is built from this source code and 
 **You'll need:**
 
 - Windows.
-- Quake III Arena on Steam. The remaster reads your own copy; none of the game's files are included here.
+- Quake III Arena on Steam. The remaster reads your own copy; id's original game files aren't included here.
 
 ## For developers
 
@@ -101,4 +101,6 @@ There's no ready-made download yet. The game is built from this source code and 
 
 The code in this repository is licensed under the GNU General Public License v2.0 (`LICENSE`), the license of id Software's Quake III Arena source release and ioquake3, whose game code this project runs.
 
-The license covers code only. Quake III Arena's assets (models, textures, maps, sounds, music) belong to id Software and aren't in this repository; you need your own copy of Quake 3. This is an unofficial fan project, not affiliated with or endorsed by id Software, Bethesda or ZeniMax. Quake is a trademark of ZeniMax Media.
+The license covers code only. The repository also carries the remastered asset library (`godot/library` and `godot/webui`, stored with Git LFS): models, textures, lightmaps, sounds, music, cinematics and menu art remastered from id Software's originals. Those remain id Software's property and aren't covered by the GPL. id's original game files (the `pak` files) aren't included, and the game won't run without your own copy of Quake III Arena.
+
+This is an unofficial fan project, not affiliated with or endorsed by id Software, Bethesda or ZeniMax. Quake is a trademark of ZeniMax Media.

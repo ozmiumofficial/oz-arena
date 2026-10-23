@@ -2,7 +2,7 @@
 
 How the remaster is built. The player-facing overview, with screenshots, is [README.md](README.md).
 
-Tools for remastering Quake III Arena's assets to modern standards, for a Godot (recommended) or Unity remake. Everything here reads your own legally owned copy of the game; see [PLAN.md](PLAN.md) for the roadmap, design decisions and the licensing section.
+Tools for remastering Quake III Arena's assets to modern standards, for a Godot (recommended) or Unity remake. The tools read your own copy of the game; see [PLAN.md](PLAN.md) for the roadmap, design decisions and the licensing section.
 
 Started 2026-10-22 with Keel as the test case (`case_study_keel/`), then extended to every player model, item, entity and visual effect, with a Godot 4 project that loads the whole library.
 
@@ -24,6 +24,8 @@ Started 2026-10-22 with Keel as the test case (`case_study_keel/`), then extende
 | Player cards | 378 parts + 89 achievements | The card catalog, built the way trac3r does it but with Quake 3 content (PLAN.md "Player cards, progression and ranked"). Art: 35 arena banners, the 29 fighters rendered in the menu's smoky void, 7 skies, 27 world materials as lit walls, 126 emblems (every skin's head icon, weapons, items, flags, medals) and frame swatches. `Q3Cards` handles unlocks, achievements, forged-card fallback and the level curve. Card renderers and the editor come later |
 
 ## Quick start
+
+A clone already includes the remastered library (`godot/library`, `godot/webui`) through Git LFS: run `git lfs pull`, then open `godot/` in Godot. The steps below are only needed to regenerate the library from your own paks.
 
 ```
 pip install -r tools/requirements.txt

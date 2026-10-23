@@ -1,6 +1,6 @@
 """Assemble the Godot 4 project from tools/godot_template + the remastered library.
 
-python make_godot_project.py [--work ../work] [--out ../godot] [--bridge C:/Users/Ozmium/godot-mcp/addon]
+python make_godot_project.py [--work ../work] [--out ../godot] [--bridge C:/Users/<you>/godot-mcp/addon]
 
 library/
   characters/<model>.glb + <model>.rig.json   from work/<model>/export (rigged, PBR, 25 clips)

@@ -1,5 +1,5 @@
 diff --git a/code/game/ai_dmnet.c b/code/game/ai_dmnet.c
-index b107895..ec90382 100644
+index b107895..42555e6 100644
 --- a/code/game/ai_dmnet.c
 +++ b/code/game/ai_dmnet.c
 @@ -1291,6 +1291,7 @@ int AINode_Respawn(bot_state_t *bs) {
@@ -444,7 +444,7 @@ index ed5d4ea..e232633 100644
  		G_Printf( "fraglimit %i is out of range, defaulting to 0\n", g_fraglimit.integer );
  		trap_Cvar_Set( "fraglimit", "0" );
 diff --git a/code/game/g_team.c b/code/game/g_team.c
-index ada16f1..c92c2bc 100644
+index ada16f1..613f362 100644
 --- a/code/game/g_team.c
 +++ b/code/game/g_team.c
 @@ -366,6 +366,26 @@ void Team_FragBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker

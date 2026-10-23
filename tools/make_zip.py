@@ -1,6 +1,6 @@
 """Packs the whole project into one zip to carry to another PC:
 
-    python tools/make_zip.py [--out C:/Users/Ozmium/Documents/Q3Remaster_<date>.zip]
+    python tools/make_zip.py [--out C:/Users/<you>/Documents/Q3Remaster_<date>.zip]
 
 Everything except what rebuilds itself or doesn't travel:
   godot/.godot             Godot's import cache (the editor re-imports on first open, a few minutes)

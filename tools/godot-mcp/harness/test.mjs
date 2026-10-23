@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const TESTPROJECT = join(ROOT, "testproject");
-const GODOT = process.env.GODOT_PATH ?? "C:\\Users\\Ozmium\\Desktop\\Godot_v4.7.2-stable_win64.exe";
+const GODOT = process.env.GODOT_PATH ?? "C:\\Users\\<you>\\Desktop\\Godot_v4.7.2-stable_win64.exe";
 
 // ---------------------------------------------------------------------------
 // MCP stdio client

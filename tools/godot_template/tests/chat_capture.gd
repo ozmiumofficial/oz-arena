@@ -21,7 +21,7 @@ func _ready() -> void:
 	Engine.max_fps = 60
 	var s := Session.new_setup("ffa", "q3dm17")
 	s.bots = [{"name": "Sarge", "skill": 1, "team": ""}, {"name": "Xaero", "skill": 1, "team": ""}]
-	s.player["name"] = "^1Tony^3 Q"
+	s.player["name"] = "^1Ozmium^3 Q"
 	Session.setup = s
 	_game = load("res://scenes/gameplay/gameplay.tscn").instantiate()
 	_game.test_input = true

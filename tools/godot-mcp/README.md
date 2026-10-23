@@ -14,7 +14,7 @@ Three layers:
 Already registered for this machine at user scope:
 
 ```bash
-claude mcp add -s user -e GODOT_PATH="C:\Users\Ozmium\Desktop\Godot_v4.7.2-stable_win64.exe" godot -- node C:\Users\Ozmium\godot-mcp\dist\index.js
+claude mcp add -s user -e GODOT_PATH="C:\Users\<you>\Desktop\Godot_v4.7.2-stable_win64.exe" godot -- node C:\Users\<you>\godot-mcp\dist\index.js
 ```
 
 Restart your Claude Code session after registering; the `godot` server then appears with 19 tools.

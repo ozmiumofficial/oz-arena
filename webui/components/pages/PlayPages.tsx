@@ -1,6 +1,7 @@
 "use client";
-// Quick play and the Server browser are the real pages, waiting on Steam: their lists are
-// empty and their search buttons buzz (menu4) until GodotSteam is in. Training starts real setups.
+// Quick play and the Server browser are the real pages, waiting on online matches (PLAN.md
+// "Multiplayer and online services"): their lists are empty and their search buttons buzz (menu4)
+// until the netcode and the hub's match directory are in. Training starts real setups.
 import { useState } from "react";
 import { motion } from "motion/react";
 import { useMenu, toast } from "@/lib/store";
@@ -16,7 +17,7 @@ import Toggle from "../controls/Toggle";
 import TextField from "../controls/TextField";
 import type { PageProps } from "./index";
 
-const NEEDS_STEAM = "Needs Steam (GodotSteam), which isn't wired yet.";
+const NOT_ONLINE = "Needs online matches, which aren't built yet.";
 const refused = (why: string) => toast(why, "warn");
 
 function PlaylistCard({ name, text, on, toggle }: { name: string; text: string; on: boolean; toggle: () => void }) {
@@ -54,7 +55,7 @@ export function QuickPlayPage({ back }: PageProps) {
         </div>
         <div className="mt-auto flex items-end justify-between">
           <div className="text-[0.95rem] text-dim">Region: <span className="text-ink">{region}</span> <span className="text-faint">(Settings, Network)</span></div>
-          <Button primary refuse={NEEDS_STEAM} onRefuse={refused} className="px-14 py-4 text-[1.4rem]">Find match</Button>
+          <Button primary refuse={NOT_ONLINE} onRefuse={refused} className="px-14 py-4 text-[1.4rem]">Find match</Button>
         </div>
       </div>
     </PagePanel>
@@ -63,18 +64,21 @@ export function QuickPlayPage({ back }: PageProps) {
 
 export function ServerBrowserPage({ back }: PageProps) {
   const modes = useMenu((s) => s.init?.modes ?? []);
+  const regions = useMenu((s) => s.init?.schema.find((e) => e.key === "network/region")?.options ?? []);
   const [source, setSource] = useState<Value>("internet");
+  const [region, setRegion] = useState<Value>("auto");
   const [mode, setMode] = useState<Value>("any");
   const [full, setFull] = useState(true);
   const [empty, setEmpty] = useState(false);
   const [ping, setPing] = useState(120);
   const cols = ["Server", "Map", "Mode", "Players", "Ping"];
   return (
-    <PagePanel title="Server Browser" subtitle="Dedicated and player-hosted servers from the Steam master list and your LAN." back={back}>
+    <PagePanel title="Server Browser" subtitle="Player-hosted matches and dedicated servers in one list, your region first, plus your LAN." back={back}>
       <div className="flex h-full flex-col gap-4 px-10 py-5">
-        <div className="grid grid-cols-[14rem_1fr_14rem] items-end gap-4">
+        <div className="grid grid-cols-[14rem_1fr_20rem_14rem] items-end gap-4">
           <Spinner wide value={source} options={[["internet", "Internet"], ["lan", "LAN"], ["favorites", "Favorites"], ["history", "History"]]} onChange={setSource} />
           <TextField wide value="" onCommit={() => undefined} placeholder="Search servers and maps" />
+          <Spinner wide value={region} options={regions.length ? regions.map(([v, t]) => [v, v === "auto" ? "Closest region" : t] as [Value, string]) : [["auto", "Closest region"]]} onChange={setRegion} />
           <Spinner wide value={mode} options={[["any", "Any mode"], ...modes.map((m) => [m.id, m.name] as [Value, string])]} onChange={setMode} />
         </div>
         <div className="flex items-center gap-8">
@@ -87,11 +91,11 @@ export function ServerBrowserPage({ back }: PageProps) {
             {cols.map((c) => <span key={c}>{c}</span>)}
           </div>
           <div className="grid flex-1 place-items-center p-6">
-            <EmptyState title="No servers yet" text={`The server list comes from Steam's master server and LAN discovery. ${NEEDS_STEAM}`} />
+            <EmptyState title="No servers yet" text={`Every player-hosted match and dedicated server will list here with its region and ping. Connections go through a relay, so no one sees anyone else's IP. ${NOT_ONLINE}`} />
           </div>
         </div>
         <div data-row className="flex gap-3">
-          <Button small refuse={NEEDS_STEAM} onRefuse={refused}>Refresh</Button>
+          <Button small refuse={NOT_ONLINE} onRefuse={refused}>Refresh</Button>
           <Button small refuse="Connecting needs the netcode, which isn't built yet." onRefuse={refused}>Connect to address</Button>
         </div>
       </div>

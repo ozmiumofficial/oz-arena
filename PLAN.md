@@ -13,7 +13,7 @@
 | ioquake3 / Quake3e as the base | Rejected: its renderer tops out around mid-2000s quality |
 | Start with tools, not game code | Decided 2026-10-22 |
 | Distribution model | Decided: free/open source, Quake 3 ownership required, ships the remastered asset library. Risk and mitigations in "Licensing" |
-| Online services | Decided 2026-10-22: no Steamworks, no paid hosting. Player-hosted matches over peer-to-peer WebRTC, optional dedicated servers, one match browser, and accounts, matchmaking and player data on Cloudflare's free tier. See "Multiplayer and online services" |
+| Online services | Decided 2026-10-22: no Steamworks, no paid hosting. Player-hosted matches over peer-to-peer WebRTC, always relayed through Cloudflare's TURN so IPs stay hidden (2026-10-23), closest region first with a region choice, optional dedicated servers, one match browser, and accounts, matchmaking and player data on Cloudflare's free tier. See "Multiplayer and online services" |
 | Gameplay architecture | Decided 2026-10-22: id's GPL game code (ioquake3: collision, server world, game module, botlib) runs in a C++ GDExtension, `q3core`; Godot does all presentation. Fixed 125 Hz Pmove (8 ms). Native HUD, web pause menu; original bots from the `.aas` files; LightmapGI baked per map. Phases G0-G8 in [GAMEPLAY_PLAN.md](GAMEPLAY_PLAN.md) |
 
 ## Where the tools stand
@@ -258,7 +258,7 @@ OZMIUM's cyber-theme main menu, settings persistence and keybind capture in the 
 
 ## Multiplayer and online services (zero-cost, 2026-10-22)
 
-Ozmium wants full multiplayer capability. **Decided 2026-10-22: no Steamworks and no paid hosting.** Players host matches from their own PCs and connect peer-to-peer, dedicated servers are optional, and accounts, matchmaking, the match browser and player data run on Cloudflare's free tier.
+Ozmium wants full multiplayer capability. **Built last (2026-10-23), after the map editor and replays, per `MULTIPLAYER_PLAN.md`.** **Decided 2026-10-22: no Steamworks and no paid hosting.** Players host matches from their own PCs and connect peer-to-peer, dedicated servers are optional, and accounts, matchmaking, the match browser and player data run on Cloudflare's free tier.
 
 **Why not Steamworks:**
 - **App ID:** a Steam release needs an App ID, and Valve's review needs the asset rights from "Licensing" settled first.
@@ -275,7 +275,7 @@ Ozmium wants full multiplayer capability. **Decided 2026-10-22: no Steamworks an
   - Lag-compensated hitscan and projectiles.
   - A latency, loss and jitter overlay.
 - **Match flow:** warmup, ready-up, countdown, overtime and sudden death, map voting, intermission scoreboard, rematch.
-- **Spectating:** free and follow cams, team-only for competitive play, server-side demo recording and client demos.
+- **Spectating:** free and follow cams, team-only for competitive play, server-side demo recording and client demos. Replays, the replay viewer, local spectating and killcam don't need netcode and are planned in `REPLAY_PLAN.md` (approved 2026-10-23, built after the map editor).
 - **Server admin:** rcon, kick/ban, map rotation and server config files.
 
 **Hosting matches (costs nothing):**
@@ -285,18 +285,35 @@ Ozmium's rule: players never have to run a dedicated server. Any player can host
 | Need | How |
 |---|---|
 | Player-hosted matches | The host's game runs a listen server (q3core's server, same code as a dedicated one) and plays in it |
-| Connecting with no setup | Peer-to-peer WebRTC (Godot's official webrtc-native extension, MIT). q3core's netchan packets ride an unreliable, unordered data channel instead of a raw UDP socket: a new virtual address type hands packets to Godot instead of `NET_SendPacket`/`Sys_GetPacket`. NAT traversal uses Cloudflare's free STUN; when a direct path fails, traffic falls back to Cloudflare's TURN relay (1,000 GB/month free, then $0.05/GB). Connection setup (signaling) goes through the backend's WebSocket |
+| Connecting with no setup | Peer-to-peer WebRTC (Godot's official webrtc-native extension, MIT). q3core's netchan packets ride an unreliable, unordered data channel instead of a raw UDP socket: a new virtual address type hands packets to Godot instead of `NET_SendPacket`/`Sys_GetPacket`. Connection setup (signaling) goes through the backend's WebSocket |
+| Hidden IPs (Ozmium, 2026-10-23) | Every internet connection goes through Cloudflare's TURN relay (Realtime: 1,000 GB/month free, shared with the SFU, then $0.05/GB), so no player ever sees another's IP, host included. Both sides gather relay candidates only (`iceTransportPolicy: relay`), and the hub drops any non-relay candidate from the signaling it forwards. The relay is UDP, so the data channel keeps Quake 3's unreliable packets. Cost: a few to about 20 ms over a direct path. LAN play stays direct |
 | Seeing and joining matches | One match browser lists player-hosted matches and dedicated servers together: mode, map, players, region, ping, friends in it, password lock. A host registers its match in a Durable Object directory and updates it over its open WebSocket. Join in progress or spectate; private matches are invite-only |
-| Dedicated servers | Optional, for whoever wants one (clans, leagues, ranked). The dedicated build ships with the game, accepts WebRTC and plain UDP, and lists in the same browser |
+| Dedicated servers | Any player can run an always-on dedicated server (Ozmium, 2026-10-23): clans, leagues, community servers, ranked. The dedicated build ships with the game, accepts WebRTC and plain UDP, and lists in the same browser. See "Player-run dedicated servers" below |
 | Vote kick, no anti-cheat (Ozmium, 2026-10-22) | Quake 3's own `callvote kick` in the match (game module). The host tells the hub, and the hub keeps the kicked player out of that lobby for 30 minutes: it's hidden from them in the browser and their join is refused. The host's server also refuses their id, so a direct `connect` fails too. The ban is tied to the player's identity key, not their IP. Party kicks don't ban: the leader can re-invite straight away (Ozmium). To be built with the match browser |
 | LAN | Quake 3's built-in LAN broadcast search over plain UDP, no internet needed |
 | Joining friends | Join from the friends list or party, `connect` links, Discord join buttons |
 | Classic Quake 3 browser | Dedicated servers can also register with the public dpmaster masters under our own game name (ask the operator first) |
 
 **Trade-offs:**
-- **The host's connection is the server.** If the host quits, the match ends (host migration isn't planned; Quake 3's server state doesn't move between machines). The host also plays at zero ping, so player-hosted matches are casual only.
-- **IP addresses:** a direct peer-to-peer connection shows each side's IP to the other, as in classic Quake 3. A "hide my IP" setting forces the TURN relay.
-- **Relay budget:** a relayed player uses roughly 70 MB an hour, so the free 1,000 GB covers about 14,000 relayed player-hours a month. Most connections go direct and use none.
+- **The host's connection is the server.** If the host quits, the match ends (host migration isn't planned; Quake 3's server state doesn't move between machines). The host also plays at zero ping; for ranked, the matchmaker picks the host with the best connection to the others to keep that small.
+- **Relay budget:** a relayed player uses roughly 70 MB an hour (to be measured once netcode runs; the host's leg may count too). With every player relayed, the free 1,000 GB covers about 14,000 player-hours a month, about 20 players online around the clock. Past that it's about $3.50 per 1,000 player-hours. The fallback if that ever matters: relay by default, with an opt-in "direct connection" setting.
+- **Dedicated servers** are relayed like everything else, so a server on someone's home PC doesn't show its IP. An operator can mark a server public (a VPS, a datacenter box); players then connect to it directly and the relay isn't used.
+
+**Player-run dedicated servers (Ozmium, 2026-10-23):** anyone can keep a server running around the clock, on the PC they play on, a spare PC, or a free or cheap VPS.
+- **Starting one:** "Host dedicated server" in the menu runs the same executable headless in the background (no window, no rendering) with the server config built in match setup. It keeps running after the game closes, and can start with Windows. On Linux and VPSes, the same build runs from the command line or as a systemd service.
+- **One build, two platforms:** Windows and Linux x86-64, plus Linux ARM64 so Oracle's free tier works (a guide in DEVELOPMENT.md or the wiki).
+- **Ownership:** the server needs the operator's own retail pak0, checked the same way as the game's setup gate.
+- **Always listed:** the server keeps a hibernating WebSocket open to the hub, which lists it in the browser while it's up, shows it as offline when it drops, and reconnects with backoff. A server gets a persistent identity key like a player, so its name, history and bans survive restarts.
+- **Running it:** map rotation, modes and rules, password, max players, slots reserved for friends or a clan, MOTD, and Quake 3's server cvars. rcon works in the game's console, and the menu has an admin page for servers the player owns (players, kick/ban, change map, edit rotation, logs).
+- **Empty servers:** an idle server sleeps its game loop until someone joins, so it costs almost no CPU. Bots can fill empty slots if the operator wants.
+- **Matchmaking:** an operator can opt a server into matchmaking, and the queue sends matches to an empty one in the right region before falling back to a player host.
+
+**Regions (Ozmium, 2026-10-23):** players match in their closest region first and can pick another.
+- **Regions:** North America East, North America West, South America, Europe, Asia, Oceania, and Middle East/Africa.
+- **Detection:** the Worker reads the connection's `request.cf` location (continent, country, coordinates) at handshake, so the home region costs nothing and needs no ping probing.
+- **Setting:** Region is "Auto (closest)" or one named region, in Settings and on the Play page. A host's match is tagged with the host's region.
+- **Matchmaking:** Auto searches the home region first and widens to neighboring regions after a wait (start at 60 s, shown in the queue). A named region stays strict.
+- **Match browser:** filters by region (Auto shows yours first) and shows each match's ping.
 
 **Online backend (Cloudflare free tier, built from trac3r's Worker + D1):**
 | Piece | How |
@@ -304,8 +321,8 @@ Ozmium's rule: players never have to run a dedicated server. Any player can host
 | Identity | No sign-up. A key pair made on first launch (Godot `Crypto`) is the player's identity; the Worker issues a session after a signed challenge. "Link Discord" (free OAuth) or a backup code moves a profile to another PC |
 | Player data | D1 holds profiles: rating, career stats, XP, unlocks, card, keybinds, settings, crosshair. Everything is also saved in `user://`, so the game works offline and the backend only syncs |
 | Friends, parties, presence | **Built 2026-10-22** (`online/`, `scripts/online/`, the menu's Friends panel). Everything lives in one Durable Object's own SQLite (not D1): friend codes, requests, presence (menu / match / map editor), parties of up to 8 with leader, invites, kick, promote and chat, over hibernating WebSockets. Live at `wss://arena-online.fragnet.workers.dev` (Ozmium's personal Cloudflare account) |
-| Matchmaking | A Durable Object queue per mode and region, by rating (window rules in "Ranked"). Players stay connected with hibernating WebSockets instead of polling. The match goes to an empty matchmaking-enabled dedicated server in the region (those servers check in every 5 minutes); otherwise the matched player with the best connection to the others hosts |
-| Ranked results | Only from verified dedicated servers, which sign results with a key we issue to trusted operators. Player-hosted matches count as casual |
+| Matchmaking | A Durable Object queue per mode and region, by rating (window rules in "Ranked"; region rules in "Regions" above). Players stay connected with hibernating WebSockets instead of polling. The match goes to an empty matchmaking-enabled dedicated server in the region (those servers check in every 5 minutes); otherwise the matched player with the best connection to the others hosts |
+| Ranked results | Peer-to-peer for now (Ozmium, 2026-10-23: there are no dedicated servers yet). The matchmaker picks a player host, and the result counts only when the players agree on it (see "Trust" under "Player cards, progression and ranked"). Once verified dedicated servers exist, which sign results with a key we issue to trusted operators, ranked moves to them |
 | Workshop | Maps, models, skins and mods stored in Cloudflare R2 (10 GB free, no download fees), uploads through the Worker, with reports and takedowns |
 
 - **Free-tier budget:** 100,000 Worker requests and 100,000 Durable Object requests a day (WebSocket messages count 20:1), D1's 5 million row reads and 100,000 row writes a day, free STUN, and 1,000 GB of TURN relay a month. That covers a few thousand daily players. Past that, the $5/month Workers plan, with no redesign.
@@ -512,11 +529,11 @@ An open-source client can change anything it stores or reports. OZMIUM's HMAC ke
 | What | Who decides it | Cheating risk |
 |---|---|---|
 | XP, levels, unlocks, achievements | The match's server. Offline or on a listen server, that's the player's own machine. Stored in `user://`, synced to the backend | Someone can unlock cosmetics they didn't earn. The harm stops at an undeserved-looking card, and the ID strip says LOCAL rather than OFFICIAL |
-| Ranked rating | Only official ranked dedicated servers. They sign results with a key that isn't in the repo, and the ranked backend stores ratings, matches, seasons and the ladder | Server-authoritative: the client never reports its own result |
+| Ranked rating | **For now (Ozmium, 2026-10-23): peer-to-peer, by agreement.** Each player's game signs the final scoreboard it received with its identity key and sends it to the ranked backend. The backend applies the result only when the reports match: every player in a duel, a majority of non-host players in larger matches. Mismatches or missing reports void the match and are logged per host. **Later:** verified dedicated servers that sign results with a key that isn't in the repo. The ranked backend stores ratings, matches, seasons and the ladder either way | A modified host can still play unfairly (the others see it and can report it), but it can't change the result on its own. It would need the other players' games to sign a false scoreboard too. Hosts whose matches keep getting voided or reported lose ranked hosting |
 | Cards others see | Every viewer runs `enforceUnlocks()` against the owner's stats. The backend does it for leaderboard cards | A card can only show parts its stats justify |
 
 - **Ranked backend:** the same shape as trac3r's (Worker + D1, sessions, cards, ladders), with players identified by their device key (or linked Discord) instead of a Google sign-in.
-- **Cost:** the backend runs on Cloudflare's free tier; ranked needs verified dedicated servers, which trusted community operators run. The backend is also the most public piece of the project, which matters while outputs stay private.
+- **Cost:** the backend runs on Cloudflare's free tier; ranked runs on player hosts until verified dedicated servers, run by trusted community operators, take it over. The backend is also the most public piece of the project, which matters while outputs stay private.
 
 ### Effort and order
 Hours of Claude working time:
@@ -560,6 +577,8 @@ Ozmium wants a fully built-in map editor that works exactly like the OZMIUM one:
 | Testing | Geometry self-test, API smoke test and input test suites (OZMIUM had 52 + 191 + 84 checks); the Godot port gets the same coverage headless |
 
 Godot notes: runtime brush meshing and its own collision/trace world (not Godot's CSG nodes); UI in Godot Control nodes (OZMIUM used OneJS/React); editor networking rides the same WebRTC connections and match browser as matches.
+
+**Superseded in part by `MAP_EDITOR_PLAN.md` (2026-10-23):** OZMIUM has since dropped the groove/fill subtract modes (Ctrl+Shift+X CSG subtract remains), and play-test is F5 (F6 returns). There is no separate trace world: play-test compiles the map with id's q3map and plays it in q3core, and bots come from bspc.
 
 ## Original Quake 3 maps in the remaster (2026-10-22)
 

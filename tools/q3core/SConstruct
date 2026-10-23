@@ -80,7 +80,7 @@ if env["platform"] == "windows":
     env.Append(LIBS=["ws2_32", "winmm", "psapi", "advapi32", "shell32", "user32", "ole32"])
 library = env.SharedLibrary(
     "bin/q3core{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
-    source=Glob("src/*.cpp") + engine_objs,
+    source=Glob("src/*.cpp") + Glob("src/map/*.cpp") + engine_objs,
 )
 
 genv = c_env(["QAGAME"])

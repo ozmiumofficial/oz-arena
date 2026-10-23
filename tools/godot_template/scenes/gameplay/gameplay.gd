@@ -40,6 +40,10 @@ var _board_t := 0.0
 var _ended := false
 var _results: Q3ResultsScreen
 var music: Q3Music              ## the map's soundtrack (CS_MUSIC)
+const ZOOM_FOV := 22.5             ## cg_zoomFov
+const ZOOM_TIME := 150.0           ## ms
+var _zoomed := false               ## cg.zoomed (+zoom)
+var _zoom_time := -100000.0
 var _gun: Node3D               ## the first-person weapon (cg_weapons.c CG_AddViewWeapon)
 var _gun_weapon := -1
 var _gun_fx: Q3WeaponFx
@@ -171,8 +175,52 @@ func _build_view() -> void:
 	add_child(scoreboard)
 
 
+## cg_view.c CG_CalcFov: Settings > Video > Field of view (cg_fov, horizontal at 4:3), and +zoom
+## easing to cg_zoomFov 22.5 over ZOOM_TIME 150 ms and back.
+func _fov_x() -> float:
+	var fov := float(Settings.get_value("video/fov"))
+	var f := (_now_ms() - _zoom_time) / ZOOM_TIME
+	if _zoomed:
+		return ZOOM_FOV if f > 1.0 else fov + f * (ZOOM_FOV - fov)
+	return fov if f > 1.0 else ZOOM_FOV + f * (fov - ZOOM_FOV)
+
+
+## +zoom held (or, with Toggle zoom, each press flips it). Not while Tab is held: there the right
+## mouse button is the scoreboard's.
+func _poll_zoom() -> void:
+	if Input.is_action_pressed("q3_scores"):
+		return
+	if Settings.get_value("controls/toggle_zoom"):
+		if Input.is_action_just_pressed("q3_zoom"):
+			_zoom(not _zoomed)
+	else:
+		_zoom(Input.is_action_pressed("q3_zoom"))
+
+
+## CG_ZoomDown / CG_ZoomUp. The dead don't zoom.
+func _zoom(on: bool) -> void:
+	if on == _zoomed:
+		return
+	var ps := Q3Server.player_state(me)
+	if on and not ps.is_empty() and int(ps["pm_type"]) == E.PM_DEAD:
+		return
+	_zoomed = on
+	_zoom_time = _now_ms()
+
+
+## Tab + right click frees the mouse for the scoreboard's player cards (and right click again takes
+## it back). Here, before the scoreboard's own click handling and before Mouse 2's menu meaning
+## (ui_cancel, "back") could pause the match.
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT \
+			and not _paused and scoreboard.visible and Input.is_action_pressed("q3_scores"):
+		scoreboard.set_interactive(not scoreboard.interactive)
+		get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
+	# Mouse 2 means "back" in the menus only; in a match it's a game button, never the pause
+	if event.is_action_pressed("ui_cancel") and not event is InputEventMouseButton:
 		if _paused and pause_layer and pause_layer.web:
 			# the page didn't have the keyboard (the web view lost focus): its Escape still goes
 			# back a page or resumes, and the page takes the keyboard back
@@ -195,18 +243,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		# cl_input.c CL_MouseMove: m_yaw / m_pitch 0.022 degrees per count times sensitivity
 		var sens := float(Settings.get_value("mouse/sensitivity")) * Settings.M_YAW
+		if _zoomed:
+			# cg.zoomSensitivity: fov_y / 75 while zoomed, times Settings > Mouse > Zoom sensitivity
+			sens *= cam.fov / 75.0 * float(Settings.get_value("mouse/zoom_sensitivity"))
 		var inv := -1.0 if Settings.get_value("mouse/invert") else 1.0
 		_view.y -= event.relative.x * sens
 		_view.x = clampf(_view.x + event.relative.y * sens * inv, -89.0, 89.0)
 	for w in range(1, 10):
 		if event.is_action_pressed("q3_weapon%d" % w):
 			_select_weapon(w)
-	# Tab + right click: the mouse for the scoreboard's player cards
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT \
-			and scoreboard.visible and Input.is_action_pressed("q3_scores"):
-		scoreboard.set_interactive(not scoreboard.interactive)
-		get_viewport().set_input_as_handled()
-		return
 	if event.is_action_pressed("q3_ready") and me >= 0:
 		Q3Server.client_command(me, "ready")
 		_ready_sent = not _ready_sent
@@ -236,6 +281,7 @@ func _process(delta: float) -> void:
 	for c in Q3Server.next_commands(me):
 		_server_command(c)
 	var ps := Q3Server.player_state(me)
+	_poll_zoom()
 	client.apply_snapshot(Q3Server.snapshot(me), ps)
 	if not _ended:
 		music.play(Q3Server.configstring(E.CS_MUSIC))   # CG_StartMusic, again when CS_MUSIC changes
@@ -351,6 +397,7 @@ func _update_camera(ps: Dictionary) -> void:
 			eye.z += _land_change * (1.0 - (since - LAND_DEFLECT_TIME) / LAND_RETURN_TIME)
 	cam.global_position = Q3.q3_to_godot(eye)
 	cam.basis = Q3Client.angles_basis(a) * Basis(Vector3.UP, PI)
+	cam.fov = Settings.fov_vertical(_fov_x())
 
 
 func _now_ms() -> float:
@@ -522,10 +569,7 @@ func _build_pause_menu() -> void:
 		return
 	pause_bridge.resume_requested.connect(func(): _set_paused(false))
 	pause_bridge.leave_requested.connect(_leave)
-	pause_bridge.quit_requested.connect(func():
-		if Q3Server.running():
-			Q3Server.exec_now("killserver")
-		get_tree().quit())
+	pause_bridge.quit_requested.connect(Session.quit_game)
 	pause_bridge.restart_requested.connect(func():
 		# q3_ui's Restart Arena: the same map from the start
 		Q3Server.exec("map_restart 0")

@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "webui", "run", "dev", "--", "--port", "3217"],
       "port": 3217
+    },
+    {
+      "name": "webui-static",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "3219", "--directory", "godot/webui"],
+      "port": 3219
     }
   ]
 }

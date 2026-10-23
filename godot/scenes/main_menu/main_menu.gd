@@ -31,7 +31,7 @@ func _ready() -> void:
 	bridge.hovered.connect(stage.nudge)
 	bridge.layout_changed.connect(_on_layout)
 	bridge.profile_preview.connect(stage.lock_character)
-	bridge.quit_requested.connect(func(): if not Session.dry_run: get_tree().quit())
+	bridge.quit_requested.connect(func(): if not Session.dry_run: Session.quit_game())
 	bridge.cinematic_requested.connect(play_cinematic)
 	stage.subject_changed.connect(func(n, k): _post({"type": "subject", "name": n, "kind": k}))
 	_args()
@@ -178,7 +178,8 @@ func _post(msg: Dictionary) -> void:
 	if msg.get("type") == "init" and _open_page != "":
 		# capture option page=...: open it once the menu has drawn
 		get_tree().create_timer(0.6).timeout.connect(func(): _post({"type": "open", "page": _open_page}))
-	web_layer.post(msg)
+	if web_layer:   # the showcase can speak before the web layer is built (capture option subject=)
+		web_layer.post(msg)
 
 
 ## A movie from the Cinematics page: the web view hides (it always draws on top) and comes back after.

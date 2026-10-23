@@ -72,7 +72,9 @@ static func panel(ci: CanvasItem, r: Rect2, color := GLASS, accent := Color(0, 0
 	ci.draw_colored_polygon(pts, color)
 	ci.draw_polyline(PackedVector2Array([pts[0], pts[1], pts[2], pts[3], pts[0]]), GLASS_EDGE, 1.0, true)
 	if accent.a > 0.0 and accent_w > 0.0:
-		ci.draw_line(pts[3] + Vector2(0, -accent_w * 0.5), pts[3] + Vector2(minf(r.size.x * 0.35, r.size.x - s), -accent_w * 0.5), accent, accent_w)
+		# a strip along the bottom edge, its left end flush with the slanted side
+		var a := accent_w * SKEW
+		bar(ci, Rect2(Vector2(r.position.x, r.end.y - accent_w), Vector2(r.size.x - s + a, accent_w)), 0.0, 0.35, accent)
 
 
 ## A slanted bar segment from x0 to x1 (fractions of r's width) in r.

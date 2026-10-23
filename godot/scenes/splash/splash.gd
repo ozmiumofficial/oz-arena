@@ -144,6 +144,9 @@ func _process(delta: float) -> void:
 	if all and not _loaded:
 		_loaded = true
 		ResourceLoader.load_threaded_get(Session.MAIN_MENU)   # keeps it cached for the scene change
+	if Q3.missing_packs.size():
+		_status.text = "MISSING %s: PUT IT NEXT TO Q3Remaster.exe" % ", ".join(Q3.missing_packs)
+		return
 	if _loaded:
 		_status.text = "PRESS ANY KEY" if _t >= SKIP_AFTER else "LOADING"
 		_status.modulate.a = 0.55 + 0.45 * sin(_t * 4.0) if not Settings.get_value("accessibility/reduced_flashing") else 1.0
@@ -158,7 +161,7 @@ func _input(ev: InputEvent) -> void:
 
 
 func _leave() -> void:
-	if _leaving or _gate:
+	if _leaving or _gate or Q3.missing_packs.size():
 		return
 	if Q3Ownership.verified() == "":
 		_show_gate()

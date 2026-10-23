@@ -6,6 +6,8 @@
 
 Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the roster, now with modern characters, lighting, effects, menus and online features. It's an unofficial, non-commercial fan project. You need your own copy of Quake III Arena to play.
 
+> **Open beta: single player only.** The [open beta for Windows](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) is out. You can play the campaign and offline matches against bots. Friends, parties and leaderboards are online, but you can't play matches against other people yet. Online multiplayer is [planned](#planned-features).
+
 ### Menus
 
 | | |
@@ -73,14 +75,24 @@ Most remakes copy the original from memory. This one runs id Software's own game
   - Your card appears on the scoreboard and the results screen. Progression is cosmetic only and never changes the game.
 - **Controller support** throughout the menus.
 
-## On the way
+## Planned features
 
-- **Online matches without paying for servers:** anyone can host from their own PC, and one match browser shows every match. Optional dedicated servers. Lobbies vote-kick troublemakers instead of relying on anti-cheat software.
-- **More modes:** Clan Arena, Freeze Tag and Instagib as optional rule sets.
-- **Ranked play:** a duel queue with an Elo ladder, seasons and tiers named after Quake 3's skill levels.
+None of these are in the open beta yet. They're listed roughly in the order they're coming.
+
+- **A built-in map editor** (being built now): build arenas inside the game, import the original maps, play-test instantly, and edit together with friends.
+- **Replays and spectating:**
+  - Every match recorded automatically, with a replay viewer: pause, slow motion, seeking, and free or follow cameras.
+  - Spectator mode for live matches, and an optional killcam that shows how you died.
+- **Online matches without paying for servers:**
+  - Anyone can host from their own PC, and one match browser shows every match. Optional dedicated servers.
+  - Every connection is relayed, so no one sees another player's IP address. You're matched in the closest region first, or you can pick one.
+  - Lobbies vote-kick troublemakers instead of relying on anti-cheat software.
+- **Ranked play:** a duel queue with an Elo ladder, seasons and tiers from Bronze to Godlike.
 - **Player cards online:** your card in friends' lists and lobbies, both cards sliding in on the duel versus screen, and a card image to share.
-- **A built-in map editor:** build arenas inside the game, import the original maps, play-test instantly, and edit together with friends.
+- **More modes:** Clan Arena, Freeze Tag and Instagib as optional rule sets.
 - **A Workshop** for sharing maps, skins and mods.
+- **Accessibility:** colorblind modes and subtitles for the announcer.
+- **Linux and macOS** versions.
 
 ## What stays the same
 
@@ -92,12 +104,18 @@ Some things shouldn't change, so they don't:
 
 ## Playing it
 
-There's no ready-made download yet. The game is built from this source code and the Quake III Arena files on your PC; [DEVELOPMENT.md](DEVELOPMENT.md) walks through it.
-
 **You'll need:**
 
-- Windows.
+- Windows, 64-bit.
 - Quake III Arena, the full game (Steam, GOG or the CD release), not the demo.
+
+**Installing the open beta:**
+
+1. From the [Releases](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) page, download the game's zip and both texture packs (`textures-1.pck` and `textures-2.pck`).
+2. Unzip the game anywhere, and put both texture packs in the `Q3Remaster` folder, next to `Q3Remaster.exe`.
+3. Run `Q3Remaster.exe`.
+
+You can also build the game yourself from this source code and the Quake III Arena files on your PC; [DEVELOPMENT.md](DEVELOPMENT.md) walks through it.
 
 **First launch:** the game asks for your copy before it goes any further.
 

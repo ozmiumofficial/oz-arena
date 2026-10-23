@@ -8,6 +8,7 @@
 
 #include "q3_api.h"
 #include "q3core.h"
+#include "q3mapgeo.h"
 #include "q3server.h"
 
 using namespace godot;
@@ -29,6 +30,7 @@ static void initialize_q3core(ModuleInitializationLevel p_level) {
 	q3_set_print(q3_print);
 	GDREGISTER_CLASS(Q3Core);
 	GDREGISTER_CLASS(Q3Server);
+	GDREGISTER_CLASS(Q3MapGeo);
 }
 
 static void uninitialize_q3core(ModuleInitializationLevel p_level) {

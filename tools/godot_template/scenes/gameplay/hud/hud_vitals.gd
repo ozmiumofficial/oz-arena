@@ -67,8 +67,14 @@ func _block(r: Rect2, is_health: bool, value: int, color: Color, ghost: float, l
 		draw_rect(Rect2(x - 6 * u, icon.position.y - 4 * u, w + 12 * u, icon.size.y + 8 * u), Color(S.RED, 0.12 + 0.1 * sin(_t * TAU * 2.0)))
 	if compact:
 		return
-	# the bar: 10 segments per 100, the second hundred over the first in a cooler tone
-	var bar := Rect2(r.position + Vector2(pad, r.size.y - 22 * u), Vector2(r.size.x - pad * 2.0, 9 * u))
+	# the bar: 10 segments per 100, the second hundred over the first in a cooler tone. Its ends run
+	# parallel to the panel's slanted sides, `pad` in from them at the bar's bottom.
+	var bh := 9.0 * u
+	var bottom := r.size.y - 13.0 * u
+	var lean := r.size.y * S.SKEW
+	var left := r.position.x + lean * (1.0 - bottom / r.size.y) + pad
+	var right := r.end.x - lean * bottom / r.size.y - pad
+	var bar := Rect2(Vector2(left, r.position.y + bottom - bh), Vector2(right - left + bh * S.SKEW, bh))
 	S.bar(self, bar, 0.0, 1.0, Color(1, 1, 1, 0.07))
 	var base := clampf(value / 100.0, 0.0, 1.0)
 	var over := clampf((value - 100) / 100.0, 0.0, 1.0)
@@ -76,11 +82,13 @@ func _block(r: Rect2, is_health: bool, value: int, color: Color, ghost: float, l
 	if g > base:
 		S.bar(self, bar, base, g, Color(S.RED, 0.75))
 	S.bar(self, bar, 0.0, base, Color(color, 0.92) if value <= 100 else Color(S.INK_HOT, 0.9))
-	if over > 0.0:
-		var top := Rect2(bar.position + Vector2(0, -4 * u), Vector2(bar.size.x, 4 * u))
-		S.bar(self, top, 0.0, over, (S.MEGA if is_health else S.AMBER.lightened(0.3)))
-	# segment gaps
+	# segment gaps, through the strip over the bar too
 	var s := bar.size.y * S.SKEW
+	if over > 0.0:
+		# the second hundred: a thin strip continuing the bar's slant above it
+		var th := 4.0 * u
+		var top := Rect2(Vector2(bar.position.x + s, bar.position.y - th), Vector2(bar.size.x - s + th * S.SKEW, th))
+		S.bar(self, top, 0.0, over, (S.MEGA if is_health else S.AMBER.lightened(0.3)))
 	for i in range(1, 10):
 		var fx := bar.position.x + (i / 10.0) * (bar.size.x - s)
-		draw_line(Vector2(fx + s, bar.position.y - 4 * u), Vector2(fx, bar.end.y), Color(0, 0, 0, 0.55), 2.0 * u)
+		draw_line(Vector2(fx + s + 4 * u * S.SKEW, bar.position.y - 4 * u), Vector2(fx, bar.end.y), Color(0, 0, 0, 0.55), 2.0 * u)

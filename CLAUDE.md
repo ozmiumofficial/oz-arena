@@ -1,6 +1,6 @@
 # Q3Remaster: context for Claude
 
-Ozmium is planning a complete modern remaster of Quake III Arena in Unity or Godot (engine not chosen). **Current stage: Gameplay (approved 2026-10-22).** The asset pipeline and main menu are done; the Gameplay scene is being built in phases G0-G8 per `GAMEPLAY_PLAN.md` (G0 toolchain done). Read `PLAN.md` for phases and open decisions, and `README.md` for how the tools run.
+Ozmium is planning a complete modern remaster of Quake III Arena in Unity or Godot (engine not chosen). **Current stage: Map editor (approved 2026-10-23).** The asset pipeline, main menu and Gameplay scene (`GAMEPLAY_PLAN.md`) are built. The Map editor scene is being built in phases E0-E8 per `MAP_EDITOR_PLAN.md` (E0 kernel done). **Next after it:** replays, the replay viewer, spectator mode and killcam, phases R1-R9 per `REPLAY_PLAN.md` (approved 2026-10-23). **Last:** online multiplayer, phases M1-M8 per `MULTIPLAYER_PLAN.md` (Ozmium put it last, 2026-10-23). Read `PLAN.md` for phases and open decisions, and `DEVELOPMENT.md` for how the tools run. `README.md` is the player-facing feature page (the GitHub front page, with screenshots): keep it non-technical and only claim what's built.
 
 **Direction (2026-10-22):**
 - Fully open source.
@@ -18,7 +18,7 @@ Ozmium is planning a complete modern remaster of Quake III Arena in Unity or God
   - Quake 3's own menu sounds (`sound/misc/menu1-4.wav`), used exactly as in the original.
   - A fully fleshed-out settings menu and quality-of-life features.
   - Map editor as a menu item that loads the Map editor scene.
-- Full multiplayer with **no Steamworks and no paid hosting** (decided 2026-10-22): player-hosted matches over peer-to-peer WebRTC, optional dedicated servers, one match browser, and accounts, matchmaking and player data on Cloudflare's free tier. See PLAN.md "Multiplayer and online services". Friends and parties are built (`online/`, `scripts/online/`).
+- Full multiplayer with **no Steamworks and no paid hosting** (decided 2026-10-22): player-hosted matches over peer-to-peer WebRTC, always relayed through Cloudflare's TURN so no one sees another player's IP, closest region first with a region choice (2026-10-23), optional dedicated servers, one match browser, and accounts, matchmaking and player data on Cloudflare's free tier. See PLAN.md "Multiplayer and online services". Friends and parties are built (`online/`, `scripts/online/`).
 - Customizable player cards, XP and levels that unlock card parts, achievement-only unlocks, and ranked Elo matchmaking.
   - Built the way Ozmium's own game trac3r does it (`C:\gAME\TRAC3R\web`: `cosmetics.ts`, `achievements.ts`, `PlayerCard.tsx`, `bannerArt.ts`); its code is free to reuse.
   - The catalog is large and mostly Quake 3 themed.
@@ -90,6 +90,8 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
   - It's a debug export, because q3core has only a template_debug library. The `.pck` is separate (3.7 GB).
   - The game module goes to `<exe dir>/q3core/baseq3`. `Q3Host.bin_path()` looks there whenever the `editor` feature is absent.
   - `export/convert_text_resources_to_binary=false`. The binary conversion dropped `Q3GameMode.map_types`, so every map failed validation in the build.
+  - The export ships only Godot's imported versions of PNG, JPG, WAV and font files, but the web view needs the raw files. `export_game.py` therefore packs every imported file under `res://webui` into `webui_assets.pck` (`tests/pack_web_assets.tscn`), and `Q3WebLayer._mount_assets()` loads it outside the editor. Without it every menu image is broken.
+  - A live godot_wry web view keeps the process alive after Godot's exit, leaving a frozen window. `Session.quit_game()` frees the web views first. Quit and the window's close button both go through it (`auto_accept_quit` is false).
   - Export templates don't accept a scene path on the command line. To check a build, launch it with `map=<map> bots=<n>` (`Session.after_splash`, source "launch", which takes any arena) and read `--log-file`.
 - **Headless runs don't compile shaders.** Check for shader errors with a windowed capture (`tests/capture.tscn -- scene=res://showcase/materials.tscn`).
 - **Sky panoramas** use `u = atan(dir.x, dir.z)/TAU + 0.5, v = acos(dir.y)/PI` (sky_panorama.gdshader). The faces follow tr_sky.c's st_to_vec table: rt=+X, lf=-X, bk=+Y, ft=-Y, up/dn in id axes, mapped to Godot with x_q=Z, y_q=X, z_q=Y.
@@ -137,6 +139,9 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
 - **Levelshots:**
   - `tests/levelshots.tscn` renders 1280x960 shots from each remastered map's intermission point, with items placed, into `work/_levelshots`.
   - `make_ui.py` and `build_cards.py` prefer those over id's 128 px originals. q3tourney5 is shot without its fog.
+- **Mouse 2:** it is bound to both `ui_cancel` (menu back) and `q3_zoom`. In a match, a mouse button never counts as `ui_cancel`, so right-click zooms instead of pausing. Tab + right-click is handled in `_input`, ahead of the scoreboard's clicks and of zoom (`tests/scoreboard_mouse_test.tscn`).
+- **Field of view:** `_fov_x()` follows CG_CalcFov: the `video/fov` setting live, and +zoom to 22.5 over 150 ms. Sensitivity scales by fov_y/75 while zoomed (`tests/fov_test.tscn`).
+- **New class_name files:** rescan in the live editor right after creating one. Otherwise the editor rewrites `global_script_class_cache.cfg` without it, and tests and exports fail with "Could not find type" (Q3Music, 2026-10-23).
 - **Pause menu keys:** its web view is built with `forward_keys` false. A forwarded Escape arrived after the page had already resumed, and paused the game again.
 - **Character draw modes:** player skins can be additive (Bones' xray, Orbb's tail, Razor's goggles, Slash's skates) or cut-out (Hunter's feathers, Uriel's wings). `textures.json` and `rig.json` "material_modes" record them, and the import script applies them.
 - **Menu sounds:** played as ui_qmenu.c does.
@@ -289,6 +294,17 @@ ode_modules`.
 - **First spawn:** the local client's userinfo has `ip localhost`, as SV_DirectConnect gives it. Its first spawn therefore takes the spawn point marked initial (q3dm0: the mirror room).
 - **setviewpos** is a teleport with a 400 ups shove forward. Tests that place the player need room, or must face away and turn.
 
+## Map editor facts (hard-won)
+
+- **Plan and reference:** `MAP_EDITOR_PLAN.md`; OZMIUM's editor in `C:\gAME\GAME` (start at `Docs/MapEditor-Handoff-2026-09-04.md`). Play-test compiles to BSP with id's q3map, and Bake bots is bspc (both in the pinned `id-q3a` source); nothing ports OZMIUM's trace world or nav.
+- **Geometry:** `Q3MapGeo` (C++ in q3core, `src/map/brush_kernel.*`) in id space and doubles; planes are the truth. GDScript's Vector3 is 32-bit, so keep plane and point math in PackedFloat64Array or plain floats (a float32 volume check failed by 0.08 on a 4-million-unit brush).
+- **Godot's JSON parser can read a double back one bit off,** so `Q3MapDoc` writes non-integer number lists as `"f64:"` + base64. PackedFloat64Array equality also tells -0.0 from 0.0; the kernel's snap turns -0 into 0.
+- **Document objects are immutable once stored:** edit with `doc.edit(id)` (a deep copy), then `doc.put()`. Undo snapshots share objects by identity (`is_same`), and so do the mesher's winding caches.
+- **Face mapping:** world-projected faces use q3map's QuakeTextureVecs (`tex`); explicit faces store texel axes (`uv`, 8 numbers). Material names are full shader names (`textures/...`) as in `world_materials.json`. `concrete4` is id's lava shader.
+- **The world shaders ignore vertex color,** so per-face tint needs its own shader variant.
+- **LightmapGI can't bake in an exported game** (Godot 4.7 class reference), so player maps get q3map's lightmaps.
+- **Checks:** `tests/map_geo_test.tscn` (headless, 25 checks, also in the self-test); `tests/map_geo_room.tscn` through `tests/capture.tscn` (`view=patch` for the curve).
+
 ## Pipeline facts (hard-won)
 
 - **MD3 format:**
@@ -328,7 +344,7 @@ ode_modules`.
 - **Main menu (2026-10-22):**
   - Splash, live React menu over the 3D showcase, settings (131 entries, 10 tabs), match setup with 7 modes, the single-player campaign (8 tiers, 26 arenas), 10 cinematics, and Quake 3's menu sounds.
   - Gameplay and Map editor are stubs.
-  - The self-test passes 39/39, including q3core's three checks, the two card checks and q3dm0's mirror and portal (see README).
+  - The self-test passes 39/39, including q3core's three checks, the two card checks and q3dm0's mirror and portal (see DEVELOPMENT.md).
   - It exits with a segfault after passing (2026-10-22). Bisected to the main-menu web view checks in a headless run; not yet fixed.
 - **Player card catalog and art (2026-10-22):**
   - 378 parts and 89 achievements in `godot/library/cards`.

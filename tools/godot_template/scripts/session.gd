@@ -27,6 +27,7 @@ var _modes: Dictionary = {}
 
 
 func _ready() -> void:
+	get_tree().auto_accept_quit = false   # closing the window goes through quit_game too
 	for id in MODES:
 		var m := load("res://game/modes/%s.tres" % id) as Q3GameMode
 		if m:
@@ -159,6 +160,24 @@ func after_splash() -> void:
 
 func open_map_editor() -> void:
 	_go(MAP_EDITOR)
+
+
+## Quits the game. A live web view (godot_wry) keeps the process alive after Godot's own exit,
+## leaving a frozen window, so every one is freed first; settings are saved and the match stopped.
+func quit_game() -> void:
+	Settings.save()
+	if ClassDB.class_exists("Q3Server") and Q3Server.running():
+		Q3Server.exec_now("killserver")
+	for w in get_tree().root.find_children("*", "WebView", true, false):
+		w.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	get_tree().quit()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		quit_game()
 
 
 func to_main_menu() -> void:

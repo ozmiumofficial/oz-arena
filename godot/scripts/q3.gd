@@ -16,6 +16,20 @@ var pickup_display: Dictionary = {}
 var fx: Dictionary = {}
 var fx_textures: Dictionary = {}
 var _rigs: Dictionary = {}
+## An exported game's world textures ship as packs beside the exe, because a GitHub release file
+## must be under 2 GiB (tools/export_game.py writes them with tests/pack_textures.tscn).
+const TEXTURE_PACKS := 2
+var missing_packs: PackedStringArray = []
+
+
+func _init() -> void:
+	if OS.has_feature("editor"):
+		return
+	var dir := OS.get_executable_path().get_base_dir()
+	for i in TEXTURE_PACKS:
+		var pack := "textures-%d.pck" % (i + 1)
+		if not FileAccess.file_exists(dir.path_join(pack)) or not ProjectSettings.load_resource_pack(dir.path_join(pack), false):
+			missing_packs.append(pack)
 
 
 func _ready() -> void:

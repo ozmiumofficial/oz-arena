@@ -74,12 +74,15 @@ static func accept(path: String) -> Dictionary:
 	return {"ok": true, "baseq3": dir, "paks": paks, "message": msg}
 
 
-## How many of pak0-8 in `dir` are id's retail files.
+## How many of pak0-8 in `dir` (or bundled with an exported game) are id's retail files.
 static func retail_paks(dir: String) -> int:
 	var n := 0
+	var bundled := Q3Host.bin_path().path_join("baseq3")   # an exported game ships pak1-8 there
 	for i in PAK_CHECKSUMS.size():
-		if pak_checksum(dir.path_join("pak%d.pk3" % i)) == PAK_CHECKSUMS[i]:
-			n += 1
+		for d in [dir, bundled]:
+			if pak_checksum(d.path_join("pak%d.pk3" % i)) == PAK_CHECKSUMS[i]:
+				n += 1
+				break
 	return n
 
 

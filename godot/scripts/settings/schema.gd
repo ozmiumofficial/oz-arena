@@ -90,7 +90,7 @@ static func build() -> Array:
 		{"min": 0, "max": 1000, "step": 5, "unit": "fps"}))
 	g = "View"
 	L.append(_e("video/fov", "Field of view", "float", 90.0, "Horizontal degrees at 4:3, like Quake 3's cg_fov. Wider screens see more at the sides (Hor+), so it's correct at any aspect. " + game, g,
-		{"min": 60.0, "max": 130.0, "step": 1.0, "unit": "deg", "wired": false}))
+		{"min": 60.0, "max": 130.0, "step": 1.0, "unit": "deg"}))
 	g = "Rendering"
 	L.append(_e("video/render_scale", "Render scale", "float", 1.0, "3D resolution relative to the window. The menu and HUD always render at full resolution.", g,
 		{"min": 0.5, "max": 2.0, "step": 0.05, "unit": "x"}))
@@ -151,7 +151,7 @@ static func build() -> Array:
 		L.append(_e("controls/" + b[0], b[1], "bind", b[2], "Binds for %s: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button." % b[1].to_lower(), g))
 	g = "Options"
 	L.append(_e("controls/toggle_crouch", "Toggle crouch", "bool", false, "Tap to crouch instead of holding. " + game, g, {"wired": false}))
-	L.append(_e("controls/toggle_zoom", "Toggle zoom", "bool", false, "Tap to zoom instead of holding. " + game, g, {"wired": false}))
+	L.append(_e("controls/toggle_zoom", "Toggle zoom", "bool", false, "Tap to zoom instead of holding. " + game, g, {}))
 	L.append(_e("controls/pad_deadzone", "Stick deadzone", "float", 0.15, "Controller stick deadzone, menus included.", g, {"min": 0.0, "max": 0.5, "step": 0.01}))
 	L.append(_e("controls/pad_look", "Stick look speed", "float", 3.0, "Controller look speed in turns per second at full tilt. " + game, g, {"min": 0.5, "max": 8.0, "step": 0.1, "wired": false}))
 	L.append(_e("controls/steam_input", "Steam Input layout", "enum", "default", "Community controller layouts through Steam Input. Comes with Steam.", g,
@@ -162,11 +162,11 @@ static func build() -> Array:
 	L.append(_e("mouse/sensitivity", "Sensitivity", "float", 5.0, "Quake 3 units: degrees per count = sensitivity x 0.022 (m_yaw). The cm/360 below is the distance for a full turn. " + game, g,
 		{"min": 0.1, "max": 30.0, "step": 0.05, "wired": false}))
 	L.append(_e("mouse/dpi", "Mouse DPI", "int", 800, "Your mouse's DPI (counts per inch). Only used to show cm/360.", g, {"min": 100, "max": 32000, "step": 50}))
-	L.append(_e("mouse/zoom_sensitivity", "Zoom sensitivity", "float", 1.0, "Multiplier while zoomed. " + game, g, {"min": 0.1, "max": 2.0, "step": 0.05, "unit": "x", "wired": false}))
+	L.append(_e("mouse/zoom_sensitivity", "Zoom sensitivity", "float", 1.0, "Multiplier while zoomed. " + game, g, {"min": 0.1, "max": 2.0, "step": 0.05, "unit": "x"}))
 	g = "Input"
 	L.append(_e("mouse/raw_input", "Raw input", "bool", true, "Read the mouse directly, skipping Windows pointer speed and acceleration. " + game, g, {"wired": false}))
 	L.append(_e("mouse/acceleration", "Acceleration", "float", 0.0, "Quake 3's cl_mouseAccel. 0 = off. " + game, g, {"min": 0.0, "max": 1.0, "step": 0.01, "wired": false}))
-	L.append(_e("mouse/invert", "Invert vertical", "bool", false, "Mouse up looks down. " + game, g, {"wired": false}))
+	L.append(_e("mouse/invert", "Invert vertical", "bool", false, "Mouse up looks down. " + game, g, {}))
 
 	# ---- Crosshair
 	g = "Shape"
@@ -230,8 +230,8 @@ static func build() -> Array:
 
 	# ---- Network
 	g = "Connection"
-	L.append(_e("network/region", "Region", "enum", "auto", "Matchmaking region.", g,
-		{"options": [["auto", "Automatic"], ["na_east", "North America East"], ["na_west", "North America West"], ["eu", "Europe"], ["sa", "South America"], ["asia", "Asia"], ["oce", "Oceania"]], "wired": false}))
+	L.append(_e("network/region", "Region", "enum", "auto", "Matchmaking region. Automatic finds matches in your closest region first and widens if the wait runs long; a named region stays strict.", g,
+		{"options": [["auto", "Automatic"], ["na_east", "North America East"], ["na_west", "North America West"], ["eu", "Europe"], ["sa", "South America"], ["asia", "Asia"], ["oce", "Oceania"], ["meaf", "Middle East and Africa"]], "wired": false}))
 	L.append(_e("network/max_ping", "Max ping", "int", 120, "Hide servers and matches above this ping.", g, {"min": 20, "max": 400, "step": 10, "unit": "ms", "wired": false}))
 	L.append(_e("network/rate", "Connection speed", "enum", "fast", "Bandwidth the server may use (rate).", g,
 		{"options": [["slow", "Slow (25 KB/s)"], ["medium", "Medium (50 KB/s)"], ["fast", "Fast (100 KB/s)"], ["lan", "LAN (unlimited)"]], "wired": false}))

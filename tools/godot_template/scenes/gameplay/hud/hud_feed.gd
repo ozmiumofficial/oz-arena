@@ -3,7 +3,7 @@ extends Control
 ## The kill feed, top right (Settings > HUD > Kill feed): "attacker [weapon] victim" for every
 ## EV_OBITUARY, newest at the top, each row for 6 s. The weapon is its Quake 3 icon; deaths with
 ## no weapon (lava, falling, crushing ...) show a short tag instead. You are amber; in team modes
-## names take their team's color.
+## names take their team's color. A name's own color codes win over both, as in Quake 3.
 
 const S := preload("res://scenes/gameplay/hud/hud_style.gd")
 const LIFE := 6.0
@@ -58,8 +58,8 @@ func _draw() -> void:
 		var icon_w := 30.0 * u
 		var tag: String = "" if MOD_WEAPON.has(mod) else String(MOD_TAG.get(mod, "KILLED"))
 		var mid_w := icon_w if tag == "" else S.text_width(S.label(), tag, int(13 * u)) + 6 * u
-		var aw := S.text_width(font, a, fs) if a != "" else 0.0
-		var vw := S.text_width(font, v, fs)
+		var aw := S.ctext_width(font, a, fs) if a != "" else 0.0
+		var vw := S.ctext_width(font, v, fs)
 		var gap := 10.0 * u
 		var w := aw + (gap if a != "" else 0.0) + mid_w + gap + vw + 36.0 * u
 		var r := Rect2(Vector2(size.x - w + slide, y), Vector2(w, h))
@@ -71,7 +71,7 @@ func _draw() -> void:
 		var x := r.position.x + 18.0 * u
 		var base := y + h * 0.5 + fs * 0.36
 		if a != "":
-			S.text(self, font, Vector2(x, base), a, fs, Color(_name_color(row["am"], row["at"]), alpha))
+			S.ctext(self, font, Vector2(x, base), a, fs, Color(_name_color(row["am"], row["at"]), alpha))
 			x += aw + gap
 		if tag == "":
 			var tex := S.weapon_icon(int(MOD_WEAPON[mod]))
@@ -80,5 +80,5 @@ func _draw() -> void:
 		else:
 			S.text(self, S.label(), Vector2(x, y + h * 0.5 + 5 * u), tag, int(13 * u), Color(S.RED, alpha))
 		x += mid_w + gap
-		S.text(self, font, Vector2(x, base), v, fs, Color(_name_color(row["vm"], row["vt"]), alpha))
+		S.ctext(self, font, Vector2(x, base), v, fs, Color(_name_color(row["vm"], row["vt"]), alpha))
 		y += h + 5.0 * u

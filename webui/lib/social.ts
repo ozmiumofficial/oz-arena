@@ -75,7 +75,7 @@ export function social(op: SocialOp, data: { id?: string; code?: string; party?:
 
 // Quake 3's name colors: ^0-^7 (q_shared.h ColorIndex wraps any other character to 0-7 too). Black and
 // blue are lifted a little: id's pure values vanish on the menu's dark glass.
-const Q3_COLORS = ["#5a5a5a", "#ff0000", "#00ff00", "#ffff00", "#4a6bff", "#00ffff", "#ff00ff", "#ffffff"];
+export const Q3_COLORS = ["#5a5a5a", "#ff0000", "#00ff00", "#ffff00", "#4a6bff", "#00ffff", "#ff00ff", "#ffffff"];
 
 export function nameRuns(name: string): { text: string; color: string | null }[] {
   const out: { text: string; color: string | null }[] = [];

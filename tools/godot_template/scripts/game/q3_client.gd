@@ -292,12 +292,14 @@ func _update_player(e: Dictionary, es: Dictionary) -> void:
 		var vel := Q3.q3_to_godot(es["pos"]["trDelta"])
 		ch.ragdoll((vel * 0.6).limit_length(8.0))   # a shotgun's knockback can't fire limbs through floors
 		e["ragdolled"] = true
+		_talk_balloon(ch, false, false)
 		var old := ch.find_child("Attach_weapon", true, false)
 		if old:
 			old.queue_free()
 		e.erase("wfx")
 		return
 	ch.global_position = Q3.q3_to_godot(trajectory(es["pos"], _time)) + Vector3.DOWN * 24.0 * Q3.UNIT   # origin is 24 above the feet
+	_talk_balloon(ch, (int(es["eFlags"]) & E.EF_TALK) != 0, e == _self)
 	var ang: Vector3 = es["apos"]["trBase"]
 	ch.rotation = Vector3(0.0, deg_to_rad(ang.y), 0.0)
 	ch.aim_pitch = ang.x   # the torso and head bend toward the aim (CG_PlayerAngles)
@@ -326,6 +328,29 @@ func _update_player(e: Dictionary, es: Dictionary) -> void:
 				if prop:
 					e["wfx"] = Q3WeaponFx.bind(prop, w)
 					(e["wfx"] as Q3WeaponFx).rail_color = client_colors(int(es["clientNum"]))[0]
+
+
+## cg_players.c CG_PlayerSprites: EF_TALK (typing in the chat) floats sprites/balloon3 48 units
+## over the origin, radius 10 (CG_PlayerFloatSprite). Your own shows only in mirrors.
+func _talk_balloon(ch: Q3Character, on: bool, mine: bool) -> void:
+	var b := ch.get_node_or_null("TalkBalloon") as Sprite3D
+	if b == null:
+		if not on:
+			return
+		b = Sprite3D.new()
+		b.name = "TalkBalloon"
+		b.texture = load(Q3.LIB + "fx/textures/talk_balloon.png")
+		b.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		b.shaded = false
+		b.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+		b.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if b.texture:
+			b.pixel_size = 20.0 * Q3.UNIT / b.texture.get_width()
+		b.position = Vector3.UP * (24.0 + 48.0) * Q3.UNIT
+		if mine:
+			b.layers = Q3Portal.MIRROR_LAYER
+		ch.add_child(b)
+	b.visible = on
 
 
 # ---------------------------------------------------------------- events (cg_event.c)

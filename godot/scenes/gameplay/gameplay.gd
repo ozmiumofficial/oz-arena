@@ -9,6 +9,9 @@ extends Node3D
 ## Escape opens the pause menu: the web menu (webui/, PauseApp) in a hidden web view made at the
 ## start, shown over the paused match with Resume, Crosshair (edited live), Settings, Restart,
 ## Leave and Quit. Without a web view (headless) a small native panel stands in.
+## T and Y open the chat (Q3HudChat): the line goes to the game as "say" / "say_team", and while
+## typing the usercmd carries only BUTTON_TALK, as cl_input.c sends it with a key catcher up (the
+## game stands you still and others see the talk balloon).
 
 const E := preload("res://scripts/game/q3_enums.gd")
 ## weapons2/<dir> per weapon number, for the hand tags in library/props/view_weapons.json
@@ -54,6 +57,11 @@ var _pause_panel: Node             ## the native stand-in when there's no web vi
 var pause_bridge: Q3MenuBridge     ## the pause menu's protocol (context "pause")
 var pause_layer: Q3WebLayer        ## the pause menu's web view, hidden while playing
 var _ready_sent := false           ## ready-up toggled from the pause menu
+## usercmd actions held when the chat closed, ignored until let go: the Enter that sent the line
+## isn't Use item (Quake 3's keys pressed in message mode never reach their binds either)
+var _chat_held: Array[StringName] = []
+const USERCMD_ACTIONS: Array[StringName] = [&"q3_walk", &"q3_forward", &"q3_back", &"q3_moveright", &"q3_moveleft",
+	&"q3_jump", &"q3_crouch", &"q3_attack", &"q3_use_item", &"q3_gesture"]
 
 
 func _ready() -> void:
@@ -147,6 +155,13 @@ func _build_view() -> void:
 		cam.cull_mask &= ~Q3Portal.MIRROR_LAYER
 	hud = Q3Hud.new()
 	add_child(hud)
+	hud.chat.sent.connect(_say)
+	hud.chat.closed.connect(func():
+		_chat_held.clear()
+		for a in USERCMD_ACTIONS:
+			if Input.is_action_pressed(a):
+				_chat_held.append(a))
+	hud.chat.names = func() -> Array: return standings().map(func(r): return r["plain"])
 	client.local_event.connect(_on_local_event)
 	music = Q3Music.new()
 	music.name = "Music"
@@ -170,6 +185,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_set_paused(not _paused)
 		return
 	if _paused:
+		return
+	if hud.chat.typing and not event is InputEventMouseMotion:
+		return   # the chat line has the keyboard; you can still look around
+	if (event.is_action_pressed("q3_chat") or event.is_action_pressed("q3_teamchat")) and me >= 0 and _error == "" and not _ended:
+		hud.chat.open(event.is_action_pressed("q3_teamchat"))
+		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		# cl_input.c CL_MouseMove: m_yaw / m_pitch 0.022 degrees per count times sensitivity
@@ -226,7 +247,7 @@ func _process(delta: float) -> void:
 	_board_t -= delta
 	# cg_draw.c CG_DrawScoreboard: the scores show while Tab is held, and while you're dead
 	var dead_now := not ps.is_empty() and int(ps["pm_type"]) == E.PM_DEAD
-	var show_board := (Input.is_action_pressed("q3_scores") or dead_now) and not _ended
+	var show_board := ((Input.is_action_pressed("q3_scores") and not hud.chat.typing) or dead_now) and not _ended
 	scoreboard.visible = show_board
 	if scoreboard.interactive and not Input.is_action_pressed("q3_scores"):
 		scoreboard.set_interactive(false)
@@ -242,29 +263,51 @@ func _process(delta: float) -> void:
 
 
 func _send_usercmd() -> void:
+	if hud.chat.typing:
+		# CL_CmdButtons: BUTTON_TALK while a key catcher is up; bg_pmove.c PmoveSingle then holds still
+		Q3Server.usercmd(me, _client_time, _view, E.BUTTON_TALK, _weapon, 0, 0, 0)
+		return
 	var fwd := 0
 	var side := 0
 	var up := 0
-	var speed := 64 if Input.is_action_pressed("q3_walk") else 127
-	if Input.is_action_pressed("q3_forward"): fwd += speed
-	if Input.is_action_pressed("q3_back"): fwd -= speed
-	if Input.is_action_pressed("q3_moveright"): side += speed
-	if Input.is_action_pressed("q3_moveleft"): side -= speed
-	if Input.is_action_pressed("q3_jump"): up += 127
-	if Input.is_action_pressed("q3_crouch"): up -= 127
+	var speed := 64 if _held(&"q3_walk") else 127
+	if _held(&"q3_forward"): fwd += speed
+	if _held(&"q3_back"): fwd -= speed
+	if _held(&"q3_moveright"): side += speed
+	if _held(&"q3_moveleft"): side -= speed
+	if _held(&"q3_jump"): up += 127
+	if _held(&"q3_crouch"): up -= 127
 	var buttons := 0
 	# (the click that recaptures the mouse doesn't fire; tests have no mouse to capture)
-	if Input.is_action_pressed("q3_attack") and (Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or test_input):
+	if _held(&"q3_attack") and (Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or test_input):
 		buttons |= E.BUTTON_ATTACK
-	if Input.is_action_pressed("q3_use_item"):
+	if _held(&"q3_use_item"):
 		buttons |= E.BUTTON_USE_HOLDABLE
-	if Input.is_action_pressed("q3_gesture"):
+	if _held(&"q3_gesture"):
 		buttons |= E.BUTTON_GESTURE
 	if speed < 127:
 		buttons |= E.BUTTON_WALKING
 	if fwd != 0 or side != 0 or up != 0 or buttons != 0:
 		buttons |= E.BUTTON_ANY
 	Q3Server.usercmd(me, _client_time, _view, buttons, _weapon, fwd, side, up)
+
+
+## Input.is_action_pressed, except for an action that was already down when the chat closed.
+func _held(action: StringName) -> bool:
+	if not Input.is_action_pressed(action):
+		_chat_held.erase(action)
+		return false
+	return not _chat_held.has(action)
+
+
+## The chat line goes to the game as a client command (cl_keys.c Message_Key: say "<text>"). The
+## game's tokenizer would end the argument at a quote, so quotes become apostrophes.
+func _say(text: String, team: bool) -> void:
+	var t := text.replace("\"", "'").strip_edges()
+	while t.to_utf8_buffer().size() > Q3HudChat.MAX_SAY:
+		t = t.left(-1)
+	if t != "" and me >= 0:
+		Q3Server.client_command(me, "%s \"%s\"" % ["say_team" if team else "say", t])
 
 
 ## The eye (cg_view.c CG_OffsetFirstPersonView): the live playerState's origin and view height,
@@ -558,8 +601,8 @@ func _campaign_skill() -> int:
 	return int(Session.campaign.progress.get("skill", 3)) if setup.source in ["campaign", "training"] else 3
 
 
-## Everyone in the match, best first: name, score, deaths, ping, team, card and level. Bots get
-## cards built from their own heads; you get your profile's card.
+## Everyone in the match, best first: name (with its color codes; "plain" without), score, deaths,
+## ping, team, card and level. Bots get cards built from their own heads; you get your profile's card.
 func standings() -> Array:
 	var out: Array = []
 	for cl in E.MAX_CLIENTS:
@@ -569,10 +612,11 @@ func standings() -> Array:
 		if ps.is_empty():
 			continue
 		var info := Q3Host.parse_info(Q3Server.configstring(E.CS_PLAYERS + cl))
-		var name := _strip_colors(String(info.get("n", "?")))
+		var name := String(info.get("n", "?"))
+		var plain := Q3Colors.strip(name)
 		var model := String(info.get("model", "sarge")).get_slice("/", 0).to_lower()
 		var bot := info.has("skill")
-		var row := {"client": cl, "name": name, "score": int(ps["persistant"][E.PERS_SCORE]), "model": model,
+		var row := {"client": cl, "name": name, "plain": plain, "score": int(ps["persistant"][E.PERS_SCORE]), "model": model,
 			"skill": int(float(info.get("skill", "0"))),
 			"frags": maxi(int(ps["persistant"][E.PERS_SCORE]), 0), "deaths": int(ps["persistant"][E.PERS_KILLED]),
 			"ping": int(ps["ping"]), "team": int(ps["persistant"][E.PERS_TEAM]), "bot": bot, "local": cl == me}
@@ -580,7 +624,7 @@ func standings() -> Array:
 			row["card"] = Q3Profile.card()
 			row["level"] = int(Q3Profile.level()["level"])
 		else:
-			var c: Dictionary = Q3Profile.bot_card(name, model, int(float(info.get("skill", "3"))))
+			var c: Dictionary = Q3Profile.bot_card(plain, model, int(float(info.get("skill", "3"))))
 			row["card"] = c
 			row["level"] = int(c.get("level", 1))
 		out.append(row)
@@ -602,6 +646,7 @@ func _match_title() -> String:
 func _end_match(ps: Dictionary) -> void:
 	_ended = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	hud.chat.close()
 	hud.visible = false
 	var campaign := setup.source in ["campaign", "training"]
 	var post := PackedStringArray()
@@ -662,7 +707,7 @@ func _end_match(ps: Dictionary) -> void:
 	# ui_sppostgame.c: "music music/win" (or loss) over the postgame, then "You win" or "<winner> wins"
 	if campaign:
 		music.play("music/win" if won else "music/loss")
-	var winner := String(rows[0].get("name", "")).to_lower() if rows.size() else ""
+	var winner := String(rows[0].get("plain", "")).to_lower() if rows.size() else ""
 	client.play_sound("sound/player/announce/youwin.wav" if won else "sound/player/announce/%s_wins.wav" % winner, Vector3.ZERO, true)
 	var ordinal := ["1st", "2nd", "3rd"]
 	_results = Q3ResultsScreen.new()
@@ -716,11 +761,18 @@ func _server_command(c: String) -> void:
 		return
 	if cmd in ["print", "cp", "chat", "tchat"]:
 		var text := c.substr(cmd.length() + 1).strip_edges().trim_prefix("\"").trim_suffix("\"").replace("\\n", "\n").strip_edges()
-		text = _strip_colors(text)
 		if cmd == "cp":
 			hud.center_print(text, 0.25)
-		elif text != "":
-			hud.notify(text.replace("\n", " "), cmd != "print")
+		elif cmd == "print":
+			if text != "":
+				hud.notify(text.replace("\n", " "))
+		else:
+			# cg_servercmds.c: the talk sound, then the line without G_Say's EC (0x19) markers.
+			# Settings > HUD > Team chat only is cg_teamChatsOnly: plain chat is dropped.
+			if cmd == "chat" and Settings.get_value("hud/team_chats_only"):
+				return
+			client.play_sound("sound/player/talk.wav", Vector3.ZERO, true)
+			hud.chat.add(text.replace(char(0x19), "").replace("\n", " "), cmd == "tchat")
 
 
 ## EV_OBITUARY: the kill feed, and cg_event.c CG_Obituary's center print when you frag someone.
@@ -741,8 +793,9 @@ func _on_obituary(attacker: int, target: int, means: int) -> void:
 			hud.center_print("You fragged %s" % _name(target), 0.3)
 
 
+## A player's name with its color codes.
 func _name(cl: int) -> String:
-	return _strip_colors(String(Q3Host.parse_info(Q3Server.configstring(E.CS_PLAYERS + cl)).get("n", "?")))
+	return String(Q3Host.parse_info(Q3Server.configstring(E.CS_PLAYERS + cl)).get("n", "?"))
 
 
 ## The local player's predictable events (Q3Client.local_event): the speedometer's jump readout,
@@ -788,11 +841,6 @@ func _out_of_ammo_change(ps: Dictionary) -> void:
 		if owned & (1 << w) and (w == E.WP_GAUNTLET or int(ps["ammo"][w]) != 0):
 			_weapon = w
 			return
-
-
-static func _strip_colors(s: String) -> String:
-	var re := RegEx.create_from_string("\\^[0-9a-zA-Z]")
-	return re.sub(s, "", true)
 
 
 func _leave() -> void:

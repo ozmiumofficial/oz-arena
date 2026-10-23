@@ -154,6 +154,17 @@
    "source_shader": "waterBubble",
    "animmap_fps": 0
   },
+  "talk_balloon": {
+   "file": "textures/talk_balloon.png",
+   "frames": 1,
+   "frame_size": [
+    512,
+    512
+   ],
+   "mode": "blend",
+   "source_shader": "sprites/balloon3",
+   "animmap_fps": 0
+  },
   "tracer": {
    "file": "textures/tracer.png",
    "frames": 1,

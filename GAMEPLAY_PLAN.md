@@ -102,7 +102,8 @@ Order: G0 -> G1 and G2 (independent, can overlap) -> G3 -> G4 -> G5/G6/G7 -> G8.
 - **Speedometer:** an arc gauge in UPS with a strafe-jump readout (takeoff speed and the gain on the last jump).
 - **Presets:** modern, competitive, minimal and classic, with HUD scale and opacity.
 - **Q3 local feedback:** hit sounds, lead changes, frags-left and time warnings, the damage view kick, view bob, the dead view, cg_autoswitch and the out-of-ammo switch.
-- **Still to do in G5:** chat input and a console, item timers, net graph.
+- **Chat (2026-10-23):** `hud_chat.gd` (`Q3HudChat`), bottom left. T says, Y says to your team; the line goes to id's game as `say` / `say_team`, so G_Say formats it and bots' lines arrive the same way. While typing, the usercmd carries only BUTTON_TALK (you stand still, others see `sprites/balloon3`). Up/Down recall, Tab completes names, a preview shows color codes, and Settings > HUD > Chat has the time, lines and team-only (cg_teamChatsOnly). Color codes (`Q3Colors`) are drawn in chat, prints, center prints, the kill feed, the scores, player cards and the pause menu.
+- **Still to do in G5:** a console, item timers, net graph.
 
 **Pause menu and crosshair editor (G5/G6, 2026-10-22):**
 - **Pause menu:** the web menu in the "pause" context (`PauseApp`), from a hidden web view made at match start (`Q3WebLayer`), so Escape opens it at once.

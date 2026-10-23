@@ -127,6 +127,8 @@ godot --headless --path godot res://tests/gameplay_smoke.tscn
 godot --path godot res://tests/weapon_fx.tscn -- out=C:/temp/wfx [move=1 pitch=8 preset=classic]   # every weapon fired, frames saved
 godot --path godot res://tests/pause_menu.tscn   # pause menu, crosshair editor live, resume (6 checks)
 godot --headless --path godot res://tests/campaign_flow.tscn   # a campaign arena start to finish (7 checks)
+godot --headless --path godot res://tests/chat_test.tscn   # chat and color codes: T/Y, EF_TALK, G_Say round trip, Escape, held Enter (19 checks)
+godot --path godot res://tests/chat_capture.tscn -- out=C:/temp/chat window=1600x900   # the chat open with a preview, and the talk balloon
 godot --headless --path godot res://tests/check_scripts.tscn   # every script parses (what the editor's Errors panel would list)
 godot --path godot res://tests/ragdoll_test.tscn -- out=C:/temp/rag [seq=sarge] [burn=1]
 godot --path godot res://tests/scoreboard_test.tscn -- out=C:/temp/board

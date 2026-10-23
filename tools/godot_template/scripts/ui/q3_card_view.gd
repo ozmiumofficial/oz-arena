@@ -69,7 +69,7 @@ func _draw() -> void:
 	var x := e.end.x + 14
 	var h := r.size.y
 	var text_w := r.size.x - x - maxf(50.0, h * 0.75) - 20.0
-	draw_string(font, Vector2(x, h * 0.46), player_name.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, text_w, int(h * 0.32), Color.WHITE)
+	Q3Colors.draw(self, font, Vector2(x, h * 0.46), player_name.to_upper(), int(h * 0.32), Color.WHITE, text_w)
 	if _title != "":
 		draw_string(font, Vector2(x, h * 0.80), _title, HORIZONTAL_ALIGNMENT_LEFT, text_w, int(h * 0.2), _accent.lightened(0.35))
 	# level badge on the right, growing with the card so three-digit levels fit at any size

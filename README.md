@@ -51,6 +51,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 | **Movies** | Low-resolution intro and tier movies | All 10 cinematics upscaled |
 | **Main menu** | Static menu screens | A cinematic menu: one fighter or weapon floating in a dark, smoky void while the camera drifts, with the original menu sounds |
 | **HUD** | Fixed classic HUD | A Quake Live-style HUD with four presets, a speedometer that shows your strafe-jump gain, a kill feed, damage direction arcs and award medals |
+| **Chat** | A line of text at the top of the screen | A chat box with history, team chat, name completion and a live preview of colored text; colored names show everywhere, from the kill feed to the scoreboard |
 | **Crosshair** | Pick one of ten | A full crosshair editor with per-weapon crosshairs and shareable codes, previewed live in the match behind it |
 | **Settings** | Basic options, console variables | A full settings menu with search, live preview and shareable config codes |
 | **Online** | Server browser, IP addresses | Friends, parties and presence, with no accounts to sign up for |

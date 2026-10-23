@@ -14,6 +14,7 @@ import { cn } from "@/lib/cn";
 import MenuItem from "./MenuItem";
 import BannerText from "./BannerText";
 import { Toasts } from "./Chrome";
+import { Q3Name } from "./Social";
 import { PAGES } from "./pages";
 
 type Item = { id: string; label: string; hint: string; page?: string; act?: () => void };
@@ -121,7 +122,7 @@ function PauseColumn({ items, covered, onBack, open }: { items: Item[]; covered:
           <div className="mt-3 flex flex-col gap-1">
             {(match.standings ?? []).slice(0, 4).map((s, i) => (
               <div key={i} className={cn("flex w-[18rem] items-center justify-between text-[0.95rem]", s.local ? "text-amber" : "text-ink/80")}>
-                <span className="truncate"><span className="mr-2 text-faint tabular-nums">{i + 1}</span>{s.name}</span>
+                <span className="truncate"><span className="mr-2 text-faint tabular-nums">{i + 1}</span><Q3Name name={s.name} /></span>
                 <span className="tabular-nums">{s.score}</span>
               </div>
             ))}

@@ -8,6 +8,8 @@ extends CanvasLayer
 ##   cg_draw.c: center prints (3 s), rewards (3 s each, queued), the item pickup (3 s), powerups
 ##     with their time left, the low-ammo warning (CG_CheckAmmo), warmup and the countdown with
 ##     its "three, two, one" and "FIGHT!".
+## Chat has its own box, bottom left (hud_chat.gd). Names, prints and chat keep Quake 3's color
+## codes (Q3Colors, S.ctext).
 ## Gameplay calls update() each frame and the event methods as things happen.
 
 const S := preload("res://scenes/gameplay/hud/hud_style.gd")
@@ -34,11 +36,12 @@ var ammo_panel: Q3HudAmmo
 var weapon_bar: Q3HudWeaponBar
 var speedometer: Q3HudSpeedometer
 var feed: Q3HudFeed
+var chat: Q3HudChat
 var crosshair: Q3HudCrosshair
 var damage_fx: Q3HudDamage
 var status: Q3HudStatus
 var _msg: Control                 ## center prints, rewards, pickups, powerups, warmup, notices
-var _notify: Array[Dictionary] = []   ## console prints and chat, top left
+var _notify: Array[Dictionary] = []   ## console prints, top left
 var _fatal := ""
 var _center := ""
 var _center_t := 99.0
@@ -85,6 +88,7 @@ func _ready() -> void:
 	weapon_bar = _add(Q3HudWeaponBar.new())
 	vitals = _add(Q3HudVitals.new())
 	ammo_panel = _add(Q3HudAmmo.new())
+	chat = _add(Q3HudChat.new())
 	_msg = _add(Control.new())
 	_msg.draw.connect(_draw_messages)
 	_announcer = AudioStreamPlayer.new()
@@ -152,6 +156,10 @@ func layout() -> void:
 		ammo_panel.size = amm
 		ammo_panel.position = Vector2(vs.x - amm.x - m, vs.y - amm.y - m)
 		speedometer.position = Vector2((vs.x - speedometer.size.x) * 0.5, bar_top - speedometer.size.y - 4 * u)
+	# chat, bottom left: above the vitals and the pickup line, or in the corner when they're in the middle
+	var chat_bottom := vs.y - m if preset == "classic" else vitals.position.y - 58 * u
+	chat.size = Vector2(minf(720 * u, vs.x * 0.42), 14 * 25 * u + 50 * u)
+	chat.position = Vector2(m, chat_bottom - chat.size.y)
 
 
 # ---------------------------------------------------------------- per frame
@@ -438,8 +446,9 @@ func fatal(text: String) -> void:
 	_msg.queue_redraw()
 
 
-func notify(text: String, chat := false) -> void:
-	_notify.append({"text": text, "chat": chat, "t": 0.0})
+## A server print, top left.
+func notify(text: String) -> void:
+	_notify.append({"text": text, "t": 0.0})
 	while _notify.size() > 5:
 		_notify.remove_at(0)
 
@@ -527,11 +536,11 @@ func _draw_messages() -> void:
 		for i in lines.size():
 			S.text(_msg, S.num_medium(), Vector2(vs.x * 0.5, vs.y * 0.4 + i * 34 * u), lines[i], int(26 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_CENTER)
 		return
-	# console prints and chat, top left
+	# console prints, top left
 	var y := 40.0 * u
 	for n in _notify:
 		var a := clampf((6.0 - float(n["t"])) / 0.5, 0.0, 1.0)
-		S.text(_msg, S.num_medium(), Vector2(34 * u, y), String(n["text"]), int(18 * u), Color(S.AMBER if n["chat"] else S.INK, a))
+		S.ctext(_msg, S.num_medium(), Vector2(34 * u, y), String(n["text"]), int(18 * u), Color(S.INK, a))
 		y += 24 * u
 	# the center print
 	if _center != "" and _center_t < CENTER_TIME:
@@ -542,7 +551,7 @@ func _draw_messages() -> void:
 		var pop := 1.0 + (1.0 - clampf(_center_t / 0.15, 0.0, 1.0)) * 0.25
 		for i in lines.size():
 			var col := S.INK_HOT if i == 0 else S.DIM
-			S.text(_msg, S.label(), Vector2(vs.x * 0.5, vs.y * _center_y + i * size * 1.2), lines[i],
+			S.ctext(_msg, S.label(), Vector2(vs.x * 0.5, vs.y * _center_y + i * size * 1.2), lines[i],
 				int(size * pop * (1.0 if i == 0 else 0.7)), Color(col, a), HORIZONTAL_ALIGNMENT_CENTER)
 	# warmup
 	if _warmup_text != "":
@@ -587,7 +596,7 @@ func _draw_messages() -> void:
 	# dead: who did it, and how to come back
 	if _dead:
 		if killer != "":
-			S.text(_msg, S.num_medium(), Vector2(vs.x * 0.5, vs.y * 0.7), "Fragged by " + killer, int(26 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_CENTER)
+			S.ctext(_msg, S.num_medium(), Vector2(vs.x * 0.5, vs.y * 0.7), "Fragged by " + killer, int(26 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_CENTER)
 		S.text(_msg, font, Vector2(vs.x * 0.5, vs.y * 0.7 + 34 * u), "FIRE TO RESPAWN", int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
 	if Settings.get_value("hud/fps"):
 		S.text(_msg, S.num_medium(), Vector2(vs.x - 34 * u, vs.y * 0.5 - 140 * u), "%d FPS" % _fps, int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_RIGHT)

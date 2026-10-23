@@ -104,6 +104,30 @@ static func text_width(font: Font, s: String, size: int) -> float:
 	return font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 
 
+## text() for strings carrying Quake 3's color codes (names, chat, server prints): `color` is the
+## text before the first code, and every code keeps its alpha.
+static func ctext(ci: CanvasItem, font: Font, pos: Vector2, s: String, size: int, color: Color,
+		align := HORIZONTAL_ALIGNMENT_LEFT, outline := 0.35, max_width := -1.0) -> void:
+	var parts := Q3Colors.runs(s, color)
+	if max_width > 0.0 and Q3Colors.width(font, s, size) > max_width:
+		parts = Q3Colors.fit(font, parts, size, max_width)
+	var plain := ""
+	for r in parts:
+		plain += r[0]
+	var p := pos
+	if align != HORIZONTAL_ALIGNMENT_LEFT:
+		var w := font.get_string_size(plain, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+		p.x -= w if align == HORIZONTAL_ALIGNMENT_RIGHT else w * 0.5
+	if outline > 0.0:
+		ci.draw_string_outline(font, p, plain, HORIZONTAL_ALIGNMENT_LEFT, -1, size, maxi(int(size * 0.12), 2),
+			Color(0, 0, 0, outline * color.a))
+	Q3Colors.draw_runs(ci, font, p, parts, size)
+
+
+static func ctext_width(font: Font, s: String, size: int) -> float:
+	return Q3Colors.width(font, s, size)
+
+
 ## A plus (health) drawn as vector art in r.
 static func cross_icon(ci: CanvasItem, r: Rect2, color: Color) -> void:
 	var c := r.get_center()

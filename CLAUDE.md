@@ -240,6 +240,11 @@ ode_modules`.
   - Gameplay judges the result as `ui_sppostgame.c` does: first place, ties included. Awards are accuracy at 50% or better, impressive, excellent, gauntlet, every 100 career frags, and perfect.
   - `Q3Campaign`: Training first, then tiers in order (`UI_GetCurrentGame`). It also grants campaign XP (`xp_lines()`).
   - Check it with `tests/campaign_flow.tscn` (headless; cheats; saves and restores your campaign and profile).
+- **Chat and color codes:**
+  - `Q3HudChat` sends `say "<text>"` / `say_team` through `Q3Server.client_command`; id's G_Say formats the line (`Name^7: ^2text`, EC 0x19 markers removed) and it comes back as `chat` / `tchat`. Quotes become apostrophes (the tokenizer ends the argument at one).
+  - While typing, the usercmd is BUTTON_TALK only; usercmd actions held when the chat closes are ignored until let go (`Gameplay._held`), so the Enter that sent a line isn't Use item.
+  - `Q3Colors` follows id 1.32's Q_IsColorString (`^` + any non-`^`), not ioquake3's alnum-only one; ^0 and ^4 are lifted as in the web menu. Standings rows carry `name` (with codes) and `plain` (for logic: bot cards, the announcer's `<name>_wins`).
+  - Check with `tests/chat_test.tscn` (headless, 19 checks) and `tests/chat_capture.tscn` (windowed shots).
 - **Holding fire from the spawn never shoots** (bg_pmove.c `PMF_RESPAWNED`); test scripts press it after spawning. Headless runs need `gameplay.test_input = true`, because firing needs a captured mouse.
 - **Physics is Jolt** (`physics/3d/physics_engine`); only ragdolls, gibs and brass use it.
   - Ragdoll bodies come only from the rig's main parts by name (`RAGDOLL_PARTS` in `q3_character.gd`), with per-part masses and limits; knees are hinges.

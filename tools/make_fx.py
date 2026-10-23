@@ -36,6 +36,7 @@ SOURCES = {
     "lightning_bolt": (["gfx/misc/lightning3new"], "add", "lightningBoltNew", 0),
     "teleport": (["gfx/misc/teleportEffect2"], "add", "teleportEffect", 0),
     "bubble": (["sprites/bubble"], "blend", "waterBubble", 0),
+    "talk_balloon": (["sprites/balloon4"], "blend", "sprites/balloon3", 0),
     "tracer": (["gfx/misc/tracer2"], "add", "gfx/misc/tracer", 0),
     "plasma_ball": (["sprites/plasmaa"], "add", "sprites/plasma1", 0),
     "bfg_ball": (["models/weaphits/bfg01"], "add", "models/weaphits/bfg01", 0),

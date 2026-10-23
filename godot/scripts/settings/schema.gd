@@ -201,6 +201,11 @@ static func build() -> Array:
 	L.append(_e("hud/ammo_bar", "Ammo bar", "bool", true, "Ammo for every weapon along the bottom.", g, {}))
 	L.append(_e("hud/net_graph", "Net graph", "bool", false, "Latency, loss and jitter overlay.", g, {"wired": false}))
 	L.append(_e("hud/fps", "Show FPS", "bool", false, "Frame rate counter.", g, {}))
+	g = "Chat"
+	L.append(_e("hud/chat_time", "Chat time", "int", 10, "How long chat lines stay on screen. The chat key shows the recent history.", g,
+		{"min": 3, "max": 30, "step": 1, "unit": "s"}))
+	L.append(_e("hud/chat_lines", "Chat lines", "int", 6, "Most chat lines shown at once while playing.", g, {"min": 2, "max": 12, "step": 1}))
+	L.append(_e("hud/team_chats_only", "Team chat only", "bool", false, "Hide everyone's chat but your team's (cg_teamChatsOnly).", g, {}))
 
 	# ---- Gameplay
 	g = "Weapons"

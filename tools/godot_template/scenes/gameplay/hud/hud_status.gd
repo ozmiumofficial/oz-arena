@@ -51,6 +51,6 @@ func _score_box(r: Rect2, label: String, score: int, color: Color, mine: bool) -
 	var u := hud.u
 	S.panel(self, r, Color(color.darkened(0.75), 0.7) if mine else S.GLASS)
 	S.bar(self, Rect2(Vector2(r.position.x, r.end.y - 3 * u), Vector2(r.size.x, 3 * u)), 0.0, 1.0, Color(color, 0.85))
-	S.text(self, S.label(), Vector2(r.position.x + 22 * u, r.get_center().y + 5 * u), label, int(13 * u), Color(color, 0.95),
-		HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 80 * u)
+	S.ctext(self, S.label(), Vector2(r.position.x + 22 * u, r.get_center().y + 5 * u), label, int(13 * u), Color(color, 0.95),
+		HORIZONTAL_ALIGNMENT_LEFT, 0.35, r.size.x - 80 * u)
 	S.text(self, S.num(), Vector2(r.end.x - 18 * u, r.get_center().y + 10 * u), str(score), int(28 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_RIGHT)

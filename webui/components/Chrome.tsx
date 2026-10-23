@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMenu } from "@/lib/store";
 import { cn } from "@/lib/cn";
-import { FriendsButton, OnlinePill, PartyStrip } from "./Social";
+import { FriendsButton, OnlinePill, PartyStrip, Q3Name } from "./Social";
 
 const NEWS = [
   ["Remaster", "29 characters rebuilt with real skeletons, 60 fps animation and ragdolls."],
@@ -36,7 +36,7 @@ export function TopBar() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`/q3/icons/${model}.png`} alt="" className="h-10 w-10 rounded-sm border-b-2 object-cover" style={{ borderColor: color }} />
         <div className="leading-tight">
-          <div className="font-q3 text-[1rem] tracking-wider text-ink-hot">{name}</div>
+          <Q3Name name={name} className="block font-q3 text-[1rem] tracking-wider text-ink-hot" />
           <div className="text-[0.75rem] capitalize text-dim">{model}</div>
         </div>
       </div>

@@ -55,6 +55,18 @@ func play(event: String) -> void:
 		pb.play_stream(s)
 
 
+## Any other sound on the UI channel (the Profile page's taunt preview). False if it isn't there.
+func play_file(path: String) -> bool:
+	if not ResourceLoader.exists(path):
+		return false
+	if not _player.playing:
+		_player.play()
+	var pb := _player.get_stream_playback() as AudioStreamPlaybackPolyphonic
+	if pb:
+		pb.play_stream(load(path))
+	return true
+
+
 ## Quake 3 plays the enter sound once the new menu has drawn its first frame.
 func play_in() -> void:
 	if _in_pending:

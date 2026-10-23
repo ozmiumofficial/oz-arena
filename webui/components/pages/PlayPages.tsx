@@ -1,5 +1,5 @@
 "use client";
-// Quick play, Ranked and the Server browser are the real pages, waiting on Steam: their lists are
+// Quick play and the Server browser are the real pages, waiting on Steam: their lists are
 // empty and their search buttons buzz (menu4) until GodotSteam is in. Training starts real setups.
 import { useState } from "react";
 import { motion } from "motion/react";
@@ -55,62 +55,6 @@ export function QuickPlayPage({ back }: PageProps) {
         <div className="mt-auto flex items-end justify-between">
           <div className="text-[0.95rem] text-dim">Region: <span className="text-ink">{region}</span> <span className="text-faint">(Settings, Network)</span></div>
           <Button primary refuse={NEEDS_STEAM} onRefuse={refused} className="px-14 py-4 text-[1.4rem]">Find match</Button>
-        </div>
-      </div>
-    </PagePanel>
-  );
-}
-
-export function RankedPage({ back }: PageProps) {
-  const progress = useMenu((s) => s.init?.progress);
-  const need = progress?.ranked_level ?? 30;
-  const level = progress?.level ?? 1;
-  const locked = level < need;
-  const lockReason = `Ranked opens at level ${need}. You're level ${level}.`;
-  const queues = [
-    ["Duel", "1v1 on the tournament maps. The classic ladder."],
-    ["2v2 TDM", "Team deathmatch with a partner, best of three maps."],
-    ["4v4 CTF", "Capture the flag, full teams, ranked by team rating."],
-  ];
-  return (
-    <PagePanel
-      title="Ranked"
-      subtitle={locked ? `Competitive queues with an ELO ladder, open from level ${need}. Matches and the campaign earn XP.` : "Competitive queues with an ELO ladder. Ten placement matches set your starting rank."}
-      back={back}
-    >
-      <div className="grid h-full grid-cols-[22rem_1fr] gap-10 px-10 py-6">
-        <div className="flex flex-col items-center justify-center rounded-sm border border-white/10 bg-black/30 p-8 text-center">
-          <div className="relative grid h-36 w-36 place-items-center">
-            <motion.div className="absolute inset-0 rounded-full border-2 border-dashed border-red/40" animate={{ rotate: 360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }} />
-            <div className="font-q3 text-[3rem] text-faint">?</div>
-          </div>
-          {locked ? (
-            <>
-              <div className="mt-5 font-q3 text-[1.4rem] tracking-[0.1em] text-ink">Locked</div>
-              <div className="mt-1 text-[0.95rem] text-dim">Reach level {need} to play ranked</div>
-              <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/10">
-                <div className="h-full bg-gradient-to-r from-red to-glow" style={{ width: `${Math.min(100, (level / need) * 100)}%` }} />
-              </div>
-              <div className="mt-2 font-q3 text-[0.75rem] tracking-[0.2em] text-dim">Level {level} / {need}</div>
-            </>
-          ) : (
-            <>
-              <div className="mt-5 font-q3 text-[1.4rem] tracking-[0.1em] text-ink">Unranked</div>
-              <div className="mt-1 text-[0.95rem] text-dim">0 / 10 placement matches</div>
-            </>
-          )}
-        </div>
-        <div className="flex flex-col gap-3">
-          <SectionTitle>Queues</SectionTitle>
-          {queues.map(([n, t]) => (
-            <div key={n} className="flex items-center gap-6 rounded-sm border border-white/[0.07] bg-black/25 p-5">
-              <div className="flex-1">
-                <div className="font-q3 text-[1.3rem] tracking-[0.06em] text-ink-hot">{n}</div>
-                <div className="text-[0.95rem] text-dim">{t}</div>
-              </div>
-              <Button refuse={locked ? lockReason : NEEDS_STEAM} onRefuse={refused}>Queue</Button>
-            </div>
-          ))}
         </div>
       </div>
     </PagePanel>

@@ -4,10 +4,11 @@
 
 import { emit, type Msg } from "./bridge";
 import { codeToGodot, mouseToGodot, bindLabel } from "./binds";
-import type { InitPayload, Value } from "./types";
+import type { InitPayload, PartKind, ProfileState, Value } from "./types";
 import type { Friend, Social, SocialState } from "./social";
 
 const STORE = "q3menu.values";
+const CARD_STORE = "q3menu.card";
 const SOUNDS: Record<string, string> = {
   in: "misc/menu1.wav", move: "misc/menu2.wav", out: "misc/menu3.wav", buzz: "misc/menu4.wav", change: "weapons/change.wav",
 };
@@ -91,6 +92,14 @@ async function ready() {
   try {
     Object.assign(state.values, JSON.parse(localStorage.getItem(STORE) ?? "{}"));
   } catch {}
+  // ?demo swaps in a mid-career profile (dump_menu_state.gd makes both), so the card editor has
+  // a mix of earned and locked parts to show
+  const demo = (state as InitPayload & { profile_demo?: ProfileState }).profile_demo;
+  if (location.search.includes("demo") && demo) state.profile = demo;
+  try {
+    const card = JSON.parse(localStorage.getItem(CARD_STORE) ?? "null");
+    if (card && state.profile) state.profile.card = state.profile.shown = { ...state.profile.card, ...card };
+  } catch {}
   // ?pause previews the in-match pause menu over a level shot
   if (location.search.includes("pause")) {
     state.context = "pause";
@@ -132,6 +141,34 @@ export function handle(m: Msg) {
     }
     case "set":
       set(m.key as string, m.value as Value);
+      break;
+    // the player card: the dump says which parts are earned; refuse anything else, as Godot does
+    case "card_set":
+    case "card_showcase": {
+      const p = state?.profile;
+      if (!p || !state?.cards) break;
+      const slot = (m.slot ?? m.kind) as string;
+      const value = (m.id ?? m.ids) as string | string[];
+      const kinds: Record<string, PartKind> = { banner: "banners", emblem: "emblems", frame: "frames", title: "titles", accent: "accents", rail: "rails", taunt: "taunts" };
+      const done = new Set(p.achievements.filter((a) => a.done).map((a) => a.id));
+      const ok = Array.isArray(value)
+        ? value.length <= 3 && (slot === "stats" ? value.every((v) => p.stats[v] !== undefined) : value.every((v) => done.has(v)))
+        : !!p.unlocked[kinds[slot]]?.includes(value);
+      if (ok) {
+        p.card = { ...p.card, [slot]: value };
+        p.shown = { ...p.shown, [slot]: value };
+        try {
+          localStorage.setItem(CARD_STORE, JSON.stringify(p.card));
+        } catch {}
+      } else handle({ type: "sound", name: "buzz" });
+      emit({ type: "profile", profile: structuredClone(p) });
+      break;
+    }
+    case "card_seen":
+      if (state?.profile) state.profile.new = state.profile.new.filter((k) => !(m.keys as string[]).includes(k));
+      break;
+    case "taunt":
+      notice("Taunts play in Godot (the preview has no character sounds).");
       break;
     case "reset": {
       const e = state?.schema.find((s) => s.key === m.key);
@@ -233,7 +270,31 @@ function emitSocial() {
   emit({ type: "social", ...social } as unknown as Msg);
 }
 
+// a pretend level board: the mock friends plus strangers, highest XP first
+function mockBoard(board: string, scope: string) {
+  const names = scope === "friends"
+    ? [["^4Visor", "visor"], ["Klesk", "klesk"], ["^1Ranger", "ranger"], ["^3Anarki", "anarki"], ["Orbb", "orbb"]]
+    : [["^1F^7atal", "xaero"], ["^4Visor", "visor"], ["Strafe^3God", "sarge"], ["Klesk", "klesk"], ["^5Railz", "slash"], ["^1Ranger", "ranger"],
+      ["Mynx", "mynx"], ["^2Doom", "doom"], ["^3Anarki", "anarki"], ["Orbb", "orbb"], ["Hunter", "hunter"], ["Crash", "crash"]];
+  const banners = ["map_q3dm17", "sky_hellsky", "mat_lava", "char_xaero", "map_q3tourney2", "mat_skull_arch", "void"];
+  const titles = ["title_xaeros_equal", "title_warlord", "title_gladiator", "title_contender", "title_fragger", "title_initiate"];
+  const rows = names.map(([name, model], i) => {
+    const xp = Math.round(190000 / (1 + i * 0.55));
+    let level = 1, left = xp;
+    while (level < 100 && left >= 1000 + 25 * (level - 1)) left -= 1000 + 25 * (level++ - 1);
+    return {
+      rank: i + 1, id: name === "^1Ranger" ? "me" : "p" + i, name, model, color: "#db2410", xp, level, rating: 0, rated: 0, peak: 0, online: i % 3 !== 2,
+      card: { banner: banners[i % banners.length], emblem: "head_" + model, frame: i < 3 ? "frame_gold" : "plain", title: titles[i % titles.length],
+        accent: ["accent_gold", "accent_plasma", "accent_red", "accent_bronze"][i % 4], rail: "rail_red", taunt: "taunt_" + model, stats: ["frags", "wins", "kd"], badges: [] },
+      stats: { frags: String(9000 - i * 600), wins: String(700 - i * 50), kd: (2.1 - i * 0.1).toFixed(2) },
+    };
+  });
+  const out = board === "ranked" ? [] : rows;
+  emit({ type: "leaderboard", board: { board, scope, rows: out, me: out.find((r) => r.id === "me") ?? null, total: out.length } });
+}
+
 function socialOp(m: Msg) {
+  if (m.op === "leaderboard") return void setTimeout(() => mockBoard(String(m.board), String(m.scope)), 250);
   const id = m.id as string;
   const me = { ...sc.me, online: true, status: "online" as const, detail: "In the menu", join: "", seen: Date.now(), since: 0 };
   const startParty = () =>

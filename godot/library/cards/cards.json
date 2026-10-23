@@ -14,7 +14,7 @@
   "title": "title_fresh_meat",
   "accent": "accent_red",
   "taunt": "taunt_sarge",
-  "rail": "rail_blue",
+  "rail": "rail_red",
   "stats": [
    "frags",
    "wins",
@@ -101,33 +101,33 @@
  },
  "ranked_tiers": [
   {
-   "id": "i_can_win",
-   "name": "I Can Win",
+   "id": "bronze",
+   "name": "Bronze",
    "min": 0
   },
   {
-   "id": "bring_it_on",
-   "name": "Bring It On",
+   "id": "silver",
+   "name": "Silver",
    "min": 1000
   },
   {
-   "id": "hurt_me_plenty",
-   "name": "Hurt Me Plenty",
+   "id": "gold",
+   "name": "Gold",
    "min": 1300
   },
   {
-   "id": "hardcore",
-   "name": "Hardcore",
+   "id": "platinum",
+   "name": "Platinum",
    "min": 1600
   },
   {
-   "id": "nightmare",
-   "name": "Nightmare!",
+   "id": "diamond",
+   "name": "Diamond",
    "min": 1900
   },
   {
-   "id": "arena_master",
-   "name": "Arena Master",
+   "id": "godlike",
+   "name": "Godlike",
    "min": 2200
   }
  ],
@@ -167,7 +167,9 @@
   "best.rail_accuracy": "best railgun accuracy in a match (%, 10+ shots)",
   "duel_wins": "Tournament wins",
   "ranked_matches": "ranked matches",
-  "ranked_peak": "highest ranked rating"
+  "ranked_peak": "highest ranked rating",
+  "ranked_rating": "current ranked rating (MMR, set by official ranked servers)",
+  "ranked_wins": "ranked wins"
  },
  "parts": {
   "banners": [
@@ -1694,7 +1696,7 @@
     "id": "rank_crest",
     "name": "Rank Crest",
     "unlock": {
-     "achievement": "ranked_hurt_me_plenty"
+     "achievement": "ranked_gold"
     },
     "kind": "stat",
     "desc": "Your ranked tier's colors"
@@ -1703,7 +1705,7 @@
     "id": "season",
     "name": "Season",
     "unlock": {
-     "achievement": "ranked_hardcore"
+     "achievement": "ranked_platinum"
     },
     "kind": "stat",
     "desc": "A new design every ranked season"
@@ -3410,54 +3412,54 @@
     "fx": "animated"
    },
    {
-    "id": "frame_ranked_bring_it_on",
-    "name": "Bring It On",
+    "id": "frame_ranked_silver",
+    "name": "Silver",
     "unlock": {
      "stat": "ranked_peak",
      "min": 1000
     },
     "style": "ranked",
-    "desc": "Reach Bring It On in ranked"
+    "desc": "Reach Silver in ranked"
    },
    {
-    "id": "frame_ranked_hurt_me_plenty",
-    "name": "Hurt Me Plenty",
+    "id": "frame_ranked_gold",
+    "name": "Gold",
     "unlock": {
      "stat": "ranked_peak",
      "min": 1300
     },
     "style": "ranked",
-    "desc": "Reach Hurt Me Plenty in ranked"
+    "desc": "Reach Gold in ranked"
    },
    {
-    "id": "frame_ranked_hardcore",
-    "name": "Hardcore",
+    "id": "frame_ranked_platinum",
+    "name": "Platinum",
     "unlock": {
      "stat": "ranked_peak",
      "min": 1600
     },
     "style": "ranked",
-    "desc": "Reach Hardcore in ranked"
+    "desc": "Reach Platinum in ranked"
    },
    {
-    "id": "frame_ranked_nightmare",
-    "name": "Nightmare!",
+    "id": "frame_ranked_diamond",
+    "name": "Diamond",
     "unlock": {
      "stat": "ranked_peak",
      "min": 1900
     },
     "style": "ranked",
-    "desc": "Reach Nightmare! in ranked"
+    "desc": "Reach Diamond in ranked"
    },
    {
-    "id": "frame_ranked_arena_master",
-    "name": "Arena Master",
+    "id": "frame_ranked_godlike",
+    "name": "Godlike",
     "unlock": {
      "stat": "ranked_peak",
      "min": 2200
     },
     "style": "ranked",
-    "desc": "Reach Arena Master in ranked"
+    "desc": "Reach Godlike in ranked"
    }
   ],
   "titles": [
@@ -3805,49 +3807,49 @@
     }
    },
    {
-    "id": "title_ranked_bring_it_on",
-    "name": "Bring It On",
+    "id": "title_ranked_silver",
+    "name": "Silver",
     "unlock": {
      "stat": "ranked_peak",
      "min": 1000
     },
-    "desc": "Reach Bring It On in ranked"
+    "desc": "Reach Silver in ranked"
    },
    {
-    "id": "title_ranked_hurt_me_plenty",
-    "name": "Hurt Me Plenty",
+    "id": "title_ranked_gold",
+    "name": "Gold",
     "unlock": {
      "stat": "ranked_peak",
      "min": 1300
     },
-    "desc": "Reach Hurt Me Plenty in ranked"
+    "desc": "Reach Gold in ranked"
    },
    {
-    "id": "title_ranked_hardcore",
-    "name": "Hardcore",
+    "id": "title_ranked_platinum",
+    "name": "Platinum",
     "unlock": {
      "stat": "ranked_peak",
      "min": 1600
     },
-    "desc": "Reach Hardcore in ranked"
+    "desc": "Reach Platinum in ranked"
    },
    {
-    "id": "title_ranked_nightmare",
-    "name": "Nightmare!",
+    "id": "title_ranked_diamond",
+    "name": "Diamond",
     "unlock": {
      "stat": "ranked_peak",
      "min": 1900
     },
-    "desc": "Reach Nightmare! in ranked"
+    "desc": "Reach Diamond in ranked"
    },
    {
-    "id": "title_ranked_arena_master",
-    "name": "Arena Master",
+    "id": "title_ranked_godlike",
+    "name": "Godlike",
     "unlock": {
      "stat": "ranked_peak",
      "min": 2200
     },
-    "desc": "Reach Arena Master in ranked"
+    "desc": "Reach Godlike in ranked"
    }
   ],
   "accents": [
@@ -5549,9 +5551,9 @@
    "hidden": false
   },
   {
-   "id": "ranked_hurt_me_plenty",
-   "name": "Hurt Me Plenty",
-   "desc": "Reach Hurt Me Plenty in ranked (1300)",
+   "id": "ranked_gold",
+   "name": "Gold",
+   "desc": "Reach Gold in ranked (1300)",
    "medal": "bronze",
    "target": 1300,
    "progress": {
@@ -5561,9 +5563,9 @@
    "hidden": false
   },
   {
-   "id": "ranked_hardcore",
-   "name": "Hardcore",
-   "desc": "Reach Hardcore in ranked (1600)",
+   "id": "ranked_platinum",
+   "name": "Platinum",
+   "desc": "Reach Platinum in ranked (1600)",
    "medal": "silver",
    "target": 1600,
    "progress": {
@@ -5573,9 +5575,9 @@
    "hidden": false
   },
   {
-   "id": "ranked_nightmare",
-   "name": "Nightmare!",
-   "desc": "Reach Nightmare! in ranked (1900)",
+   "id": "ranked_diamond",
+   "name": "Diamond",
+   "desc": "Reach Diamond in ranked (1900)",
    "medal": "gold",
    "target": 1900,
    "progress": {
@@ -5585,9 +5587,9 @@
    "hidden": false
   },
   {
-   "id": "ranked_arena_master",
-   "name": "Arena Master",
-   "desc": "Reach Arena Master in ranked (2200)",
+   "id": "ranked_godlike",
+   "name": "Godlike",
+   "desc": "Reach Godlike in ranked (2200)",
    "medal": "gold",
    "target": 2200,
    "progress": {
@@ -5596,5 +5598,10 @@
    "icon": "emblem:medal_victory",
    "hidden": false
   }
- ]
+ ],
+ "ranked": {
+  "division": 100,
+  "placements": 10,
+  "start": 1000
+ }
 }

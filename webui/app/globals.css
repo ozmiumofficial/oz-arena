@@ -112,3 +112,48 @@ html {
   --color-ink: #ffffff;
   --color-dim: #cfc8c0;
 }
+
+/* ---------------------------------------------------------------- player cards (PlayerCard.tsx) */
+/* animated frames pulse their --glow color */
+@keyframes q3-card-glow {
+  0%, 100% { box-shadow: 0 0 0.7em var(--glow), 0 0 1.8em color-mix(in srgb, var(--glow) 45%, transparent), 0 0.8em 2.4em rgb(0 0 0 / 0.75); }
+  50% { box-shadow: 0 0 0.25em var(--glow), 0 0 0.7em color-mix(in srgb, var(--glow) 25%, transparent), 0 0.8em 2.4em rgb(0 0 0 / 0.75); }
+}
+.q3-card-glow { animation: q3-card-glow 2.4s ease-in-out infinite; }
+/* sky banners pan slowly */
+@keyframes q3-pan { from { transform: translateX(0); } to { transform: translateX(-23%); } }
+.q3-pan { animation: q3-pan 45s ease-in-out infinite alternate; }
+/* The Void's smoke */
+@keyframes q3-smoke {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+  50% { transform: translate(10%, -8%) scale(1.18); opacity: 1; }
+}
+.q3-smoke { animation: q3-smoke 14s ease-in-out infinite; }
+/* prestige banners */
+@keyframes q3-quad { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.75; } }
+.q3-quad { animation: q3-quad 1.8s ease-in-out infinite; }
+@keyframes q3-lava { 0%, 100% { transform: translateY(42%); } 50% { transform: translateY(22%); } }
+.q3-lava { animation: q3-lava 7s ease-in-out infinite; }
+@keyframes q3-rail { from { transform: translateX(-110%); } to { transform: translateX(160%); } }
+.q3-rail { animation: q3-rail 3.9s cubic-bezier(0.6, 0, 0.2, 1) infinite; }
+@keyframes q3-gib {
+  0% { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+}
+.q3-gib { animation: q3-gib 2.3s cubic-bezier(0.2, 0.7, 0.4, 1) infinite; }
+@keyframes q3-flicker { 0%, 100% { opacity: 0.6; } 8% { opacity: 1; } 12% { opacity: 0.5; } 55% { opacity: 0.9; } }
+.q3-flicker { animation: q3-flicker 4s linear infinite; }
+/* the pulsing rail swatch */
+@keyframes q3-rail-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.q3-rail-pulse { animation: q3-rail-pulse 1.2s ease-in-out infinite; }
+/* Reduced flashing (and the OS setting) freezes every card animation */
+.reduced .q3-anim, .reduced .q3-anim * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .q3-anim, .q3-anim * { animation: none !important; }
+}
+/* the Godlike rank icon breathes fire */
+@keyframes q3-godlike {
+  0%, 100% { filter: drop-shadow(0 0 0.15em #ff3d22) drop-shadow(0 0 0.4em rgb(255 120 30 / 0.6)); }
+  50% { filter: drop-shadow(0 0 0.3em #ff6a2a) drop-shadow(0 0 0.8em rgb(255 60 20 / 0.8)); }
+}
+.q3-godlike { animation: q3-godlike 2s ease-in-out infinite; }

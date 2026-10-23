@@ -1,12 +1,14 @@
 extends Node
-## Autoload "Online": friends, presence and parties (PLAN.md "Multiplayer and online services").
+## Autoload "Online": friends, presence, parties and leaderboards (PLAN.md "Multiplayer and online services").
 ## Holds one Q3OnlineClient across scene changes, reconnects with backoff, and keeps presence in
 ## step with Session (menu, match, map editor) and the Profile settings. The web menu reaches it
-## through Q3MenuBridge's "social" messages.
+## through Q3MenuBridge's "social" messages. Your career (total XP, card, showcase stats) goes to the
+## hub on connect and whenever it changes, for the level leaderboard.
 
 signal changed                                  ## status or social state; read to_dict()
 signal notice(text: String, tone: String)
 signal party_chat(msg: Dictionary)
+signal leaderboard(board: Dictionary)           ## a board the menu asked for, cards checked against the catalog
 
 ## The deployed Worker (online/, Ozmium's personal Cloudflare account). Settings
 ## network/online_server overrides it; a local `npm run dev` in online/ is ws://127.0.0.1:8787.
@@ -15,7 +17,8 @@ const KEY_PATH := "user://online/identity.key"
 const CHAT_KEEP := 50
 ## What the menu may ask the hub to do (online/src/hub.ts lists them).
 const OPS := ["friend_add", "friend_accept", "friend_decline", "friend_cancel", "friend_remove",
-	"party_invite", "party_accept", "party_decline", "party_leave", "party_kick", "party_promote", "party_chat", "sync"]
+	"party_invite", "party_accept", "party_decline", "party_leave", "party_kick", "party_promote", "party_chat", "sync",
+	"leaderboard"]
 
 var client: Q3OnlineClient
 var chat: Array = []                            ## the party's recent chat lines
@@ -23,6 +26,7 @@ var presence := {"status": "online", "detail": "In the menu", "join": ""}
 var _retry_in := -1.0
 var _backoff := 2.0
 var _profile_in := -1.0
+var _career_in := -1.0
 
 
 func _ready() -> void:
@@ -31,6 +35,7 @@ func _ready() -> void:
 	client.social.connect(func(_s): changed.emit())
 	client.notice.connect(func(t, tone): notice.emit(t, tone))
 	client.party_chat.connect(_on_chat)
+	client.leaderboard.connect(_on_leaderboard)
 	Settings.changed.connect(_on_setting)
 	connect_now()
 
@@ -68,10 +73,15 @@ func request(op: String, data: Dictionary) -> bool:
 	if not op in OPS:
 		return false
 	var m := {}
-	for k in ["id", "code", "party", "text"]:
+	for k in ["id", "code", "party", "text", "board", "scope"]:
 		if data.has(k):
 			m[k] = String(data[k])
 	return client.send(op, m)
+
+
+## The career changed (a match ended, the card was edited): the hub hears about it shortly after.
+func career_changed() -> void:
+	_career_in = 1.0
 
 
 ## Session calls this on every scene change.
@@ -109,6 +119,10 @@ func _process(delta: float) -> void:
 		_profile_in -= delta
 		if _profile_in <= 0.0:
 			client.send("profile", _profile())
+	if _career_in > 0.0:
+		_career_in -= delta
+		if _career_in <= 0.0:
+			client.send("career", _career())
 
 
 func _on_status(status: String, why: String) -> void:
@@ -117,6 +131,7 @@ func _on_status(status: String, why: String) -> void:
 	if status == "online":
 		_backoff = 2.0
 		client.send("presence", presence)
+		client.send("career", _career())
 	elif status == "offline" and enabled():
 		print("online: offline (", why, ")")
 		# an outdated game stays offline; anything else tries again, backing off to a minute
@@ -135,6 +150,24 @@ func _on_chat(m: Dictionary) -> void:
 	if chat.size() > CHAT_KEEP:
 		chat = chat.slice(-CHAT_KEEP)
 	party_chat.emit(m)
+
+
+## Cards from other games may name parts this build doesn't have; those go back to the default.
+func _on_leaderboard(m: Dictionary) -> void:
+	var b := m.duplicate(true)
+	for r in b.get("rows", []):
+		r["card"] = Q3Cards.known_parts(r.get("card", {}))
+	if b.get("me") is Dictionary:
+		b["me"]["card"] = Q3Cards.known_parts(b["me"].get("card", {}))
+	leaderboard.emit(b)
+
+
+func _career() -> Dictionary:
+	var shown := Q3Profile.card()
+	var stats := {}
+	for id in shown.get("stats", []):
+		stats[id] = Q3Cards.stat_value(id, Q3Profile.data())
+	return {"xp": Q3Profile.total_xp(), "card": shown, "stats": stats}
 
 
 func _on_setting(key: String, _value: Variant) -> void:

@@ -357,7 +357,7 @@ Styled like Quake 3's own UI: a dark gothic-metal plate, the name in Quake 3's b
 | Name | Quake 3 `^` color codes, free as always |
 | Title | One line under the name |
 | Accent | Card trim, glow and XP bar color |
-| Level, XP bar, rank badge | Automatic; the rank badge uses Quake 3 skill names (see "Ranked") |
+| Level, XP bar, rank | Automatic; the rank shows the tier icon, tier and division, and MMR (see "Ranked") |
 | Showcase stats (3) | Picked from the career stats list |
 | Showcase badges (3) | Achievement medals, drawn as Quake 3 medals in bronze, silver or gold |
 | Taunt | The voice line played when the card appears on the duel versus screen: any character's `taunt.wav` |
@@ -407,7 +407,7 @@ Styled like Quake 3's own UI: a dark gothic-metal plate, the name in Quake 3's b
 - **Level track every 10 levels:** Rusted Iron, Riveted Steel, Gothic Stone, Base Tech, Bloodstained, Bronze, Silver, Gold (Quake 3's gold brick), Arena Master (the skull trim).
 - **Powerup frames, animated:** Quad (blue energy), Battle Suit (gold), Regeneration (red pulse), Haste (smoke trail), Invisibility (shimmer). Each comes from its powerup achievement.
 - **Campaign:** one frame per tier cleared, and a Nightmare! frame for clearing everything on Nightmare.
-- **Ranked:** a frame for each tier from Bring It On up (peak rating).
+- **Ranked:** a frame for each tier from Silver up (peak rating).
 
 **Titles (54):**
 - **Level ranks:**
@@ -486,9 +486,11 @@ Taken from trac3r's tuned ladder (Ozmium's "LP should work like the chess rating
   - It's zero-sum, so the ladder can't inflate.
   - K = 40 for a player's first 30 ranked games, 24 after, and 16 in the top tier. The floor is 100.
 - **Queues:** Duel (the headline), then TDM, CTF and Clan Arena when the player count allows. Each queue has its own rating. In team modes the opponent rating is the other team's average, and everyone on a team moves by the same amount.
-- **Tiers, in Quake 3's skill names:**
-  - I Can Win (below 1000), Bring It On (1000), Hurt Me Plenty (1300), Hardcore (1600), Nightmare! (1900), Arena Master (2200+).
-  - Divisions III → II → I, every 100 points; Arena Master is open-ended.
+- **Tiers (Ozmium, 2026-10-23; they replaced Quake 3's skill names):**
+  - Bronze (below 1000), Silver (1000), Gold (1300), Platinum (1600), Diamond (1900), Godlike (2200+).
+  - Divisions III → II → I, every 100 points; Godlike is open-ended.
+  - Each tier has its own icon (`webui/components/RankIcon.tsx`): a shield gaining chevrons, blades, wings and a horned crown.
+  - The rank and MMR show after 10 placement matches, on the card, the top bar and the Ranked page (which also explains the system).
 - **Seasons:**
   - Three calendar months, aligned to quarters.
   - At rollover each player's season is archived (final rating, peak, W/L), and the rating moves a quarter of the way back toward 1000.

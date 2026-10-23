@@ -99,6 +99,38 @@ a.send('friend_add', { code: c.state.me.code });
 const ac = await wait(a.next('social', (m) => m.friends.length === 2));
 check(!!ac, 'adding someone who asked you accepts their request');
 
+// careers and leaderboards: the level board orders by XP, friends only shows friends, ranked stays empty. Careers
+// would stay on a remote hub's public board for good, so against one only the read side is checked.
+const LOCAL = /127\.0\.0\.1|localhost/.test(BASE);
+if (LOCAL) {
+  const card = (emblem) => ({ banner: 'void', emblem, frame: 'plain', title: 'title_fresh_meat', accent: 'accent_red', rail: 'rail_red',
+    taunt: 'taunt_sarge', stats: ['frags', 'wins', 'kd'], badges: [], junk: 'x'.repeat(5000) });
+  a.send('career', { xp: 2500, card: card('head_ranger'), stats: { frags: '120', wins: '9', kd: '1.40' } });
+  b.send('career', { xp: 51000, card: card('head_visor'), stats: { frags: '900' } });
+  c.send('career', { xp: 800, card: card('head_orbb'), stats: {} });
+  await new Promise((r) => setTimeout(r, 300));
+  a.send('leaderboard', { board: 'level', scope: 'friends' });
+  const lb = await wait(a.next('leaderboard', (m) => m.scope === 'friends'));
+  check(lb?.rows.map((r) => r.name).join(',') === 'Visor,^1Ranger,Orbb' && lb.rows[0].level === 36 && lb.rows[1].level === 3,
+    `friends level board in XP order with levels (${lb?.rows.map((r) => `${r.name} L${r.level}`).join(', ')})`);
+  check(lb?.me?.rank === 2 && lb.rows[1].card.emblem === 'head_ranger' && !('junk' in lb.rows[1].card) && lb.rows[1].stats.kd === '1.40',
+    'your place, your card and its stats come back, extra fields dropped');
+  a.send('leaderboard', { board: 'level', scope: 'global' });
+  const glb = await wait(a.next('leaderboard', (m) => m.scope === 'global'));
+  check(glb?.me?.id === a.state.me.id && glb.total >= 3, `global level board places you (#${glb?.me?.rank} of ${glb?.total})`);
+  a.send('leaderboard', { board: 'ranked', scope: 'friends' });
+  const rk = await wait(a.next('leaderboard', (m) => m.board === 'ranked'));
+  check(rk?.rows.length === 0 && rk.me === null, 'ranked board empty until official servers rate players');
+} else {
+  a.send('leaderboard', { board: 'level', scope: 'global' });
+  const glb = await wait(a.next('leaderboard', (m) => m.scope === 'global'));
+  check(Array.isArray(glb?.rows) && glb.me === null && glb.rows.every((r, i) => r.rank === i + 1 && (i === 0 || r.xp <= glb.rows[i - 1].xp)),
+    `level board answers in XP order without a career for you (${glb?.total} players)`);
+  a.send('leaderboard', { board: 'ranked', scope: 'friends' });
+  const rk = await wait(a.next('leaderboard', (m) => m.board === 'ranked'));
+  check(rk?.rows.length === 0 && rk.me === null, 'ranked board empty until official servers rate players');
+}
+
 // party: A invites B and C, both join, chat, promote, kick, leave
 a.send('party_invite', { id: b.state.me.id });
 const inv = await wait(b.next('social', (m) => m.invites.length === 1));
@@ -138,5 +170,15 @@ check(!!unf, 'unfriending clears both lists');
 
 a.close();
 c.close();
+// with the operator's token (HUB_ADMIN_TOKEN), the test players don't outlive the test
+const token = process.env.HUB_ADMIN_TOKEN;
+if (token) {
+  const http = BASE.replace(/^ws/, 'http').replace(/\/hub$/, '');
+  const r = await fetch(`${http}/admin/purge`, {
+    method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ ids: [a, b, c].map((x) => x.state?.me?.id).filter(Boolean) }),
+  });
+  check(r.ok && (await r.json()).removed === 3, 'test players removed');
+}
 console.log(failed ? `${failed} check(s) failed` : 'all checks passed');
 process.exit(failed ? 1 : 0);

@@ -4,11 +4,13 @@
 //
 // Protocol (JSON, one object per message, "type" says what it is):
 //   game -> hub  presence {status, detail, join?}   profile {name, model, color}   sync
+//                career {xp, card, stats}   leaderboard {board: level|ranked, scope: global|friends}
 //                friend_add {code}   friend_accept {id}   friend_decline {id}   friend_cancel {id}   friend_remove {id}
 //                party_invite {id}   party_accept {party}   party_decline {party}   party_leave
 //                party_kick {id}   party_promote {id}   party_chat {text}   ping (answered without waking the object)
 //   hub -> game  social {me, friends, incoming, outgoing, party, invites}   (the whole picture, sent on every change)
 //                notice {text, tone}   party_chat {from, text, at}   pong
+//                leaderboard {board, scope, rows, me, total}
 import { DurableObject } from 'cloudflare:workers';
 import type { Env } from './index';
 import { refuse } from './util';
@@ -24,6 +26,17 @@ const CHAT_GAP_MS = 400;
 /** Rate limit per socket: a bucket of this many messages, refilled this many per second. */
 const BUCKET = 20;
 const REFILL_PER_S = 5;
+/** Leaderboards: rows sent per board, and how big a card or its showcase stats may be. */
+const BOARD_ROWS = 50;
+const CARD_MAX = 2048;
+/** The level curve, as library/cards/cards.json "levels" has it: L -> L+1 takes XP_BASE + XP_STEP * (L - 1). */
+const XP_BASE = 1000;
+const XP_STEP = 25;
+const MAX_LEVEL = 100;
+/** Ranked rows show once placement is done (cards.json "ranked"). */
+const RANKED_PLACEMENTS = 10;
+/** The global boards are kept this long between reads (SQLite row reads are what the free tier counts). */
+const BOARD_CACHE_MS = 60_000;
 
 type Status = 'online' | 'match' | 'editor';
 const STATUSES: Status[] = ['online', 'match', 'editor'];
@@ -65,6 +78,8 @@ type Msg = Record<string, unknown> & { type: string };
 
 export class Hub extends DurableObject<Env> {
   private sql: SqlStorage;
+  /** board -> the global top rows and total (lost when the object sleeps, which is fine) */
+  private boards = new Map<string, { at: number; rows: BoardRow[]; total: number }>();
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -82,12 +97,25 @@ export class Hub extends DurableObject<Env> {
       CREATE TABLE IF NOT EXISTS invites(party TEXT NOT NULL, pid TEXT NOT NULL, src TEXT NOT NULL, at INTEGER NOT NULL,
         PRIMARY KEY(party, pid));
       CREATE INDEX IF NOT EXISTS invites_pid ON invites(pid);
+      CREATE TABLE IF NOT EXISTS careers(pid TEXT PRIMARY KEY, xp INTEGER NOT NULL, level INTEGER NOT NULL, card TEXT NOT NULL,
+        stats TEXT NOT NULL, rating INTEGER NOT NULL DEFAULT 0, rated INTEGER NOT NULL DEFAULT 0, peak INTEGER NOT NULL DEFAULT 0,
+        updated INTEGER NOT NULL);
+      CREATE INDEX IF NOT EXISTS careers_xp ON careers(xp DESC);
+      CREATE INDEX IF NOT EXISTS careers_rating ON careers(rating DESC);
     `);
   }
 
   // ------------------------------------------------------------------ connection
 
   async fetch(req: Request): Promise<Response> {
+    // the operator's routes; the Worker has already checked the admin token
+    const path = new URL(req.url).pathname;
+    if (path === '/admin/players') return Response.json(this.adminPlayers());
+    if (path === '/admin/purge' && req.method === 'POST') {
+      const body = (await req.json().catch(() => ({}))) as { ids?: unknown };
+      const ids = Array.isArray(body.ids) ? body.ids.filter((x): x is string => typeof x === 'string' && /^[0-9a-f]{20}$/.test(x)) : [];
+      return Response.json({ removed: this.purge(ids) });
+    }
     const h = req.headers;
     const pid = h.get('x-pid') ?? '';
     const ts = Number(h.get('x-ts'));
@@ -147,6 +175,10 @@ export class Hub extends DurableObject<Env> {
         return this.presence(ws, tag, m);
       case 'profile':
         return this.profile(me, m);
+      case 'career':
+        return this.career(me, m);
+      case 'leaderboard':
+        return this.leaderboard(ws, me, m);
       case 'friend_add':
         return this.friendAdd(ws, me, String(m.code ?? ''));
       case 'friend_accept':
@@ -228,6 +260,99 @@ export class Hub extends DurableObject<Env> {
     this.sql.exec('UPDATE players SET name = ?, model = ?, color = ?, seen = ? WHERE id = ?',
       cleanName(m.name as string), cleanModel(m.model as string), cleanColor(m.color as string), Date.now(), me);
     this.push(this.related(me));
+  }
+
+  // ------------------------------------------------------------------ careers and leaderboards
+
+  /**
+   * The player's level board entry: total XP (the level comes from it here), the card as their own game shows it, and
+   * its showcase stat values. All self-reported, like every offline career (PLAN.md "Trust"); viewers' games put
+   * unknown parts back to the default. Ranked columns are never written from here: only official ranked servers will.
+   */
+  private career(me: string, m: Msg) {
+    const xp = Math.max(0, Math.min(1e9, Math.floor(Number(m.xp) || 0)));
+    const card = JSON.stringify(cleanCard(m.card));
+    const stats = JSON.stringify(cleanStats(m.stats));
+    if (card.length > CARD_MAX || stats.length > CARD_MAX) return;
+    this.sql.exec(
+      `INSERT INTO careers(pid, xp, level, card, stats, updated) VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(pid) DO UPDATE SET xp = excluded.xp, level = excluded.level, card = excluded.card, stats = excluded.stats,
+       updated = excluded.updated`,
+      me, xp, levelFor(xp), card, stats, Date.now());
+  }
+
+  /** The top of a board, everyone or just you and your friends, plus your own place on it. */
+  private leaderboard(ws: WebSocket, me: string, m: Msg) {
+    const board = m.board === 'ranked' ? 'ranked' : 'level';
+    const scope = m.scope === 'friends' ? 'friends' : 'global';
+    const order = board === 'ranked' ? 'c.rating DESC, c.updated' : 'c.xp DESC, c.updated';
+    const where = [board === 'ranked' ? `c.rated >= ${RANKED_PLACEMENTS}` : '1 = 1'];
+    const args: SqlStorageValue[] = [];
+    if (scope === 'friends') {
+      where.push('(c.pid = ? OR c.pid IN (SELECT b FROM friends WHERE a = ?))');
+      args.push(me, me);
+    }
+    const from = `FROM careers c JOIN players p ON p.id = c.pid WHERE ${where.join(' AND ')}`;
+    const cols = 'c.pid, p.name, p.model, p.color, c.xp, c.level, c.card, c.stats, c.rating, c.rated, c.peak';
+    const out = (r: Row, rank: number): BoardRow => ({
+      rank, id: r.pid, name: r.name, model: r.model, color: r.color, xp: r.xp, level: r.level, card: JSON.parse(r.card),
+      stats: JSON.parse(r.stats), rating: r.rating, rated: r.rated, peak: r.peak, online: this.sockets(r.pid).length > 0,
+    });
+    const cached = scope === 'global' ? this.boards.get(board) : undefined;
+    let rows: BoardRow[];
+    let total: number;
+    if (cached && Date.now() - cached.at < BOARD_CACHE_MS) {
+      // online dots are live even when the rows aren't
+      rows = cached.rows.map((r) => ({ ...r, online: this.sockets(r.id).length > 0 }));
+      total = cached.total;
+    } else {
+      rows = this.rows<Row>(`SELECT ${cols} ${from} ORDER BY ${order} LIMIT ${BOARD_ROWS}`, ...args).map((r, i) => out(r, i + 1));
+      total = this.count(`SELECT COUNT(*) AS n ${from}`, ...args);
+      if (scope === 'global') this.boards.set(board, { at: Date.now(), rows, total });
+    }
+    let mine = rows.find((r) => r.id === me) ?? null;
+    if (!mine) {
+      const r = this.one<Row>(`SELECT ${cols} ${from} AND c.pid = ?`, ...args, me);
+      if (r) {
+        const ahead = board === 'ranked'
+          ? this.count(`SELECT COUNT(*) AS n ${from} AND c.rating > ?`, ...args, r.rating)
+          : this.count(`SELECT COUNT(*) AS n ${from} AND c.xp > ?`, ...args, r.xp);
+        mine = out(r, ahead + 1);
+      }
+    }
+    this.send(ws, { type: 'leaderboard', board, scope, rows, me: mine, total });
+  }
+
+  // ------------------------------------------------------------------ admin
+
+  /** Every player with what tells real from test: when they joined and were last seen, XP, friends. */
+  private adminPlayers() {
+    return this.rows<Player & { created: number; xp: number | null; friends: number }>(
+      `SELECT p.id, p.code, p.name, p.model, p.color, p.created, p.seen, c.xp AS xp,
+       (SELECT COUNT(*) FROM friends f WHERE f.a = p.id) AS friends
+       FROM players p LEFT JOIN careers c ON c.pid = p.id ORDER BY p.created`)
+      .map((p) => ({ ...p, online: this.sockets(p.id).length > 0 }));
+  }
+
+  /** Removes players and everything that points at them; their friends and parties see them go. */
+  private purge(ids: string[]): number {
+    let n = 0;
+    for (const pid of ids) {
+      if (!this.player(pid)) continue;
+      const touched = this.related(pid).filter((p) => p !== pid);
+      for (const s of this.sockets(pid)) s.close(4003, 'This player was removed.');
+      const party = this.partyOf(pid);
+      if (party) this.removeMember(party, pid);
+      this.sql.exec('DELETE FROM friends WHERE a = ? OR b = ?', pid, pid);
+      this.sql.exec('DELETE FROM requests WHERE src = ? OR dst = ?', pid, pid);
+      this.sql.exec('DELETE FROM invites WHERE pid = ? OR src = ?', pid, pid);
+      this.sql.exec('DELETE FROM careers WHERE pid = ?', pid);
+      this.sql.exec('DELETE FROM players WHERE id = ?', pid);
+      this.push(touched);
+      n++;
+    }
+    this.boards.clear();
+    return n;
   }
 
   // ------------------------------------------------------------------ friends
@@ -517,6 +642,15 @@ export class Hub extends DurableObject<Env> {
   }
 }
 
+type Row = { pid: string; name: string; model: string; color: string; xp: number; level: number; card: string; stats: string;
+  rating: number; rated: number; peak: number };
+
+/** One leaderboard row as the game gets it. */
+interface BoardRow {
+  rank: number; id: string; name: string; model: string; color: string; xp: number; level: number;
+  card: Record<string, unknown>; stats: Record<string, string>; rating: number; rated: number; peak: number; online: boolean;
+}
+
 const CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 /** "abcd 1234", "ABCD1234" and "abcd-l234" all mean ABCD-1234 (O reads as 0, I and L as 1). */
@@ -555,6 +689,38 @@ function cleanName(v: unknown): string {
 function cleanModel(v: unknown): string {
   const s = String(v ?? '').toLowerCase();
   return /^[a-z0-9_]{1,24}$/.test(s) ? s : 'sarge';
+}
+
+/** Level from total XP, the game's curve (Q3Cards.level_for). */
+export function levelFor(xp: number): number {
+  let level = 1;
+  let left = xp;
+  while (level < MAX_LEVEL && left >= XP_BASE + XP_STEP * (level - 1)) {
+    left -= XP_BASE + XP_STEP * (level - 1);
+    level++;
+  }
+  return level;
+}
+
+const CARD_SLOTS = ['banner', 'emblem', 'frame', 'title', 'accent', 'rail', 'taunt'];
+
+/** A card is part ids by slot plus up to three showcase stat ids and badge ids; anything else is dropped. */
+function cleanCard(v: unknown): Record<string, unknown> {
+  const c = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+  const id = (x: unknown) => (typeof x === 'string' && /^[a-z0-9_]{1,48}$/.test(x) ? x : '');
+  const out: Record<string, unknown> = {};
+  for (const k of CARD_SLOTS) out[k] = id(c[k]);
+  for (const k of ['stats', 'badges']) out[k] = (Array.isArray(c[k]) ? c[k] : []).map(id).filter(Boolean).slice(0, 3);
+  return out;
+}
+
+/** Showcase stat values as the card prints them: id -> short text. */
+function cleanStats(v: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!v || typeof v !== 'object') return out;
+  for (const [k, x] of Object.entries(v as Record<string, unknown>).slice(0, 24))
+    if (/^[a-z0-9_]{1,32}$/.test(k)) out[k] = clean(x, 16);
+  return out;
 }
 
 function cleanColor(v: unknown): string {

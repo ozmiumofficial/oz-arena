@@ -13,6 +13,7 @@ signal status_changed(status: String, reason: String)   ## "connecting", "online
 signal social(state: Dictionary)                        ## the whole picture: me, friends, requests, party, invites
 signal notice(text: String, tone: String)
 signal party_chat(msg: Dictionary)
+signal leaderboard(board: Dictionary)                   ## {board, scope, rows, me, total}
 
 const PROTOCOL := "1"
 const PING_EVERY := 25.0
@@ -143,6 +144,8 @@ func _receive(text: String) -> void:
 			notice.emit(String(m.get("text", "")), String(m.get("tone", "info")))
 		"party_chat":
 			party_chat.emit(m)
+		"leaderboard":
+			leaderboard.emit(m)
 
 
 func _set_status(s: String, why: String) -> void:

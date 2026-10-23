@@ -166,11 +166,13 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
 - **Running:**
   - **Live** since 2026-10-22: `wss://arena-online.fragnet.workers.dev` (Ozmium's personal Cloudflare account; `npm run deploy` in `online/`). That is `Online.DEFAULT_SERVER`.
   - Local hub: `cd online && npm run dev` on `ws://127.0.0.1:8787`.
-  - Tests: `npm run smoke [wss://...]` (20 checks) and `res://tests/online_test.tscn` (17 checks, local by default, `-- server=` for another).
+  - Admin: `/admin/players` and `/admin/purge` with the `ADMIN_TOKEN` secret (token in `work/online_admin_token.txt`; online/README.md "Admin"). On 2026-10-23 every test player was purged from the live hub; only this PC's identity remained.
+  - Tests: `npm run smoke [wss://...]` (24 checks; `HUB_ADMIN_TOKEN=... ` makes it remove its players) and `res://tests/online_test.tscn` (20 checks, local by default, `-- server=` for another).
   - Stopping a background `wrangler dev` task leaves node and workerd running. Kill the node `wrangler ... dev` process, then the workerd under `online
 ode_modules`.
   - `node test/friend_bot.mjs` fills the Friends panel for a look.
   - The menu capture option `page=friends` opens the panel.
+- **Leaderboards (2026-10-23):** `career` and `leaderboard` messages (online/README.md "Leaderboards"); `Online` sends the career on connect and after `Q3Profile.save()`; the menu page is `webui/components/pages/LeaderboardPage.tsx` (Play, Leaderboards; also from Ranked). The level board is self-reported; the ranked board only fills from official ranked servers.
 - **Identity:**
   - `user://online/identity.key` is the player. Deleting it makes a new player.
   - Node can sign as it (`friend_bot.mjs` does), which is handy for tests.
@@ -331,6 +333,12 @@ ode_modules`.
   - 378 parts and 89 achievements in `godot/library/cards`.
   - The data is `tools/card_catalog.py`, baked by `build_cards.py`; `Q3Cards` reads it.
   - `work/_cards/_sheet.jpg` shows every part's art.
-  - Renderers, the editor, `Q3Progress` (career stats, XP) and ranked are still to do (PLAN.md).
+  - The menu's Profile page (2026-10-23, `webui/components/pages/ProfilePage.tsx`, card renderer `PlayerCard.tsx`): Card editor (every slot, locked parts say how to earn them, NEW tags), Character, Achievements (progress, missing, what each pays) and Career tabs.
+    - Godot owns the rules: `Q3Profile.menu_payload()` says what's earned, `set_card()` / `set_showcase()` refuse the rest. Bridge: `card_set`, `card_showcase`, `card_seen`, `taunt`; Godot answers `profile`. The catalog goes in init as `cards`.
+    - Medals are stored as `medal.<award>` (what achievements read); `Q3Profile._migrate()` moves old flat `excellents`-style keys. Matches also record `matches_model`, `matches_skin`, `wins_mode`, `duel_wins` and `playtime`.
+    - The browser preview's `?demo` swaps in a level-34 profile (`dump_menu_state.gd` DEMO); the dump never reads this PC's `user://profile.json`.
+  - Ranked tiers are Bronze to Godlike (Ozmium, 2026-10-23). `Q3Cards.rank(rating)` gives tier and division; `Q3Profile.ranked()` reads the `ranked_rating`, `ranked_matches`, `ranked_wins` and `ranked_peak` stats (only the ranked backend may set them; for now from peer-to-peer matches whose players agree on the result, PLAN.md "Trust"). The Ranked page explains the system.
+  - `build_cards.py --no-render` currently picks 3 different representative skies from the shipped catalog, so the ranked rename was spliced into `library/cards/cards.json` instead of taken from a rebuild. Look at the sky choice before the next full rebuild.
+  - Still to do: `Q3Progress` (per-weapon frags, pickups, movement records from match events), the duel versus screen, the share image, and ranked (PLAN.md).
 - **Next tool phases** (PLAN.md): the BSP/.map importer, then the map editor.
 - **Highest-error models** (look at these first): klesk (12.8 / 10.8 mm), uriel (10.2 / 12.9), lucy (10.4 / 9.9), doom (6.3 / 10.7), orbb legs (11.2). Many are non-human shapes or have long tails and wings that bend more than rigid bones can follow.

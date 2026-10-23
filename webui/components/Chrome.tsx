@@ -6,6 +6,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { useMenu } from "@/lib/store";
 import { cn } from "@/lib/cn";
 import { FriendsButton, OnlinePill, PartyStrip, Q3Name } from "./Social";
+import { Banner } from "./PlayerCard";
+import { accentOf, art, fmt, part, TIER_COLORS } from "@/lib/cards";
+import RankIcon from "./RankIcon";
 
 const NEWS = [
   ["Remaster", "29 characters rebuilt with real skeletons, 60 fps animation and ragdolls."],
@@ -18,6 +21,14 @@ export function TopBar() {
   const name = useMenu((s) => String(s.values["profile/name"] ?? "Player"));
   const model = useMenu((s) => String(s.values["profile/model"] ?? "sarge"));
   const color = useMenu((s) => String(s.values["profile/team_color"] ?? "#db2410"));
+  const cat = useMenu((s) => s.init?.cards);
+  const profile = useMenu((s) => s.init?.profile);
+  // your card in miniature: its emblem, accent and title, and your level
+  const card = profile?.shown;
+  const emblem = card && part(cat, "emblems", card.emblem)?.art;
+  const accent = card ? accentOf(cat, card.accent) : color;
+  const title = card ? part(cat, "titles", card.title)?.name : undefined;
+  const rank = profile?.ranked?.placed ? profile.ranked.rank : undefined;
   return (
     <motion.div
       initial={{ opacity: 0, y: -12 }}
@@ -27,18 +38,38 @@ export function TopBar() {
     >
       <OnlinePill />
       <PartyStrip />
-      <div className="font-q3 text-[0.7rem] tracking-[0.2em] text-dim">Unranked</div>
+      <div className="flex items-center gap-2 font-q3 text-[0.7rem] tracking-[0.2em] text-dim">
+        <RankIcon tier={rank ? rank.id : undefined} division={rank?.division} className="h-7 w-6" />
+        {rank ? (
+          <span className="leading-tight">
+            <span className="block" style={{ color: TIER_COLORS[rank.id] }}>{rank.label}</span>
+            <span className="block font-mono text-[0.6rem] tracking-normal">{fmt(profile!.ranked!.rating)} MMR</span>
+          </span>
+        ) : (
+          "Unranked"
+        )}
+      </div>
       <FriendsButton />
       <div className="relative grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/45 text-dim" title="Notifications">
         <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4" /></svg>
       </div>
-      <div className="flex items-center gap-3 rounded-sm border border-white/10 bg-black/45 py-1 pl-1 pr-4">
+      <div className="relative flex items-center gap-3 overflow-hidden rounded-sm border border-white/10 bg-black/45 py-1 pl-1 pr-3">
+        {card && cat && (
+          <span className="pointer-events-none absolute inset-0 opacity-35">
+            <Banner p={part(cat, "banners", card.banner)} cat={cat} ctx={profile?.banner_ctx} className="h-full w-full text-[0.4rem]" />
+          </span>
+        )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`/q3/icons/${model}.png`} alt="" className="h-10 w-10 rounded-sm border-b-2 object-cover" style={{ borderColor: color }} />
-        <div className="leading-tight">
+        <img src={emblem ? art(emblem) : `/q3/icons/${model}.png`} alt="" className="relative h-10 w-10 rounded-sm border-b-2 object-cover" style={{ borderColor: accent }} />
+        <div className="relative leading-tight">
           <Q3Name name={name} className="block font-q3 text-[1rem] tracking-wider text-ink-hot" />
-          <div className="text-[0.75rem] capitalize text-dim">{model}</div>
+          <div className="font-q3 text-[0.6rem] tracking-[0.18em]" style={{ color: title ? accent : undefined }}>{title ?? model}</div>
         </div>
+        {profile && (
+          <div className="relative ml-1 grid h-8 w-8 place-items-center rounded-sm border bg-black/60 font-q3 text-[0.85rem] text-ink-hot" style={{ borderColor: accent }} title={`Level ${profile.level}`}>
+            {profile.level}
+          </div>
+        )}
       </div>
     </motion.div>
   );

@@ -80,6 +80,19 @@ func _run() -> void:
 	_check(await _until(func(): return posts.any(func(m): return m.get("type") == "social" and m["state"].get("outgoing", []).size() == 1)), "bridge op reaches the hub (request to A)")
 	bridge.handle({"type": "social", "op": "friend_cancel", "id": a.state["me"]["id"]})
 	_check(await _until(func(): return a.state.get("incoming", []).size() == 0), "bridge cancel clears A's request")
+	# the autoload sent this PC's career on connect; the level board places it, and ranked has nobody yet
+	bridge.handle({"type": "social", "op": "leaderboard", "board": "level", "scope": "global"})
+	var board_of := func(kind: String) -> Dictionary:
+		for m in posts:
+			if m.get("type") == "leaderboard" and m["board"].get("board") == kind:
+				return m["board"]
+		return {}
+	_check(await _until(func(): return board_of.call("level").get("me") is Dictionary), "level leaderboard places this PC")
+	var mine: Dictionary = board_of.call("level").get("me", {})
+	_check(int(mine.get("xp", -1)) == Q3Profile.total_xp() and not Q3Cards.part("emblems", String(mine.get("card", {}).get("emblem", ""))).is_empty(),
+			"with its XP and a known card (#%d, %d XP)" % [int(mine.get("rank", 0)), int(mine.get("xp", 0))])
+	bridge.handle({"type": "social", "op": "leaderboard", "board": "ranked", "scope": "friends"})
+	_check(await _until(func(): return not board_of.call("ranked").is_empty()) and board_of.call("ranked")["rows"].is_empty(), "ranked leaderboard empty")
 	Online.scene_changed(Session.MAP_EDITOR)
 	await _until(func(): return false, 0.5)
 	# the test mustn't leave its server in the player's settings (they save on a timer; the test quits first)

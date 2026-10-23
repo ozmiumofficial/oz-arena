@@ -5,8 +5,11 @@ import CrosshairEditor from "./CrosshairEditor";
 import SinglePlayerPage from "./SinglePlayerPage";
 import CinematicsPage from "./CinematicsPage";
 import CreateMatchPage, { OfflineBotsPage } from "./CreateMatchPage";
-import { QuickPlayPage, RankedPage, ServerBrowserPage, TrainingPage } from "./PlayPages";
-import { CreditsPage, ProfilePage, WorkshopPage } from "./OtherPages";
+import { QuickPlayPage, ServerBrowserPage, TrainingPage } from "./PlayPages";
+import RankedPage from "./RankedPage";
+import LeaderboardPage from "./LeaderboardPage";
+import ProfilePage from "./ProfilePage";
+import { CreditsPage, WorkshopPage } from "./OtherPages";
 
 export interface PageProps {
   back: () => void;
@@ -22,6 +25,7 @@ export const PAGES: Record<string, ComponentType<PageProps>> = {
   offline_bots: OfflineBotsPage,
   quick_play: QuickPlayPage,
   ranked: RankedPage,
+  leaderboards: LeaderboardPage,
   server_browser: ServerBrowserPage,
   training: TrainingPage,
   profile: ProfilePage,

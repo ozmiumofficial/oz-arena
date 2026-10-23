@@ -760,9 +760,15 @@ func _stop_loop(num: int) -> void:
 
 
 ## The rail colors from a player's userinfo (c1, c2), CG_ColorFromString: 1 blue, 2 green, 4 red.
+## Your own rail can be one color1 can't carry (a card rail past Quake 3's seven); it draws that.
 func client_colors(cl: int) -> Array:
 	var info := Q3Host.parse_info(Q3Server.configstring(E.CS_PLAYERS + cl))
-	return [_color_from(String(info.get("c1", "4"))), _color_from(String(info.get("c2", "5")))]
+	var out := [_color_from(String(info.get("c1", "4"))), _color_from(String(info.get("c2", "5")))]
+	if cl == local_client:
+		var own := Q3Profile.rail_colors(int(info.get("t", "0")))
+		for i in own.size():
+			out[i] = own[i]
+	return out
 
 
 static func _color_from(v: String) -> Color:

@@ -1079,6 +1079,4563 @@
    }
   ]
  },
+ "cards": {
+  "achievements": [
+   {
+    "desc": "Earn 10 Excellent medals",
+    "hidden": false,
+    "icon": "emblem:medal_excellent",
+    "id": "medal_excellent_10",
+    "medal": "bronze",
+    "name": "Excellent x10",
+    "target": 10.0
+   },
+   {
+    "desc": "Earn 100 Excellent medals",
+    "hidden": false,
+    "icon": "emblem:medal_excellent",
+    "id": "medal_excellent_100",
+    "medal": "silver",
+    "name": "Excellent x100",
+    "target": 100.0
+   },
+   {
+    "desc": "Earn 1000 Excellent medals",
+    "hidden": false,
+    "icon": "emblem:medal_excellent",
+    "id": "medal_excellent_1000",
+    "medal": "gold",
+    "name": "Excellent x1000",
+    "target": 1000.0
+   },
+   {
+    "desc": "Earn 10 Impressive medals",
+    "hidden": false,
+    "icon": "emblem:medal_impressive",
+    "id": "medal_impressive_10",
+    "medal": "bronze",
+    "name": "Impressive x10",
+    "target": 10.0
+   },
+   {
+    "desc": "Earn 100 Impressive medals",
+    "hidden": false,
+    "icon": "emblem:medal_impressive",
+    "id": "medal_impressive_100",
+    "medal": "silver",
+    "name": "Impressive x100",
+    "target": 100.0
+   },
+   {
+    "desc": "Earn 1000 Impressive medals",
+    "hidden": false,
+    "icon": "emblem:medal_impressive",
+    "id": "medal_impressive_1000",
+    "medal": "gold",
+    "name": "Impressive x1000",
+    "target": 1000.0
+   },
+   {
+    "desc": "Earn 10 Humiliation medals",
+    "hidden": false,
+    "icon": "emblem:medal_gauntlet",
+    "id": "medal_gauntlet_10",
+    "medal": "bronze",
+    "name": "Humiliation x10",
+    "target": 10.0
+   },
+   {
+    "desc": "Earn 100 Humiliation medals",
+    "hidden": false,
+    "icon": "emblem:medal_gauntlet",
+    "id": "medal_gauntlet_100",
+    "medal": "silver",
+    "name": "Humiliation x100",
+    "target": 100.0
+   },
+   {
+    "desc": "Earn 1000 Humiliation medals",
+    "hidden": false,
+    "icon": "emblem:medal_gauntlet",
+    "id": "medal_gauntlet_1000",
+    "medal": "gold",
+    "name": "Humiliation x1000",
+    "target": 1000.0
+   },
+   {
+    "desc": "Earn 10 Capture medals",
+    "hidden": false,
+    "icon": "emblem:medal_capture",
+    "id": "medal_capture_10",
+    "medal": "bronze",
+    "name": "Capture x10",
+    "target": 10.0
+   },
+   {
+    "desc": "Earn 100 Capture medals",
+    "hidden": false,
+    "icon": "emblem:medal_capture",
+    "id": "medal_capture_100",
+    "medal": "silver",
+    "name": "Capture x100",
+    "target": 100.0
+   },
+   {
+    "desc": "Earn 10 Assist medals",
+    "hidden": false,
+    "icon": "emblem:medal_assist",
+    "id": "medal_assist_10",
+    "medal": "bronze",
+    "name": "Assist x10",
+    "target": 10.0
+   },
+   {
+    "desc": "Earn 100 Assist medals",
+    "hidden": false,
+    "icon": "emblem:medal_assist",
+    "id": "medal_assist_100",
+    "medal": "silver",
+    "name": "Assist x100",
+    "target": 100.0
+   },
+   {
+    "desc": "Earn 10 Defense medals",
+    "hidden": false,
+    "icon": "emblem:medal_defend",
+    "id": "medal_defend_10",
+    "medal": "bronze",
+    "name": "Defense x10",
+    "target": 10.0
+   },
+   {
+    "desc": "Earn 100 Defense medals",
+    "hidden": false,
+    "icon": "emblem:medal_defend",
+    "id": "medal_defend_100",
+    "medal": "silver",
+    "name": "Defense x100",
+    "target": 100.0
+   },
+   {
+    "desc": "100 frags with the Machinegun",
+    "hidden": false,
+    "icon": "emblem:iconw_machinegun",
+    "id": "weapon_machinegun_100",
+    "medal": "bronze",
+    "name": "Machinegun Blooded",
+    "target": 100.0
+   },
+   {
+    "desc": "1000 frags with the Machinegun",
+    "hidden": false,
+    "icon": "emblem:iconw_machinegun",
+    "id": "weapon_machinegun_1000",
+    "medal": "silver",
+    "name": "Machinegun Master",
+    "target": 1000.0
+   },
+   {
+    "desc": "100 frags with the Shotgun",
+    "hidden": false,
+    "icon": "emblem:iconw_shotgun",
+    "id": "weapon_shotgun_100",
+    "medal": "bronze",
+    "name": "Shotgun Blooded",
+    "target": 100.0
+   },
+   {
+    "desc": "1000 frags with the Shotgun",
+    "hidden": false,
+    "icon": "emblem:iconw_shotgun",
+    "id": "weapon_shotgun_1000",
+    "medal": "silver",
+    "name": "Shotgun Master",
+    "target": 1000.0
+   },
+   {
+    "desc": "100 frags with the Grenade Launcher",
+    "hidden": false,
+    "icon": "emblem:iconw_grenade",
+    "id": "weapon_grenade_100",
+    "medal": "bronze",
+    "name": "Grenade Launcher Blooded",
+    "target": 100.0
+   },
+   {
+    "desc": "1000 frags with the Grenade Launcher",
+    "hidden": false,
+    "icon": "emblem:iconw_grenade",
+    "id": "weapon_grenade_1000",
+    "medal": "silver",
+    "name": "Grenade Launcher Master",
+    "target": 1000.0
+   },
+   {
+    "desc": "100 frags with the Rocket Launcher",
+    "hidden": false,
+    "icon": "emblem:iconw_rocket",
+    "id": "weapon_rocket_100",
+    "medal": "bronze",
+    "name": "Rocket Launcher Blooded",
+    "target": 100.0
+   },
+   {
+    "desc": "1000 frags with the Rocket Launcher",
+    "hidden": false,
+    "icon": "emblem:iconw_rocket",
+    "id": "weapon_rocket_1000",
+    "medal": "silver",
+    "name": "Rocket Launcher Master",
+    "target": 1000.0
+   },
+   {
+    "desc": "100 frags with the Lightning Gun",
+    "hidden": false,
+    "icon": "emblem:iconw_lightning",
+    "id": "weapon_lightning_100",
+    "medal": "bronze",
+    "name": "Lightning Gun Blooded",
+    "target": 100.0
+   },
+   {
+    "desc": "1000 frags with the Lightning Gun",
+    "hidden": false,
+    "icon": "emblem:iconw_lightning",
+    "id": "weapon_lightning_1000",
+    "medal": "silver",
+    "name": "Lightning Gun Master",
+    "target": 1000.0
+   },
+   {
+    "desc": "100 frags with the Railgun",
+    "hidden": false,
+    "icon": "emblem:iconw_railgun",
+    "id": "weapon_railgun_100",
+    "medal": "bronze",
+    "name": "Railgun Blooded",
+    "target": 100.0
+   },
+   {
+    "desc": "1000 frags with the Railgun",
+    "hidden": false,
+    "icon": "emblem:iconw_railgun",
+    "id": "weapon_railgun_1000",
+    "medal": "silver",
+    "name": "Railgun Master",
+    "target": 1000.0
+   },
+   {
+    "desc": "100 frags with the Plasma Gun",
+    "hidden": false,
+    "icon": "emblem:iconw_plasma",
+    "id": "weapon_plasma_100",
+    "medal": "bronze",
+    "name": "Plasma Gun Blooded",
+    "target": 100.0
+   },
+   {
+    "desc": "1000 frags with the Plasma Gun",
+    "hidden": false,
+    "icon": "emblem:iconw_plasma",
+    "id": "weapon_plasma_1000",
+    "medal": "silver",
+    "name": "Plasma Gun Master",
+    "target": 1000.0
+   },
+   {
+    "desc": "100 frags with the BFG10K",
+    "hidden": false,
+    "icon": "emblem:iconw_bfg",
+    "id": "weapon_bfg_100",
+    "medal": "bronze",
+    "name": "BFG10K Blooded",
+    "target": 100.0
+   },
+   {
+    "desc": "1000 frags with the BFG10K",
+    "hidden": false,
+    "icon": "emblem:iconw_bfg",
+    "id": "weapon_bfg_1000",
+    "medal": "silver",
+    "name": "BFG10K Master",
+    "target": 1000.0
+   },
+   {
+    "desc": "100 frags with every weapon",
+    "hidden": false,
+    "icon": "emblem:iconw_bfg",
+    "id": "arsenal",
+    "medal": "gold",
+    "name": "Arsenal",
+    "target": 9.0
+   },
+   {
+    "desc": "25 frags while holding Quad Damage",
+    "hidden": false,
+    "icon": "emblem:quad",
+    "id": "powerup_quad",
+    "medal": "bronze",
+    "name": "Quad Damage Fragger",
+    "target": 25.0
+   },
+   {
+    "desc": "25 frags while holding Regeneration",
+    "hidden": false,
+    "icon": "emblem:regen",
+    "id": "powerup_regen",
+    "medal": "bronze",
+    "name": "Regeneration Fragger",
+    "target": 25.0
+   },
+   {
+    "desc": "25 frags while holding Haste",
+    "hidden": false,
+    "icon": "emblem:haste",
+    "id": "powerup_haste",
+    "medal": "bronze",
+    "name": "Haste Fragger",
+    "target": 25.0
+   },
+   {
+    "desc": "25 frags while holding Battle Suit",
+    "hidden": false,
+    "icon": "emblem:envirosuit",
+    "id": "powerup_battlesuit",
+    "medal": "bronze",
+    "name": "Battle Suit Fragger",
+    "target": 25.0
+   },
+   {
+    "desc": "25 frags while holding Invisibility",
+    "hidden": false,
+    "icon": "emblem:invis",
+    "id": "powerup_invis",
+    "medal": "bronze",
+    "name": "Invisibility Fragger",
+    "target": 25.0
+   },
+   {
+    "desc": "25 frags while holding Flight",
+    "hidden": false,
+    "icon": "emblem:flight",
+    "id": "powerup_flight",
+    "medal": "bronze",
+    "name": "Flight Fragger",
+    "target": 25.0
+   },
+   {
+    "desc": "A frag under every powerup",
+    "hidden": false,
+    "icon": "emblem:quad",
+    "id": "every_powerup",
+    "medal": "silver",
+    "name": "Juiced",
+    "target": 6.0
+   },
+   {
+    "desc": "250 frags with Quad Damage",
+    "hidden": false,
+    "icon": "emblem:quad",
+    "id": "quad_god",
+    "medal": "gold",
+    "name": "Quad God",
+    "target": 250.0
+   },
+   {
+    "desc": "Win a match without dying (the postgame Perfect)",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "perfect",
+    "medal": "silver",
+    "name": "Perfect",
+    "target": 1.0
+   },
+   {
+    "desc": "Win Free For All with no deaths",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "untouchable",
+    "medal": "gold",
+    "name": "Untouchable",
+    "target": 1.0
+   },
+   {
+    "desc": "Five rail hits in a row",
+    "hidden": false,
+    "icon": "emblem:iconw_railgun",
+    "id": "rail_streak",
+    "medal": "gold",
+    "name": "The Longest Yard",
+    "target": 5.0
+   },
+   {
+    "desc": "50% railgun accuracy in a match (10+ shots)",
+    "hidden": false,
+    "icon": "emblem:medal_accuracy",
+    "id": "rail_accuracy",
+    "medal": "silver",
+    "name": "Deadeye",
+    "target": 50.0
+   },
+   {
+    "desc": "A rocket frag while flying from your own rocket jump",
+    "hidden": false,
+    "icon": "emblem:iconw_rocket",
+    "id": "air_rocket",
+    "medal": "silver",
+    "name": "Air Rocket",
+    "target": 1.0
+   },
+   {
+    "desc": "Telefrag 10 players",
+    "hidden": false,
+    "icon": "emblem:teleporter",
+    "id": "telefragger",
+    "medal": "bronze",
+    "name": "Telefragger",
+    "target": 10.0
+   },
+   {
+    "desc": "An Excellent, an Impressive and a Gauntlet in one match",
+    "hidden": false,
+    "icon": "emblem:medal_impressive",
+    "id": "trifecta",
+    "medal": "silver",
+    "name": "Show-Off",
+    "target": 1.0
+   },
+   {
+    "desc": "Reach 600 ups",
+    "hidden": false,
+    "icon": "emblem:haste",
+    "id": "speed_600",
+    "medal": "bronze",
+    "name": "Strafe Jumper",
+    "target": 600.0
+   },
+   {
+    "desc": "Reach 800 ups",
+    "hidden": false,
+    "icon": "emblem:haste",
+    "id": "speed_800",
+    "medal": "silver",
+    "name": "Speed Demon",
+    "target": 800.0
+   },
+   {
+    "desc": "Reach 1000 ups",
+    "hidden": false,
+    "icon": "emblem:haste",
+    "id": "speed_1000",
+    "medal": "gold",
+    "name": "Light Speed",
+    "target": 1000.0
+   },
+   {
+    "desc": "100 rocket jumps",
+    "hidden": false,
+    "icon": "emblem:iconw_rocket",
+    "id": "rocket_jumper",
+    "medal": "bronze",
+    "name": "Rocket Jumper",
+    "target": 100.0
+   },
+   {
+    "desc": "25 plasma climbs",
+    "hidden": false,
+    "icon": "emblem:iconw_plasma",
+    "id": "plasma_climber",
+    "medal": "silver",
+    "name": "Plasma Climber",
+    "target": 25.0
+   },
+   {
+    "desc": "Die in lava 50 times",
+    "hidden": true,
+    "icon": "emblem:medal_frags",
+    "id": "lava_swimmer",
+    "medal": "bronze",
+    "name": "Lava Swimmer",
+    "target": 50.0
+   },
+   {
+    "desc": "Die in lava 100 times",
+    "hidden": true,
+    "icon": "emblem:medal_frags",
+    "id": "lava_bath",
+    "medal": "gold",
+    "name": "Does a Back Flip into the Lava",
+    "target": 100.0
+   },
+   {
+    "desc": "Fall to your death 50 times",
+    "hidden": true,
+    "icon": "emblem:medal_frags",
+    "id": "cratered",
+    "medal": "bronze",
+    "name": "Cratered",
+    "target": 50.0
+   },
+   {
+    "desc": "Drown 25 times",
+    "hidden": true,
+    "icon": "emblem:medal_frags",
+    "id": "sank",
+    "medal": "bronze",
+    "name": "Sank Like a Rock",
+    "target": 25.0
+   },
+   {
+    "desc": "Get telefragged 10 times",
+    "hidden": true,
+    "icon": "emblem:medal_frags",
+    "id": "telefragged",
+    "medal": "bronze",
+    "name": "Wrong Place",
+    "target": 10.0
+   },
+   {
+    "desc": "Win 25 Tournament matches",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "duelist",
+    "medal": "bronze",
+    "name": "Duelist",
+    "target": 25.0
+   },
+   {
+    "desc": "Win 100 Tournament matches",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "duel_100",
+    "medal": "gold",
+    "name": "Tournament Champion",
+    "target": 100.0
+   },
+   {
+    "desc": "Return 50 flags",
+    "hidden": false,
+    "icon": "emblem:medal_defend",
+    "id": "flag_returns",
+    "medal": "bronze",
+    "name": "Defender of the Flag",
+    "target": 50.0
+   },
+   {
+    "desc": "Win a Clan Arena round alone",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "clutch",
+    "medal": "silver",
+    "name": "Last One Standing",
+    "target": 1.0
+   },
+   {
+    "desc": "Thaw 100 teammates in Freeze Tag",
+    "hidden": false,
+    "icon": "emblem:medal_assist",
+    "id": "thaws",
+    "medal": "bronze",
+    "name": "Thawer",
+    "target": 100.0
+   },
+   {
+    "desc": "Win 25 Instagib matches",
+    "hidden": false,
+    "icon": "emblem:iconw_railgun",
+    "id": "instagib",
+    "medal": "bronze",
+    "name": "Instagibber",
+    "target": 25.0
+   },
+   {
+    "desc": "Play 10 matches to the end",
+    "hidden": false,
+    "icon": "emblem:medal_frags",
+    "id": "matches_10",
+    "medal": "bronze",
+    "name": "Arena Regular",
+    "target": 10.0
+   },
+   {
+    "desc": "Win 10 matches",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "wins_10",
+    "medal": "bronze",
+    "name": "Victor x10",
+    "target": 10.0
+   },
+   {
+    "desc": "Play 100 matches to the end",
+    "hidden": false,
+    "icon": "emblem:medal_frags",
+    "id": "matches_100",
+    "medal": "silver",
+    "name": "Arena Fixture",
+    "target": 100.0
+   },
+   {
+    "desc": "Win 100 matches",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "wins_100",
+    "medal": "silver",
+    "name": "Victor x100",
+    "target": 100.0
+   },
+   {
+    "desc": "Play 1000 matches to the end",
+    "hidden": false,
+    "icon": "emblem:medal_frags",
+    "id": "matches_1000",
+    "medal": "gold",
+    "name": "Arena Eternal",
+    "target": 1000.0
+   },
+   {
+    "desc": "Win 1000 matches",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "wins_1000",
+    "medal": "gold",
+    "name": "Victor x1000",
+    "target": 1000.0
+   },
+   {
+    "desc": "1,000 frags",
+    "hidden": false,
+    "icon": "emblem:medal_frags",
+    "id": "frags_1000",
+    "medal": "silver",
+    "name": "Fragmaster",
+    "target": 1000.0
+   },
+   {
+    "desc": "10,000 frags",
+    "hidden": false,
+    "icon": "emblem:medal_frags",
+    "id": "frags_10000",
+    "medal": "gold",
+    "name": "Fraglord",
+    "target": 10000.0
+   },
+   {
+    "desc": "Win every arena of Tier 1",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "campaign_tier1",
+    "medal": "bronze",
+    "name": "Tier 1 Cleared",
+    "target": 4.0
+   },
+   {
+    "desc": "Win every arena of Tier 2",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "campaign_tier2",
+    "medal": "bronze",
+    "name": "Tier 2 Cleared",
+    "target": 4.0
+   },
+   {
+    "desc": "Win every arena of Tier 3",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "campaign_tier3",
+    "medal": "bronze",
+    "name": "Tier 3 Cleared",
+    "target": 4.0
+   },
+   {
+    "desc": "Win every arena of Tier 4",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "campaign_tier4",
+    "medal": "bronze",
+    "name": "Tier 4 Cleared",
+    "target": 4.0
+   },
+   {
+    "desc": "Win every arena of Tier 5",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "campaign_tier5",
+    "medal": "bronze",
+    "name": "Tier 5 Cleared",
+    "target": 4.0
+   },
+   {
+    "desc": "Win every arena of Tier 6",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "campaign_tier6",
+    "medal": "bronze",
+    "name": "Tier 6 Cleared",
+    "target": 4.0
+   },
+   {
+    "desc": "Finish Training",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "campaign_training",
+    "medal": "bronze",
+    "name": "Arena Eligible",
+    "target": 1.0
+   },
+   {
+    "desc": "Beat Xaero in the Final",
+    "hidden": false,
+    "icon": "emblem:head_xaero",
+    "id": "campaign_final",
+    "medal": "silver",
+    "name": "Xaero Slayer",
+    "target": 1.0
+   },
+   {
+    "desc": "Win every campaign arena on Hardcore",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "campaign_hardcore",
+    "medal": "silver",
+    "name": "Arena Eternal",
+    "target": 26.0
+   },
+   {
+    "desc": "Win every campaign arena on Nightmare!",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "campaign_nightmare",
+    "medal": "gold",
+    "name": "Nightmare Walker",
+    "target": 26.0
+   },
+   {
+    "desc": "Win on every original arena",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "tourist",
+    "medal": "gold",
+    "name": "Tourist",
+    "target": 35.0
+   },
+   {
+    "desc": "Win 25 matches on one arena",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "home_turf",
+    "medal": "silver",
+    "name": "Home Turf",
+    "target": 25.0
+   },
+   {
+    "desc": "Play a match as every character",
+    "hidden": false,
+    "icon": "emblem:head_sarge",
+    "id": "roster",
+    "medal": "silver",
+    "name": "Full Roster",
+    "target": 29.0
+   },
+   {
+    "desc": "Earn every kind of medal",
+    "hidden": false,
+    "icon": "emblem:medal_excellent",
+    "id": "medal_collector",
+    "medal": "silver",
+    "name": "Medal Collector",
+    "target": 7.0
+   },
+   {
+    "desc": "Reach Gold in ranked (1300)",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "ranked_gold",
+    "medal": "bronze",
+    "name": "Gold",
+    "target": 1300.0
+   },
+   {
+    "desc": "Reach Platinum in ranked (1600)",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "ranked_platinum",
+    "medal": "silver",
+    "name": "Platinum",
+    "target": 1600.0
+   },
+   {
+    "desc": "Reach Diamond in ranked (1900)",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "ranked_diamond",
+    "medal": "gold",
+    "name": "Diamond",
+    "target": 1900.0
+   },
+   {
+    "desc": "Reach Godlike in ranked (2200)",
+    "hidden": false,
+    "icon": "emblem:medal_victory",
+    "id": "ranked_godlike",
+    "medal": "gold",
+    "name": "Godlike",
+    "target": 2200.0
+   }
+  ],
+  "card_stats": [
+   {
+    "id": "frags",
+    "label": "FRAGS",
+    "value": "frags"
+   },
+   {
+    "id": "wins",
+    "label": "WINS",
+    "value": "wins"
+   },
+   {
+    "id": "kd",
+    "label": "K/D",
+    "value": "=kd"
+   },
+   {
+    "id": "excellents",
+    "label": "EXCELLENTS",
+    "value": "medal.excellent"
+   },
+   {
+    "id": "impressives",
+    "label": "IMPRESSIVES",
+    "value": "medal.impressive"
+   },
+   {
+    "id": "gauntlets",
+    "label": "HUMILIATIONS",
+    "value": "medal.gauntlet"
+   },
+   {
+    "id": "captures",
+    "label": "CAPTURES",
+    "value": "medal.capture"
+   },
+   {
+    "id": "duel_wins",
+    "label": "DUEL WINS",
+    "value": "duel_wins"
+   },
+   {
+    "id": "rail_acc",
+    "label": "BEST RAIL ACC",
+    "value": "best.rail_accuracy"
+   },
+   {
+    "id": "top_speed",
+    "label": "TOP SPEED",
+    "value": "best.speed"
+   },
+   {
+    "id": "ranked_peak",
+    "label": "RANKED PEAK",
+    "value": "ranked_peak"
+   },
+   {
+    "id": "arenas_won",
+    "label": "ARENAS WON",
+    "value": "=arenas_won"
+   },
+   {
+    "id": "achievements",
+    "label": "ACHIEVEMENTS",
+    "value": "=achievements"
+   },
+   {
+    "id": "hours",
+    "label": "HOURS",
+    "value": "=hours"
+   }
+  ],
+  "default_card": {
+   "accent": "accent_red",
+   "badges": [],
+   "banner": "void",
+   "emblem": "head_sarge",
+   "frame": "plain",
+   "rail": "rail_red",
+   "stats": [
+    "frags",
+    "wins",
+    "excellents"
+   ],
+   "taunt": "taunt_sarge",
+   "title": "title_fresh_meat"
+  },
+  "medal_colors": {
+   "bronze": "#e08a4f",
+   "gold": "#ffd24a",
+   "silver": "#c9d6df"
+  },
+  "parts": {
+   "accents": [
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "accent_red",
+     "level": 0,
+     "name": "Red",
+     "value": "#ff2020"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "accent_green",
+     "level": 0,
+     "name": "Green",
+     "value": "#20ff20"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "accent_yellow",
+     "level": 0,
+     "name": "Yellow",
+     "value": "#ffff20"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "accent_blue",
+     "level": 0,
+     "name": "Blue",
+     "value": "#3050ff"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "accent_cyan",
+     "level": 0,
+     "name": "Cyan",
+     "value": "#20ffff"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "accent_magenta",
+     "level": 0,
+     "name": "Magenta",
+     "value": "#ff20ff"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "accent_white",
+     "level": 0,
+     "name": "White",
+     "value": "#ffffff"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 4",
+     "id": "accent_rust",
+     "level": 4,
+     "name": "Rust",
+     "value": "#b0502a"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 9",
+     "id": "accent_bronze",
+     "level": 9,
+     "name": "Bronze",
+     "value": "#cd7f32"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 18",
+     "id": "accent_chrome",
+     "level": 18,
+     "name": "Chrome",
+     "value": "#c8d2dc"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 27",
+     "id": "accent_plasma",
+     "level": 27,
+     "name": "Plasma",
+     "value": "#5ab4ff"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 37",
+     "id": "accent_slime",
+     "level": 37,
+     "name": "Slime",
+     "value": "#8cff3a"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 46",
+     "id": "accent_quad",
+     "level": 46,
+     "name": "Quad Blue",
+     "value": "#4a6bff"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 55",
+     "id": "accent_lava",
+     "level": 55,
+     "name": "Lava",
+     "value": "#ff6a1a"
+    },
+    {
+     "ach": "wins_1000",
+     "free": false,
+     "how": "ACHIEVEMENT: VICTOR X1000",
+     "id": "accent_gold",
+     "level": 0,
+     "name": "Gold",
+     "value": "#ffd24a"
+    }
+   ],
+   "banners": [
+    {
+     "desc": "Smoke drifting in the dark",
+     "free": true,
+     "how": "FREE",
+     "id": "void",
+     "kind": "pattern",
+     "level": 0,
+     "name": "The Void"
+    },
+    {
+     "art": "cards/banners/map_q3dm1.jpg",
+     "desc": "Win a match on Arena Gate",
+     "free": false,
+     "how": "WIN A MATCH ON ARENA GATE",
+     "id": "map_q3dm1",
+     "kind": "image",
+     "level": 0,
+     "name": "Arena Gate"
+    },
+    {
+     "art": "cards/banners/map_q3dm2.jpg",
+     "desc": "Win a match on House Of Pain",
+     "free": false,
+     "how": "WIN A MATCH ON HOUSE OF PAIN",
+     "id": "map_q3dm2",
+     "kind": "image",
+     "level": 0,
+     "name": "House Of Pain"
+    },
+    {
+     "art": "cards/banners/map_q3dm3.jpg",
+     "desc": "Win a match on Arena Of Death",
+     "free": false,
+     "how": "WIN A MATCH ON ARENA OF DEATH",
+     "id": "map_q3dm3",
+     "kind": "image",
+     "level": 0,
+     "name": "Arena Of Death"
+    },
+    {
+     "art": "cards/banners/map_q3tourney1.jpg",
+     "desc": "Win a match on Powerstation 0218",
+     "free": false,
+     "how": "WIN A MATCH ON POWERSTATION 0218",
+     "id": "map_q3tourney1",
+     "kind": "image",
+     "level": 0,
+     "name": "Powerstation 0218"
+    },
+    {
+     "art": "cards/banners/map_q3dm4.jpg",
+     "desc": "Win a match on The Place Of Many Deaths",
+     "free": false,
+     "how": "WIN A MATCH ON THE PLACE OF MANY DEATHS",
+     "id": "map_q3dm4",
+     "kind": "image",
+     "level": 0,
+     "name": "The Place Of Many Deaths"
+    },
+    {
+     "art": "cards/banners/map_q3dm5.jpg",
+     "desc": "Win a match on The Forgotten Place",
+     "free": false,
+     "how": "WIN A MATCH ON THE FORGOTTEN PLACE",
+     "id": "map_q3dm5",
+     "kind": "image",
+     "level": 0,
+     "name": "The Forgotten Place"
+    },
+    {
+     "art": "cards/banners/map_q3dm6.jpg",
+     "desc": "Win a match on The Camping Grounds",
+     "free": false,
+     "how": "WIN A MATCH ON THE CAMPING GROUNDS",
+     "id": "map_q3dm6",
+     "kind": "image",
+     "level": 0,
+     "name": "The Camping Grounds"
+    },
+    {
+     "art": "cards/banners/map_q3tourney2.jpg",
+     "desc": "Win a match on The Proving Grounds",
+     "free": false,
+     "how": "WIN A MATCH ON THE PROVING GROUNDS",
+     "id": "map_q3tourney2",
+     "kind": "image",
+     "level": 0,
+     "name": "The Proving Grounds"
+    },
+    {
+     "art": "cards/banners/map_q3dm7.jpg",
+     "desc": "Win a match on Temple of Retribution",
+     "free": false,
+     "how": "WIN A MATCH ON TEMPLE OF RETRIBUTION",
+     "id": "map_q3dm7",
+     "kind": "image",
+     "level": 0,
+     "name": "Temple of Retribution"
+    },
+    {
+     "art": "cards/banners/map_q3dm8.jpg",
+     "desc": "Win a match on Brimstone Abbey",
+     "free": false,
+     "how": "WIN A MATCH ON BRIMSTONE ABBEY",
+     "id": "map_q3dm8",
+     "kind": "image",
+     "level": 0,
+     "name": "Brimstone Abbey"
+    },
+    {
+     "art": "cards/banners/map_q3dm9.jpg",
+     "desc": "Win a match on Hero's Keep",
+     "free": false,
+     "how": "WIN A MATCH ON HERO'S KEEP",
+     "id": "map_q3dm9",
+     "kind": "image",
+     "level": 0,
+     "name": "Hero's Keep"
+    },
+    {
+     "art": "cards/banners/map_q3tourney3.jpg",
+     "desc": "Win a match on Hell's Gate",
+     "free": false,
+     "how": "WIN A MATCH ON HELL'S GATE",
+     "id": "map_q3tourney3",
+     "kind": "image",
+     "level": 0,
+     "name": "Hell's Gate"
+    },
+    {
+     "art": "cards/banners/map_q3dm10.jpg",
+     "desc": "Win a match on The Nameless Place",
+     "free": false,
+     "how": "WIN A MATCH ON THE NAMELESS PLACE",
+     "id": "map_q3dm10",
+     "kind": "image",
+     "level": 0,
+     "name": "The Nameless Place"
+    },
+    {
+     "art": "cards/banners/map_q3dm11.jpg",
+     "desc": "Win a match on Deva Station",
+     "free": false,
+     "how": "WIN A MATCH ON DEVA STATION",
+     "id": "map_q3dm11",
+     "kind": "image",
+     "level": 0,
+     "name": "Deva Station"
+    },
+    {
+     "art": "cards/banners/map_q3dm12.jpg",
+     "desc": "Win a match on The Dredwerkz",
+     "free": false,
+     "how": "WIN A MATCH ON THE DREDWERKZ",
+     "id": "map_q3dm12",
+     "kind": "image",
+     "level": 0,
+     "name": "The Dredwerkz"
+    },
+    {
+     "art": "cards/banners/map_q3tourney4.jpg",
+     "desc": "Win a match on Vertical Vengeance",
+     "free": false,
+     "how": "WIN A MATCH ON VERTICAL VENGEANCE",
+     "id": "map_q3tourney4",
+     "kind": "image",
+     "level": 0,
+     "name": "Vertical Vengeance"
+    },
+    {
+     "art": "cards/banners/map_q3dm13.jpg",
+     "desc": "Win a match on Lost World",
+     "free": false,
+     "how": "WIN A MATCH ON LOST WORLD",
+     "id": "map_q3dm13",
+     "kind": "image",
+     "level": 0,
+     "name": "Lost World"
+    },
+    {
+     "art": "cards/banners/map_q3dm14.jpg",
+     "desc": "Win a match on Grim Dungeons",
+     "free": false,
+     "how": "WIN A MATCH ON GRIM DUNGEONS",
+     "id": "map_q3dm14",
+     "kind": "image",
+     "level": 0,
+     "name": "Grim Dungeons"
+    },
+    {
+     "art": "cards/banners/map_q3dm15.jpg",
+     "desc": "Win a match on Demon Keep",
+     "free": false,
+     "how": "WIN A MATCH ON DEMON KEEP",
+     "id": "map_q3dm15",
+     "kind": "image",
+     "level": 0,
+     "name": "Demon Keep"
+    },
+    {
+     "art": "cards/banners/map_q3tourney5.jpg",
+     "desc": "Win a match on Fatal Instinct",
+     "free": false,
+     "how": "WIN A MATCH ON FATAL INSTINCT",
+     "id": "map_q3tourney5",
+     "kind": "image",
+     "level": 0,
+     "name": "Fatal Instinct"
+    },
+    {
+     "art": "cards/banners/map_q3dm16.jpg",
+     "desc": "Win a match on The Bouncy Map",
+     "free": false,
+     "how": "WIN A MATCH ON THE BOUNCY MAP",
+     "id": "map_q3dm16",
+     "kind": "image",
+     "level": 0,
+     "name": "The Bouncy Map"
+    },
+    {
+     "art": "cards/banners/map_q3dm17.jpg",
+     "desc": "Win a match on The Longest Yard",
+     "free": false,
+     "how": "WIN A MATCH ON THE LONGEST YARD",
+     "id": "map_q3dm17",
+     "kind": "image",
+     "level": 0,
+     "name": "The Longest Yard"
+    },
+    {
+     "art": "cards/banners/map_q3dm18.jpg",
+     "desc": "Win a match on Space Chamber",
+     "free": false,
+     "how": "WIN A MATCH ON SPACE CHAMBER",
+     "id": "map_q3dm18",
+     "kind": "image",
+     "level": 0,
+     "name": "Space Chamber"
+    },
+    {
+     "art": "cards/banners/map_q3dm19.jpg",
+     "desc": "Win a match on Apocalypse Void",
+     "free": false,
+     "how": "WIN A MATCH ON APOCALYPSE VOID",
+     "id": "map_q3dm19",
+     "kind": "image",
+     "level": 0,
+     "name": "Apocalypse Void"
+    },
+    {
+     "art": "cards/banners/map_q3dm0.jpg",
+     "desc": "Win a match on Introduction",
+     "free": false,
+     "how": "WIN A MATCH ON INTRODUCTION",
+     "id": "map_q3dm0",
+     "kind": "image",
+     "level": 0,
+     "name": "Introduction"
+    },
+    {
+     "art": "cards/banners/map_q3tourney6.jpg",
+     "desc": "Win a match on The Very End Of You",
+     "free": false,
+     "how": "WIN A MATCH ON THE VERY END OF YOU",
+     "id": "map_q3tourney6",
+     "kind": "image",
+     "level": 0,
+     "name": "The Very End Of You"
+    },
+    {
+     "art": "cards/banners/map_q3ctf1.jpg",
+     "desc": "Win a match on Dueling Keeps",
+     "free": false,
+     "how": "WIN A MATCH ON DUELING KEEPS",
+     "id": "map_q3ctf1",
+     "kind": "image",
+     "level": 0,
+     "name": "Dueling Keeps"
+    },
+    {
+     "art": "cards/banners/map_q3ctf2.jpg",
+     "desc": "Win a match on Troubled Waters",
+     "free": false,
+     "how": "WIN A MATCH ON TROUBLED WATERS",
+     "id": "map_q3ctf2",
+     "kind": "image",
+     "level": 0,
+     "name": "Troubled Waters"
+    },
+    {
+     "art": "cards/banners/map_q3ctf3.jpg",
+     "desc": "Win a match on The Stronghold",
+     "free": false,
+     "how": "WIN A MATCH ON THE STRONGHOLD",
+     "id": "map_q3ctf3",
+     "kind": "image",
+     "level": 0,
+     "name": "The Stronghold"
+    },
+    {
+     "art": "cards/banners/map_q3ctf4.jpg",
+     "desc": "Win a match on Space CTF",
+     "free": false,
+     "how": "WIN A MATCH ON SPACE CTF",
+     "id": "map_q3ctf4",
+     "kind": "image",
+     "level": 0,
+     "name": "Space CTF"
+    },
+    {
+     "art": "cards/banners/map_pro-q3tourney2.jpg",
+     "desc": "Win a match on The Proving Grounds II",
+     "free": false,
+     "how": "WIN A MATCH ON THE PROVING GROUNDS II",
+     "id": "map_pro-q3tourney2",
+     "kind": "image",
+     "level": 0,
+     "name": "The Proving Grounds II"
+    },
+    {
+     "art": "cards/banners/map_pro-q3tourney4.jpg",
+     "desc": "Win a match on Vertical Vengeance II",
+     "free": false,
+     "how": "WIN A MATCH ON VERTICAL VENGEANCE II",
+     "id": "map_pro-q3tourney4",
+     "kind": "image",
+     "level": 0,
+     "name": "Vertical Vengeance II"
+    },
+    {
+     "art": "cards/banners/map_pro-q3dm6.jpg",
+     "desc": "Win a match on The Campgrounds II",
+     "free": false,
+     "how": "WIN A MATCH ON THE CAMPGROUNDS II",
+     "id": "map_pro-q3dm6",
+     "kind": "image",
+     "level": 0,
+     "name": "The Campgrounds II"
+    },
+    {
+     "art": "cards/banners/map_pro-q3dm13.jpg",
+     "desc": "Win a match on Lost World II",
+     "free": false,
+     "how": "WIN A MATCH ON LOST WORLD II",
+     "id": "map_pro-q3dm13",
+     "kind": "image",
+     "level": 0,
+     "name": "Lost World II"
+    },
+    {
+     "art": "cards/banners/map_q3tourney6_ctf.jpg",
+     "desc": "Win a match on Across Space",
+     "free": false,
+     "how": "WIN A MATCH ON ACROSS SPACE",
+     "id": "map_q3tourney6_ctf",
+     "kind": "image",
+     "level": 0,
+     "name": "Across Space"
+    },
+    {
+     "art": "cards/banners/sky_hellsky.jpg",
+     "free": false,
+     "fx": "pan",
+     "how": "LEVEL 2",
+     "id": "sky_hellsky",
+     "kind": "image",
+     "level": 2,
+     "name": "Hell Sky"
+    },
+    {
+     "art": "cards/banners/sky_hellsky2bright.jpg",
+     "free": false,
+     "fx": "pan",
+     "how": "LEVEL 6",
+     "id": "sky_hellsky2bright",
+     "kind": "image",
+     "level": 6,
+     "name": "Hellsky2bright"
+    },
+    {
+     "art": "cards/banners/sky_kc_dm10sky.jpg",
+     "free": false,
+     "fx": "pan",
+     "how": "LEVEL 8",
+     "id": "sky_kc_dm10sky",
+     "kind": "image",
+     "level": 8,
+     "name": "DM10SKY"
+    },
+    {
+     "art": "cards/banners/sky_kcbasesky_arena1_sky.jpg",
+     "free": false,
+     "fx": "pan",
+     "how": "LEVEL 13",
+     "id": "sky_kcbasesky_arena1_sky",
+     "kind": "image",
+     "level": 13,
+     "name": "Basesky"
+    },
+    {
+     "art": "cards/banners/sky_killsky.jpg",
+     "free": false,
+     "fx": "pan",
+     "how": "LEVEL 20",
+     "id": "sky_killsky",
+     "kind": "image",
+     "level": 20,
+     "name": "Kill Sky"
+    },
+    {
+     "art": "cards/banners/sky_nightsky_xian_dm1.jpg",
+     "free": false,
+     "fx": "pan",
+     "how": "LEVEL 25",
+     "id": "sky_nightsky_xian_dm1",
+     "kind": "image",
+     "level": 25,
+     "name": "Night Sky Xian DM1"
+    },
+    {
+     "art": "cards/banners/sky_skybox.jpg",
+     "free": false,
+     "fx": "pan",
+     "how": "LEVEL 32",
+     "id": "sky_skybox",
+     "kind": "image",
+     "level": 32,
+     "name": "Skybox"
+    },
+    {
+     "art": "cards/banners/char_anarki.jpg",
+     "desc": "Beat Anarki in the campaign, or play 25 matches as Anarki",
+     "free": false,
+     "how": "BEAT ANARKI IN THE CAMPAIGN, OR PLAY 25 MATCHES AS ANARKI",
+     "id": "char_anarki",
+     "kind": "image",
+     "level": 0,
+     "name": "Anarki"
+    },
+    {
+     "art": "cards/banners/char_biker.jpg",
+     "desc": "Beat Biker in the campaign, or play 25 matches as Biker",
+     "free": false,
+     "how": "BEAT BIKER IN THE CAMPAIGN, OR PLAY 25 MATCHES AS BIKER",
+     "id": "char_biker",
+     "kind": "image",
+     "level": 0,
+     "name": "Biker"
+    },
+    {
+     "art": "cards/banners/char_bitterman.jpg",
+     "desc": "Beat Bitterman in the campaign, or play 25 matches as Bitterman",
+     "free": false,
+     "how": "BEAT BITTERMAN IN THE CAMPAIGN, OR PLAY 25 MATCHES AS BITTERMAN",
+     "id": "char_bitterman",
+     "kind": "image",
+     "level": 0,
+     "name": "Bitterman"
+    },
+    {
+     "art": "cards/banners/char_bones.jpg",
+     "desc": "Beat Bones in the campaign, or play 25 matches as Bones",
+     "free": false,
+     "how": "BEAT BONES IN THE CAMPAIGN, OR PLAY 25 MATCHES AS BONES",
+     "id": "char_bones",
+     "kind": "image",
+     "level": 0,
+     "name": "Bones"
+    },
+    {
+     "art": "cards/banners/char_brandon.jpg",
+     "desc": "Play 25 matches as Brandon",
+     "free": false,
+     "how": "PLAY 25 MATCHES AS BRANDON",
+     "id": "char_brandon",
+     "kind": "image",
+     "level": 0,
+     "name": "Brandon"
+    },
+    {
+     "art": "cards/banners/char_carmack.jpg",
+     "desc": "Play 25 matches as Carmack",
+     "free": false,
+     "how": "PLAY 25 MATCHES AS CARMACK",
+     "id": "char_carmack",
+     "kind": "image",
+     "level": 0,
+     "name": "Carmack"
+    },
+    {
+     "art": "cards/banners/char_cash.jpg",
+     "desc": "Play 25 matches as Cash",
+     "free": false,
+     "how": "PLAY 25 MATCHES AS CASH",
+     "id": "char_cash",
+     "kind": "image",
+     "level": 0,
+     "name": "Cash"
+    },
+    {
+     "art": "cards/banners/char_crash.jpg",
+     "desc": "Beat Crash in the campaign, or play 25 matches as Crash",
+     "free": false,
+     "how": "BEAT CRASH IN THE CAMPAIGN, OR PLAY 25 MATCHES AS CRASH",
+     "id": "char_crash",
+     "kind": "image",
+     "level": 0,
+     "name": "Crash"
+    },
+    {
+     "art": "cards/banners/char_doom.jpg",
+     "desc": "Beat Doom in the campaign, or play 25 matches as Doom",
+     "free": false,
+     "how": "BEAT DOOM IN THE CAMPAIGN, OR PLAY 25 MATCHES AS DOOM",
+     "id": "char_doom",
+     "kind": "image",
+     "level": 0,
+     "name": "Doom"
+    },
+    {
+     "art": "cards/banners/char_grunt.jpg",
+     "desc": "Beat Grunt in the campaign, or play 25 matches as Grunt",
+     "free": false,
+     "how": "BEAT GRUNT IN THE CAMPAIGN, OR PLAY 25 MATCHES AS GRUNT",
+     "id": "char_grunt",
+     "kind": "image",
+     "level": 0,
+     "name": "Grunt"
+    },
+    {
+     "art": "cards/banners/char_hunter.jpg",
+     "desc": "Beat Hunter in the campaign, or play 25 matches as Hunter",
+     "free": false,
+     "how": "BEAT HUNTER IN THE CAMPAIGN, OR PLAY 25 MATCHES AS HUNTER",
+     "id": "char_hunter",
+     "kind": "image",
+     "level": 0,
+     "name": "Hunter"
+    },
+    {
+     "art": "cards/banners/char_keel.jpg",
+     "desc": "Beat Keel in the campaign, or play 25 matches as Keel",
+     "free": false,
+     "how": "BEAT KEEL IN THE CAMPAIGN, OR PLAY 25 MATCHES AS KEEL",
+     "id": "char_keel",
+     "kind": "image",
+     "level": 0,
+     "name": "Keel"
+    },
+    {
+     "art": "cards/banners/char_klesk.jpg",
+     "desc": "Beat Klesk in the campaign, or play 25 matches as Klesk",
+     "free": false,
+     "how": "BEAT KLESK IN THE CAMPAIGN, OR PLAY 25 MATCHES AS KLESK",
+     "id": "char_klesk",
+     "kind": "image",
+     "level": 0,
+     "name": "Klesk"
+    },
+    {
+     "art": "cards/banners/char_lucy.jpg",
+     "desc": "Beat Lucy in the campaign, or play 25 matches as Lucy",
+     "free": false,
+     "how": "BEAT LUCY IN THE CAMPAIGN, OR PLAY 25 MATCHES AS LUCY",
+     "id": "char_lucy",
+     "kind": "image",
+     "level": 0,
+     "name": "Lucy"
+    },
+    {
+     "art": "cards/banners/char_major.jpg",
+     "desc": "Beat Major in the campaign, or play 25 matches as Major",
+     "free": false,
+     "how": "BEAT MAJOR IN THE CAMPAIGN, OR PLAY 25 MATCHES AS MAJOR",
+     "id": "char_major",
+     "kind": "image",
+     "level": 0,
+     "name": "Major"
+    },
+    {
+     "art": "cards/banners/char_mynx.jpg",
+     "desc": "Beat Mynx in the campaign, or play 25 matches as Mynx",
+     "free": false,
+     "how": "BEAT MYNX IN THE CAMPAIGN, OR PLAY 25 MATCHES AS MYNX",
+     "id": "char_mynx",
+     "kind": "image",
+     "level": 0,
+     "name": "Mynx"
+    },
+    {
+     "art": "cards/banners/char_orbb.jpg",
+     "desc": "Beat Orbb in the campaign, or play 25 matches as Orbb",
+     "free": false,
+     "how": "BEAT ORBB IN THE CAMPAIGN, OR PLAY 25 MATCHES AS ORBB",
+     "id": "char_orbb",
+     "kind": "image",
+     "level": 0,
+     "name": "Orbb"
+    },
+    {
+     "art": "cards/banners/char_paulj.jpg",
+     "desc": "Play 25 matches as Paulj",
+     "free": false,
+     "how": "PLAY 25 MATCHES AS PAULJ",
+     "id": "char_paulj",
+     "kind": "image",
+     "level": 0,
+     "name": "Paulj"
+    },
+    {
+     "art": "cards/banners/char_ranger.jpg",
+     "desc": "Beat Ranger in the campaign, or play 25 matches as Ranger",
+     "free": false,
+     "how": "BEAT RANGER IN THE CAMPAIGN, OR PLAY 25 MATCHES AS RANGER",
+     "id": "char_ranger",
+     "kind": "image",
+     "level": 0,
+     "name": "Ranger"
+    },
+    {
+     "art": "cards/banners/char_razor.jpg",
+     "desc": "Beat Razor in the campaign, or play 25 matches as Razor",
+     "free": false,
+     "how": "BEAT RAZOR IN THE CAMPAIGN, OR PLAY 25 MATCHES AS RAZOR",
+     "id": "char_razor",
+     "kind": "image",
+     "level": 0,
+     "name": "Razor"
+    },
+    {
+     "art": "cards/banners/char_sarge.jpg",
+     "desc": "Beat Sarge in the campaign, or play 25 matches as Sarge",
+     "free": false,
+     "how": "BEAT SARGE IN THE CAMPAIGN, OR PLAY 25 MATCHES AS SARGE",
+     "id": "char_sarge",
+     "kind": "image",
+     "level": 0,
+     "name": "Sarge"
+    },
+    {
+     "art": "cards/banners/char_slash.jpg",
+     "desc": "Beat Slash in the campaign, or play 25 matches as Slash",
+     "free": false,
+     "how": "BEAT SLASH IN THE CAMPAIGN, OR PLAY 25 MATCHES AS SLASH",
+     "id": "char_slash",
+     "kind": "image",
+     "level": 0,
+     "name": "Slash"
+    },
+    {
+     "art": "cards/banners/char_sorlag.jpg",
+     "desc": "Beat Sorlag in the campaign, or play 25 matches as Sorlag",
+     "free": false,
+     "how": "BEAT SORLAG IN THE CAMPAIGN, OR PLAY 25 MATCHES AS SORLAG",
+     "id": "char_sorlag",
+     "kind": "image",
+     "level": 0,
+     "name": "Sorlag"
+    },
+    {
+     "art": "cards/banners/char_tankjr.jpg",
+     "desc": "Beat TankJr in the campaign, or play 25 matches as TankJr",
+     "free": false,
+     "how": "BEAT TANKJR IN THE CAMPAIGN, OR PLAY 25 MATCHES AS TANKJR",
+     "id": "char_tankjr",
+     "kind": "image",
+     "level": 0,
+     "name": "TankJr"
+    },
+    {
+     "art": "cards/banners/char_tim.jpg",
+     "desc": "Play 25 matches as Tim",
+     "free": false,
+     "how": "PLAY 25 MATCHES AS TIM",
+     "id": "char_tim",
+     "kind": "image",
+     "level": 0,
+     "name": "Tim"
+    },
+    {
+     "art": "cards/banners/char_uriel.jpg",
+     "desc": "Beat Uriel in the campaign, or play 25 matches as Uriel",
+     "free": false,
+     "how": "BEAT URIEL IN THE CAMPAIGN, OR PLAY 25 MATCHES AS URIEL",
+     "id": "char_uriel",
+     "kind": "image",
+     "level": 0,
+     "name": "Uriel"
+    },
+    {
+     "art": "cards/banners/char_visor.jpg",
+     "desc": "Beat Visor in the campaign, or play 25 matches as Visor",
+     "free": false,
+     "how": "BEAT VISOR IN THE CAMPAIGN, OR PLAY 25 MATCHES AS VISOR",
+     "id": "char_visor",
+     "kind": "image",
+     "level": 0,
+     "name": "Visor"
+    },
+    {
+     "art": "cards/banners/char_xaero.jpg",
+     "desc": "Beat Xaero in the campaign, or play 25 matches as Xaero",
+     "free": false,
+     "how": "BEAT XAERO IN THE CAMPAIGN, OR PLAY 25 MATCHES AS XAERO",
+     "id": "char_xaero",
+     "kind": "image",
+     "level": 0,
+     "name": "Xaero"
+    },
+    {
+     "art": "cards/banners/char_xian.jpg",
+     "desc": "Play 25 matches as Xian",
+     "free": false,
+     "how": "PLAY 25 MATCHES AS XIAN",
+     "id": "char_xian",
+     "kind": "image",
+     "level": 0,
+     "name": "Xian"
+    },
+    {
+     "art": "cards/banners/mat_q3a_banner.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 3",
+     "id": "mat_q3a_banner",
+     "kind": "image",
+     "level": 3,
+     "material": "textures/base_wall/main_q3abanner",
+     "name": "Arena Banner"
+    },
+    {
+     "art": "cards/banners/mat_proto_banner.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 7",
+     "id": "mat_proto_banner",
+     "kind": "image",
+     "level": 7,
+     "material": "textures/base_wall/protobanner",
+     "name": "Proto Banner"
+    },
+    {
+     "art": "cards/banners/mat_gothic_blocks.jpg",
+     "free": false,
+     "how": "LEVEL 11",
+     "id": "mat_gothic_blocks",
+     "kind": "image",
+     "level": 11,
+     "material": "textures/gothic_block/blocks15_ow",
+     "name": "Gothic Blocks"
+    },
+    {
+     "art": "cards/banners/mat_bloody_blocks.jpg",
+     "free": false,
+     "how": "LEVEL 16",
+     "id": "mat_bloody_blocks",
+     "kind": "image",
+     "level": 16,
+     "material": "textures/gothic_block/blocks17bloody",
+     "name": "Bloody Blocks"
+    },
+    {
+     "art": "cards/banners/mat_skull_arch.jpg",
+     "free": false,
+     "how": "LEVEL 23",
+     "id": "mat_skull_arch",
+     "kind": "image",
+     "level": 23,
+     "material": "textures/gothic_door/skullarch_b",
+     "name": "Skull Arch"
+    },
+    {
+     "art": "cards/banners/mat_pentagram.jpg",
+     "free": false,
+     "how": "LEVEL 30",
+     "id": "mat_pentagram",
+     "kind": "image",
+     "level": 30,
+     "material": "textures/gothic_light/pentagram_light1",
+     "name": "Pentagram"
+    },
+    {
+     "art": "cards/banners/mat_flesh.jpg",
+     "free": false,
+     "how": "LEVEL 34",
+     "id": "mat_flesh",
+     "kind": "image",
+     "level": 34,
+     "material": "textures/skin/proto_skin2",
+     "name": "Flesh Wall"
+    },
+    {
+     "art": "cards/banners/mat_rusty_grate.jpg",
+     "free": false,
+     "how": "LEVEL 39",
+     "id": "mat_rusty_grate",
+     "kind": "image",
+     "level": 39,
+     "material": "textures/base_floor/proto_rustygrate",
+     "name": "Rusty Grate"
+    },
+    {
+     "art": "cards/banners/mat_blue_metal.jpg",
+     "free": false,
+     "how": "LEVEL 41",
+     "id": "mat_blue_metal",
+     "kind": "image",
+     "level": 41,
+     "material": "textures/base_wall/bluemetal1b_chrome",
+     "name": "Blue Metal"
+    },
+    {
+     "art": "cards/banners/mat_jump_pad.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 44",
+     "id": "mat_jump_pad",
+     "kind": "image",
+     "level": 44,
+     "material": "textures/sfx/xq1metalbig_jumppad",
+     "name": "Jump Pad"
+    },
+    {
+     "art": "cards/banners/mat_glow_floor.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 48",
+     "id": "mat_glow_floor",
+     "kind": "image",
+     "level": 48,
+     "material": "textures/gothic_floor/glowfloor1",
+     "name": "Glow Floor"
+    },
+    {
+     "art": "cards/banners/mat_lava.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 51",
+     "id": "mat_lava",
+     "kind": "image",
+     "level": 51,
+     "material": "textures/liquids/lavahell",
+     "name": "Lava"
+    },
+    {
+     "art": "cards/banners/mat_slime.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 53",
+     "id": "mat_slime",
+     "kind": "image",
+     "level": 53,
+     "material": "textures/liquids/slime1",
+     "name": "Slime"
+    },
+    {
+     "art": "cards/banners/mat_hellfire.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 58",
+     "id": "mat_hellfire",
+     "kind": "image",
+     "level": 58,
+     "material": "textures/sfx/flame2",
+     "name": "Hellfire"
+    },
+    {
+     "art": "cards/banners/mat_electric_slime.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 60",
+     "id": "mat_electric_slime",
+     "kind": "image",
+     "level": 60,
+     "material": "textures/sfx/electricslime",
+     "name": "Electric Slime"
+    },
+    {
+     "art": "cards/banners/mat_ornate_door.jpg",
+     "free": false,
+     "how": "LEVEL 63",
+     "id": "mat_ornate_door",
+     "kind": "image",
+     "level": 63,
+     "material": "textures/gothic_door/door02_i_ornate5_fin",
+     "name": "Ornate Door"
+    },
+    {
+     "art": "cards/banners/mat_red_flag.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 67",
+     "id": "mat_red_flag",
+     "kind": "image",
+     "level": 67,
+     "material": "textures/ctf/ctf_redflag",
+     "name": "Red Flag"
+    },
+    {
+     "art": "cards/banners/mat_blue_flag.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 70",
+     "id": "mat_blue_flag",
+     "kind": "image",
+     "level": 70,
+     "material": "textures/ctf/ctf_blueflag",
+     "name": "Blue Flag"
+    },
+    {
+     "art": "cards/banners/mat_blue_pentagram.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 72",
+     "id": "mat_blue_pentagram",
+     "kind": "image",
+     "level": 72,
+     "material": "textures/sfx/pentagramfloor_blue3glowtest",
+     "name": "Blue Pentagram"
+    },
+    {
+     "art": "cards/banners/mat_lava_grate.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 77",
+     "id": "mat_lava_grate",
+     "kind": "image",
+     "level": 77,
+     "material": "textures/base_floor/clang_floor3blava",
+     "name": "Lava Grate"
+    },
+    {
+     "art": "cards/banners/mat_bloody_bridge.jpg",
+     "free": false,
+     "how": "LEVEL 79",
+     "id": "mat_bloody_bridge",
+     "kind": "image",
+     "level": 79,
+     "material": "textures/gothic_floor/metalbridge06b_blood",
+     "name": "Bloody Bridge"
+    },
+    {
+     "art": "cards/banners/mat_arena_tower.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 81",
+     "id": "mat_arena_tower",
+     "kind": "image",
+     "level": 81,
+     "material": "textures/gothic_trim/km_arena1tower4fx",
+     "name": "Arena Tower"
+    },
+    {
+     "art": "cards/banners/mat_red_light.jpg",
+     "free": false,
+     "how": "LEVEL 86",
+     "id": "mat_red_light",
+     "kind": "image",
+     "level": 86,
+     "material": "textures/base_light/proto_lightred",
+     "name": "Red Light"
+    },
+    {
+     "art": "cards/banners/mat_hell_rock.jpg",
+     "free": false,
+     "how": "LEVEL 88",
+     "id": "mat_hell_rock",
+     "kind": "image",
+     "level": 88,
+     "material": "textures/organics/pjrock7d",
+     "name": "Hell Rock"
+    },
+    {
+     "art": "cards/banners/mat_head_wall.jpg",
+     "free": false,
+     "how": "LEVEL 91",
+     "id": "mat_head_wall",
+     "kind": "image",
+     "level": 91,
+     "material": "textures/gothic_block/blocks18cbloodhead",
+     "name": "Head Wall"
+    },
+    {
+     "art": "cards/banners/mat_slime_blocks.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 95",
+     "id": "mat_slime_blocks",
+     "kind": "image",
+     "level": 95,
+     "material": "textures/gothic_block/blocks17slime",
+     "name": "Slime Blocks"
+    },
+    {
+     "art": "cards/banners/mat_electric_wall.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "LEVEL 98",
+     "id": "mat_electric_wall",
+     "kind": "image",
+     "level": 98,
+     "material": "textures/base_trim/electricwall",
+     "name": "Electric Wall"
+    },
+    {
+     "ach": "medal_collector",
+     "desc": "Your three best medal counts",
+     "free": false,
+     "how": "ACHIEVEMENT: MEDAL COLLECTOR",
+     "id": "trophy_wall",
+     "kind": "stat",
+     "level": 0,
+     "name": "Trophy Wall"
+    },
+    {
+     "ach": "arsenal",
+     "desc": "Your best weapon and its frags",
+     "free": false,
+     "how": "ACHIEVEMENT: ARSENAL",
+     "id": "weapon_mastery",
+     "kind": "stat",
+     "level": 0,
+     "name": "Weapon Mastery"
+    },
+    {
+     "ach": "home_turf",
+     "desc": "The arena you've won most",
+     "free": false,
+     "how": "ACHIEVEMENT: HOME TURF",
+     "id": "favorite_arena",
+     "kind": "stat",
+     "level": 0,
+     "name": "Favorite Arena"
+    },
+    {
+     "ach": "ranked_gold",
+     "desc": "Your ranked tier's colors",
+     "free": false,
+     "how": "ACHIEVEMENT: GOLD",
+     "id": "rank_crest",
+     "kind": "stat",
+     "level": 0,
+     "name": "Rank Crest"
+    },
+    {
+     "ach": "ranked_platinum",
+     "desc": "A new design every ranked season",
+     "free": false,
+     "how": "ACHIEVEMENT: PLATINUM",
+     "id": "season",
+     "kind": "stat",
+     "level": 0,
+     "name": "Season"
+    },
+    {
+     "ach": "campaign_training",
+     "desc": "Every campaign arena and the skill you won it at",
+     "free": false,
+     "how": "ACHIEVEMENT: ARENA ELIGIBLE",
+     "id": "campaign_map",
+     "kind": "stat",
+     "level": 0,
+     "name": "Campaign Map"
+    },
+    {
+     "ach": "quad_god",
+     "base": "map_q3dm17",
+     "desc": "The card pulses with the Quad shell",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: QUAD GOD",
+     "id": "quad_damage",
+     "kind": "prestige",
+     "level": 0,
+     "name": "Quad Damage"
+    },
+    {
+     "ach": "lava_bath",
+     "base": "mat_lava",
+     "desc": "Your favorite arena sinks into rising lava",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: DOES A BACK FLIP INTO THE LAVA",
+     "id": "lava_bath",
+     "kind": "prestige",
+     "level": 0,
+     "name": "Lava Bath"
+    },
+    {
+     "ach": "rail_streak",
+     "base": "map_q3dm17",
+     "desc": "Rail trails cross the void",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: THE LONGEST YARD",
+     "id": "longest_yard",
+     "kind": "prestige",
+     "level": 0,
+     "name": "The Longest Yard"
+    },
+    {
+     "ach": "medal_gauntlet_1000",
+     "base": "mat_bloody_blocks",
+     "desc": "A gauntlet kill's gib fountain",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: HUMILIATION X1000",
+     "id": "gibbed",
+     "kind": "prestige",
+     "level": 0,
+     "name": "Gibbed"
+    },
+    {
+     "ach": "campaign_nightmare",
+     "base": "char_xaero",
+     "desc": "Xaero above the final arena",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: NIGHTMARE WALKER",
+     "id": "nightmare",
+     "kind": "prestige",
+     "level": 0,
+     "name": "Nightmare!"
+    }
+   ],
+   "emblems": [
+    {
+     "art": "cards/emblems/head_anarki.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_anarki",
+     "kind": "image",
+     "level": 0,
+     "name": "Anarki"
+    },
+    {
+     "art": "cards/emblems/head_anarki_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_anarki_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Anarki (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_anarki_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_anarki_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Anarki (Red)"
+    },
+    {
+     "art": "cards/emblems/head_biker.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_biker",
+     "kind": "image",
+     "level": 0,
+     "name": "Biker"
+    },
+    {
+     "art": "cards/emblems/head_biker_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_biker_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Biker (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_biker_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_biker_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Biker (Red)"
+    },
+    {
+     "art": "cards/emblems/head_biker_cadavre.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_biker_cadavre",
+     "kind": "image",
+     "level": 0,
+     "name": "Biker (Cadavre)"
+    },
+    {
+     "art": "cards/emblems/head_biker_hossman.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_biker_hossman",
+     "kind": "image",
+     "level": 0,
+     "name": "Biker (Hossman)"
+    },
+    {
+     "art": "cards/emblems/head_biker_slammer.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_biker_slammer",
+     "kind": "image",
+     "level": 0,
+     "name": "Biker (Slammer)"
+    },
+    {
+     "art": "cards/emblems/head_biker_stroggo.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_biker_stroggo",
+     "kind": "image",
+     "level": 0,
+     "name": "Biker (Stroggo)"
+    },
+    {
+     "art": "cards/emblems/head_bitterman.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_bitterman",
+     "kind": "image",
+     "level": 0,
+     "name": "Bitterman"
+    },
+    {
+     "art": "cards/emblems/head_bitterman_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_bitterman_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Bitterman (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_bitterman_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_bitterman_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Bitterman (Red)"
+    },
+    {
+     "art": "cards/emblems/head_bones.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_bones",
+     "kind": "image",
+     "level": 0,
+     "name": "Bones"
+    },
+    {
+     "art": "cards/emblems/head_bones_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_bones_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Bones (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_bones_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_bones_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Bones (Red)"
+    },
+    {
+     "art": "cards/emblems/head_bones_bones.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_bones_bones",
+     "kind": "image",
+     "level": 0,
+     "name": "Bones (Bones)"
+    },
+    {
+     "art": "cards/emblems/head_brandon.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_brandon",
+     "kind": "image",
+     "level": 0,
+     "name": "Brandon"
+    },
+    {
+     "art": "cards/emblems/head_carmack.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_carmack",
+     "kind": "image",
+     "level": 0,
+     "name": "Carmack"
+    },
+    {
+     "art": "cards/emblems/head_cash.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_cash",
+     "kind": "image",
+     "level": 0,
+     "name": "Cash"
+    },
+    {
+     "art": "cards/emblems/head_crash.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_crash",
+     "kind": "image",
+     "level": 0,
+     "name": "Crash"
+    },
+    {
+     "art": "cards/emblems/head_crash_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_crash_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Crash (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_crash_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_crash_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Crash (Red)"
+    },
+    {
+     "art": "cards/emblems/head_doom.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_doom",
+     "kind": "image",
+     "level": 0,
+     "name": "Doom"
+    },
+    {
+     "art": "cards/emblems/head_doom_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_doom_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Doom (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_doom_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_doom_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Doom (Red)"
+    },
+    {
+     "art": "cards/emblems/head_doom_phobos.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_doom_phobos",
+     "kind": "image",
+     "level": 0,
+     "name": "Doom (Phobos)"
+    },
+    {
+     "art": "cards/emblems/head_grunt.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_grunt",
+     "kind": "image",
+     "level": 0,
+     "name": "Grunt"
+    },
+    {
+     "art": "cards/emblems/head_grunt_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_grunt_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Grunt (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_grunt_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_grunt_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Grunt (Red)"
+    },
+    {
+     "art": "cards/emblems/head_grunt_stripe.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_grunt_stripe",
+     "kind": "image",
+     "level": 0,
+     "name": "Grunt (Stripe)"
+    },
+    {
+     "art": "cards/emblems/head_hunter.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_hunter",
+     "kind": "image",
+     "level": 0,
+     "name": "Hunter"
+    },
+    {
+     "art": "cards/emblems/head_hunter_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_hunter_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Hunter (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_hunter_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_hunter_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Hunter (Red)"
+    },
+    {
+     "art": "cards/emblems/head_hunter_harpy.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_hunter_harpy",
+     "kind": "image",
+     "level": 0,
+     "name": "Hunter (Harpy)"
+    },
+    {
+     "art": "cards/emblems/head_keel.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_keel",
+     "kind": "image",
+     "level": 0,
+     "name": "Keel"
+    },
+    {
+     "art": "cards/emblems/head_keel_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_keel_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Keel (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_keel_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_keel_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Keel (Red)"
+    },
+    {
+     "art": "cards/emblems/head_klesk.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_klesk",
+     "kind": "image",
+     "level": 0,
+     "name": "Klesk"
+    },
+    {
+     "art": "cards/emblems/head_klesk_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_klesk_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Klesk (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_klesk_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_klesk_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Klesk (Red)"
+    },
+    {
+     "art": "cards/emblems/head_klesk_flisk.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_klesk_flisk",
+     "kind": "image",
+     "level": 0,
+     "name": "Klesk (Flisk)"
+    },
+    {
+     "art": "cards/emblems/head_lucy.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_lucy",
+     "kind": "image",
+     "level": 0,
+     "name": "Lucy"
+    },
+    {
+     "art": "cards/emblems/head_lucy_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_lucy_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Lucy (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_lucy_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_lucy_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Lucy (Red)"
+    },
+    {
+     "art": "cards/emblems/head_lucy_angel.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_lucy_angel",
+     "kind": "image",
+     "level": 0,
+     "name": "Lucy (Angel)"
+    },
+    {
+     "art": "cards/emblems/head_major.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_major",
+     "kind": "image",
+     "level": 0,
+     "name": "Major"
+    },
+    {
+     "art": "cards/emblems/head_major_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_major_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Major (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_major_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_major_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Major (Red)"
+    },
+    {
+     "art": "cards/emblems/head_major_daemia.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_major_daemia",
+     "kind": "image",
+     "level": 0,
+     "name": "Major (Daemia)"
+    },
+    {
+     "art": "cards/emblems/head_mynx.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_mynx",
+     "kind": "image",
+     "level": 0,
+     "name": "Mynx"
+    },
+    {
+     "art": "cards/emblems/head_mynx_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_mynx_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Mynx (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_mynx_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_mynx_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Mynx (Red)"
+    },
+    {
+     "art": "cards/emblems/head_orbb.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_orbb",
+     "kind": "image",
+     "level": 0,
+     "name": "Orbb"
+    },
+    {
+     "art": "cards/emblems/head_orbb_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_orbb_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Orbb (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_orbb_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_orbb_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Orbb (Red)"
+    },
+    {
+     "art": "cards/emblems/head_paulj.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_paulj",
+     "kind": "image",
+     "level": 0,
+     "name": "Paulj"
+    },
+    {
+     "art": "cards/emblems/head_ranger.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_ranger",
+     "kind": "image",
+     "level": 0,
+     "name": "Ranger"
+    },
+    {
+     "art": "cards/emblems/head_ranger_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_ranger_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Ranger (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_ranger_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_ranger_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Ranger (Red)"
+    },
+    {
+     "art": "cards/emblems/head_ranger_wrack.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_ranger_wrack",
+     "kind": "image",
+     "level": 0,
+     "name": "Ranger (Wrack)"
+    },
+    {
+     "art": "cards/emblems/head_razor.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_razor",
+     "kind": "image",
+     "level": 0,
+     "name": "Razor"
+    },
+    {
+     "art": "cards/emblems/head_razor_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_razor_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Razor (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_razor_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_razor_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Razor (Red)"
+    },
+    {
+     "art": "cards/emblems/head_razor_id.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_razor_id",
+     "kind": "image",
+     "level": 0,
+     "name": "Razor (Id)"
+    },
+    {
+     "art": "cards/emblems/head_razor_patriot.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_razor_patriot",
+     "kind": "image",
+     "level": 0,
+     "name": "Razor (Patriot)"
+    },
+    {
+     "art": "cards/emblems/head_sarge.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_sarge",
+     "kind": "image",
+     "level": 0,
+     "name": "Sarge"
+    },
+    {
+     "art": "cards/emblems/head_sarge_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_sarge_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Sarge (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_sarge_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_sarge_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Sarge (Red)"
+    },
+    {
+     "art": "cards/emblems/head_sarge_krusade.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_sarge_krusade",
+     "kind": "image",
+     "level": 0,
+     "name": "Sarge (Krusade)"
+    },
+    {
+     "art": "cards/emblems/head_sarge_roderic.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_sarge_roderic",
+     "kind": "image",
+     "level": 0,
+     "name": "Sarge (Roderic)"
+    },
+    {
+     "art": "cards/emblems/head_slash.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_slash",
+     "kind": "image",
+     "level": 0,
+     "name": "Slash"
+    },
+    {
+     "art": "cards/emblems/head_slash_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_slash_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Slash (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_slash_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_slash_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Slash (Red)"
+    },
+    {
+     "art": "cards/emblems/head_slash_grrl.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_slash_grrl",
+     "kind": "image",
+     "level": 0,
+     "name": "Slash (Grrl)"
+    },
+    {
+     "art": "cards/emblems/head_slash_yuriko.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_slash_yuriko",
+     "kind": "image",
+     "level": 0,
+     "name": "Slash (Yuriko)"
+    },
+    {
+     "art": "cards/emblems/head_sorlag.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_sorlag",
+     "kind": "image",
+     "level": 0,
+     "name": "Sorlag"
+    },
+    {
+     "art": "cards/emblems/head_sorlag_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_sorlag_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Sorlag (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_sorlag_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_sorlag_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Sorlag (Red)"
+    },
+    {
+     "art": "cards/emblems/head_tankjr.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_tankjr",
+     "kind": "image",
+     "level": 0,
+     "name": "Tankjr"
+    },
+    {
+     "art": "cards/emblems/head_tankjr_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_tankjr_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Tankjr (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_tankjr_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_tankjr_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Tankjr (Red)"
+    },
+    {
+     "art": "cards/emblems/head_tim.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_tim",
+     "kind": "image",
+     "level": 0,
+     "name": "Tim"
+    },
+    {
+     "art": "cards/emblems/head_uriel.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_uriel",
+     "kind": "image",
+     "level": 0,
+     "name": "Uriel"
+    },
+    {
+     "art": "cards/emblems/head_uriel_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_uriel_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Uriel (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_uriel_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_uriel_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Uriel (Red)"
+    },
+    {
+     "art": "cards/emblems/head_uriel_zael.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_uriel_zael",
+     "kind": "image",
+     "level": 0,
+     "name": "Uriel (Zael)"
+    },
+    {
+     "art": "cards/emblems/head_visor.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_visor",
+     "kind": "image",
+     "level": 0,
+     "name": "Visor"
+    },
+    {
+     "art": "cards/emblems/head_visor_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_visor_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Visor (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_visor_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_visor_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Visor (Red)"
+    },
+    {
+     "art": "cards/emblems/head_visor_gorre.png",
+     "free": false,
+     "group": "skins",
+     "how": "",
+     "id": "head_visor_gorre",
+     "kind": "image",
+     "level": 0,
+     "name": "Visor (Gorre)"
+    },
+    {
+     "art": "cards/emblems/head_xaero.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_xaero",
+     "kind": "image",
+     "level": 0,
+     "name": "Xaero"
+    },
+    {
+     "art": "cards/emblems/head_xaero_blue.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_xaero_blue",
+     "kind": "image",
+     "level": 0,
+     "name": "Xaero (Blue)"
+    },
+    {
+     "art": "cards/emblems/head_xaero_red.png",
+     "free": false,
+     "group": "heads",
+     "how": "",
+     "id": "head_xaero_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Xaero (Red)"
+    },
+    {
+     "art": "cards/emblems/head_xian.png",
+     "free": true,
+     "group": "heads",
+     "how": "FREE",
+     "id": "head_xian",
+     "kind": "image",
+     "level": 0,
+     "name": "Xian"
+    },
+    {
+     "ach": "medal_gauntlet_100",
+     "art": "cards/emblems/iconw_gauntlet.png",
+     "free": false,
+     "group": "weapons",
+     "how": "ACHIEVEMENT: HUMILIATION X100",
+     "id": "iconw_gauntlet",
+     "kind": "image",
+     "level": 0,
+     "name": "Gauntlet"
+    },
+    {
+     "ach": "weapon_machinegun_100",
+     "art": "cards/emblems/iconw_machinegun.png",
+     "free": false,
+     "group": "weapons",
+     "how": "ACHIEVEMENT: MACHINEGUN BLOODED",
+     "id": "iconw_machinegun",
+     "kind": "image",
+     "level": 0,
+     "name": "Machinegun"
+    },
+    {
+     "ach": "weapon_shotgun_100",
+     "art": "cards/emblems/iconw_shotgun.png",
+     "free": false,
+     "group": "weapons",
+     "how": "ACHIEVEMENT: SHOTGUN BLOODED",
+     "id": "iconw_shotgun",
+     "kind": "image",
+     "level": 0,
+     "name": "Shotgun"
+    },
+    {
+     "ach": "weapon_grenade_100",
+     "art": "cards/emblems/iconw_grenade.png",
+     "free": false,
+     "group": "weapons",
+     "how": "ACHIEVEMENT: GRENADE LAUNCHER BLOODED",
+     "id": "iconw_grenade",
+     "kind": "image",
+     "level": 0,
+     "name": "Grenade Launcher"
+    },
+    {
+     "ach": "weapon_rocket_100",
+     "art": "cards/emblems/iconw_rocket.png",
+     "free": false,
+     "group": "weapons",
+     "how": "ACHIEVEMENT: ROCKET LAUNCHER BLOODED",
+     "id": "iconw_rocket",
+     "kind": "image",
+     "level": 0,
+     "name": "Rocket Launcher"
+    },
+    {
+     "ach": "weapon_lightning_100",
+     "art": "cards/emblems/iconw_lightning.png",
+     "free": false,
+     "group": "weapons",
+     "how": "ACHIEVEMENT: LIGHTNING GUN BLOODED",
+     "id": "iconw_lightning",
+     "kind": "image",
+     "level": 0,
+     "name": "Lightning Gun"
+    },
+    {
+     "ach": "weapon_railgun_100",
+     "art": "cards/emblems/iconw_railgun.png",
+     "free": false,
+     "group": "weapons",
+     "how": "ACHIEVEMENT: RAILGUN BLOODED",
+     "id": "iconw_railgun",
+     "kind": "image",
+     "level": 0,
+     "name": "Railgun"
+    },
+    {
+     "ach": "weapon_plasma_100",
+     "art": "cards/emblems/iconw_plasma.png",
+     "free": false,
+     "group": "weapons",
+     "how": "ACHIEVEMENT: PLASMA GUN BLOODED",
+     "id": "iconw_plasma",
+     "kind": "image",
+     "level": 0,
+     "name": "Plasma Gun"
+    },
+    {
+     "ach": "weapon_bfg_100",
+     "art": "cards/emblems/iconw_bfg.png",
+     "free": false,
+     "group": "weapons",
+     "how": "ACHIEVEMENT: BFG10K BLOODED",
+     "id": "iconw_bfg",
+     "kind": "image",
+     "level": 0,
+     "name": "BFG10K"
+    },
+    {
+     "art": "cards/emblems/quad.png",
+     "desc": "Pick up Quad Damage 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP QUAD DAMAGE 50 TIMES",
+     "id": "quad",
+     "kind": "image",
+     "level": 0,
+     "name": "Quad Damage"
+    },
+    {
+     "art": "cards/emblems/regen.png",
+     "desc": "Pick up Regeneration 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP REGENERATION 50 TIMES",
+     "id": "regen",
+     "kind": "image",
+     "level": 0,
+     "name": "Regeneration"
+    },
+    {
+     "art": "cards/emblems/haste.png",
+     "desc": "Pick up Haste 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP HASTE 50 TIMES",
+     "id": "haste",
+     "kind": "image",
+     "level": 0,
+     "name": "Haste"
+    },
+    {
+     "art": "cards/emblems/envirosuit.png",
+     "desc": "Pick up Battle Suit 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP BATTLE SUIT 50 TIMES",
+     "id": "envirosuit",
+     "kind": "image",
+     "level": 0,
+     "name": "Battle Suit"
+    },
+    {
+     "art": "cards/emblems/invis.png",
+     "desc": "Pick up Invisibility 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP INVISIBILITY 50 TIMES",
+     "id": "invis",
+     "kind": "image",
+     "level": 0,
+     "name": "Invisibility"
+    },
+    {
+     "art": "cards/emblems/flight.png",
+     "desc": "Pick up Flight 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP FLIGHT 50 TIMES",
+     "id": "flight",
+     "kind": "image",
+     "level": 0,
+     "name": "Flight"
+    },
+    {
+     "art": "cards/emblems/iconh_mega.png",
+     "desc": "Pick up Mega Health 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP MEGA HEALTH 50 TIMES",
+     "id": "iconh_mega",
+     "kind": "image",
+     "level": 0,
+     "name": "Mega Health"
+    },
+    {
+     "art": "cards/emblems/iconr_red.png",
+     "desc": "Pick up Heavy Armor 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP HEAVY ARMOR 50 TIMES",
+     "id": "iconr_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Heavy Armor"
+    },
+    {
+     "art": "cards/emblems/iconr_yellow.png",
+     "desc": "Pick up Armor 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP ARMOR 50 TIMES",
+     "id": "iconr_yellow",
+     "kind": "image",
+     "level": 0,
+     "name": "Armor"
+    },
+    {
+     "art": "cards/emblems/medkit.png",
+     "desc": "Pick up Medkit 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP MEDKIT 50 TIMES",
+     "id": "medkit",
+     "kind": "image",
+     "level": 0,
+     "name": "Medkit"
+    },
+    {
+     "art": "cards/emblems/teleporter.png",
+     "desc": "Pick up Personal Teleporter 50 times",
+     "free": false,
+     "group": "items",
+     "how": "PICK UP PERSONAL TELEPORTER 50 TIMES",
+     "id": "teleporter",
+     "kind": "image",
+     "level": 0,
+     "name": "Personal Teleporter"
+    },
+    {
+     "ach": "medal_capture_10",
+     "art": "cards/emblems/iconf_red.png",
+     "free": false,
+     "group": "items",
+     "how": "ACHIEVEMENT: CAPTURE X10",
+     "id": "iconf_red",
+     "kind": "image",
+     "level": 0,
+     "name": "Red Flag"
+    },
+    {
+     "ach": "flag_returns",
+     "art": "cards/emblems/iconf_blu.png",
+     "free": false,
+     "group": "items",
+     "how": "ACHIEVEMENT: DEFENDER OF THE FLAG",
+     "id": "iconf_blu",
+     "kind": "image",
+     "level": 0,
+     "name": "Blue Flag"
+    },
+    {
+     "ach": "medal_excellent_100",
+     "art": "cards/emblems/medal_excellent.png",
+     "free": false,
+     "group": "medals",
+     "how": "ACHIEVEMENT: EXCELLENT X100",
+     "id": "medal_excellent",
+     "kind": "image",
+     "level": 0,
+     "name": "Excellent"
+    },
+    {
+     "ach": "medal_impressive_100",
+     "art": "cards/emblems/medal_impressive.png",
+     "free": false,
+     "group": "medals",
+     "how": "ACHIEVEMENT: IMPRESSIVE X100",
+     "id": "medal_impressive",
+     "kind": "image",
+     "level": 0,
+     "name": "Impressive"
+    },
+    {
+     "ach": "medal_gauntlet_100",
+     "art": "cards/emblems/medal_gauntlet.png",
+     "free": false,
+     "group": "medals",
+     "how": "ACHIEVEMENT: HUMILIATION X100",
+     "id": "medal_gauntlet",
+     "kind": "image",
+     "level": 0,
+     "name": "Gauntlet"
+    },
+    {
+     "ach": "medal_capture_100",
+     "art": "cards/emblems/medal_capture.png",
+     "free": false,
+     "group": "medals",
+     "how": "ACHIEVEMENT: CAPTURE X100",
+     "id": "medal_capture",
+     "kind": "image",
+     "level": 0,
+     "name": "Capture"
+    },
+    {
+     "ach": "medal_assist_100",
+     "art": "cards/emblems/medal_assist.png",
+     "free": false,
+     "group": "medals",
+     "how": "ACHIEVEMENT: ASSIST X100",
+     "id": "medal_assist",
+     "kind": "image",
+     "level": 0,
+     "name": "Assist"
+    },
+    {
+     "ach": "medal_defend_100",
+     "art": "cards/emblems/medal_defend.png",
+     "free": false,
+     "group": "medals",
+     "how": "ACHIEVEMENT: DEFENSE X100",
+     "id": "medal_defend",
+     "kind": "image",
+     "level": 0,
+     "name": "Defend"
+    },
+    {
+     "ach": "rail_accuracy",
+     "art": "cards/emblems/medal_accuracy.png",
+     "free": false,
+     "group": "medals",
+     "how": "ACHIEVEMENT: DEADEYE",
+     "id": "medal_accuracy",
+     "kind": "image",
+     "level": 0,
+     "name": "Accuracy"
+    },
+    {
+     "ach": "frags_1000",
+     "art": "cards/emblems/medal_frags.png",
+     "free": false,
+     "group": "medals",
+     "how": "ACHIEVEMENT: FRAGMASTER",
+     "id": "medal_frags",
+     "kind": "image",
+     "level": 0,
+     "name": "Frags"
+    },
+    {
+     "ach": "wins_100",
+     "art": "cards/emblems/medal_victory.png",
+     "free": false,
+     "group": "medals",
+     "how": "ACHIEVEMENT: VICTOR X100",
+     "id": "medal_victory",
+     "kind": "image",
+     "level": 0,
+     "name": "Victory"
+    }
+   ],
+   "frames": [
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "plain",
+     "level": 0,
+     "name": "Plain",
+     "style": "plain"
+    },
+    {
+     "art": "cards/frames/frame_rusted_iron.jpg",
+     "free": false,
+     "how": "LEVEL 10",
+     "id": "frame_rusted_iron",
+     "level": 10,
+     "material": "textures/gothic_trim/pitted_rust3",
+     "name": "Rusted Iron",
+     "style": "material",
+     "tint": "#b06a3a"
+    },
+    {
+     "art": "cards/frames/frame_riveted_steel.jpg",
+     "free": false,
+     "how": "LEVEL 20",
+     "id": "frame_riveted_steel",
+     "level": 20,
+     "material": "textures/gothic_trim/chrome_rivet",
+     "name": "Riveted Steel",
+     "style": "material",
+     "tint": "#c8ccd0"
+    },
+    {
+     "art": "cards/frames/frame_gothic_stone.jpg",
+     "free": false,
+     "how": "LEVEL 30",
+     "id": "frame_gothic_stone",
+     "level": 30,
+     "material": "textures/gothic_block/blocks15_ow",
+     "name": "Gothic Stone",
+     "style": "material",
+     "tint": "#a89c8c"
+    },
+    {
+     "art": "cards/frames/frame_base_tech.jpg",
+     "free": false,
+     "how": "LEVEL 40",
+     "id": "frame_base_tech",
+     "level": 40,
+     "material": "textures/base_trim/panel_shiny",
+     "name": "Base Tech",
+     "style": "material",
+     "tint": "#9fb4c8"
+    },
+    {
+     "art": "cards/frames/frame_bloodstained.jpg",
+     "free": false,
+     "how": "LEVEL 50",
+     "id": "frame_bloodstained",
+     "level": 50,
+     "material": "textures/gothic_block/blocks18cblood",
+     "name": "Bloodstained",
+     "style": "material",
+     "tint": "#a01818"
+    },
+    {
+     "art": "cards/frames/frame_bronze.jpg",
+     "free": false,
+     "how": "LEVEL 60",
+     "id": "frame_bronze",
+     "level": 60,
+     "material": "textures/gothic_trim/chrome_rivet",
+     "name": "Bronze",
+     "style": "material",
+     "tint": "#cd7f32"
+    },
+    {
+     "art": "cards/frames/frame_silver.jpg",
+     "free": false,
+     "how": "LEVEL 70",
+     "id": "frame_silver",
+     "level": 70,
+     "material": "textures/gothic_trim/chrome_rivet",
+     "name": "Silver",
+     "style": "material",
+     "tint": "#e6e8ee"
+    },
+    {
+     "art": "cards/frames/frame_gold.jpg",
+     "free": false,
+     "how": "LEVEL 80",
+     "id": "frame_gold",
+     "level": 80,
+     "material": "textures/gothic_wall/goldbrick",
+     "name": "Gold",
+     "style": "material",
+     "tint": "#ffd24a"
+    },
+    {
+     "art": "cards/frames/frame_arena_master.jpg",
+     "free": false,
+     "how": "LEVEL 90",
+     "id": "frame_arena_master",
+     "level": 90,
+     "material": "textures/gothic_trim/skullsvertgray02a",
+     "name": "Arena Master",
+     "style": "material",
+     "tint": "#ff4a1a"
+    },
+    {
+     "ach": "powerup_quad",
+     "art": "cards/frames/frame_quad.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: QUAD DAMAGE FRAGGER",
+     "id": "frame_quad",
+     "level": 0,
+     "name": "Quad Damage",
+     "shell": "quad",
+     "style": "shell"
+    },
+    {
+     "ach": "powerup_battlesuit",
+     "art": "cards/frames/frame_battlesuit.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: BATTLE SUIT FRAGGER",
+     "id": "frame_battlesuit",
+     "level": 0,
+     "name": "Battle Suit",
+     "shell": "battlesuit",
+     "style": "shell"
+    },
+    {
+     "ach": "powerup_regen",
+     "art": "cards/frames/frame_regen.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: REGENERATION FRAGGER",
+     "id": "frame_regen",
+     "level": 0,
+     "name": "Regeneration",
+     "shell": "regen",
+     "style": "shell"
+    },
+    {
+     "ach": "powerup_haste",
+     "art": "cards/frames/frame_haste.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: HASTE FRAGGER",
+     "id": "frame_haste",
+     "level": 0,
+     "name": "Haste",
+     "shell": "haste",
+     "style": "shell"
+    },
+    {
+     "ach": "powerup_invis",
+     "art": "cards/frames/frame_invis.jpg",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: INVISIBILITY FRAGGER",
+     "id": "frame_invis",
+     "level": 0,
+     "name": "Invisibility",
+     "shell": "invis",
+     "style": "shell"
+    },
+    {
+     "desc": "Win every arena of Training",
+     "free": false,
+     "how": "WIN EVERY ARENA OF TRAINING",
+     "id": "frame_training",
+     "level": 0,
+     "name": "Training",
+     "style": "campaign"
+    },
+    {
+     "desc": "Win every arena of Tier 1",
+     "free": false,
+     "how": "WIN EVERY ARENA OF TIER 1",
+     "id": "frame_tier1",
+     "level": 0,
+     "name": "Tier 1",
+     "style": "campaign"
+    },
+    {
+     "desc": "Win every arena of Tier 2",
+     "free": false,
+     "how": "WIN EVERY ARENA OF TIER 2",
+     "id": "frame_tier2",
+     "level": 0,
+     "name": "Tier 2",
+     "style": "campaign"
+    },
+    {
+     "desc": "Win every arena of Tier 3",
+     "free": false,
+     "how": "WIN EVERY ARENA OF TIER 3",
+     "id": "frame_tier3",
+     "level": 0,
+     "name": "Tier 3",
+     "style": "campaign"
+    },
+    {
+     "desc": "Win every arena of Tier 4",
+     "free": false,
+     "how": "WIN EVERY ARENA OF TIER 4",
+     "id": "frame_tier4",
+     "level": 0,
+     "name": "Tier 4",
+     "style": "campaign"
+    },
+    {
+     "desc": "Win every arena of Tier 5",
+     "free": false,
+     "how": "WIN EVERY ARENA OF TIER 5",
+     "id": "frame_tier5",
+     "level": 0,
+     "name": "Tier 5",
+     "style": "campaign"
+    },
+    {
+     "desc": "Win every arena of Tier 6",
+     "free": false,
+     "how": "WIN EVERY ARENA OF TIER 6",
+     "id": "frame_tier6",
+     "level": 0,
+     "name": "Tier 6",
+     "style": "campaign"
+    },
+    {
+     "desc": "Win every arena of Final",
+     "free": false,
+     "how": "WIN EVERY ARENA OF FINAL",
+     "id": "frame_final",
+     "level": 0,
+     "name": "Final",
+     "style": "campaign"
+    },
+    {
+     "ach": "campaign_nightmare",
+     "free": false,
+     "fx": "animated",
+     "how": "ACHIEVEMENT: NIGHTMARE WALKER",
+     "id": "frame_nightmare",
+     "level": 0,
+     "name": "Nightmare!",
+     "style": "campaign"
+    },
+    {
+     "desc": "Reach Silver in ranked",
+     "free": false,
+     "how": "REACH SILVER IN RANKED",
+     "id": "frame_ranked_silver",
+     "level": 0,
+     "name": "Silver",
+     "style": "ranked"
+    },
+    {
+     "desc": "Reach Gold in ranked",
+     "free": false,
+     "how": "REACH GOLD IN RANKED",
+     "id": "frame_ranked_gold",
+     "level": 0,
+     "name": "Gold",
+     "style": "ranked"
+    },
+    {
+     "desc": "Reach Platinum in ranked",
+     "free": false,
+     "how": "REACH PLATINUM IN RANKED",
+     "id": "frame_ranked_platinum",
+     "level": 0,
+     "name": "Platinum",
+     "style": "ranked"
+    },
+    {
+     "desc": "Reach Diamond in ranked",
+     "free": false,
+     "how": "REACH DIAMOND IN RANKED",
+     "id": "frame_ranked_diamond",
+     "level": 0,
+     "name": "Diamond",
+     "style": "ranked"
+    },
+    {
+     "desc": "Reach Godlike in ranked",
+     "free": false,
+     "how": "REACH GODLIKE IN RANKED",
+     "id": "frame_ranked_godlike",
+     "level": 0,
+     "name": "Godlike",
+     "style": "ranked"
+    }
+   ],
+   "rails": [
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "rail_red",
+     "level": 0,
+     "name": "Red",
+     "value": "#ff0000"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "rail_green",
+     "level": 0,
+     "name": "Green",
+     "value": "#00ff00"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "rail_yellow",
+     "level": 0,
+     "name": "Yellow",
+     "value": "#ffff00"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "rail_blue",
+     "level": 0,
+     "name": "Blue",
+     "value": "#0000ff"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "rail_cyan",
+     "level": 0,
+     "name": "Cyan",
+     "value": "#00ffff"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "rail_magenta",
+     "level": 0,
+     "name": "Magenta",
+     "value": "#ff00ff"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "rail_white",
+     "level": 0,
+     "name": "White",
+     "value": "#ffffff"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 65",
+     "id": "rail_orange",
+     "level": 65,
+     "name": "Orange",
+     "value": "#ff8000"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 74",
+     "id": "rail_purple",
+     "level": 74,
+     "name": "Purple",
+     "value": "#8020ff"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 84",
+     "id": "rail_pink",
+     "level": 84,
+     "name": "Pink",
+     "value": "#ff70b0"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 93",
+     "id": "rail_lime",
+     "level": 93,
+     "name": "Lime",
+     "value": "#b0ff00"
+    },
+    {
+     "free": false,
+     "fx": "pulse",
+     "how": "LEVEL 100",
+     "id": "rail_pulse",
+     "level": 100,
+     "name": "Pulsing Core",
+     "value": "#ffffff"
+    },
+    {
+     "ach": "medal_capture_10",
+     "free": false,
+     "fx": "team",
+     "how": "ACHIEVEMENT: CAPTURE X10",
+     "id": "rail_team",
+     "level": 0,
+     "name": "Team Colored",
+     "value": "team"
+    },
+    {
+     "ach": "weapon_railgun_1000",
+     "free": false,
+     "how": "ACHIEVEMENT: RAILGUN MASTER",
+     "id": "rail_gold",
+     "level": 0,
+     "name": "Gold",
+     "value": "#ffd24a"
+    },
+    {
+     "ach": "rail_streak",
+     "free": false,
+     "fx": "spectrum",
+     "how": "ACHIEVEMENT: THE LONGEST YARD",
+     "id": "rail_rainbow",
+     "level": 0,
+     "name": "Rainbow Spiral",
+     "value": "spectrum"
+    }
+   ],
+   "taunts": [
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_anarki",
+     "level": 0,
+     "name": "Anarki",
+     "sound": "sound/player/anarki/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_biker",
+     "level": 0,
+     "name": "Cadavre",
+     "sound": "sound/player/biker/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_bitterman",
+     "level": 0,
+     "name": "Bitterman",
+     "sound": "sound/player/bitterman/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_bones",
+     "level": 0,
+     "name": "Bones",
+     "sound": "sound/player/bones/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_brandon",
+     "level": 0,
+     "name": "Brandon",
+     "sound": "sound/player/brandon/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_carmack",
+     "level": 0,
+     "name": "Carmack",
+     "sound": "sound/player/carmack/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_cash",
+     "level": 0,
+     "name": "Cash",
+     "sound": "sound/player/cash/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_crash",
+     "level": 0,
+     "name": "Crash",
+     "sound": "sound/player/crash/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_doom",
+     "level": 0,
+     "name": "Phobos",
+     "sound": "sound/player/doom/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_grunt",
+     "level": 0,
+     "name": "Stripe",
+     "sound": "sound/player/grunt/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_hunter",
+     "level": 0,
+     "name": "Hunter",
+     "sound": "sound/player/hunter/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_keel",
+     "level": 0,
+     "name": "Keel",
+     "sound": "sound/player/keel/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_klesk",
+     "level": 0,
+     "name": "Klesk",
+     "sound": "sound/player/klesk/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_lucy",
+     "level": 0,
+     "name": "Angel",
+     "sound": "sound/player/lucy/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_major",
+     "level": 0,
+     "name": "Daemia",
+     "sound": "sound/player/major/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_mynx",
+     "level": 0,
+     "name": "Mynx",
+     "sound": "sound/player/mynx/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_orbb",
+     "level": 0,
+     "name": "Orbb",
+     "sound": "sound/player/orbb/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_paulj",
+     "level": 0,
+     "name": "Paulj",
+     "sound": "sound/player/paulj/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_ranger",
+     "level": 0,
+     "name": "Wrack",
+     "sound": "sound/player/ranger/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_razor",
+     "level": 0,
+     "name": "Patriot",
+     "sound": "sound/player/razor/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_sarge",
+     "level": 0,
+     "name": "Sarge",
+     "sound": "sound/player/sarge/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_slash",
+     "level": 0,
+     "name": "Slash",
+     "sound": "sound/player/slash/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_sorlag",
+     "level": 0,
+     "name": "Sorlag",
+     "sound": "sound/player/sorlag/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_tankjr",
+     "level": 0,
+     "name": "TankJr",
+     "sound": "sound/player/tankjr/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_tim",
+     "level": 0,
+     "name": "Tim",
+     "sound": "sound/player/tim/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_uriel",
+     "level": 0,
+     "name": "Uriel",
+     "sound": "sound/player/uriel/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_visor",
+     "level": 0,
+     "name": "Gorre",
+     "sound": "sound/player/visor/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_xaero",
+     "level": 0,
+     "name": "Xaero",
+     "sound": "sound/player/xaero/taunt.wav"
+    },
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "taunt_xian",
+     "level": 0,
+     "name": "Xian",
+     "sound": "sound/player/xian/taunt.wav"
+    }
+   ],
+   "titles": [
+    {
+     "free": true,
+     "how": "FREE",
+     "id": "title_fresh_meat",
+     "level": 0,
+     "name": "Fresh Meat"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 5",
+     "id": "title_initiate",
+     "level": 5,
+     "name": "Initiate"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 10",
+     "id": "title_fragger",
+     "level": 10,
+     "name": "Fragger"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 15",
+     "id": "title_contender",
+     "level": 15,
+     "name": "Contender"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 20",
+     "id": "title_gladiator",
+     "level": 20,
+     "name": "Gladiator"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 30",
+     "id": "title_veteran",
+     "level": 30,
+     "name": "Arena Veteran"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 40",
+     "id": "title_warlord",
+     "level": 40,
+     "name": "Warlord"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 50",
+     "id": "title_champion",
+     "level": 50,
+     "name": "Champion"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 60",
+     "id": "title_immortal",
+     "level": 60,
+     "name": "Immortal"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 70",
+     "id": "title_vadrigars_chosen",
+     "level": 70,
+     "name": "Vadrigar's Chosen"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 80",
+     "id": "title_deathbringer",
+     "level": 80,
+     "name": "Deathbringer"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 90",
+     "id": "title_arena_lord",
+     "level": 90,
+     "name": "Arena Lord"
+    },
+    {
+     "free": false,
+     "how": "LEVEL 100",
+     "id": "title_xaeros_equal",
+     "level": 100,
+     "name": "Xaero's Equal"
+    },
+    {
+     "ach": "medal_excellent_100",
+     "free": false,
+     "how": "ACHIEVEMENT: EXCELLENT X100",
+     "id": "title_excellent",
+     "level": 0,
+     "name": "Excellent!"
+    },
+    {
+     "ach": "medal_impressive_100",
+     "free": false,
+     "how": "ACHIEVEMENT: IMPRESSIVE X100",
+     "id": "title_impressive",
+     "level": 0,
+     "name": "Impressive!"
+    },
+    {
+     "ach": "medal_gauntlet_100",
+     "free": false,
+     "how": "ACHIEVEMENT: HUMILIATION X100",
+     "id": "title_humiliator",
+     "level": 0,
+     "name": "Humiliator"
+    },
+    {
+     "ach": "medal_capture_100",
+     "free": false,
+     "how": "ACHIEVEMENT: CAPTURE X100",
+     "id": "title_flag_runner",
+     "level": 0,
+     "name": "Flag Runner"
+    },
+    {
+     "ach": "medal_defend_100",
+     "free": false,
+     "how": "ACHIEVEMENT: DEFENSE X100",
+     "id": "title_defender",
+     "level": 0,
+     "name": "Defender"
+    },
+    {
+     "ach": "medal_assist_100",
+     "free": false,
+     "how": "ACHIEVEMENT: ASSIST X100",
+     "id": "title_team_player",
+     "level": 0,
+     "name": "Team Player"
+    },
+    {
+     "ach": "weapon_railgun_1000",
+     "free": false,
+     "how": "ACHIEVEMENT: RAILGUN MASTER",
+     "id": "title_rail_god",
+     "level": 0,
+     "name": "Rail God"
+    },
+    {
+     "ach": "weapon_rocket_1000",
+     "free": false,
+     "how": "ACHIEVEMENT: ROCKET LAUNCHER MASTER",
+     "id": "title_rocket_scientist",
+     "level": 0,
+     "name": "Rocket Scientist"
+    },
+    {
+     "ach": "weapon_plasma_1000",
+     "free": false,
+     "how": "ACHIEVEMENT: PLASMA GUN MASTER",
+     "id": "title_plasma_junkie",
+     "level": 0,
+     "name": "Plasma Junkie"
+    },
+    {
+     "ach": "weapon_lightning_1000",
+     "free": false,
+     "how": "ACHIEVEMENT: LIGHTNING GUN MASTER",
+     "id": "title_shaft_master",
+     "level": 0,
+     "name": "Shaft Master"
+    },
+    {
+     "ach": "weapon_shotgun_1000",
+     "free": false,
+     "how": "ACHIEVEMENT: SHOTGUN MASTER",
+     "id": "title_buckshot",
+     "level": 0,
+     "name": "Buckshot"
+    },
+    {
+     "ach": "weapon_grenade_1000",
+     "free": false,
+     "how": "ACHIEVEMENT: GRENADE LAUNCHER MASTER",
+     "id": "title_grenadier",
+     "level": 0,
+     "name": "Grenadier"
+    },
+    {
+     "ach": "weapon_machinegun_1000",
+     "free": false,
+     "how": "ACHIEVEMENT: MACHINEGUN MASTER",
+     "id": "title_pea_shooter",
+     "level": 0,
+     "name": "Pea Shooter"
+    },
+    {
+     "ach": "weapon_bfg_100",
+     "free": false,
+     "how": "ACHIEVEMENT: BFG10K BLOODED",
+     "id": "title_bfg_bandit",
+     "level": 0,
+     "name": "BFG Bandit"
+    },
+    {
+     "ach": "speed_600",
+     "free": false,
+     "how": "ACHIEVEMENT: STRAFE JUMPER",
+     "id": "title_strafe_jumper",
+     "level": 0,
+     "name": "Strafe Jumper"
+    },
+    {
+     "ach": "speed_800",
+     "free": false,
+     "how": "ACHIEVEMENT: SPEED DEMON",
+     "id": "title_speed_demon",
+     "level": 0,
+     "name": "Speed Demon"
+    },
+    {
+     "ach": "rocket_jumper",
+     "free": false,
+     "how": "ACHIEVEMENT: ROCKET JUMPER",
+     "id": "title_rocket_jumper",
+     "level": 0,
+     "name": "Rocket Jumper"
+    },
+    {
+     "ach": "plasma_climber",
+     "free": false,
+     "how": "ACHIEVEMENT: PLASMA CLIMBER",
+     "id": "title_plasma_climber",
+     "level": 0,
+     "name": "Plasma Climber"
+    },
+    {
+     "ach": "campaign_final",
+     "free": false,
+     "how": "ACHIEVEMENT: XAERO SLAYER",
+     "id": "title_xaero_slayer",
+     "level": 0,
+     "name": "Xaero Slayer"
+    },
+    {
+     "ach": "campaign_hardcore",
+     "free": false,
+     "how": "ACHIEVEMENT: ARENA ETERNAL",
+     "id": "title_arena_eternal",
+     "level": 0,
+     "name": "Arena Eternal"
+    },
+    {
+     "ach": "campaign_nightmare",
+     "free": false,
+     "how": "ACHIEVEMENT: NIGHTMARE WALKER",
+     "id": "title_nightmare_walker",
+     "level": 0,
+     "name": "Nightmare Walker"
+    },
+    {
+     "ach": "campaign_training",
+     "free": false,
+     "how": "ACHIEVEMENT: ARENA ELIGIBLE",
+     "id": "title_recruit",
+     "level": 0,
+     "name": "Recruit"
+    },
+    {
+     "ach": "cratered",
+     "free": false,
+     "how": "ACHIEVEMENT: CRATERED",
+     "id": "title_cratered",
+     "level": 0,
+     "name": "Cratered"
+    },
+    {
+     "ach": "lava_swimmer",
+     "free": false,
+     "how": "ACHIEVEMENT: LAVA SWIMMER",
+     "id": "title_lava_swimmer",
+     "level": 0,
+     "name": "Lava Swimmer"
+    },
+    {
+     "ach": "telefragged",
+     "free": false,
+     "how": "ACHIEVEMENT: WRONG PLACE",
+     "id": "title_telefragged",
+     "level": 0,
+     "name": "Telefragged"
+    },
+    {
+     "ach": "sank",
+     "free": false,
+     "how": "ACHIEVEMENT: SANK LIKE A ROCK",
+     "id": "title_sank",
+     "level": 0,
+     "name": "Sank Like a Rock"
+    },
+    {
+     "ach": "perfect",
+     "free": false,
+     "how": "ACHIEVEMENT: PERFECT",
+     "id": "title_perfect",
+     "level": 0,
+     "name": "Perfect"
+    },
+    {
+     "ach": "untouchable",
+     "free": false,
+     "how": "ACHIEVEMENT: UNTOUCHABLE",
+     "id": "title_untouchable",
+     "level": 0,
+     "name": "Untouchable"
+    },
+    {
+     "ach": "telefragger",
+     "free": false,
+     "how": "ACHIEVEMENT: TELEFRAGGER",
+     "id": "title_telefragger",
+     "level": 0,
+     "name": "Telefragger"
+    },
+    {
+     "ach": "tourist",
+     "free": false,
+     "how": "ACHIEVEMENT: TOURIST",
+     "id": "title_tourist",
+     "level": 0,
+     "name": "Tourist"
+    },
+    {
+     "ach": "roster",
+     "free": false,
+     "how": "ACHIEVEMENT: FULL ROSTER",
+     "id": "title_collector",
+     "level": 0,
+     "name": "Full Roster"
+    },
+    {
+     "ach": "trifecta",
+     "free": false,
+     "how": "ACHIEVEMENT: SHOW-OFF",
+     "id": "title_show_off",
+     "level": 0,
+     "name": "Show-Off"
+    },
+    {
+     "ach": "duelist",
+     "free": false,
+     "how": "ACHIEVEMENT: DUELIST",
+     "id": "title_duelist",
+     "level": 0,
+     "name": "Duelist"
+    },
+    {
+     "ach": "clutch",
+     "free": false,
+     "how": "ACHIEVEMENT: LAST ONE STANDING",
+     "id": "title_clutch",
+     "level": 0,
+     "name": "Last One Standing"
+    },
+    {
+     "ach": "quad_god",
+     "free": false,
+     "how": "ACHIEVEMENT: QUAD GOD",
+     "id": "title_quad_god",
+     "level": 0,
+     "name": "Quad God"
+    },
+    {
+     "ach": "rail_accuracy",
+     "free": false,
+     "how": "ACHIEVEMENT: DEADEYE",
+     "id": "title_deadeye",
+     "level": 0,
+     "name": "Deadeye"
+    },
+    {
+     "desc": "Reach Silver in ranked",
+     "free": false,
+     "how": "REACH SILVER IN RANKED",
+     "id": "title_ranked_silver",
+     "level": 0,
+     "name": "Silver"
+    },
+    {
+     "desc": "Reach Gold in ranked",
+     "free": false,
+     "how": "REACH GOLD IN RANKED",
+     "id": "title_ranked_gold",
+     "level": 0,
+     "name": "Gold"
+    },
+    {
+     "desc": "Reach Platinum in ranked",
+     "free": false,
+     "how": "REACH PLATINUM IN RANKED",
+     "id": "title_ranked_platinum",
+     "level": 0,
+     "name": "Platinum"
+    },
+    {
+     "desc": "Reach Diamond in ranked",
+     "free": false,
+     "how": "REACH DIAMOND IN RANKED",
+     "id": "title_ranked_diamond",
+     "level": 0,
+     "name": "Diamond"
+    },
+    {
+     "desc": "Reach Godlike in ranked",
+     "free": false,
+     "how": "REACH GODLIKE IN RANKED",
+     "id": "title_ranked_godlike",
+     "level": 0,
+     "name": "Godlike"
+    }
+   ]
+  },
+  "ranked": {
+   "division": 100.0,
+   "placements": 10.0,
+   "start": 1000.0
+  },
+  "ranked_tiers": [
+   {
+    "id": "bronze",
+    "min": 0.0,
+    "name": "Bronze"
+   },
+   {
+    "id": "silver",
+    "min": 1000.0,
+    "name": "Silver"
+   },
+   {
+    "id": "gold",
+    "min": 1300.0,
+    "name": "Gold"
+   },
+   {
+    "id": "platinum",
+    "min": 1600.0,
+    "name": "Platinum"
+   },
+   {
+    "id": "diamond",
+    "min": 1900.0,
+    "name": "Diamond"
+   },
+   {
+    "id": "godlike",
+    "min": 2200.0,
+    "name": "Godlike"
+   }
+  ]
+ },
  "characters": [
   "anarki",
   "biker",
@@ -2126,6 +6683,1893 @@
    "tip": "What happens on a tie when time runs out."
   }
  ],
+ "profile": {
+  "achievements": [
+   {
+    "done": false,
+    "id": "medal_excellent_10",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_excellent_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_excellent_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_impressive_10",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_impressive_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_impressive_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_gauntlet_10",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_gauntlet_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_gauntlet_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_capture_10",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_capture_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_assist_10",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_assist_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_defend_10",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_defend_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_machinegun_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_machinegun_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_shotgun_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_shotgun_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_grenade_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_grenade_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_rocket_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_rocket_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_lightning_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_lightning_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_railgun_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_railgun_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_plasma_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_plasma_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_bfg_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "weapon_bfg_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "arsenal",
+    "missing": [
+     "gauntlet",
+     "machinegun",
+     "shotgun",
+     "grenade",
+     "rocket",
+     "lightning",
+     "railgun",
+     "plasma",
+     "bfg"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_quad",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_regen",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_haste",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_battlesuit",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_invis",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_flight",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "every_powerup",
+    "missing": [
+     "quad",
+     "regen",
+     "haste",
+     "battlesuit",
+     "invis",
+     "flight"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "quad_god",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "perfect",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "untouchable",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "rail_streak",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "rail_accuracy",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "air_rocket",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "telefragger",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "trifecta",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "speed_600",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "speed_800",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "speed_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "rocket_jumper",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "plasma_climber",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "lava_swimmer",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "lava_bath",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "cratered",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "sank",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "telefragged",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "duelist",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "duel_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "flag_returns",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "clutch",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "thaws",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "instagib",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "matches_10",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "wins_10",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "matches_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "wins_100",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "matches_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "wins_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "frags_1000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "frags_10000",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier1",
+    "missing": [
+     "q3dm1",
+     "q3dm2",
+     "q3dm3",
+     "q3tourney1"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier2",
+    "missing": [
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier3",
+    "missing": [
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier4",
+    "missing": [
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier5",
+    "missing": [
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier6",
+    "missing": [
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_training",
+    "missing": [
+     "q3dm0"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_final",
+    "missing": [
+     "q3tourney6"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_hardcore",
+    "missing": [
+     "q3dm0",
+     "q3dm1",
+     "q3dm2",
+     "q3dm3",
+     "q3tourney1",
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2",
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3",
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4",
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5",
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19",
+     "q3tourney6"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_nightmare",
+    "missing": [
+     "q3dm0",
+     "q3dm1",
+     "q3dm2",
+     "q3dm3",
+     "q3tourney1",
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2",
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3",
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4",
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5",
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19",
+     "q3tourney6"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "tourist",
+    "missing": [
+     "q3dm1",
+     "q3dm2",
+     "q3dm3",
+     "q3tourney1",
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2",
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3",
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4",
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5",
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19",
+     "q3dm0",
+     "q3tourney6",
+     "q3ctf1",
+     "q3ctf2",
+     "q3ctf3",
+     "q3ctf4",
+     "pro-q3tourney2",
+     "pro-q3tourney4",
+     "pro-q3dm6",
+     "pro-q3dm13",
+     "q3tourney6_ctf"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "home_turf",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "roster",
+    "missing": [
+     "anarki",
+     "biker",
+     "bitterman",
+     "bones",
+     "brandon",
+     "carmack",
+     "cash",
+     "crash",
+     "doom",
+     "grunt",
+     "hunter",
+     "keel",
+     "klesk",
+     "lucy",
+     "major",
+     "mynx",
+     "orbb",
+     "paulj",
+     "ranger",
+     "razor",
+     "sarge",
+     "slash",
+     "sorlag",
+     "tankjr",
+     "tim",
+     "uriel",
+     "visor",
+     "xaero",
+     "xian"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "medal_collector",
+    "missing": [
+     "excellent",
+     "impressive",
+     "gauntlet",
+     "capture",
+     "assist",
+     "defend",
+     "perfect"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "ranked_gold",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "ranked_platinum",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "ranked_diamond",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "ranked_godlike",
+    "missing": [],
+    "progress": 0.0
+   }
+  ],
+  "banner_ctx": {
+   "best_weapon": "",
+   "campaign_won": 0,
+   "favorite_map": "",
+   "medals": [],
+   "ranked_peak": 0
+  },
+  "card": {
+   "accent": "accent_red",
+   "badges": [],
+   "banner": "void",
+   "emblem": "head_sarge",
+   "frame": "plain",
+   "rail": "rail_red",
+   "stats": [
+    "frags",
+    "wins",
+    "excellents"
+   ],
+   "taunt": "taunt_sarge",
+   "title": "title_fresh_meat"
+  },
+  "career": {
+   "deaths": 0,
+   "frags": 0,
+   "frags_weapon": {},
+   "matches": 0,
+   "matches_model": {},
+   "medal": {},
+   "playtime": 0,
+   "wins": 0,
+   "wins_mode": {}
+  },
+  "level": 1,
+  "max_level": 100,
+  "new": [],
+  "next": 1000,
+  "ranked": {
+   "matches": 0,
+   "open": false,
+   "peak": 0,
+   "peak_rank": {},
+   "placed": false,
+   "placements": 10,
+   "rank": {
+    "division": 3,
+    "from": 1000,
+    "id": "silver",
+    "label": "Silver III",
+    "name": "Silver",
+    "next": 1100
+   },
+   "rating": 1000,
+   "wins": 0
+  },
+  "ranked_level": 30,
+  "shown": {
+   "accent": "accent_red",
+   "badges": [],
+   "banner": "void",
+   "emblem": "head_sarge",
+   "frame": "plain",
+   "rail": "rail_red",
+   "stats": [
+    "frags",
+    "wins",
+    "excellents"
+   ],
+   "taunt": "taunt_sarge",
+   "title": "title_fresh_meat"
+  },
+  "stats": {
+   "achievements": "0/89",
+   "arenas_won": "0",
+   "captures": "0",
+   "duel_wins": "0",
+   "excellents": "0",
+   "frags": "0",
+   "gauntlets": "0",
+   "hours": "0",
+   "impressives": "0",
+   "kd": "0.00",
+   "rail_acc": "0%",
+   "ranked_peak": "0",
+   "top_speed": "0 UPS",
+   "wins": "0"
+  },
+  "total": 0,
+  "unlocked": {
+   "accents": [
+    "accent_red",
+    "accent_green",
+    "accent_yellow",
+    "accent_blue",
+    "accent_cyan",
+    "accent_magenta",
+    "accent_white"
+   ],
+   "banners": [
+    "void"
+   ],
+   "emblems": [
+    "head_anarki",
+    "head_biker",
+    "head_bitterman",
+    "head_bones",
+    "head_brandon",
+    "head_carmack",
+    "head_cash",
+    "head_crash",
+    "head_doom",
+    "head_grunt",
+    "head_hunter",
+    "head_keel",
+    "head_klesk",
+    "head_lucy",
+    "head_major",
+    "head_mynx",
+    "head_orbb",
+    "head_paulj",
+    "head_ranger",
+    "head_razor",
+    "head_sarge",
+    "head_slash",
+    "head_sorlag",
+    "head_tankjr",
+    "head_tim",
+    "head_uriel",
+    "head_visor",
+    "head_xaero",
+    "head_xian"
+   ],
+   "frames": [
+    "plain"
+   ],
+   "rails": [
+    "rail_red",
+    "rail_green",
+    "rail_yellow",
+    "rail_blue",
+    "rail_cyan",
+    "rail_magenta",
+    "rail_white"
+   ],
+   "taunts": [
+    "taunt_anarki",
+    "taunt_biker",
+    "taunt_bitterman",
+    "taunt_bones",
+    "taunt_brandon",
+    "taunt_carmack",
+    "taunt_cash",
+    "taunt_crash",
+    "taunt_doom",
+    "taunt_grunt",
+    "taunt_hunter",
+    "taunt_keel",
+    "taunt_klesk",
+    "taunt_lucy",
+    "taunt_major",
+    "taunt_mynx",
+    "taunt_orbb",
+    "taunt_paulj",
+    "taunt_ranger",
+    "taunt_razor",
+    "taunt_sarge",
+    "taunt_slash",
+    "taunt_sorlag",
+    "taunt_tankjr",
+    "taunt_tim",
+    "taunt_uriel",
+    "taunt_visor",
+    "taunt_xaero",
+    "taunt_xian"
+   ],
+   "titles": [
+    "title_fresh_meat"
+   ]
+  },
+  "xp": 0
+ },
+ "profile_demo": {
+  "achievements": [
+   {
+    "done": true,
+    "id": "medal_excellent_10",
+    "missing": [],
+    "progress": 140.0
+   },
+   {
+    "done": true,
+    "id": "medal_excellent_100",
+    "missing": [],
+    "progress": 140.0
+   },
+   {
+    "done": false,
+    "id": "medal_excellent_1000",
+    "missing": [],
+    "progress": 140.0
+   },
+   {
+    "done": true,
+    "id": "medal_impressive_10",
+    "missing": [],
+    "progress": 61.0
+   },
+   {
+    "done": false,
+    "id": "medal_impressive_100",
+    "missing": [],
+    "progress": 61.0
+   },
+   {
+    "done": false,
+    "id": "medal_impressive_1000",
+    "missing": [],
+    "progress": 61.0
+   },
+   {
+    "done": true,
+    "id": "medal_gauntlet_10",
+    "missing": [],
+    "progress": 23.0
+   },
+   {
+    "done": false,
+    "id": "medal_gauntlet_100",
+    "missing": [],
+    "progress": 23.0
+   },
+   {
+    "done": false,
+    "id": "medal_gauntlet_1000",
+    "missing": [],
+    "progress": 23.0
+   },
+   {
+    "done": true,
+    "id": "medal_capture_10",
+    "missing": [],
+    "progress": 12.0
+   },
+   {
+    "done": false,
+    "id": "medal_capture_100",
+    "missing": [],
+    "progress": 12.0
+   },
+   {
+    "done": false,
+    "id": "medal_assist_10",
+    "missing": [],
+    "progress": 5.0
+   },
+   {
+    "done": false,
+    "id": "medal_assist_100",
+    "missing": [],
+    "progress": 5.0
+   },
+   {
+    "done": false,
+    "id": "medal_defend_10",
+    "missing": [],
+    "progress": 9.0
+   },
+   {
+    "done": false,
+    "id": "medal_defend_100",
+    "missing": [],
+    "progress": 9.0
+   },
+   {
+    "done": true,
+    "id": "weapon_machinegun_100",
+    "missing": [],
+    "progress": 310.0
+   },
+   {
+    "done": false,
+    "id": "weapon_machinegun_1000",
+    "missing": [],
+    "progress": 310.0
+   },
+   {
+    "done": true,
+    "id": "weapon_shotgun_100",
+    "missing": [],
+    "progress": 280.0
+   },
+   {
+    "done": false,
+    "id": "weapon_shotgun_1000",
+    "missing": [],
+    "progress": 280.0
+   },
+   {
+    "done": true,
+    "id": "weapon_grenade_100",
+    "missing": [],
+    "progress": 160.0
+   },
+   {
+    "done": false,
+    "id": "weapon_grenade_1000",
+    "missing": [],
+    "progress": 160.0
+   },
+   {
+    "done": true,
+    "id": "weapon_rocket_100",
+    "missing": [],
+    "progress": 1100.0
+   },
+   {
+    "done": true,
+    "id": "weapon_rocket_1000",
+    "missing": [],
+    "progress": 1100.0
+   },
+   {
+    "done": true,
+    "id": "weapon_lightning_100",
+    "missing": [],
+    "progress": 240.0
+   },
+   {
+    "done": false,
+    "id": "weapon_lightning_1000",
+    "missing": [],
+    "progress": 240.0
+   },
+   {
+    "done": true,
+    "id": "weapon_railgun_100",
+    "missing": [],
+    "progress": 820.0
+   },
+   {
+    "done": false,
+    "id": "weapon_railgun_1000",
+    "missing": [],
+    "progress": 820.0
+   },
+   {
+    "done": true,
+    "id": "weapon_plasma_100",
+    "missing": [],
+    "progress": 150.0
+   },
+   {
+    "done": false,
+    "id": "weapon_plasma_1000",
+    "missing": [],
+    "progress": 150.0
+   },
+   {
+    "done": false,
+    "id": "weapon_bfg_100",
+    "missing": [],
+    "progress": 20.0
+   },
+   {
+    "done": false,
+    "id": "weapon_bfg_1000",
+    "missing": [],
+    "progress": 20.0
+   },
+   {
+    "done": false,
+    "id": "arsenal",
+    "missing": [
+     "gauntlet",
+     "bfg"
+    ],
+    "progress": 7.0
+   },
+   {
+    "done": false,
+    "id": "powerup_quad",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_regen",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_haste",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_battlesuit",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_invis",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "powerup_flight",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "every_powerup",
+    "missing": [
+     "quad",
+     "regen",
+     "haste",
+     "battlesuit",
+     "invis",
+     "flight"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "quad_god",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": true,
+    "id": "perfect",
+    "missing": [],
+    "progress": 3.0
+   },
+   {
+    "done": false,
+    "id": "untouchable",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "rail_streak",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": true,
+    "id": "rail_accuracy",
+    "missing": [],
+    "progress": 54.0
+   },
+   {
+    "done": false,
+    "id": "air_rocket",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "telefragger",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "trifecta",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": true,
+    "id": "speed_600",
+    "missing": [],
+    "progress": 812.0
+   },
+   {
+    "done": true,
+    "id": "speed_800",
+    "missing": [],
+    "progress": 812.0
+   },
+   {
+    "done": false,
+    "id": "speed_1000",
+    "missing": [],
+    "progress": 812.0
+   },
+   {
+    "done": false,
+    "id": "rocket_jumper",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "plasma_climber",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "lava_swimmer",
+    "missing": [],
+    "progress": 12.0
+   },
+   {
+    "done": false,
+    "id": "lava_bath",
+    "missing": [],
+    "progress": 12.0
+   },
+   {
+    "done": false,
+    "id": "cratered",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "sank",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "telefragged",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "duelist",
+    "missing": [],
+    "progress": 9.0
+   },
+   {
+    "done": false,
+    "id": "duel_100",
+    "missing": [],
+    "progress": 9.0
+   },
+   {
+    "done": false,
+    "id": "flag_returns",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "clutch",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "thaws",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "instagib",
+    "missing": [],
+    "progress": 0.0
+   },
+   {
+    "done": true,
+    "id": "matches_10",
+    "missing": [],
+    "progress": 212.0
+   },
+   {
+    "done": true,
+    "id": "wins_10",
+    "missing": [],
+    "progress": 81.0
+   },
+   {
+    "done": true,
+    "id": "matches_100",
+    "missing": [],
+    "progress": 212.0
+   },
+   {
+    "done": false,
+    "id": "wins_100",
+    "missing": [],
+    "progress": 81.0
+   },
+   {
+    "done": false,
+    "id": "matches_1000",
+    "missing": [],
+    "progress": 212.0
+   },
+   {
+    "done": false,
+    "id": "wins_1000",
+    "missing": [],
+    "progress": 81.0
+   },
+   {
+    "done": true,
+    "id": "frags_1000",
+    "missing": [],
+    "progress": 3120.0
+   },
+   {
+    "done": false,
+    "id": "frags_10000",
+    "missing": [],
+    "progress": 3120.0
+   },
+   {
+    "done": true,
+    "id": "campaign_tier1",
+    "missing": [],
+    "progress": 4.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier2",
+    "missing": [
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier3",
+    "missing": [
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier4",
+    "missing": [
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier5",
+    "missing": [
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_tier6",
+    "missing": [
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": true,
+    "id": "campaign_training",
+    "missing": [],
+    "progress": 1.0
+   },
+   {
+    "done": false,
+    "id": "campaign_final",
+    "missing": [
+     "q3tourney6"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "campaign_hardcore",
+    "missing": [
+     "q3dm0",
+     "q3dm1",
+     "q3dm3",
+     "q3tourney1",
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2",
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3",
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4",
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5",
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19",
+     "q3tourney6"
+    ],
+    "progress": 1.0
+   },
+   {
+    "done": false,
+    "id": "campaign_nightmare",
+    "missing": [
+     "q3dm0",
+     "q3dm1",
+     "q3dm2",
+     "q3dm3",
+     "q3tourney1",
+     "q3dm4",
+     "q3dm5",
+     "q3dm6",
+     "q3tourney2",
+     "q3dm7",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3",
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4",
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5",
+     "q3dm16",
+     "q3dm17",
+     "q3dm18",
+     "q3dm19",
+     "q3tourney6"
+    ],
+    "progress": 0.0
+   },
+   {
+    "done": false,
+    "id": "tourist",
+    "missing": [
+     "q3dm1",
+     "q3dm2",
+     "q3dm3",
+     "q3tourney1",
+     "q3dm4",
+     "q3dm5",
+     "q3dm8",
+     "q3dm9",
+     "q3tourney3",
+     "q3dm10",
+     "q3dm11",
+     "q3dm12",
+     "q3tourney4",
+     "q3dm13",
+     "q3dm14",
+     "q3dm15",
+     "q3tourney5",
+     "q3dm16",
+     "q3dm18",
+     "q3dm19",
+     "q3dm0",
+     "q3tourney6",
+     "q3ctf1",
+     "q3ctf2",
+     "q3ctf3",
+     "q3ctf4",
+     "pro-q3tourney2",
+     "pro-q3tourney4",
+     "pro-q3dm6",
+     "pro-q3dm13",
+     "q3tourney6_ctf"
+    ],
+    "progress": 4.0
+   },
+   {
+    "done": false,
+    "id": "home_turf",
+    "missing": [],
+    "progress": 14.0
+   },
+   {
+    "done": false,
+    "id": "roster",
+    "missing": [
+     "anarki",
+     "biker",
+     "bitterman",
+     "bones",
+     "brandon",
+     "carmack",
+     "cash",
+     "crash",
+     "doom",
+     "grunt",
+     "hunter",
+     "keel",
+     "klesk",
+     "lucy",
+     "major",
+     "mynx",
+     "orbb",
+     "paulj",
+     "ranger",
+     "razor",
+     "slash",
+     "sorlag",
+     "tankjr",
+     "tim",
+     "uriel",
+     "xian"
+    ],
+    "progress": 3.0
+   },
+   {
+    "done": true,
+    "id": "medal_collector",
+    "missing": [],
+    "progress": 7.0
+   },
+   {
+    "done": true,
+    "id": "ranked_gold",
+    "missing": [],
+    "progress": 1710.0
+   },
+   {
+    "done": true,
+    "id": "ranked_platinum",
+    "missing": [],
+    "progress": 1710.0
+   },
+   {
+    "done": false,
+    "id": "ranked_diamond",
+    "missing": [],
+    "progress": 1710.0
+   },
+   {
+    "done": false,
+    "id": "ranked_godlike",
+    "missing": [],
+    "progress": 1710.0
+   }
+  ],
+  "banner_ctx": {
+   "best_weapon": "rocket",
+   "campaign_won": 5,
+   "favorite_map": "q3dm17",
+   "medals": [
+    {
+     "id": "excellent",
+     "n": 140
+    },
+    {
+     "id": "impressive",
+     "n": 61
+    },
+    {
+     "id": "gauntlet",
+     "n": 23
+    }
+   ],
+   "ranked_peak": 1710
+  },
+  "card": {
+   "accent": "accent_bronze",
+   "badges": [
+    "medal_excellent_100",
+    "matches_100"
+   ],
+   "banner": "map_q3dm17",
+   "emblem": "head_sarge_krusade",
+   "frame": "frame_gothic_stone",
+   "rail": "rail_red",
+   "stats": [
+    "frags",
+    "kd",
+    "excellents"
+   ],
+   "taunt": "taunt_sarge",
+   "title": "title_rocket_scientist"
+  },
+  "career": {
+   "deaths": 2410,
+   "frags": 3120,
+   "frags_weapon": {
+    "bfg": 20,
+    "gauntlet": 40,
+    "grenade": 160,
+    "lightning": 240,
+    "machinegun": 310,
+    "plasma": 150,
+    "railgun": 820,
+    "rocket": 1100,
+    "shotgun": 280
+   },
+   "matches": 212,
+   "matches_model": {
+    "sarge": 120,
+    "visor": 26,
+    "xaero": 30
+   },
+   "medal": {
+    "assist": 5,
+    "capture": 12,
+    "defend": 9,
+    "excellent": 140,
+    "gauntlet": 23,
+    "impressive": 61,
+    "perfect": 3
+   },
+   "playtime": 61200,
+   "wins": 81,
+   "wins_mode": {
+    "duel": 9,
+    "ffa": 60,
+    "tdm": 12
+   }
+  },
+  "level": 34,
+  "max_level": 100,
+  "new": [],
+  "next": 1825,
+  "ranked": {
+   "matches": 46,
+   "open": true,
+   "peak": 1710,
+   "peak_rank": {
+    "division": 2,
+    "from": 1700,
+    "id": "platinum",
+    "label": "Platinum II",
+    "name": "Platinum",
+    "next": 1800
+   },
+   "placed": true,
+   "placements": 10,
+   "rank": {
+    "division": 3,
+    "from": 1600,
+    "id": "platinum",
+    "label": "Platinum III",
+    "name": "Platinum",
+    "next": 1700
+   },
+   "rating": 1642,
+   "wins": 27
+  },
+  "ranked_level": 30,
+  "shown": {
+   "accent": "accent_bronze",
+   "badges": [
+    "medal_excellent_100",
+    "matches_100"
+   ],
+   "banner": "map_q3dm17",
+   "emblem": "head_sarge_krusade",
+   "frame": "frame_gothic_stone",
+   "rail": "rail_red",
+   "stats": [
+    "frags",
+    "kd",
+    "excellents"
+   ],
+   "taunt": "taunt_sarge",
+   "title": "title_rocket_scientist"
+  },
+  "stats": {
+   "achievements": "26/89",
+   "arenas_won": "4",
+   "captures": "12",
+   "duel_wins": "9",
+   "excellents": "140",
+   "frags": "3120",
+   "gauntlets": "23",
+   "hours": "17",
+   "impressives": "61",
+   "kd": "1.29",
+   "rail_acc": "54%",
+   "ranked_peak": "1710",
+   "top_speed": "812 UPS",
+   "wins": "81"
+  },
+  "total": 47800,
+  "unlocked": {
+   "accents": [
+    "accent_red",
+    "accent_green",
+    "accent_yellow",
+    "accent_blue",
+    "accent_cyan",
+    "accent_magenta",
+    "accent_white",
+    "accent_rust",
+    "accent_bronze",
+    "accent_chrome",
+    "accent_plasma"
+   ],
+   "banners": [
+    "void",
+    "map_q3dm6",
+    "map_q3tourney2",
+    "map_q3dm7",
+    "map_q3dm17",
+    "sky_hellsky",
+    "sky_hellsky2bright",
+    "sky_kc_dm10sky",
+    "sky_kcbasesky_arena1_sky",
+    "sky_killsky",
+    "sky_nightsky_xian_dm1",
+    "sky_skybox",
+    "char_crash",
+    "char_mynx",
+    "char_orbb",
+    "char_ranger",
+    "char_sarge",
+    "char_visor",
+    "char_xaero",
+    "mat_q3a_banner",
+    "mat_proto_banner",
+    "mat_gothic_blocks",
+    "mat_bloody_blocks",
+    "mat_skull_arch",
+    "mat_pentagram",
+    "mat_flesh",
+    "trophy_wall",
+    "rank_crest",
+    "season",
+    "campaign_map"
+   ],
+   "emblems": [
+    "head_anarki",
+    "head_biker",
+    "head_bitterman",
+    "head_bones",
+    "head_brandon",
+    "head_carmack",
+    "head_cash",
+    "head_crash",
+    "head_doom",
+    "head_grunt",
+    "head_hunter",
+    "head_keel",
+    "head_klesk",
+    "head_lucy",
+    "head_major",
+    "head_mynx",
+    "head_orbb",
+    "head_paulj",
+    "head_ranger",
+    "head_razor",
+    "head_sarge",
+    "head_sarge_krusade",
+    "head_slash",
+    "head_sorlag",
+    "head_tankjr",
+    "head_tim",
+    "head_uriel",
+    "head_visor",
+    "head_xaero",
+    "head_xian",
+    "iconw_machinegun",
+    "iconw_shotgun",
+    "iconw_grenade",
+    "iconw_rocket",
+    "iconw_lightning",
+    "iconw_railgun",
+    "iconw_plasma",
+    "quad",
+    "iconh_mega",
+    "iconf_red",
+    "medal_excellent",
+    "medal_accuracy",
+    "medal_frags"
+   ],
+   "frames": [
+    "plain",
+    "frame_rusted_iron",
+    "frame_riveted_steel",
+    "frame_gothic_stone",
+    "frame_training",
+    "frame_tier1",
+    "frame_ranked_silver",
+    "frame_ranked_gold",
+    "frame_ranked_platinum"
+   ],
+   "rails": [
+    "rail_red",
+    "rail_green",
+    "rail_yellow",
+    "rail_blue",
+    "rail_cyan",
+    "rail_magenta",
+    "rail_white",
+    "rail_team"
+   ],
+   "taunts": [
+    "taunt_anarki",
+    "taunt_biker",
+    "taunt_bitterman",
+    "taunt_bones",
+    "taunt_brandon",
+    "taunt_carmack",
+    "taunt_cash",
+    "taunt_crash",
+    "taunt_doom",
+    "taunt_grunt",
+    "taunt_hunter",
+    "taunt_keel",
+    "taunt_klesk",
+    "taunt_lucy",
+    "taunt_major",
+    "taunt_mynx",
+    "taunt_orbb",
+    "taunt_paulj",
+    "taunt_ranger",
+    "taunt_razor",
+    "taunt_sarge",
+    "taunt_slash",
+    "taunt_sorlag",
+    "taunt_tankjr",
+    "taunt_tim",
+    "taunt_uriel",
+    "taunt_visor",
+    "taunt_xaero",
+    "taunt_xian"
+   ],
+   "titles": [
+    "title_fresh_meat",
+    "title_initiate",
+    "title_fragger",
+    "title_contender",
+    "title_gladiator",
+    "title_veteran",
+    "title_excellent",
+    "title_rocket_scientist",
+    "title_strafe_jumper",
+    "title_speed_demon",
+    "title_recruit",
+    "title_perfect",
+    "title_deadeye",
+    "title_ranked_silver",
+    "title_ranked_gold",
+    "title_ranked_platinum"
+   ]
+  },
+  "xp": 1600
+ },
  "progress": {
   "level": 1,
   "ranked_level": 30
@@ -2308,7 +8752,7 @@
    "tip": "Horizontal degrees at 4:3, like Quake 3's cg_fov. Wider screens see more at the sides (Hor+), so it's correct at any aspect. Stored now; takes effect once the Gameplay scene exists.",
    "type": "float",
    "unit": "deg",
-   "wired": false
+   "wired": true
   },
   {
    "default": 1.0,
@@ -3365,7 +9809,7 @@
    "tab": "controls",
    "tip": "Tap to zoom instead of holding. Stored now; takes effect once the Gameplay scene exists.",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": 0.15,
@@ -3457,7 +9901,7 @@
    "tip": "Multiplier while zoomed. Stored now; takes effect once the Gameplay scene exists.",
    "type": "float",
    "unit": "x",
-   "wired": false
+   "wired": true
   },
   {
    "default": true,
@@ -3493,7 +9937,7 @@
    "tab": "mouse",
    "tip": "Mouse up looks down. Stored now; takes effect once the Gameplay scene exists.",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": "c",
@@ -4523,6 +10967,46 @@
    "wired": true
   },
   {
+   "default": 10,
+   "group": "Chat",
+   "key": "hud/chat_time",
+   "label": "Chat time",
+   "max": 30,
+   "min": 3,
+   "restart": false,
+   "step": 1,
+   "tab": "hud",
+   "tip": "How long chat lines stay on screen. The chat key shows the recent history.",
+   "type": "int",
+   "unit": "s",
+   "wired": true
+  },
+  {
+   "default": 6,
+   "group": "Chat",
+   "key": "hud/chat_lines",
+   "label": "Chat lines",
+   "max": 12,
+   "min": 2,
+   "restart": false,
+   "step": 1,
+   "tab": "hud",
+   "tip": "Most chat lines shown at once while playing.",
+   "type": "int",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Chat",
+   "key": "hud/team_chats_only",
+   "label": "Team chat only",
+   "restart": false,
+   "tab": "hud",
+   "tip": "Hide everyone's chat but your team's (cg_teamChatsOnly).",
+   "type": "bool",
+   "wired": true
+  },
+  {
    "default": "better",
    "group": "Weapons",
    "key": "gameplay/autoswitch",
@@ -4848,11 +11332,15 @@
     [
      "oce",
      "Oceania"
+    ],
+    [
+     "meaf",
+     "Middle East and Africa"
     ]
    ],
    "restart": false,
    "tab": "network",
-   "tip": "Matchmaking region.",
+   "tip": "Matchmaking region. Automatic finds matches in your closest region first and widens if the wait runs long; a named region stays strict.",
    "type": "enum",
    "wired": false
   },
@@ -5472,6 +11960,8 @@
   "graphics/texture_quality": "high",
   "graphics/volumetric_fog": true,
   "hud/ammo_bar": true,
+  "hud/chat_lines": 6,
+  "hud/chat_time": 10,
   "hud/damage_numbers": true,
   "hud/fps": false,
   "hud/item_timers": false,
@@ -5481,6 +11971,7 @@
   "hud/preset": "modern",
   "hud/scale": 1.0,
   "hud/speedometer": "arc",
+  "hud/team_chats_only": false,
   "mouse/acceleration": 0.0,
   "mouse/dpi": 800,
   "mouse/invert": false,

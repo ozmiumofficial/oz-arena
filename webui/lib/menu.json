@@ -77,6 +77,12 @@
       "page": "ranked"
     },
     {
+      "id": "leaderboards",
+      "label": "Leaderboards",
+      "hint": "The top players by level and by ranked MMR",
+      "page": "leaderboards"
+    },
+    {
       "id": "server_browser",
       "label": "Server Browser",
       "hint": "Find a server: filters, favorites, history",
@@ -106,6 +112,7 @@
     "play",
     "quick_play",
     "ranked",
+    "leaderboards",
     "server_browser",
     "create_match",
     "offline_bots",

@@ -6,10 +6,12 @@ extends RefCounted
 ##   web -> Godot  ready, log, sound, cinematic, campaign_start, campaign_skill, campaign_reset, hover, page, layout, set, reset, reset_tab, capture_bind,
 ##                 cancel_capture, clear_bind, export_code, import_code, validate, start, continue,
 ##                 map_editor, quit, profile_preview, open_url, social {op, ...}
+##                 card_set {slot, id}, card_showcase {kind: stats|badges, ids}, card_seen {keys}, taunt {id}
 ##                 pause menu: resume, leave_match, restart_match, ready_up, crosshair_preview {weapon, hit}
 ##   Godot -> web  init, campaign, changed, conflicts, capture_started, bind_captured, capture_cancelled,
 ##                 validation, start_failed, code, imported, subject, nav, input_mode,
-##                 social {status, reason, state, chat}, social_notice, party_chat
+##                 social {status, reason, state, chat}, social_notice, party_chat, profile {profile},
+##                 leaderboard {board} (asked for with social {op: "leaderboard", board, scope})
 ##                 pause menu: pause {match}
 
 signal post(msg: Dictionary)                 ## to the web page
@@ -39,6 +41,7 @@ func _init() -> void:
 	Online.changed.connect(func(): post.emit(social_payload()))
 	Online.notice.connect(func(text, tone): post.emit({"type": "social_notice", "text": text, "tone": tone}))
 	Online.party_chat.connect(func(m): post.emit({"type": "party_chat", "from": m.get("from", {}), "text": m.get("text", ""), "at": m.get("at", 0)}))
+	Online.leaderboard.connect(func(b): post.emit({"type": "leaderboard", "board": b}))
 
 
 ## The page is treated as untrusted input (Ozmium, 2026-10-22: nobody injects code through the web
@@ -50,7 +53,8 @@ const TYPES := ["ready", "sound", "hover", "page", "layout", "set", "reset", "re
 	"cancel_capture", "clear_bind", "export_code", "import_code", "validate", "start", "continue", "campaign_start",
 	"campaign_skill", "campaign_reset", "cinematic", "map_editor", "quit", "profile_preview", "log", "social",
 	"open_url", "modes", "bots", "banner", "crosshairs", "cinematics",
-	"resume", "leave_match", "restart_match", "ready_up", "crosshair_preview"]
+	"resume", "leave_match", "restart_match", "ready_up", "crosshair_preview",
+	"card_set", "card_showcase", "card_seen", "taunt"]
 ## Hosts open_url may send the player's browser to; nothing else leaves the game.
 const URL_HOSTS := ["store.steampowered.com", "steamcommunity.com", "github.com"]
 
@@ -167,6 +171,24 @@ func handle(m: Dictionary) -> void:
 			ready_requested.emit()
 		"crosshair_preview":
 			crosshair_preview.emit(clampi(int(m.get("weapon", 0)), 0, 10), bool(m.get("hit", false)))
+		"card_set":
+			# the page only offers earned parts; Q3Profile checks again, and the page redraws from the answer
+			if not Q3Profile.set_card(String(m.get("slot", "")), String(m.get("id", ""))):
+				UiSound.buzz()
+			post.emit(profile_payload())
+		"card_showcase":
+			var ids: Variant = m.get("ids", [])
+			if not (ids is Array and Q3Profile.set_showcase(String(m.get("kind", "")), ids)):
+				UiSound.buzz()
+			post.emit(profile_payload())
+		"card_seen":
+			var keys: Variant = m.get("keys", [])
+			if keys is Array:
+				Q3Profile.mark_seen(keys)
+		"taunt":
+			var t := Q3Cards.part("taunts", String(m.get("id", "")))
+			if t.is_empty() or not UiSound.play_file(Q3.LIB + "sounds/" + String(t.get("sound", "")).trim_prefix("sound/")):
+				UiSound.buzz()
 		"open_url":
 			var url := String(m.get("url", ""))
 			var host := url.trim_prefix("https://").get_slice("/", 0).to_lower()
@@ -253,7 +275,36 @@ func init_payload() -> Dictionary:
 		"skills": Q3MatchSetup.SKILLS, "characters": Array(Q3.characters), "banner": banner,
 		"crosshairs": Q3.load_json(Q3.LIB + "ui/ui.json").get("crosshairs", []),
 		"continue": last.summary() if last else "", "m_yaw": Settings.M_YAW, "context": context, "match": match_info,
-		"progress": {"level": int(Q3Profile.level()["level"]), "ranked_level": Q3Profile.RANKED_LEVEL}, "campaign": Session.campaign.to_dict(), "cinematics": cinematics()}
+		"progress": {"level": int(Q3Profile.level()["level"]), "ranked_level": Q3Profile.RANKED_LEVEL}, "campaign": Session.campaign.to_dict(), "cinematics": cinematics(),
+		"cards": cards_payload(), "profile": Q3Profile.menu_payload()}
+
+
+## The player card catalog for the Profile page: every part with the text saying how it unlocks,
+## the achievements, the showcase stats and the ranked tiers (library/cards/cards.json).
+func cards_payload() -> Dictionary:
+	var cat := Q3Cards.catalog()
+	var parts := {}
+	for kind in Q3Cards.SLOTS.values():
+		parts[kind] = Q3Cards.parts(kind).map(func(p):
+			var o: Dictionary = p.duplicate()
+			o["how"] = Q3Cards.unlock_text(p)
+			o["free"] = p["unlock"].get("free", false)
+			o["level"] = int(p["unlock"].get("level", 0))
+			if p["unlock"].has("achievement"):
+				o["ach"] = p["unlock"]["achievement"]
+			o.erase("unlock")
+			return o)
+	var achs: Array = Q3Cards.achievements().map(func(a):
+		var o: Dictionary = a.duplicate()
+		o.erase("progress")
+		return o)
+	return {"parts": parts, "achievements": achs, "card_stats": cat.get("card_stats", []),
+		"medal_colors": cat.get("medal_colors", {}), "ranked_tiers": cat.get("ranked_tiers", []), "ranked": cat.get("ranked", {}),
+		"default_card": Q3Cards.default_card()}
+
+
+func profile_payload() -> Dictionary:
+	return {"type": "profile", "profile": Q3Profile.menu_payload()}
 
 
 ## Friends and party: connection status, the hub's last picture, and the party chat.

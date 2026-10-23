@@ -51,6 +51,32 @@ export interface SocialState {
   limits: { friends: number; party: number };
 }
 
+/** Leaderboards (online/src/hub.ts "leaderboard"): the level board ranks total XP, the ranked board MMR. */
+export type BoardKind = "level" | "ranked";
+export type BoardScope = "global" | "friends";
+
+export interface BoardRow extends Person {
+  rank: number;
+  xp: number;
+  level: number;
+  card: import("./types").CardData;
+  /** showcase stat id -> value as the owner's card prints it */
+  stats: Record<string, string>;
+  rating: number;
+  /** ranked matches played */
+  rated: number;
+  peak: number;
+  online: boolean;
+}
+
+export interface Board {
+  board: BoardKind;
+  scope: BoardScope;
+  rows: BoardRow[];
+  me: BoardRow | null;
+  total: number;
+}
+
 export interface ChatLine {
   from: { id: string; name: string };
   text: string;
@@ -67,9 +93,9 @@ export interface Social {
 export type SocialOp =
   | "friend_add" | "friend_accept" | "friend_decline" | "friend_cancel" | "friend_remove"
   | "party_invite" | "party_accept" | "party_decline" | "party_leave" | "party_kick" | "party_promote" | "party_chat"
-  | "sync" | "retry" | "copy_code";
+  | "sync" | "retry" | "copy_code" | "leaderboard";
 
-export function social(op: SocialOp, data: { id?: string; code?: string; party?: string; text?: string } = {}) {
+export function social(op: SocialOp, data: { id?: string; code?: string; party?: string; text?: string; board?: BoardKind; scope?: BoardScope } = {}) {
   void send("social", { op, ...data });
 }
 

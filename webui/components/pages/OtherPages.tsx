@@ -1,91 +1,14 @@
 "use client";
-// Profile (real: name, character, accent color; drives the showcase), Workshop (waits on Steam),
-// Credits (the remaster plus id Software's credits from ui_credits.c).
-import { useEffect, useRef, useState } from "react";
+// Workshop (waits on Steam), Credits (the remaster plus id Software's credits from ui_credits.c).
+import { useRef, useState } from "react";
 import { motion } from "motion/react";
-import { useMenu, setValue, toast } from "@/lib/store";
-import { send } from "@/lib/bridge";
-import { sfx } from "@/lib/sound";
-import { cn } from "@/lib/cn";
+import { toast } from "@/lib/store";
 import type { Value } from "@/lib/types";
-import PagePanel, { EmptyState, SectionTitle } from "../PagePanel";
+import PagePanel, { EmptyState } from "../PagePanel";
 import TextField from "../controls/TextField";
 import Spinner from "../controls/Spinner";
-import ColorField from "../controls/ColorField";
 import Button from "../controls/Button";
 import type { PageProps } from "./index";
-
-export function ProfilePage({ back }: PageProps) {
-  const init = useMenu((s) => s.init);
-  const v = useMenu((s) => s.values);
-  const model = String(v["profile/model"] ?? "sarge");
-  // the showcase shows your character while this page is open
-  useEffect(() => {
-    void send("profile_preview", { model });
-  }, [model]);
-  useEffect(() => () => void send("profile_preview", { model: "" }), []);
-  if (!init) return null;
-  const stats = [["Matches", "0"], ["Frags", "0"], ["Accuracy", "-"], ["Favorite weapon", "-"]];
-  return (
-    <PagePanel title="Profile" subtitle="Your name, character and color. Stats, history and the ladder fill in once you play online." back={back}>
-      <div className="grid h-full grid-cols-[1fr_24rem] gap-10 px-10 py-5">
-        <div className="flex min-h-0 flex-col">
-          <SectionTitle>Name</SectionTitle>
-          <TextField wide value={String(v["profile/name"] ?? "")} max={32} onCommit={(s) => setValue("profile/name", s.trim() || "Player")} />
-          <SectionTitle>Character</SectionTitle>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-2">
-            <div data-grid="7" className="grid grid-cols-7 gap-2">
-              {init.characters.map((c) => (
-                <button
-                  key={c}
-                  data-nav
-                  data-autofocus={c === model ? "" : undefined}
-                  onClick={() => {
-                    sfx.move();
-                    setValue("profile/model", c);
-                  }}
-                  title={c}
-                  className={cn(
-                    "group relative aspect-square overflow-hidden rounded-sm border-2 bg-black/40 transition-all",
-                    c === model ? "border-glow shadow-[0_0_1rem_rgb(219_36_16/0.6)]" : "border-transparent focus:border-ink/60",
-                  )}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`/q3/icons/${c}.png`} alt="" className="h-full w-full object-cover transition-transform duration-300 group-focus:scale-110" />
-                  <span className="absolute inset-x-0 bottom-0 bg-black/70 py-0.5 text-center font-q3 text-[0.6rem] tracking-[0.12em] text-ink">{c}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="min-h-0 overflow-y-auto">
-          <SectionTitle>Skin</SectionTitle>
-          <Spinner
-            wide
-            value={String(v["profile/skin"] ?? "default")}
-            options={[["default", "Default"], ["red", "Red team"], ["blue", "Blue team"]] as [Value, string][]}
-            disabled={(s) => (s === "default" ? false : "Team skins aren't converted yet")}
-            onChange={(s) => setValue("profile/skin", s)}
-          />
-          <SectionTitle>Accent color</SectionTitle>
-          <ColorField wide value={String(v["profile/team_color"] ?? "#db2410")} onChange={(c) => setValue("profile/team_color", c)} />
-          <p className="mt-2 text-[0.85rem] text-dim">Lights the showcase rim and, later, your rail trail.</p>
-          <SectionTitle>Stats</SectionTitle>
-          <div className="grid grid-cols-2 gap-2">
-            {stats.map(([k, n]) => (
-              <div key={k} className="rounded-sm border border-white/[0.07] bg-black/30 p-3">
-                <div className="font-q3 text-[0.6rem] tracking-[0.2em] text-dim">{k}</div>
-                <div className="font-q3 text-[1.5rem] text-ink-hot">{n}</div>
-              </div>
-            ))}
-          </div>
-          <SectionTitle>Achievements</SectionTitle>
-          <p className="text-[0.9rem] text-dim">Excellent, Impressive, Humiliation and the rest arrive with Steam stats.</p>
-        </div>
-      </div>
-    </PagePanel>
-  );
-}
 
 export function WorkshopPage({ back }: PageProps) {
   const [kind, setKind] = useState<Value>("maps");

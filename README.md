@@ -13,7 +13,7 @@ Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the r
 | ![Main menu](docs/screenshots/menu-main.jpg) | ![Single player campaign](docs/screenshots/menu-single-player.jpg) |
 | **Main menu:** a fighter or item turning in a smoky void, with Quake 3's own menu sounds | **Single player:** id's campaign, tier by tier, with skill levels and medals |
 | ![Create match](docs/screenshots/menu-create-match.jpg) | ![Profile](docs/screenshots/menu-profile.jpg) |
-| **Create match:** every mode, map and rule, with modifiers on top | **Profile:** name, character, skin and accent color |
+| **Create match:** every mode, map and rule, with modifiers on top | **Profile:** your player card, with banners, emblems, frames and titles you earn by playing |
 
 ![Settings](docs/screenshots/menu-settings.jpg)
 
@@ -66,6 +66,11 @@ Most remakes copy the original from memory. This one runs id Software's own game
 - **Friends and parties:**
   - Add friends with a short friend code, and see who's online and what they're playing.
   - Form a party of up to 8 and chat. No email, password or account needed.
+- **Leaderboards:** see where your level ranks against everyone or just your friends, and open any player's card. A ranked board fills in once ranked play starts.
+- **Player cards and levels:**
+  - Build your own card from about 380 Quake 3-themed banners, emblems, frames, titles, accent colors, rail colors and taunts.
+  - Every match played to the end earns XP, bots included. Levels and 89 achievements unlock new parts, and the Profile shows what each locked part needs.
+  - Your card appears on the scoreboard and the results screen. Progression is cosmetic only and never changes the game.
 - **Controller support** throughout the menus.
 
 ## On the way
@@ -73,7 +78,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 - **Online matches without paying for servers:** anyone can host from their own PC, and one match browser shows every match. Optional dedicated servers. Lobbies vote-kick troublemakers instead of relying on anti-cheat software.
 - **More modes:** Clan Arena, Freeze Tag and Instagib as optional rule sets.
 - **Ranked play:** a duel queue with an Elo ladder, seasons and tiers named after Quake 3's skill levels.
-- **Player cards:** a customizable card with about 380 Quake 3-themed banners, emblems, frames and titles, earned through XP and 89 achievements. Progression is cosmetic only and never changes the game.
+- **Player cards online:** your card in friends' lists and lobbies, both cards sliding in on the duel versus screen, and a card image to share.
 - **A built-in map editor:** build arenas inside the game, import the original maps, play-test instantly, and edit together with friends.
 - **A Workshop** for sharing maps, skins and mods.
 

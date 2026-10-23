@@ -313,7 +313,7 @@ func _player_panel(s: Dictionary, view: Vector2) -> Control:
 		lines.append(["Frags / deaths", "%d / %d   (%.2f)" % [cf, cd, float(cf) / maxf(cd, 1.0)]])
 		var medals := []
 		for m in ["impressive", "excellent", "gauntlet", "defend", "assist", "perfect"]:
-			var n := int(st.get(m + "s", 0))
+			var n := int(Q3Cards.stat(st, "medal." + m))
 			if n > 0:
 				medals.append("%s %d" % [m.capitalize(), n])
 		lines.append(["Medals", ", ".join(medals) if medals.size() else "-"])

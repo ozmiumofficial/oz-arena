@@ -65,10 +65,11 @@ MEDALS = [  # stat key under medal., display name, icon (menu/medals)
 ]
 MODES = ["ffa", "duel", "tdm", "ctf", "ca", "ft", "instagib"]
 SKILLS = ["I Can Win", "Bring It On", "Hurt Me Plenty", "Hardcore", "Nightmare!"]
-# Ranked tiers (PLAN.md): Quake 3's skill names, then Arena Master. Floors in rating points.
-RANKED_TIERS = [("i_can_win", "I Can Win", 0), ("bring_it_on", "Bring It On", 1000),
-                ("hurt_me_plenty", "Hurt Me Plenty", 1300), ("hardcore", "Hardcore", 1600),
-                ("nightmare", "Nightmare!", 1900), ("arena_master", "Arena Master", 2200)]
+# Ranked tiers (PLAN.md, Ozmium 2026-10-23): Bronze to Godlike. Floors in rating (MMR) points.
+RANKED_TIERS = [("bronze", "Bronze", 0), ("silver", "Silver", 1000), ("gold", "Gold", 1300),
+                ("platinum", "Platinum", 1600), ("diamond", "Diamond", 1900), ("godlike", "Godlike", 2200)]
+RANKED_DIVISION = 100   # III -> II -> I every 100 points inside a tier; Godlike is open-ended
+RANKED_PLACEMENTS = 10  # matches before a rank shows
 
 # Career stats Q3Progress keeps (cards.json "stats_doc"; dotted keys are dictionaries).
 STATS_DOC = {
@@ -90,6 +91,7 @@ STATS_DOC = {
     "best.speed": "top horizontal speed (ups)", "best.rail_streak": "most rail hits in a row",
     "best.rail_accuracy": "best railgun accuracy in a match (%, 10+ shots)",
     "duel_wins": "Tournament wins", "ranked_matches": "ranked matches", "ranked_peak": "highest ranked rating",
+    "ranked_rating": "current ranked rating (MMR, set by official ranked servers)", "ranked_wins": "ranked wins",
 }
 
 # ---------------------------------------------------------------- hand-written parts
@@ -289,7 +291,7 @@ def achievements(campaign, maps, characters):
     # ranked
     for tid, name, floor in RANKED_TIERS[2:]:
         _ach(A, "ranked_" + tid, name, "Reach %s in ranked (%d)" % (name, floor),
-             {"hurt_me_plenty": "bronze", "hardcore": "silver"}.get(tid, "gold"), floor, {"stat": "ranked_peak"},
+             {"gold": "bronze", "platinum": "silver"}.get(tid, "gold"), floor, {"stat": "ranked_peak"},
              "emblem:medal_victory")
     return A
 
@@ -387,8 +389,8 @@ def build(src):
             ("trophy_wall", "Trophy Wall", "medal_collector", "Your three best medal counts"),
             ("weapon_mastery", "Weapon Mastery", "arsenal", "Your best weapon and its frags"),
             ("favorite_arena", "Favorite Arena", "home_turf", "The arena you've won most"),
-            ("rank_crest", "Rank Crest", "ranked_hurt_me_plenty", "Your ranked tier's colors"),
-            ("season", "Season", "ranked_hardcore", "A new design every ranked season"),
+            ("rank_crest", "Rank Crest", "ranked_gold", "Your ranked tier's colors"),
+            ("season", "Season", "ranked_platinum", "A new design every ranked season"),
             ("campaign_map", "Campaign Map", "campaign_training", "Every campaign arena and the skill you won it at")]:
         banners.append(P(bid, name, {"achievement": ach}, kind="stat", desc=desc))
     for bid, name, ach, desc, base in [
@@ -499,11 +501,12 @@ def build(src):
         "levels": {"max": 100, "xp_base": 1000, "xp_step": 25,
                    "_note": "XP to go from level L to L+1 = xp_base + xp_step * (L - 1)"},
         "default_card": {"banner": "void", "emblem": "head_sarge", "frame": "plain", "title": "title_fresh_meat",
-                         "accent": "accent_red", "taunt": "taunt_sarge", "rail": "rail_blue",
+                         "accent": "accent_red", "taunt": "taunt_sarge", "rail": "rail_red",
                          "stats": ["frags", "wins", "excellents"], "badges": []},
         "card_stats": [dict(id=s[0], label=s[1], value=s[2]) for s in CARD_STATS],
         "medal_colors": {"bronze": "#e08a4f", "silver": "#c9d6df", "gold": "#ffd24a"},
         "ranked_tiers": [dict(id=t[0], name=t[1], min=t[2]) for t in RANKED_TIERS],
+        "ranked": {"division": RANKED_DIVISION, "placements": RANKED_PLACEMENTS, "start": 1000},
         "skills": SKILLS,
         "stats_doc": STATS_DOC,
         "parts": parts,

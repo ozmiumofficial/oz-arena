@@ -5,7 +5,7 @@
 import { useSyncExternalStore } from "react";
 import { on, send, type Msg } from "./bridge";
 import type { InitPayload, MatchInfo, Value, SettingEntry } from "./types";
-import type { ChatLine, Social } from "./social";
+import type { Board, ChatLine, Social } from "./social";
 
 export interface Toast {
   id: number;
@@ -28,11 +28,13 @@ export interface MenuState {
   /** pause menu: bumped every time Godot opens it (pages reset to the root) */
   pauseOpen: number;
   match: MatchInfo | null;
+  /** "level|global" -> the last board the hub sent */
+  boards: Record<string, Board>;
 }
 
 let state: MenuState = {
   init: null, values: {}, conflicts: {}, subject: null, capture: null, pad: false, toasts: [], validation: [], lastCode: "",
-  social: { status: "connecting", reason: "", state: null, chat: [] }, socialOpen: false, pauseOpen: 0, match: null,
+  social: { status: "connecting", reason: "", state: null, chat: [] }, socialOpen: false, pauseOpen: 0, match: null, boards: {},
 };
 const subs = new Set<() => void>();
 let toastId = 0;
@@ -71,6 +73,16 @@ export function entry(key: string): SettingEntry | undefined {
 export function setValue(key: string, value: Value) {
   update({ values: { ...state.values, [key]: value } });
   void send("set", { key, value });
+}
+
+// Card edits show at once; Godot checks the part is earned and answers with the whole profile.
+export function setCard(slot: string, value: string | string[]) {
+  const p = state.init?.profile;
+  if (!p || !state.init) return;
+  const card = { ...p.card, [slot]: value };
+  update({ init: { ...state.init, profile: { ...p, card, shown: { ...p.shown, [slot]: value } } } });
+  if (Array.isArray(value)) void send("card_showcase", { kind: slot, ids: value });
+  else void send("card_set", { slot, id: value });
 }
 
 export function resetValue(key: string) {
@@ -119,6 +131,8 @@ export function connect() {
     update({ match: match?.title ? { ...match, standings: match.standings ?? [] } : state.match, pauseOpen: state.pauseOpen + 1 });
   });
   on("dev_notice", (m) => toast(m.text as string, "warn"));
+  // the player card: Godot answers every card edit with the whole profile
+  on("profile", (m) => state.init && update({ init: { ...state.init, profile: m.profile as InitPayload["profile"] } }));
   // friends and parties (Godot's Online autoload, components/Social.tsx)
   // Godot sends an empty object until the hub's first picture arrives
   on("social", (m) => {
@@ -126,6 +140,10 @@ export function connect() {
     update({ social: { status: m.status as Social["status"], reason: String(m.reason ?? ""), state: st && "me" in st ? (st as Social["state"]) : null, chat: (m.chat as ChatLine[]) ?? [] } });
   });
   on("social_notice", (m) => toast(m.text as string, m.tone === "error" ? "error" : m.tone === "warn" ? "warn" : "info"));
+  on("leaderboard", (m) => {
+    const b = m.board as Board;
+    update({ boards: { ...state.boards, [`${b.board}|${b.scope}`]: b } });
+  });
   on("party_chat", (m) => update({ social: { ...state.social, chat: [...state.social.chat, m as unknown as ChatLine].slice(-50) } }));
   void send("ready");
 }

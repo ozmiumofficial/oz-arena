@@ -703,7 +703,9 @@ func _end_match(ps: Dictionary) -> void:
 		extra = Session.campaign.xp_lines()
 	var xp: Dictionary = Q3Profile.award_match({"map": setup.map, "mode": setup.mode, "won": won,
 		"frags": maxi(int(rows[place]["score"]) if place < rows.size() else 0, 0), "deaths": p[E.PERS_KILLED] if p.size() else 0,
-		"medals": medals, "perfect": perfect, "campaign_skill": _campaign_skill() if campaign else 0, "extra": extra})
+		"medals": medals, "perfect": perfect, "campaign_skill": _campaign_skill() if campaign else 0, "extra": extra,
+		"model": String(rows[place].get("model", "")) if place < rows.size() else "", "skin": String(setup.player.get("skin", "default")),
+		"seconds": int(Q3Server.time() / 1000.0)})
 	# ui_sppostgame.c: "music music/win" (or loss) over the postgame, then "You win" or "<winner> wins"
 	if campaign:
 		music.play("music/win" if won else "music/loss")

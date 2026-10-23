@@ -189,6 +189,20 @@ static func enforce_unlocks(card: Dictionary, profile: Dictionary) -> Dictionary
 	return out
 
 
+## A card from someone else's game (a leaderboard row): every part this catalog doesn't know goes
+## back to the default, as do unknown showcase stats and badges. Unlocks can't be checked without
+## the owner's career, which the hub doesn't hold.
+static func known_parts(card: Dictionary) -> Dictionary:
+	var out := default_card()
+	for slot in SLOTS:
+		if not part(SLOTS[slot], String(card.get(slot, ""))).is_empty():
+			out[slot] = String(card[slot])
+	var ids := (catalog().get("card_stats", []) as Array).map(func(s): return s["id"])
+	out["stats"] = Array(card.get("stats", [])).filter(func(s): return ids.has(s)).slice(0, SHOWCASE)
+	out["badges"] = Array(card.get("badges", [])).filter(func(b): return not achievement(String(b)).is_empty()).slice(0, SHOWCASE)
+	return out
+
+
 # ---------------------------------------------------------------- levels and showcase
 
 static func xp_to_next(level: int) -> int:
@@ -205,6 +219,28 @@ static func level_for(total_xp: int) -> Dictionary:
 		left -= xp_to_next(level)
 		level += 1
 	return {"level": level, "xp": left, "next": xp_to_next(level)}
+
+
+## A ranked rating (MMR) as the ladder shows it: the tier (Bronze to Godlike, cards.json
+## "ranked_tiers"), its division counted down III -> II -> I every 100 points below the next tier
+## (0 for Godlike, which is open-ended), and the rating the next division starts at (-1 at the top).
+static func rank(rating: int) -> Dictionary:
+	var tiers: Array = catalog().get("ranked_tiers", [])
+	if tiers.is_empty():
+		return {}
+	var step := int(catalog().get("ranked", {}).get("division", 100))
+	var i := 0
+	for t in tiers.size():
+		if rating >= int(tiers[t]["min"]):
+			i = t
+	var tier: Dictionary = tiers[i]
+	if i == tiers.size() - 1:
+		return {"id": tier["id"], "name": tier["name"], "division": 0, "label": tier["name"], "next": -1, "from": int(tier["min"])}
+	var top := int(tiers[i + 1]["min"])
+	var div := clampi(ceili(float(top - rating) / step), 1, 3)
+	var next := top - (div - 1) * step
+	return {"id": tier["id"], "name": tier["name"], "division": div, "label": "%s %s" % [tier["name"], ["I", "II", "III"][div - 1]],
+		"next": next, "from": maxi(int(tier["min"]), next - step) if div < 3 else int(tier["min"])}
 
 
 ## A showcase stat as the card prints it.

@@ -1,4 +1,5 @@
-// Online services Worker. One route that matters: GET /hub upgrades to the social hub's WebSocket.
+// Online services Worker. GET /hub upgrades to the social hub's WebSocket; /admin/* is the operator's (moderation,
+// removing test players), refused unless it carries the ADMIN_TOKEN secret (`wrangler secret put ADMIN_TOKEN`).
 //
 // Identity without accounts: on first launch the game makes an RSA key pair (Godot Crypto) and keeps it in
 // user://. Every connection carries the public key (x-key, base64 SPKI DER), a millisecond timestamp (x-ts) and
@@ -13,6 +14,8 @@ export { Hub };
 
 export interface Env {
   HUB: DurableObjectNamespace<Hub>;
+  /** unset means the admin routes are off */
+  ADMIN_TOKEN?: string;
 }
 
 /** Bumped when the message protocol changes incompatibly; older games are told to update. */
@@ -23,6 +26,10 @@ export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname === '/health') return Response.json({ ok: true, protocol: PROTOCOL });
+    if (url.pathname.startsWith('/admin/')) {
+      if (!(await admin(req, env))) return new Response('forbidden', { status: 403 });
+      return env.HUB.get(env.HUB.idFromName('global')).fetch(req);
+    }
     if (url.pathname !== '/hub') return new Response('not found', { status: 404 });
     if (req.headers.get('upgrade') !== 'websocket') return new Response('expected websocket', { status: 426 });
     if ((req.headers.get('x-proto') ?? '') !== PROTOCOL) return refuse(4002, 'This version of the game is out of date for online play.');
@@ -33,6 +40,16 @@ export default {
     return env.HUB.get(env.HUB.idFromName('global')).fetch(new Request(req, { headers }));
   },
 } satisfies ExportedHandler<Env>;
+
+/** `authorization: Bearer <ADMIN_TOKEN>`, compared in constant time. */
+async function admin(req: Request, env: Env): Promise<boolean> {
+  const want = env.ADMIN_TOKEN ?? '';
+  const got = (req.headers.get('authorization') ?? '').replace(/^Bearer /, '');
+  if (want.length < 32 || !got) return false;
+  const enc = new TextEncoder();
+  const [a, b] = await Promise.all([crypto.subtle.digest('SHA-256', enc.encode(want)), crypto.subtle.digest('SHA-256', enc.encode(got))]);
+  return crypto.subtle.timingSafeEqual(a, b);
+}
 
 async function verify(h: Headers): Promise<{ pid: string } | { error: string }> {
   const key = h.get('x-key') ?? '';

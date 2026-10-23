@@ -123,6 +123,98 @@ export interface InitPayload {
   /** the player's level, and the level ranked opens at */
   progress?: { level: number; ranked_level: number };
   match?: MatchInfo;
+  /** the player card catalog (library/cards/cards.json) and the player's career */
+  cards?: CardsCatalog;
+  profile?: ProfileState;
+}
+
+/** Card slots holding one part, and the catalog list each draws from (Q3Cards.SLOTS). */
+export const CARD_SLOTS = { banner: "banners", emblem: "emblems", frame: "frames", title: "titles", accent: "accents", rail: "rails", taunt: "taunts" } as const;
+export type CardSlot = keyof typeof CARD_SLOTS;
+export type PartKind = (typeof CARD_SLOTS)[CardSlot];
+
+export interface CardPart {
+  id: string;
+  name: string;
+  /** "FREE", "LEVEL 40", "ACHIEVEMENT: RAIL GOD" or the part's own text */
+  how: string;
+  free: boolean;
+  /** the level that unlocks it, 0 when it isn't on the level track */
+  level: number;
+  /** the achievement that pays it, if that's its rule */
+  ach?: string;
+  kind?: string;
+  group?: string;
+  art?: string;
+  value?: string;
+  fx?: string;
+  base?: string;
+  style?: string;
+  desc?: string;
+  sound?: string;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  desc: string;
+  medal: "bronze" | "silver" | "gold";
+  target: number;
+  icon: string;
+  hidden: boolean;
+}
+
+export interface CardData {
+  banner: string;
+  emblem: string;
+  frame: string;
+  title: string;
+  accent: string;
+  rail: string;
+  taunt: string;
+  stats: string[];
+  badges: string[];
+}
+
+export interface CardsCatalog {
+  parts: Record<PartKind, CardPart[]>;
+  achievements: Achievement[];
+  card_stats: { id: string; label: string; value: string }[];
+  medal_colors: Record<string, string>;
+  ranked_tiers: { id: string; name: string; min: number }[];
+  ranked?: { division: number; placements: number; start: number };
+  default_card: CardData;
+}
+
+export interface ProfileState {
+  level: number;
+  xp: number;
+  next: number;
+  total: number;
+  max_level: number;
+  /** the card as saved, and as others see it (unearned parts back to the default) */
+  card: CardData;
+  shown: CardData;
+  /** showcase stat id -> the value as the card prints it */
+  stats: Record<string, string>;
+  unlocked: Partial<Record<PartKind, string[]>>;
+  achievements: { id: string; progress: number; done: boolean; missing: string[] }[];
+  /** "kind:id" of parts unlocked since the Profile page last showed them */
+  new: string[];
+  ranked_level: number;
+  ranked?: RankedState;
+  career: {
+    matches: number;
+    wins: number;
+    frags: number;
+    deaths: number;
+    playtime: number;
+    frags_weapon: Record<string, number>;
+    medal: Record<string, number>;
+    wins_mode: Record<string, number>;
+    matches_model: Record<string, number>;
+  };
+  banner_ctx: { favorite_map: string; best_weapon: string; medals: { id: string; n: number }[]; campaign_won: number; ranked_peak: number };
 }
 
 /** The match behind the pause menu (Gameplay sends it with every "pause"). */
@@ -163,4 +255,27 @@ export interface MenuItemDef {
   page?: string;
   action?: string;
   when?: string;
+}
+
+/** A rating as the ladder shows it (Q3Cards.rank): division 3, 2, 1 (III, II, I), 0 for Godlike */
+export interface Rank {
+  id: string;
+  name: string;
+  division: number;
+  label: string;
+  /** the rating the next division starts at, -1 at the top */
+  next: number;
+  from: number;
+}
+
+export interface RankedState {
+  open: boolean;
+  matches: number;
+  placements: number;
+  placed: boolean;
+  rating: number;
+  peak: number;
+  rank: Rank;
+  peak_rank: Rank | Record<string, never>;
+  wins: number;
 }

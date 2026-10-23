@@ -1,6 +1,6 @@
 # Keel remaster study
 
-> This is the original one-model session, kept as a case study. The generalized tools that run on every player model are in `../tools` (see `../README.md`). Paths below that start with `Documents\Keel\` now live in `Documents\Q3Remaster\case_study_keel\`.
+> This is the original one-model session, kept as a case study. The generalized tools that run on every player model are in `../tools` (see `../DEVELOPMENT.md`). Paths below that start with `Documents\Keel\` now live in `Documents\Q3Remaster\case_study_keel\`.
 
 Built 2026-10-22. Quake III Arena's Keel player model, taken from a legally owned Steam copy, turned into:
 

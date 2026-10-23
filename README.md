@@ -1,4 +1,34 @@
-# Q3Remaster tools
+![Quake 3 Arena Remastered: Fan Project](docs/promo/banner.jpg)
+
+# Quake 3 Arena Remastered: Fan Project
+
+An unofficial, open-source remaster of Quake III Arena in Godot. id's original gameplay code runs underneath, so it plays like Quake 3. Around it: every texture remastered as matte PBR, the 29 fighters rebuilt with real skeletons and ragdolls, maps relit and baked, a modern menu, and online friends and parties. You need your own copy of Quake 3 to play.
+
+### Menus
+
+| | |
+|---|---|
+| ![Main menu](docs/screenshots/menu-main.jpg) | ![Single player campaign](docs/screenshots/menu-single-player.jpg) |
+| **Main menu:** a fighter or item turning in a smoky void, with Quake 3's own menu sounds | **Single player:** id's campaign, tier by tier, with skill levels and medals |
+| ![Create match](docs/screenshots/menu-create-match.jpg) | ![Profile](docs/screenshots/menu-profile.jpg) |
+| **Create match:** every mode, map and rule, with modifiers on top | **Profile:** name, character, skin and accent color |
+
+![Settings](docs/screenshots/menu-settings.jpg)
+
+### In game
+
+| | |
+|---|---|
+| ![The Longest Yard, railgun](docs/screenshots/game-longest-yard-railgun.jpg) | ![The Longest Yard, lightning gun](docs/screenshots/game-longest-yard-lightning.jpg) |
+| **The Longest Yard** (q3dm17), railgun | **The Longest Yard**, lightning gun |
+| ![The Campgrounds](docs/screenshots/game-campgrounds.jpg) | ![Temple of Retribution](docs/screenshots/game-temple-of-retribution.jpg) |
+| **The Campgrounds** (q3dm6) | **Temple of Retribution** (q3dm7) |
+| ![Lost World](docs/screenshots/game-lost-world.jpg) | ![The Proving Grounds](docs/screenshots/game-proving-grounds.jpg) |
+| **Lost World** (q3dm13) | **The Proving Grounds** (q3tourney2) |
+
+All screenshots are real matches against id's bots, captured in the engine at 1920x1080 (`godot/tests/screenshots.tscn`). Key art and a social preview card are in [docs/promo](docs/promo).
+
+## How it's made
 
 Tools for remastering Quake III Arena's assets to modern standards, for a Godot (recommended) or Unity remake. Everything here reads your own legally owned copy of the game; see [PLAN.md](PLAN.md) for the roadmap, design decisions and the licensing section.
 
@@ -125,12 +155,13 @@ godot --headless --path godot res://tests/check_scripts.tscn   # every script pa
 godot --path godot res://tests/ragdoll_test.tscn -- out=C:/temp/rag [seq=sarge] [burn=1]
 godot --path godot res://tests/scoreboard_test.tscn -- out=C:/temp/board
 godot --path godot res://tests/capture.tscn -- out=C:/temp/shot frames=220 count=1 view=fx fire=rail
+godot --path godot res://tests/screenshots.tscn -- window=1920x1080 out=C:/temp/shot map=q3dm6 [count=6 hud=0]   # README screenshots: a bot match, aiming and firing
 godot --path godot res://tests/card_renders.tscn -- job=C:/.../work/_cards/_render_job.json   # build_cards.py writes the job
 godot --path godot res://tests/capture.tscn -- scene=res://scenes/main_menu/main_menu.tscn out=C:/temp/menu frames=300 subject=char:bones framing=0
 powershell -File tools/capture_window.ps1 -Title Q3Remaster -Out C:/temp/menu_web.png -Delay 9
 ```
 
-The menu's web layer is invisible to Godot's own screenshots, so `capture.tscn` shows the 3D and logo, and `capture_window.ps1` (PrintWindow on the running game window) shows the web layer. Main-menu capture options: `subject=char:<model>|item:<classname>|prop:<path>`, `framing=0-3`, `swap=<seconds>`, `page=<menu page id>`.
+The menu's web layer is invisible to Godot's own screenshots, so `capture.tscn` shows the 3D and logo, and `capture_window.ps1` (PrintWindow on the running game window) shows the web layer. Main-menu capture options: `subject=char:<model>|item:<classname>|prop:<path>`, `framing=0-3`, `swap=<seconds>`, `page=<menu page id>` (put `swap=` before `subject=`, or the subject keeps the default swap timer). Neither shows both layers together; the README's menu shots stack `capture.tscn`'s 3D under the page rendered by headless Chrome from `npm run dev` with a transparent background, at the same size. Any run takes `-- window=1920x1080` to use a window of that size whatever the saved display settings say.
 
 Use the scene form, not `--script`: a `--script` main loop compiles before autoloads exist, so the `Q3` autoload isn't found and Godot idles.
 

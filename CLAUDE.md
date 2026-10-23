@@ -242,6 +242,10 @@ ode_modules`.
   - The editor's Output and Errors panels keep every error since it started, stale ones included; `EditorInterface.restart_editor(true)` clears them.
   - Don't validate class_name scripts in the editor through `GDScript.new()` with a fake path: it leaves ghost script tabs that error on every start.
 - **Seeing the web layer and the 3D together:** neither Godot's viewport nor a desktop screen grab (CopyFromScreen) shows both; the grab shows flat gray behind the web view, in the main menu too. Check the 3D with Godot's viewport image (`tests/pause_menu.tscn` saves one) and the page with a grab or the `npm run dev` preview (`?pause` mocks the pause menu).
+  - **For a picture of both (README shots, 2026-10-23):** render the 3D with `capture.tscn ... window=1920x1080 page=<id>`, and the page in headless Chrome over CDP at 1920x1080 with `Emulation.setDefaultBackgroundColorOverride` alpha 0; then alpha-composite. The web view really is a transparent layer over the 3D, so this is what players see.
+  - In the browser the mock draws placeholders (`DevBackdrop`, the "3D logo (Godot)" box); hide both before the shot.
+  - The menu's left shade (88% black) sits over the Godot logo, so the logo is dim in the real menu too.
+  - `-- window=WxH` (Settings `_forced_window`) overrides the saved display mode for one run. Ozmium's saved mode is fullscreen 3440x1440.
 
 ## Map facts (hard-won)
 

@@ -388,6 +388,11 @@ func _apply_display() -> void:
 		return
 	var w := get_window()
 	var mode: String = _values["video/display_mode"]
+	var res: String = _values["video/resolution"]
+	var forced := _forced_window()
+	if forced != "":
+		mode = "windowed"
+		res = forced
 	DisplayServer.window_set_vsync_mode({"off": DisplayServer.VSYNC_DISABLED, "on": DisplayServer.VSYNC_ENABLED,
 		"adaptive": DisplayServer.VSYNC_ADAPTIVE, "mailbox": DisplayServer.VSYNC_MAILBOX}[_values["video/vsync"]])
 	var screen := clampi(int(_values["video/monitor"]), 0, DisplayServer.get_screen_count() - 1)
@@ -395,7 +400,7 @@ func _apply_display() -> void:
 		"windowed":
 			w.mode = Window.MODE_WINDOWED
 			w.borderless = false
-			var r: PackedStringArray = String(_values["video/resolution"]).split("x")
+			var r: PackedStringArray = res.split("x")
 			var size := Vector2i(int(r[0]), int(r[1]))
 			var usable := DisplayServer.screen_get_usable_rect(screen)
 			size = size.min(usable.size)
@@ -409,6 +414,15 @@ func _apply_display() -> void:
 		"fullscreen", "exclusive":
 			w.current_screen = screen
 			w.mode = Window.MODE_EXCLUSIVE_FULLSCREEN if mode == "exclusive" else Window.MODE_FULLSCREEN
+
+
+## `-- window=1920x1080` runs in a window of that size whatever the saved display settings say, and
+## saves nothing (screenshots and captures).
+func _forced_window() -> String:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("window=") and a.substr(7).split("x").size() == 2:
+			return a.substr(7)
+	return ""
 
 
 ## The values the 15 s "keep these display settings?" confirmation reverts to.

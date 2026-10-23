@@ -631,6 +631,6 @@ Output: one Godot material per shader name, so the BSP importer and the editor's
 1. Unity or Godot (can wait until Phase 4).
 2. ~~Distribution model~~ Decided: free and open source, Quake 3 ownership required, ships the remastered asset library (see "Licensing" for the risk and mitigations). Still open: the project's new name, and whether to ask Bethesda/id for permission (recommended).
 3. Which comes first after the player-model quality pass: weapons (quick) or maps (biggest visual payoff)?
-4. Progression trust (see "Player cards, progression and ranked"). Recommended: XP, unlocks and achievements decided by the match's own server, including offline play, accepting that cosmetics can be cheated; ranked rating only from official servers that sign their results.
+4. Progression trust (see "Player cards, progression and ranked"). Recommended: XP, unlocks and achievements decided by the match's own server, including offline play, accepting that cosmetics can be cheated. Ranked rating: decided 2026-10-23, peer-to-peer for now, counted only when the players' signed scoreboards agree; verified dedicated servers that sign their results take over later (see "Trust").
 5. ~~Ranked storage~~ Decided 2026-10-22: our own backend built from trac3r's Worker + D1, on Cloudflare's free tier.
 6. Title names for the level ranks (placeholders in "Catalog").

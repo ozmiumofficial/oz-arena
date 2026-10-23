@@ -267,7 +267,8 @@ export class Hub extends DurableObject<Env> {
   /**
    * The player's level board entry: total XP (the level comes from it here), the card as their own game shows it, and
    * its showcase stat values. All self-reported, like every offline career (PLAN.md "Trust"); viewers' games put
-   * unknown parts back to the default. Ranked columns are never written from here: only official ranked servers will.
+   * unknown parts back to the default. Ranked columns are never written from here: only the hub sets them, from
+   * peer-to-peer ranked matches whose players' signed scoreboards agree (MULTIPLAYER_PLAN.md M6).
    */
   private career(me: string, m: Msg) {
     const xp = Math.max(0, Math.min(1e9, Math.floor(Number(m.xp) || 0)));

@@ -52,8 +52,10 @@ planned (PLAN.md).
   the total. The global boards are cached for 60 s, because SQLite row reads are what the free tier counts.
 - Level board rows are self-reported, like every offline career (PLAN.md "Trust"). Cards are cleaned to part ids, and
   the viewer's game puts parts it doesn't know back to the default (`Q3Cards.known_parts`).
-- The ranked columns (`rating`, `rated`, `peak`) are never written from a game. Only official ranked servers will set
-  them, so the ranked board stays empty until they exist. A player shows on it after 10 ranked matches.
+- The ranked columns (`rating`, `rated`, `peak`) are never written from a game. The hub will set them itself from
+  peer-to-peer ranked matches, once every player's signed scoreboard agrees (PLAN.md "Trust", MULTIPLAYER_PLAN.md M6);
+  verified dedicated servers take over later. The ranked board stays empty until then. A player shows on it after 10
+  ranked matches.
 
 ## Run it locally
 

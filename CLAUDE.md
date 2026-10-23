@@ -178,7 +178,7 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
 ode_modules`.
   - `node test/friend_bot.mjs` fills the Friends panel for a look.
   - The menu capture option `page=friends` opens the panel.
-- **Leaderboards (2026-10-23):** `career` and `leaderboard` messages (online/README.md "Leaderboards"); `Online` sends the career on connect and after `Q3Profile.save()`; the menu page is `webui/components/pages/LeaderboardPage.tsx` (Play, Leaderboards; also from Ranked). The level board is self-reported; the ranked board only fills from official ranked servers.
+- **Leaderboards (2026-10-23):** `career` and `leaderboard` messages (online/README.md "Leaderboards"); `Online` sends the career on connect and after `Q3Profile.save()`; the menu page is `webui/components/pages/LeaderboardPage.tsx` (Play, Leaderboards; also from Ranked). The level board is self-reported; the ranked board only fills from peer-to-peer ranked matches whose players' signed scoreboards agree (Ozmium, 2026-10-23; verified dedicated servers later).
 - **Identity:**
   - `user://online/identity.key` is the player. Deleting it makes a new player.
   - Node can sign as it (`friend_bot.mjs` does), which is handy for tests.

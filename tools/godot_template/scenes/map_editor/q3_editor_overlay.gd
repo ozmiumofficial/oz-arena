@@ -271,8 +271,16 @@ func show_box(mins: Vector3, maxs: Vector3) -> void:
 		_box.mesh = null
 		_box_edges.mesh = null
 		return
+	# a flat box (the base being dragged, no height yet) has no hull: show its footprint as a thin slab
+	for k in 3:
+		if maxs[k] - mins[k] < 0.5:
+			maxs[k] = mins[k] + 0.5
 	var planes: PackedFloat64Array = Q3MapGeo.box(PackedFloat64Array([mins.x, mins.y, mins.z]), PackedFloat64Array([maxs.x, maxs.y, maxs.z]))
 	var w: Array = Q3MapGeo.brush_windings(planes)
+	if not w.any(func(p): return p.size() >= 9):
+		_box.mesh = null
+		_box_edges.mesh = null
+		return
 	var tris := ImmediateMesh.new()
 	tris.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 	for poly in w:

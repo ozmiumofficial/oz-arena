@@ -69,6 +69,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 - **Pause menu:** change any setting or edit your crosshair without leaving the match.
 - **Map editor:**
   - Build arenas inside the game with brushes, curves, every remastered texture, pickups, jump pads, teleporters and lights.
+  - Shape brushes right where they are: grab a face's handle to push or pull it, or a corner to move it.
   - Open any original map from your own copy of Quake 3 and change it, or bring maps in and out of GtkRadiant, NetRadiant and TrenchBroom.
   - Play-test instantly against bots, then publish a finished map to play it from Create Match.
 

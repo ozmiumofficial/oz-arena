@@ -34,6 +34,9 @@ const BINDINGS := [
 	["", "LMB", 0, "Tools", "Select (Shift add, Ctrl toggle)"],
 	["", "LMB drag", 0, "Tools", "Move the selection on the grid (Alt vertical, Ctrl no snap)"],
 	["", "LMB drag on empty", 0, "Tools", "Box select"],
+	["", "LMB drag a diamond", 0, "Tools", "Push / pull that face of a selected brush (Ctrl no snap)"],
+	["", "Shift+LMB drag a face", 0, "Tools", "Push / pull the face under the cursor"],
+	["", "LMB a corner square", 0, "Tools", "Pick the corner (drag moves it, Del removes it)"],
 	["", "Double-click a group", 0, "Tools", "Select just the object under the cursor"],
 	# Grid
 	["grid.1", KEY_1, 0, "Grid", "Grid 1 unit"],

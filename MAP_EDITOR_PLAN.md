@@ -348,6 +348,14 @@ Order: E0 -> E1 -> E2/E3/E4 (any order) -> E5 -> E6 -> E7 -> E8. The first usabl
 - **Captures** in `work/_map_editor/e8/`. Two are in README (`docs/screenshots/editor-*.jpg`).
 - **Docs:** README lists the editor under planned features as built and coming in the next release (the open beta doesn't have it). PLAN.md marks it done. CLAUDE.md has the facts from every phase.
 
+**After E8 (2026-10-23): the select tool's in-place handles**, OZMIUM's grab / push / pull gizmo (`SelectTool.cs` `DrawHandles`, `MapEditorPicking.PickFaceHandle`), at Ozmium's request.
+- Selected brushes (up to 512 corners in all) get a cyan square on every corner and a green diamond on a stem out of every face turned toward the camera, 28 px out along its normal. The hovered handle grows and turns gold; picked corners are red.
+- Dragging a diamond pushes or pulls its face (`Q3FaceTool.begin_push`). An axis-aligned face lands its plane on the grid; a slanted one moves in grid steps. Ctrl: no snap. One undo step, "Push / pull face".
+- Dragging a corner moves it, and clicking picks corners (Shift adds, Ctrl toggles), through the vertex tool (`Q3VertexTool.begin_move`, `select_handle`). Delete removes picked corners, Escape drops them, a plain click on the body drops them.
+- **Shift+drag on any face** of a brush pushes or pulls that face, no aiming needed (it used to add the brush and move the selection).
+- Grabbing the body, or a stem's inner half, still moves the brush. Corners win over diamonds, nearest on screen first.
+- **Verified:** input 54/54 (8 new: the diamond pull on the grid, its undo, a corner drag, picking and deleting a corner, Shift+drag push), smoke 96/96, and a windowed capture (`tests/map_editor_shot.tscn` `gizmo=1`); the live editor's console clean.
+
 ## Decisions for Ozmium (decided 2026-10-23: every recommended choice)
 
 1. **Lighting for player-made maps.** Godot can only bake LightmapGI in editor builds; an exported game can't (to confirm in E0). Ozmium's rule was "real-time lights in the editor, bake on save", so the bake needs a route:

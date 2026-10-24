@@ -404,15 +404,18 @@ func _leave_corpse(ch: Node3D) -> void:
 	if ch == null or not is_instance_valid(ch):
 		return
 	_corpses.append(ch)
+	# a weak reference: a lambda that captured a node freed meanwhile (a replay's jump clears the
+	# corpses) makes Godot print "Lambda capture ... was freed" even though it checks
+	var ref: WeakRef = weakref(ch)
 	get_tree().create_timer(CORPSE_TIME).timeout.connect(func():
-		if not is_instance_valid(ch):
+		var body := ref.get_ref() as Node3D
+		if body == null:
 			return   # a replay's jump already cleared it
-		_corpses.erase(ch)
-		if is_instance_valid(ch):
-			if ch.visible and ch is Q3Character:
-				(ch as Q3Character).disintegrate(CORPSE_BURN)
-			else:
-				ch.queue_free())
+		_corpses.erase(body)
+		if body.visible and body is Q3Character:
+			(body as Q3Character).disintegrate(CORPSE_BURN)
+		else:
+			body.queue_free())
 
 
 ## The body a gib (EV_GIB_PLAYER) is for: the nearest ragdoll still owned by its player, or corpse.
@@ -839,12 +842,30 @@ func _shotgun_fire(es: Dictionary) -> void:
 		_shotgun_smoke.add(Q3.q3_to_godot(origin + dir * 32.0), Vector3(0, 8, 0) * Q3.UNIT, 32.0, 0.33, 900.0, _now, false)
 	var right := perpendicular(dir)
 	var up := dir.cross(right)
+	var skip := int(es.get("otherEntityNum", -1))
+	# Quake Live's ruleset (g_ruleset, patch 0005) fires a fixed pattern; replays and demos from
+	# before it have no g_ruleset, and were 1.32's
+	if not feed.cvar("g_ruleset").to_lower() in ["", "classic"]:
+		for i in QL_SHOTGUN_COUNT:
+			var p := ql_shotgun_pellet(i)
+			_shotgun_pellet(origin, origin + dir * (8192.0 * 16.0) + right * p.x + up * p.y, skip)
+		return
 	var seed := [int(es["eventParm"])]
 	for i in 11:   # DEFAULT_SHOTGUN_COUNT; DEFAULT_SHOTGUN_SPREAD 700 * 16
 		var r := q_crandom(seed) * 700.0 * 16.0
 		var u := q_crandom(seed) * 700.0 * 16.0
 		var end := origin + dir * (8192.0 * 16.0) + right * r + up * u
-		_shotgun_pellet(origin, end, int(es.get("otherEntityNum", -1)))
+		_shotgun_pellet(origin, end, skip)
+
+
+## BG_QLShotgunPellet (patch 0005): pellet i of Quake Live's fixed pattern as (right, up) offsets at
+## 8192 * 16 units out: 6 every 60 degrees at 4000, 6 between them at 8000, 8 every 45 at 12000.
+const QL_SHOTGUN_COUNT := 20
+
+static func ql_shotgun_pellet(i: int) -> Vector2:
+	var angle := i * 60.0 if i < 6 else ((i - 6) * 60.0 + 30.0 if i < 12 else (i - 12) * 45.0)
+	var radius := 4000.0 if i < 6 else (8000.0 if i < 12 else 12000.0)
+	return Vector2(radius * cos(deg_to_rad(angle)), radius * sin(deg_to_rad(angle)))   # one rounding, as in C
 
 
 func _shotgun_pellet(start: Vector3, end: Vector3, skip: int) -> void:

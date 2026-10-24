@@ -1,0 +1,18 @@
+:root {
+  --ink: #e6ddd2;
+  --dim: #8d847c;
+  --faint: #5d554f;
+  --red: #db2410;
+  --glow: #ff4a1c;
+  --bg: #0a0807;
+  --panel: #14100e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Barlow, system-ui, sans-serif;
+}

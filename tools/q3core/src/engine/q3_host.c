@@ -423,8 +423,14 @@ static int pm_pointcontents(const vec3_t point, int passEntityNum) {
 	return SV_PointContents(point, passEntityNum);
 }
 
+/* the game's Quake Live rules (patch 0005, BG_QLRules) from the same cvars, so prediction runs them too */
+static const char *pm_cvar(const char *name) {
+	return Cvar_VariableString(name);
+}
+
 int q3_local_predict(int client, const q3_usercmd *cmds, int count, q3_player_state *out) {
 	static playerState_t ps;
+	static pmoveRules_t rules;
 	pmove_t pm;
 	int i, msec;
 	usercmd_t latest;
@@ -446,6 +452,8 @@ int q3_local_predict(int client, const q3_usercmd *cmds, int count, q3_player_st
 		pm.pmove_fixed = Cvar_VariableIntegerValue("pmove_fixed");
 		msec = Cvar_VariableIntegerValue("pmove_msec");
 		pm.pmove_msec = msec < 8 ? 8 : (msec > 33 ? 33 : msec);
+		BG_QLRules(&rules, pm_cvar);
+		pm.rules = &rules;
 		to_usercmd(&cmds[count > 0 ? count - 1 : 0], &latest);
 		for (i = 0; i < count; i++) {   /* CG_PredictPlayerState's loop */
 			to_usercmd(&cmds[i], &pm.cmd);

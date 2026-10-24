@@ -15,6 +15,7 @@
 | Distribution model | Decided: free/open source, Quake 3 ownership required, ships the remastered asset library. Risk and mitigations in "Licensing" |
 | Online services | Decided 2026-10-22: no Steamworks, no paid hosting. Player-hosted matches over peer-to-peer WebRTC, always relayed through Cloudflare's TURN so IPs stay hidden (2026-10-23), closest region first with a region choice, optional dedicated servers, one match browser, and accounts, matchmaking and player data on Cloudflare's free tier. See "Multiplayer and online services" |
 | Gameplay architecture | Decided 2026-10-22: id's GPL game code (ioquake3: collision, server world, game module, botlib) runs in a C++ GDExtension, `q3core`; Godot does all presentation. Fixed 125 Hz Pmove (8 ms). Native HUD, web pause menu; original bots from the `.aas` files; LightmapGI baked per map. Phases G0-G8 in [GAMEPLAY_PLAN.md](GAMEPLAY_PLAN.md) |
+| Rules and physics | Decided 2026-10-23: Quake Live's competitive rules and physics are the standard (no crouch slide), id 1.32 kept as a Classic ruleset; Quake 3's maps stay id's; the community ports Quake Live's maps through the map editor's import. See [QUAKE_LIVE_PLAN.md](QUAKE_LIVE_PLAN.md) |
 
 ## Where the tools stand
 
@@ -125,7 +126,7 @@ Reusable whatever happens (structure and facts, not art): the bone layout, the c
 
 ## Modern enhancements (game scope, 2026-10-22)
 
-Ozmium wants every modern enhancement: a full remastered asset library, rigged skeletons, ragdoll physics, better UI, and the rest of a modern feature set. Core rule: **the original game feel is sacred.** Movement, weapon timing and damage come from the GPL code; everything below is layered on top, never changes it, and gets measured against the original.
+Ozmium wants every modern enhancement: a full remastered asset library, rigged skeletons, ragdoll physics, better UI, and the rest of a modern feature set. Core rule (changed 2026-10-23): **Quake Live's competitive rules and physics are the standard**, with id 1.32 one setting away (the Classic ruleset). Movement, weapon timing and damage come from the GPL code with Quake Live's numbers on top ([QUAKE_LIVE_PLAN.md](QUAKE_LIVE_PLAN.md)); everything below is layered on top, never changes them, and gets measured against them. Until 2026-10-23 the rule was "the original game feel is sacred" (id 1.32 exactly).
 
 Several of these already exist in the GAME project on the work PC (noted as "GAME has"); the designs carry over even though the Unity code doesn't move to Godot.
 

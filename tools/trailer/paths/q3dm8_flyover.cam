@@ -1,0 +1,7 @@
+// map q3dm8
+// orbit 25 deg around the intermission camera's target
+// time  x y z  pitch yaw roll  fov
+0  1131 1338 240  9.63 -25.00 0  90
+2  1127 1233 224  7.70 -8.25 0  90
+4  1152 1139 208  5.47 8.25 0  90
+6  1202 1063 192  2.77 25.00 0  90

@@ -1989,6 +1989,12 @@ func _cine_hud(on: bool) -> void:
 
 const DEATH_CARD_DELAY := 1000.0   ## ms after the death: the body has mostly settled
 const RESPAWN_DELAY := 1700.0      ## g_combat.c: respawnTime = level.time + 1700
+
+
+## The match plays Quake Live's rules (g_ruleset, patch 0005; QUAKE_LIVE_PLAN.md). Replays and demos
+## from before it have no g_ruleset and were id 1.32's.
+func ql_rules() -> bool:
+	return not feed.cvar("g_ruleset").to_lower() in ["", "classic"]
 ## cg_event.c CG_Obituary's lines for deaths nobody caused, then for your own weapon
 const WORLD_DEATHS := {E.MOD_SUICIDE: "suicides", E.MOD_FALLING: "cratered", E.MOD_CRUSH: "was squished",
 	E.MOD_WATER: "sank like a rock", E.MOD_SLIME: "melted", E.MOD_LAVA: "does a back flip into the lava",
@@ -2033,16 +2039,25 @@ func _update_death(ps: Dictionary, delta: float) -> bool:
 		if _death_chase == null:
 			_death_chase = Q3ChaseCam.new()
 		_death_chase.reset()
-	# id's respawn: fire works 1.7 s after the death; g_forcerespawn brings you back by itself
-	var wait := (_death_at + RESPAWN_DELAY - now) / 1000.0
+	# id's respawn: fire works 1.7 s after the death; g_forcerespawn brings you back by itself.
+	# Quake Live's (patch 0005): fire works after g_respawn_delay_min, and g_respawn_delay_max
+	# brings you back
+	var delay := RESPAWN_DELAY
 	var forced := feed.cvar("g_forcerespawn").to_int()
+	if ql_rules():
+		delay = feed.cvar("g_respawn_delay_min").to_float()
+		forced = 0
+		var auto_ms := feed.cvar("g_respawn_delay_max").to_float()
+		if auto_ms > 0.0:
+			forced = ceili((auto_ms - delay) / 1000.0)
+	var wait := (_death_at + delay - now) / 1000.0
 	if replay_feed:
 		hud.respawn_text = ""
 	elif _spectating_now:
 		hud.respawn_text = "FIRE  -  NEXT PLAYER"   # SpectatorThink: fire follows the next one
 	else:
 		hud.respawn_text = ("RESPAWN IN %.1f" % wait) if wait > 0.0 else ("FIRE TO RESPAWN" + (
-			"  -  AUTO IN %d" % ceili(forced - (now - _death_at - RESPAWN_DELAY) / 1000.0) if forced > 0 else ""))
+			"  -  AUTO IN %d" % ceili(forced - (now - _death_at - delay) / 1000.0) if forced > 0 else ""))
 	if not _death_cam_on():
 		return false
 	if now - _death_at >= DEATH_CARD_DELAY:

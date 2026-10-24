@@ -57,6 +57,7 @@ GAME = [
     "game/g_misc.c", "game/g_missile.c", "game/g_mover.c", "game/g_session.c", "game/g_spawn.c",
     "game/g_svcmds.c", "game/g_target.c", "game/g_team.c", "game/g_trigger.c", "game/g_utils.c",
     "game/g_weapon.c", "game/g_syscalls.c", "qcommon/q_math.c", "qcommon/q_shared.c",
+    "game/g_ql.c",   # q3core: Quake Live rules (patch 0005)
 ]
 
 QUIET = ["/wd4244", "/wd4267", "/wd4305", "/wd4996", "/wd4018", "/wd4146", "/wd4334", "/wd4311", "/wd4312"]

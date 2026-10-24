@@ -1,0 +1,364 @@
+{
+ "action_pro-q3dm6": [
+  {
+   "frame": 0,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "side"
+  },
+  {
+   "frame": 353,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 706,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "reverse"
+  },
+  {
+   "frame": 1059,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "orbit"
+  },
+  {
+   "frame": 1412,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "side"
+  },
+  {
+   "frame": 1765,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 2118,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "reverse"
+  },
+  {
+   "frame": 2471,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "orbit"
+  }
+ ],
+ "action_q3dm12": [
+  {
+   "frame": 0,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "side"
+  },
+  {
+   "frame": 353,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 706,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "reverse"
+  },
+  {
+   "frame": 1059,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "orbit"
+  },
+  {
+   "frame": 1412,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "side"
+  },
+  {
+   "frame": 1765,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 2118,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "reverse"
+  },
+  {
+   "frame": 2471,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "orbit"
+  }
+ ],
+ "action_q3dm6": [
+  {
+   "frame": 0,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "side"
+  },
+  {
+   "frame": 353,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 706,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "reverse"
+  },
+  {
+   "frame": 1059,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "orbit"
+  },
+  {
+   "frame": 1412,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "side"
+  },
+  {
+   "frame": 1765,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 2118,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "reverse"
+  },
+  {
+   "frame": 2471,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "orbit"
+  },
+  {
+   "frame": 2824,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "side"
+  },
+  {
+   "frame": 3177,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "low_behind"
+  }
+ ],
+ "action_q3dm7": [
+  {
+   "frame": 0,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "side"
+  },
+  {
+   "frame": 353,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 706,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "reverse"
+  },
+  {
+   "frame": 1059,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "orbit"
+  },
+  {
+   "frame": 1412,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "side"
+  },
+  {
+   "frame": 1765,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 2118,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "reverse"
+  },
+  {
+   "frame": 2471,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "orbit"
+  }
+ ],
+ "action_q3dm8": [
+  {
+   "frame": 0,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "side"
+  },
+  {
+   "frame": 353,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 706,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "reverse"
+  },
+  {
+   "frame": 1059,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "orbit"
+  },
+  {
+   "frame": 1412,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "side"
+  },
+  {
+   "frame": 1765,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 2118,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "reverse"
+  },
+  {
+   "frame": 2471,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "orbit"
+  }
+ ],
+ "action_q3tourney4": [
+  {
+   "frame": 0,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "side"
+  },
+  {
+   "frame": 353,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 706,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "reverse"
+  },
+  {
+   "frame": 1059,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "shotgun",
+   "camera": "orbit"
+  },
+  {
+   "frame": 1412,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "side"
+  },
+  {
+   "frame": 1765,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "low_behind"
+  },
+  {
+   "frame": 2118,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "rocket",
+   "camera": "reverse"
+  },
+  {
+   "frame": 2471,
+   "frames": 353,
+   "kill": 182,
+   "weapon": "railgun",
+   "camera": "orbit"
+  }
+ ]
+}

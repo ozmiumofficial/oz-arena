@@ -36,6 +36,14 @@ uniform vec3 glow2_motion = vec3(0.0);
 uniform vec4 glow2_wave = vec4(0.0, 1.0, 0.0, 0.0);
 uniform float glow2_phase = 0.0;
 uniform float emission_energy = 1.0;      // from q3map_surfacelight
+
+// How bright a light surface draws, from its emission_energy (0.3 to 6). Quake 3 drew flames and
+// lamps at their texture's brightness; up to 6x made them white-hot, and the bloom washed whole
+// rooms yellow (Lost World's fire column, 2026-10-23). Strong lights still glow a little more:
+// at most 2.25x. Weak ones keep their value. The bake's lights are separate (build_maps.py).
+float shown_energy() {
+	return emission_energy <= 1.0 ? emission_energy : 1.0 + 0.25 * (min(emission_energy, 6.0) - 1.0);
+}
 uniform float self_illum = 0.0;           // bright texels glow (light panels with no glow stage)
 uniform bool env_map = false;             // the base stage is tcGen environment (glass, chrome)
 // an opaque stage under a blended paint layer, showing where the paint is clear: a reflection
@@ -158,8 +166,8 @@ Surface world_surface(vec2 uv0, vec2 env) {
 	}
 	s.albedo.rgb *= tint.rgb;
 	float lum = dot(s.albedo.rgb, vec3(0.2126, 0.7152, 0.0722));
-	s.emission_base = (texture(emission_tex, uv).rgb + s.albedo.rgb * smoothstep(0.45, 0.9, lum) * self_illum) * emission_energy;
+	s.emission_base = (texture(emission_tex, uv).rgb + s.albedo.rgb * smoothstep(0.45, 0.9, lum) * self_illum) * shown_energy();
 	s.glow = glow_lit ? vec3(0.0) : glow_layers(uv0);
-	s.emission = s.emission_base + (glow_under ? s.glow * (1.0 - paint) : s.glow * emission_energy);
+	s.emission = s.emission_base + (glow_under ? s.glow * (1.0 - paint) : s.glow * shown_energy());
 	return s;
 }

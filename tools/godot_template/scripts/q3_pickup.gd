@@ -2,12 +2,14 @@ class_name Q3Pickup
 extends Node3D
 ## An item from the entity catalog, displayed like cg_ents.c CG_Item: spins once every
 ## 2048 ms, bobs 4 + cos((t + 1000) * 0.005) * 4 units, weapons drawn at 1.5x and centered
-## on their bounds. The second world model (health sphere, powerup ring) shares the spin.
+## on their bounds. Health spins twice as fast (1024 ms) around a still sphere; a powerup's ring
+## floats 12 units higher, spinning the other way every 1024 ms.
 
 @export var classname := "item_armor_body"
 var item: Dictionary
 var _visual: Node3D
 var _bob := 0.005
+var _second: Node3D   ## the health sphere or powerup ring (cg_items models[1])
 
 
 func _ready() -> void:
@@ -27,6 +29,10 @@ func _ready() -> void:
 		var n := Q3.instance_prop(models[i])
 		if n:
 			_visual.add_child(n)
+			if i == 1:
+				_second = n
+				if item.get("type", "") == "powerup":
+					n.position.y = 12.0 * Q3.UNIT
 	_visual.scale = Vector3.ONE * float(item.get("scale", 1.0))
 	if item.get("type", "") == "weapon":
 		var box := _bounds(_visual)
@@ -40,7 +46,11 @@ func _process(_delta: float) -> void:
 	if _visual == null:
 		return
 	var ms := Q3.game_ms   # cg.time: game time, not wall time
-	rotation.y = fmod(ms, 2048.0) / 2048.0 * TAU
+	var health: bool = item.get("type", "") == "health"
+	var period := 1024.0 if health else 2048.0   # cg.autoAnglesFast for health, else cg.autoAngles
+	rotation.y = fmod(ms, period) / period * TAU
+	if _second:   # its own yaw in the world, not the item's: none for the sphere, backward for the ring
+		_second.rotation.y = (0.0 if health else -fmod(ms, 1024.0) / 1024.0 * TAU) - rotation.y
 	_visual.position.y = (4.0 + cos((ms + 1000.0) * _bob) * 4.0) * Q3.UNIT
 
 

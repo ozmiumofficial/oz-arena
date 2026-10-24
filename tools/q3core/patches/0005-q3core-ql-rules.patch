@@ -1,0 +1,798 @@
+diff --git a/code/game/bg_misc.c b/code/game/bg_misc.c
+index 4159409..5b31307 100644
+--- a/code/game/bg_misc.c
++++ b/code/game/bg_misc.c
+@@ -1608,3 +1608,64 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
+ 	s->loopSound = ps->loopSound;
+ 	s->generic1 = ps->generic1;
+ }
++
++/*
++========================
++BG_QLRules
++
++q3core: the Quake Live rules Pmove runs (QUAKE_LIVE_PLAN.md), read through `cvar` (the game's or
++the engine's lookup). The game registers these cvars from this table, so the names and defaults
++live here once. A cvar that isn't registered yet reads as its Quake Live default.
++========================
++*/
++const bgQLCvar_t bg_qlPmoveCvars[] = {
++	{ "weapon_reload_gauntlet",	"400",	WP_GAUNTLET },
++	{ "weapon_reload_mg",		"100",	WP_MACHINEGUN },
++	{ "weapon_reload_sg",		"1000",	WP_SHOTGUN },
++	{ "weapon_reload_gl",		"800",	WP_GRENADE_LAUNCHER },
++	{ "weapon_reload_rl",		"800",	WP_ROCKET_LAUNCHER },
++	{ "weapon_reload_lg",		"50",	WP_LIGHTNING },
++	{ "weapon_reload_rg",		"1500",	WP_RAILGUN },
++	{ "weapon_reload_pg",		"100",	WP_PLASMAGUN },
++	{ "weapon_reload_bfg",		"300",	WP_BFG },
++};
++const int bg_numQLPmoveCvars = ARRAY_LEN( bg_qlPmoveCvars );
++
++void BG_QLRules( pmoveRules_t *rules, const char *(*cvar)( const char *name ) ) {
++	int			i;
++	const char	*s;
++
++	memset( rules, 0, sizeof( *rules ) );
++	rules->ql = Q_stricmp( cvar( "g_ruleset" ), "classic" ) != 0;
++	for ( i = 0 ; i < bg_numQLPmoveCvars ; i++ ) {
++		s = cvar( bg_qlPmoveCvars[i].name );
++		rules->weaponReload[bg_qlPmoveCvars[i].weapon] = atoi( s[0] ? s : bg_qlPmoveCvars[i].ql );
++	}
++}
++
++/*
++========================
++BG_QLShotgunPellet
++
++q3core: where Quake Live's fixed shotgun pattern puts pellet `pellet`, as offsets along right and up
++at 8192 * 16 units out (the 1.32 pattern's frame): 6 pellets every 60 degrees at 4000, 6 more
++between them at 8000, and 8 every 45 degrees at 12000. The pattern is from a reconstruction of
++Quake Live's binaries and unverified (tools/ql/QL_CATALOG.md 2.3).
++========================
++*/
++void BG_QLShotgunPellet( int pellet, float *right, float *up ) {
++	float	angle, radius;
++
++	if ( pellet < 6 ) {
++		angle = pellet * 60.0f;
++		radius = 4000.0f;
++	} else if ( pellet < QL_SHOTGUN_INNER ) {
++		angle = ( pellet - 6 ) * 60.0f + 30.0f;
++		radius = 8000.0f;
++	} else {
++		angle = ( pellet - QL_SHOTGUN_INNER ) * 45.0f;
++		radius = 12000.0f;
++	}
++	*right = radius * cos( DEG2RAD( angle ) );
++	*up = radius * sin( DEG2RAD( angle ) );
++}
+diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
+index 504aefe..1ede0bc 100644
+--- a/code/game/bg_pmove.c
++++ b/code/game/bg_pmove.c
+@@ -1687,6 +1687,11 @@ static void PM_Weapon( void ) {
+ #endif
+ 	}
+ 
++	// q3core: Quake Live's refire times (weapon_reload_*)
++	if ( pm->rules && pm->rules->ql && pm->rules->weaponReload[pm->ps->weapon] > 0 ) {
++		addTime = pm->rules->weaponReload[pm->ps->weapon];
++	}
++
+ #ifdef MISSIONPACK
+ 	if( bg_itemlist[pm->ps->stats[STAT_PERSISTANT_POWERUP]].giTag == PW_SCOUT ) {
+ 		addTime /= 1.5;
+diff --git a/code/game/bg_public.h b/code/game/bg_public.h
+index 7d203fb..820a29e 100644
+--- a/code/game/bg_public.h
++++ b/code/game/bg_public.h
+@@ -161,6 +161,30 @@ typedef enum {
+ 
+ #define	PMF_ALL_TIMES	(PMF_TIME_WATERJUMP|PMF_TIME_LAND|PMF_TIME_KNOCKBACK)
+ 
++// q3core: Quake Live rules (QUAKE_LIVE_PLAN.md). The parts of them Pmove runs: the game fills them
++// from its cvars and q3core's prediction from the same cvars (BG_QLRules), so the two always agree.
++// A pmove without rules plays id 1.32.
++typedef struct {
++	qboolean	ql;								// g_ruleset is "ql", not "classic"
++	int			weaponReload[MAX_WEAPONS];		// weapon_reload_*: ms between shots
++} pmoveRules_t;
++
++typedef struct {
++	const char	*name;
++	const char	*ql;		// Quake Live's default (tools/ql/ql_rules.json)
++	int			weapon;
++} bgQLCvar_t;
++
++extern const bgQLCvar_t	bg_qlPmoveCvars[];
++extern const int		bg_numQLPmoveCvars;
++
++void	BG_QLRules( pmoveRules_t *rules, const char *(*cvar)( const char *name ) );
++
++// Quake Live's shotgun: 20 pellets in a fixed pattern, the last 8 the outer ring
++#define	QL_SHOTGUN_COUNT	20
++#define	QL_SHOTGUN_INNER	12
++void	BG_QLShotgunPellet( int pellet, float *right, float *up );
++
+ #define	MAXTOUCH	32
+ typedef struct {
+ 	// state (in / out)
+@@ -190,6 +214,8 @@ typedef struct {
+ 	int			pmove_fixed;
+ 	int			pmove_msec;
+ 
++	const pmoveRules_t	*rules;		// q3core: Quake Live rules, or NULL for id 1.32
++
+ 	// callbacks to test the world
+ 	// these will be different functions during game and cgame
+ 	void		(*trace)( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask );
+diff --git a/code/game/g_active.c b/code/game/g_active.c
+index 8e37a70..89de65c 100644
+--- a/code/game/g_active.c
++++ b/code/game/g_active.c
+@@ -930,6 +930,7 @@ void ClientThink_real( gentity_t *ent ) {
+ 
+ 	pm.pmove_fixed = pmove_fixed.integer | client->pers.pmoveFixed;
+ 	pm.pmove_msec = pmove_msec.integer;
++	pm.rules = G_QLPmoveRules();	// q3core: Quake Live's rules
+ 
+ 	VectorCopy( client->ps.origin, client->oldOrigin );
+ 
+@@ -1008,8 +1009,15 @@ void ClientThink_real( gentity_t *ent ) {
+ 	if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
+ 		// wait for the attack button to be pressed
+ 		if ( level.time > client->respawnTime ) {
++			// q3core: Quake Live respawns everyone g_respawn_delay_max ms after death; respawnTime
++			// is death + g_respawn_delay_min (player_die)
++			if ( G_QL() && g_respawn_delay_max.integer > 0 &&
++				( level.time - client->respawnTime ) >= g_respawn_delay_max.integer - g_respawn_delay_min.integer ) {
++				ClientRespawn( ent );
++				return;
++			}
+ 			// forcerespawn is to prevent users from waiting out powerups
+-			if ( g_forcerespawn.integer > 0 && 
++			if ( g_forcerespawn.integer > 0 &&
+ 				( level.time - client->respawnTime ) > g_forcerespawn.integer * 1000 ) {
+ 				ClientRespawn( ent );
+ 				return;
+diff --git a/code/game/g_client.c b/code/game/g_client.c
+index c6a0e87..9d841b6 100644
+--- a/code/game/g_client.c
++++ b/code/game/g_client.c
+@@ -1178,6 +1178,10 @@ void ClientSpawn(gentity_t *ent) {
+ 	// health will count down towards max_health
+ 	ent->health = client->ps.stats[STAT_HEALTH] = client->ps.stats[STAT_MAX_HEALTH] + 25;
+ 
++	if ( G_QL() ) {		// q3core: Quake Live's g_starting* weapons, ammo, health and armor
++		G_QLSpawnLoadout( ent );
++	}
++
+ 	G_SetOrigin( ent, spawn_origin );
+ 	VectorCopy( spawn_origin, client->ps.origin );
+ 
+diff --git a/code/game/g_cmds.c b/code/game/g_cmds.c
+index 7ec0a68..125b6cc 100644
+--- a/code/game/g_cmds.c
++++ b/code/game/g_cmds.c
+@@ -478,9 +478,16 @@ void Cmd_Kill_f( gentity_t *ent ) {
+ 	if (ent->health <= 0) {
+ 		return;
+ 	}
++	// q3core: Quake Live: g_allowKill 0 forbids /kill, otherwise it adds that many ms to the respawn
++	if ( G_QL() && g_allowKill.integer <= 0 ) {
++		return;
++	}
+ 	ent->flags &= ~FL_GODMODE;
+ 	ent->client->ps.stats[STAT_HEALTH] = ent->health = -999;
+ 	player_die (ent, ent, ent, 100000, MOD_SUICIDE);
++	if ( G_QL() ) {
++		ent->client->respawnTime += g_allowKill.integer;
++	}
+ }
+ 
+ /*
+diff --git a/code/game/g_combat.c b/code/game/g_combat.c
+index 6734eaa..ed02345 100644
+--- a/code/game/g_combat.c
++++ b/code/game/g_combat.c
+@@ -96,7 +96,8 @@ void TossClientItems( gentity_t *self ) {
+ 		}
+ 	}
+ 
+-	if ( weapon > WP_MACHINEGUN && weapon != WP_GRAPPLING_HOOK && 
++	// q3core: Quake Live drops the machinegun too ("to grant users mg ammo")
++	if ( ( weapon > WP_MACHINEGUN || ( G_QL() && weapon == WP_MACHINEGUN ) ) && weapon != WP_GRAPPLING_HOOK &&
+ 		self->client->ps.ammo[ weapon ] ) {
+ 		// find the item type for this weapon
+ 		item = BG_FindItemForWeapon( weapon );
+@@ -105,8 +106,8 @@ void TossClientItems( gentity_t *self ) {
+ 		Drop_Item( self, item, 0 );
+ 	}
+ 
+-	// drop all the powerups if not in teamplay
+-	if ( g_gametype.integer != GT_TEAM ) {
++	// drop all the powerups if not in teamplay (q3core: Quake Live: in every mode, by g_dropPowerups)
++	if ( G_QL() ? g_dropPowerups.integer : g_gametype.integer != GT_TEAM ) {
+ 		angle = 45;
+ 		for ( i = 1 ; i < PW_NUM_POWERUPS ; i++ ) {
+ 			if ( self->client->ps.powerups[ i ] > level.time ) {
+@@ -620,7 +621,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
+ 
+ 	// don't allow respawn until the death anim is done
+ 	// g_forcerespawn may force spawning at some later time
+-	self->client->respawnTime = level.time + 1700;
++	self->client->respawnTime = level.time + ( G_QL() ? g_respawn_delay_min.integer : 1700 );
+ 
+ 	// remove powerups
+ 	memset( self->client->ps.powerups, 0, sizeof(self->client->ps.powerups) );
+@@ -893,6 +894,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
+ 	if ( knockback > 200 ) {
+ 		knockback = 200;
+ 	}
++	if ( G_QL() ) {		// q3core: Quake Live's per-weapon knockback and cap
++		float	k = G_QLKnockback( damage, mod, targ == attacker );
++
++		knockback = (int)( k + 0.5f );
++		if ( knockback <= 0 && k > 0 ) {
++			knockback = 1;
++		}
++	}
+ 	if ( targ->flags & FL_NO_KNOCKBACK ) {
+ 		knockback = 0;
+ 	}
+@@ -908,6 +917,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
+ 		mass = 200;
+ 
+ 		VectorScale (dir, g_knockback.value * (float)knockback / mass, kvel);
++		if ( G_QL() ) {		// q3core: Quake Live's fixed upward kick
++			kvel[2] += targ == attacker ? g_knockback_z_self.value : g_knockback_z.value;
++		}
+ 		VectorAdd (targ->client->ps.velocity, kvel, targ->client->ps.velocity);
+ 
+ 		// set the timer so that the other client can't cancel
+@@ -965,7 +977,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
+ 		if ( ( dflags & DAMAGE_RADIUS ) || ( mod == MOD_FALLING ) ) {
+ 			return;
+ 		}
+-		damage *= 0.5;
++		damage *= G_QL() ? g_battleSuitDampen.value : 0.5;	// q3core: Quake Live's leaves 25%
+ 	}
+ 
+ 	// add to the attacker's hit counter (if the target isn't a general entity like a prox mine)
+diff --git a/code/game/g_items.c b/code/game/g_items.c
+index 6cb31aa..bf2167a 100644
+--- a/code/game/g_items.c
++++ b/code/game/g_items.c
+@@ -221,7 +221,7 @@ int Pickup_Ammo (gentity_t *ent, gentity_t *other)
+ 	if ( ent->count ) {
+ 		quantity = ent->count;
+ 	} else {
+-		quantity = ent->item->quantity;
++		quantity = G_QLItemQuantity( ent->item );	// q3core: Quake Live's amounts
+ 	}
+ 
+ 	Add_Ammo (other, ent->item->giTag, quantity);
+@@ -241,7 +241,7 @@ int Pickup_Weapon (gentity_t *ent, gentity_t *other) {
+ 		if ( ent->count ) {
+ 			quantity = ent->count;
+ 		} else {
+-			quantity = ent->item->quantity;
++			quantity = G_QLItemQuantity( ent->item );	// q3core: Quake Live's amounts
+ 		}
+ 
+ 		// dropped items and teamplay weapons always have full ammo
+@@ -702,6 +702,9 @@ void FinishSpawningItem( gentity_t *ent ) {
+ 		float	respawn;
+ 
+ 		respawn = 45 + crandom() * 15;
++		if ( G_QL() ) {		// q3core: Quake Live's first powerup: 45 s plus up to 15
++			respawn = g_spawnDelay_powerup.value + random() * g_spawnDelayRandom_powerup.value;
++		}
+ 		ent->s.eFlags |= EF_NODRAW;
+ 		ent->r.contents = 0;
+ 		ent->nextthink = level.time + respawn * 1000;
+diff --git a/code/game/g_local.h b/code/game/g_local.h
+index 8fddcbd..14f3774 100644
+--- a/code/game/g_local.h
++++ b/code/game/g_local.h
+@@ -954,3 +954,18 @@ int		trap_GeneticParentsAndChildSelection(int numranks, float *ranks, int *paren
+ 
+ void	trap_SnapVector( float *v );
+ 
++
++// q3core: g_ql.c, Quake Live's rules (QUAKE_LIVE_PLAN.md)
++extern	vmCvar_t	g_ruleset;
++extern	vmCvar_t	g_damage_g, g_damage_mg, g_damage_sg, g_damage_sg_outer, g_damage_lg, g_damage_rg;
++extern	vmCvar_t	g_knockback_z, g_knockback_z_self;
++extern	vmCvar_t	g_battleSuitDampen, g_dropPowerups, g_spawnDelay_powerup, g_spawnDelayRandom_powerup;
++extern	vmCvar_t	g_respawn_delay_min, g_respawn_delay_max, g_allowKill;
++void		G_QLRegisterCvars( void );
++void		G_QLUpdateCvars( void );
++qboolean	G_QL( void );
++const pmoveRules_t	*G_QLPmoveRules( void );
++float		G_QLKnockback( int damage, int mod, qboolean self );
++int			G_QLItemQuantity( const gitem_t *item );
++void		G_QLMissile( gentity_t *bolt, int weapon, vec3_t dir, float speed );
++void		G_QLSpawnLoadout( gentity_t *ent );
+diff --git a/code/game/g_main.c b/code/game/g_main.c
+index 5a156a7..497f72f 100644
+--- a/code/game/g_main.c
++++ b/code/game/g_main.c
+@@ -358,6 +358,8 @@ void G_RegisterCvars( void ) {
+ 		G_RemapTeamShaders();
+ 	}
+ 
++	G_QLRegisterCvars();	// q3core: Quake Live's rules
++
+ 	// check some things
+ 	if ( g_gametype.integer < 0 || g_gametype.integer >= GT_MAX_GAME_TYPE ) {
+ 		G_Printf( "g_gametype %i is out of range, defaulting to 0\n", g_gametype.integer );
+@@ -400,6 +402,8 @@ void G_UpdateCvars( void ) {
+ 	if (remapped) {
+ 		G_RemapTeamShaders();
+ 	}
++
++	G_QLUpdateCvars();		// q3core: Quake Live's rules
+ }
+ 
+ /*
+diff --git a/code/game/g_missile.c b/code/game/g_missile.c
+index 3a138b9..21a7308 100644
+--- a/code/game/g_missile.c
++++ b/code/game/g_missile.c
+@@ -544,7 +544,7 @@ gentity_t *fire_plasma (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->s.pos.trType = TR_LINEAR;
+ 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
+ 	VectorCopy( start, bolt->s.pos.trBase );
+-	VectorScale( dir, 2000, bolt->s.pos.trDelta );
++	G_QLMissile( bolt, WP_PLASMAGUN, dir, 2000 );	// q3core: Quake Live's numbers
+ 	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
+ 
+ 	VectorCopy (start, bolt->r.currentOrigin);
+@@ -586,7 +586,7 @@ gentity_t *fire_grenade (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->s.pos.trType = TR_GRAVITY;
+ 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
+ 	VectorCopy( start, bolt->s.pos.trBase );
+-	VectorScale( dir, 700, bolt->s.pos.trDelta );
++	G_QLMissile( bolt, WP_GRENADE_LAUNCHER, dir, 700 );	// q3core: Quake Live's numbers
+ 	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
+ 
+ 	VectorCopy (start, bolt->r.currentOrigin);
+@@ -627,7 +627,7 @@ gentity_t *fire_bfg (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->s.pos.trType = TR_LINEAR;
+ 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
+ 	VectorCopy( start, bolt->s.pos.trBase );
+-	VectorScale( dir, 2000, bolt->s.pos.trDelta );
++	G_QLMissile( bolt, WP_BFG, dir, 2000 );	// q3core: Quake Live's numbers
+ 	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
+ 	VectorCopy (start, bolt->r.currentOrigin);
+ 
+@@ -667,7 +667,7 @@ gentity_t *fire_rocket (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->s.pos.trType = TR_LINEAR;
+ 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
+ 	VectorCopy( start, bolt->s.pos.trBase );
+-	VectorScale( dir, 900, bolt->s.pos.trDelta );
++	G_QLMissile( bolt, WP_ROCKET_LAUNCHER, dir, 900 );	// q3core: Quake Live's numbers
+ 	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
+ 	VectorCopy (start, bolt->r.currentOrigin);
+ 
+diff --git a/code/game/g_ql.c b/code/game/g_ql.c
+new file mode 100644
+index 0000000..9e50780
+--- /dev/null
++++ b/code/game/g_ql.c
+@@ -0,0 +1,329 @@
++/*
++q3core: Quake Live's rules (QUAKE_LIVE_PLAN.md). Quake Live's game code is closed: these numbers were
++read from its own cvar and item tables (tools/ql/ql_rules.json), under Quake Live's cvar names.
++
++g_ruleset "ql" (the default) plays them. "classic" plays id 1.32: every change is behind G_QL(), so
++the 1.32 code paths run as they were.
++*/
++
++#include "g_local.h"
++
++vmCvar_t	g_ruleset;
++
++vmCvar_t	g_damage_g;
++vmCvar_t	g_damage_mg;
++vmCvar_t	g_damage_sg;
++vmCvar_t	g_damage_sg_outer;
++vmCvar_t	g_damage_gl;
++vmCvar_t	g_damage_rl;
++vmCvar_t	g_damage_lg;
++vmCvar_t	g_damage_rg;
++vmCvar_t	g_damage_pg;
++vmCvar_t	g_damage_bfg;
++vmCvar_t	g_splashdamage_gl;
++vmCvar_t	g_splashdamage_rl;
++vmCvar_t	g_splashdamage_pg;
++vmCvar_t	g_splashdamage_bfg;
++vmCvar_t	g_splashradius_gl;
++vmCvar_t	g_splashradius_rl;
++vmCvar_t	g_splashradius_pg;
++vmCvar_t	g_splashradius_bfg;
++vmCvar_t	g_velocity_gl;
++vmCvar_t	g_velocity_rl;
++vmCvar_t	g_velocity_pg;
++vmCvar_t	g_velocity_bfg;
++
++vmCvar_t	g_knockback_g;
++vmCvar_t	g_knockback_mg;
++vmCvar_t	g_knockback_sg;
++vmCvar_t	g_knockback_gl;
++vmCvar_t	g_knockback_rl;
++vmCvar_t	g_knockback_rl_self;
++vmCvar_t	g_knockback_lg;
++vmCvar_t	g_knockback_rg;
++vmCvar_t	g_knockback_pg;
++vmCvar_t	g_knockback_pg_self;
++vmCvar_t	g_knockback_bfg;
++vmCvar_t	g_max_knockback;
++vmCvar_t	g_knockback_z;
++vmCvar_t	g_knockback_z_self;
++
++vmCvar_t	g_battleSuitDampen;
++vmCvar_t	g_dropPowerups;
++vmCvar_t	g_spawnDelay_powerup;
++vmCvar_t	g_spawnDelayRandom_powerup;
++vmCvar_t	g_respawn_delay_min;
++vmCvar_t	g_respawn_delay_max;
++vmCvar_t	g_allowKill;
++
++vmCvar_t	g_startingHealth;
++vmCvar_t	g_startingHealthBonus;
++vmCvar_t	g_startingArmor;
++vmCvar_t	g_startingWeapons;
++vmCvar_t	g_startingAmmo_mg;
++vmCvar_t	g_startingAmmo_sg;
++vmCvar_t	g_startingAmmo_gl;
++vmCvar_t	g_startingAmmo_rl;
++vmCvar_t	g_startingAmmo_lg;
++vmCvar_t	g_startingAmmo_rg;
++vmCvar_t	g_startingAmmo_pg;
++vmCvar_t	g_startingAmmo_bfg;
++
++typedef struct {
++	vmCvar_t	*vmCvar;
++	char		*name;
++	char		*ql;		// Quake Live's default
++	int			flags;
++} qlCvar_t;
++
++static qlCvar_t qlCvars[] = {
++	// clients read it too (prediction, the shotgun pattern), so it travels in the systeminfo; latched,
++	// so a change waits for the next map instead of switching rules mid-match
++	{ &g_ruleset, "g_ruleset", "ql", CVAR_SERVERINFO | CVAR_SYSTEMINFO | CVAR_LATCH },
++
++	{ &g_damage_g, "g_damage_g", "50", 0 },
++	{ &g_damage_mg, "g_damage_mg", "5", 0 },
++	{ &g_damage_sg, "g_damage_sg", "5", 0 },
++	{ &g_damage_sg_outer, "g_damage_sg_outer", "5", 0 },
++	{ &g_damage_gl, "g_damage_gl", "100", 0 },
++	{ &g_damage_rl, "g_damage_rl", "100", 0 },
++	{ &g_damage_lg, "g_damage_lg", "6", 0 },
++	{ &g_damage_rg, "g_damage_rg", "80", 0 },
++	{ &g_damage_pg, "g_damage_pg", "20", 0 },
++	{ &g_damage_bfg, "g_damage_bfg", "100", 0 },
++	{ &g_splashdamage_gl, "g_splashdamage_gl", "100", 0 },
++	{ &g_splashdamage_rl, "g_splashdamage_rl", "84", 0 },
++	{ &g_splashdamage_pg, "g_splashdamage_pg", "15", 0 },
++	{ &g_splashdamage_bfg, "g_splashdamage_bfg", "100", 0 },
++	{ &g_splashradius_gl, "g_splashradius_gl", "150", 0 },
++	{ &g_splashradius_rl, "g_splashradius_rl", "120", 0 },
++	{ &g_splashradius_pg, "g_splashradius_pg", "20", 0 },
++	{ &g_splashradius_bfg, "g_splashradius_bfg", "80", 0 },
++	{ &g_velocity_gl, "g_velocity_gl", "700", 0 },
++	{ &g_velocity_rl, "g_velocity_rl", "1000", 0 },
++	{ &g_velocity_pg, "g_velocity_pg", "2000", 0 },
++	{ &g_velocity_bfg, "g_velocity_bfg", "1800", 0 },
++
++	{ &g_knockback_g, "g_knockback_g", "1", 0 },
++	{ &g_knockback_mg, "g_knockback_mg", "1", 0 },
++	{ &g_knockback_sg, "g_knockback_sg", "1", 0 },
++	{ &g_knockback_gl, "g_knockback_gl", "1.10", 0 },
++	{ &g_knockback_rl, "g_knockback_rl", "0.90", 0 },
++	{ &g_knockback_rl_self, "g_knockback_rl_self", "1.10", 0 },
++	{ &g_knockback_lg, "g_knockback_lg", "1.75", 0 },
++	{ &g_knockback_rg, "g_knockback_rg", "0.85", 0 },
++	{ &g_knockback_pg, "g_knockback_pg", "1.10", 0 },
++	{ &g_knockback_pg_self, "g_knockback_pg_self", "1.30", 0 },
++	{ &g_knockback_bfg, "g_knockback_bfg", "1", 0 },
++	{ &g_max_knockback, "g_max_knockback", "120", 0 },
++	{ &g_knockback_z, "g_knockback_z", "24", 0 },
++	{ &g_knockback_z_self, "g_knockback_z_self", "24", 0 },
++
++	{ &g_battleSuitDampen, "g_battleSuitDampen", "0.25", 0 },
++	{ &g_dropPowerups, "g_dropPowerups", "1", 0 },
++	{ &g_spawnDelay_powerup, "g_spawnDelay_powerup", "45", 0 },
++	{ &g_spawnDelayRandom_powerup, "g_spawnDelayRandom_powerup", "15", 0 },
++	{ &g_respawn_delay_min, "g_respawn_delay_min", "2100", 0 },
++	{ &g_respawn_delay_max, "g_respawn_delay_max", "2400", 0 },
++	{ &g_allowKill, "g_allowKill", "1000", 0 },
++
++	{ &g_startingHealth, "g_startingHealth", "100", 0 },
++	{ &g_startingHealthBonus, "g_startingHealthBonus", "25", 0 },
++	{ &g_startingArmor, "g_startingArmor", "0", 0 },
++	{ &g_startingWeapons, "g_startingWeapons", "3", 0 },
++	{ &g_startingAmmo_mg, "g_startingAmmo_mg", "100", 0 },
++	{ &g_startingAmmo_sg, "g_startingAmmo_sg", "10", 0 },
++	{ &g_startingAmmo_gl, "g_startingAmmo_gl", "10", 0 },
++	{ &g_startingAmmo_rl, "g_startingAmmo_rl", "5", 0 },
++	{ &g_startingAmmo_lg, "g_startingAmmo_lg", "100", 0 },
++	{ &g_startingAmmo_rg, "g_startingAmmo_rg", "5", 0 },
++	{ &g_startingAmmo_pg, "g_startingAmmo_pg", "50", 0 },
++	{ &g_startingAmmo_bfg, "g_startingAmmo_bfg", "10", 0 },
++};
++
++// the cvars Pmove reads (bg_qlPmoveCvars); clients predict with them, so they're in the systeminfo
++static vmCvar_t		qlPmoveCvars[MAX_WEAPONS];
++static pmoveRules_t	qlRules;
++
++static const char *G_QLCvarString( const char *name ) {
++	static char	buf[MAX_CVAR_VALUE_STRING];
++
++	trap_Cvar_VariableStringBuffer( name, buf, sizeof( buf ) );
++	return buf;
++}
++
++void G_QLRegisterCvars( void ) {
++	int		i;
++
++	for ( i = 0 ; i < ARRAY_LEN( qlCvars ) ; i++ ) {
++		trap_Cvar_Register( qlCvars[i].vmCvar, qlCvars[i].name, qlCvars[i].ql, qlCvars[i].flags );
++	}
++	for ( i = 0 ; i < bg_numQLPmoveCvars && i < ARRAY_LEN( qlPmoveCvars ) ; i++ ) {
++		trap_Cvar_Register( &qlPmoveCvars[i], bg_qlPmoveCvars[i].name, bg_qlPmoveCvars[i].ql, CVAR_SYSTEMINFO );
++	}
++	BG_QLRules( &qlRules, G_QLCvarString );
++}
++
++void G_QLUpdateCvars( void ) {
++	int		i;
++
++	for ( i = 0 ; i < ARRAY_LEN( qlCvars ) ; i++ ) {
++		trap_Cvar_Update( qlCvars[i].vmCvar );
++	}
++	for ( i = 0 ; i < bg_numQLPmoveCvars && i < ARRAY_LEN( qlPmoveCvars ) ; i++ ) {
++		trap_Cvar_Update( &qlPmoveCvars[i] );
++	}
++	BG_QLRules( &qlRules, G_QLCvarString );
++}
++
++qboolean G_QL( void ) {
++	return qlRules.ql;
++}
++
++const pmoveRules_t *G_QLPmoveRules( void ) {
++	return &qlRules;
++}
++
++/*
++================
++G_QLKnockback
++
++Quake Live's knockback: the damage times the weapon's scale (rockets and plasma have their own for
++self hits), capped at g_max_knockback (1.32: the damage itself, capped at 200).
++================
++*/
++float G_QLKnockback( int damage, int mod, qboolean self ) {
++	float	scale, k;
++
++	switch ( mod ) {
++	case MOD_GAUNTLET:			scale = g_knockback_g.value; break;
++	case MOD_MACHINEGUN:		scale = g_knockback_mg.value; break;
++	case MOD_SHOTGUN:			scale = g_knockback_sg.value; break;
++	case MOD_GRENADE:
++	case MOD_GRENADE_SPLASH:	scale = g_knockback_gl.value; break;
++	case MOD_ROCKET:
++	case MOD_ROCKET_SPLASH:		scale = self ? g_knockback_rl_self.value : g_knockback_rl.value; break;
++	case MOD_PLASMA:
++	case MOD_PLASMA_SPLASH:		scale = self ? g_knockback_pg_self.value : g_knockback_pg.value; break;
++	case MOD_LIGHTNING:			scale = g_knockback_lg.value; break;
++	case MOD_RAILGUN:			scale = g_knockback_rg.value; break;
++	case MOD_BFG:
++	case MOD_BFG_SPLASH:		scale = g_knockback_bfg.value; break;
++	default:					scale = 1.0f; break;
++	}
++	k = damage * scale;
++	if ( g_max_knockback.value > 0 && k > g_max_knockback.value ) {
++		k = g_max_knockback.value;
++	}
++	return k;
++}
++
++/*
++================
++G_QLItemQuantity
++
++What an item gives: Quake Live's amounts where they differ from 1.32's (its bg_itemlist).
++================
++*/
++int G_QLItemQuantity( const gitem_t *item ) {
++	static const struct { const char *classname; int quantity; } amounts[] = {
++		{ "weapon_machinegun", 100 },
++		{ "weapon_bfg", 10 },
++		{ "ammo_shells", 5 },
++		{ "ammo_cells", 50 },
++		{ "ammo_lightning", 50 },
++		{ "ammo_slugs", 5 },
++		{ "ammo_bfg", 5 },
++	};
++	int		i;
++
++	if ( G_QL() ) {
++		for ( i = 0 ; i < ARRAY_LEN( amounts ) ; i++ ) {
++			if ( !strcmp( item->classname, amounts[i].classname ) ) {
++				return amounts[i].quantity;
++			}
++		}
++	}
++	return item->quantity;
++}
++
++/*
++================
++G_QLMissile
++
++A missile's damage, splash and speed. Quake Live's for the weapons it changed through cvars; the
++1.32 numbers the caller passes otherwise.
++================
++*/
++void G_QLMissile( gentity_t *bolt, int weapon, vec3_t dir, float speed ) {
++	if ( G_QL() ) {
++		switch ( weapon ) {
++		case WP_GRENADE_LAUNCHER:
++			bolt->damage = g_damage_gl.integer;
++			bolt->splashDamage = g_splashdamage_gl.integer;
++			bolt->splashRadius = g_splashradius_gl.integer;
++			speed = g_velocity_gl.value;
++			break;
++		case WP_ROCKET_LAUNCHER:
++			bolt->damage = g_damage_rl.integer;
++			bolt->splashDamage = g_splashdamage_rl.integer;
++			bolt->splashRadius = g_splashradius_rl.integer;
++			speed = g_velocity_rl.value;
++			break;
++		case WP_PLASMAGUN:
++			bolt->damage = g_damage_pg.integer;
++			bolt->splashDamage = g_splashdamage_pg.integer;
++			bolt->splashRadius = g_splashradius_pg.integer;
++			speed = g_velocity_pg.value;
++			break;
++		case WP_BFG:
++			bolt->damage = g_damage_bfg.integer;
++			bolt->splashDamage = g_splashdamage_bfg.integer;
++			bolt->splashRadius = g_splashradius_bfg.integer;
++			speed = g_velocity_bfg.value;
++			break;
++		}
++	}
++	VectorScale( dir, speed, bolt->s.pos.trDelta );
++}
++
++/*
++================
++G_QLSpawnLoadout
++
++Quake Live's spawn: g_startingWeapons (bit n is weapon n + 1) with g_startingAmmo_*, health
++g_startingHealth (as a share of the handicap's max) plus g_startingHealthBonus, and g_startingArmor.
++================
++*/
++void G_QLSpawnLoadout( gentity_t *ent ) {
++	gclient_t	*client = ent->client;
++	int			mask = g_startingWeapons.integer;
++	int			w;
++
++	client->ps.stats[STAT_WEAPONS] = 0;
++	memset( client->ps.ammo, 0, sizeof( client->ps.ammo ) );	// ClientSpawn's 1.32 machinegun ammo
++	for ( w = WP_GAUNTLET ; w < WP_NUM_WEAPONS ; w++ ) {
++		if ( !( mask & ( 1 << ( w - 1 ) ) ) ) {
++			continue;
++		}
++		client->ps.stats[STAT_WEAPONS] |= 1 << w;
++		switch ( w ) {
++		case WP_MACHINEGUN:			client->ps.ammo[w] = g_startingAmmo_mg.integer; break;
++		case WP_SHOTGUN:			client->ps.ammo[w] = g_startingAmmo_sg.integer; break;
++		case WP_GRENADE_LAUNCHER:	client->ps.ammo[w] = g_startingAmmo_gl.integer; break;
++		case WP_ROCKET_LAUNCHER:	client->ps.ammo[w] = g_startingAmmo_rl.integer; break;
++		case WP_LIGHTNING:			client->ps.ammo[w] = g_startingAmmo_lg.integer; break;
++		case WP_RAILGUN:			client->ps.ammo[w] = g_startingAmmo_rg.integer; break;
++		case WP_PLASMAGUN:			client->ps.ammo[w] = g_startingAmmo_pg.integer; break;
++		case WP_BFG:				client->ps.ammo[w] = g_startingAmmo_bfg.integer; break;
++		default:					client->ps.ammo[w] = -1; break;		// gauntlet, hook
++		}
++	}
++	client->ps.ammo[WP_GAUNTLET] = -1;
++	client->ps.ammo[WP_GRAPPLING_HOOK] = -1;
++
++	// health will count down towards max_health
++	ent->health = client->ps.stats[STAT_HEALTH] =
++		client->ps.stats[STAT_MAX_HEALTH] * g_startingHealth.integer / 100 + g_startingHealthBonus.integer;
++	client->ps.stats[STAT_ARMOR] = g_startingArmor.integer;
++}
+diff --git a/code/game/g_weapon.c b/code/game/g_weapon.c
+index d78afb0..abc0281 100644
+--- a/code/game/g_weapon.c
++++ b/code/game/g_weapon.c
+@@ -115,7 +115,7 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
+ 	}
+ #endif
+ 
+-	damage = 50 * s_quadFactor;
++	damage = ( G_QL() ? g_damage_g.integer : 50 ) * s_quadFactor;
+ 	G_Damage( traceEnt, ent, ent, forward, tr.endpos,
+ 		damage, 0, MOD_GAUNTLET );
+ 
+@@ -267,6 +267,10 @@ SHOTGUN
+ // client predicts same spreads
+ #define	DEFAULT_SHOTGUN_DAMAGE	10
+ 
++// q3core: Quake Live's shotgun is a fixed pattern of 20 pellets in three rings (BG_QLShotgunPellet);
++// the outer ring does g_damage_sg_outer
++static int	s_pelletDamage;
++
+ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
+ 	trace_t		tr;
+ 	int			damage, i, passent;
+@@ -290,7 +294,7 @@ qboolean ShotgunPellet( vec3_t start, vec3_t end, gentity_t *ent ) {
+ 		}
+ 
+ 		if ( traceEnt->takedamage) {
+-			damage = DEFAULT_SHOTGUN_DAMAGE * s_quadFactor;
++			damage = ( G_QL() ? s_pelletDamage : DEFAULT_SHOTGUN_DAMAGE ) * s_quadFactor;
+ #ifdef MISSIONPACK
+ 			if ( traceEnt->client && traceEnt->client->invulnerabilityTime > level.time ) {
+ 				if (G_InvulnerabilityEffect( traceEnt, forward, tr.endpos, impactpoint, bouncedir )) {
+@@ -331,6 +335,21 @@ void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent ) {
+ 	PerpendicularVector( localRight, localForward );
+ 	CrossProduct( localForward, localRight, localUp );
+ 
++	if ( G_QL() ) {
++		for ( i = 0 ; i < QL_SHOTGUN_COUNT ; i++ ) {
++			BG_QLShotgunPellet( i, &r, &u );
++			VectorMA( origin, 8192 * 16, localForward, end);
++			VectorMA (end, r, localRight, end);
++			VectorMA (end, u, localUp, end);
++			s_pelletDamage = i >= QL_SHOTGUN_INNER ? g_damage_sg_outer.integer : g_damage_sg.integer;
++			if( ShotgunPellet( origin, end, ent ) && !hitClient ) {
++				hitClient = qtrue;
++				ent->client->accuracy_hits++;
++			}
++		}
++		return;
++	}
++
+ 	// generate the "random" spread pattern
+ 	for ( i = 0 ; i < DEFAULT_SHOTGUN_COUNT ; i++ ) {
+ 		r = Q_crandom( &seed ) * DEFAULT_SHOTGUN_SPREAD * 16;
+@@ -449,7 +468,7 @@ void weapon_railgun_fire (gentity_t *ent) {
+ 	int			passent;
+ 	gentity_t	*unlinkedEntities[MAX_RAIL_HITS];
+ 
+-	damage = 100 * s_quadFactor;
++	damage = ( G_QL() ? g_damage_rg.integer : 100 ) * s_quadFactor;
+ 
+ 	VectorMA (muzzle, 8192, forward, end);
+ 
+@@ -614,7 +633,7 @@ void Weapon_LightningFire( gentity_t *ent ) {
+ 	gentity_t	*traceEnt, *tent;
+ 	int			damage, i, passent;
+ 
+-	damage = 8 * s_quadFactor;
++	damage = ( G_QL() ? g_damage_lg.integer : 8 ) * s_quadFactor;
+ 
+ 	passent = ent->s.number;
+ 	for (i = 0; i < 10; i++) {
+@@ -841,7 +860,9 @@ void FireWeapon( gentity_t *ent ) {
+ 		weapon_supershotgun_fire( ent );
+ 		break;
+ 	case WP_MACHINEGUN:
+-		if ( g_gametype.integer != GT_TEAM ) {
++		if ( G_QL() ) {
++			Bullet_Fire( ent, MACHINEGUN_SPREAD, g_damage_mg.integer, MOD_MACHINEGUN );
++		} else if ( g_gametype.integer != GT_TEAM ) {
+ 			Bullet_Fire( ent, MACHINEGUN_SPREAD, MACHINEGUN_DAMAGE, MOD_MACHINEGUN );
+ 		} else {
+ 			Bullet_Fire( ent, MACHINEGUN_SPREAD, MACHINEGUN_TEAM_DAMAGE, MOD_MACHINEGUN );

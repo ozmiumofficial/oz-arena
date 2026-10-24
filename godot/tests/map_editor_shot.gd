@@ -1,7 +1,7 @@
 extends Node
 ## The Map editor with something in it, for captures (maps go to a scratch folder):
 ##   godot --path . res://tests/capture.tscn -- scene=res://tests/map_editor_shot.tscn out=C:/temp/ed count=1
-## sheet=1 opens the F1 hotkey sheet; dialog=1 the unsaved-changes dialog; diag=1 adds the F10
+## gizmo=1 shows the select tool's corner and push / pull handles; sheet=1 opens the F1 hotkey sheet; dialog=1 the unsaved-changes dialog; diag=1 adds the F10
 ## diagnostics overlay. e4=1 adds entities (spawns, pickups, a jump pad, a teleporter, lights, a
 ## sound) with the Entities tab and the jump pad selected; e4=lights the same lit by its own lights;
 ## e4=prefab saves a prefab and shows the Prefabs tab with the prefab tool's ghost. e6=<map> imports
@@ -84,6 +84,18 @@ func _ready() -> void:
 			ed.set_tool("face")
 			ed.select_faces([Vector2i(block, 0), Vector2i(steps[0], 4), Vector2i(steps[1], 4)])
 		ed.notify("Grid 16u (0.5 m)")
+		return
+	if "gizmo=1" in args:
+		# the select tool's in-place handles on the block: one corner picked, the top diamond hovered
+		ed.select([block])
+		ed.set_tool("select")
+		var st: Q3SelectTool = ed.tool
+		ed.verts[Vector2i(block, 0)] = true
+		for i in 3:
+			await get_tree().process_frame
+		for h in st.face_handles():
+			if h["normal"].z > 0.9:
+				st.hover(ed.screen_of(h["tip"]), 0)
 		return
 	if "sheet=1" in args:
 		ed.ui.toggle_sheet()

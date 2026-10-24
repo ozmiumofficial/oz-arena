@@ -1,0 +1,95 @@
+{
+ "_note": "Real bot matches for the trailer until the choreographed fights are filmed (tests/trailer_match.tscn; capture_remaster.py --matches). view: chase (behind the fighter, no HUD) or first (their eyes, HUD and gun). The edit picks moments out of each. Indoor arenas only (Ozmium, 2026-10-23: the floating space maps add little).",
+ "matches": [
+  {
+   "name": "match_q3dm6_chase",
+   "map": "q3dm6",
+   "bots": 6,
+   "skill": 5,
+   "seconds": 45,
+   "warmup": 60,
+   "view": "chase",
+   "follow": 1
+  },
+  {
+   "name": "match_q3dm6_first",
+   "map": "q3dm6",
+   "bots": 6,
+   "skill": 5,
+   "seconds": 35,
+   "warmup": 90,
+   "view": "first",
+   "follow": 2
+  },
+  {
+   "name": "match_pro-q3dm6_chase",
+   "map": "pro-q3dm6",
+   "bots": 6,
+   "skill": 5,
+   "seconds": 45,
+   "warmup": 60,
+   "view": "chase",
+   "follow": 0
+  },
+  {
+   "name": "match_q3dm7_chase",
+   "map": "q3dm7",
+   "bots": 6,
+   "skill": 5,
+   "seconds": 45,
+   "warmup": 60,
+   "view": "chase",
+   "follow": 2
+  },
+  {
+   "name": "match_q3dm8_chase",
+   "map": "q3dm8",
+   "bots": 6,
+   "skill": 5,
+   "seconds": 45,
+   "warmup": 60,
+   "view": "chase",
+   "follow": 3
+  },
+  {
+   "name": "match_q3tourney4_chase",
+   "map": "q3tourney4",
+   "bots": 4,
+   "skill": 5,
+   "seconds": 45,
+   "warmup": 60,
+   "view": "chase",
+   "follow": 0
+  },
+  {
+   "name": "match_q3dm12_chase",
+   "map": "q3dm12",
+   "bots": 6,
+   "skill": 5,
+   "seconds": 45,
+   "warmup": 60,
+   "view": "chase",
+   "follow": 1
+  },
+  {
+   "name": "match_q3dm13_first",
+   "map": "q3dm13",
+   "bots": 6,
+   "skill": 5,
+   "seconds": 35,
+   "warmup": 60,
+   "view": "first",
+   "follow": 3
+  },
+  {
+   "name": "match_q3tourney2_first",
+   "map": "q3tourney2",
+   "bots": 2,
+   "skill": 5,
+   "seconds": 35,
+   "warmup": 60,
+   "view": "first",
+   "follow": 0
+  }
+ ]
+}

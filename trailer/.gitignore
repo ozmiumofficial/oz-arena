@@ -1,0 +1,7 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+# footage, the licensed track and id's sounds: linked in by `npm run media`, never committed
+public/media/

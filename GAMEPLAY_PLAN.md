@@ -24,7 +24,7 @@ Nothing below is built yet. Four decisions need Ozmium's answer first (section "
 
 ## The central decision: whose game code runs the match
 
-"The original game feel is sacred." The most faithful way to get Quake 3's movement, weapons, items, damage, game rules **and bots** is not to re-write them but to **run id's own GPL code**:
+(2026-10-23: the standard is now Quake Live's competitive rules on top of this code, with id 1.32 as the Classic ruleset; see [QUAKE_LIVE_PLAN.md](QUAKE_LIVE_PLAN.md).) "The original game feel is sacred." The most faithful way to get Quake 3's movement, weapons, items, damage, game rules **and bots** is not to re-write them but to **run id's own GPL code**:
 
 **Recommended: a C++ GDExtension, `q3core`, built from ioquake3's source (GPLv2).**
 - **What goes in:** the collision model (`cm_*.c`: loads the `.bsp` brushes and patches, `CM_BoxTrace`), the server-side world (`sv_world.c` entity linking, `sv_game.c` syscalls, `sv_bot.c`), the game module (`g_*.c`, `bg_*.c`: Pmove, weapons, items, damage, FFA/Duel/TDM/CTF rules, intermission, awards), and botlib (`be_*.c`, `ai_*.c`) reading the original `.aas` files and `botfiles/`.

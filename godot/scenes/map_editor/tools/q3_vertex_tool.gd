@@ -51,12 +51,13 @@ func wants_2d() -> bool:
 	return true
 
 
-## Every handle on show: [Vector2i(id, index), id-space point].
-func handles() -> Array:
+## Every handle on show: [Vector2i(id, index), id-space point]. brushes_only: corners, no control
+## points (the select tool's handles).
+func handles(brushes_only := false) -> Array:
 	var out := []
 	for id in editor.selected_ids():
 		var o := editor.doc.get_obj(id)
-		if o.get("type", "") not in ["brush", "patch"]:
+		if o.get("type", "") not in (["brush"] if brushes_only else ["brush", "patch"]):
 			continue
 		var pts := editor.object_points(id)
 		for i in pts.size() / 3:
@@ -65,10 +66,10 @@ func handles() -> Array:
 
 
 ## The handle nearest the cursor within reach, or Vector2i(-1, -1).
-func handle_at(pos: Vector2) -> Vector2i:
+func handle_at(pos: Vector2, brushes_only := false) -> Vector2i:
 	var best := Vector2i(-1, -1)
 	var best_d := PICK_PIXELS
-	for h in handles():
+	for h in handles(brushes_only):
 		var g := Q3MapEditor.to_godot(h[1])
 		if editor.camera.is_position_behind(g):
 			continue
@@ -82,7 +83,7 @@ func handle_at(pos: Vector2) -> Vector2i:
 func click(pos: Vector2, mods: int, _double: bool) -> void:
 	var h := handle_at(pos)
 	if h.x >= 0:
-		_select_handle(h, mods)
+		select_handle(h, mods)
 		return
 	var p := editor.pick(pos)
 	if p.is_empty() or p["locked"]:
@@ -95,7 +96,7 @@ func click(pos: Vector2, mods: int, _double: bool) -> void:
 	UiSound.move()
 
 
-func _select_handle(h: Vector2i, mods: int) -> void:
+func select_handle(h: Vector2i, mods: int) -> void:
 	if mods & K.CTRL:
 		if editor.verts.has(h):
 			editor.verts.erase(h)
@@ -111,10 +112,15 @@ func _select_handle(h: Vector2i, mods: int) -> void:
 
 func drag_start(pos: Vector2, mods: int) -> void:
 	var h := handle_at(pos)
-	if h.x < 0:
-		return
+	if h.x >= 0:
+		begin_move(h, mods)
+
+
+## Starts moving the selected handles (h joins them first) from handle h; the select tool's corner
+## handles start their drags here.
+func begin_move(h: Vector2i, mods: int) -> void:
 	if not editor.verts.has(h):
-		_select_handle(h, mods & K.SHIFT)
+		select_handle(h, mods & K.SHIFT)
 	_orig.clear()
 	_moving.clear()
 	_start_objs.clear()

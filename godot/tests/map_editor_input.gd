@@ -193,6 +193,40 @@ func _run() -> void:
 	check("dragging the selected brush moves it on the grid", moved[0] != before[0] and int(moved[0]) % 16 == 0, "%s -> %s" % [before[0], moved[0]])
 	await tap(KEY_Z, K.CTRL)
 
+	# ---- 2b. the select tool's in-place handles (OZMIUM's grab / push / pull gizmo)
+	var st: Q3SelectTool = ed.tools["select"]
+	var b0 := Q3MapGeo.brush_bounds(ed.doc.get_obj(box_id)["planes"])
+	var top_h := {}
+	for h in st.face_handles():
+		if h["key"].x == box_id and h["normal"].z > 0.9:
+			top_h = h
+	check("a selected brush shows a diamond on its top face and squares on its corners", top_h.size() > 0 and st.corners().size() == 8)
+	if top_h.size():
+		var tip: Vector3 = top_h["tip"]
+		await drag([at(tip), at(tip + Vector3(0, 0, 24)), at(tip + Vector3(0, 0, 64))])
+		var pulled := Q3MapGeo.brush_bounds(ed.doc.get_obj(box_id)["planes"])
+		check("dragging the top diamond pulls the top face up, onto the grid, and nothing else",
+				pulled[5] > b0[5] and int(pulled[5]) % 16 == 0 and pulled[2] == b0[2] and pulled[0] == b0[0], "%s -> %s" % [b0, pulled])
+		await tap(KEY_Z, K.CTRL)
+		check("Ctrl+Z undoes the pull in one step", Q3MapGeo.brush_bounds(ed.doc.get_obj(box_id)["planes"]) == b0)
+	var corner := Vector3(b0[3], b0[4], b0[5])
+	await drag([at(corner), at(corner + Vector3(16, 0, 0)), at(corner + Vector3(32, 0, 0))])
+	var dragged := Q3MapGeo.brush_bounds(ed.doc.get_obj(box_id)["planes"])
+	check("dragging a corner square moves just that corner", dragged[3] == b0[3] + 32 and dragged[0] == b0[0] and ed.selection.has(box_id), "%s -> %s" % [b0, dragged])
+	await tap(KEY_Z, K.CTRL)
+	await click(at(corner))
+	check("clicking a corner square picks the corner", ed.verts.size() == 1 and ed.selection.has(box_id))
+	await tap(KEY_DELETE)
+	check("Delete removes the picked corner, not the brush", ed.doc.objects.has(box_id)
+			and Q3MapGeo.brush_vertices(ed.doc.get_obj(box_id)["planes"]).size() / 3 == 7)
+	await tap(KEY_Z, K.CTRL)
+	var side := Vector3(b0[0], (b0[1] + b0[4]) * 0.5, (b0[2] + b0[5]) * 0.5)
+	await drag([at(side), at(side + Vector3(-16, 0, 0)), at(side + Vector3(-32, 0, 0))], K.SHIFT)
+	var pushed := Q3MapGeo.brush_bounds(ed.doc.get_obj(box_id)["planes"])
+	check("Shift+drag on a face pushes / pulls that face", pushed[0] == b0[0] - 32 and pushed[3] == b0[3], "%s -> %s" % [b0, pushed])
+	await tap(KEY_Z, K.CTRL)
+	check("the brush is back as it was", Q3MapGeo.brush_bounds(ed.doc.get_obj(box_id)["planes"]) == b0)
+
 	# ---- 3. multi-select
 	var other := ed.doc.add(Q3MapDoc.box_brush(Vector3(-200, 0, 0), Vector3(-136, 64, 64)))
 	ed.mesher.flush()

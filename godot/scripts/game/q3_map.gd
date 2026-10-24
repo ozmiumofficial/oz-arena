@@ -10,6 +10,8 @@ const PROBE_BLEND := 0.5        ## meters each probe reaches past its box, fadin
 const SHAFT_DENSITY := 0.0015   ## the faint haze that shows the sun's light shafts
 const SHAFT_LIGHT := 0.01       ## the shaft light's own energy on surfaces: next to nothing (the sun is baked)
 const SHAFT_GAIN := 1.5         ## shaft brightness against the baked sun's energy
+const FOG_LIGHT_CAP := 6.0      ## the most any one map light adds to the mist (typical lamps: 0.2 to 10)
+const FOG_LIGHT_SCALE := 0.8    ## the mist a little under full strength (Ozmium: "tone the fog down a little")
 
 @export var map := ""
 var portals: Array[Q3Portal] = []   ## its mirrors and portal views
@@ -23,6 +25,13 @@ func _ready() -> void:
 	for gi in (geo.find_children("*", "GeometryInstance3D", true, false) if geo else []):
 		(gi as GeometryInstance3D).layers |= WORLD_LAYER
 	_add_probes()
+	# The map's lights also glow in the volumetric fog: the mist. The strongest would flood a room
+	# (Lost World's fire column, energy 64, drowned its courtyard in yellow, 2026-10-23), so each
+	# light's share of the fog is capped at what a light of FOG_LIGHT_CAP gives; lamps keep theirs.
+	var lights := get_node_or_null("Lights")
+	for l in (lights.find_children("*", "Light3D", true, false) if lights else []):
+		var light := l as Light3D
+		light.light_volumetric_fog_energy = FOG_LIGHT_SCALE * minf(1.0, FOG_LIGHT_CAP / maxf(light.light_energy, 0.001))
 	_add_shaft_light()
 	Settings.environment_changed.connect(_apply_settings)
 	_apply_settings()

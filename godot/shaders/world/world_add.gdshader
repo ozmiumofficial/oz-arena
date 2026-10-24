@@ -24,8 +24,9 @@ void fragment() {
 	// The PBR remaster lifted pure black to a faint grain (about 10/255); additively that draws the
 	// quad's square edges, which Quake 3's art kept at 0. Anything that dark adds nothing.
 	// every stage adds at the same weight, as in Quake 3: s.emission scales the glow layers by
-	// emission_energy (0.3 for a weak surfacelight), which dimmed console03's green ring to 30%
+	// emission_energy (0.3 for a weak surfacelight), which dimmed console03's green ring to 30%;
+	// s.emission_base already carries shown_energy()
 	vec3 c = max(s.albedo.rgb + s.emission_base + s.glow - vec3(BLACK_FLOOR), vec3(0.0)) / (1.0 - BLACK_FLOOR);
-	ALBEDO = c * max(emission_energy, 1.0);
+	ALBEDO = c * max(shown_energy(), 1.0);
 	ALPHA = 1.0;
 }

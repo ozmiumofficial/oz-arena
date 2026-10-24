@@ -43,6 +43,7 @@ var info: Dictionary = {}      ## id, kind, name, size (meters)
 var swap_seconds := Vector2(SWAP_MIN, SWAP_MAX)   ## capture tests shorten it
 var fixed_framing := -1
 var locked := false
+var centered := false   ## the subject in the middle of the screen (trailer shots), not the right two-thirds
 var _holder: Node3D
 var _key: SpotLight3D
 var _rim: SpotLight3D
@@ -379,10 +380,11 @@ func _update_camera(delta: float) -> void:
 	cam.global_position = target + dir * dist
 	cam.look_at(target)
 	# the subject sits in the middle of the right two-thirds of the screen (the menu is on the left)
-	var vp := get_viewport().get_visible_rect().size
-	var aspect := vp.x / maxf(vp.y, 1.0)
-	var half_h := atan(tan(deg_to_rad(cam.fov) * 0.5) * aspect)
-	cam.rotate_object_local(Vector3.UP, atan(tan(half_h) / 3.0))
+	if not centered:
+		var vp := get_viewport().get_visible_rect().size
+		var aspect := vp.x / maxf(vp.y, 1.0)
+		var half_h := atan(tan(deg_to_rad(cam.fov) * 0.5) * aspect)
+		cam.rotate_object_local(Vector3.UP, atan(tan(half_h) / 3.0))
 	# the whole subject stays sharp (it turns, so any part can face the camera); only what's
 	# in front of or behind it blurs
 	var radius: float = info.get("radius", size * 0.6)

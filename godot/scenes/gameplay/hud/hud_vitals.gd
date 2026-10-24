@@ -59,12 +59,15 @@ func _block(r: Rect2, is_health: bool, value: int, color: Color, ghost: float, l
 		S.shield_icon(self, icon, ic)
 	var size := int((46.0 if compact else 56.0) * u)
 	var x := icon.end.x + 12 * u
-	S.text(self, S.num(), Vector2(x, icon.position.y + icon.size.y * 0.5 + size * 0.36), str(maxi(value, 0)), size,
-		color if not dim else S.FAINT)
+	var base_pos := Vector2(x, icon.position.y + icon.size.y * 0.5 + size * 0.36)
 	if low:
-		# Quake 3 flashes low health; the HUD adds a soft glow behind the number
-		var w := S.text_width(S.num(), str(value), size)
-		draw_rect(Rect2(x - 6 * u, icon.position.y - 4 * u, w + 12 * u, icon.size.y + 8 * u), Color(S.RED, 0.12 + 0.1 * sin(_t * TAU * 2.0)))
+		# Quake 3 flashes low health; the HUD adds a soft glow behind the number: wide faint outlines
+		# stacked so they fade outward from the digits
+		var a := 0.5 + 0.5 * sin(_t * TAU * 2.0)
+		for k in [[0.5, 0.05], [0.34, 0.07], [0.2, 0.1]]:
+			draw_string_outline(S.num(), base_pos, str(value), HORIZONTAL_ALIGNMENT_LEFT, -1, size,
+				int(size * k[0]), Color(S.RED, k[1] * (0.6 + 0.4 * a)))
+	S.text(self, S.num(), base_pos, str(maxi(value, 0)), size, color if not dim else S.FAINT)
 	if compact:
 		return
 	# the bar: 10 segments per 100, the second hundred over the first in a cooler tone. Its ends run

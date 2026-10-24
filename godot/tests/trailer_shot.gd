@@ -6,38 +6,20 @@ extends Node
 ##   godot --path . --fixed-fps 60 res://tests/trailer_shot.tscn -- path=q3dm17_flyover
 ##     out=C:/x/q3dm17_flyover.mp4 ffmpeg=C:/x/ffmpeg.exe [stills=0,72,360 stills_dir=C:/x] [preroll=120]
 ##     [paths=<folder>] [window=960x540]
-## The view renders offscreen at exactly 1920x1080, whatever the window does, and each frame goes
-## straight into ffmpeg as raw pixels (no image files). --fixed-fps steps the game 1/60 s a frame
-## however long a frame takes, as Quake 3's cl_avidemo does. Holds the first key for `preroll`
-## frames (shaders compile, probes and portals settle), then records one frame per path frame,
-## saves the `stills` frames as PNG, prints "TRAILER SHOT done <frames>" and quits. Items stand where
-## the game drops them, as in tests/levelshots.tscn. The Ultra preset is used for this run only:
-## Settings saves to a scratch file, never the player's settings.
+## tests/trailer_capture.gd records it (offscreen 1920x1080, straight into ffmpeg, the Ultra preset
+## for this run only). The first key holds through the preroll, then one frame per path frame.
+## Items stand where the game drops them, as in tests/levelshots.tscn.
 
 const FPS := 60.0
-const SIZE := Vector2i(1920, 1080)
 const ITEM_PREFIXES := ["item_", "weapon_", "ammo_", "holdable_", "team_CTF_redflag", "team_CTF_blueflag"]
-## the root viewport's quality settings (Settings applies them there), copied to ours
-const VIEWPORT_PROPS := ["msaa_3d", "screen_space_aa", "use_taa", "use_debanding", "mesh_lod_threshold",
-	"anisotropic_filtering_level", "texture_mipmap_bias", "positional_shadow_atlas_size",
-	"positional_shadow_atlas_16_bits"]
+const Capture := preload("res://tests/trailer_capture.gd")
 
 var paths_dir := ProjectSettings.globalize_path("res://").path_join("../tools/trailer/paths").simplify_path()
 var path_name := ""
-var preroll := 120
-var out_mp4 := ""
-var ffmpeg := ""
-var stills: PackedInt32Array = []
-var stills_dir := ""
 var _keys: Array[PackedFloat64Array] = []   ## [time, x, y, z, pitch, yaw, roll, fov]
-var _vp: SubViewport
+var _rec: Capture
 var _map: Q3Map
 var _cam: Camera3D
-var _pipe: FileAccess
-var _pid := -1
-var _frame := -1     ## frames processed, preroll included
-var _frames := 0     ## frames in the path, both ends included
-var _done := false
 
 
 func _ready() -> void:
@@ -47,109 +29,44 @@ func _ready() -> void:
 			match kv[0]:
 				"path": path_name = kv[1]
 				"paths": paths_dir = kv[1]
-				"preroll": preroll = int(kv[1])
-				"out": out_mp4 = kv[1]
-				"ffmpeg": ffmpeg = kv[1]
-				"stills": stills = PackedInt32Array(Array(kv[1].split(",", false)).map(func(s: String) -> int: return int(s)))
-				"stills_dir": stills_dir = kv[1]
-	_quality()
-	AudioServer.set_bus_mute(0, true)
+	Capture.quality()
+	_rec = Capture.new()
+	add_child(_rec)
+	_rec.read_args()
+	_rec.tag = path_name
 	var map_name := _load(paths_dir.path_join(path_name + ".cam"))
 	var scene := Q3MapBuilder.scene_path(map_name) if map_name != "" else ""
 	if scene == "" or not ResourceLoader.exists(scene):
 		push_error("trailer_shot: no map scene for %s" % path_name)
 		get_tree().quit(1)
 		return
-	if out_mp4 == "" or ffmpeg == "":
-		push_error("trailer_shot: out= and ffmpeg= are needed")
-		get_tree().quit(1)
-		return
-	_frames = roundi((_keys[-1][0] - _keys[0][0]) * FPS) + 1
-
-	_vp = SubViewport.new()
-	_vp.size = SIZE
-	_vp.own_world_3d = true
-	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	for p in VIEWPORT_PROPS:
-		_vp.set(p, get_tree().root.get(p))
-	add_child(_vp)
-	var show := TextureRect.new()   # the window shows what's recorded
-	show.texture = _vp.get_texture()
-	show.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	show.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	show.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(show)
-
+	_rec.frames = roundi((_keys[-1][0] - _keys[0][0]) * FPS) + 1
+	var vp := _rec.make_viewport()
 	Diagnostics.expect_stall(true)   # the map loads in one go
 	_map = (load(scene) as PackedScene).instantiate() as Q3Map
-	_vp.add_child(_map)
+	vp.add_child(_map)
 	Diagnostics.expect_stall(false)
 	_cam = Camera3D.new()
 	_cam.keep_aspect = Camera3D.KEEP_WIDTH   # the path's fov is across, as cg_fov at any aspect
 	_cam.near = 0.05
 	_cam.far = 500.0
 	_cam.cull_mask &= ~Q3Portal.MIRROR_LAYER
-	_vp.add_child(_cam)
+	vp.add_child(_cam)
 	_cam.make_current()
 	_view(_keys[0][0])
-
-	var pipe := OS.execute_with_pipe(ffmpeg, ["-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgba",
-		"-s", "%dx%d" % [SIZE.x, SIZE.y], "-r", str(int(FPS)), "-i", "-",
-		"-c:v", "libx264", "-preset", "medium", "-crf", "12", "-pix_fmt", "yuv420p", out_mp4])   # blocking: a full pipe waits for ffmpeg
-	if pipe.is_empty():
-		push_error("trailer_shot: could not start %s" % ffmpeg)
+	if not _rec.begin():
 		get_tree().quit(1)
 		return
-	_pipe = pipe["stdio"]
-	_pid = int(pipe["pid"])
-	RenderingServer.frame_post_draw.connect(_on_drawn)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	_place_items()
 
 
-## The Ultra preset plus the settings outside it, for this run only.
-func _quality() -> void:
-	Settings.path = "user://trailer_settings.cfg"
-	Settings.set_value("graphics/preset", "ultra", false)
-	Settings.set_value("video/render_scale", 1.0, false)
-	Settings.set_value("video/upscaler", "bilinear", false)
-	for k in ["video/brightness", "video/contrast", "accessibility/colorblind", "accessibility/reduced_flashing"]:
-		Settings.set_value(k, Settings.default_of(k), false)
-
-
 func _process(_delta: float) -> void:
-	if _keys.is_empty() or _cam == null or _done:
+	if _keys.is_empty() or _cam == null:
 		return
-	_frame += 1
-	_view(_keys[0][0] + maxf(_frame - preroll, 0) / FPS)
-
-
-## After each frame is drawn: past the preroll, its pixels go to ffmpeg.
-func _on_drawn() -> void:
-	var f := _frame - preroll
-	if _done or _frame < 0 or f < 0:
-		return
-	var img := _vp.get_texture().get_image()
-	if img.get_format() != Image.FORMAT_RGBA8:
-		img.convert(Image.FORMAT_RGBA8)
-	_pipe.store_buffer(img.get_data())
-	if f in stills and stills_dir != "":
-		img.save_png(stills_dir.path_join("%s_f%05d.png" % [path_name, f]))
-	if f >= _frames - 1:
-		_finish()
-
-
-func _finish() -> void:
-	_done = true
-	RenderingServer.frame_post_draw.disconnect(_on_drawn)
-	_pipe.close()   # end of input: ffmpeg finishes the file
-	Diagnostics.expect_stall(true)
-	while OS.is_process_running(_pid):
-		OS.delay_msec(50)
-	Diagnostics.expect_stall(false)
-	print("TRAILER SHOT done %d" % _frames)
-	get_tree().quit()
+	var f := _rec.tick()
+	_view(_keys[0][0] + maxf(f, 0) / FPS)
 
 
 ## Reads a .cam file: "// map <name>" first, then one key per line, later in time each.
@@ -222,7 +139,7 @@ func _view(t: float) -> void:
 ## Items where the game puts them: dropped to the floor (G_SpawnItem, FinishSpawningItem's trace
 ## with the item's 15-unit box) unless suspended (spawnflags 1). Same as tests/levelshots.gd.
 func _place_items() -> void:
-	var space := _vp.find_world_3d().direct_space_state
+	var space := _rec.vp.find_world_3d().direct_space_state
 	for marker in _map.get_node("Entities").get_children():
 		var e: Dictionary = marker.get_meta("entity", {})
 		var cls := String(e.get("classname", ""))

@@ -14,6 +14,8 @@ var _pushing := false
 var _grab := Vector3.ZERO      ## the grabbed point on the face (id)
 var _normal := Vector3.ZERO    ## the grabbed face's normal
 var _start := {}               ## brush id -> the brush before the drag
+var _keys := []                ## the faces being pushed: Vector2i(brush id, face)
+var _on_grid := false          ## one axis-aligned face: its plane lands on the grid, not the push
 var distance := 0.0            ## the push so far (units, along each face's normal)
 
 
@@ -32,8 +34,10 @@ func cancel() -> void:
 		for id in _start:
 			editor.doc.put(_start[id])
 		editor.doc.end_batch()
+		editor.doc.drop_checkpoint()
 	_pushing = false
 	_start.clear()
+	_keys.clear()
 
 
 func click(pos: Vector2, mods: int, _double: bool) -> void:
@@ -89,12 +93,24 @@ func drag_start(pos: Vector2, mods: int) -> void:
 	var key := Vector2i(p["id"], p["face"])
 	if not editor.faces.has(key):
 		editor.select_faces([key], "add" if mods & K.SHIFT else "set")
-	_grab = p["point"]
-	_normal = p["normal"]
+	begin_push(editor.faces.keys(), p["point"], p["normal"], "Push faces")
+
+
+## Starts pushing the given faces from grab along normal; the select tool's face handles push one
+## face this way without touching the face selection.
+func begin_push(keys: Array, grab: Vector3, normal: Vector3, label: String) -> void:
+	_keys = keys.duplicate()
+	_grab = grab
+	_normal = normal
 	_start.clear()
-	for k: Vector2i in editor.faces:
+	for k: Vector2i in _keys:
 		_start[k.x] = editor.doc.get_obj(k.x)
-	editor.doc.checkpoint("Push faces")
+	_on_grid = false
+	if _keys.size() == 1:
+		var pl: PackedFloat64Array = _start[_keys[0].x]["planes"]
+		var a := Vector3(pl[_keys[0].y * 4], pl[_keys[0].y * 4 + 1], pl[_keys[0].y * 4 + 2]).abs()
+		_on_grid = is_equal_approx(a[a.max_axis_index()], 1.0)
+	editor.doc.checkpoint(label)
 	_pushing = true
 	distance = 0.0
 
@@ -102,22 +118,20 @@ func drag_start(pos: Vector2, mods: int) -> void:
 func drag(pos: Vector2, mods: int) -> void:
 	if not _pushing:
 		return
-	# where the mouse ray passes closest to the line out of the grabbed point along the normal
-	var r := editor.ray(pos)
-	var o: Vector3 = r[0]
-	var d: Vector3 = r[1]
-	var w := o - _grab
-	var b := d.dot(_normal)
-	var denom := d.dot(d) - b * b
-	if absf(denom) < 1e-6:
+	var along: Variant = along_axis(editor.ray(pos), _grab, _normal)
+	if along == null:
 		return
-	var s := (d.dot(d) * _normal.dot(w) - b * d.dot(w)) / denom
+	var s: float = along
 	if mods & K.CTRL == 0:
-		s = editor.grid.snap(s, true)
+		if _on_grid:
+			var d0: float = _start[_keys[0].x]["planes"][_keys[0].y * 4 + 3]
+			s = editor.grid.snap(d0 + s, true) - d0
+		else:
+			s = editor.grid.snap(s, true)
 	if s == distance:
 		return
 	var pushed := {}
-	for k: Vector2i in editor.faces:
+	for k: Vector2i in _keys:
 		var bb: Dictionary = pushed.get(k.x, _start[k.x].duplicate(true))
 		bb["planes"][k.y * 4 + 3] = _start[k.x]["planes"][k.y * 4 + 3] + s
 		pushed[k.x] = bb
@@ -132,11 +146,25 @@ func drag(pos: Vector2, mods: int) -> void:
 	editor.ui.set_hint("Push %s" % Q3MapEditor._num(s))
 
 
+## How far along the line out of origin (along unit n) the mouse ray r ([origin, direction]) passes
+## closest to it, or null when the ray runs along the line.
+static func along_axis(r: Array, origin: Vector3, n: Vector3) -> Variant:
+	var o: Vector3 = r[0]
+	var d: Vector3 = r[1]
+	var w := o - origin
+	var b := d.dot(n)
+	var denom := d.dot(d) - b * b
+	if absf(denom) < 1e-6:
+		return null
+	return (d.dot(d) * n.dot(w) - b * d.dot(w)) / denom
+
+
 func drag_end(_pos: Vector2, _mods: int) -> void:
 	if _pushing and distance == 0.0:
 		editor.doc.drop_checkpoint()
 	_pushing = false
 	_start.clear()
+	_keys.clear()
 	editor.ui.set_hint("")
 
 

@@ -1,0 +1,27 @@
+diff --git a/code/qcommon/net_ip.c b/code/qcommon/net_ip.c
+index 294e4c0..7665363 100644
+--- a/code/qcommon/net_ip.c
++++ b/code/qcommon/net_ip.c
+@@ -1714,3 +1714,8 @@ void NET_Restart_f(void)
+ {
+ 	NET_Config(qtrue);
+ }
++
++/* q3core (patch 0007): did NET_Config open the IPv4 socket? */
++int NET_UdpOpen( void ) {
++	return ip_socket != INVALID_SOCKET;
++}
+diff --git a/code/server/sv_client.c b/code/server/sv_client.c
+index 85e5d03..72aa175 100644
+--- a/code/server/sv_client.c
++++ b/code/server/sv_client.c
+@@ -147,7 +147,8 @@ void SV_GetChallenge(netadr_t from)
+ #ifndef STANDALONE
+ 	// Drop the authorize stuff if this client is coming in via v6 as the auth server does not support ipv6.
+ 	// Drop also for addresses coming in on local LAN and for stand-alone games independent from id's assets.
+-	if(challenge->adr.type == NA_IP && !com_standalone->integer && !Sys_IsLANAddress(from))
++	/* q3core (patch 0007): id's authorize server is gone: a UDP player from the internet is let in at once, not after a lookup and a 5 s wait */
++	if(0 && challenge->adr.type == NA_IP && !com_standalone->integer && !Sys_IsLANAddress(from))
+ 	{
+ 		// look up the authorize server's IP
+ 		if (svs.authorizeAddress.type == NA_BAD)

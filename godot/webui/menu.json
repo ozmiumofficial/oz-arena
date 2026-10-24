@@ -89,6 +89,12 @@
       "page": "server_browser"
     },
     {
+      "id": "dedicated",
+      "label": "Dedicated Server",
+      "hint": "Run an always-on server from this PC",
+      "page": "dedicated"
+    },
+    {
       "id": "create_match",
       "label": "Create Match",
       "hint": "Mode, map, rules, modifiers and bots",
@@ -115,6 +121,7 @@
     "leaderboards",
     "replays",
     "server_browser",
+    "dedicated",
     "create_match",
     "offline_bots",
     "training",

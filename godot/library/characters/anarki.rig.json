@@ -414,5 +414,23 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "anarki": "blue",
+    "anarki_g": "blue_g",
+    "anarki_h": "red_h"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "anarki": "red",
+    "anarki_g": "red_g",
+    "anarki_h": "red_h"
+   },
+   "material_modes": {}
+  }
+ }
 }

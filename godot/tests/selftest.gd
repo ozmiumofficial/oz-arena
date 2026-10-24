@@ -433,6 +433,11 @@ func _core_checks(q3: Node) -> void:
 	var match_test: Script = load("res://tests/q3core_match.gd")
 	var r: Dictionary = match_test.run_match("q3dm17", 20, 3, false) if match_test else {"ok": false, "report": "q3core_match.gd didn't load"}
 	check("q3core: q3dm17 with 3 of id's bots for 20 s: bots move and fight, snapshots arrive", r["ok"], String(r["report"]).replace("\n", "; "))
+	# online play's client and server over packets only, on a bad link (tests/net_loopback_test.gd, MULTIPLAYER_PLAN.md)
+	var net_test: Script = load("res://tests/net_loopback_test.gd")
+	var n: Dictionary = net_test.run("q3dm17", 8, 2, 40, 0.05) if net_test else {"ok": false, "report": "net_loopback_test.gd didn't load"}
+	check("net: client and server over an 80 ms, 5% loss link for 8 s: snapshots exact, prediction matches, rcon answers, the slot frees",
+			n["ok"], String(n["report"]).replace("\n", "; "))
 	# last: an ERR_DROP shuts the running server down, as it does in Quake 3
 	check("q3core: Com_Error returns to Godot", ClassDB.class_call_static("Q3Core", "error_recovers"),
 			"the 'HoldableItem not found' error above is this test")

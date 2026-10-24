@@ -37,7 +37,7 @@ func setup(from: Vector3, to: Vector3, cfg: Dictionary, color: Color) -> void:
 	multimesh = mm
 	speed = float(cfg["disc_speed"]) * u
 	var mat := ShaderMaterial.new()
-	mat.shader = load("res://shaders/fx_disc.gdshader")
+	mat.shader = Q3.held("res://shaders/fx_disc.gdshader")
 	mat.set_shader_parameter("tex", Q3.fx_texture(cfg["disc"]))
 	mat.set_shader_parameter("color", color)
 	mat.set_shader_parameter("intensity", 1.6 * Q3FX.gain())

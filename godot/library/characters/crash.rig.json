@@ -398,5 +398,21 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "crash": "blue",
+    "crash_t": "blue_t"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "crash": "red",
+    "crash_t": "red_t"
+   },
+   "material_modes": {}
+  }
+ }
 }

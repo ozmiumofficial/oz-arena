@@ -20,10 +20,12 @@ def enum_names(text, typedef):
     end = re.search(r"\}\s*" + typedef + r"\s*;", text)
     start = text.rfind("typedef enum", 0, end.start())
     body = text[text.index("{", start) + 1:end.start()]
-    # drop #ifdef MISSIONPACK ... #endif sections (baseq3 is built without MISSIONPACK)
-    body = re.sub(r"#ifdef\s+MISSIONPACK.*?#endif", "", body, flags=re.S)
+    # comments first: bg_public.h's entity_event_t has a commented-out "//#ifdef MISSIONPACK"
+    # block whose events are compiled in (they shift EV_TAUNT and the rest by 8)
     body = re.sub(r"//[^\n]*", "", body)
     body = re.sub(r"/\*.*?\*/", "", body, flags=re.S)
+    # then drop real #ifdef MISSIONPACK ... #endif sections (baseq3 is built without MISSIONPACK)
+    body = re.sub(r"(?ms)^[ \t]*#ifdef[ \t]+MISSIONPACK.*?^[ \t]*#endif", "", body)
     names, value = [], 0
     for item in body.split(","):
         item = item.strip()

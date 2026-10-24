@@ -1,0 +1,14 @@
+{
+  "name": "My Q3Remaster server",
+  "password": "",
+  "mode": "ffa",
+  "rotation": [],
+  "max_players": 16,
+  "bots": 4,
+  "bot_skill": 3,
+  "motd": "Welcome",
+  "rcon_password": "change-me",
+  "online": true,
+  "idle_sleep": true,
+  "rules": {}
+}

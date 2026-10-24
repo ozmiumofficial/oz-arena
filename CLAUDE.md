@@ -53,6 +53,7 @@ python tools/setup_check.py
 python tools/remaster_model.py --list
 python tools/remaster_model.py <model> [<model> ...] | --all
 python tools/remaster_model.py --all --from pbr     # redo textures/exports/viewers only
+python tools/build_skins.py [<model> ...]           # team and alternate skins -> library/characters + rig.json "skins" (then flag_3d_textures.py)
 python tools/build_library.py [--skip-props]       # props, fx, catalog, Godot project, import, cards, self-test
 python tools/build_cards.py extracted/baseq3 work/_cards [--no-render]   # player card catalog + art
 python tools/make_music.py                          # Quake 3's soundtrack -> godot/library/music (Ogg)
@@ -80,11 +81,13 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
   - The headless tools (`add_node`, `set_node_property`, `build_library.py`) write files behind the editor's back. A later editor save can overwrite those changes. After running a batch tool, run `EditorInterface.get_resource_filesystem().scan()` and reopen the scene.
 
 - **Godot version:** 4.7.2 (Steam build `godot.windows.opt.tools.64.exe`, a GUI exe; capture output with `--log-file`).
-- **godot-mcp:** in `tools/godot-mcp`, 19 tools; register it per TOOLS.md.
+- **godot-mcp:** in `tools/godot-mcp`, 19 tools; register it per TOOLS.md. It's the one that runs GDScript in the editor (`editor_run_gdscript`).
+- **godot-ai** (`addons/godot_ai`, 47 tools, 2026-10-24): screenshots of the editor and the running game, game input, editor and game logs, monitors. Use it for looking and play-testing; keep `godot` for editor scripting. Telemetry off. DEVELOPMENT.md "Claude control".
 - **Headless tests:** run them as scenes (`res://tests/selftest.tscn`), never with `--script`. A `--script` main loop compiles before autoloads exist, so `Q3` is "Identifier not found" and Godot idles forever. Add `--quit-after N` as a backstop.
 - **Import script:** `[importer_defaults] scene={"import_script/path": ...}` in project.godot applies `scripts/import/q3_post_import.gd` to every GLB. After changing that script, delete the `.glb.import` files (or `.godot/`) to force a re-import.
   - The scene importer's name suffixes (`nodes/use_name_suffixes`) strip `_alpha` / `_vcol` from material names and turn on transparency or vertex color. `q3_post_import._shader_name()` puts the suffix back from those flags; before it did, `textures/base_wall/atech1_alpha` missed and the tech columns in q3tourney1/2/6 drew the gray `missing` fallback (2026-10-23).
 - **3D texture flags:** Godot imports every new texture as 2D (no mipmaps, uncompressed) and switches it only when a 3D material first uses it in the editor. That switch is a reimport inside another import, which prints "Task 'reimport' already exists" or a page of `progress_dialog.cpp` errors ("while flushing the message queue"). Textures never opened in the editor also shipped without mipmaps (806 of them, 2026-10-23). `tools/flag_3d_textures.py` (in `build_library.py` after the first import) flags them up front as Godot would; run it after adding 3D textures any other way.
+- **WAV loop points crash Godot (2026-10-24):** Godot's WAV importer reads loops from a file's `smpl` chunk by default (`edit/loop_mode` 0, "Detect From WAV"). Seven of id's sounds carry broken ones, all ending past the last sample (`1shot_greg_01.wav`'s ends at -2,111,897,600), and starting playback of a QOA-compressed stream with such a loop reads past its buffer: the editor's waveform preview thread crashed the editor within a minute of opening, with no backtrace (it's a worker thread), and the game would crash playing them (q3dm14's speaker, the CTF capture sound, map drones). Quake 3 never used WAV loops, and the game makes its own (`Q3FX.looped`), so `project.godot`'s `[importer_defaults]` sets `wav` `edit/loop_mode` 1 (Disabled) and those 7 `.import` files do too. `tests/audio_decode_test.tscn` (headless) decodes every sound start to end and fails any loop read from a file.
 - **Material modes:** names carry `__add` / `__mask` / `__blend` / `__2s`. Additive materials swap the emission texture into albedo and render unshaded with additive blending.
 - **Additive materials need `fog_disabled`** (shaders) or `disable_fog` (StandardMaterial3D): Godot blends volumetric fog into transparent surfaces, and on an additive quad that adds the haze color over the whole square. q3dm6's wall-lamp flares showed as fog-colored boxes until 2026-10-23.
 - **Character clips:** every glTF clip keys every bone, so `Q3Character` filters torso bone paths in a Blend2. Restarting clips uses TimeSeek nodes.
@@ -147,7 +150,13 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
   - Godot ignores hand-written `.import` files it didn't create (the type stays empty). Let it import first, then edit its `.import` and reimport.
   - Edits to a `class_name` script on disk aren't seen by the running editor until it reloads; `bake_maps.gd rebuild()` reloads `Q3MapBuilder` itself.
 - **Weapon attachment:** the rig's `weapon` and `head` bones keep only the tag's position and forward axis; their roll is whatever Blender chose. `rig.json` "tags" (`tools/rig_extras.py`) carries the full `tag_weapon` frame, and `Q3Character.attach(prop)` uses it.
-- **Aim pitch:** `Q3Character.aim_pitch` (id degrees, positive looks down) drives an `Aim` SkeletonModifier3D, following CG_PlayerAngles. The torso's first bone takes 0.75 of the pitch, swinging after it; the head bone takes the rest. `tests/aim_test.tscn` shows three bodies side on.
+- **Body angles (CG_PlayerAngles, 2026-10-24):** `Q3Character` swings its angles (`Swing`, CG_SwingAngles) and an `Aim` SkeletonModifier3D applies them over the animation.
+  - Pitch: the torso's first bone takes 0.75 of `aim_pitch` (id degrees, positive looks down), the head the rest.
+  - Yaw (`turn`, match bodies only): the node faces the legs' yaw, `aim_yaw` plus movementOffsets[`move_dir`] (es.angles2[YAW], ps.movementDir); the torso bone turns to a quarter of the offset, the head to the aim. While the legs swing over LEGS_IDLE they play LEGS_TURN. `reset_motion()` is CG_ResetPlayerEntity (first sight, EF_TELEPORT_BIT toggle).
+  - Lean: the root bones turn about the origin (24 units up) by 0.05 degrees per unit/s of `velocity` along the legs' forward and left; the torso is turned back upright.
+  - A new clip eases in from the pose drawn last over 1000 / fps ms (`Ease`, initialLerp), before Aim.
+  - **Match clock:** with `match_clock` the AnimationTree is manual and `Q3Client.animate` calls `advance(ms)` with the match time's forward move, so bodies stop behind the pause and in paused replays and follow replay speed. The menu, cards and tests stay on idle time.
+  - Check: `tests/aim_test.tscn` (windowed, 8 checks, two shots) and `tests/body_motion_capture.tscn` (windowed spectated bot match: side shots of strafing bots, legs vs aim + offset).
 - **Gun placement (Ozmium, 2026-10-23: "too distracting" near the center):** Quake 3 framed the gun for 4:3, so on a wide screen it sat almost in the middle. Gameplay > Widescreen gun placement (on by default) scales its camera-space x by aspect / (4/3); Gun side offset is cg_gunY. Check with `tests/weapon_fx.tscn -- out=... window=3440x1440` (the out folder must exist).
 - **View weapon:** every gun is made once at match start (`_register_guns`). The hand pose eases into each torso animation over one frame time (CG_RunLerpFrame's initialLerp); `tests/weapon_switch_test.tscn` checks for snaps.
 - **Ragdolls:**
@@ -248,6 +257,7 @@ ode_modules`.
   - Tests: `ownership_test.tscn` (headless) and `setup_gate_test.tscn` (windowed; fires `files_dropped` itself). Both save and restore the remembered folder.
   - Don't make a gate test wait past the splash's fade: `after_splash` changes scene and frees the test before it prints. After an ERR_FATAL the engine is stopped until Godot restarts.
 - **Server loop:** never call `SV_Frame` without a map. In DEDICATED builds it does `Sys_Sleep(-1)` and blocks forever; `q3_host_frame` checks `com_sv_running`.
+  - `q3_host_frame` also steps `com_frameTime` (Com_Frame's clock) by the frame: `SV_MapRestart_f` ignores a `map_restart` while it equals `sv.serverId`, so until 2026-10-24 the warmup's and the duel intermission's restarts never ran and the match froze. A restart jumps `sv.time` 400 ms; Gameplay catches its usercmd clock up on `map_restart`. Check with `tests/warmup_restart_test.tscn`.
 - **Local player:** a loopback client set up like `SV_DirectConnect` that never reads its packets.
   - Usercmds go straight to `SV_ClientThink`.
   - Snapshots are read from `client->frames[]` after `SV_SendClientMessages`.
@@ -335,6 +345,22 @@ ode_modules`.
 - **Tone mapping:** maps stay Filmic (Ozmium, 2026-10-23: AgX drains the fire color, torches went pale white, and was about 25% darker); the menu showcase and material browser use AgX.
 - **First spawn:** the local client's userinfo has `ip localhost`, as SV_DirectConnect gives it. Its first spawn therefore takes the spawn point marked initial (q3dm0: the mirror room).
 - **setviewpos** is a teleport with a 400 ups shove forward. Tests that place the player need room, or must face away and turn.
+
+## Multiplayer facts (hard-won, M1-M3 done 2026-10-24)
+
+- **Plan and progress:** `MULTIPLAYER_PLAN.md`. Code: patch `0006-q3core-net-transport.patch`, `q3_host.c` (the "network transport" section), `engine/q3_netclient.c`, `src/q3net.cpp` (`Q3Net`), `godot/scripts/net/` (`Q3Transport`, `Q3NetPipe`, `Q3NetFeed`), `Session.join`, Gameplay's `_start_join` / `_process_net` / `_present_frame`.
+- **Remote players speak id's own protocol** over packets Godot carries; peers are fake `10.77.x.x` addresses. The netchan writes the `net_qport` cvar (set the client's qport from it). `com_frameTime` starts at 1000 (serverId 0 would hide the gamestate). The host calls `SV_SendQueuedPackets` each frame (gamestate fragments).
+- **The net client** keeps one connection per process, its own snapshot ring and usercmd ring; prediction reads rules from serverinfo and systeminfo configstrings (`nc_cvar`), so a pure client needs no server cvars.
+- **Net feed:** others' scores come from the `scores` command (requested once a second), teams and names from configstrings; no item timers online yet.
+- **M4 (WebRTC, 2026-10-24):** `godot/addons/webrtc_native` (`python tools/fetch_webrtc.py`), `scripts/net/q3_rtc_*.gd`, `q3_net_join.gd`, `q3_host_net.gd`, the hub's `net_*` messages (`online/src/hub.ts`, README "Matches"). Relay-only is enforced in signaling because the extension lacks `iceTransportPolicy`; a `Q3RtcPeer` kept alive by its own signals hangs the process at exit (libdatachannel), so `close()` breaks the cycle. Local runs need `online/.dev.vars` with `NET_DIRECT=1`. Tests: `online/test/match.mjs`, `rtc_loopback_test`, `net_host_test`.
+- **M5 (menu, 2026-10-24):** Server Browser, Create Match > Online, Friends/party Join and vote kick (see MULTIPLAYER_PLAN.md M5). Quake 3's own voting does the vote (`callvote kick <name>`, F1/F2, `CS_VOTE_*` on the HUD); the host game turns "X was kicked" into the hub's 30-minute ban. `Online.net_join` reuses relay credentials for 45 minutes. This PC has no `work/_ui`, so `build_webui.py` can't run here: build with `cd webui && npm run build` (needs `app/fonts/q3_prop.ttf`, copied from `godot/library/ui/fonts`) and copy `out/` into `godot/webui` except `q3/`. Tests: `net_menu_test`.
+- **M6 (matchmaking and ranked, 2026-10-24):** rules in `online/src/ranked.ts`, queue and results in `hub.ts`, the game side in `Online` (`queue_join`, `_on_match_found`, `match_report`), `Q3MatchSetup.from_found`, `Session.matchmade`, Gameplay's `_report_match`, the web `QueueBar`, Quick Play and Ranked pages. A test that queues a player and never sends `match_joined` gets that identity locked out for 5 minutes (the hub voids the match after 90 s): send it, or clear `online/.wrangler/state`. A selector that returns a new array makes `useSyncExternalStore` loop forever (it blanked the Quick Play page): select the raw value and filter outside. Tests: `ranked_unit.mjs`, `ranked.mjs`, `matchmaking_test`.
+- **M7 (dedicated servers, 2026-10-24):** `-- dedicated=<json>` (`scenes/dedicated`), launcher `scripts/net/q3_dedicated_launcher.gd`, bridge `dedicated_*`, web `DedicatedPage`. Patch 0007 (UDP accessor, authorize server skipped) and `q3_net_udp_open`, polled with `NET_Sleep(0)` (there is no `Sys_GetPacket` in ioquake3). Server paks: `Q3_BASEQ3`. A Linux build, `server/Dockerfile` and the Dedicated Server export are written but never run (no Linux here). Tests `dedicated_test`, `udp_test`, `net_loopback_test` (rcon). See MULTIPLAYER_PLAN.md M7 and `server/README.md`.
+- **M8 (tuning, 2026-10-24):** defaults `Q3NetFeed.SNAPS` 42 (24 ms snapshots: the server's 8 ms frames make snaps 40 32 ms) and `MAXPACKETS` 60; measured cost and the guard's open problems in MULTIPLAYER_PLAN.md M8. `tests/relay_bandwidth.tscn` + `tools/perf/turn_meter.py` measure what Cloudflare bills (live hub; the meter must make a new upstream socket per client run, or the relay answers 437). `tests/net_lag_test.tscn` is the two-process test; `Q3LagTransport` must keep packet order (reordering acts as heavy loss and breaks fragmented snapshots). A dedicated server keeps its files beside its config (`Q3Dedicated.dir`), so tests use their own folder. A primed client must make a null usercmd every frame until it's active (it stopped at the first not-active snapshot and hung loading). The clock's open problems (Interpolation eaten by the drift; the join jump) are in MULTIPLAYER_PLAN.md M8 "Open": don't switch to Quake 3's own extrapolation test without a fix for its mid-match resets under jitter plus loss.
+  - **Relay usage guard (hub, not deployed):** needs secrets `TURN_ANALYTICS_TOKEN` + `TURN_ACCOUNT_ID` (MULTIPLAYER_PLAN.md M8). The Durable Object's one alarm serves the queue and the guard (`wakeAt`); never set it from another event while `alarm()` runs. `test/relay_guard.mjs` uses random ports (stale workerd keeps old ones).
+  - **Credential handover:** `Q3RtcTransport` renews its connection before its credentials (or the host's) end; `Q3HostNet` swaps the player's peer in place (`renewed` signal). `Q3Net.hold_entry` keeps a joining client out of the world until Gameplay has loaded the map (`_preload_join_map`). net_loopback_test turns `g_knockback` off and clears leftover bots: knockback is never predicted.
+  - **A stale `wrangler dev` blocks the local hub silently:** two workerd processes can both listen on 8787 and every request hangs (`curl` times out); `dedicated_test` then reads as "stuck in 'spawn'". Stop every `wrangler` node process and every workerd, then start one.
+- **Tests:** `net_loopback_test` (`-- seconds=14 latency=40 loss=0.05`; snapshots must equal `Q3Net.server_frame`, which round-trips the server's states through msg.c's field widths) and `net_play_test` (windowless Gameplay join).
 
 ## Replay facts (hard-won)
 
@@ -439,6 +465,22 @@ ode_modules`.
 - Wrap known long blocking work in `Diagnostics.expect_stall(true/false)` (tests that `OS.execute` children do). The freeze threshold is 15 s.
 - **Check:** `tests/diagnostics_test.tscn` (headless, 8 checks, about 40 s). Child processes crash through a q3core null write, `abort()`, a stack overflow and `OS.crash`, plus a 17 s freeze. The reports stay, marked as test runs, with no menu notice.
 
+## Performance facts (hard-won)
+
+- **Measured 2026-10-24** on an RTX 3070 Ti / Ryzen 9 5950X, 5 bots: q3dm6 went from 38 to 117-169 fps, q3dm17 from 45 to 170, and stalls (frames over 25 ms) from 1-2 a second to a few a minute. Check with `tests/match_perf.tscn`.
+- **Map lights don't cast run-time shadows** (`Q3Map._apply_settings`; Graphics > Shadows Ultra keeps them):
+  - Static (baked) lights skip lightmapped surfaces but still light players, items, guns and the fog in real time, so their shadows only show there, barely.
+  - Godot keeps a positional shadow dirty while any caster in range has an animated material, and every world shader is animated. So all of a map's lamps (180 to 4,000) redrew every frame: 17,000 draw calls and 10 ms of render CPU.
+  - The bake still uses the scene's `shadow_enabled = true`.
+- **`load()` doesn't keep anything:** Godot frees a resource when its last user goes. Effects loaded their texture and shader per shot, so the next shot read and compiled them again (33 ms per machine-gun shot). Character models reloaded on every respawn (28 ms).
+  - Effect resources go through `Q3.held(path)`, models through `Q3.prop_scene` / `character_scene`, held while a `Q3Client` is in the tree.
+  - Built-in materials share a generated shader only while one exists: `Q3.keep()` one per kind (particles).
+- **First use compiles:** the first pickup, gib, rocket blast or burning corpse of a run compiled its shaders mid-fight (40-200 ms). `Q3FX.warm_up` builds each effect once, out of sight, in `Q3Client._ready` (~0.4 s of loading).
+- **What's left:** bot AI spikes in the server frame (they're gone with 0 bots) and ragdoll setup at a death, each 25-45 ms, a few a minute.
+- **Measuring a release build without rebuilding it** (`tools/perf/`): an `override.cfg` beside a hard-linked copy of the exe gives it its own user folder and a probe autoload. A stand-in Diagnostics autoload (first in the list) packs edited `.gd` files with `.remap` files pointing at them into a pack, and mounts it before other scripts load.
+  - A script already loaded from the build's `.gdc` recompiles from its tokens, not new source, and `diagnostics.gd` names `Q3`, so the stand-in must not extend it.
+  - Release builds skip GDScript's runtime checks: a missing method fails silently, and a bad member read can segfault.
+
 ## Pipeline facts (hard-won)
 
 - **MD3 format:**
@@ -449,6 +491,7 @@ ode_modules`.
 - **Coordinates:** id Tech 3 is +X forward, +Y left, +Z up. The player origin sits 24 units above the feet. 32 units = 1 m (the GAME project's scale).
 - **Leg frame numbering:** in lower.md3, the file frame is the cfg frame minus `skip`, where skip = LEGS_WALKCR.first − TORSO_GESTURE.first.
 - **Subdivided UVs (2026-10-23):** Loop subdivision moves the vertices, so linearly interpolated uv let the paint slide across the rounded surface (zigzag waves on the railgun, up to ~100 texels). `meshops.subdivide_uv` gives each smoothed vertex the uv the md3 triangle shows straight under it, averaged per (vertex, uv island); `build_props.py` and `build_mesh_data.py` both use it. Check with a before/after `tests/prop_shot.tscn -- model=... window=1600x1000`.
+- **Team and alternate skins (2026-10-24):** `tools/build_skins.py` runs build_mesh_data `--skin` and make_pbr for every skin Quake 3 would load (red, blue, the bots' own: 122 images for 24 models; Brandon, Carmack, Cash, Paul J, Xian and Tim have none, Hunter's harpy names images no pak ships). rig.json "skins" maps each default material stem to the skin's; `Q3Character.set_skin()` swaps surface override materials (bright skins and burning read them), and `Q3Client._look()` picks model and skin as CG_FindClientModelFile does, Sarge in team colors for a model without them. make_pbr's "heat" class took the red team's paint for glowing heat, so a skin image glows only where its default image does (`heat_from`). Check with `tests/skins_capture.tscn`.
 - **Texture lookup** follows the engine: exact path, then the .tga/.jpg swap, then the first `map` of a shader with that name.
 - **Rig fit:**
   - Skinning decomposition, run on lower and upper frames separately.

@@ -6,6 +6,9 @@ extends Node3D
 ## the player sees, and Gameplay moves its model_<n> movers from the game's entity states.
 
 const WORLD_LAYER := 1 << 10   ## the map's own geometry: all the reflection probes capture
+## the static world only, not the movers: what impact marks land on (tr_marks.c R_MarkFragments
+## walks the world BSP alone, so marks never paint players, items, guns or doors)
+const MARK_LAYER := 1 << 11
 const PROBE_BLEND := 0.5        ## meters each probe reaches past its box, fading into its neighbors
 const SHAFT_DENSITY := 0.0015   ## the faint haze that shows the sun's light shafts
 const SHAFT_LIGHT := 0.01       ## the shaft light's own energy on surfaces: next to nothing (the sun is baked)
@@ -17,6 +20,7 @@ const FOG_LIGHT_SCALE := 0.8    ## the mist a little under full strength (Ozmium
 var portals: Array[Q3Portal] = []   ## its mirrors and portal views
 var _info: Dictionary = {}
 var _shaft: DirectionalLight3D      ## lights the haze for light shafts (sun maps only)
+var _lamps: Array[Light3D] = []     ## the map's baked omni and spot lights (see _apply_settings)
 
 
 func _ready() -> void:
@@ -24,6 +28,8 @@ func _ready() -> void:
 	var geo := get_node_or_null("Geometry")
 	for gi in (geo.find_children("*", "GeometryInstance3D", true, false) if geo else []):
 		(gi as GeometryInstance3D).layers |= WORLD_LAYER
+		if not String(geo.get_path_to(gi)).begins_with("model_"):
+			(gi as GeometryInstance3D).layers |= MARK_LAYER
 	_add_probes()
 	# The map's lights also glow in the volumetric fog: the mist. The strongest would flood a room
 	# (Lost World's fire column, energy 64, drowned its courtyard in yellow, 2026-10-23), so each
@@ -32,6 +38,8 @@ func _ready() -> void:
 	for l in (lights.find_children("*", "Light3D", true, false) if lights else []):
 		var light := l as Light3D
 		light.light_volumetric_fog_energy = FOG_LIGHT_SCALE * minf(1.0, FOG_LIGHT_CAP / maxf(light.light_energy, 0.001))
+		if not light is DirectionalLight3D:
+			_lamps.append(light)
 	_add_shaft_light()
 	Settings.environment_changed.connect(_apply_settings)
 	_apply_settings()
@@ -41,6 +49,14 @@ func _ready() -> void:
 ## always drawn; the light shafts' haze follows Graphics > Volumetric fog, and needs Shadows on
 ## (without the map's shadows the haze would glow evenly, with no shafts).
 func _apply_settings() -> void:
+	# The baked lights' shadows were for the bake. At run time a static light skips the lightmapped
+	# world and lights only players, items, guns and the mist, where its shadow hardly shows; but
+	# Godot redraws a shadow every frame while an animated material is in reach (the world shaders
+	# all are), so 180-4,000 shadowed lamps a map cost most of the frame: q3dm6 ran at 38 fps with
+	# them and 222 without (2026-10-24). Ultra keeps them.
+	var lamp_shadows: bool = Settings.get_value("graphics/shadows") == "ultra"
+	for l in _lamps:
+		l.shadow_enabled = lamp_shadows
 	var we := get_node_or_null("WorldEnvironment") as WorldEnvironment
 	if we == null or we.environment == null:
 		return

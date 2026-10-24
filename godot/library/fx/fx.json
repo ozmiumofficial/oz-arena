@@ -382,11 +382,11 @@
     "model": "weaphits/boom01",
     "duration": 600,
     "radius": 32,
-    "light": 300,
+    "light": 0,
     "light_color": [
-     0.2,
      1,
-     0.2
+     1,
+     0
     ],
     "mark": "mark_burn",
     "mark_radius": 32,

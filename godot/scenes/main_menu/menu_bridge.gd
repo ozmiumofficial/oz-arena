@@ -7,10 +7,14 @@ extends RefCounted
 ##                 cancel_capture, clear_bind, export_code, import_code, validate, start, continue,
 ##                 map_editor, quit, profile_preview, open_url, social {op, ...}
 ##                 card_set {slot, id}, card_showcase {kind: stats|badges, ids}, card_seen {keys}, taunt {id}
+##                 net_browse {region?}, net_join {host, password?}, net_cancel (online matches, MULTIPLAYER_PLAN.md M5)
+##                 queue_join {modes, ranked}, queue_leave (matchmaking, M6)
+##                 dedicated_get, dedicated_start {config}, dedicated_stop, dedicated_command {line}, dedicated_autostart {on} (M7)
 ##                 pause menu: resume, leave_match, restart_match, ready_up, crosshair_preview {weapon, hit}
 ##   Godot -> web  init, campaign, changed, conflicts, capture_started, bind_captured, capture_cancelled,
 ##                 validation, start_failed, code, imported, subject, nav, input_mode,
 ##                 social {status, reason, state, chat}, social_notice, party_chat, profile {profile},
+##                 net_matches {matches, region}, net_join_state {status, reason, host}, queue {state, ratings, rtt}, dedicated {config, status, autostart},
 ##                 leaderboard {board} (asked for with social {op: "leaderboard", board, scope})
 ##                 pause menu: pause {match}
 
@@ -43,6 +47,9 @@ func _init() -> void:
 	Online.notice.connect(func(text, tone): post.emit({"type": "social_notice", "text": text, "tone": tone}))
 	Online.party_chat.connect(func(m): post.emit({"type": "party_chat", "from": m.get("from", {}), "text": m.get("text", ""), "at": m.get("at", 0)}))
 	Online.leaderboard.connect(func(b): post.emit({"type": "leaderboard", "board": b}))
+	Online.queue_changed.connect(func(): post.emit(queue_payload()))
+	Online.matches.connect(func(m): post.emit({"type": "net_matches", "matches": m.get("matches", []), "region": m.get("region", "")}))
+	Online.join_state.connect(func(s): post.emit({"type": "net_join_state", "status": s.get("status", ""), "reason": s.get("reason", ""), "host": s.get("host", "")}))
 	# the last run crashed: say so once (Diagnostics wrote the report at this launch)
 	if Diagnostics.notice != "":
 		var text := Diagnostics.notice
@@ -61,6 +68,7 @@ const TYPES := ["ready", "sound", "hover", "page", "layout", "set", "reset", "re
 	"open_url", "modes", "bots", "banner", "crosshairs", "cinematics",
 	"resume", "leave_match", "restart_match", "ready_up", "crosshair_preview",
 	"card_set", "card_showcase", "card_seen", "taunt",
+	"net_browse", "net_join", "net_cancel", "queue_join", "queue_leave", "dedicated_get", "dedicated_start", "dedicated_stop", "dedicated_command", "dedicated_autostart",
 	"spectate", "replays", "replay_watch", "replay_rename", "replay_favorite", "replay_delete", "replay_folder"]
 ## Hosts open_url may send the player's browser to; nothing else leaves the game.
 const URL_HOSTS := ["store.steampowered.com", "steamcommunity.com", "github.com", "discord.gg"]
@@ -87,6 +95,7 @@ func handle(m: Dictionary) -> void:
 			post.emit(init_payload())
 			post.emit({"type": "conflicts", "map": _conflict_map()})
 			post.emit(social_payload())
+			post.emit(queue_payload())
 			received_ready.emit()
 		"sound":
 			var n := String(m.get("name", ""))
@@ -168,6 +177,46 @@ func handle(m: Dictionary) -> void:
 			# friends and parties: the Online autoload passes these on to the hub
 			if not Online.request(String(m.get("op", "")), m):
 				UiSound.buzz()
+		"net_browse":
+			if not Online.net_browse(String(m.get("region", ""))):
+				post.emit({"type": "net_matches", "matches": [], "region": "", "offline": true})
+		"net_join":
+			var host := String(m.get("host", ""))
+			if host.length() == 20 and Online.client.status == "online":   # a player id: 20 hex digits
+				Online.net_join(host, String(m.get("password", "")).left(40))
+			else:
+				UiSound.buzz()
+				post.emit({"type": "net_join_state", "status": "failed", "reason": "Not connected to the online service.", "host": host})
+		"net_cancel":
+			Online.net_cancel()
+		"queue_join":
+			var modes: Array = []
+			for x in (m.get("modes", []) if m.get("modes", []) is Array else []):
+				if String(x) in ["duel", "ffa", "tdm", "ctf"]:
+					modes.append(String(x))
+			if modes.is_empty() or Online.client.status != "online" or not Online.queue_join(modes, bool(m.get("ranked", false))):
+				UiSound.buzz()
+				post.emit({"type": "queue", "state": {"status": "refused", "reason": "Not connected to the online service." if Online.client.status != "online" else "Pick a playlist."}, "ratings": Online.ratings, "rtt": Online.client.rtt})
+		"queue_leave":
+			Online.queue_leave()
+		"dedicated_get":
+			post.emit(dedicated_payload())
+		"dedicated_start":
+			var c: Variant = m.get("config", {})
+			var why := Q3DedicatedLauncher.start(_dedicated_config(c as Dictionary) if c is Dictionary else Q3Dedicated.load_config(Q3Dedicated.config_path()))
+			if why != "":
+				UiSound.buzz()
+				post.emit({"type": "social_notice", "text": why, "tone": "warn"})
+			post.emit(dedicated_payload())
+		"dedicated_stop":
+			Q3DedicatedLauncher.stop()
+			post.emit(dedicated_payload())
+		"dedicated_command":
+			Q3DedicatedLauncher.command(String(m.get("line", "")).left(200))
+		"dedicated_autostart":
+			if not Q3DedicatedLauncher.set_autostart(bool(m.get("on", false))):
+				UiSound.buzz()
+			post.emit(dedicated_payload())
 		"resume":
 			resume_requested.emit()
 		"leave_match":
@@ -312,11 +361,19 @@ func init_payload() -> Dictionary:
 	return {"type": "init", "version": String(ProjectSettings.get_setting("application/config/version", "")),
 		"tabs": Q3SettingsSchema.TABS, "schema": schema, "values": values, "modes": modes,
 		"rules": Q3GameMode.RULES, "modifiers": Session.modifiers, "maps": Session.maps, "bots": Session.bots,
-		"skills": Q3MatchSetup.SKILLS, "characters": Array(Q3.characters), "banner": banner,
+		"skills": Q3MatchSetup.SKILLS, "characters": Array(Q3.characters), "skins": skins_payload(), "banner": banner,
 		"crosshairs": Q3.load_json(Q3.LIB + "ui/ui.json").get("crosshairs", []),
 		"continue": last.summary() if last else "", "m_yaw": Settings.M_YAW, "context": context, "match": match_info,
 		"progress": {"level": int(Q3Profile.level()["level"]), "ranked_level": Q3Profile.RANKED_LEVEL}, "campaign": Session.campaign.to_dict(), "cinematics": cinematics(),
 		"cards": cards_payload(), "profile": Q3Profile.menu_payload()}
+
+
+## Each character's skins after default (Q3Character.skins_of): the Profile page's Skin choices.
+static func skins_payload() -> Dictionary:
+	var out := {}
+	for c in Q3.characters:
+		out[c] = Array(Q3Character.skins_of(c).slice(1))
+	return out
 
 
 ## The Replays page's list: every replay in user://replays and every Quake 3 demo found, newest
@@ -378,6 +435,37 @@ func profile_payload() -> Dictionary:
 
 
 ## Friends and party: connection status, the hub's last picture, and the party chat.
+## What the page may set of a dedicated server's config: known keys, bounded values (the file is read by another process).
+func _dedicated_config(c: Dictionary) -> Dictionary:
+	var out := Q3Dedicated.DEFAULTS.duplicate(true)
+	for k in ["name", "password", "motd", "rcon_password"]:
+		out[k] = String(c.get(k, out[k])).strip_edges().left(60)
+	out["mode"] = String(c.get("mode", "ffa")) if String(c.get("mode", "")) in Session.MODES else "ffa"
+	var rot: Array = []
+	for x in (c.get("rotation", []) if c.get("rotation", []) is Array else []):
+		if not Session.map_info(String(x)).is_empty() and rot.size() < 32:
+			rot.append(String(x))
+	out["rotation"] = rot
+	out["max_players"] = clampi(int(c.get("max_players", 16)), 2, 32)
+	out["bots"] = clampi(int(c.get("bots", 0)), 0, 16)
+	out["bot_skill"] = clampi(int(c.get("bot_skill", 3)), 1, 5)
+	out["idle_sleep"] = bool(c.get("idle_sleep", true))
+	out["online"] = bool(c.get("online", true))
+	# not on the page, but kept from the saved config it was loaded from (a hand-edited fraglimit, a UDP port)
+	out["rules"] = c["rules"] if c.get("rules") is Dictionary else {}
+	out["udp_port"] = int(c.get("udp_port", 0))
+	return Q3Dedicated.clean_config(out)
+
+
+func dedicated_payload() -> Dictionary:
+	return {"type": "dedicated", "config": Q3Dedicated.load_config(Q3Dedicated.config_path()), "status": Q3DedicatedLauncher.status(),
+		"autostart": Q3DedicatedLauncher.autostart_enabled()}
+
+
+func queue_payload() -> Dictionary:
+	return {"type": "queue", "state": Online.queue_state, "ratings": Online.ratings, "rtt": Online.client.rtt}
+
+
 func social_payload() -> Dictionary:
 	var d := Online.to_dict()
 	d["type"] = "social"

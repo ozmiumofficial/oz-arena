@@ -4,7 +4,7 @@
 // Godot's Online autoload holds the connection; everything here is drawn from its "social" messages.
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { useMenu, setSocialOpen, toast } from "@/lib/store";
+import { useMenu, setSocialOpen, toast, netJoin } from "@/lib/store";
 import { useLayer } from "@/lib/nav";
 import { sfx } from "@/lib/sound";
 import { cn } from "@/lib/cn";
@@ -295,6 +295,9 @@ function PartySection({ sc }: { sc: Social }) {
             sub={statusLine(m)}
             dim={!m.online}
           >
+            {m.id !== st.me.id && m.online && m.join.startsWith("match:") && (
+              <Button small onClick={() => netJoin(m.join.slice(6))}>Join</Button>
+            )}
             {lead && m.id !== st.me.id && (
               <>
                 <Button small onClick={() => social("party_promote", { id: m.id })}>Lead</Button>
@@ -395,8 +398,8 @@ function FriendsList({ sc }: { sc: Social }) {
                       Invite
                     </Button>
                   )}
-                  {f.join && (
-                    <Button small refuse="Joining a friend's match arrives with multiplayer." onRefuse={(why) => toast(why, "warn")}>
+                  {f.online && f.join.startsWith("match:") && (
+                    <Button small onClick={() => netJoin(f.join.slice(6))}>
                       Join
                     </Button>
                   )}

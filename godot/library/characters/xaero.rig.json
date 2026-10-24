@@ -413,5 +413,21 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "xaero": "blue",
+    "xaero_h": "blue_h"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "xaero": "red",
+    "xaero_h": "red_h"
+   },
+   "material_modes": {}
+  }
+ }
 }

@@ -392,5 +392,43 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "band": "blue"
+   },
+   "material_modes": {}
+  },
+  "krusade": {
+   "materials": {
+    "band": "krusade",
+    "cigar": "null"
+   },
+   "material_modes": {
+    "null": {
+     "blend": "add",
+     "two_sided": false
+    }
+   }
+  },
+  "red": {
+   "materials": {
+    "band": "red"
+   },
+   "material_modes": {}
+  },
+  "roderic": {
+   "materials": {
+    "band": "roderic",
+    "cigar": "null"
+   },
+   "material_modes": {
+    "null": {
+     "blend": "add",
+     "two_sided": false
+    }
+   }
+  }
+ }
 }

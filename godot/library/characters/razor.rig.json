@@ -408,5 +408,35 @@
    "blend": "add",
    "two_sided": false
   }
+ },
+ "skins": {
+  "blue": {
+   "materials": {
+    "h_razor": "h_blue",
+    "razor": "blue"
+   },
+   "material_modes": {}
+  },
+  "id": {
+   "materials": {
+    "h_razor": "h_id",
+    "razor": "id"
+   },
+   "material_modes": {}
+  },
+  "patriot": {
+   "materials": {
+    "h_razor": "h_patriot",
+    "razor": "patriot"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "h_razor": "h_red",
+    "razor": "red"
+   },
+   "material_modes": {}
+  }
  }
 }

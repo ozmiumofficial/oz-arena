@@ -2,10 +2,11 @@ extends Node
 ## Headless death cam check (REPLAY_PLAN.md R6): a devmap free-for-all on q3dm17 where a second
 ## local client ("Killer", given everything) machineguns the test player (no gib). Then: the camera
 ## leaves the eyes for the player's own ragdoll, behind and above it; after a second KILLED BY with
-## Killer's card and weapon; id's respawn timing (fire does nothing for 1.7 s, then respawns); the
-## body stays as a corpse; /kill (always a gib) builds no body and shows id's obituary line, no
-## card; with the setting off the camera stays in the dead view.
-##   godot --headless --path . res://tests/death_cam_test.tscn
+## Killer's card and weapon; the ruleset's respawn timing (fire does nothing until the delay, 2.1 s
+## under Quake Live's rules or id's 1.7 s, then respawns); the body stays as a corpse; /kill (always
+## a gib) builds no body and shows id's obituary line, no card; with the setting off the camera
+## stays in the dead view.
+##   godot --headless --path . res://tests/death_cam_test.tscn [-- ruleset=ql|classic]
 ##   godot --path . res://tests/death_cam_test.tscn -- out=C:/temp/dcam window=1920x1080   (also saves _body.png, _card.png)
 ## Prints "DEATH CAM TEST ok|FAILED"; exit code 1 on failure.
 
@@ -18,12 +19,18 @@ var _aim := Vector3.ZERO       ## the killer's usercmd angles
 var _fire := false
 var _saved: Dictionary = {}
 var _out := ""
+var _ruleset := ""             ## ruleset=: g_ruleset for this run (the game's default, Quake Live's, if empty)
 
 
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("out="):
 			_out = a.substr(4)
+		if a.begins_with("ruleset="):
+			_ruleset = a.substr(8)
+	if _ruleset != "":
+		Q3Host.start()
+		Q3Server.set_cvar("g_ruleset", _ruleset)   # latched: before the map
 	for k in ["gameplay/death_cam", "gameplay/record_replays"]:
 		_saved[k] = Settings.get_value(k)
 	Settings.set_value("gameplay/death_cam", true)
@@ -131,12 +138,15 @@ func _run() -> void:
 	if not _dead():
 		return
 	var died := Q3Server.time()
-	# fire right away: id's game keeps you down for 1.7 s
+	# the respawn delay: g_respawn_delay_min under Quake Live's rules (2.1 s), id's 1.7 s otherwise
+	var delay := int(Q3Server.cvar("g_respawn_delay_min")) if _game.ql_rules() else 1700
+	var secs := "%.1f s" % (delay / 1000.0)
+	# fire right away: the game keeps you down for the delay
 	Input.action_press("q3_attack")
 	await _frames(3)
 	Input.action_release("q3_attack")
 	await _frames(3)
-	_check("fire before 1.7 s doesn't respawn (id's timing)", _dead())
+	_check("fire before %s doesn't respawn (%s)" % [secs, Q3Server.cvar("g_ruleset")], _dead())
 	_check("the line counts down to the respawn (%s)" % _game.hud.respawn_text, _game.hud.respawn_text.begins_with("RESPAWN IN"))
 	var body := _game.client.own_body
 	_check("your own body goes limp where you died", body != null and is_instance_valid(body) and body.ragdolled)
@@ -153,8 +163,8 @@ func _run() -> void:
 	_check("then KILLED BY with the killer's card (%s, %s)" % [card.get("name", ""), card.get("weapon", "")],
 		String(card.get("name", "")).contains("Killer") and card.has("card") and _game.hud._killer_card.visible
 		and String(card.get("weapon", "")) == "WITH THE MACHINEGUN")
-	await _wait_ms(maxi(1800 - (Q3Server.time() - died), 0))
-	_check("after 1.7 s the line says fire (%s)" % _game.hud.respawn_text, _game.hud.respawn_text.begins_with("FIRE TO RESPAWN"))
+	await _wait_ms(maxi(delay + 100 - (Q3Server.time() - died), 0))
+	_check("after %s the line says fire (%s)" % [secs, _game.hud.respawn_text], _game.hud.respawn_text.begins_with("FIRE TO RESPAWN"))
 	Input.action_press("q3_attack")
 	await _wait_ms(200)
 	Input.action_release("q3_attack")

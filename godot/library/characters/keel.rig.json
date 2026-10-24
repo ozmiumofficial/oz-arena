@@ -367,5 +367,21 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "keel": "blue",
+    "keel_h": "blue_h"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "keel": "red",
+    "keel_h": "red_h"
+   },
+   "material_modes": {}
+  }
+ }
 }

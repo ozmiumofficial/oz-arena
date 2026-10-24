@@ -386,5 +386,40 @@
    "blend": "add",
    "two_sided": true
   }
+ },
+ "skins": {
+  "blue": {
+   "materials": {
+    "xray": "blue"
+   },
+   "material_modes": {
+    "blue": {
+     "blend": "mask",
+     "two_sided": true
+    }
+   }
+  },
+  "bones": {
+   "materials": {
+    "xray": "stiff"
+   },
+   "material_modes": {
+    "stiff": {
+     "blend": "mask",
+     "two_sided": true
+    }
+   }
+  },
+  "red": {
+   "materials": {
+    "xray": "red"
+   },
+   "material_modes": {
+    "red": {
+     "blend": "mask",
+     "two_sided": true
+    }
+   }
+  }
  }
 }

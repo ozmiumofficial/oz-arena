@@ -8,6 +8,7 @@ const SPLASH := "res://scenes/splash/splash.tscn"
 const MAIN_MENU := "res://scenes/main_menu/main_menu.tscn"
 const GAMEPLAY := "res://scenes/gameplay/gameplay.tscn"
 const MAP_EDITOR := "res://scenes/map_editor/map_editor.tscn"
+const DEDICATED := "res://scenes/dedicated/dedicated.tscn"
 const MODES := ["ffa", "duel", "tdm", "ctf", "clan_arena", "freeze_tag", "instagib"]
 const CINEMATIC := "res://scenes/cinematic/cinematic.tscn"
 const LAST_SETUP := "user://last_match.json"
@@ -27,6 +28,14 @@ var playtest: Dictionary = {}
 ## A replay Gameplay plays instead of a match: {path, at (ms into it, optional), back (the menu page
 ## to return to)}. Empty for a match.
 var replay: Dictionary = {}
+## A match Gameplay joins over the network instead of running one: {transport: Q3Transport, player: {...},
+## snaps, maxpackets}. Empty for a match or a replay.
+var join: Dictionary = {}
+## The matchmaker's match_found for the match being played (host or joiner), so Gameplay joins it, reports its result, and Online
+## can tell the menu what happened. Empty for every other match.
+var matchmade: Dictionary = {}
+## `-- dedicated=<config.json>`: this process is a dedicated server (scenes/dedicated), no menu, no window needed.
+var dedicated := ""
 ## The page the main menu opens on next ("" the main page): leaving a replay goes back to Replays.
 var menu_page := ""
 var dry_run := false               ## tests: record scene requests instead of changing scenes
@@ -105,6 +114,8 @@ func start_match(s: Q3MatchSetup) -> PackedStringArray:
 		return errs
 	setup = s
 	replay = {}
+	join = {}
+	matchmade = s.matchmade
 	Diagnostics.set_context("match", s.summary().replace("\n", "; "))
 	# a play-test isn't the menu's "continue": its map and drawing exist only for the editor
 	var f := FileAccess.open(LAST_SETUP, FileAccess.WRITE) if s.source != "editor" else null
@@ -112,6 +123,21 @@ func start_match(s: Q3MatchSetup) -> PackedStringArray:
 		f.store_string(JSON.stringify(s.to_dict(), " "))
 	_go(GAMEPLAY)
 	return errs
+
+
+## Joins someone's match over the network (Q3NetJoin made the transport): Gameplay starts as a client.
+func join_match(transport: Q3Transport, player := {}) -> void:
+	setup = null
+	replay = {}
+	playtest = {}
+	join = {"transport": transport, "player": player}
+	if not matchmade.is_empty():
+		var me := String(Online.client.state.get("me", {}).get("id", ""))
+		for p in matchmade.get("players", []):
+			if String(p.get("id", "")) == me:
+				join["teampref"] = {1: "red", 2: "blue"}.get(int(p.get("team", 0)), "auto")
+	Diagnostics.set_context("match", "online")
+	_go(GAMEPLAY)
 
 
 ## Plays a replay file in the Gameplay scene (REPLAY_PLAN.md R2). `at`: ms into the match to start
@@ -195,6 +221,11 @@ func after_splash() -> void:
 	if replay.has("clip"):
 		_go(GAMEPLAY)   # a clip render: straight to the replay
 		return
+	for a in OS.get_cmdline_args() + OS.get_cmdline_user_args():
+		if String(a).begins_with("dedicated="):
+			dedicated = String(a).get_slice("=", 1)
+			_go(DEDICATED)
+			return
 	var launch := {}
 	# after "--", or bare: an exported game's console wrapper passes them on without the "--"
 	for a in OS.get_cmdline_args() + OS.get_cmdline_user_args():
@@ -268,8 +299,10 @@ func _notification(what: int) -> void:
 
 func to_main_menu() -> void:
 	setup = null
+	matchmade = {}
 	playtest = {}
 	replay = {}
+	join = {}
 	refresh_custom_maps()   # the editor may have published (or the files gone) since
 	Diagnostics.set_context("match", null)
 	Diagnostics.set_context("editor_map", null)

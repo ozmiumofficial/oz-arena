@@ -245,6 +245,13 @@ func _draw_row(row: Dictionary, u: float) -> void:
 	var base := rr.get_center().y + 12 * u
 	S.text(_board, S.num(), Vector2(rr.position.x + rr.size.x * 0.67, base + 2 * u), str(s.get("score", 0)), int(36 * u), S.INK_HOT,
 		HORIZONTAL_ALIGNMENT_CENTER)
+	# cg_scoreboard.c CG_DrawClientScore: the flag beside a CTF flag carrier
+	var flag := int(s.get("flag", 0))
+	if flag:
+		var tex := S.icon("iconf_red" if flag & (1 << 7) else "iconf_blu")   # PW_REDFLAG is 7
+		if tex:
+			_board.draw_texture_rect(tex, Rect2(Vector2(rr.position.x + rr.size.x * 0.59 - 16 * u, rr.get_center().y - 16 * u),
+				Vector2(32, 32) * u), false)
 	S.text(_board, S.num_medium(), Vector2(rr.position.x + rr.size.x * 0.81, base - 1 * u), "%d / %d" % [s.get("frags", 0), s.get("deaths", 0)],
 		int(24 * u), Color(S.INK, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
 	var px := rr.position.x + rr.size.x * 0.93

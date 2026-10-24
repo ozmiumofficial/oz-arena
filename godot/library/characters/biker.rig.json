@@ -397,5 +397,49 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "biker": "blue",
+    "biker_h": "blue_h"
+   },
+   "material_modes": {}
+  },
+  "cadavre": {
+   "materials": {
+    "biker": "cadaver",
+    "biker_h": "cadaver_h"
+   },
+   "material_modes": {}
+  },
+  "hossman": {
+   "materials": {
+    "biker": "hossman",
+    "biker_h": "hossman_h"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "biker": "red",
+    "biker_h": "red_h"
+   },
+   "material_modes": {}
+  },
+  "slammer": {
+   "materials": {
+    "biker": "slammer",
+    "biker_h": "slammer_h"
+   },
+   "material_modes": {}
+  },
+  "stroggo": {
+   "materials": {
+    "biker": "stroggo",
+    "biker_h": "stroggo_h"
+   },
+   "material_modes": {}
+  }
+ }
 }

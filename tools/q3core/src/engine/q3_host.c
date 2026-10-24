@@ -89,10 +89,19 @@ int q3_host_init(const char *command_line) {
 		return 2;
 	}
 	q3_fatal_armed = 1;
+#ifdef _WIN32
 	Sys_PlatformInit();
+#else
+	/* sys_unix.c's Sys_PlatformInit installs ioquake3's signal handlers (SIGABRT, SIGBUS, SIGHUP ...), which
+	   would take the process's crash handling and shutdown away from Godot; only its float setup is wanted */
+	Sys_SetFloatEnv();
+#endif
 	Com_Init((char *)command_line);   /* its own setjmp(abortframe): an ERR_DROP here is fatal */
 	q3_fatal_armed = 0;
 	Cmd_AddCommand("postgame", Cmd_Postgame_f);
+	/* sv.serverId is the frame time a map loaded at; a client's first packet carries serverId 0, so a map
+	   loaded at time 0 would look like the one that client already has, and its gamestate would never be sent */
+	com_frameTime = 1000;
 	q3_ready = 1;
 	return 0;
 }
@@ -141,13 +150,22 @@ static void keep_local_clients(void) {
 	}
 }
 
+static void udp_poll(void);
+
 int q3_host_frame(int msec) {
 	int i;
 	GUARD(1, 2);
+	/* Com_Frame's clock, which nothing else here moves: SV_MapRestart_f ignores a map_restart while
+	   com_frameTime is still the serverId the map (or the last restart) took, so without this the
+	   warmup's and the intermission's restarts never ran and the game waited at level.restarted.
+	   Stepped by the frame, not the wall clock: headless runs make several frames a millisecond. */
+	com_frameTime += msec > 0 ? msec : 1;
 	Cbuf_Execute();
 	if (com_sv_running->integer) {   /* SV_Frame blocks forever (Sys_Sleep) with no map */
 		keep_local_clients();
+		udp_poll();
 		SV_Frame(msec);
+		SV_SendQueuedPackets();   /* the rest of a fragmented message (a gamestate is ~14 KB); Com_Frame does this while it idles */
 		for (i = 0; i < sv_maxclients->integer; i++) {
 			client_t *cl = &svs.clients[i];
 			if (!locals[i].active || cl->state < CS_CONNECTED)
@@ -470,4 +488,153 @@ int q3_local_predict(int client, const q3_usercmd *cmds, int count, q3_player_st
 	}
 	Com_Memcpy(out, &ps, sizeof(ps));
 	return 1;
+}
+
+/* ---------------------------------------------------------------- UDP (patch 0007) */
+
+/* The server's own door for public servers and the LAN (MULTIPLAYER_PLAN.md M7): ioquake3's UDP socket, opened on `port`
+ * and polled every host frame (Com_EventLoop is not running here). Players behind it are plain UDP clients with their
+ * real addresses, so this is for servers whose operator accepts that; getinfo / getstatus broadcasts on the LAN are
+ * answered by the server itself. */
+extern int NET_UdpOpen(void);
+static int udp_on;
+
+int q3_net_udp_open(int port) {
+	GUARD(0, 0);
+	Cvar_Set2("net_enabled", "1", qtrue);   /* IPv4 only; the cvar is latched, so it is forced */
+	Cvar_Set2("net_port", va("%d", port), qtrue);
+	NET_Config(qtrue);
+	udp_on = NET_UdpOpen();
+	UNGUARD();
+	return udp_on;
+}
+
+void q3_net_udp_close(void) {
+	GUARD_V();
+	Cvar_Set2("net_enabled", "0", qtrue);
+	NET_Config(qfalse);
+	udp_on = 0;
+	UNGUARD();
+}
+
+int q3_net_udp_is_open(void) { return udp_on; }
+
+static void udp_poll(void) {
+	if (!udp_on)
+		return;
+	NET_Sleep(0);   /* select() with no wait, then NET_Event hands each packet to the server */
+}
+
+/* ---------------------------------------------------------------- network transport (patch 0006) */
+
+/* Remote players speak id's own client protocol. Godot carries the packets (a WebRTC data channel,
+ * or a pipe in tests); each peer is a small integer that appears to the engine as the LAN address
+ * 10.77.<peer high>.<peer low>, so SV_DirectConnect, the netchan and the flood protection work as
+ * they do for a UDP client. NET_SendPacket (patch 0006) hands the packets for those addresses to
+ * q3_net_send, one queue for the server's sends and one for a net client living in this process. */
+#define NET_SLOTS 1024
+#define NET_SLOT_BYTES 2048
+#define NET_PORT 27960
+typedef struct {
+	int peer, len;
+	unsigned char data[NET_SLOT_BYTES];
+} net_packet_t;
+typedef struct {
+	net_packet_t slots[NET_SLOTS];
+	unsigned read, write;
+} net_queue_t;
+static net_queue_t net_out[2];   /* indexed by netsrc_t: NS_CLIENT, NS_SERVER */
+
+int q3_net_send(netsrc_t sock, int length, const void *data, netadr_t to) {
+	net_queue_t *q = &net_out[sock == NS_SERVER];
+	net_packet_t *p;
+	if (length <= 0 || length > NET_SLOT_BYTES)
+		return 1;   /* never longer than a netchan fragment; swallow it rather than hit a socket */
+	if (q->write - q->read >= NET_SLOTS)
+		q->read++;   /* nobody is draining: drop the oldest */
+	p = &q->slots[q->write++ % NET_SLOTS];
+	p->peer = (to.ip[2] << 8) | to.ip[3];
+	p->len = length;
+	Com_Memcpy(p->data, data, length);
+	return 1;
+}
+
+static netadr_t net_peer_adr(int peer) {
+	netadr_t adr;
+	Com_Memset(&adr, 0, sizeof(adr));
+	adr.type = NA_IP;
+	adr.ip[0] = 10;
+	adr.ip[1] = 77;
+	adr.ip[2] = (peer >> 8) & 0xff;
+	adr.ip[3] = peer & 0xff;
+	adr.port = BigShort(NET_PORT);
+	return adr;
+}
+
+static client_t *net_peer_client(int peer);
+
+int q3_net_receive(int peer, const unsigned char *data, int len) {
+	msg_t msg;
+	static byte buf[MAX_MSGLEN];
+	if (peer < 0 || peer > 0xffff || len <= 0 || len > MAX_MSGLEN || !q3_host_server_running())
+		return 0;
+	GUARD(0, 0);
+	MSG_Init(&msg, buf, sizeof(buf));
+	Com_Memcpy(buf, data, len);
+	msg.cursize = len;
+	SV_PacketEvent(net_peer_adr(peer), &msg);
+	UNGUARD();
+	return 1;
+}
+
+int q3_net_next(int sock, int *peer, unsigned char *buf, int cap) {
+	net_queue_t *q = &net_out[sock == NS_SERVER];
+	net_packet_t *p;
+	int len;
+	if (q->read == q->write)
+		return -1;
+	p = &q->slots[q->read % NET_SLOTS];
+	len = p->len > cap ? cap : p->len;
+	*peer = p->peer;
+	Com_Memcpy(buf, p->data, len);
+	q->read++;
+	return len;
+}
+
+int q3_net_pending(int sock) {
+	net_queue_t *q = &net_out[sock == NS_SERVER];
+	return (int)(q->write - q->read);
+}
+
+static client_t *net_peer_client(int peer) {
+	netadr_t adr = net_peer_adr(peer);
+	int i;
+	if (!q3_host_server_running())
+		return NULL;
+	for (i = 0; i < sv_maxclients->integer; i++) {
+		client_t *cl = &svs.clients[i];
+		if (cl->state != CS_FREE && cl->netchan.remoteAddress.type == NA_IP && NET_CompareBaseAdr(adr, cl->netchan.remoteAddress))
+			return cl;
+	}
+	return NULL;
+}
+
+int q3_net_peer_client(int peer) {
+	client_t *cl = net_peer_client(peer);
+	return cl ? (int)(cl - svs.clients) : -1;
+}
+
+/* The transport behind a peer closed: drop its player now instead of waiting out sv_timeout. */
+void q3_net_peer_gone(int peer) {
+	client_t *cl = net_peer_client(peer);
+	if (!cl)
+		return;
+	GUARD_V();
+	SV_DropClient(cl, "disconnected");
+	UNGUARD();
+}
+
+void q3_net_reset(void) {
+	net_out[0].read = net_out[0].write = 0;
+	net_out[1].read = net_out[1].write = 0;
 }

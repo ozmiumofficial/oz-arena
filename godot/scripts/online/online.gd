@@ -9,6 +9,10 @@ signal changed                                  ## status or social state; read 
 signal notice(text: String, tone: String)
 signal party_chat(msg: Dictionary)
 signal leaderboard(board: Dictionary)           ## a board the menu asked for, cards checked against the catalog
+signal net(msg: Dictionary)                     ## a match message from the hub (net_matches, net_request, net_signal ...)
+signal matches(msg: Dictionary)                 ## the directory: {matches: [...], region}
+signal join_state(state: Dictionary)            ## joining a match: {status, reason, host}
+signal queue_changed                            ## the matchmaking queue, a match found, a result or the ratings changed (read queue_state, ratings, last_result)
 
 ## The deployed Worker (online/, Ozmium's personal Cloudflare account). Settings
 ## network/online_server overrides it; a local `npm run dev` in online/ is ws://127.0.0.1:8787.
@@ -21,6 +25,15 @@ const OPS := ["friend_add", "friend_accept", "friend_decline", "friend_cancel", 
 	"leaderboard"]
 
 var client: Q3OnlineClient
+var joiner: Q3NetJoin                           ## the join in progress, if any
+var queue_state: Dictionary = {}                ## the hub's last queue_state ({status: queued|idle|locked|refused, ...})
+var ratings: Dictionary = {}                    ## the hub's last ratings message: {season, placements, queues: {duel: {rating, rated, wins, losses, peak}}}
+var last_result: Dictionary = {}                ## the last match_result (voided or not)
+var _found_join := {}                           ## a matchmade match to join: {host, until}
+var _found_try := 0.0
+var _join_status := ""
+var _ice: Dictionary = {}                       ## the last relay credentials the hub minted for a join
+var _ice_at := 0.0
 var chat: Array = []                            ## the party's recent chat lines
 var presence := {"status": "online", "detail": "In the menu", "join": ""}
 var _retry_in := -1.0
@@ -32,13 +45,18 @@ var _clip_render := false                       ## a clip render's copy (Q3ClipE
 
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
-		_clip_render = _clip_render or String(a).begins_with("clip=")
+		_clip_render = _clip_render or String(a).begins_with("clip=") or String(a).begins_with("dedicated=")   # a dedicated server has its own identity
 	client = Q3OnlineClient.new(KEY_PATH)
 	client.status_changed.connect(_on_status)
 	client.social.connect(func(_s): changed.emit())
 	client.notice.connect(func(t, tone): notice.emit(t, tone))
 	client.party_chat.connect(_on_chat)
 	client.leaderboard.connect(_on_leaderboard)
+	client.queue.connect(_on_queue_message)
+	client.net.connect(func(m):
+		net.emit(m)
+		if String(m.get("type", "")) == "net_matches":
+			matches.emit(m))
 	Settings.changed.connect(_on_setting)
 	connect_now()
 
@@ -89,6 +107,115 @@ func request(op: String, data: Dictionary) -> bool:
 	return client.send(op, m)
 
 
+## Queues for a match: `modes` (duel, ffa, tdm, ctf), ranked or casual. The hub answers with queue_state, then match_found.
+func queue_join(modes: Array, ranked: bool) -> bool:
+	if not client.send("queue_join", {"modes": modes, "ranked": ranked, "region": String(Settings.get_value("network/region")), "rtt": client.rtt}):
+		return false
+	queue_state = {"status": "queued", "since": Time.get_unix_time_from_system() * 1000.0, "modes": modes, "ranked": ranked}
+	queue_changed.emit()
+	return true
+
+
+func queue_leave() -> void:
+	client.send("queue_leave")
+	queue_state = {"status": "idle"}
+	queue_changed.emit()
+
+
+func _on_queue_message(m: Dictionary) -> void:
+	match String(m.get("type", "")):
+		"queue_state":
+			queue_state = m
+		"ratings":
+			ratings = m
+			var duel: Variant = m.get("queues", {}).get("duel")
+			if duel is Dictionary:
+				Q3Profile.set_ranked(duel)
+		"match_result":
+			last_result = m
+		"match_found":
+			queue_state = {"status": "found", "match": m.get("match", "")}
+			_on_match_found(m)
+	queue_changed.emit()
+
+
+## The matchmaker made a match for us. The host starts it (a private listing the others find); the rest join it as soon as it
+## is listed, trying every couple of seconds for a minute.
+func _on_match_found(m: Dictionary) -> void:
+	Session.matchmade = m
+	UiSound.play("move")
+	if bool(m.get("you_host", false)):
+		var s := Q3MatchSetup.from_found(m)
+		s.player = Session.new_setup(s.mode, s.map).player
+		var errs := Session.start_match(s)
+		if errs.size():
+			push_warning("matchmaking: couldn't host: " + "; ".join(errs))
+	else:
+		_found_join = {"host": String(m.get("host", "")), "until": Time.get_unix_time_from_system() + 60.0}
+		_found_try = 0.0
+
+
+## After a match: tell the hub we are in it (it waits for everyone), and report how it ended.
+func match_joined(id: String) -> void:
+	client.send("match_joined", {"match": id})
+
+
+func match_report(id: String, me: int, rows: Array, left: bool, peers: Dictionary) -> void:
+	client.send("match_report", {"match": id, "me": me, "rows": rows, "left": left, "peers": peers})
+
+
+## The version a host lists and a joiner sends: a match refuses another version (the hub says so).
+func game_version() -> String:
+	return String(ProjectSettings.get_setting("application/config/version", ""))
+
+
+## Asks the hub for the open matches; the answer arrives as `matches`. `region` "" is the setting's (auto = yours).
+func net_browse(region := "") -> bool:
+	var r := region if region != "" else String(Settings.get_value("network/region"))
+	return client.send("net_browse", {} if r in ["", "auto"] else {"region": r})
+
+
+## Joins a listed match: relay credentials, the host's say-so, the WebRTC connection; then Gameplay starts as a
+## client (Session.join). `join_state` reports it (status asking / connecting / failed / open).
+func net_join(host: String, password := "") -> void:
+	if joiner != null:
+		return
+	joiner = Q3NetJoin.new()
+	add_child(joiner)
+	joiner.finished.connect(_on_join_finished)
+	_join_status = ""
+	joiner.ice_minted.connect(_on_ice)
+	var fresh := Time.get_unix_time_from_system() - _ice_at < 2700.0   # they last an hour
+	joiner.begin(client, host, password, game_version(), _ice if fresh else {})
+	join_state.emit({"status": "asking", "reason": "", "host": host})
+
+
+func _on_ice(ice: Dictionary) -> void:
+	_ice = ice
+	_ice_at = Time.get_unix_time_from_system()
+
+
+func net_cancel() -> void:
+	if joiner != null:
+		joiner._fail("Cancelled.")
+
+
+func _on_join_finished(ok: bool, transport: Q3RtcTransport, why: String) -> void:
+	var host := joiner.host if joiner != null else ""
+	if joiner != null:
+		joiner.queue_free()
+		joiner = null
+	if ok:
+		_found_join = {}
+		join_state.emit({"status": "open", "reason": "", "host": host})
+		Session.join_match(transport)
+	elif not _found_join.is_empty() and why in ["That match is gone.", "The host didn't answer."]:
+		pass   # the host has not listed it yet: the loop tries again
+	else:
+		_found_join = {}
+		join_state.emit({"status": "failed", "reason": why, "host": host})
+
+
 ## The career changed (a match ended, the card was edited): the hub hears about it shortly after.
 func career_changed() -> void:
 	_career_in = 1.0
@@ -121,6 +248,19 @@ func to_dict() -> Dictionary:
 
 func _process(delta: float) -> void:
 	client.poll(delta)
+	if not _found_join.is_empty():
+		_found_try -= delta
+		if Time.get_unix_time_from_system() > float(_found_join["until"]):
+			_found_join = {}
+			Session.matchmade = {}
+			join_state.emit({"status": "failed", "reason": "The match never came up.", "host": ""})
+		elif _found_try <= 0.0 and joiner == null:
+			_found_try = 2.0
+			net_join(String(_found_join["host"]))
+	if joiner != null and joiner.status != _join_status:
+		_join_status = joiner.status
+		if _join_status in ["connecting", "relay"]:
+			join_state.emit({"status": "connecting", "reason": "", "host": joiner.host})
 	if _retry_in > 0.0:
 		_retry_in -= delta
 		if _retry_in <= 0.0:

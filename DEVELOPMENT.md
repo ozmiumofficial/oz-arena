@@ -128,6 +128,7 @@ godot --headless --path godot res://tests/q3core_match.tscn -- map=q3dm17 second
 godot --headless --path godot res://tests/ownership_test.tscn   # the pak0 check: checksums, every kind of drop (23 checks)
 godot --path godot res://tests/setup_gate_test.tscn -- window=1600x900   # the launch gate: blocks, refuses a fake, accepts the real pak0 (5 checks)
 godot --headless --path godot res://tests/gameplay_smoke.tscn
+godot --headless --path godot res://tests/warmup_restart_test.tscn   # duel warmup ends (map_restart, FIGHT!), the clock runs on, Restart resets the scores
 godot --path godot res://tests/weapon_fx.tscn -- out=C:/temp/wfx [move=1 pitch=8 preset=classic]   # every weapon fired, frames saved
 godot --path godot res://tests/pause_menu.tscn   # pause menu, crosshair editor live, resume (6 checks)
 godot --headless --path godot res://tests/campaign_flow.tscn   # a campaign arena start to finish (7 checks)
@@ -142,16 +143,21 @@ godot --headless --path godot res://tests/map_import_test.tscn    # every map in
 godot --headless --path godot res://tests/map_format_test.tscn    # .map import/export: brushDef and Valve 220 round trips, each Radiant form, a broken file (10 checks)
 godot --headless --path godot res://tests/map_editor_input.tscn  # the editor driven only by input events: keys, mouse, text focus, camera, dialogs (46 checks)
 godot --path godot res://tests/map_editor_perf.tscn               # windowed: q3dm12 in the editor, import/save/open/nudge/undo times and frame times (6 checks; -- map= report=)
+godot --path godot res://tests/skins_capture.tscn -- mode=ctf map=q3ctf1 bots=8 out=<dir>   # windowed: every body's model and skin (red/blue by team; campaign=q3dm2 for Phobos's own), one shot each
+godot --path godot res://tests/match_perf.tscn -- map=q3dm6 seconds=40 bots=5   # windowed bot match: fps, p99, GPU vs render CPU, every stall with what it created (set=key=value,... for one run)
+godot --headless --path godot res://tests/audio_decode_test.tscn   # every sound decoded start to end through its playback; fails loops read from a file (614 sounds)
 godot --headless --path godot res://tests/map_playtest_test.tscn   # F5 into Gameplay with the editor's map and bots, F6 back with the undo history
 godot --path godot res://tests/capture.tscn -- scene=res://tests/map_editor_shot.tscn out=C:/temp/ed count=1 window=1920x1080 [sheet=1 dialog=1 diag=1 e2=vertex|face e3=1 e4=1|lights|prefab]
 godot --headless --path godot res://tests/replay_test.tscn   # a recorded match against the live server, frame by frame; seeks, the library, playback (-- seconds=600 compare=0: the size run)
 godot --headless --path godot res://tests/spectator_test.tscn   # id's spectator mode: join, follow, cycle, chase cam, scoreboard, auto-director, Join/Spectate
-godot --headless --path godot res://tests/death_cam_test.tscn   # the death cam: the body, the killer's card, id's respawn timing (windowed with -- out= for shots)
+godot --headless --path godot res://tests/death_cam_test.tscn   # the death cam: the body, the killer's card, the ruleset's respawn timing (-- ruleset=ql|classic; windowed with -- out= for shots)
 godot --headless --path godot res://tests/demo_test.tscn   # id's demos/four.dm_68 (from your pak8) parsed and played
 godot --path godot res://tests/clip_test.tscn   # clip export: a 3 s range rendered by Movie Maker, the AVI checked
 godot --path godot res://tests/replay_capture.tscn -- out=C:/temp/replay   # the replay viewer: first person, chase, the player list, orbit
 godot --headless --path godot res://tests/diagnostics_test.tscn   # real crashes and a freeze in child processes, and their reports (8 checks, ~40 s)
 godot --path godot res://tests/ragdoll_test.tscn -- out=C:/temp/rag [seq=sarge] [burn=1]
+godot --path godot res://tests/aim_test.tscn -- out=C:/temp/aim               # body angles: pitch, yaw swing, lean, LEGS_TURN (8 checks, two shots)
+godot --path godot res://tests/body_motion_capture.tscn -- out=C:/temp/motion [map=q3dm17] [bots=5]   # spectated bot match: side shots of strafing bots
 godot --path godot res://tests/scoreboard_test.tscn -- out=C:/temp/board
 godot --path godot res://tests/capture.tscn -- out=C:/temp/shot frames=220 count=1 view=fx fire=rail
 godot --path godot res://tests/screenshots.tscn -- window=1920x1080 out=C:/temp/shot map=q3dm6 [count=6 hud=0]   # README screenshots: a bot match, aiming and firing
@@ -170,7 +176,11 @@ Use the scene form, not `--script`: a `--script` main loop compiles before autol
 claude mcp add -s user -e GODOT_PATH="<path to Godot exe>" godot -- node <path>/Q3Remaster/tools/godot-mcp/dist/index.js
 ```
 
-Verify with `npm test` in `tools/godot-mcp` (23 checks).
+Verify with `npm test` in `tools/godot-mcp` (23 checks). The server needs its packages first: `npm install --omit=dev --no-package-lock` in `tools/godot-mcp` (the lock file's dev typings are out of date, so `npm ci` refuses).
+
+**godot-ai** (`addons/godot_ai`, [hi-godot/godot-ai](https://github.com/hi-godot/godot-ai) v4.3.1, MIT) runs next to it: 47 tools for screenshots of the editor and the running game, input injected into the game, editor and game logs, performance monitors, filesystem scan and reimport, and batch edits with rollback. It has no tool for running GDScript in the editor, which is why the project's own server stays. Its plugin starts a Python server through uv on ports 8000 and 9500, and adds a `_mcp_game_helper` autoload that its export plugin strips from builds. Telemetry is off (`godot_ai/telemetry_enabled = false` in the editor settings, `--disable-telemetry` in the launch). Register it with the dock's **Configure** button for Claude Code, or by hand with the command `ClientConfigurator.resolve_attach_launch(ClientConfigurator.capture_launch_context())` prints (its `console_command` and `console_args`).
+
+Driving a match with it: set `editor/run/main_run_args` to `-- map=q3dm6 bots=3` (in memory, through the `godot` server's `editor_run_gdscript`, and clear it after), then `project_run`. Its 8 s readiness wait times out while the game boots, but the game starts. The splash's disclaimer waits for a key: `game_manage` `input_action` `ui_accept`. Keep `editor_screenshot`'s `max_resolution` at 800 or less: a bigger PNG overflows the 1 MB event limit between its server and the client. `node tools/mcp_match.mjs [map] [bots] [seconds]` does all of it over stdio and saves the frames in `work/mcp_match`.
 
 ## Folder layout
 

@@ -396,5 +396,25 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "visor": "blue"
+   },
+   "material_modes": {}
+  },
+  "gorre": {
+   "materials": {
+    "visor": "gorre"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "visor": "red"
+   },
+   "material_modes": {}
+  }
+ }
 }

@@ -76,6 +76,67 @@ const char *q3_host_postgame(void);
 /* Every entity a snapshot could carry this frame (linked, not SVF_NOCLIENT), as the recorder sees them. */
 int q3_host_entities(q3_entity_state *out, int max);
 
+/* ---- UDP for public servers and the LAN (engine/q3_host.c, patch 0007) ---- */
+
+/* Opens ioquake3's IPv4 UDP socket on `port` (the server answers plain Quake 3 clients and LAN getinfo broadcasts);
+ * 1 if it opened. Polled every host frame. */
+int q3_net_udp_open(int port);
+void q3_net_udp_close(void);
+int q3_net_udp_is_open(void);
+
+/* ---- network transport (engine/q3_host.c, patch 0006): remote players over packets Godot carries ---- */
+
+/* A peer is an integer 0..65535 the transport chooses. Feeds one packet from it to the server
+ * (SV_PacketEvent); 1 if it was handled. */
+int q3_net_receive(int peer, const unsigned char *data, int len);
+/* Pops the next packet queued for sending. sock 1: the server's (to a remote player), 0: the net
+ * client's in this process (to the server). Returns its length, -1 if none; *peer is the receiver. */
+int q3_net_next(int sock, int *peer, unsigned char *buf, int cap);
+int q3_net_pending(int sock);
+/* The client slot a peer holds, or -1. */
+int q3_net_peer_client(int peer);
+/* The peer's transport closed: drop its player. */
+void q3_net_peer_gone(int peer);
+void q3_net_reset(void);
+
+/* ---- net client (engine/q3_netclient.c): this process joining a server over packets ---- */
+
+/* states: 0 disconnected, 1 connecting, 2 challenging, 3 connected, 4 primed (gamestate in), 5 active */
+int q3_nc_connect(const char *userinfo, int maxpackets);
+void q3_nc_disconnect(void);
+void q3_nc_reset(void);
+int q3_nc_state(void);
+/* Why the last connection ended ("" if none): a refusal's text, a timeout, a bad packet. */
+const char *q3_nc_error(void);
+void q3_nc_set_maxpackets(int maxpackets);
+/* A packet from the server. */
+void q3_nc_receive(const unsigned char *data, int len);
+/* Advances the client's clock msec; sends what is due (via q3_net_next sock 0). extrapolated: the
+ * presentation had to extrapolate past the newest snapshot, so the clock nudges back. Returns the state. */
+int q3_nc_frame(int msec, int extrapolated);
+/* The server time to draw at, and to stamp usercmds with. */
+/* Holds a primed client out of the world while the game loads the map (cleared by every connect). */
+void q3_nc_hold_entry(int hold);
+/* A remote console command with the server's rconpassword; its answer is read back with q3_nc_rcon_output. */
+void q3_nc_rcon(const char *password, const char *command);
+const char *q3_nc_rcon_output(void);
+int q3_nc_time(void);
+int q3_nc_client_num(void);
+int q3_nc_server_id(void);
+void q3_nc_usercmd(const q3_usercmd *cmd);
+void q3_nc_command(const char *text);
+const char *q3_nc_next_command(void);
+const char *q3_nc_configstring(int index);
+/* The newest snapshot at or before time and the one after it. 2 with both, 1 with the first only, 0 none. */
+int q3_nc_snapshot_pair(int time, q3_snapshot *a, q3_snapshot *b, q3_nc_snap_info *info);
+void q3_nc_get_stats(q3_nc_stats *out);
+int q3_nc_predict(q3_player_state *out, float *error, int *error_time, int *teleported);
+int q3_nc_trace(const float *start, const float *end, const float *mins, const float *maxs,
+		int pass_entity, int content_mask, q3_trace_result *out);
+int q3_nc_point_contents(const float *point, int pass_entity);
+/* The loopback check: the server's snapshot for a client as the network carries it. */
+int q3_nc_server_frame(int client, int message, q3_snapshot *out);
+
 /* ---- replays (engine/q3_replay.c): the whole match recorded on the server ---- */
 
 /* Starts recording at `hz` frames a second (40) after every server frame; stops by itself on

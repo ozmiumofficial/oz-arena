@@ -1,11 +1,13 @@
 extends Node
-## Packs the world textures' imports (each .import and the files it points to) into
+## Packs the world textures' and the characters' texture imports (each .import and the files it points to) into
 ## Q3.TEXTURE_PACKS packs of about equal size, textures-1.pck ... textures-N.pck, which an exported
 ## game mounts at startup (Q3._init). The main export leaves them out (export_presets.cfg), because
 ## a GitHub release file must be under 2 GiB. Run by tools/export_game.py with the editor binary:
 ##   godot --headless --path . res://tests/pack_textures.tscn -- out=C:/path/to/build
 
-const DIR := "res://library/world/textures"
+## [folder, file suffixes]: every world texture, and the characters' images (the team and alternate skins took
+## Q3Remaster.pck past 2 GiB in v0.4.0-beta)
+const SOURCES := [["res://library/world/textures", [".import"]], ["res://library/characters", [".jpg.import", ".png.import"]]]
 
 
 func _ready() -> void:
@@ -16,12 +18,14 @@ func _ready() -> void:
 	var groups: Array = []   # [[res path, ...] per texture]
 	var sizes: Array = []
 	var total := 0
-	var names := Array(DirAccess.get_files_at(DIR))
-	names.sort()
-	for f in names:
-		if not f.ends_with(".import"):
-			continue
-		var imp := DIR.path_join(f)
+	var imports: Array = []
+	for src in SOURCES:
+		var names := Array(DirAccess.get_files_at(src[0]))
+		names.sort()
+		for f in names:
+			if (src[1] as Array).any(func(sfx): return f.ends_with(sfx)):
+				imports.append(String(src[0]).path_join(f))
+	for imp in imports:
 		var cfg := ConfigFile.new()
 		if cfg.load(imp) != OK:
 			continue

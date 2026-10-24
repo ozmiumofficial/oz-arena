@@ -116,8 +116,9 @@ FX = {
                        light=300, light_color=[1, 0.75, 0], mark="mark_burn", mark_radius=64, smoke=True, sparks=True),
         "grenade": dict(sprite="grenade_explosion", model="weaphits/boom01", duration=600, radius=64,
                         light=300, light_color=[1, 1, 0], mark="mark_burn", mark_radius=64, smoke=True, sparks=True),
+        # cg_weapons.c CG_MissileHitWall's WP_BFG case sets no light: a BFG blast lights nothing
         "bfg": dict(sprite="bfg_explosion", model="weaphits/boom01", duration=600, radius=32,
-                    light=300, light_color=[0.2, 1, 0.2], mark="mark_burn", mark_radius=32, smoke=False, sparks=True),
+                    light=0, light_color=[1, 1, 0], mark="mark_burn", mark_radius=32, smoke=False, sparks=True),
         "plasma": dict(sprite="plasma_explosion", model="weaphits/ring02", duration=600, radius=16,
                        light=0, light_color=[0.6, 0.6, 1], mark="mark_energy", mark_radius=16, mark_fade=True),
         "rail": dict(sprite="rail_explosion", model="weaphits/ring02", duration=600, radius=24, light=0,

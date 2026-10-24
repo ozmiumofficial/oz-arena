@@ -14,9 +14,10 @@ import PagePanel, { SectionTitle } from "../PagePanel";
 import Spinner from "../controls/Spinner";
 import Slider from "../controls/Slider";
 import Button from "../controls/Button";
+import TextField from "../controls/TextField";
 import type { PageProps } from "./index";
 
-const SERVER_TYPES: [Value, string][] = [["offline", "Offline"], ["listen", "Listen server (LAN)"]];
+const SERVER_TYPES: [Value, string][] = [["offline", "Offline"], ["listen", "Online (listed in the Server Browser)"]];
 
 function useSetup(initialMode: string) {
   const init = useMenu((s) => s.init);
@@ -132,10 +133,20 @@ export default function CreateMatchPage({ back }: PageProps) {
           ))}
           <Button small onClick={addBot} className="w-full">+ Add bot</Button>
           <SectionTitle>Server</SectionTitle>
-          <Spinner wide value={setup.server_type} options={SERVER_TYPES} onChange={(v) => patch({ server_type: String(v) })} />
+          <Spinner wide value={setup.server_type} options={SERVER_TYPES} onChange={(v) => patch({ server_type: String(v), online: setup.online ?? { name: "", password: "", ranked: false } })} />
+          {setup.server_type === "listen" && (
+            <>
+              <Field label="Match name" tip="What other players see in the Server Browser.">
+                <TextField wide max={40} value={setup.online?.name ?? ""} placeholder="My match" onCommit={(v) => patch({ online: { ...(setup.online ?? { name: "", password: "", ranked: false }), name: v } })} />
+              </Field>
+              <Field label="Password" tip="Leave empty for an open match.">
+                <TextField wide max={40} value={setup.online?.password ?? ""} placeholder="None" onCommit={(v) => patch({ online: { ...(setup.online ?? { name: "", password: "", ranked: false }), password: v } })} />
+              </Field>
+              <p className="text-[0.85rem] text-faint">You host from your PC; players connect through a relay and never see your IP. The match goes on while the menu is open.</p>
+            </>
+          )}
           <SectionTitle>You</SectionTitle>
           <Spinner wide value={setup.spectate ? "spectate" : "play"} options={[["play", "Play"], ["spectate", "Spectate: watch the bots"]]} onChange={(v) => patch({ spectate: v === "spectate" })} />
-          <p className="mt-2 text-[0.85rem] text-faint">Listen servers need the netcode, which isn&apos;t built yet; the setup is stored the same way.</p>
         </div>
       </div>
     </PagePanel>

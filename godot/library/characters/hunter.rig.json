@@ -408,5 +408,33 @@
    "blend": "mask",
    "two_sided": true
   }
+ },
+ "skins": {
+  "blue": {
+   "materials": {
+    "hunter2": "blue",
+    "hunter_f": "red_f",
+    "hunter_h": "blue_h"
+   },
+   "material_modes": {
+    "red_f": {
+     "blend": "mask",
+     "two_sided": true
+    }
+   }
+  },
+  "red": {
+   "materials": {
+    "hunter2": "red",
+    "hunter_f": "red_f",
+    "hunter_h": "red_h"
+   },
+   "material_modes": {
+    "red_f": {
+     "blend": "mask",
+     "two_sided": true
+    }
+   }
+  }
  }
 }

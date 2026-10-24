@@ -12,8 +12,10 @@ signal obituary(attacker: int, target: int, means: int)   ## EV_OBITUARY, for th
 ## every EV_OBITUARY, also while a replay rebuilds quietly (the death cam's card needs the last one)
 signal death_noted(attacker: int, target: int, means: int)
 signal server_print(text: String)
-signal landed(change: float)
-signal local_event(ev: int, parm: int)   ## every predictable event of the local player (ps.events)   ## the local player's landing dip (cg.landChange): -8, -16 or -24 units
+signal landed(change: float)   ## the local player's landing dip (cg.landChange): -8, -16 or -24 units
+signal stepped(change: float)  ## the local player stepped up 4 to 16 units (EV_STEP_n): the view eases up after it
+signal team_sound(path: String)   ## an EV_GLOBAL_TEAM_SOUND announcer line (CG_AddBufferedSound)
+signal local_event(ev: int, parm: int)   ## every predictable event of the local player (ps.events)
 
 const E := preload("res://scripts/game/q3_enums.gd")
 const WEAPON_ITEMS := ["", "weapon_gauntlet", "weapon_machinegun", "weapon_shotgun", "weapon_grenadelauncher",
@@ -32,6 +34,8 @@ const EXPLOSIONS := {E.WP_ROCKET_LAUNCHER: "rocket", E.WP_GRENADE_LAUNCHER: "gre
 const TRAILS := {E.WP_ROCKET_LAUNCHER: [64.0, 2000.0], E.WP_GRENADE_LAUNCHER: [32.0, 700.0]}
 const MASK_SHOT := 0x6000001          ## CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_CORPSE
 const MASK_WATER := 32 | 16 | 8       ## CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA
+const CONTENTS_WATER := 32
+const CONTENTS_SOLID := 1
 ## the remaster's impact sparks (Q3Sparks) per weapon hit: count, speed (units/s), life (s), spread
 const SPARKS := {E.WP_MACHINEGUN: [5, 340.0, 0.45, 0.8], E.WP_SHOTGUN: [2, 300.0, 0.4, 0.8],
 	E.WP_RAILGUN: [10, 420.0, 0.6, 0.9], E.WP_ROCKET_LAUNCHER: [16, 520.0, 0.9, 1.0],
@@ -47,18 +51,27 @@ var feed: Q3Feed = Q3LiveFeed.shared()   ## the match: live, or a replay (Q3Repl
 var local_client := -1
 var _ents: Dictionary = {}         ## entity number -> {"node": Node3D, "es": Dictionary, "kind": int}
 var _seen_events: Dictionary = {}  ## entity number -> last event value handled
+var _last_seen: Dictionary = {}    ## entity number -> server time of the last snapshot it was in (cent->snapShotTime)
+const EVENT_VALID_MSEC := 300
+## the player whose team EV_GLOBAL_TEAM_SOUND speaks for: the replay's player in every camera
+## (cgs.clientinfo[cg.clientNum]); -1 is local_client
+var team_client := -1
 var _ps_event_seq := -1
 var _item_names: PackedStringArray = []
-var _player_models: Dictionary = {}   ## client -> model name from CS_PLAYERS
+var _pain_time: Dictionary = {}    ## client -> last pain sound (cent->pe.painTime), ms
+var _pain_dir: Dictionary = {}     ## client -> which way the pain twitch rolls (cent->pe.painDirection)
 var _sounds: Dictionary = {}       ## path -> AudioStream
 var _time := 0                     ## server time of the snapshot being shown (ms)
 var _corpses: Array[Node3D] = []   ## ragdolls left behind when their players respawn
 var view_fx: Q3WeaponFx            ## the first-person weapon's flash and barrel (Gameplay sets it)
 var eye := Vector3.ZERO            ## the camera, for effects that face it
 var _now := 0.0                    ## render time (ms), cg.time
+var _anim_time := -1.0             ## the match time the bodies have animated to (ms; -1: not yet)
+var _anim_step := 0.0              ## how far they animate this frame (ms)
 var _local_ps: Dictionary = {}
 var _smoke: Q3Puffs                ## smokePuff: rocket and grenade trails
 var _shotgun_smoke: Q3Puffs
+var _bubbles: Q3Puffs              ## CG_BubbleTrail: rockets, grenades, bullets and pellets under water
 var _sparks: Q3Sparks
 var _burns: Q3Burns                ## the lightning gun's burn lines
 var _beams: Dictionary = {}        ## entity -> Q3LightningBeam while the lightning gun fires
@@ -98,8 +111,21 @@ func _ready() -> void:
 	_shotgun_smoke = Q3Puffs.create(self, "shotgun_smoke")
 	_sparks = Q3Sparks.create(self)
 	_burns = Q3Burns.create(self)
+	_bubbles = Q3Puffs.create(self, "bubble")
 	Settings.changed.connect(_on_setting)
 	_helpers = get_children()   # what reset() keeps
+	Q3FX.warm_up(self)
+	load_footsteps()
+
+
+## While a match draws, the models it loads stay loaded: a respawn or an explosion doesn't read its
+## model again.
+func _enter_tree() -> void:
+	Q3.hold_models(true)
+
+
+func _exit_tree() -> void:
+	Q3.hold_models(false)
 
 
 ## One snapshot (Q3Server.snapshot()) plus the live local playerState.
@@ -107,10 +133,15 @@ func apply_snapshot(snap: Dictionary, local_ps: Dictionary) -> void:
 	if snap.is_empty():
 		return
 	_time = int(snap["serverTime"])
+	_local_ps = local_ps   # cg.snap->ps: the events below see this snapshot's playerState, not last frame's
 	var present := {}
 	for es in snap["entities"]:
 		var num := int(es["number"])
 		present[num] = true
+		# CG_ResetEntity: an entity back within EVENT_VALID_MSEC still carries the event already played
+		if _time - int(_last_seen.get(num, -1000000)) > EVENT_VALID_MSEC:
+			_seen_events.erase(num)
+		_last_seen[num] = _time
 		if int(es["eType"]) >= E.ET_EVENTS:
 			_temp_event(num, es)
 			continue
@@ -120,8 +151,9 @@ func apply_snapshot(snap: Dictionary, local_ps: Dictionary) -> void:
 	for num in _ents.keys():
 		if not present.has(num):
 			_remove(num)
-	for num in _seen_events.keys():
-		if not present.has(num):
+	for num in _last_seen.keys():
+		if not present.has(num) and _time - int(_last_seen[num]) > EVENT_VALID_MSEC:
+			_last_seen.erase(num)
 			_seen_events.erase(num)
 
 
@@ -175,8 +207,10 @@ func set_view_client(cl: int) -> void:
 		_burns.lift(n)
 		_stop_loop(n)
 		_seen_events.erase(n)
+		_last_seen.erase(n)
 		if e.is_empty():
 			continue
+		_free_effects(e)
 		var node: Node3D = e["node"]
 		_ents.erase(n)
 		if n == cl and e.get("ragdolled", false) and node is Q3Character and is_instance_valid(node):
@@ -194,6 +228,8 @@ func set_view_client(cl: int) -> void:
 	_ps_event_seq = -1
 	_ext_event = 0
 	_predictable.fill(0)
+	_last_health_client = -1
+	_clear_local_holder()
 	if not _self.is_empty() and is_instance_valid(_self["node"]):
 		(_self["node"] as Node).queue_free()
 	_self = {}
@@ -207,7 +243,11 @@ func reset() -> void:
 		var node: Node3D = e["node"]
 		if e["kind"] != E.ET_MOVER and node and is_instance_valid(node):
 			node.queue_free()
+		_free_effects(e)
 	_ents.clear()
+	_last_seen.clear()
+	_last_health_client = -1
+	_clear_local_holder()
 	for num in _loops.keys():
 		_stop_loop(num)
 	for b in _beams.values():
@@ -223,13 +263,17 @@ func reset() -> void:
 	_predictable.fill(0)
 	_pickups.clear()
 	_numbers.clear()
+	_haste_time.clear()
+	_pain_time.clear()
 	_next.clear()
+	_anim_time = -1.0
 	if own_body and is_instance_valid(own_body):
 		own_body.queue_free()
 	own_body = null
 	_own_seen_alive = false
 	_smoke.clear()
 	_shotgun_smoke.clear()
+	_bubbles.clear()
 	_sparks.clear()
 	_burns.clear()
 	# the mirror body is rebuilt for whoever is watched now
@@ -242,27 +286,73 @@ func reset() -> void:
 			child.queue_free()
 
 
+## cg_servercmds.c CG_MapRestart (CG_InitLocalEntities, CG_InitMarkPolys, CG_ClearParticles): the
+## restarted match starts in a clean arena, without the warmup's marks, gibs, brass, smoke or
+## corpses. The entities stay; the next snapshot updates them.
+func clear_local() -> void:
+	for c in _corpses:
+		if is_instance_valid(c):
+			c.queue_free()
+	_corpses.clear()
+	if own_body and is_instance_valid(own_body):
+		own_body.queue_free()
+	own_body = null
+	_own_seen_alive = false
+	for num in _ents.keys():
+		var e: Dictionary = _ents[num]
+		if e.get("ragdolled", false):
+			_stop_loop(num)
+			_free_effects(e)
+			if is_instance_valid(e["node"]):
+				(e["node"] as Node).queue_free()
+			_ents.erase(num)
+	_smoke.clear()
+	_shotgun_smoke.clear()
+	_bubbles.clear()
+	_sparks.clear()
+	_burns.clear()
+	for child in get_children():
+		if child is Q3FxTimed or child is RigidBody3D:   # explosions, marks, blood, rails; gibs, brass
+			child.queue_free()
+	_pickups.clear()
+	Q3FX.clear_marks()
+
+
 ## Every frame: movers and missiles follow their trajectories at the current time; in a replay,
-## players move between recorded frames.
+## players move between recorded frames. Players animate on the match's clock: as far as it moved
+## since last frame (it steps back a hair between server frames; that doesn't count).
 func animate(server_time_ms: float) -> void:
 	_now = server_time_ms
+	_anim_step = 0.0
+	if _anim_time < 0.0 or server_time_ms < _anim_time - 1000.0:
+		_anim_time = server_time_ms
+	elif server_time_ms > _anim_time:
+		_anim_step = server_time_ms - _anim_time
+		_anim_time = server_time_ms
 	for num in _ents:
 		var e: Dictionary = _ents[num]
 		var kind: int = e["kind"]
-		if kind == E.ET_PLAYER and _next.has(num):
-			_interpolate_player(e, _next[num])
+		if kind == E.ET_PLAYER:
+			if _next.has(num):
+				_interpolate_player(e, _next[num])
+			_advance_body(e)
 		elif kind == E.ET_ITEM and int(e["es"]["pos"].get("trType", 0)) != 0:
 			var item: Node3D = e["node"]
 			if item and is_instance_valid(item):
 				item.global_position = Q3.q3_to_godot(trajectory(e["es"]["pos"], server_time_ms))
-		if kind == E.ET_MOVER or kind == E.ET_MISSILE:
+		if kind == E.ET_MOVER:
+			# CG_Mover: the inline model, and its model2 (a map object riding it), at lerpOrigin/lerpAngles
+			var p := Q3.q3_to_godot(trajectory(e["es"]["pos"], server_time_ms))
+			var b := angles_basis(trajectory(e["es"]["apos"], server_time_ms))
+			for n in [e["node"], e.get("model2")]:
+				if n and is_instance_valid(n):
+					(n as Node3D).global_position = p
+					(n as Node3D).basis = b
+		elif kind == E.ET_MISSILE:
 			var node: Node3D = e["node"]
 			if node and is_instance_valid(node):
 				node.global_position = Q3.q3_to_godot(trajectory(e["es"]["pos"], server_time_ms))
-				if kind == E.ET_MOVER:
-					node.basis = angles_basis(trajectory(e["es"]["apos"], server_time_ms))
-				else:
-					_missile_frame(e, node)
+				_missile_frame(e, node)
 
 
 ## CG_InterpolateEntityPosition for a player: between this frame's origin and angles and the next
@@ -278,8 +368,15 @@ func _interpolate_player(e: Dictionary, nx: Dictionary) -> void:
 	ch.global_position = Q3.q3_to_godot(a.lerp(nx["pos"]["trBase"], _frac)) + Vector3.DOWN * 24.0 * Q3.UNIT
 	var aa: Vector3 = es["apos"]["trBase"]
 	var ab: Vector3 = nx["apos"]["trBase"]
-	ch.rotation = Vector3(0.0, deg_to_rad(Q3ReplayFeed.lerp_angle_deg(aa.y, ab.y, _frac)), 0.0)
+	ch.aim_yaw = Q3ReplayFeed.lerp_angle_deg(aa.y, ab.y, _frac)
 	ch.aim_pitch = Q3ReplayFeed.lerp_angle_deg(aa.x, ab.x, _frac)
+
+
+## A standing player's body steps on by the match clock's move this frame.
+func _advance_body(e: Dictionary) -> void:
+	var ch := e.get("node") as Q3Character
+	if ch and is_instance_valid(ch) and ch.match_clock and not e.get("ragdolled", false):
+		ch.advance(_anim_step)
 
 
 ## cg_ents.c CG_Missile: the model's forward on its trajectory's direction, spun about it
@@ -304,7 +401,12 @@ func _missile_frame(e: Dictionary, node: Node3D) -> void:
 	e["trail_time"] = _now
 	if not moving:
 		return
-	if feed.point_contents(trajectory(tr, _now), -1) & MASK_WATER:
+	var here := trajectory(tr, _now)
+	var contents := feed.point_contents(here, -1)
+	if contents & MASK_WATER:
+		# under water: CG_RocketTrail's bubbles instead of smoke, while it was in water last frame too
+		if contents & feed.point_contents(trajectory(tr, start), -1) & CONTENTS_WATER:
+			_bubble_trail(trajectory(tr, start), here, 8.0)
 		return
 	var t := step * floorf((start + step) / step)
 	while t <= _now:
@@ -325,6 +427,9 @@ func _update_entity(num: int, es: Dictionary) -> void:
 		e = {"node": node, "es": es, "kind": kind, "legs": -1, "torso": -1, "weapon": -1}
 		_ents[num] = e
 	e["es"] = es
+	_entity_effects(e, es)
+	if kind == E.ET_MOVER and int(es.get("modelindex2", 0)) != int(e.get("model2_index", 0)):
+		_mover_model2(e, int(es.get("modelindex2", 0)))
 	var node: Node3D = e["node"]
 	if node == null or not is_instance_valid(node):
 		return
@@ -345,8 +450,9 @@ func _spawn(num: int, kind: int, es: Dictionary) -> Node3D:
 			var cl := int(es["clientNum"])
 			if cl == local_client and not (int(es["eFlags"]) & E.EF_DEAD):
 				return null   # first person: the camera is the local player
-			var ch := Q3Character.new()
-			ch.model = _model_for(cl)
+			var ch := _body_for(cl)
+			ch.turn = true
+			ch.match_clock = true
 			add_child(ch)
 			_bright(ch, cl)
 			return ch
@@ -356,6 +462,7 @@ func _spawn(num: int, kind: int, es: Dictionary) -> Node3D:
 				return null
 			var p := Q3Pickup.new()
 			p.classname = _item_names[idx - 1]
+			p.number = num   # its bob rate (cg_ents.c CG_Item)
 			add_child(p)
 			return p
 		E.ET_MISSILE:
@@ -368,10 +475,88 @@ func _spawn(num: int, kind: int, es: Dictionary) -> Node3D:
 	return null
 
 
+## cg_ents.c CG_EntityEffects and CG_Speaker: an entity's loopSound plays where it is (the map's
+## looped target_speakers: wind, machinery, fire), its constantLight glows, and a speaker that
+## triggers itself (wait and random keys) plays its sound every wait +- random seconds.
+func _entity_effects(e: Dictionary, es: Dictionary) -> void:
+	var at := Q3.q3_to_godot(trajectory(es["pos"], _time))
+	var loop := int(es.get("loopSound", 0))
+	if int(e.get("ambient_sound", 0)) != loop:
+		e["ambient_sound"] = loop
+		if is_instance_valid(e.get("ambient")):
+			(e["ambient"] as Node).queue_free()
+		e.erase("ambient")
+		var stream := _load_sound(feed.configstring(E.CS_SOUNDS + loop)) if loop != 0 else null
+		if stream:
+			var a := AudioStreamPlayer3D.new()
+			a.stream = Q3FX.looped(stream)
+			a.unit_size = 12.0
+			a.max_distance = 60.0
+			a.bus = &"Effects"
+			Settings.spatialize(a)
+			add_child(a)
+			a.play()
+			e["ambient"] = a
+	if is_instance_valid(e.get("ambient")):
+		(e["ambient"] as Node3D).global_position = at
+	var cl := int(es.get("constantLight", 0))
+	if int(e.get("glow_value", 0)) != cl:
+		e["glow_value"] = cl
+		if is_instance_valid(e.get("glow")):
+			(e["glow"] as Node).queue_free()
+		e.erase("glow")
+		if cl != 0:
+			var l := OmniLight3D.new()
+			l.light_color = Color8(cl & 255, (cl >> 8) & 255, (cl >> 16) & 255)
+			l.omni_range = float(((cl >> 24) & 255) * 4) * Q3.UNIT
+			l.light_energy = 2.0
+			l.shadow_enabled = false
+			add_child(l)
+			e["glow"] = l
+	if is_instance_valid(e.get("glow")):
+		(e["glow"] as Node3D).global_position = at
+	if int(es["eType"]) == E.ET_SPEAKER and int(es.get("clientNum", 0)) != 0 and not muted:
+		if float(_time) >= float(e.get("speaker_time", 0.0)):
+			play_sound(feed.configstring(E.CS_SOUNDS + int(es["eventParm"])), at)
+			e["speaker_time"] = float(_time) + int(es.get("frame", 0)) * 100.0 + int(es["clientNum"]) * 100.0 * randf_range(-1.0, 1.0)
+
+
+## cg_ents.c CG_Mover's second model: a map object riding the mover (q3dm0's hologram and x-ray
+## skeleton, q3dm19's jets, q3tourney6's pipes), from CS_MODELS. It belongs to the client, not the
+## map, and animate() moves it with the mover.
+func _mover_model2(e: Dictionary, index: int) -> void:
+	if is_instance_valid(e.get("model2")):
+		(e["model2"] as Node).queue_free()
+	e.erase("model2")
+	e["model2_index"] = index
+	if index == 0:
+		return
+	var path := feed.configstring(E.CS_MODELS + index)   # "models/mapobjects/bitch/fembotbig.md3"
+	var n := Q3.instance_prop(path.trim_prefix("models/").get_basename().to_lower()) if path.begins_with("models/") else null
+	if n == null:
+		return
+	add_child(n)
+	e["model2"] = n
+	n.global_position = Q3.q3_to_godot(trajectory(e["es"]["pos"], _time))
+	n.basis = angles_basis(trajectory(e["es"]["apos"], _time))
+
+
+## What an entity added next to its own node: its loop sound, its light, a mover's second model.
+func _free_effects(e: Dictionary) -> void:
+	for k in ["ambient", "glow", "model2"]:
+		if is_instance_valid(e.get(k)):
+			(e[k] as Node).queue_free()
+		e.erase(k)
+	e.erase("ambient_sound")
+	e.erase("glow_value")
+	e.erase("model2_index")
+
+
 func _remove(num: int) -> void:
 	var e: Dictionary = _ents.get(num, {})
 	_ents.erase(num)
 	_stop_loop(num)
+	_free_effects(e)
 	if _beams.has(num):
 		(_beams[num] as Node).queue_free()
 		_beams.erase(num)
@@ -439,16 +624,81 @@ func _body_near(at: Vector3) -> Node3D:
 	return best
 
 
-## The model a player is drawn with: their own, or Gameplay > Force enemy model for enemies
-## (cg_forceModel). Their sounds stay their own model's.
-func _model_for(cl: int) -> String:
+## The model and skin a player is drawn with, picked as cg_players.c does (CG_NewClientInfo,
+## CG_LoadClientInfo, CG_FindClientModelFile): CS_PLAYERS "model" is "model/skin". Gameplay > Force
+## enemy model (cg_forceModel) gives enemies that model in its default skin. In team games the skin
+## is the team's, "<skin>_red" or else "red" by "t" (blue for the blue team, red otherwise), and a
+## model without one is Sarge in it (id's DEFAULT_TEAM_MODEL fallback: Brandon, Xian). Otherwise
+## it's the player's skin, or the model's default when it has no such skin. Sounds stay the model's.
+func _look(cl: int) -> PackedStringArray:
 	var info := Q3Host.parse_info(feed.configstring(E.CS_PLAYERS + cl))
-	var m := String(info.get("model", "sarge")).get_slice("/", 0).to_lower()
-	_player_models[cl] = m
+	var spec := String(info.get("model", "sarge")).to_lower()
+	var m := spec.get_slice("/", 0)
+	var s := spec.get_slice("/", 1) if spec.contains("/") else "default"
 	var forced := String(Settings.get_value("gameplay/force_model"))
 	if forced in Q3.characters and cl != local_client and not _teammate(cl):
-		return forced
-	return m if m in Q3.characters else "sarge"
+		m = forced
+		s = "default"
+	if not m in Q3.characters:
+		m = "sarge"
+		s = "default"
+	var skins := Q3Character.skins_of(m)
+	if feed.cvar("g_gametype").to_int() >= E.GT_TEAM:
+		var team := "blue" if String(info.get("t", "")).to_int() == E.TEAM_BLUE else "red"
+		if s + "_" + team in skins:
+			s += "_" + team
+		elif team in skins:
+			s = team
+		else:
+			m = "sarge"
+			s = team
+	elif not s in skins:
+		s = "default"
+	return PackedStringArray([m, s])
+
+
+## A new body for a player, in their model and skin (not yet in the tree).
+func _body_for(cl: int) -> Q3Character:
+	var look := _look(cl)
+	var ch := Q3Character.new()
+	ch.model = look[0]
+	ch.skin = look[1]
+	return ch
+
+
+## CG_NewClientInfo: when a player's CS_PLAYERS string changes (a team switch, a new model) or the
+## local player's does (which side counts as teammates), the body standing takes the new skin and
+## bright color. Returns false when the model changed: the body has to be built again.
+func _restyle(e: Dictionary, cl: int) -> bool:
+	var cs := feed.configstring(E.CS_PLAYERS + cl)
+	if local_client >= 0:
+		cs += "\n" + feed.configstring(E.CS_PLAYERS + local_client)
+	var seen: String = e.get("cs", cs)
+	e["cs"] = cs
+	var ch := e.get("node") as Q3Character
+	if seen == cs or ch == null or not is_instance_valid(ch) or e.get("ragdolled", false):
+		return true
+	var look := _look(cl)
+	if look[0] != ch.model:
+		return false
+	ch.set_skin(look[1])
+	_bright(ch, cl)
+	return true
+
+
+## A standing player's body built again (a new model): the old one goes with its gun and shells.
+func _new_body(num: int, e: Dictionary) -> Q3Character:
+	var old := e.get("node") as Node
+	if old and is_instance_valid(old):
+		old.queue_free()
+	var ch := _spawn(num, E.ET_PLAYER, e["es"]) as Q3Character
+	e["node"] = ch
+	for k in ["armor_mat", "wfx", "gun", "tele"]:
+		e.erase(k)
+	e["legs"] = -1
+	e["torso"] = -1
+	e["weapon"] = -1
+	return ch
 
 
 ## Whether a player is on the local player's team (team modes only).
@@ -478,13 +728,7 @@ func _on_setting(key: String, _v: Variant) -> void:
 			continue
 		var cl := int(e["es"]["clientNum"])
 		if key == "gameplay/force_model":
-			ch.queue_free()
-			e["node"] = _spawn(num, E.ET_PLAYER, e["es"])
-			e.erase("armor_mat")
-			e.erase("wfx")
-			e["legs"] = -1
-			e["torso"] = -1
-			e["weapon"] = -1
+			_new_body(num, e)
 		else:
 			_bright(ch, cl)
 
@@ -499,6 +743,7 @@ func _update_player(e: Dictionary, es: Dictionary) -> void:
 		e["node"] = ch
 		e["ragdolled"] = false
 		e.erase("armor_mat")   # the shell lives on the old body
+		e.erase("tele")
 		e["legs"] = -1
 		e["torso"] = -1
 		e["weapon"] = -1
@@ -506,13 +751,19 @@ func _update_player(e: Dictionary, es: Dictionary) -> void:
 		return
 	if e.get("ragdolled", false):
 		return   # physics owns it now
+	if e != _self and not _restyle(e, int(es["clientNum"])):
+		ch = _new_body(int(es["number"]), e)
+		if ch == null:
+			return
 	if dead and muted:
-		# a body from before a replay's jump: not recreated as a ragdoll
+		# a body from before a replay's jump: not recreated as a ragdoll (its hum, lights and flag go)
+		_powerups(int(es["number"]), ch, ch.body, null, 0, 0)
 		ch.visible = false
 		e["ragdolled"] = true
 		return
 	if dead:
-		# fragged: go limp, carrying the speed the body had
+		# fragged: the powerups go (the game drops them), then the body goes limp with its speed
+		_powerups(int(es["number"]), ch, ch.body, null, 0, 0)
 		var vel := Q3.q3_to_godot(es["pos"]["trDelta"])
 		ch.ragdoll((vel * 0.6).limit_length(8.0))   # a shotgun's knockback can't fire limbs through floors
 		e["ragdolled"] = true
@@ -523,12 +774,21 @@ func _update_player(e: Dictionary, es: Dictionary) -> void:
 		e.erase("wfx")
 		return
 	ch.global_position = Q3.q3_to_godot(trajectory(es["pos"], _time)) + Vector3.DOWN * 24.0 * Q3.UNIT   # origin is 24 above the feet
-	_talk_balloon(ch, (int(es["eFlags"]) & E.EF_TALK) != 0, e == _self)
+	_player_sprite(ch, int(es["eFlags"]), e == _self)
+	# CG_PlayerAngles: the legs, torso and head turn toward the aim and the way they move, and the
+	# legs lean into their speed
 	var ang: Vector3 = es["apos"]["trBase"]
-	ch.rotation = Vector3(0.0, deg_to_rad(ang.y), 0.0)
-	ch.aim_pitch = ang.x   # the torso and head bend toward the aim (CG_PlayerAngles)
+	ch.aim_yaw = ang.y
+	ch.aim_pitch = ang.x
+	ch.move_dir = int((es.get("angles2", Vector3.ZERO) as Vector3).y)
+	ch.velocity = es["pos"].get("trDelta", Vector3.ZERO)
 	var legs := int(es["legsAnim"]) & ~E.ANIM_TOGGLEBIT
 	var torso := int(es["torsoAnim"]) & ~E.ANIM_TOGGLEBIT
+	ch.aim_center = legs != E.LEGS_IDLE or torso != E.TORSO_STAND
+	# CG_AddPainTwitch: each pain rolls the torso 20 degrees, alternating sides, easing back over 200 ms
+	var since_pain := _now - float(_pain_time.get(int(es["clientNum"]), -100000.0))
+	ch.aim_roll = 0.0 if since_pain < 0.0 or since_pain >= 200.0 \
+		else (20.0 if _pain_dir.get(int(es["clientNum"]), false) else -20.0) * (1.0 - since_pain / 200.0)
 	# the toggle bit restarts a clip that's played again
 	if int(es["legsAnim"]) != e["legs"]:
 		e["legs"] = int(es["legsAnim"])
@@ -538,6 +798,11 @@ func _update_player(e: Dictionary, es: Dictionary) -> void:
 		e["torso"] = int(es["torsoAnim"])
 		if torso < E.ANIM_NAMES.size() and legs > E.BOTH_DEAD3:
 			ch.play_torso(E.ANIM_NAMES[torso])
+	# CG_ResetPlayerEntity: just in view, or teleported (EF_TELEPORT_BIT toggled; respawns too)
+	var tele := int(es["eFlags"]) & E.EF_TELEPORT_BIT
+	if tele != int(e.get("tele", -1)):
+		e["tele"] = tele
+		ch.reset_motion()
 	var w := int(es["weapon"])
 	if w != e["weapon"]:
 		e["weapon"] = w
@@ -549,32 +814,74 @@ func _update_player(e: Dictionary, es: Dictionary) -> void:
 			var item: Dictionary = Q3.entities.get(WEAPON_ITEMS[w], {})
 			if item.get("models", []).size():
 				var prop := ch.attach(item["models"][0])
+				e["gun"] = prop   # its powerup shells (_powerups)
 				if prop:
 					e["wfx"] = Q3WeaponFx.bind(prop, w)
 					(e["wfx"] as Q3WeaponFx).rail_color = client_colors(int(es["clientNum"]))[0]
 
 
-## cg_players.c CG_PlayerSprites: EF_TALK (typing in the chat) floats sprites/balloon3 48 units
-## over the origin, radius 10 (CG_PlayerFloatSprite). Your own shows only in mirrors.
-func _talk_balloon(ch: Q3Character, on: bool, mine: bool) -> void:
+## cg_players.c CG_PlayerSprites, in its order: the first flag set picks the sprite over the head.
+## (EF_CONNECTION's icon and the team-mate marker have no art in the library.)
+const PLAYER_SPRITES := [[E.EF_TALK, "fx/textures/talk_balloon.png"],
+	[E.EF_AWARD_IMPRESSIVE, "ui/hud/medal_impressive.png"], [E.EF_AWARD_EXCELLENT, "ui/hud/medal_excellent.png"],
+	[E.EF_AWARD_GAUNTLET, "ui/hud/medal_gauntlet.png"], [E.EF_AWARD_DEFEND, "ui/hud/medal_defend.png"],
+	[E.EF_AWARD_ASSIST, "ui/hud/medal_assist.png"], [E.EF_AWARD_CAP, "ui/hud/medal_capture.png"]]
+
+
+## The sprite a player's eFlags float over them: typing in the chat, or the medal of an award just
+## earned (the game keeps EF_AWARD_* on for REWARD_SPRITE_TIME, 2 s).
+func _player_sprite(ch: Q3Character, eflags: int, mine: bool) -> void:
+	for s in PLAYER_SPRITES:
+		if eflags & int(s[0]):
+			_talk_balloon(ch, true, mine, s[1])
+			return
+	_talk_balloon(ch, false, mine)
+
+
+## CG_PlayerFloatSprite: a sprite 48 units over the origin, radius 10 (the chat balloon unless
+## `tex` says otherwise). Your own shows only in mirrors.
+func _talk_balloon(ch: Q3Character, on: bool, mine: bool, tex := "fx/textures/talk_balloon.png") -> void:
 	var b := ch.get_node_or_null("TalkBalloon") as Sprite3D
 	if b == null:
 		if not on:
 			return
 		b = Sprite3D.new()
 		b.name = "TalkBalloon"
-		b.texture = load(Q3.LIB + "fx/textures/talk_balloon.png")
 		b.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		b.shaded = false
 		b.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
 		b.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		if b.texture:
-			b.pixel_size = 20.0 * Q3.UNIT / b.texture.get_width()
 		b.position = Vector3.UP * (24.0 + 48.0) * Q3.UNIT
-		if mine:
+		if mine and not self_visible:
 			b.layers = Q3Portal.MIRROR_LAYER
 		ch.add_child(b)
+	if on and String(b.get_meta("tex", "")) != tex:
+		b.set_meta("tex", tex)
+		b.texture = _sprite_texture(tex)
+		if b.texture:
+			b.pixel_size = 20.0 * Q3.UNIT / b.texture.get_width()
 	b.visible = on
+
+
+static var _sprite_textures: Dictionary = {}   ## path -> a mipmapped copy for 3D
+
+
+## A head sprite's texture. The medals are the HUD's 2D imports, which have no mipmaps: drawn small
+## and far off in 3D they'd shimmer, so they get a mipmapped copy, made once.
+static func _sprite_texture(tex: String) -> Texture2D:
+	var t := Q3.held(Q3.LIB + tex) as Texture2D
+	if t == null or tex.begins_with("fx/"):
+		return t
+	if not _sprite_textures.has(tex):
+		var img := t.get_image()
+		if img and not img.has_mipmaps():
+			if img.is_compressed():
+				img.decompress()
+			img.generate_mipmaps()
+			_sprite_textures[tex] = ImageTexture.create_from_image(img)
+		else:
+			_sprite_textures[tex] = t
+	return _sprite_textures[tex]
 
 
 # ---------------------------------------------------------------- events (cg_event.c)
@@ -588,7 +895,42 @@ func _entity_event(num: int, es: Dictionary) -> void:
 	_seen_events[num] = ev
 	if int(es["eType"]) == E.ET_PLAYER and int(es["clientNum"]) == local_client:
 		return   # the local player's events come through its playerState
-	_event(ev & ~E.EV_EVENT_BITS, es, Q3.q3_to_godot(trajectory(es["pos"], _time)))
+	_event(ev & ~E.EV_EVENT_BITS, es, _sound_origin(es))
+
+
+## cg_ents.c CG_SetEntitySoundPosition: a brush model's sounds (doors, plats, buttons) come from its
+## middle; its origin is often the map's (0, 0, 0) plus its travel. A mover with a loop sound keeps
+## lerpOrigin, as the loop overwrites the sound origin in id's sound code.
+func _sound_origin(es: Dictionary) -> Vector3:
+	var at := Q3.q3_to_godot(trajectory(es["pos"], _time))
+	if int(es.get("solid", 0)) == E.SOLID_BMODEL and int(es.get("loopSound", 0)) == 0 and map:
+		at += _model_mid(int(es.get("modelindex", 0)))
+	return at
+
+
+var _mids: Dictionary = {}    ## inline model -> its bounds' middle relative to its origin (cgs.inlineModelMidpoints)
+var _mids_map: Q3Map
+
+
+func _model_mid(n: int) -> Vector3:
+	if _mids_map != map:
+		_mids.clear()
+		_mids_map = map
+	if not _mids.has(n):
+		var mid := Vector3.ZERO
+		var found := false
+		for m in map.info().get("models", []):
+			if int(m["index"]) == n:
+				mid = (Q3Map._vec3(m["mins"]) + Q3Map._vec3(m["maxs"])) * 0.5   # Godot meters, model space
+				found = true
+				break
+		if not found:   # an editor play-test map has no JSON: its mesh's bounds
+			var node := map.model_node(n)
+			for mi in (node.find_children("*", "MeshInstance3D", true, false) if node else []):
+				mid = (node.global_transform.affine_inverse() * (mi as MeshInstance3D).global_transform * (mi as MeshInstance3D).get_aabb()).get_center()
+				break
+		_mids[n] = mid
+	return _mids[n]
 
 
 ## A temporary event entity (eType ET_EVENTS + event): fires once, when it first appears.
@@ -630,6 +972,27 @@ func _local_events(ps: Dictionary) -> void:
 		_predictable[i & (MAX_PREDICTED_EVENTS - 1)] = raw
 		_local_event(raw, ps, i)
 	_ps_event_seq = seq
+	_local_pain(ps)
+
+
+var _last_health := 0
+var _last_health_client := -1   ## whose health that was (a follow switch starts over: *ops = *ps)
+var _last_health_team := -1
+
+
+## cg_playerstate.c CG_CheckLocalSounds: your own pain sounds come from your health dropping by more
+## than 1 (still alive), not from the server's EV_PAIN, which the event code skips for you. Not for
+## spectators or at the intermission; the same 500 ms gate (and EV_FALL_FAR's) as everyone's.
+func _local_pain(ps: Dictionary) -> void:
+	var hp := int(ps["stats"][E.STAT_HEALTH])
+	var cn := int(ps.get("clientNum", local_client))
+	var team := int(ps["persistant"][E.PERS_TEAM])
+	if not muted and cn == _last_health_client and team == _last_health_team and team != E.TEAM_SPECTATOR \
+			and int(ps["pm_type"]) != E.PM_INTERMISSION and hp < _last_health - 1 and hp > 0:
+		_pain(local_client, hp, Q3.q3_to_godot(ps["origin"]), true)
+	_last_health = hp
+	_last_health_client = cn
+	_last_health_team = team
 
 
 func _local_event(raw: int, ps: Dictionary, i: int) -> void:
@@ -647,6 +1010,11 @@ func _event(ev: int, es: Dictionary, at: Vector3, local := false) -> void:
 	if muted:
 		return
 	var cl := int(es.get("clientNum", 0))
+	# CG_CustomSound's client: the entity's number (a player's own event), or the player a temp
+	# event entity was made for (EF_PLAYER_EVENT); anything else speaks with client 0's voice
+	var who := int(es.get("number", cl))
+	if int(es.get("eFlags", 0)) & E.EF_PLAYER_EVENT:
+		who = int(es.get("otherEntityNum", who))
 	match ev:
 		E.EV_FIRE_WEAPON:
 			_fire_weapon(es, at, local)
@@ -671,11 +1039,10 @@ func _event(ev: int, es: Dictionary, at: Vector3, local := false) -> void:
 		E.EV_SHOTGUN:
 			_shotgun_fire(es)
 		E.EV_PAIN:
-			var hp := int(es["eventParm"])
-			var which := "25" if hp < 25 else "50" if hp < 50 else "75" if hp < 75 else "100"
-			play_sound("sound/player/%s/pain%s_1.wav" % [_player_models.get(cl, "sarge"), which], at, local)
+			if not local:   # yours come from your health dropping (_local_pain)
+				_pain(who, int(es["eventParm"]), at, local)
 		E.EV_DEATH1, E.EV_DEATH2, E.EV_DEATH3:
-			play_sound("sound/player/%s/death%d.wav" % [_player_models.get(cl, "sarge"), ev - E.EV_DEATH1 + 1], at, local)
+			play_sound(custom_sound(who, "*death%d.wav" % (ev - E.EV_DEATH1 + 1)), at, local)
 		E.EV_GIB_PLAYER:
 			# Settings > Graphics > Gibs is cg_gibs; with it off the body burns away instead
 			var body := _body_near(at)
@@ -688,23 +1055,46 @@ func _event(ev: int, es: Dictionary, at: Vector3, local := false) -> void:
 				(body as Q3Character).disintegrate(CORPSE_BURN)
 			play_sound("sound/player/gibsplt1.wav", at)
 		E.EV_JUMP:
-			play_sound("sound/player/%s/jump1.wav" % _player_models.get(cl, "sarge"), at, local)
+			play_sound(custom_sound(who, "*jump1.wav"), at, local)
 		E.EV_JUMP_PAD:
+			# the boing at the pad, the player's jump grunt, and a puff of smoke rising off it
+			_smoke.add(at, Vector3.UP * Q3.UNIT, 32.0, 0.33, 1000.0, _now, false)
 			play_sound("sound/world/jumppad.wav", at, local)
+			play_sound(custom_sound(who, "*jump1.wav"), at, local)
+		E.EV_TAUNT:
+			play_sound(custom_sound(who, "*taunt.wav"), at, local)
 		E.EV_FALL_SHORT:
 			play_sound("sound/player/land1.wav", at, local)
 			if local:
 				landed.emit(-8.0)
 		E.EV_FALL_MEDIUM:
-			play_sound("sound/player/%s/pain100_1.wav" % _player_models.get(cl, "sarge"), at, local)
+			play_sound(custom_sound(who, "*pain100_1.wav"), at, local)
 			if local:
 				landed.emit(-16.0)
 		E.EV_FALL_FAR:
-			play_sound("sound/player/%s/fall1.wav" % _player_models.get(cl, "sarge"), at, local)
+			play_sound(custom_sound(who, "*fall1.wav"), at, local)
+			_pain_time[who] = _now   # don't play a pain sound right after this
 			if local:
 				landed.emit(-24.0)
-		E.EV_FOOTSTEP, E.EV_FOOTSTEP_METAL:
-			play_sound("sound/player/footsteps/%s%d.wav" % ["clank" if ev == E.EV_FOOTSTEP_METAL else "step", randi_range(1, 4)], at, local, -8.0)
+		E.EV_STEP_4, E.EV_STEP_8, E.EV_STEP_12, E.EV_STEP_16:
+			if local:
+				stepped.emit(4.0 * (ev - E.EV_STEP_4 + 1))
+		E.EV_FOOTSTEP, E.EV_FOOTSTEP_METAL, E.EV_FOOTSPLASH, E.EV_FOOTWADE, E.EV_SWIM:
+			# the model's own footsteps (animation.cfg), metal on metal floors, splashes in water
+			var kind := footstep_kind(_sound_model(who))
+			if ev == E.EV_FOOTSTEP_METAL:
+				kind = "clank"
+			elif ev != E.EV_FOOTSTEP:
+				kind = "splash"
+			play_sound("sound/player/footsteps/%s%d.wav" % [kind, randi_range(1, 4)], at, local, -8.0)
+		E.EV_WATER_TOUCH:
+			play_sound("sound/player/watr_in.wav", at, local)
+		E.EV_WATER_LEAVE:
+			play_sound("sound/player/watr_out.wav", at, local)
+		E.EV_WATER_UNDER:
+			play_sound("sound/player/watr_un.wav", at, local)
+		E.EV_WATER_CLEAR:
+			play_sound(custom_sound(who, "*gasp.wav"), at, local)
 		E.EV_ITEM_PICKUP, E.EV_GLOBAL_ITEM_PICKUP:
 			_pickups.append([at, _now])
 			if _pickups.size() > 8:
@@ -712,22 +1102,160 @@ func _event(ev: int, es: Dictionary, at: Vector3, local := false) -> void:
 			var idx := int(es["eventParm"])
 			if idx >= 1 and idx <= _item_names.size():
 				var it: Dictionary = Q3.entities.get(_item_names[idx - 1], {})
-				if it.get("pickup_sound", ""):
+				if ev == E.EV_ITEM_PICKUP and String(it.get("type", "")) in ["powerup", "team"]:
+					# their own sound is the global pickup's; this one is the plain health chime
+					play_sound("sound/items/n_health.wav", at, local)
+				elif it.get("pickup_sound", ""):
 					play_sound(String(it["pickup_sound"]), at, local or ev == E.EV_GLOBAL_ITEM_PICKUP)
 		E.EV_ITEM_RESPAWN:
+			var back: Variant = _ents.get(int(es.get("number", -1)), {}).get("node")
+			if is_instance_valid(back) and back is Q3Pickup:
+				(back as Q3Pickup).respawned()
 			play_sound("sound/items/respawn1.wav", at)
-		E.EV_PLAYER_TELEPORT_IN:
+		E.EV_PLAYER_TELEPORT_IN, E.EV_PLAYER_TELEPORT_OUT:
+			# CG_SpawnEffect where they appear and where they vanish, standing on the floor (the
+			# event is at the origin, 24 units over the feet)
 			if Settings.get_value("gameplay/spawn_effect"):
-				Q3FX.teleport(self, at)
-			play_sound("sound/world/telein.wav", at)
-		E.EV_PLAYER_TELEPORT_OUT:
-			play_sound("sound/world/teleout.wav", at)
-		E.EV_GENERAL_SOUND, E.EV_GLOBAL_SOUND, E.EV_GLOBAL_TEAM_SOUND:
+				Q3FX.teleport(self, at + Vector3.DOWN * 24.0 * Q3.UNIT)
+			play_sound("sound/world/telein.wav" if ev == E.EV_PLAYER_TELEPORT_IN else "sound/world/teleout.wav", at)
+		E.EV_USE_ITEM0, E.EV_USE_ITEM1, E.EV_USE_ITEM2, E.EV_USE_ITEM3, E.EV_USE_ITEM4, E.EV_USE_ITEM5, E.EV_USE_ITEM6, E.EV_USE_ITEM7:
+			# CG_UseItem: the medkit's sound; the teleporter's are its teleport events; nothing to use buzzes
+			var item := ev - E.EV_USE_ITEM0
+			if item == E.HI_MEDKIT:
+				play_sound("sound/items/use_medkit.wav", at, local)
+			elif item != E.HI_TELEPORTER:
+				play_sound("sound/items/use_nothing.wav", at, local)
+		E.EV_POWERUP_QUAD:
+			play_sound("sound/items/damage3.wav", at, local)   # a quad hit lands
+		E.EV_POWERUP_BATTLESUIT:
+			play_sound("sound/items/protect3.wav", at, local)   # the battle suit takes a hit
+		E.EV_POWERUP_REGEN:
+			play_sound("sound/items/regen.wav", at, local)   # a regeneration tick
+		E.EV_GENERAL_SOUND, E.EV_GLOBAL_SOUND:
+			# "*name.wav" is the player's own voice: a pit's target_speaker screams *falling1.wav
 			var path := feed.configstring(E.CS_SOUNDS + int(es["eventParm"]))
-			if path != "" and not path.begins_with("*"):
-				play_sound(path, at, ev != E.EV_GENERAL_SOUND)
+			if path != "":
+				play_sound(custom_sound(who, path), at, local or ev == E.EV_GLOBAL_SOUND)
+		E.EV_GLOBAL_TEAM_SOUND:
+			_team_sound(int(es["eventParm"]))
 		E.EV_OBITUARY:
 			obituary.emit(int(es["otherEntityNum2"]), int(es["otherEntityNum"]), int(es["eventParm"]))
+
+
+## CG_PainEvent: at most two pain sounds a second, by how hurt the player is.
+func _pain(who: int, health: int, at: Vector3, local: bool) -> void:
+	if _now - float(_pain_time.get(who, -100000.0)) < 500.0:
+		return
+	_pain_time[who] = _now
+	_pain_dir[who] = not _pain_dir.get(who, false)   # the twitch alternates sides (painDirection)
+	var which := "25" if health < 25 else "50" if health < 50 else "75" if health < 75 else "100"
+	play_sound(custom_sound(who, "*pain%s_1.wav" % which), at, local)
+
+
+## bg_public.h global_team_sound_t
+enum { GTS_RED_CAPTURE, GTS_BLUE_CAPTURE, GTS_RED_RETURN, GTS_BLUE_RETURN, GTS_RED_TAKEN, GTS_BLUE_TAKEN,
+	GTS_REDOBELISK_ATTACKED, GTS_BLUEOBELISK_ATTACKED, GTS_REDTEAM_SCORED, GTS_BLUETEAM_SCORED,
+	GTS_REDTEAM_TOOK_LEAD, GTS_BLUETEAM_TOOK_LEAD, GTS_TEAMS_ARE_TIED }
+
+
+## EV_GLOBAL_TEAM_SOUND's announcer lines (cg_event.c), for the local player's team. A flag they
+## took themselves is Q3Hud's "You have the flag" instead.
+func _team_sound(gts: int) -> void:
+	var tc := team_client if team_client >= 0 else local_client
+	var team := String(Q3Host.parse_info(feed.configstring(E.CS_PLAYERS + tc)).get("t", "")) if tc >= 0 else ""
+	var red := team == "1"
+	var blue := team == "2"
+	var tp := "sound/teamplay/"
+	# their flag, from this snapshot (cg.snap->ps): outside first person in a replay, their own state
+	var bits := powerup_bits(_local_ps if not _local_ps.is_empty() else feed.player_state(tc) if tc >= 0 else {})
+	match gts:
+		GTS_RED_CAPTURE:
+			team_sound.emit(tp + ("flagcapture_yourteam.wav" if red else "flagcapture_opponent.wav"))
+		GTS_BLUE_CAPTURE:
+			team_sound.emit(tp + ("flagcapture_yourteam.wav" if blue else "flagcapture_opponent.wav"))
+		GTS_RED_RETURN:
+			team_sound.emit(tp + ("flagreturn_yourteam.wav" if red else "flagreturn_opponent.wav"))
+			team_sound.emit(tp + "voc_blue_returned.wav")
+		GTS_BLUE_RETURN:
+			team_sound.emit(tp + ("flagreturn_yourteam.wav" if blue else "flagreturn_opponent.wav"))
+			team_sound.emit(tp + "voc_red_returned.wav")
+		GTS_RED_TAKEN:
+			if not bits & (1 << E.PW_BLUEFLAG) and (red or blue):
+				team_sound.emit(tp + ("voc_enemy_flag.wav" if blue else "voc_team_flag.wav"))
+		GTS_BLUE_TAKEN:
+			if not bits & (1 << E.PW_REDFLAG) and (red or blue):
+				team_sound.emit(tp + ("voc_enemy_flag.wav" if red else "voc_team_flag.wav"))
+		GTS_REDTEAM_SCORED:
+			team_sound.emit(tp + "voc_red_scores.wav")
+		GTS_BLUETEAM_SCORED:
+			team_sound.emit(tp + "voc_blue_scores.wav")
+		GTS_REDTEAM_TOOK_LEAD:
+			team_sound.emit("sound/feedback/redleads.wav")
+		GTS_BLUETEAM_TOOK_LEAD:
+			team_sound.emit("sound/feedback/blueleads.wav")
+		GTS_TEAMS_ARE_TIED:
+			team_sound.emit("sound/feedback/teamstied.wav")
+
+
+## CG_CustomSound: "*name.wav" in a player's own voice (sound/player/<model>/name.wav), Sarge's
+## (DEFAULT_MODEL) where their model has none; any other path as it is.
+func custom_sound(cl: int, name: String) -> String:
+	if not name.begins_with("*"):
+		return name
+	if cl < 0 or cl >= E.MAX_CLIENTS:
+		cl = 0
+	var own := "sound/player/%s/%s" % [_sound_model(cl), name.substr(1)]
+	if ResourceLoader.exists("res://library/sounds/" + own.trim_prefix("sound/")):
+		return own
+	return "sound/player/sarge/" + name.substr(1)
+
+
+## The model whose voice and footsteps a player has: their userinfo's, before any skin, whatever
+## Gameplay > Force enemy model draws them as (ci->modelName).
+func _sound_model(cl: int) -> String:
+	if cl < 0 or cl >= E.MAX_CLIENTS:
+		cl = 0
+	var info := Q3Host.parse_info(feed.configstring(E.CS_PLAYERS + cl))
+	return String(info.get("model", "sarge")).get_slice("/", 0).to_lower()
+
+
+static var _footsteps: Dictionary = {}   ## model -> footstep sound prefix, read once from the paks
+
+
+## CG_ParseAnimationFile's "footsteps" (default, normal, boot, flesh, mech, energy) as the sound
+## file's prefix. The remaster ships no animation.cfg, so it's read from the player's own paks.
+static func footstep_kind(model: String) -> String:
+	load_footsteps()
+	return String(_footsteps.get(model, "step"))
+
+
+## Reads every player model's footsteps from the paks, once a run, at match load (Q3Client._ready),
+## as cgame does while loading client info: opening every pak mid-match would stall a frame.
+static func load_footsteps() -> void:
+	if _footsteps.is_empty():
+		_footsteps["-"] = "step"   # read once, even when there are no paks
+		var paks := Q3MapCompiler.pak_dir()
+		if paks != "" and DirAccess.dir_exists_absolute(paks):
+			var names: Array = []
+			for f in DirAccess.get_files_at(paks):
+				if f.to_lower().ends_with(".pk3"):
+					names.append(f)
+			names.sort()   # later paks win, as Quake 3 loads them
+			for f in names:
+				var z := ZIPReader.new()
+				if z.open(paks.path_join(f)) != OK:
+					continue
+				for e in z.get_files():
+					var low := e.to_lower()
+					if low.begins_with("models/players/") and low.ends_with("/animation.cfg"):
+						var kind := "step"
+						for line in z.read_file(e).get_string_from_ascii().split("\n"):
+							var tok := line.strip_edges().replace("\t", " ").split(" ", false)
+							if tok.size() >= 2 and tok[0].to_lower() == "footsteps":
+								var k := tok[1].to_lower()
+								kind = k if k in ["boot", "flesh", "mech", "energy"] else "step"
+						_footsteps[low.get_slice("/", 2)] = kind
+				z.close()
 
 
 # ---------------------------------------------------------------- weapons (cg_weapons.c)
@@ -754,14 +1282,26 @@ func _fire_weapon(es: Dictionary, at: Vector3, local: bool) -> void:
 	if w == E.WP_MACHINEGUN or w == E.WP_SHOTGUN:
 		var origin: Vector3 = es["pos"]["trBase"]
 		var angles: Vector3 = es.get("apos", {}).get("trBase", Vector3.ZERO)
-		Q3FX.brass(self, "machinegun" if w == E.WP_MACHINEGUN else "shotgun", Q3.q3_to_godot(origin), angles_basis(angles))
+		var kind := "machinegun" if w == E.WP_MACHINEGUN else "shotgun"
+		# where the shell comes out (the brass offset in the view axes), back in id units, for the
+		# water check (waterScale)
+		var b := angles_basis(angles)
+		var o: Array = Q3.fx["brass"][kind]["offset"]
+		var g := Q3.q3_to_godot(origin) + (b.z * float(o[0]) + b.x * float(o[1]) + b.y * float(o[2])) * Q3.UNIT
+		var water := (feed.point_contents(Vector3(g.z, g.x, g.y) / Q3.UNIT, -1) & CONTENTS_WATER) != 0
+		Q3FX.brass(self, kind, Q3.q3_to_godot(origin), b, water)
 
 
-## CG_MissileHitWall: the explosion and mark for the weapon, and its impact sound.
-func missile_hit_wall(weapon: int, cl: int, at: Vector3, dir: Vector3) -> void:
+## CG_MissileHitWall: the explosion and mark for the weapon, and its impact sound. The mark only
+## lands on the world, never on a nomarks surface or a mover (`mark` -1: traced here).
+func missile_hit_wall(weapon: int, cl: int, at: Vector3, dir: Vector3, mark := -1) -> void:
+	# its switch's default: falls into WP_LIGHTNING in baseq3, and the lightning gun's wall hit
+	# (g_weapon.c Weapon_LightningFire) is sent with weapon 0
+	if not EXPLOSIONS.has(weapon):
+		weapon = E.WP_LIGHTNING
 	var kind: String = EXPLOSIONS.get(weapon, "")
-	if kind == "":
-		return
+	if mark < 0:
+		mark = int(_marks_surface(at, dir))
 	var snd := ""
 	match weapon:
 		E.WP_LIGHTNING:
@@ -778,12 +1318,55 @@ func missile_hit_wall(weapon: int, cl: int, at: Vector3, dir: Vector3) -> void:
 		play_sound("sound/weapons/%s.wav" % snd, at)
 	if weapon == E.WP_RAILGUN:
 		# the flash's shader ignores color1 (rgbGen wave); the mark takes color2
-		Q3FX.explosion(self, kind, at, dir, Color.WHITE, client_colors(cl)[1])
+		Q3FX.explosion(self, kind, at, dir, Color.WHITE, client_colors(cl)[1], mark == 1)
 	else:
-		Q3FX.explosion(self, kind, at, dir)
+		Q3FX.explosion(self, kind, at, dir, Color.WHITE, Color.WHITE, mark == 1)
 	var sp: Array = SPARKS.get(weapon, [])
 	if not sp.is_empty():
 		_sparks.burst(at, dir, int(sp[0]), float(sp[1]), float(sp[2]), float(sp[3]))
+
+
+## Whether an impact at `at` (Godot) facing `dir` takes a mark: tr_marks.c R_MarkFragments marks
+## only the world's surfaces, and none whose shader is nomarks or noimpact (jump pads, lights, sky).
+func _marks_surface(at: Vector3, dir: Vector3) -> bool:
+	var p := Vector3(at.z, at.x, at.y) / Q3.UNIT
+	var n := Vector3(dir.z, dir.x, dir.y)
+	var tr := feed.trace(p + n * 4.0, p - n * 20.0, Vector3.ZERO, Vector3.ZERO, -1, CONTENTS_SOLID)
+	return not tr.is_empty() and float(tr["fraction"]) < 1.0 and int(tr["entityNum"]) == ENTITYNUM_WORLD \
+		and not int(tr["surfaceFlags"]) & (SURF_NOIMPACT | SURF_NOMARKS)
+
+
+## CG_BubbleTrail (id units): bubbles every `spacing` units from a random start, drifting up.
+func _bubble_trail(start: Vector3, end: Vector3, spacing: float) -> void:
+	var v := end - start
+	var length := v.length()
+	if length <= 0.0:
+		return
+	v /= length
+	var i := float(randi() % int(spacing))
+	var p := start + v * i
+	while i < length:
+		var vel := Vector3(randf_range(-5.0, 5.0), randf_range(-5.0, 5.0), randf_range(-5.0, 5.0) + 6.0)
+		_bubbles.add(Q3.q3_to_godot(p), Q3.q3_to_godot(vel), 3.0, 1.0, 1000.0 + randf() * 250.0, _now, false)
+		p += v * spacing
+		i += spacing
+
+
+## CG_Bullet and CG_ShotgunPellet's bubbles: a shot through water, into it or out of it leaves a
+## trail through the water part (id units).
+func _shot_bubbles(start: Vector3, end: Vector3) -> void:
+	var sc := feed.point_contents(start, 0)
+	var dc := feed.point_contents(end, 0)
+	if sc == dc and sc & CONTENTS_WATER:
+		_bubble_trail(start, end, 32.0)
+	elif sc & CONTENTS_WATER:
+		var w := feed.trace(end, start, Vector3.ZERO, Vector3.ZERO, -1, CONTENTS_WATER)
+		if not w.is_empty():
+			_bubble_trail(start, w["endpos"], 32.0)
+	elif dc & CONTENTS_WATER:
+		var w := feed.trace(start, end, Vector3.ZERO, Vector3.ZERO, -1, CONTENTS_WATER)
+		if not w.is_empty():
+			_bubble_trail(w["endpos"], end, 32.0)
 
 
 ## CG_MissileHitPlayer: blood, and for grenades and rockets the blast as well.
@@ -804,12 +1387,15 @@ func _bleed(at: Vector3, target: int) -> void:
 ## end is in id units; normal is Godot's.
 func _bullet(end: Vector3, source: int, normal: Vector3, flesh: bool, flesh_ent: int) -> void:
 	var at := Q3.q3_to_godot(end)
-	if source >= 0 and randf() < TRACER_CHANCE:
+	if source >= 0:
 		var start := _muzzle_point(source)
 		if start != Vector3.INF:
-			var a := Q3.q3_to_godot(start)
-			Q3FX.tracer(self, a, at, eye)
-			play_sound("sound/weapons/machinegun/buletby1.wav", (a + at) * 0.5)
+			_shot_bubbles(start, end)
+			if randf() < TRACER_CHANCE:
+				# CG_Tracer: the whizz only with a streak drawn, from its middle
+				var mid := Q3FX.tracer(self, Q3.q3_to_godot(start), at, eye)
+				if mid != Vector3.INF:
+					play_sound("sound/weapons/machinegun/buletby1.wav", mid)
 	if flesh:
 		_bleed(at, flesh_ent)
 	else:
@@ -870,7 +1456,10 @@ static func ql_shotgun_pellet(i: int) -> Vector2:
 
 func _shotgun_pellet(start: Vector3, end: Vector3, skip: int) -> void:
 	var tr := feed.trace(start, end, Vector3.ZERO, Vector3.ZERO, skip, MASK_SHOT)
-	if tr.is_empty() or int(tr["surfaceFlags"]) & SURF_NOIMPACT:
+	if tr.is_empty():
+		return
+	_shot_bubbles(start, tr["endpos"])
+	if int(tr["surfaceFlags"]) & SURF_NOIMPACT:
 		return
 	var at := Q3.q3_to_godot(tr["endpos"])
 	var n: Vector3 = tr["normal"]
@@ -878,7 +1467,8 @@ func _shotgun_pellet(start: Vector3, end: Vector3, skip: int) -> void:
 	if _ents.get(hit, {}).get("kind", -1) == E.ET_PLAYER:
 		_bleed(at, hit)   # CG_MissileHitPlayer(WP_SHOTGUN): blood only
 	else:
-		missile_hit_wall(E.WP_SHOTGUN, 0, at, Vector3(n.y, n.z, n.x))
+		var marks := hit == ENTITYNUM_WORLD and not int(tr["surfaceFlags"]) & SURF_NOMARKS
+		missile_hit_wall(E.WP_SHOTGUN, 0, at, Vector3(n.y, n.z, n.x), int(marks))
 
 
 ## Every frame after the camera moves: the weapons' flashes and barrels, the lightning beams,
@@ -897,6 +1487,10 @@ func present(local_ps: Dictionary, eye_pos: Vector3) -> void:
 		if e["kind"] != E.ET_PLAYER or e.get("ragdolled", false):
 			continue
 		var es: Dictionary = e["es"]
+		var ch := e["node"] as Q3Character
+		if ch and is_instance_valid(ch):
+			var gun: Variant = e.get("gun")
+			_powerups(num, ch, ch.body, gun if is_instance_valid(gun) else null, int(es.get("powerups", 0)), int(es["legsAnim"]))
 		var firing := (int(es["eFlags"]) & E.EF_FIRING) != 0 and not (int(es["eFlags"]) & E.EF_DEAD)
 		var fx: Q3WeaponFx = e.get("wfx")
 		if fx and fx.valid():
@@ -919,9 +1513,175 @@ func present(local_ps: Dictionary, eye_pos: Vector3) -> void:
 		_lightning(local_client, alive and firing and int(local_ps["weapon"]) == E.WP_LIGHTNING and view_fx != null and view_fx.valid(),
 			view_fx.muzzle() if view_fx and view_fx.valid() else Vector3.ZERO, _muzzle_point(local_client),
 			forward_of(local_ps["viewangles"]))
+		_local_powerups(local_ps)
+	else:
+		_clear_local_holder()   # nobody's eyes (a replay's chase, orbit or free camera): nothing left behind
 	_smoke.step(_now, eye)
 	_shotgun_smoke.step(_now, eye)
+	_bubbles.step(_now, eye)
 	_sparks.step(get_process_delta_time(), eye)
+
+
+# ---------------------------------------------------------------- powerups (cg_players.c)
+
+const SHELLS := [[E.PW_QUAD, "quad"], [E.PW_REGEN, "regen"], [E.PW_BATTLESUIT, "battlesuit"]]
+const WEAPON_SHELLS := [[E.PW_BATTLESUIT, "battlesuit"], [E.PW_QUAD, "quad"]]   ## CG_AddWeaponWithPowerups: no regen
+var _haste_time: Dictionary = {}   ## client -> next haste puff (cent->trailTime), ms
+var _local_holder: Node3D          ## where the local player's powerup lights, sound and flag hang
+
+
+## es.powerups' bits from a playerState (BG_PlayerStateToEntityState: any powerup with time left).
+static func powerup_bits(ps: Dictionary) -> int:
+	var bits := 0
+	var pw: Variant = ps.get("powerups", PackedInt32Array())   # a PackedInt32Array
+	for i in mini(pw.size(), E.PW_NUM_POWERUPS):
+		if int(pw[i]) != 0:
+			bits |= 1 << i
+	return bits
+
+
+## The shells for a set of powerup bits, in id's drawing order.
+static func shell_kinds(bits: int, table := SHELLS) -> PackedStringArray:
+	var out := PackedStringArray()
+	for s in table:
+		if bits & (1 << int(s[0])):
+			out.append(s[1])
+	return out
+
+
+## What a player's powerups show (CG_PlayerPowerups, CG_AddRefEntityWithPowerups): the quad, regen
+## and battle suit shells over the body and the held gun (regen flashes one tenth of every second;
+## invisibility leaves only its own shader), the quad's blue light, a carried flag trailing behind
+## (CG_TrailItem: Quake 3's own models have no flag animations) with its team's light, flight's
+## hum, and haste's smoke at the feet while running. `holder` carries the lights, sound and flag:
+## the flag shows in first person too (CG_TrailItem sets no RF_THIRD_PERSON).
+func _powerups(cl: int, holder: Node3D, body: Node3D, gun: Node3D, bits: int, legs_anim: int) -> void:
+	var invis := bits & (1 << E.PW_INVIS) != 0
+	if holder is Q3Character:
+		(holder as Q3Character).set_anim_speed(1.5 if bits & (1 << E.PW_HASTE) else 1.0)
+	if body and is_instance_valid(body):
+		Q3FX.powerup_shells(body, shell_kinds(bits), invis)
+		Q3FX.shell_visible(body, "regen", int(_now / 100.0) % 10 == 1)
+	if gun and is_instance_valid(gun):
+		Q3FX.powerup_shells(gun, shell_kinds(bits, WEAPON_SHELLS), invis, true)
+	_powerup_light(holder, "QuadLight", bits & (1 << E.PW_QUAD) != 0, Color(0.2, 0.2, 1.0))
+	_powerup_light(holder, "RedFlagLight", bits & (1 << E.PW_REDFLAG) != 0, Color(1.0, 0.2, 0.2))
+	_powerup_light(holder, "BlueFlagLight", bits & (1 << E.PW_BLUEFLAG) != 0, Color(0.2, 0.2, 1.0))
+	_trail_flag(holder, "team_CTF_redflag", bits & (1 << E.PW_REDFLAG) != 0)
+	_trail_flag(holder, "team_CTF_blueflag", bits & (1 << E.PW_BLUEFLAG) != 0)
+	var hum := holder.get_node_or_null("FlightLoop") as AudioStreamPlayer3D
+	if bits & (1 << E.PW_FLIGHT) and hum == null:
+		var res := "res://library/sounds/items/flight.wav"
+		if ResourceLoader.exists(res):
+			hum = AudioStreamPlayer3D.new()
+			hum.name = "FlightLoop"
+			hum.stream = Q3FX.looped(Q3.held(res))
+			hum.unit_size = 10.0
+			hum.max_distance = 40.0
+			hum.bus = &"Effects"
+			Settings.spatialize(hum)
+			holder.add_child(hum)
+			hum.play()
+	elif not bits & (1 << E.PW_FLIGHT) and hum:
+		hum.queue_free()
+	# CG_HasteTrail: a puff 16 units under the origin every 100 ms while running forward or back
+	var anim := legs_anim & ~E.ANIM_TOGGLEBIT
+	if bits & (1 << E.PW_HASTE) and (anim == E.LEGS_RUN or anim == E.LEGS_BACK):
+		var t: float = _haste_time.get(cl, 0.0)
+		if t <= _now:
+			_haste_time[cl] = maxf(t + 100.0, _now)
+			_smoke.add(holder.global_position + Vector3.UP * 8.0 * Q3.UNIT, Vector3.ZERO, 8.0, 1.0, 500.0, _now)
+
+
+## trap_R_AddLightToScene(origin, 200 + (rand() & 31), color) while `on`.
+func _powerup_light(holder: Node3D, light_name: String, on: bool, color: Color) -> void:
+	var l := holder.get_node_or_null(light_name) as OmniLight3D
+	if not on:
+		if l:
+			l.queue_free()
+		return
+	if l == null:
+		l = OmniLight3D.new()
+		l.name = light_name
+		l.light_color = color
+		l.shadow_enabled = false
+		l.position = Vector3.UP * 24.0 * Q3.UNIT   # the origin, 24 units over the feet
+		holder.add_child(l)
+	l.omni_range = (200.0 + float(randi() & 31)) * Q3.UNIT
+	l.light_energy = 2.0 * Q3FX.gain()
+
+
+## CG_TrailItem: the flag model 16 units behind the origin and 16 over it, turned 90 degrees.
+func _trail_flag(holder: Node3D, classname: String, on: bool) -> void:
+	var node_name := "Carried_" + classname
+	var flag := holder.get_node_or_null(node_name) as Node3D
+	if not on:
+		if flag:
+			flag.queue_free()
+		return
+	if flag == null:
+		var models: Array = Q3.entities.get(classname, {}).get("models", [])
+		flag = Q3.instance_prop(models[0]) if models.size() else null
+		if flag == null:
+			return
+		flag.name = node_name
+		holder.add_child(flag)
+		flag.position = Vector3(0.0, 40.0, -16.0) * Q3.UNIT
+		flag.basis = Basis(Vector3.UP, deg_to_rad(90.0))
+
+
+## The local player's powerups: their body is only drawn in mirrors (or by a spectator's chase
+## camera), but the quad's light, the flight hum and the haste smoke are there in first person too.
+func _local_powerups(ps: Dictionary) -> void:
+	if _local_holder == null or not is_instance_valid(_local_holder):
+		_local_holder = Node3D.new()
+		_local_holder.name = "LocalPowerups"
+		add_child(_local_holder)
+		_helpers.append(_local_holder)   # reset() keeps it
+	_local_holder.global_position = Q3.q3_to_godot(ps["origin"]) + Vector3.DOWN * 24.0 * Q3.UNIT
+	_local_holder.rotation = Vector3(0.0, deg_to_rad(float((ps["viewangles"] as Vector3).y)), 0.0)
+	var body: Node3D = null
+	var gun: Node3D = null
+	if not _self.is_empty() and is_instance_valid(_self["node"]):
+		body = (_self["node"] as Q3Character).body
+		var g: Variant = _self.get("gun")
+		gun = g if is_instance_valid(g) else null
+	var pm := int(ps["pm_type"])
+	var bits := powerup_bits(ps) if pm != E.PM_DEAD and pm != E.PM_SPECTATOR else 0
+	_powerups(local_client, _local_holder, body, gun, bits, int(ps["legsAnim"]))
+	if body:
+		(_self["node"] as Q3Character).set_anim_speed(1.5 if bits & (1 << E.PW_HASTE) else 1.0)
+	# CG_EntityEffects for the predicted player: ps.loopSound, the sizzle in lava or slime. A replay
+	# carries the watched player's own entity, whose loop already plays.
+	var loop := 0 if _ents.has(local_client) else int(ps.get("loopSound", 0))
+	if int(_local_holder.get_meta("loop_sound", 0)) != loop:
+		_local_holder.set_meta("loop_sound", loop)
+		var old := _local_holder.get_node_or_null("LoopSound")
+		if old:
+			old.queue_free()
+		var stream := _load_sound(feed.configstring(E.CS_SOUNDS + loop)) if loop != 0 else null
+		if stream:
+			var a := AudioStreamPlayer3D.new()
+			a.name = "LoopSound"
+			a.stream = Q3FX.looped(stream)
+			a.unit_size = 12.0
+			a.max_distance = 60.0
+			a.bus = &"Effects"
+			Settings.spatialize(a)
+			a.position = Vector3.UP * 24.0 * Q3.UNIT   # the origin (the holder is at the feet)
+			_local_holder.add_child(a)
+			a.play()
+
+
+## Everything the local player's powerups and loop hung on the holder goes (a replay camera that
+## isn't anyone's eyes, a follow switch, a replay jump): CG_PlayerPowerups adds them per frame.
+func _clear_local_holder() -> void:
+	if _local_holder == null or not is_instance_valid(_local_holder):
+		return
+	for c in _local_holder.get_children():
+		_local_holder.remove_child(c)
+		c.queue_free()
+	_local_holder.set_meta("loop_sound", 0)
 
 
 ## The local player's own body, for mirrors and portal views only: cgame draws the predicted
@@ -930,22 +1690,30 @@ func present(local_ps: Dictionary, eye_pos: Vector3) -> void:
 func _update_self(ps: Dictionary) -> void:
 	if ps.is_empty() or local_client < 0:
 		return
+	if not _self.is_empty() and not _restyle(_self, local_client):
+		(_self["node"] as Node).queue_free()   # a new model: built again below
+		_self = {}
 	if _self.is_empty():
-		var body := Q3Character.new()
-		body.model = _model_for(local_client)
+		var body := _body_for(local_client)
+		body.turn = true
+		body.match_clock = true
 		add_child(body)
+		_bright(body, local_client)
 		_self = {"node": body, "kind": E.ET_PLAYER, "legs": -1, "torso": -1, "weapon": -1}
 	var ch: Q3Character = _self["node"]
 	var pm := int(ps["pm_type"])
 	ch.visible = pm == E.PM_NORMAL or pm == E.PM_FREEZE or pm == E.PM_NOCLIP
 	if not ch.visible:
+		_self.erase("tele")   # back in view: CG_ResetPlayerEntity
 		return
 	var weapon: int = _self["weapon"]
 	_update_player(_self, {"number": local_client, "clientNum": local_client, "eType": E.ET_PLAYER,
 		"eFlags": int(ps["eFlags"]) & ~E.EF_DEAD, "event": 0, "weapon": int(ps["weapon"]),
-		"legsAnim": int(ps["legsAnim"]), "torsoAnim": int(ps["torsoAnim"]),
+		"legsAnim": int(ps["legsAnim"]), "torsoAnim": int(ps["torsoAnim"]), "powerups": powerup_bits(ps),
+		"angles2": Vector3(0.0, float(ps.get("movementDir", 0)), 0.0),
 		"pos": {"trType": 0, "trBase": ps["origin"], "trDelta": ps["velocity"]},
 		"apos": {"trType": 0, "trBase": ps["viewangles"]}})
+	_advance_body(_self)
 	if weapon != _self["weapon"] or _self.get("layered", -1) != int(self_visible):
 		_self["layered"] = int(self_visible)
 		for g in ch.find_children("*", "GeometryInstance3D", true, false):
@@ -1004,12 +1772,12 @@ func _weapon_loop(num: int, weapon: int, firing: bool, owner: Node3D, flat: bool
 	var player: Node
 	if flat:
 		var a := AudioStreamPlayer.new()
-		a.stream = Q3FX.looped(load(res))
+		a.stream = Q3FX.looped(Q3.held(res))
 		a.volume_db = -4.0
 		player = a
 	else:
 		var a := AudioStreamPlayer3D.new()
-		a.stream = Q3FX.looped(load(res))
+		a.stream = Q3FX.looped(Q3.held(res))
 		a.unit_size = 10.0
 		a.max_distance = 40.0
 		Settings.spatialize(a)
@@ -1109,15 +1877,18 @@ func armor_hit(target: int, armor: int) -> void:
 		return
 	var e: Dictionary = _ents.get(target, {})
 	var ch := e.get("node") as Q3Character
-	if ch == null or not is_instance_valid(ch) or e.get("ragdolled", false):
+	if ch == null or not is_instance_valid(ch) or e.get("ragdolled", false) or ch.body == null:
 		return
+	if int(e.get("es", {}).get("powerups", 0)) & (1 << E.PW_INVIS):
+		return   # an invisible body shows only the invisibility shader (CG_AddRefEntityWithPowerups)
 	var mat: ShaderMaterial = e.get("armor_mat")
 	if mat == null:
 		mat = ShaderMaterial.new()
 		mat.shader = ARMOR_SHELL
 		e["armor_mat"] = mat
-		for mi in ch.find_children("*", "MeshInstance3D", true, false):
-			if not String(mi.get_path()).contains("Attach_"):
+		# the body only: not a carried flag hanging off the character
+		for mi in ch.body.find_children("*", "MeshInstance3D", true, false):
+			if not String(mi.get_path()).contains("Attach_") and not Q3FX.is_shell(mi):
 				if (mi as MeshInstance3D).material_overlay and mat.next_pass == null:
 					mat.next_pass = (mi as MeshInstance3D).material_overlay   # a replay's outline stays, after the shell
 				(mi as MeshInstance3D).material_overlay = mat
@@ -1139,10 +1910,7 @@ func _head_of(target: int) -> Vector3:
 
 ## Plays a Quake 3 sound path (sound/...wav) from library/sounds; positional unless `flat`.
 func play_sound(path: String, at: Vector3, flat := false, volume_db := 0.0) -> void:
-	var p := "res://library/sounds/" + path.trim_prefix("sound/")
-	if not _sounds.has(p):
-		_sounds[p] = load(p) if ResourceLoader.exists(p) else null
-	var stream: AudioStream = _sounds[p]
+	var stream := _load_sound(path)
 	if stream == null:
 		return
 	var player: Node
@@ -1166,6 +1934,16 @@ func play_sound(path: String, at: Vector3, flat := false, volume_db := 0.0) -> v
 		(player as Node3D).global_position = at
 	player.finished.connect(player.queue_free)
 	player.play()
+
+
+## A Quake 3 sound path's library stream, loaded once; null when the library has none.
+func _load_sound(path: String) -> AudioStream:
+	if path == "":
+		return null
+	var p := "res://library/sounds/" + path.trim_prefix("sound/")
+	if not _sounds.has(p):
+		_sounds[p] = load(p) if ResourceLoader.exists(p) else null
+	return _sounds[p]
 
 
 # ---------------------------------------------------------------- math (bg_misc.c, q_math.c)
@@ -1218,8 +1996,7 @@ func _update_own_body(ps: Dictionary) -> void:
 	var gibbed := dead and int(ps["stats"][E.STAT_HEALTH]) <= -40
 	if dead and own_body == null and own_death and not muted and _own_seen_alive and not gibbed:
 		_own_seen_alive = false
-		var ch := Q3Character.new()
-		ch.model = _model_for(local_client)
+		var ch := _body_for(local_client)
 		add_child(ch)
 		_bright(ch, local_client)
 		ch.global_position = Q3.q3_to_godot(ps["origin"]) + Vector3.DOWN * 24.0 * Q3.UNIT

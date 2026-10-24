@@ -444,6 +444,12 @@ function LockIcon() {
 
 // ---------------------------------------------------------------- Character
 
+/** Default, then the character's own skins (Godot's skins payload). Team games paint everyone red or blue anyway. */
+function skinOptions(init: InitPayload, model: string): [Value, string][] {
+  const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+  return [["default", "Default"], ...(init.skins?.[model] ?? []).map((s): [Value, string] => [s, s === "red" || s === "blue" ? `${cap(s)} team` : cap(s)])];
+}
+
 function CharacterTab({ init, values: v }: { init: InitPayload; values: Record<string, Value> }) {
   const model = String(v["profile/model"] ?? "sarge");
   return (
@@ -491,8 +497,7 @@ function CharacterTab({ init, values: v }: { init: InitPayload; values: Record<s
         <Spinner
           wide
           value={String(v["profile/skin"] ?? "default")}
-          options={[["default", "Default"], ["red", "Red team"], ["blue", "Blue team"]] as [Value, string][]}
-          disabled={(s) => (s === "default" ? false : "Team skins aren't converted yet")}
+          options={skinOptions(init, model)}
           onChange={(s) => setValue("profile/skin", s)}
         />
         <SectionTitle>Player color</SectionTitle>

@@ -10,6 +10,11 @@ var item: Dictionary
 var _visual: Node3D
 var _bob := 0.005
 var _second: Node3D   ## the health sphere or powerup ring (cg_items models[1])
+var _scale := 1.0
+var _lift := 0.0           ## a weapon's height: its middle on the origin plus 8 units
+var number := -1           ## entityState.number, for the bob rate; -1 outside a match
+var _respawn_ms := -1.0e9   ## cent->miscTime: when EV_ITEM_RESPAWN brought it back
+const ITEM_SCALEUP_TIME := 1000.0
 
 
 func _ready() -> void:
@@ -33,13 +38,17 @@ func _ready() -> void:
 				_second = n
 				if item.get("type", "") == "powerup":
 					n.position.y = 12.0 * Q3.UNIT
-	_visual.scale = Vector3.ONE * float(item.get("scale", 1.0))
+	_scale = float(item.get("scale", 1.0))
+	_visual.scale = Vector3.ONE * _scale
 	if item.get("type", "") == "weapon":
 		var box := _bounds(_visual)
 		for c in _visual.get_children():
 			c.position -= Vector3(box.get_center().x, 0.0, box.get_center().z)
-	# cg_ents.c: scale = 0.005 + entity number * 0.00001, so neighbors don't bob in sync
-	_bob = 0.005 + float(get_instance_id() % 97) * 0.00001
+		# CG_Item: a weapon sits with its middle on the origin, then "an extra height boost" of 8
+		_lift = 8.0 * Q3.UNIT - box.get_center().y
+	# cg_ents.c: scale = 0.005 + entity number * 0.00001, so neighbors don't bob in sync (the
+	# entity number keeps an item's rhythm across respawns; without one, any spread will do)
+	_bob = 0.005 + float(number if number >= 0 else get_instance_id() % 97) * 0.00001
 
 
 func _process(_delta: float) -> void:
@@ -51,7 +60,15 @@ func _process(_delta: float) -> void:
 	rotation.y = fmod(ms, period) / period * TAU
 	if _second:   # its own yaw in the world, not the item's: none for the sphere, backward for the ring
 		_second.rotation.y = (0.0 if health else -fmod(ms, 1024.0) / 1024.0 * TAU) - rotation.y
-	_visual.position.y = (4.0 + cos((ms + 1000.0) * _bob) * 4.0) * Q3.UNIT
+	_visual.position.y = (4.0 + cos((ms + 1000.0) * _bob) * 4.0) * Q3.UNIT + _lift
+	# just respawned: it grows from nothing over a second
+	var since := ms - _respawn_ms
+	_visual.scale = Vector3.ONE * _scale * (since / ITEM_SCALEUP_TIME if since >= 0.0 and since < ITEM_SCALEUP_TIME else 1.0)
+
+
+## EV_ITEM_RESPAWN: the item is back, and scales up from nothing (cg_ents.c CG_Item).
+func respawned() -> void:
+	_respawn_ms = Q3.game_ms
 
 
 ## The remaster's pickup effect (Quake 3 just stops drawing the item): the item swells, spins and

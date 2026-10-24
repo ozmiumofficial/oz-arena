@@ -37,7 +37,11 @@ const CAPTIONS := {"impressive": "Impressive!", "excellent": "Excellent!", "humi
 	"sudden_death": "Sudden death!", "1_minute": "One minute remaining.", "5_minute": "Five minutes remaining.",
 	"1_frag": "One frag left.", "2_frags": "Two frags left.", "3_frags": "Three frags left.",
 	"prepare": "Prepare to fight!", "three": "Three", "two": "Two", "one": "One", "fight": "Fight!",
-	"flagcapture_yourteam": "Your team captured the flag!", "youwin": "You win!"}
+	"flagcapture_yourteam": "Your team captured the flag!", "youwin": "You win!",
+	"voc_you_flag": "You have the flag!", "voc_team_flag": "Your team has the enemy flag!",
+	"voc_enemy_flag": "The enemy has your flag!", "voc_red_returned": "Red flag returned.",
+	"voc_blue_returned": "Blue flag returned.", "voc_red_scores": "Red scores!", "voc_blue_scores": "Blue scores!",
+	"redleads": "Red leads.", "blueleads": "Blue leads.", "teamstied": "Teams are tied."}
 const CAPTION_TIME := 2.5
 const LAG_SAMPLES := 128          ## cg_draw.c LAG_SAMPLES
 
@@ -94,6 +98,9 @@ var _fps := 0
 var hit_damage := 0               ## the last hit's damage ("dmg"), for Hit sound: Pitch by damage
 var _captions: Array[Dictionary] = []   ## {text, t}
 var _item_timers: Array = []      ## [icon, seconds left or -1 when it's up]
+var _attacker_t := -1.0          ## cg.attackerTime: the game time of the last hit taken (-1 none)
+var _xname := ""                  ## cg.crosshairClientNum's name (with its color codes), and when it was last seen
+var _xtime := -1.0
 var _lag_frames: PackedFloat32Array = PackedFloat32Array()   ## frame times (ms), oldest first
 var _lag_snaps: PackedFloat32Array = PackedFloat32Array()    ## snapshot pings (ms)
 var _ping := 0
@@ -236,7 +243,9 @@ func update(ps: Dictionary, info: Dictionary) -> void:
 	_update_powerups(ps, level_time)
 	_update_status(ps, info, level_time)
 	if not _ops.is_empty():
-		_check_local_sounds(ps, _ops, info)
+		# cg_playerstate.c CG_TransitionPlayerState: not at the intermission, not for a free spectator
+		if int(ps["pm_type"]) != E.PM_INTERMISSION and not spectator:
+			_check_local_sounds(ps, _ops, info)
 		if int(ps["damageEvent"]) != int(_ops["damageEvent"]) and int(ps["damageCount"]) > 0:
 			_damage_feedback(ps)
 	_check_ammo(ps)
@@ -289,6 +298,36 @@ func reset_view(lines := true) -> void:
 		feed.clear()
 		chat.clear()
 	_dmg_time = -100000.0
+	_attacker_t = -1.0
+	_xname = ""
+
+
+## The spectator follows someone else: as cg_playerstate.c's *ops = *ps, their state is taken
+## quietly, but the announcer's queue, rewards, pickup and center print go on.
+func follow_changed() -> void:
+	_ops = {}
+	_time_warnings = 0
+	_frag_warnings = 0
+	_rearm = true
+	_warmup_count = -1
+	_low_ammo = -1
+	_dmg_time = -100000.0
+	_attacker_t = -1.0
+
+
+## Gameplay's crosshair scan (CG_ScanForCrosshairEntity) found a player: their name, seen now.
+func crosshair_target(name: String) -> void:
+	_xname = name
+	_xtime = Q3.game_ms
+
+
+## cg_servercmds.c CG_MapRestart: the time and frag limit warnings play again in the restarted match.
+func map_restart() -> void:
+	_time_warnings = 0
+	_frag_warnings = 0
+	_rearm = false
+	_warmup_count = -1
+	_attacker_t = -1.0
 
 
 func _process(delta: float) -> void:
@@ -314,9 +353,19 @@ func _process(delta: float) -> void:
 	_msg.queue_redraw()
 
 
+var _powerup_time := 0   ## the level time the powerups were last looked at (cg.oldTime)
+
+
 func _update_powerups(ps: Dictionary, level_time: int) -> void:
 	_powerups.clear()
 	var pw: PackedInt32Array = ps["powerups"]
+	# CG_PowerupTimerSounds: a powerup running out ticks once a second through its last five
+	for i in mini(pw.size(), 7):
+		var t := int(pw[i])
+		if t > level_time and t - level_time < 5000 and _powerup_time > 0 and level_time > _powerup_time \
+				and floori((t - level_time) / 1000.0) != floori((t - _powerup_time) / 1000.0):
+			_play_effect("sound/items/wearoff.wav")
+	_powerup_time = level_time
 	for i in POWERUP_ICONS:
 		if i < pw.size() and int(pw[i]) > 0:
 			var left := (int(pw[i]) - level_time) / 1000.0
@@ -356,13 +405,28 @@ func _update_status(ps: Dictionary, info: Dictionary, level_time: int) -> void:
 	status.my_team = int(pers[E.PERS_TEAM])
 	status.red = match_feed.configstring(E.CS_SCORES1).to_int()
 	status.blue = match_feed.configstring(E.CS_SCORES2).to_int()
+	# cg_draw.c CG_DrawScores: in CTF each team's flag at base, taken or dropped (CS_FLAGSTATUS)
+	status.red_flag = -1
+	status.blue_flag = -1
+	if gt == E.GT_CTF:
+		var fs := match_feed.configstring(E.CS_FLAGSTATUS)
+		if fs.length() >= 2:
+			status.red_flag = fs.unicode_at(0) - 48
+			status.blue_flag = fs.unicode_at(1) - 48
 	_standings_t -= get_process_delta_time()
 	if _standings_t <= 0.0 and info.has("standings"):
 		_standings = (info["standings"] as Callable).call()
 		_standings_t = 0.25
+	# a free spectator has no place of their own: the leader and the runner-up (a follower's
+	# playerState carries the followed player's team, so this is free spectating only)
+	status.spectator = int(pers[E.PERS_TEAM]) == E.TEAM_SPECTATOR
+	status.top = []
+	if status.spectator:
+		for s in _standings.slice(0, 2):
+			status.top.append([String(s["name"]), int(s["score"])])
 	status.other_name = ""
 	for s in _standings:
-		if not s.get("local", false):
+		if not s.get("local", false) and int(s["client"]) != int(ps["clientNum"]):
 			status.other_name = String(s["name"])
 			status.other_score = int(s["score"])
 			break
@@ -406,6 +470,9 @@ func _check_local_sounds(ps: Dictionary, ops: Dictionary, info: Dictionary) -> v
 	elif p[E.PERS_HITS] < o[E.PERS_HITS] and hit_sound != "off":
 		_play_effect("sound/feedback/hit_teammate.wav")
 	hit_damage = 0
+	# going into the intermission (cg.intermissionStarted): no voices start any more
+	if match_feed.configstring(E.CS_INTERMISSION) == "1":
+		return
 	var reward := false
 	var awards := [[E.PERS_CAPTURES, "sound/teamplay/flagcapture_yourteam.wav", "medal_capture"],
 		[E.PERS_IMPRESSIVE_COUNT, "sound/feedback/impressive.wav", "medal_impressive"],
@@ -427,6 +494,14 @@ func _check_local_sounds(ps: Dictionary, ops: Dictionary, info: Dictionary) -> v
 			_play_now("sound/feedback/voc_holyshit.wav")
 		reward = true
 	var gt := int(info.get("gametype", 0))
+	# taking the enemy's flag yourself
+	if gt >= E.GT_TEAM:
+		var pw: PackedInt32Array = ps["powerups"]
+		var opw: PackedInt32Array = ops["powerups"]
+		for f in [E.PW_REDFLAG, E.PW_BLUEFLAG, E.PW_NEUTRALFLAG]:
+			if f < pw.size() and f < opw.size() and int(pw[f]) != 0 and int(pw[f]) != int(opw[f]):
+				_play_now("sound/teamplay/voc_you_flag.wav")
+				break
 	var warmup := match_feed.configstring(E.CS_WARMUP)
 	var in_warmup := warmup != "" and warmup != "0"
 	if not reward and not in_warmup and p[E.PERS_RANK] != o[E.PERS_RANK] and gt < E.GT_TEAM:
@@ -473,6 +548,7 @@ func _check_local_sounds(ps: Dictionary, ops: Dictionary, info: Dictionary) -> v
 
 ## CG_DamageFeedback: the arc toward the attacker, and the view kick Gameplay adds to the camera.
 func _damage_feedback(ps: Dictionary) -> void:
+	_attacker_t = Q3.game_ms   # CG_DrawAttacker shows who for 10 s
 	var stats: PackedInt32Array = ps["stats"]
 	var health := int(stats[E.STAT_HEALTH])
 	var count := int(ps["damageCount"])
@@ -709,6 +785,25 @@ func _draw_messages() -> void:
 			var col := S.INK_HOT if i == 0 else S.DIM
 			S.ctext(_msg, S.label(), Vector2(vs.x * 0.5, vs.y * _center_y + i * size * 1.2), lines[i],
 				int(size * pop * (1.0 if i == 0 else 0.7)), Color(col, a), HORIZONTAL_ALIGNMENT_CENTER)
+	# cg_draw.c CG_DrawCrosshairNames: the player under the crosshair, at half strength, fading in
+	# the last 200 ms of a second after they leave it
+	var xage := Q3.game_ms - _xtime
+	if _xname != "" and crosshair.visible and xage >= 0.0 and xage < 1000.0:
+		var xa := 0.5 * (1.0 if xage < 800.0 else (1000.0 - xage) / 200.0)
+		S.ctext(_msg, font, Vector2(vs.x * 0.5, vs.y * (170.0 / 480.0)), _xname, int(22 * u), Color(S.INK_HOT, xa),
+			HORIZONTAL_ALIGNMENT_CENTER)
+	# cg_draw.c CG_DrawAttacker: who last hurt you, for 10 s while you're alive, under the kill feed
+	if _attacker_t >= 0.0 and not _dead and not _ops.is_empty():
+		var att := int(_ops["persistant"][E.PERS_ATTACKER])
+		if Q3.game_ms - _attacker_t > 10000.0:
+			_attacker_t = -1.0
+		elif att >= 0 and att < E.MAX_CLIENTS and att != int(_ops["clientNum"]):
+			var aname := String(Q3Host.parse_info(match_feed.configstring(E.CS_PLAYERS + att)).get("n", ""))
+			if aname != "":
+				var ay := feed.position.y + feed.size.y + 16 * u
+				S.text(_msg, font, Vector2(feed.position.x + feed.size.x, ay), "ATTACKER", int(12 * u), S.DIM, HORIZONTAL_ALIGNMENT_RIGHT)
+				S.ctext(_msg, font, Vector2(feed.position.x + feed.size.x, ay + 24 * u), aname, int(20 * u), S.INK_HOT,
+					HORIZONTAL_ALIGNMENT_RIGHT)
 	# warmup
 	if _warmup_text != "":
 		S.text(_msg, font, Vector2(vs.x * 0.5, vs.y * 0.2), _warmup_text, int(40 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_CENTER)
@@ -830,13 +925,16 @@ func _draw_lagometer(vs: Vector2) -> void:
 func _draw_spectator(vs: Vector2, font: Font) -> void:
 	var mode := String(spectator.get("mode", "free"))
 	var top := 124.0 * u
+	var note := String(spectator.get("note", ""))
 	if mode == "free":
 		S.text(_msg, font, Vector2(vs.x * 0.5, 150 * u), "SPECTATING", int(30 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_CENTER)
+		if note != "":
+			S.text(_msg, font, Vector2(vs.x * 0.5, 184 * u), note, int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
 	else:
 		var cam: String = {"chase": "  -  CHASE CAMERA", "cinematic": "  -  CINEMATIC CAMERA"}.get(mode, "")
 		S.text(_msg, font, Vector2(vs.x * 0.5, top), "FOLLOWING" + cam, int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
 	if spectator.get("director", false):
-		S.text(_msg, font, Vector2(vs.x * 0.5, 236 * u if mode != "free" else 180 * u), "AUTO-DIRECTOR", int(15 * u), S.AMBER,
+		S.text(_msg, font, Vector2(vs.x * 0.5, 236 * u if mode != "free" else (212 * u if note != "" else 180 * u)), "AUTO-DIRECTOR", int(15 * u), S.AMBER,
 			HORIZONTAL_ALIGNMENT_CENTER)
 	var line := ""
 	for h in spectator.get("hints", []):

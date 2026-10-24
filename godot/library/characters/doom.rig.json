@@ -392,5 +392,26 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "doom": "blue"
+   },
+   "material_modes": {}
+  },
+  "phobos": {
+   "materials": {
+    "doom": "phobos",
+    "doom_f": "phobos_f"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "doom": "red"
+   },
+   "material_modes": {}
+  }
+ }
 }

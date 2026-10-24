@@ -16,6 +16,27 @@ export interface Env {
   HUB: DurableObjectNamespace<Hub>;
   /** unset means the admin routes are off */
   ADMIN_TOKEN?: string;
+  /** A Cloudflare Realtime TURN key (dashboard > Realtime > TURN): minted into short-lived credentials for matches. */
+  TURN_KEY_ID?: string;
+  TURN_KEY_TOKEN?: string;
+  /** "1" lets matches connect directly with no relay (local testing only; the deployed hub leaves it unset). */
+  NET_DIRECT?: string;
+  /** The monthly cap on the relay's traffic, GB (default 800; Cloudflare's free allowance is 1,000). */
+  RELAY_BUDGET_GB?: string;
+  /** An API token with Account Analytics: Read on the account that holds the TURN key, and that account's id. With both,
+   *  the spending guard runs on the relay's real usage (Cloudflare's analytics) and revokes credentials; without them it
+   *  charges every credential its worst case. */
+  TURN_ANALYTICS_TOKEN?: string;
+  TURN_ACCOUNT_ID?: string;
+  /** How long relay credentials last, s (default 12 h with the usage guard, 1 h without; Cloudflare allows 48 h). */
+  TURN_TTL_S?: string;
+  /** Tests only: how often the usage guard checks (default 120000 ms), and where it finds Cloudflare's APIs. */
+  RELAY_CHECK_MS?: string;
+  CF_GRAPHQL_URL?: string;
+  TURN_API_URL?: string;
+  /** Tests only: how long a match may take to start (default 90 s) and how long after the first report the rest may take (default 60 s), ms. */
+  MATCH_FORM_MS?: string;
+  MATCH_REPORT_MS?: string;
 }
 
 /** Bumped when the message protocol changes incompatibly; older games are told to update. */
@@ -37,9 +58,30 @@ export default {
     if ('error' in who) return refuse(4001, who.error);
     const headers = new Headers(req.headers);
     headers.set('x-pid', who.pid);
+    headers.set('x-region', regionOf(req));
     return env.HUB.get(env.HUB.idFromName('global')).fetch(new Request(req, { headers }));
   },
 } satisfies ExportedHandler<Env>;
+
+/**
+ * The matchmaking region of the caller, from Cloudflare's request data (PLAN.md "Regions"): na_east, na_west, eu, sa,
+ * asia, oce or meaf. Without request data (a local `wrangler dev`) it is "na_east".
+ */
+function regionOf(req: Request): string {
+  const cf = (req as Request & { cf?: { continent?: string; country?: string; longitude?: string | number } }).cf;
+  const continent = cf?.continent ?? '';
+  const country = cf?.country ?? '';
+  const lon = Number(cf?.longitude ?? 0);
+  if (continent === 'EU') return 'eu';
+  if (continent === 'SA') return 'sa';
+  if (continent === 'OC') return 'oce';
+  if (continent === 'AF') return 'meaf';
+  if (continent === 'AS') return MIDDLE_EAST.has(country) ? 'meaf' : 'asia';
+  if (continent === 'NA') return lon < -100 ? 'na_west' : 'na_east';
+  return 'na_east';
+}
+
+const MIDDLE_EAST = new Set(['AE', 'BH', 'IL', 'IQ', 'IR', 'JO', 'KW', 'LB', 'OM', 'PS', 'QA', 'SA', 'SY', 'TR', 'YE', 'EG']);
 
 /** `authorization: Bearer <ADMIN_TOKEN>`, compared in constant time. */
 async function admin(req: Request, env: Env): Promise<boolean> {

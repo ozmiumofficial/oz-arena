@@ -257,6 +257,17 @@ func _level_up(lv: int) -> void:
 	create_tween().tween_property(_bar, "color", Color(1.0, 0.7, 0.15), 0.5)
 
 
+## The ranked result, when the hub's answer arrives (a few seconds after the match): "Rating 1000 -> 1020 (+20)".
+func rank_note(text: String, good: bool) -> void:
+	if _root == null:
+		return
+	var l := _label(text, 28, Color(0.55, 1.0, 0.65) if good else Color(1.0, 0.55, 0.45))
+	l.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	l.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	l.position.y -= 120.0
+	_root.add_child(l)
+
+
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
 	l.text = text

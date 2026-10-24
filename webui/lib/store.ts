@@ -4,7 +4,7 @@
 
 import { useSyncExternalStore } from "react";
 import { on, send, type Msg } from "./bridge";
-import type { InitPayload, MatchInfo, ReplayList, Value, SettingEntry } from "./types";
+import type { DedicatedConfig, DedicatedStatus, InitPayload, MatchInfo, NetJoin, NetMatch, QueueRating, QueueState, ReplayList, Value, SettingEntry } from "./types";
 import type { Board, ChatLine, Social } from "./social";
 
 export interface Toast {
@@ -32,12 +32,19 @@ export interface MenuState {
   boards: Record<string, Board>;
   /** the Replays page's list, null until Godot answers */
   replays: ReplayList | null;
+  /** the Server Browser: the hub's directory (null until it answers), and the join in progress */
+  net: { matches: NetMatch[] | null; region: string; offline: boolean; join: NetJoin | null };
+  /** matchmaking: the queue, the ratings per ranked queue (duel, tdm, ctf), and the round trip to the hub */
+  queue: { state: QueueState; ratings: Record<string, QueueRating>; season: string; rtt: number };
+  /** this PC's dedicated server: its config, what it reports, and whether it starts with Windows (null until Godot answers) */
+  dedicated: { config: DedicatedConfig; status: DedicatedStatus; autostart: boolean } | null;
 }
 
 let state: MenuState = {
   init: null, values: {}, conflicts: {}, subject: null, capture: null, pad: false, toasts: [], validation: [], lastCode: "",
   social: { status: "connecting", reason: "", state: null, chat: [] }, socialOpen: false, pauseOpen: 0, match: null, boards: {},
-  replays: null,
+  replays: null, net: { matches: null, region: "", offline: false, join: null },
+  queue: { state: { status: "idle" }, ratings: {}, season: "", rtt: 0 }, dedicated: null,
 };
 const subs = new Set<() => void>();
 let toastId = 0;
@@ -63,6 +70,22 @@ export function toast(text: string, tone: Toast["tone"] = "info") {
   const id = ++toastId;
   update({ toasts: [...state.toasts, { id, text, tone }].slice(-4) });
   setTimeout(() => update({ toasts: state.toasts.filter((t) => t.id !== id) }), 4200);
+}
+
+/** The Server Browser's list: asks the hub (Godot answers with net_matches). */
+export function netBrowse() {
+  void send("net_browse", {});
+}
+
+/** Joins a listed match (or a friend's): the host decides, then the connection opens and Gameplay starts. */
+export function netJoin(host: string, password = "") {
+  update({ net: { ...state.net, join: { status: "asking", reason: "", host } } });
+  void send("net_join", { host, password });
+}
+
+export function netCancel() {
+  update({ net: { ...state.net, join: null } });
+  void send("net_cancel", {});
 }
 
 export function setSocialOpen(open: boolean) {
@@ -95,6 +118,19 @@ export function resetValue(key: string) {
 export function isDefault(key: string) {
   const e = entry(key);
   return !!e && JSON.stringify(e.default) === JSON.stringify(state.values[key]);
+}
+
+function state_ratings(): Record<string, QueueRating> {
+  return state.queue.ratings;
+}
+
+/** Queues for a match: the playlists (duel, ffa, tdm, ctf), ranked or casual. Godot asks the hub; the queue message answers. */
+export function queueJoin(modes: string[], ranked: boolean) {
+  void send("queue_join", { modes, ranked });
+}
+
+export function queueLeave() {
+  void send("queue_leave", {});
 }
 
 let wired = false;
@@ -146,6 +182,22 @@ export function connect() {
   on("leaderboard", (m) => {
     const b = m.board as Board;
     update({ boards: { ...state.boards, [`${b.board}|${b.scope}`]: b } });
+  });
+  on("queue", (m) => {
+    const r = (m.ratings ?? {}) as { queues?: Record<string, QueueRating>; season?: string };
+    const state = (m.state ?? { status: "idle" }) as QueueState;
+    update({ queue: { state, ratings: r.queues ?? state_ratings(), season: r.season ?? "", rtt: Number(m.rtt ?? 0) } });
+    if (state.status === "refused" && state.reason) toast(state.reason, "warn");
+    if (state.status === "locked") toast(state.reason ?? "You can't queue yet.", "warn");
+  });
+  on("dedicated", (m) => update({ dedicated: { config: m.config as DedicatedConfig, status: m.status as DedicatedStatus, autostart: !!m.autostart } }));
+  on("net_matches", (m) =>
+    update({ net: { ...state.net, matches: (m.matches as NetMatch[]) ?? [], region: String(m.region ?? ""), offline: !!m.offline } }),
+  );
+  on("net_join_state", (m) => {
+    const join = { status: m.status as NetJoin["status"], reason: String(m.reason ?? ""), host: String(m.host ?? "") };
+    update({ net: { ...state.net, join: join.status === "failed" || join.status === "open" ? (join.status === "open" ? join : null) : join } });
+    if (join.status === "failed") toast(join.reason || "Couldn't join that match.", "error");
   });
   on("replays", (m) => update({ replays: { list: m.list as ReplayList["list"], kept: m.kept as number } }));
   on("party_chat", (m) => update({ social: { ...state.social, chat: [...state.social.chat, m as unknown as ChatLine].slice(-50) } }));

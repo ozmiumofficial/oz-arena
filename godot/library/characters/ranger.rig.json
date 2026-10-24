@@ -402,5 +402,28 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "ranger": "blue",
+    "ranger_h": "red_h"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "ranger": "red",
+    "ranger_h": "red_h"
+   },
+   "material_modes": {}
+  },
+  "wrack": {
+   "materials": {
+    "ranger": "wrack",
+    "ranger_h": "wrack_h"
+   },
+   "material_modes": {}
+  }
+ }
 }

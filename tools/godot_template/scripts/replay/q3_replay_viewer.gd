@@ -286,9 +286,9 @@ func _apply_outlines() -> void:
 		if _outline_of.get(ch.get_instance_id()) == mat:
 			continue
 		_outline_of[ch.get_instance_id()] = mat
-		for mi in ch.find_children("*", "MeshInstance3D", true, false):
+		for mi in (ch.body.find_children("*", "MeshInstance3D", true, false) if ch.body else []):   # not a carried flag
 			var g := mi as GeometryInstance3D
-			if String(mi.get_path()).contains("Attach_"):
+			if String(mi.get_path()).contains("Attach_") or Q3FX.is_shell(mi):
 				continue
 			if g.material_overlay == null or g.material_overlay in _outline_mats.values():
 				g.material_overlay = mat

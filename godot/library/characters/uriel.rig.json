@@ -408,5 +408,46 @@
    "blend": "mask",
    "two_sided": false
   }
+ },
+ "skins": {
+  "blue": {
+   "materials": {
+    "uriel": "blue",
+    "uriel_h": "red_h",
+    "uriel_w": "blue_w"
+   },
+   "material_modes": {
+    "blue_w": {
+     "blend": "mask",
+     "two_sided": false
+    }
+   }
+  },
+  "red": {
+   "materials": {
+    "uriel": "red",
+    "uriel_h": "red_h",
+    "uriel_w": "red_w"
+   },
+   "material_modes": {
+    "red_w": {
+     "blend": "mask",
+     "two_sided": false
+    }
+   }
+  },
+  "zael": {
+   "materials": {
+    "uriel": "zael",
+    "uriel_h": "zael_h",
+    "uriel_w": "null"
+   },
+   "material_modes": {
+    "null": {
+     "blend": "add",
+     "two_sided": false
+    }
+   }
+  }
  }
 }

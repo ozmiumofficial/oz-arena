@@ -43,6 +43,13 @@ void Q3Server::_bind_methods() {
 	ClassDB::bind_static_method("Q3Server", D_METHOD("recording"), &Q3Server::recording);
 	ClassDB::bind_static_method("Q3Server", D_METHOD("record_frames"), &Q3Server::record_frames);
 	ClassDB::bind_static_method("Q3Server", D_METHOD("record_pull"), &Q3Server::record_pull);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("udp_open", "port"), &Q3Server::udp_open);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("udp_close"), &Q3Server::udp_close);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("udp_is_open"), &Q3Server::udp_is_open);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("net_receive", "peer", "data"), &Q3Server::net_receive);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("net_outgoing", "max_packets"), &Q3Server::net_outgoing);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("net_peer_client", "peer"), &Q3Server::net_peer_client);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("net_peer_gone", "peer"), &Q3Server::net_peer_gone);
 }
 
 static Vector3 v3(const float *f) {
@@ -377,4 +384,50 @@ PackedByteArray Q3Server::record_pull() {
 	}
 	q3_record_consume();
 	return out;
+}
+
+// ioquake3's UDP socket: public servers and the LAN (patch 0007). Players over it have their real addresses.
+bool Q3Server::udp_open(int port) {
+	return q3_net_udp_open(port) != 0;
+}
+
+void Q3Server::udp_close() {
+	q3_net_udp_close();
+}
+
+bool Q3Server::udp_is_open() {
+	return q3_net_udp_is_open() != 0;
+}
+
+bool Q3Server::net_receive(int peer, const PackedByteArray &data) {
+	return data.size() > 0 && q3_net_receive(peer, data.ptr(), data.size()) != 0;
+}
+
+// The packets the server queued for remote players since the last call: [{peer, data}, ...].
+Array Q3Server::net_outgoing(int max_packets) {
+	Array out;
+	unsigned char buf[2048];
+	int peer;
+	while (out.size() < max_packets) {
+		int len = q3_net_next(1, &peer, buf, sizeof(buf));
+		if (len < 0) {
+			break;
+		}
+		PackedByteArray bytes;
+		bytes.resize(len);
+		memcpy(bytes.ptrw(), buf, len);
+		Dictionary d;
+		d["peer"] = peer;
+		d["data"] = bytes;
+		out.push_back(d);
+	}
+	return out;
+}
+
+int Q3Server::net_peer_client(int peer) {
+	return q3_net_peer_client(peer);
+}
+
+void Q3Server::net_peer_gone(int peer) {
+	q3_net_peer_gone(peer);
 }

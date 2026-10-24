@@ -371,5 +371,19 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "tankjr": "blue"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "tankjr": "red"
+   },
+   "material_modes": {}
+  }
+ }
 }

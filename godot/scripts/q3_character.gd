@@ -3,11 +3,14 @@ extends Node3D
 ## A remastered id Tech 3 player: one skinned mesh whose legs and torso play independent
 ## clips, the way the original layered lower.md3 and upper.md3. An AnimationTree blends the
 ## legs clip with the torso clip through a filter on the torso bones (rig.json "half").
-## ragdoll() swaps animation for physics bones built from the skeleton. aim_pitch bends the torso
-## and head toward where the player looks, as cg_players.c CG_PlayerAngles turns the torso and
-## head models.
+## ragdoll() swaps animation for physics bones built from the skeleton. The aim_* values turn the
+## legs, torso and head toward where the player looks, as cg_players.c CG_PlayerAngles turns the
+## legs, torso and head models.
 
 @export var model := "keel"
+## Quake 3's skin: "default", a team's "red" or "blue", or an alternate the model ships (Daemia is
+## major's "daemia"). rig.json "skins" (tools/build_skins.py) says which materials it repaints.
+@export var skin := "default"
 @export var legs_clip := "LEGS_IDLE"
 @export var torso_clip := "TORSO_STAND"
 
@@ -21,55 +24,243 @@ var _legs: AnimationNodeAnimation
 var _torso: AnimationNodeAnimation
 var _sim: PhysicalBoneSimulator3D
 var aim_pitch := 0.0              ## view pitch in degrees, id's way (positive looks down)
+## CG_PlayerAngles' "always center": while the legs aren't idle or the torso isn't standing, the
+## torso and legs keep easing to their angles instead of waiting until they're far behind
+var aim_center := false
+var aim_roll := 0.0               ## CG_AddPainTwitch: the torso's roll in degrees (the head stays level)
+## CG_PlayerAngles' yaw, with `turn` on (players in a match; anything else keeps the node's own yaw):
+## the legs face the view yaw (aim_yaw) turned by the movement direction (move_dir, es.angles2[YAW]:
+## 22 or 45 degrees off while strafing), the torso a quarter of that turn, the head the aim, each
+## swinging after its angle. The node itself turns with the legs.
+var turn := false
+var aim_yaw := 0.0
+var move_dir := 0
+var velocity := Vector3.ZERO      ## id units a second (es.pos.trDelta): the legs lean into it
+## Match bodies run on the match's clock: Q3Client calls advance() with how far it moved, so they
+## stop behind the pause and in a paused replay, and follow the replay's speed. Anything else (the
+## menu showcase, card renders, tests) animates on idle time.
+var match_clock := false:
+	set(on):
+		match_clock = on
+		_clock_mode()
 var _aim: Aim
+var _ease: Ease
+var _yaw_legs := Swing.new()
+var _yaw_torso := Swing.new()
+var _pitch_torso := Swing.new()
+var _lean := Vector2.ZERO         ## the legs' lean into the direction of travel: pitch, roll (degrees)
+var _shown_legs := ""             ## the legs clip playing: legs_clip, or LEGS_TURN while the legs shuffle round
+var _clip_fps := {}               ## clip -> frames a second (rig.json)
+const MOVE_OFFSETS := [0.0, 22.0, 45.0, -22.0, 0.0, 22.0, -45.0, -22.0]   ## CG_PlayerAngles movementOffsets
+const SWING_SPEED := 0.3          ## cg_swingSpeed: degrees a millisecond
+var _bright := Color(0, 0, 0, 0)  ## the bright skin color drawn (alpha 0: none)
+static var _skin_mats := {}       ## "model/skin/stem" -> WeakRef to the material bodies share
 
 
-## CG_PlayerAngles' pitch: the torso takes three quarters of the view pitch, swinging after it
-## (CG_SwingAngles: it starts moving once 15 degrees behind, and stays within 30), and the head
-## the rest, so the face looks exactly where the player aims. Applied over the animation,
-## turning the torso at the top of the legs (its first bone) and the head at its own bone, about
-## the body's left-right axis.
+## One of cgame's swinging angles (lerpFrame_t's yawAngle and yawing, or pitchAngle and pitching).
+class Swing:
+	var angle := 0.0
+	var swinging := false
+
+	## cg_players.c CG_SwingAngles: starts after `dest` (degrees) once more than `tolerance` off,
+	## moves `speed` degrees a millisecond (half that within half the tolerance, double beyond it)
+	## and never stays more than `limit` behind.
+	func step(dest: float, tolerance: float, limit: float, speed: float, ms: float) -> void:
+		if not swinging and absf(wrapf(angle - dest, -180.0, 180.0)) > tolerance:
+			swinging = true
+		if not swinging:
+			return
+		var gap := wrapf(dest - angle, -180.0, 180.0)
+		var move := ms * speed * (0.5 if absf(gap) < tolerance * 0.5 else 1.0 if absf(gap) < tolerance else 2.0)
+		if move >= absf(gap):
+			angle = dest
+			swinging = false
+		else:
+			angle += signf(gap) * move
+		gap = wrapf(dest - angle, -180.0, 180.0)
+		if gap > limit:
+			angle = dest - (limit - 1.0)
+		elif gap < -limit:
+			angle = dest + (limit - 1.0)
+		angle = wrapf(angle, -180.0, 180.0)
+
+
+## CG_PlayerAngles applied over the animation. The node already faces the legs' yaw. The legs lean
+## about the player's origin (24 units over the feet), turning the whole skeleton; the torso,
+## turned at its first bone (the top of the legs), stands back up and takes its own yaw, three
+## quarters of the view pitch and the pain twitch's roll; the head, at its own bone, looks exactly
+## where the player aims.
 class Aim extends SkeletonModifier3D:
 	var character: Q3Character
 	var torso_bone := -1
 	var head_bone := -1
-	var torso_pitch := 0.0
-	var _swinging := false
 
-	func _process_modification_with_delta(delta: float) -> void:
+	func _process_modification_with_delta(_delta: float) -> void:
 		var sk := get_skeleton()
-		if sk == null or character == null or character.ragdolled:
+		var c := character
+		if sk == null or c == null or c.ragdolled:
 			return
-		var view := wrapf(character.aim_pitch, -180.0, 180.0)
-		var dest := view * 0.75
-		var gap := dest - torso_pitch
-		if absf(gap) > 15.0:
-			_swinging = true
-		if _swinging:
-			# CG_SwingAngles: 0.1 degree a millisecond, half that near the end, double far off
-			var move := delta * 1000.0 * 0.1 * (0.5 if absf(gap) < 7.5 else 1.0 if absf(gap) < 15.0 else 2.0)
-			if absf(gap) <= move:
-				torso_pitch = dest
-				_swinging = false
-			else:
-				torso_pitch += signf(gap) * move
-		torso_pitch = clampf(torso_pitch, dest - 30.0, dest + 30.0)   # never lags more than 30
-		var axis := (sk.global_basis.inverse() * character.global_basis.x).normalized()
-		_turn(sk, torso_bone, axis, deg_to_rad(torso_pitch))
-		_turn(sk, head_bone, axis, deg_to_rad(view - torso_pitch))
+		# character space (x left, y up, z forward: id's axes turned to the legs' yaw) to skeleton space
+		var q := (sk.global_basis.inverse() * c.global_basis).orthonormalized()
+		var qi := q.inverse()
+		var lean := q * Q3Character.axes(c._lean.x, 0.0, c._lean.y) * qi
+		var torso := q * Q3Character.axes(c._pitch_torso.angle, c.torso_turn(), c.aim_roll) * qi
+		var head := q * Q3Character.axes(wrapf(c.aim_pitch, -180.0, 180.0), c.head_turn(), 0.0) * qi
+		if c._lean != Vector2.ZERO:
+			var pivot := sk.global_transform.affine_inverse() * (c.global_transform * Vector3(0.0, 24.0 * Q3.UNIT, 0.0))
+			for b in sk.get_parentless_bones():
+				var gp := sk.get_bone_global_pose(b)
+				sk.set_bone_pose(b, Transform3D(lean * gp.basis, pivot + lean * (gp.origin - pivot)))
+		_turn(sk, torso_bone, torso * lean.inverse())
+		_turn(sk, head_bone, head * torso.inverse())
 
-	func _turn(sk: Skeleton3D, bone: int, axis: Vector3, angle: float) -> void:
-		if bone < 0 or absf(angle) < 0.0001:
+	## Turns a bone (and what hangs from it) by `r` (skeleton space) about its own origin.
+	func _turn(sk: Skeleton3D, bone: int, r: Basis) -> void:
+		if bone < 0:
 			return
 		var gp := sk.get_bone_global_pose(bone)
 		var parent := sk.get_bone_parent(bone)
 		var pg := sk.get_bone_global_pose(parent) if parent >= 0 else Transform3D.IDENTITY
-		sk.set_bone_pose(bone, pg.affine_inverse() * Transform3D(Basis(axis, angle) * gp.basis, gp.origin))
+		sk.set_bone_pose(bone, pg.affine_inverse() * Transform3D(r * gp.basis, gp.origin))
+
+
+## CG_SetLerpFrameAnimation's initialLerp: a new clip doesn't snap in. Its half of the body eases
+## from the pose last drawn into the clip over one of the clip's frame times (1000 / fps ms) of
+## the character's clock. Runs before Aim, which turns the eased pose.
+class Ease extends SkeletonModifier3D:
+	var character: Q3Character
+	var bones := {"legs": PackedInt32Array(), "torso": PackedInt32Array()}
+	var _eases := {}                  ## half -> [ms gone, ms long, from positions, rotations, scales]
+	var _drawn := false               ## a body never drawn has no pose to ease from
+
+	## Starts easing `half` from the pose drawn last. The skeleton still holds the animation's pose
+	## (it gets it back after the modifiers every frame), so only an ease still going is blended in.
+	func start(half: String, ms: float) -> void:
+		var sk := get_skeleton()
+		if sk == null or not _drawn or ms <= 0.0:
+			return
+		var old: Array = _eases.get(half, [])
+		var k := minf(float(old[0]) / float(old[1]), 1.0) if old.size() else 1.0
+		var n := sk.get_bone_count()
+		var pos := PackedVector3Array()
+		var rot: Array[Quaternion] = []
+		var scl := PackedVector3Array()
+		pos.resize(n)
+		rot.resize(n)
+		scl.resize(n)
+		for b in bones[half]:
+			pos[b] = sk.get_bone_pose_position(b)
+			rot[b] = sk.get_bone_pose_rotation(b)
+			scl[b] = sk.get_bone_pose_scale(b)
+			if k < 1.0:
+				pos[b] = (old[2] as PackedVector3Array)[b].lerp(pos[b], k)
+				rot[b] = (old[3][b] as Quaternion).slerp(rot[b], k)
+				scl[b] = (old[4] as PackedVector3Array)[b].lerp(scl[b], k)
+		_eases[half] = [0.0, ms, pos, rot, scl]
+
+	func tick(ms: float) -> void:
+		for e in _eases.values():
+			e[0] = float(e[0]) + ms
+
+	func clear() -> void:
+		_eases.clear()
+
+	func _process_modification_with_delta(_delta: float) -> void:
+		var sk := get_skeleton()
+		if sk == null or character == null or character.ragdolled:
+			return
+		_drawn = true
+		for half in _eases.keys():
+			var e: Array = _eases[half]
+			var k := float(e[0]) / float(e[1])
+			if k >= 1.0:
+				_eases.erase(half)
+				continue
+			var pos: PackedVector3Array = e[2]
+			var rot: Array[Quaternion] = e[3]
+			var scl: PackedVector3Array = e[4]
+			for b in bones[half]:
+				sk.set_bone_pose_position(b, pos[b].lerp(sk.get_bone_pose_position(b), k))
+				sk.set_bone_pose_rotation(b, rot[b].slerp(sk.get_bone_pose_rotation(b), k))
+				sk.set_bone_pose_scale(b, scl[b].lerp(sk.get_bone_pose_scale(b), k))
+
+
+## q_math.c AnglesToAxis for id angles in degrees, in character space (x left, y up, z forward).
+static func axes(pitch: float, yaw: float, roll: float) -> Basis:
+	return Basis(Vector3.UP, deg_to_rad(yaw)) * Basis(Vector3.RIGHT, deg_to_rad(pitch)) * Basis(Vector3.BACK, deg_to_rad(roll))
+
+
+## The torso's yaw off the legs', and the head's (degrees).
+func torso_turn() -> float:
+	return wrapf(_yaw_torso.angle - _yaw_legs.angle, -180.0, 180.0) if turn else 0.0
+
+
+func head_turn() -> float:
+	return wrapf(aim_yaw - _yaw_legs.angle, -180.0, 180.0) if turn else 0.0
 
 
 func _ready() -> void:
 	if body == null:
 		load_model(model)
+
+
+func _process(delta: float) -> void:
+	if not match_clock:
+		_step(delta * 1000.0)
+
+
+## The match's clock moved `ms` (Q3Client, for bodies on match_clock): the angles swing, then the
+## legs and torso play on.
+func advance(ms: float) -> void:
+	_step(ms)
+	if tree and tree.active:
+		tree.advance(ms * 0.001)
+
+
+## CG_PlayerAngles, then CG_PlayerAnimation's choice of legs clip: the swinging angles, the lean,
+## and the shuffle turn frames while the legs swing round over the idle stance.
+func _step(ms: float) -> void:
+	if ragdolled or skeleton == null:
+		return
+	if aim_center:   # not standing still: always point all in the same direction
+		_pitch_torso.swinging = true
+		_yaw_torso.swinging = true
+		_yaw_legs.swinging = true
+	var legs_yaw := rad_to_deg(rotation.y)
+	if turn:
+		var offset: float = MOVE_OFFSETS[move_dir] if move_dir >= 0 and move_dir < MOVE_OFFSETS.size() else 0.0
+		_yaw_torso.step(aim_yaw + 0.25 * offset, 25.0, 90.0, SWING_SPEED, ms)
+		_yaw_legs.step(aim_yaw + offset, 40.0, 90.0, SWING_SPEED, ms)
+		legs_yaw = _yaw_legs.angle
+		rotation = Vector3(0.0, deg_to_rad(legs_yaw), 0.0)
+	_pitch_torso.step(wrapf(aim_pitch, -180.0, 180.0) * 0.75, 15.0, 30.0, 0.1, ms)
+	# 0.05 degrees per unit a second along the legs' forward (pitch) and left (roll, the other way)
+	var y := deg_to_rad(legs_yaw)
+	_lean = Vector2(0.05 * (velocity.x * cos(y) + velocity.y * sin(y)), -0.05 * (velocity.y * cos(y) - velocity.x * sin(y)))
+	var shown := "LEGS_TURN" if turn and _yaw_legs.swinging and legs_clip == "LEGS_IDLE" and _clip_fps.has("LEGS_TURN") \
+		else legs_clip
+	if shown != _shown_legs:
+		_show_legs(shown)
+	if _ease:
+		_ease.tick(ms)
+
+
+## cg_players.c CG_ResetPlayerEntity: the player just came into view or teleported (a respawn too).
+## The legs and torso face where they look with nothing swinging, and both clips start over
+## without easing (CG_ClearLerpFrame).
+func reset_motion() -> void:
+	_yaw_legs.angle = wrapf(aim_yaw, -180.0, 180.0)
+	_yaw_torso.angle = _yaw_legs.angle
+	_pitch_torso.angle = wrapf(aim_pitch, -180.0, 180.0)
+	for s in [_yaw_legs, _yaw_torso, _pitch_torso]:
+		(s as Swing).swinging = false
+	if turn:
+		rotation = Vector3(0.0, deg_to_rad(_yaw_legs.angle), 0.0)
+	if _legs:
+		_show_legs(legs_clip, false)
+		play_torso(torso_clip, false)
+	if _ease:
+		_ease.clear()
 
 
 func load_model(m: String) -> void:
@@ -91,13 +282,16 @@ func load_model(m: String) -> void:
 	if player == null or skeleton == null:
 		push_warning("Q3Character: %s has no AnimationPlayer/Skeleton3D" % m)
 		return
+	_clip_fps.clear()
 	for c in rig.get("clips", []):
 		if player.has_animation(c["name"]):
 			player.get_animation(c["name"]).loop_mode = Animation.LOOP_LINEAR if c["loop"] else Animation.LOOP_NONE
+			_clip_fps[c["name"]] = int(c.get("fps", 0))
 	_build_tree()
 	_build_aim()
 	play_legs(legs_clip)
 	play_torso(torso_clip)
+	set_skin(skin)
 
 
 func _build_tree() -> void:
@@ -125,18 +319,37 @@ func _build_tree() -> void:
 	bt.add_node("torso", _torso, Vector2(0, 200))
 	bt.add_node("seek_torso", AnimationNodeTimeSeek.new(), Vector2(200, 200))
 	bt.add_node("mix", mix, Vector2(400, 100))
+	bt.add_node("speed", AnimationNodeTimeScale.new(), Vector2(600, 100))
 	bt.connect_node("seek_legs", 0, "legs")
 	bt.connect_node("seek_torso", 0, "torso")
 	bt.connect_node("mix", 0, "seek_legs")
 	bt.connect_node("mix", 1, "seek_torso")
-	bt.connect_node("output", 0, "mix")
+	bt.connect_node("speed", 0, "mix")
+	bt.connect_node("output", 0, "speed")
 	tree.tree_root = bt
 	tree.set("parameters/mix/blend_amount", 1.0)
+	tree.set("parameters/speed/scale", 1.0)
+	_clock_mode()
 	tree.active = true
 
 
-## LEGS_* clip, or a BOTH_* clip which drives the whole body.
+func _clock_mode() -> void:
+	if tree:
+		tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL if match_clock \
+			else AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
+
+
+## cg_players.c CG_PlayerAnimation's speedScale: haste plays the legs and torso 1.5 times as fast.
+func set_anim_speed(scale: float) -> void:
+	if tree and float(tree.get("parameters/speed/scale")) != scale:
+		tree.set("parameters/speed/scale", scale)
+
+
+## The modifiers over the animation: Ease, then Aim.
 func _build_aim() -> void:
+	_ease = Ease.new()
+	_ease.name = "Ease"
+	_ease.character = self
 	_aim = Aim.new()
 	_aim.name = "Aim"
 	_aim.character = self
@@ -148,26 +361,61 @@ func _build_aim() -> void:
 		if b["half"] == "torso" and half.get(String(b.get("parent", "")), "") != "torso" and _aim.torso_bone < 0:
 			_aim.torso_bone = skeleton.find_bone(String(b["name"]))
 	_aim.head_bone = skeleton.find_bone("head")
+	# the halves the AnimationTree's filter splits (the root goes with the legs)
+	for i in skeleton.get_bone_count():
+		_ease.bones["torso" if half.get(skeleton.get_bone_name(i), "") == "torso" else "legs"].append(i)
+	skeleton.add_child(_ease)
 	skeleton.add_child(_aim)
 
 
-func play_legs(clip: String) -> void:
-	if _legs == null or not player.has_animation(clip):
+## cg_players.c CG_ParseAnimationFile: walking and crouch-walking backward are the forward cycles
+## played in reverse (they aren't baked as clips of their own)
+const REVERSED_LEGS := {"LEGS_BACKCR": "LEGS_WALKCR", "LEGS_BACKWALK": "LEGS_WALK"}
+
+
+## LEGS_* clip, or a BOTH_* clip which drives the whole body. It starts over (the toggle bit) and
+## eases in from the pose shown, unless `ease` is off.
+func play_legs(clip: String, ease := true) -> void:
+	if _legs == null or not player.has_animation(REVERSED_LEGS.get(clip, clip)):
 		return
 	legs_clip = clip
-	_legs.animation = clip
+	if clip == "LEGS_IDLE" and _shown_legs == "LEGS_TURN" and _yaw_legs.swinging:
+		return   # the shuffle goes on: it isn't the idle stance's clip that starts over
+	_show_legs(clip, ease)
+
+
+func _show_legs(clip: String, ease := true) -> void:
+	var src: String = REVERSED_LEGS.get(clip, clip)
+	if _legs == null or not player.has_animation(src):
+		return
+	_shown_legs = clip
+	if ease:
+		_ease_in(src, ["legs", "torso"] if clip.begins_with("BOTH") else ["legs"])
+	_legs.animation = src
+	_legs.play_mode = AnimationNodeAnimation.PLAY_MODE_BACKWARD if REVERSED_LEGS.has(clip) else AnimationNodeAnimation.PLAY_MODE_FORWARD
 	tree.set("parameters/seek_legs/seek_request", 0.0)
 	if clip.begins_with("BOTH"):
 		_torso.animation = clip
 		tree.set("parameters/seek_torso/seek_request", 0.0)
 
 
-func play_torso(clip: String) -> void:
+func play_torso(clip: String, ease := true) -> void:
 	if _torso == null or not player.has_animation(clip) or legs_clip.begins_with("BOTH"):
 		return
 	torso_clip = clip
+	if ease:
+		_ease_in(clip, ["torso"])
 	_torso.animation = clip
 	tree.set("parameters/seek_torso/seek_request", 0.0)
+
+
+## initialLerp is 1000 / fps, whole milliseconds (cg_players.c CG_ParseAnimationFile).
+func _ease_in(clip: String, halves: Array) -> void:
+	var fps: int = _clip_fps.get(clip, 0)
+	if _ease == null or fps <= 0:
+		return
+	for h in halves:
+		_ease.start(h, floorf(1000.0 / fps))
 
 
 func clips(prefix: String) -> PackedStringArray:
@@ -201,22 +449,103 @@ func attach(prop_id: String, tag := "weapon") -> Node3D:
 	return n
 
 
-## Gameplay > Bright skins: every surface in one flat bright color, still lit so the shape reads
-## (Quake Live's brightskins); a color with alpha 0 puts the model's own materials back. Cut-out
-## surfaces keep their alpha; additive ones (Bones' x-ray) stay as they are.
-func bright_skin(color: Color) -> void:
+## The skins this model has: "default" and rig.json "skins" (red, blue and its alternates).
+static func skins_of(m: String) -> PackedStringArray:
+	var out := PackedStringArray(["default"])
+	out.append_array(PackedStringArray(Q3.character_rig(m).get("skins", {}).keys()))
+	return out
+
+
+## Draws the body in a skin (cg_players.c CG_RegisterClientSkin): each surface the skin paints
+## differently gets the skin's maps over its default material's settings; one the model doesn't have
+## is the default. A bright skin stays on top.
+func set_skin(s: String) -> void:
+	skin = s if s in skins_of(model) else "default"
 	if body == null:
 		return
+	for m in _surfaces():
+		for i in m.mesh.get_surface_count():
+			m.set_surface_override_material(i, skin_material(m, i))
+	if _bright.a > 0.0:
+		bright_skin(_bright)
+
+
+## The skin's material for one surface, or null where it's the default's.
+func skin_material(m: MeshInstance3D, i: int) -> Material:
+	var base := m.mesh.surface_get_material(i) as StandardMaterial3D
+	var paint: Dictionary = rig.get("skins", {}).get(skin, {})
+	if base == null or not paint.get("materials", {}).has(base.resource_name):
+		return null
+	var stem := String(paint["materials"][base.resource_name])
+	var key := "%s/%s/%s" % [model, skin, stem]
+	var ref: WeakRef = _skin_mats.get(key)
+	var mat: StandardMaterial3D = ref.get_ref() if ref else null
+	if mat:
+		return mat
+	mat = base.duplicate() as StandardMaterial3D
+	mat.resource_name = stem
+	var lib := Q3.LIB + "characters/%s_%s_" % [model, stem]
+	mat.albedo_texture = Q3.character_texture(lib + ("albedo.png" if ResourceLoader.exists(lib + "albedo.png") else "albedo.jpg"))
+	if base.normal_texture:
+		mat.normal_texture = Q3.character_texture(lib + "normal.jpg")
+	if base.roughness_texture:
+		mat.roughness_texture = Q3.character_texture(lib + "orm.jpg")
+	if base.metallic_texture:
+		mat.metallic_texture = Q3.character_texture(lib + "orm.jpg")
+	if base.emission_texture:
+		mat.emission_texture = Q3.character_texture(lib + "emissive.jpg")
+	var modes: Dictionary = rig.get("material_modes", {})
+	var mode: Dictionary = paint.get("material_modes", {}).get(stem, modes.get(stem, {}))
+	if mode != modes.get(base.resource_name, {}):
+		_draw_mode(mat, mode)
+	_skin_mats[key] = weakref(mat)
+	return mat
+
+
+## id Tech 3's draw mode on a character material, as the import script sets it
+## (q3_post_import.gd _apply): additive skins (Krusade's hidden cigar) draw unshaded and add.
+static func _draw_mode(mat: StandardMaterial3D, mode: Dictionary) -> void:
+	var blend := String(mode.get("blend", "opaque"))
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED if mode.get("two_sided", false) else mat.cull_mode
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if blend in ["add", "blend"] \
+		else BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR if blend == "mask" else BaseMaterial3D.TRANSPARENCY_DISABLED
+	mat.alpha_scissor_threshold = 0.5
+	var add := blend == "add"
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if add else BaseMaterial3D.BLEND_MODE_MIX
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED if add else BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED if add else BaseMaterial3D.DEPTH_DRAW_OPAQUE_ONLY
+	mat.disable_fog = add   # fog on an additive surface adds the haze color over it
+	mat.emission_enabled = not add and mat.emission_texture != null
+	if add:
+		mat.albedo_color = Color(1, 1, 1)
+
+
+## The body's own mesh surfaces (not the gun hung on it).
+func _surfaces() -> Array[MeshInstance3D]:
+	var out: Array[MeshInstance3D] = []
 	for mi in body.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
-		if m.mesh == null or String(m.get_path()).contains("Attach_"):
-			continue
+		if m.mesh and not String(m.get_path()).contains("Attach_"):
+			out.append(m)
+	return out
+
+
+## Gameplay > Bright skins: every surface in one flat bright color, still lit so the shape reads
+## (Quake Live's brightskins); a color with alpha 0 puts the model's own materials (in its skin)
+## back. Cut-out surfaces keep their alpha; additive ones (Bones' x-ray) stay as they are.
+func bright_skin(color: Color) -> void:
+	_bright = color
+	if body == null:
+		return
+	for m in _surfaces():
 		for i in m.mesh.get_surface_count():
-			var src := m.mesh.surface_get_material(i) as StandardMaterial3D
+			var own := skin_material(m, i)
+			var src := (own if own else m.mesh.surface_get_material(i)) as StandardMaterial3D
 			if color.a <= 0.0 or src == null:
-				m.set_surface_override_material(i, null)
+				m.set_surface_override_material(i, own)
 				continue
 			if src.blend_mode != BaseMaterial3D.BLEND_MODE_MIX or src.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA:
+				m.set_surface_override_material(i, own)
 				continue
 			var b := StandardMaterial3D.new()
 			b.albedo_color = color
@@ -244,7 +573,7 @@ func disintegrate(seconds := 1.6) -> void:
 		return
 	var mats: Array[ShaderMaterial] = []
 	var fades: Array = []
-	var shader := load("res://shaders/character_dissolve.gdshader") as Shader
+	var shader := Q3.held("res://shaders/character_dissolve.gdshader") as Shader
 	for mi in body.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
 		if m.mesh == null or String(m.get_path()).contains("Attach_"):
@@ -351,6 +680,8 @@ func _embers(seconds: float) -> void:
 	mat.vertex_color_use_as_albedo = true
 	mat.albedo_texture = Q3.fx_texture("flare")
 	quad.material = mat
+	Q3.keep("ember_particles", pm)   # their shaders stay built for the next corpse
+	Q3.keep("ember_quad", mat)
 	p.draw_pass_1 = quad
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# the embers outlive the body by their lifetime, so they hang off the parent

@@ -61,6 +61,14 @@ void Sys_Error(const char *error, ...) {
 	q3_engine_fatal(string);
 }
 
+#ifndef _WIN32
+#include <unistd.h>
+/* sys_unix.c's Sys_PlatformInit names it (sys_main.c has it; q3_host.c never runs that init, so no handler is installed) */
+void Sys_SigHandler(int signal) {
+	_exit(128 + signal);
+}
+#endif
+
 int Sys_FileTime(char *path) {
 	struct stat buf;
 	if (stat(path, &buf) == -1)

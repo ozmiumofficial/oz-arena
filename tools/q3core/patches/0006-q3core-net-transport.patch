@@ -1,0 +1,20 @@
+diff --git a/code/qcommon/net_chan.c b/code/qcommon/net_chan.c
+index e1a27fd..563ef4b 100644
+--- a/code/qcommon/net_chan.c
++++ b/code/qcommon/net_chan.c
+@@ -534,8 +534,15 @@ void NET_FlushPacketQueue(void)
+ 	}
+ }
+ 
++/* q3core: packets for Godot's transports (10.77.x.x, q3_host.c) leave through the host, not a socket */
++extern int q3_net_send( netsrc_t sock, int length, const void *data, netadr_t to );
++
+ void NET_SendPacket( netsrc_t sock, int length, const void *data, netadr_t to ) {
+ 
++	if ( to.type == NA_IP && to.ip[0] == 10 && to.ip[1] == 77 && q3_net_send( sock, length, data, to ) ) {
++		return;
++	}
++
+ 	// sequenced packets are shown in netchan, so just show oob
+ 	if ( showpackets->integer && *(int *)data == -1 )	{
+ 		Com_Printf ("send packet %4i\n", length);

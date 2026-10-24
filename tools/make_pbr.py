@@ -10,7 +10,9 @@ Writes <work>/tex/<stem>_albedo / _normal (OpenGL, green up) / _orm (R=AO, G=rou
 B=metal, the glTF and Godot layout) / _emissive .jpg, plus 512 px previews prev_<stem>_*.jpg.
 
 Textures used by the head get skin treatment for warm tones. --face-band Y (0..1) marks
-everything above that image height as face, below as mechanical (Keel: 0.62).
+everything above that image height as face, below as mechanical (Keel: 0.62). A texture with
+"heat_from" (team and alternate skins, build_skins.py) glows only where that image, the default
+set's painting of the same surfaces, glows too.
 
 World textures (kind "tile", from build_world.py) tile: every filter runs on a wrap-padded
 copy that is cropped afterwards, so the result stays seamless. Their "group" (metal, stone,
@@ -233,6 +235,16 @@ def process(t):
     redness = r - np.maximum(g, b)
     red_hue = np.maximum(1 - smooth(hue, 10, 16), smooth(hue, 340, 350))  # deep reds, not orange rust
     heat = smooth(redness, 0.12, 0.28) * smooth(sat, 0.45, 0.7) * red_hue
+    if t.get("heat_from"):
+        # a team or alternate skin (build_skins.py) glows only where its default image does at the
+        # same texels: the red team's armor is red paint, not heat
+        ref = np.array(Image.open(os.path.join(SRC, t["heat_from"])).convert("RGB"))[..., ::-1]
+        ref = cv2.resize(ref, (W, H), interpolation=cv2.INTER_LINEAR).astype(np.float32) / 255.0
+        rhsv = cv2.cvtColor((ref * 255).astype(np.uint8), cv2.COLOR_BGR2HSV).astype(np.float32)
+        rhue = rhsv[..., 0] * 2
+        rheat = smooth(ref[..., 2] - np.maximum(ref[..., 1], ref[..., 0]), 0.12, 0.28) * smooth(rhsv[..., 1] / 255, 0.45, 0.7) \
+            * np.maximum(1 - smooth(rhue, 10, 16), smooth(rhue, 340, 350))
+        heat = np.minimum(heat, blur(rheat, 2.0))
     dark = (1 - smooth(L, 0.10, 0.24)) * (1 - heat)
     warm = smooth(hue, 8, 18) * (1 - smooth(hue, 48, 60))
     fiber = smooth(L, 0.45, 0.6) * (1 - smooth(sat, 0.2, 0.38)) * (1 - heat) * (1 - dark)

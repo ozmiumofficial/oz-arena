@@ -48,6 +48,12 @@ func stop() -> void:
 	play("")
 
 
+## cg_servercmds.c CG_MapRestart's CG_StartMusic: the same track from its intro again.
+func restart(tracks: String) -> void:
+	_tracks = "\n"   # a value play() never matches
+	play(tracks)
+
+
 func _on_finished() -> void:
 	if _loop == null:
 		return

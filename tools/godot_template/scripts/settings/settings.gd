@@ -128,6 +128,10 @@ func options(key: String) -> Array:
 		"characters", "characters_only":
 			for c in Q3.characters:
 				opts.append([c, c.capitalize()])
+		"skins":
+			# every skin of the chosen character (Q3Character.skins_of): red, blue and its own alternates
+			for s in Q3Character.skins_of(String(get_value("profile/model"))).slice(1):
+				opts.append([s, "%s team" % s.capitalize() if s in ["red", "blue"] else s.capitalize()])
 	return opts
 
 

@@ -20,6 +20,10 @@ var red := 0
 var blue := 0
 var my_team := 0
 var warn := false            ## the last minute: the clock turns red
+var red_flag := -1           ## CTF: 0 at base, 1 taken, 2 dropped (CS_FLAGSTATUS); -1 none
+var blue_flag := -1
+var spectator := false       ## a free spectator: no place of their own, the top two instead
+var top: Array = []          ## [[name, score], ...] the leader and the runner-up
 
 
 func _process(_delta: float) -> void:
@@ -41,10 +45,25 @@ func _draw() -> void:
 	if teams:
 		_score_box(left, "RED", red, S.TEAM_RED, my_team == 1)
 		_score_box(right, "BLUE", blue, S.TEAM_BLUE, my_team == 2)
+		_flag(left, "iconf_red", red_flag)
+		_flag(right, "iconf_blu", blue_flag)
+	elif spectator:
+		for i in top.size():
+			_score_box(left if i == 0 else right, String(top[i][0]).to_upper(), int(top[i][1]), S.INK, false)
 	else:
 		_score_box(left, my_place.to_upper(), my_score, S.AMBER, true)
 		if other_name != "":
 			_score_box(right, other_name.to_upper(), other_score, S.INK, false)
+
+
+## A team's flag under its score box: iconf_red1 at base, 2 taken, 3 dropped (cgs.media.redFlagShader).
+func _flag(box: Rect2, icon: String, state: int) -> void:
+	if state < 0 or state > 2:
+		return
+	var tex := S.icon("%s%d" % [icon, state + 1])
+	if tex:
+		var u := hud.u
+		draw_texture_rect(tex, Rect2(Vector2(box.get_center().x - 16 * u, box.end.y + 4 * u), Vector2(32, 32) * u), false)
 
 
 func _score_box(r: Rect2, label: String, score: int, color: Color, mine: bool) -> void:

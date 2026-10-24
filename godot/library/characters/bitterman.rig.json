@@ -402,5 +402,21 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "bitterman": "blue",
+    "h_bitterman": "h_blue"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "bitterman": "red",
+    "h_bitterman": "h_red"
+   },
+   "material_modes": {}
+  }
+ }
 }

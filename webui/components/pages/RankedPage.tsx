@@ -3,15 +3,15 @@
 // to Godlike with their icons. Ranked is peer-to-peer for now (PLAN.md "Trust"); the queues refuse
 // until online matches are built.
 import { motion } from "motion/react";
-import { useMenu, toast } from "@/lib/store";
+import { useMenu, toast, queueJoin } from "@/lib/store";
 import { cn } from "@/lib/cn";
 import { fmt, TIER_COLORS } from "@/lib/cards";
 import PagePanel, { SectionTitle } from "../PagePanel";
 import Button from "../controls/Button";
+import QueueBar from "../QueueBar";
 import RankIcon from "../RankIcon";
 import type { PageProps } from "./index";
 
-const NOT_ONLINE = "Ranked needs online matches, which aren't built yet.";
 const HOW: [string, string, string][] = [
   ["10", "Placement", "Your first 10 ranked matches place you. Everyone starts at 1,000 MMR, and your rank shows once placement is done."],
   ["±", "MMR", "Your matchmaking rating moves after every match, like chess Elo: beat someone rated above you and you gain more, lose to someone below and you drop more. What one player gains, the other loses."],
@@ -21,9 +21,9 @@ const HOW: [string, string, string][] = [
   ["!", "Fair play", "Fixed rules and an official map pool, banned in turn. Matches start in your region, a result counts only when every player's game agrees on it, and leaving is a loss."],
 ];
 const QUEUES = [
-  ["Duel", "1v1 on the tournament maps. The headline ladder."],
-  ["Team Deathmatch", "Ranked against the other team's average rating."],
-  ["Capture the Flag", "Full teams; everyone on a team moves together."],
+  ["duel", "Duel", "1v1 on the tournament maps. The headline ladder."],
+  ["tdm", "Team Deathmatch", "Ranked against the other team's average rating."],
+  ["ctf", "Capture the Flag", "Full teams; everyone on a team moves together."],
 ];
 
 export default function RankedPage({ back, open }: PageProps) {
@@ -37,6 +37,9 @@ export default function RankedPage({ back, open }: PageProps) {
   const rank = ranked?.placed && ranked.rank?.id ? ranked.rank : undefined;
   const toNext = rank && rank.next > 0 ? (ranked!.rating - rank.from) / Math.max(1, rank.next - rank.from) : 1;
   const placements = ranked?.placements ?? 10;
+  const queue = useMenu((s) => s.queue);
+  const online = useMenu((s) => s.social.status === "online");
+  const busy = queue.state.status === "queued" || queue.state.status === "found";
   return (
     <PagePanel
       title="Ranked"
@@ -99,17 +102,27 @@ export default function RankedPage({ back, open }: PageProps) {
           <Button small className="mt-3" onClick={() => open("leaderboards")}>Leaderboards</Button>
           <SectionTitle className="mt-5">Queues</SectionTitle>
           <div className="flex min-h-0 flex-col gap-2 overflow-y-auto">
-            {QUEUES.map(([n, t], i) => (
-              <div key={n} data-row className="flex items-center gap-4 rounded-sm border border-white/[0.07] bg-black/25 px-4 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <div className="font-q3 text-[0.95rem] tracking-[0.06em] text-ink-hot">{n}</div>
-                  <div className="truncate text-[0.8rem] text-dim">{t}</div>
+            {QUEUES.map(([id, n, t], i) => {
+              const r = queue.ratings[id];
+              return (
+                <div key={id} data-row className="flex items-center gap-4 rounded-sm border border-white/[0.07] bg-black/25 px-4 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-q3 text-[0.95rem] tracking-[0.06em] text-ink-hot">{n}</div>
+                    <div className="truncate text-[0.8rem] text-dim">{r && r.rated > 0 ? `${r.rated >= placements ? fmt(r.rating) + " MMR" : `${r.rated} / ${placements} placement matches`} - ${r.wins} W ${r.losses} L` : t}</div>
+                  </div>
+                  <Button
+                    small
+                    autoFocus={i === 0}
+                    refuse={locked ? lockReason : busy ? "Already searching." : !online ? "The online service isn't connected." : undefined}
+                    onRefuse={(w) => toast(w, "warn")}
+                    onClick={() => queueJoin([id], true)}
+                  >
+                    Queue
+                  </Button>
                 </div>
-                <Button small autoFocus={i === 0} refuse={locked ? lockReason : NOT_ONLINE} onRefuse={(w) => toast(w, "warn")}>
-                  Queue
-                </Button>
-              </div>
-            ))}
+              );
+            })}
+            <QueueBar />
           </div>
         </div>
         <div className="flex min-h-0 flex-col overflow-y-auto pr-2">

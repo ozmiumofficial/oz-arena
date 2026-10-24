@@ -94,6 +94,7 @@ func clear() -> void:
 func _start(a: Vector3, b: Vector3, n: Vector3) -> Dictionary:
 	_textures()
 	var d := Decal.new()
+	d.cull_mask = Q3Map.MARK_LAYER   # the static world only, like the marks
 	d.texture_albedo = _albedo
 	d.texture_emission = _emission
 	d.emission_energy = 4.0

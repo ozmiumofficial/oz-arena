@@ -11,6 +11,7 @@ import LeaderboardPage from "./LeaderboardPage";
 import ReplaysPage from "./ReplaysPage";
 import ProfilePage from "./ProfilePage";
 import { CreditsPage } from "./OtherPages";
+import DedicatedPage from "./DedicatedPage";
 
 export interface PageProps {
   back: () => void;
@@ -29,6 +30,7 @@ export const PAGES: Record<string, ComponentType<PageProps>> = {
   leaderboards: LeaderboardPage,
   replays: ReplaysPage,
   server_browser: ServerBrowserPage,
+  dedicated: DedicatedPage,
   training: TrainingPage,
   profile: ProfilePage,
   credits: CreditsPage,

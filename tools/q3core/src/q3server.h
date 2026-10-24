@@ -54,6 +54,16 @@ public:
 	static bool recording();
 	static int record_frames();
 	static PackedByteArray record_pull();
+
+	// Network transport (patch 0006): packets of id's client protocol for remote players. A peer is an
+	// integer the transport picks (0..65535).
+	static bool udp_open(int port);
+	static void udp_close();
+	static bool udp_is_open();
+	static bool net_receive(int peer, const PackedByteArray &data);
+	static Array net_outgoing(int max_packets);
+	static int net_peer_client(int peer);
+	static void net_peer_gone(int peer);
 };
 
 } // namespace godot

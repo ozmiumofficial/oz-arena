@@ -24,6 +24,7 @@ Check them all with `python tools/setup_check.py`.
 | Item | How |
 |---|---|
 | Godot MCP server | `claude mcp add -s user -e GODOT_PATH="<Godot exe>" godot -- node <Q3Remaster>/tools/godot-mcp/dist/index.js`, then restart Claude Code. `npm test` in `tools/godot-mcp` checks it (23 checks) |
+| godot-ai MCP server | Needs uv (https://docs.astral.sh/uv/). The add-on is in the project (`godot/addons/godot_ai`); open the editor, then press **Configure** for Claude Code in the Godot AI dock. See DEVELOPMENT.md "Claude control" |
 | Blender MCP (optional) | `pip install blender-mcp`, add-on from the package's `bundled/addon.py`; not needed by the tools |
 
 ## Optional, for the production stages in PLAN.md

@@ -10,7 +10,7 @@ extends RefCounted
 ##   Q3FX.missile(self, weapon) (the game moves it) / Q3FX.rocket(self, from, to) (flies itself)
 ##   Q3FX.tracer(self, from, to, eye) / Q3FX.brass(self, "machinegun", pos, basis)
 ##   Q3FX.blood(self, pos) / Q3FX.gibs(self, pos) / Q3FX.teleport(self, pos)
-##   mesh.material_overlay = Q3FX.shell_material("quad")
+##   Q3FX.powerup_shells(body, ["quad"], false) / mesh.material_overlay = Q3FX.shell_material("quad")
 
 const SPRITE_ADD := "res://shaders/fx_sprite_add.gdshader"
 const SPRITE_MIX := "res://shaders/fx_sprite_mix.gdshader"
@@ -58,7 +58,7 @@ static func _up_basis(normal: Vector3) -> Basis:
 static func _flipbook(tex_name: String, tint: Color, intensity: float) -> ShaderMaterial:
 	var mode := String(Q3.fx_textures.get(tex_name, {}).get("mode", "add"))
 	var mat := ShaderMaterial.new()
-	mat.shader = load(SPRITE_MIX if mode == "blend" else SPRITE_ADD)
+	mat.shader = Q3.held(SPRITE_MIX if mode == "blend" else SPRITE_ADD)
 	mat.set_shader_parameter("tex", Q3.fx_texture(tex_name))
 	mat.set_shader_parameter("frames", Q3.fx_frames(tex_name))
 	mat.set_shader_parameter("tint", tint)
@@ -118,7 +118,7 @@ static func heat(parent: Node3D, radius: float, strength := 0.03) -> MeshInstanc
 	if not Settings.get_value("graphics/heat_shimmer"):
 		return null
 	var mat := ShaderMaterial.new()
-	mat.shader = load(HEAT)
+	mat.shader = Q3.held(HEAT)
 	mat.set_shader_parameter("strength", strength)
 	# it draws the opaque scene's copy, so it goes before every other transparent (flashes, smoke,
 	# sparks), which would otherwise be painted over inside the disc
@@ -196,6 +196,9 @@ static func particles(r: Node3D, tex_name: String, amount: int, life: float, spe
 	mat.proximity_fade_enabled = true   # soft particles: fade into surfaces
 	mat.proximity_fade_distance = 0.25
 	quad.material = mat
+	# their shaders outlive this one-shot: a pickup burst built and compiled them every time
+	Q3.keep("fx_particles", pm)
+	Q3.keep("fx_particles_add" if additive else "fx_particles_mix", mat)
 	p.draw_pass_1 = quad
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	r.add_child(p)
@@ -223,6 +226,8 @@ static func decal(r: Q3FxTimed, tex_name: String, radius: float, energy := false
 	d.modulate = tint
 	d.upper_fade = 0.3
 	d.lower_fade = 0.3
+	d.normal_fade = 0.5   # not wrapped round onto faces turned well away (tr_marks.c's angle check)
+	d.cull_mask = Q3Map.MARK_LAYER   # the static world only: never players, items, guns or doors
 	d.rotation.y = randf() * TAU
 	r.add_child(d)
 	r.decals.append(d)
@@ -237,11 +242,20 @@ static func decal(r: Q3FxTimed, tex_name: String, radius: float, energy := false
 	return d
 
 
+## Every mark goes at once (cg_marks.c CG_InitMarkPolys, at a map_restart).
+static func clear_marks() -> void:
+	for m in _marks:
+		if is_instance_valid(m):
+			(m as Node).queue_free()
+	_marks.clear()
+
+
 ## CG_MissileHitWall's visuals for one kind: the explosion (sprite or model), its dynamic light
 ## and the impact mark. `tint` colors the explosion (the rail's color1), `mark_tint` the mark
-## (the rail's color2). Sounds are the caller's (Q3Client).
+## (the rail's color2). Sounds are the caller's (Q3Client). `mark` false leaves no mark (a
+## nomarks surface, a mover).
 static func explosion(parent: Node, kind: String, pos: Vector3, normal := Vector3.UP, tint := Color.WHITE,
-		mark_tint := Color.WHITE) -> Q3FxTimed:
+		mark_tint := Color.WHITE, mark := true) -> Q3FxTimed:
 	var d: Dictionary = Q3.fx.get("explosions", {}).get(kind, {})
 	var r := _root(parent, pos, normal)
 	r.life = maxf(float(d.get("duration", 600)), 1.0) / 1000.0
@@ -259,7 +273,7 @@ static func explosion(parent: Node, kind: String, pos: Vector3, normal := Vector
 		var lc: Array = d["light_color"]
 		light(r, float(d["light"]), Color(lc[0], lc[1], lc[2]), 2.5)
 		r.light_hold = true
-	if d.get("mark") and Settings.get_value("graphics/decals"):
+	if mark and d.get("mark") and Settings.get_value("graphics/decals"):
 		decal(r, d["mark"], float(d["mark_radius"]), String(d["mark"]) == "mark_energy", mark_tint)
 	return r
 
@@ -275,7 +289,7 @@ static func rail(parent: Node, from: Vector3, to: Vector3, color1 := Color(1, 0,
 	var start := from + Vector3.DOWN * 4.0 * Q3.UNIT
 	r.materials.append(_beam(r, start, to, cfg["core"], 6.0, color1 * 0.75, Vector2.ZERO, 0.0, {}))
 	var rings := MultiMeshInstance3D.new()
-	rings.set_script(load("res://scripts/fx/fx_rail_rings.gd"))
+	rings.set_script(Q3.held("res://scripts/fx/fx_rail_rings.gd"))
 	r.add_child(rings)
 	rings.setup(start + (to - start).normalized() * float(cfg["core_start"]) * Q3.UNIT, to, cfg, color2)
 	return r
@@ -296,7 +310,7 @@ static func lightning(parent: Node, from: Vector3, to: Vector3, seconds := 1.0) 
 static func lightning_material() -> ShaderMaterial:
 	var cfg: Dictionary = Q3.fx["lightning_beam"]
 	var mat := ShaderMaterial.new()
-	mat.shader = load(SCROLL_ADD)
+	mat.shader = Q3.held(SCROLL_ADD)
 	mat.set_shader_parameter("tex", Q3.fx_texture(cfg["sprite"]))
 	mat.set_shader_parameter("color", Color.WHITE)
 	mat.set_shader_parameter("intensity", gain())
@@ -319,7 +333,7 @@ static func lightning_material() -> ShaderMaterial:
 static func _beam(r: Node3D, from: Vector3, to: Vector3, tex_name: String, width: float, color: Color,
 		scroll: Vector2, wave: float, layer_b: Dictionary) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
-	mat.shader = load(SCROLL_ADD)
+	mat.shader = Q3.held(SCROLL_ADD)
 	mat.set_shader_parameter("tex", Q3.fx_texture(tex_name))
 	mat.set_shader_parameter("color", color)
 	mat.set_shader_parameter("intensity", 1.5 * gain())
@@ -412,7 +426,7 @@ static func missile(parent: Node, weapon: int) -> Node3D:
 		var path := "res://library/sounds/weapons/%s.wav" % fly[weapon]
 		if ResourceLoader.exists(path):
 			var a := AudioStreamPlayer3D.new()
-			a.stream = Q3FX.looped(load(path))
+			a.stream = Q3FX.looped(Q3.held(path))
 			a.unit_size = 12.0
 			a.max_distance = 60.0
 			a.bus = &"Effects"
@@ -468,7 +482,7 @@ static func plasma(parent: Node, from: Vector3, to: Vector3) -> Node3D:
 
 static func _projectile(parent: Node, from: Vector3, to: Vector3, speed_units: float, kind: String) -> Node3D:
 	var p := Node3D.new()
-	p.set_script(load("res://scripts/fx/fx_projectile.gd"))
+	p.set_script(Q3.held("res://scripts/fx/fx_projectile.gd"))
 	parent.add_child(p)
 	p.global_position = from
 	p.target = to
@@ -478,13 +492,13 @@ static func _projectile(parent: Node, from: Vector3, to: Vector3, speed_units: f
 
 
 ## CG_Tracer: a 100-unit streak of the bullet's path, 2 units wide, facing the view, for one frame.
-static func tracer(parent: Node, from: Vector3, to: Vector3, eye: Vector3) -> void:
+static func tracer(parent: Node, from: Vector3, to: Vector3, eye: Vector3) -> Vector3:
 	var cfg: Dictionary = Q3.fx["tracer"]
 	var u := Q3.UNIT
 	var dir := to - from
 	var length := dir.length()
 	if length < 100.0 * u:
-		return
+		return Vector3.INF
 	dir /= length
 	var begin := 50.0 * u + randf() * (length - 60.0 * u)
 	var end := minf(begin + float(cfg["length"]) * u, length)
@@ -499,7 +513,7 @@ static func tracer(parent: Node, from: Vector3, to: Vector3, eye: Vector3) -> vo
 	if z == Vector3.ZERO:
 		z = Vector3.UP
 	var mat := ShaderMaterial.new()
-	mat.shader = load(SCROLL_ADD)
+	mat.shader = Q3.held(SCROLL_ADD)
 	mat.set_shader_parameter("tex", Q3.fx_texture(cfg["sprite"]))
 	mat.set_shader_parameter("intensity", gain())
 	var mi := MeshInstance3D.new()
@@ -510,17 +524,19 @@ static func tracer(parent: Node, from: Vector3, to: Vector3, eye: Vector3) -> vo
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	r.add_child(mi)
 	mi.global_transform = Transform3D(Basis(dir, z.cross(dir), z), mid)
+	return mid   # CG_Tracer plays the whizz here, at the streak's middle
 
 
 ## CG_MachineGunEjectBrass / CG_ShotgunEjectBrass: shells thrown out of the gun's right side,
 ## tumbling and bouncing (0.4 / 0.3) for cg_brassTime. `at` is the player origin, `axis` its view
-## axes as Q3Client.angles_basis gives them (columns: id left, up, forward).
-static func brass(parent: Node, kind: String, at: Vector3, axis: Basis) -> void:
+## axes as Q3Client.angles_basis gives them (columns: id left, up, forward). Under water they
+## leave at a tenth of the speed (waterScale), and machinegun brass bounces a tenth as much.
+static func brass(parent: Node, kind: String, at: Vector3, axis: Basis, water := false) -> void:
 	var d: Dictionary = Q3.fx["brass"].get(kind, {})
 	if d.is_empty():
 		return
 	var mat := PhysicsMaterial.new()
-	mat.bounce = float(d["bounce"])
+	mat.bounce = float(d["bounce"]) * (0.1 if water and kind == "machinegun" else 1.0)
 	mat.friction = 0.6
 	var off: Array = d["offset"]
 	var life: Array = d["life"]
@@ -550,10 +566,9 @@ static func brass(parent: Node, kind: String, at: Vector3, axis: Basis) -> void:
 		parent.add_child(body)
 		body.global_position = at + to_world.call(Vector3(float(off[0]), float(off[1]), float(off[2]))) * Q3.UNIT
 		body.global_basis = Basis.from_euler(Vector3(randf() * 0.5, randf() * 0.5, randf() * 0.5))
-		body.linear_velocity = to_world.call(local) * Q3.UNIT
+		body.linear_velocity = to_world.call(local) * Q3.UNIT * (0.1 if water else 1.0)
 		body.angular_velocity = axis * Vector3(randf_range(-12, 12), randf_range(-12, 12), randf_range(-6, 6))
-		var t := parent.get_tree().create_timer(randf_range(float(life[0]), float(life[1])) / 1000.0)
-		t.timeout.connect(body.queue_free)
+		_expire_fragment(parent, body, randf_range(float(life[0]), float(life[1])))
 
 
 ## CG_Bleed: the blood sprite, 24 units, 500 ms.
@@ -572,7 +587,11 @@ static func gibs(parent: Node, pos: Vector3) -> void:
 	mat.bounce = float(d["bounce"])
 	mat.friction = 0.7
 	var life: Array = d["life"]
-	for id in d["models"]:
+	# CG_GibPlayer: the skull or, half the time, the brain
+	var ids: Array = (d["models"] as Array).duplicate()
+	if not ids.is_empty() and ids[0] == "gibs/skull" and randi() & 1:
+		ids[0] = "gibs/brain"
+	for id in ids:
 		var body := RigidBody3D.new()
 		body.physics_material_override = mat
 		body.collision_layer = 4
@@ -590,9 +609,76 @@ static func gibs(parent: Node, pos: Vector3) -> void:
 		var v := Vector3(randf_range(-1, 1) * 250.0, randf_range(-1, 1) * 250.0, 250.0 + randf_range(-1, 1) * 250.0)
 		body.linear_velocity = Q3.q3_to_godot(v)
 		body.angular_velocity = Vector3(randf_range(-8, 8), randf_range(-8, 8), randf_range(-8, 8))
-		var timer := parent.get_tree().create_timer(randf_range(float(life[0]), float(life[1])) / 1000.0)
-		timer.timeout.connect(body.queue_free)
+		_expire_fragment(parent, body, randf_range(float(life[0]), float(life[1])))
+		body.contact_monitor = true
+		body.max_contacts_reported = 1
+		body.body_entered.connect(func(_other: Node): _gib_bounce(body, parent), CONNECT_ONE_SHOT)
 	blood(parent, pos + Vector3.UP * 0.6)
+
+
+## CG_FragmentBounceSound and CG_FragmentBounceMark: a gib's first bounce splats half the time
+## (gibimp1-3) and leaves a blood mark 16 to 47 units across; later bounces stay quiet.
+static func _gib_bounce(body: RigidBody3D, parent: Node) -> void:
+	if not is_instance_valid(body) or not is_instance_valid(parent):
+		return
+	var at := body.global_position
+	if randi() & 1:
+		var r := randi() & 3
+		var path := "res://library/sounds/player/gibimp%d.wav" % (1 if r == 0 else 2 if r == 1 else 3)
+		if ResourceLoader.exists(path):
+			var a := AudioStreamPlayer3D.new()
+			a.stream = Q3.held(path)
+			a.unit_size = 12.0
+			a.max_distance = 60.0
+			a.bus = &"Effects"
+			Settings.spatialize(a)
+			parent.add_child(a)
+			a.global_position = at
+			a.finished.connect(a.queue_free)
+			a.play()
+	if not Settings.get_value("graphics/decals"):
+		return
+	# the surface it hit (CG_FragmentBounceMark's trace->plane): toward the contact the physics
+	# reports, else straight down, else along its flight (already bounced off by now)
+	var space := body.get_world_3d().direct_space_state
+	var reach := 24.0 * Q3.UNIT
+	var dirs: Array[Vector3] = []
+	var st := PhysicsServer3D.body_get_direct_state(body.get_rid())
+	if st and st.get_contact_count() > 0:
+		var to_contact := st.get_contact_local_position(0) - at   # a global position in Godot 4
+		if to_contact.length() > 0.0001:
+			dirs.append(to_contact.normalized())
+	dirs.append(Vector3.DOWN)
+	dirs.append(body.linear_velocity.normalized())
+	for dir in dirs:
+		if dir == Vector3.ZERO:
+			continue
+		var q := PhysicsRayQueryParameters3D.create(at, at + dir * reach, 1)
+		var hit := space.intersect_ray(q)
+		if not hit.is_empty():
+			var m := _root(parent, hit["position"], hit["normal"])
+			m.life = 0.01
+			decal(m, "mark_blood", 16.0 + float(randi() & 31))
+			return
+
+
+## cg_localents.c CG_AddFragment: a gib or shell lying still sinks 16 units into the floor over
+## its last second (SINK_TIME) before it goes; one still moving then just disappears.
+static func _expire_fragment(parent: Node, body: RigidBody3D, life_ms: float) -> void:
+	var sink := minf(1.0, life_ms / 1000.0)
+	var ref: WeakRef = weakref(body)   # a replay jump may free it first
+	parent.get_tree().create_timer(life_ms / 1000.0 - sink).timeout.connect(func():
+		var b := ref.get_ref() as RigidBody3D
+		if b == null:
+			return
+		if not (b.sleeping or b.linear_velocity.length() < 40.0 * Q3.UNIT):
+			b.get_tree().create_timer(sink).timeout.connect(b.queue_free)
+			return
+		b.freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC
+		b.freeze = true
+		var tw := b.create_tween()
+		tw.tween_property(b, "global_position", b.global_position + Vector3.DOWN * 16.0 * Q3.UNIT, sink)
+		tw.tween_callback(b.queue_free))
 
 
 ## CG_SpawnEffect: the teleport model drawn with the scrolling teleportEffect shader, 500 ms.
@@ -604,7 +690,7 @@ static func teleport(parent: Node, pos: Vector3) -> Q3FxTimed:
 	if model:
 		r.add_child(model)
 		var mat := ShaderMaterial.new()
-		mat.shader = load(SCROLL_ADD)
+		mat.shader = Q3.held(SCROLL_ADD)
 		mat.set_shader_parameter("tex", Q3.fx_texture(d["sprite"]))
 		var sc: Array = d["scale"]
 		var sp: Array = d["scroll"]
@@ -638,7 +724,7 @@ static func pickup(parent: Node, pos: Vector3, tint: Color) -> Q3FxTimed:
 static func shell_material(kind: String, on_weapon := false) -> ShaderMaterial:
 	var d: Dictionary = Q3.fx["powerup_shells"][kind]
 	var mat := ShaderMaterial.new()
-	mat.shader = load(SHELL)
+	mat.shader = Q3.held(SHELL)
 	mat.set_shader_parameter("tex", Q3.fx_texture(d["map"]))
 	mat.set_shader_parameter("grow", float(d["grow_weapon"] if on_weapon else d["grow"]) * Q3.UNIT)
 	mat.set_shader_parameter("rotate_deg", float(d["rotate"]))
@@ -646,3 +732,99 @@ static func shell_material(kind: String, on_weapon := false) -> ShaderMaterial:
 	mat.set_shader_parameter("scroll", Vector2(sc[0], sc[1]))
 	mat.set_shader_parameter("intensity", 0.9)
 	return mat
+
+
+## cg_players.c CG_AddRefEntityWithPowerups and cg_weapons.c CG_AddWeaponWithPowerups: a powered-up
+## player (or gun) is drawn a second time over itself in each powerup's shell (`kinds`: "quad",
+## "regen", "battlesuit"); invisibility draws it in the invisibility shader alone. The copies are
+## children of each mesh, named Shell_<kind>, sharing its mesh and skin; code that walks a body's
+## meshes skips them (is_shell). The muzzle flash gets none, as in id's code. Cheap every frame:
+## nothing changes while the set stays the same.
+static func powerup_shells(root: Node3D, kinds: PackedStringArray, invis: bool, on_weapon := false) -> void:
+	if root == null or not is_instance_valid(root):
+		return
+	if invis:
+		kinds = PackedStringArray()
+	var key := ",".join(kinds) + ("|invis" if invis else "")
+	if String(root.get_meta("q3_shells", "")) == key:
+		return
+	root.set_meta("q3_shells", key)
+	var mats := {}
+	for k in kinds:
+		mats[k] = shell_material(k, on_weapon)
+	var invis_mat: Material = shell_material("invis", on_weapon) if invis else null
+	for mi in root.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if is_shell(m):   # the old shells are in the list too; one taken off below is out of the tree
+			continue
+		# the gun held at Attach_weapon gets its own call (the weapon shell), the flash none
+		var rel := String(root.get_path_to(m))
+		if rel.contains("Attach_") or rel.contains("flash"):
+			continue
+		for c in m.get_children():
+			if is_shell(c) and not String(c.name).trim_prefix("Shell_") in kinds:
+				m.remove_child(c)
+				c.queue_free()
+		m.material_override = invis_mat
+		for k in kinds:
+			if m.has_node(NodePath("Shell_" + k)):
+				continue
+			var s := MeshInstance3D.new()
+			s.name = "Shell_" + k
+			s.mesh = m.mesh
+			s.skin = m.skin
+			s.layers = m.layers
+			s.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			s.material_override = mats[k]
+			m.add_child(s)
+			if m.skin and m.has_node(m.skeleton):
+				s.skeleton = s.get_path_to(m.get_node(m.skeleton))
+
+
+## Shows or hides one shell already on `root` (the regen shell flashes, CG_AddRefEntityWithPowerups).
+static func shell_visible(root: Node3D, kind: String, on: bool) -> void:
+	if root == null or not is_instance_valid(root) or not String(root.get_meta("q3_shells", "")).contains(kind):
+		return
+	for s in root.find_children("Shell_" + kind, "MeshInstance3D", true, false):
+		(s as MeshInstance3D).visible = on
+
+
+## A powerup shell's copy of a mesh (powerup_shells), which code walking a body's meshes leaves alone.
+static func is_shell(n: Node) -> bool:
+	return String(n.name).begins_with("Shell_")
+
+
+## Builds every effect once, out of sight, while a match loads (Q3Client._ready). The first of each
+## compiled its shaders on the spot, mid-fight: the first pickup 70 ms, gibs 45, a rocket blast 40,
+## the first burning corpse 140-200 (2026-10-24, tests/match_perf.tscn). Their shaders stay built
+## (Q3.held, Q3.keep), so later ones cost under a millisecond.
+static func warm_up(parent: Node3D) -> void:
+	var t := Time.get_ticks_msec()
+	var at := Node3D.new()
+	parent.add_child(at)
+	at.global_position = Vector3(0.0, -1000.0, 0.0)   # far below any map
+	var p := at.global_position
+	for kind in Q3.fx.get("explosions", {}):
+		explosion(at, kind, p)
+	rail(at, p, p + Vector3.FORWARD * 8.0)
+	lightning(at, p, p + Vector3.FORWARD * 8.0)
+	tracer(at, p, p + Vector3.FORWARD * 8.0, p + Vector3.UP)
+	for w in [4, 5, 8, 9]:   # WP_GRENADE_LAUNCHER, WP_ROCKET_LAUNCHER, WP_PLASMAGUN, WP_BFG
+		missile(at, w)
+	for kind in Q3.fx.get("brass", {}):
+		brass(at, kind, p, Basis.IDENTITY)
+	gibs(at, p)
+	teleport(at, p)
+	pickup(at, p, Color.WHITE)
+	for kind in Q3.fx.get("powerup_shells", {}):
+		var m := MeshInstance3D.new()
+		m.mesh = BoxMesh.new()
+		m.material_override = shell_material(kind)
+		at.add_child(m)
+	if not Q3.characters.is_empty():
+		var c := Q3Character.new()
+		at.add_child(c)
+		c.load_model(Q3.characters[0])
+		c.disintegrate()
+	at.free()
+	print("Q3FX: effects warmed up in %d ms" % (Time.get_ticks_msec() - t))

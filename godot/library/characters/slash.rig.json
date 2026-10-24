@@ -418,5 +418,41 @@
    "blend": "add",
    "two_sided": true
   }
+ },
+ "skins": {
+  "blue": {
+   "materials": {
+    "slash": "blue",
+    "slash_h": "blue_h"
+   },
+   "material_modes": {}
+  },
+  "grrl": {
+   "materials": {
+    "slash": "grrl",
+    "slash_h": "grrl_h"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "slash": "red",
+    "slash_h": "red_h"
+   },
+   "material_modes": {}
+  },
+  "yuriko": {
+   "materials": {
+    "slash": "yuriko",
+    "slash_h": "yuriko_h",
+    "slashskate": "yurikoskate"
+   },
+   "material_modes": {
+    "yurikoskate": {
+     "blend": "blend",
+     "two_sided": true
+    }
+   }
+  }
  }
 }

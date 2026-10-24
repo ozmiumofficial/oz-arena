@@ -18,13 +18,22 @@ var fx_textures: Dictionary = {}
 var _rigs: Dictionary = {}
 ## An exported game's world textures ship as packs beside the exe, because a GitHub release file
 ## must be under 2 GiB (tools/export_game.py writes them with tests/pack_textures.tscn).
-const TEXTURE_PACKS := 2
+const TEXTURE_PACKS := 3
 var missing_packs: PackedStringArray = []
 ## Game time in ms: every frame's delta added up, so Engine.time_scale and --fixed-fps (Movie
 ## Maker, the trailer captures) hold. Time.get_ticks_msec() is wall time: in a recording that
 ## renders slower than it plays, pickups spun and portal cameras swung far too fast. Anything
 ## Quake 3 times by cg.time reads this.
 var game_ms := 0.0
+## held(): resources kept loaded. Godot frees a resource when its last user goes, so an effect's
+## texture or shader loaded per shot was read again (and the shader compiled again) on every shot,
+## and a player's model on every respawn: 25-45 ms stalls several times a second in a bot match
+## (2026-10-24, tests/match_perf.tscn).
+var _held: Dictionary = {}
+## Models (prop and character scenes) are kept too, but only while a match holds them
+## (hold_models): the menu shows them one at a time and shouldn't pile them up.
+var _held_models: Dictionary = {}
+var _model_holders := 0
 
 
 func _init() -> void:
@@ -67,7 +76,7 @@ func q3_to_godot(v: Vector3) -> Vector3:
 
 
 func character_scene(model: String) -> PackedScene:
-	return load(LIB + "characters/%s.glb" % model)
+	return _model(LIB + "characters/%s.glb" % model)
 
 
 func character_rig(model: String) -> Dictionary:
@@ -81,7 +90,7 @@ func prop_scene(id: String) -> PackedScene:
 	if not ResourceLoader.exists(path):
 		push_warning("Q3: no prop " + id)
 		return null
-	return load(path)
+	return _model(path)
 
 
 func instance_prop(id: String) -> Node3D:
@@ -93,7 +102,55 @@ func fx_texture(name: String) -> Texture2D:
 	if not fx_textures.has(name):
 		push_warning("Q3: no fx texture " + name)
 		return null
-	return load(LIB + "fx/" + String(fx_textures[name]["file"]))
+	return held(LIB + "fx/" + String(fx_textures[name]["file"]))
+
+
+## load() that keeps the resource for the rest of the run: effect textures, shaders and sounds,
+## which are small and used again and again.
+func held(path: String) -> Resource:
+	var r: Resource = _held.get(path)
+	if r == null:
+		r = load(path)
+		if r:
+			_held[path] = r
+	return r
+
+
+## Keeps one material of a built-in kind (StandardMaterial3D, ParticleProcessMaterial) alive under
+## `key`. Godot shares the shader it generates for one set of features only while a material with
+## those features exists, so a one-shot effect's materials were generated and compiled again on
+## every use.
+func keep(key: String, material: Material) -> void:
+	if not _held.has(key):
+		_held[key] = material
+
+
+## A match keeps every model it loads until it ends (Q3Client: true on entering the tree, false on
+## leaving it).
+func hold_models(on: bool) -> void:
+	_model_holders = maxi(_model_holders + (1 if on else -1), 0)
+	if _model_holders == 0:
+		_held_models.clear()
+
+
+## A character skin's map (library/characters/<model>_<stem>_<map>, tools/build_skins.py), kept
+## like the models while a match holds them, so a respawn in that skin doesn't read it again.
+func character_texture(path: String) -> Texture2D:
+	var t: Texture2D = _held_models.get(path)
+	if t == null:
+		t = load(path) as Texture2D
+		if t and _model_holders > 0:
+			_held_models[path] = t
+	return t
+
+
+func _model(path: String) -> PackedScene:
+	var s: PackedScene = _held_models.get(path)
+	if s == null:
+		s = load(path)
+		if s and _model_holders > 0:
+			_held_models[path] = s
+	return s
 
 
 func fx_frames(name: String) -> int:

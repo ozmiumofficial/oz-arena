@@ -162,6 +162,19 @@ static func ranked() -> Dictionary:
 		"peak_rank": Q3Cards.rank(peak) if peak > 0 else {}, "wins": int(Q3Cards.stat(st, "ranked_wins"))}
 
 
+## The ranked backend's word on the duel ladder (the headline queue): the only writer of the ranked stats
+## (PLAN.md "Trust"). `q` is the hub's {rating, rated, wins, losses, peak}.
+static func set_ranked(q: Dictionary) -> void:
+	var st: Dictionary = data()["stats"]
+	var changed := int(st.get("ranked_rating", -1)) != int(q.get("rating", 1000)) or int(st.get("ranked_matches", -1)) != int(q.get("rated", 0))
+	st["ranked_rating"] = int(q.get("rating", 1000))
+	st["ranked_matches"] = int(q.get("rated", 0))
+	st["ranked_wins"] = int(q.get("wins", 0))
+	st["ranked_peak"] = int(q.get("peak", 1000))
+	if changed:
+		save()
+
+
 ## Every part the career has earned, as a set of "kind:id".
 static func unlocked_ids() -> Dictionary:
 	var d := data()

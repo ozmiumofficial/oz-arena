@@ -27,6 +27,8 @@ PINS = json.load(open(os.path.join(CORE, "thirdparty.json")))
 ap = argparse.ArgumentParser()
 ap.add_argument("--release", action="store_true", help="also build template_release")
 ap.add_argument("--clean", action="store_true")
+ap.add_argument("--platform", default="windows", choices=["windows", "linux"],
+                help="linux: the dedicated-server build (no map tools, no PDBs); run it on a Linux machine or in docker/Dockerfile")
 ap.add_argument("--jobs", type=int, default=4, help="compile jobs (4 is safe on 16 GB)")
 a = ap.parse_args()
 
@@ -81,15 +83,17 @@ except ImportError:
 targets = ["template_debug"] + (["template_release"] if a.release else [])
 for t in targets:
     # debug_symbols: a .pdb beside each DLL, so crash dumps (Diagnostics) resolve q3core's frames
-    cmd = [sys.executable, "-m", "SCons", "platform=windows", "target=" + t, "debug_symbols=yes", "-j%d" % a.jobs]
+    cmd = [sys.executable, "-m", "SCons", "platform=" + a.platform, "target=" + t, "debug_symbols=yes" if a.platform == "windows" else "debug_symbols=no", "-j%d" % a.jobs]
     if a.clean:
         cmd.append("-c")
     run(cmd, CORE)
 # q3map.exe and bspc.exe (SConstruct.tools): separate programs, so a compile can't take the game down
+# (the map editor is a Windows desktop feature; a server build skips them)
 cmd = [sys.executable, "-m", "SCons", "-f", "SConstruct.tools", "-j%d" % a.jobs]
 if a.clean:
     cmd.append("-c")
-run(cmd, CORE)
+if a.platform == "windows":
+    run(cmd, CORE)
 
 # The addon: the .gdextension (kept in the template) plus the built libraries.
 for dst_root in (os.path.join(HERE, "godot_template"), os.path.join(ROOT, "godot")):
@@ -98,7 +102,7 @@ for dst_root in (os.path.join(HERE, "godot_template"), os.path.join(ROOT, "godot
     dst = os.path.join(dst_root, "addons", "q3core")
     os.makedirs(os.path.join(dst, "bin"), exist_ok=True)
     for f in glob.glob(os.path.join(CORE, "bin", "q3core.*")) + glob.glob(os.path.join(CORE, "bin", "baseq3", "qagame*")) +             glob.glob(os.path.join(CORE, "bin", "tools", "*.exe")):
-        if f.endswith((".dll", ".so", ".dylib", ".exe")):
+        if f.endswith((".dll", ".so", ".dylib", ".exe")) and (a.platform == "windows") == (".so" not in f):
             rel = os.path.relpath(f, os.path.join(CORE, "bin"))
             os.makedirs(os.path.dirname(os.path.join(dst, "bin", rel)), exist_ok=True)
             target = os.path.join(dst, "bin", rel)

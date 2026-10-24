@@ -20,9 +20,11 @@ signal social(state: Dictionary)                        ## the whole picture: me
 signal notice(text: String, tone: String)
 signal party_chat(msg: Dictionary)
 signal leaderboard(board: Dictionary)                   ## {board, scope, rows, me, total}
+signal queue(msg: Dictionary)                           ## queue_state, match_found, match_result, ratings (online/src/hub.ts "matchmaking and ranked")
+signal net(msg: Dictionary)                             ## a match message (net_matches, net_request, net_signal ... online/src/hub.ts)
 
 const PROTOCOL := "1"
-const PING_EVERY := 25.0
+const PING_EVERY := 10.0
 ## Close codes the hub uses: 4001 identity refused, 4002 this game is out of date.
 const CLOSE_IDENTITY := 4001
 const CLOSE_OUTDATED := 4002
@@ -31,6 +33,8 @@ var key_path := ""
 var status := "offline"
 var reason := ""
 var close_code := 0
+var rtt := 100                       ## round trip to the hub in ms (matchmaking elects the best connected host)
+var _ping_sent := 0
 var state: Dictionary = {}
 var _ws: WebSocketPeer
 var _key: CryptoKey
@@ -142,6 +146,7 @@ func poll(delta: float) -> void:
 			_ping_in -= delta
 			if _ping_in <= 0.0:
 				_ping_in = PING_EVERY
+				_ping_sent = Time.get_ticks_msec()
 				_ws.send_text('{"type":"ping"}')
 		WebSocketPeer.STATE_CLOSED:
 			close_code = _ws.get_close_code()
@@ -201,6 +206,15 @@ func _receive(text: String) -> void:
 			party_chat.emit(m)
 		"leaderboard":
 			leaderboard.emit(m)
+		"pong":
+			if _ping_sent > 0:
+				rtt = clampi(Time.get_ticks_msec() - _ping_sent, 1, 2000)
+				_ping_sent = 0
+		"queue_state", "match_found", "match_result", "ratings":
+			queue.emit(m)
+		var other:
+			if other.begins_with("net_"):
+				net.emit(m)
 
 
 func _set_status(s: String, why: String) -> void:

@@ -57,6 +57,33 @@ planned (PLAN.md).
   verified dedicated servers take over later. The ranked board stays empty until then. A player shows on it after 10
   ranked matches.
 
+## Matches (MULTIPLAYER_PLAN.md M4)
+
+The hub is also the match directory and the WebRTC signaling channel; no game data passes through it.
+
+- **Directory:** a host sends `net_host {name, mode, map, players, max, password (a flag), ranked, version}` and the listing lives on its socket, so it goes when the host does. `net_browse {region?}` answers `net_matches` (the asker's region first). Regions come from Cloudflare's request data: na_east, na_west, eu, sa, asia, oce, meaf.
+- **Joining:** `net_join {host, password, version}` -> the host gets `net_request` and answers `net_accept` or `net_reject` (it decides on room, password, version and later bans) -> the joiner gets `net_accepted` or `net_refused`. Links last until either side leaves (`net_leave`, `net_gone`) or disconnects.
+- **Signaling:** `net_signal {to, kind: offer|answer|candidate, ...}` is forwarded only between a host and a peer it accepted. Candidates that aren't relay candidates are dropped, and SDPs lose their `a=candidate` lines and `c=` address, so no player's address reaches another. `NET_DIRECT=1` turns that off for local tests.
+- **Kicks:** `net_kick {peer}` (the host only) ends the link and bans that player from the host's matches for 30 minutes (`bans`); the player hears `net_gone {kicked: true}`, and a rejoin is refused with the minutes left. The game calls it when a passed vote kicks someone.
+- **Relay credentials:** `net_ice` mints 1-hour credentials from a Cloudflare Realtime TURN key (dashboard > Realtime > TURN), one request every 2 s per player. The key stays a Worker secret:
+
+```
+npx wrangler secret put TURN_KEY_ID
+npx wrangler secret put TURN_KEY_TOKEN
+TURN_KEY_ID=... TURN_KEY_TOKEN=... node test/turn_check.mjs     # checks the key before it goes in
+```
+
+- **Spending guard:** Cloudflare Realtime TURN bills past 1,000 GB a month and has no hard cap, so the hub keeps its own. Each credential it mints is charged its worst-case traffic (a player 0.7 GB, a host 5 GB; real use measured in M8 is 56-80 MB a player-hour, MULTIPLAYER_PLAN.md). Hosts ask for credentials only when someone joins and theirs are over 45 minutes old and minting stops at 800 GB a month (`RELAY_BUDGET_GB` overrides), answering "Relayed play is paused for this month." The counter resets on the 1st. `GET /admin/relay` shows the month's total. `node test/relay_budget.mjs <admin token>` checks it (see the file for the `.dev.vars` it needs).
+
+`npm run match` runs the directory and signaling checks against `npm run dev`; put `NET_DIRECT=1` in `.dev.vars` for the Godot tests (`rtc_loopback_test`, `net_host_test`), and leave it out to run `node test/match.mjs ws://127.0.0.1:8787 relay`.
+
+## Matchmaking and ranked (MULTIPLAYER_PLAN.md M6)
+
+- **Queue:** `queue_join {modes, ranked, region, rtt}` / `queue_leave`; the hub answers `queue_state` and, when a group forms, `match_found {match, host, you_host, mode, map, ranked, team, players}`. The matcher (`src/ranked.ts` `formGroup`) runs from a Durable Object alarm once a second while anyone is queued: ranked windows start at +-150 and widen 25 a second (the closest after 10 s), regions widen to neighbors after 60 s (Auto only), the best connected player hosts. Modes: duel 2, ffa 4, tdm 4, ctf 6; ranked queues are duel, tdm and ctf, from level 30.
+- **Private matches:** the host lists with `net_host {match}`; the listing is hidden from the browser and only the match's players can join it.
+- **Results:** `match_joined {match}` from everyone (90 s, or the match is void and the missing players are locked out for 5 minutes), then `match_report {match, me, rows, left, peers}`; `decide()` checks they agree, Elo moves the ratings (tables `ratings`, `seasons`, `rmatches`, `lockouts`, `host_stats`) and each player gets `match_result` and `ratings`. The duel rating also fills the leaderboard's ranked columns.
+- **Tests:** `node test/ranked_unit.mjs` (no server); `node test/ranked.mjs` against `npm run dev` with `MATCH_FORM_MS=3000` and `MATCH_REPORT_MS=3000` in `.dev.vars` (start from a clean `.wrangler/state`).
+
 ## Run it locally
 
 ```

@@ -29,6 +29,10 @@ static func verified() -> String:
 
 ## The remembered baseq3 folder, unchecked.
 static func remembered() -> String:
+	# A server has no setup screen: its operator points Q3_BASEQ3 at the folder holding their pak0.pk3
+	var env := OS.get_environment("Q3_BASEQ3").replace("\\", "/").trim_suffix("/")   # Q3Host looks for a name ending in baseq3
+	if env != "" and FileAccess.file_exists(env.path_join("pak0.pk3")):
+		return env
 	var cfg := ConfigFile.new()
 	if cfg.load(CONFIG) != OK:
 		return ""

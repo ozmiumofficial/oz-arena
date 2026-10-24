@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Q3Remaster"
 config/description="Remastered Quake III Arena: main menu, asset library, Gameplay and Map editor scenes."
-config/version="0.3.0-beta"
+config/version="0.4.0-beta"
 run/main_scene="res://scenes/splash/splash.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.png"
@@ -26,6 +26,7 @@ Settings="*res://scripts/settings/settings.gd"
 UiSound="*res://scripts/ui/ui_sound.gd"
 Session="*uid://6k8xg1ava63c"
 Online="*res://scripts/online/online.gd"
+_mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
 [debug]
 
@@ -45,12 +46,15 @@ export/convert_text_resources_to_binary=false
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot_mcp_bridge/plugin.cfg")
+enabled=PackedStringArray("res://addons/godot_mcp_bridge/plugin.cfg", "res://addons/godot_ai/plugin.cfg")
 
 [importer_defaults]
 
 scene={
 "import_script/path": "res://scripts/import/q3_post_import.gd"
+}
+wav={
+"edit/loop_mode": 1
 }
 
 [physics]

@@ -7,6 +7,7 @@ import { codeToGodot, mouseToGodot, bindLabel } from "./binds";
 import type { InitPayload, PartKind, ProfileState, ReplayInfo, Value } from "./types";
 import type { Friend, Social, SocialState } from "./social";
 
+let dedicatedRunning = 0;
 const STORE = "q3menu.values";
 const CARD_STORE = "q3menu.card";
 const SOUNDS: Record<string, string> = {
@@ -236,6 +237,49 @@ export function handle(m: Msg) {
       break;
     case "quit":
       notice("Browser preview: Godot would quit here.");
+      break;
+    // online matches (the Server Browser): a few made-up listings, and a join that connects after a moment
+    case "net_browse":
+      emit({
+        type: "net_matches",
+        region: "na_east",
+        matches: [
+          { host: "a".repeat(20), owner: "Ranger", region: "na_east", name: "Open FFA", mode: "ffa", map: "q3dm17", players: 3, max: 8, password: false, ranked: false, version: "0.3.0-beta" },
+          { host: "b".repeat(20), owner: "Visor", region: "eu", name: "Duel night", mode: "duel", map: "q3tourney2", players: 1, max: 2, password: true, ranked: false, version: "0.3.0-beta" },
+          { host: "c".repeat(20), owner: "Orbb", region: "na_east", name: "Full house", mode: "tdm", map: "q3dm6", players: 8, max: 8, password: false, ranked: true, version: "0.3.0-beta" },
+        ],
+      } as unknown as Msg);
+      break;
+    case "net_join":
+      emit({ type: "net_join_state", status: "asking", reason: "", host: m.host });
+      setTimeout(() => emit({ type: "net_join_state", status: "connecting", reason: "", host: m.host }), 700);
+      setTimeout(() => emit({ type: "net_join_state", status: "failed", reason: "Browser preview: Godot would connect and start the match here.", host: m.host }), 2200);
+      break;
+    case "queue_join":
+      emit({ type: "queue", state: { status: "queued", since: Date.now(), modes: m.modes, ranked: m.ranked }, ratings: { season: "2026-Q4", queues: { duel: { rating: 1000, rated: 3, wins: 2, losses: 1, peak: 1020 } } }, rtt: 40 } as unknown as Msg);
+      break;
+    case "dedicated_get":
+    case "dedicated_start":
+    case "dedicated_stop":
+    case "dedicated_autostart": {
+      if (m.type === "dedicated_start") dedicatedRunning = Date.now();
+      if (m.type === "dedicated_stop") dedicatedRunning = 0;
+      const config = (m.config as object | undefined) ?? { name: "Dedicated server", password: "", mode: "ffa", rotation: [], max_players: 16, bots: 2, bot_skill: 3, motd: "", rcon_password: "", online: true, idle_sleep: true };
+      emit({
+        type: "dedicated", config, autostart: false,
+        status: dedicatedRunning
+          ? { running: true, name: "Dedicated server", mode: "ffa", map: "q3dm17", max: 16, humans: 2, sleeping: false, listed: true, uptime: Math.floor((Date.now() - dedicatedRunning) / 1000), players: [{ client: 0, name: "Sarge", bot: true }, { client: 1, name: "Ranger", bot: false }] }
+          : { running: false },
+      } as unknown as Msg);
+      break;
+    }
+    case "dedicated_command":
+      break;
+    case "queue_leave":
+      emit({ type: "queue", state: { status: "idle" }, ratings: { season: "2026-Q4", queues: {} }, rtt: 40 } as unknown as Msg);
+      break;
+    case "net_cancel":
+      emit({ type: "net_join_state", status: "failed", reason: "Cancelled.", host: "" });
       break;
     case "open_url":
       window.open(String(m.url), "_blank", "noopener");

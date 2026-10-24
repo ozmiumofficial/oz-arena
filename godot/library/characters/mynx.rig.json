@@ -393,5 +393,21 @@
    ]
   }
  },
- "material_modes": {}
+ "material_modes": {},
+ "skins": {
+  "blue": {
+   "materials": {
+    "mynx_h": "red_h",
+    "mynx_shiny": "blue_s"
+   },
+   "material_modes": {}
+  },
+  "red": {
+   "materials": {
+    "mynx_h": "red_h",
+    "mynx_shiny": "red_s"
+   },
+   "material_modes": {}
+  }
+ }
 }

@@ -42,7 +42,7 @@ ENGINE = [
     "botlib/l_libvar.c", "botlib/l_log.c", "botlib/l_memory.c", "botlib/l_precomp.c",
     "botlib/l_script.c", "botlib/l_struct.c",
     "null/null_client.c", "null/null_input.c", "null/null_snddma.c",
-    "sys/con_log.c", "sys/sys_win32.c",
+    "sys/con_log.c", "sys/sys_win32.c" if env["platform"] == "windows" else "sys/sys_unix.c",
     # client-side prediction (Q3Pmove) runs the same movement code the game module does
     "game/bg_misc.c", "game/bg_pmove.c", "game/bg_slidemove.c",
 ]
@@ -66,6 +66,9 @@ QUIET = ["/wd4244", "/wd4267", "/wd4305", "/wd4996", "/wd4018", "/wd4146", "/wd4
 def c_env(defines):
     e = env.Clone()
     e.Append(CPPDEFINES=defines + ["_CRT_SECURE_NO_WARNINGS", "_WINSOCK_DEPRECATED_NO_WARNINGS"])
+    if e["platform"] == "linux":
+        # a Linux server build (MULTIPLAYER_PLAN.md M7; not built on the dev PC): ioquake3's own unix flags
+        e.Append(CFLAGS=["-fno-strict-aliasing", "-Wno-implicit-function-declaration", "-Wno-int-conversion"])
     e.Append(CPPPATH=[ZLIB])
     if e.get("is_msvc", False):
         e.Append(CCFLAGS=QUIET)
@@ -84,6 +87,8 @@ engine_objs += [eenv.SharedObject("build/q3core/" + os.path.basename(str(s))[:-2
 env.Append(CPPPATH=["src/"])
 if env["platform"] == "windows":
     env.Append(LIBS=["ws2_32", "winmm", "psapi", "advapi32", "shell32", "user32", "ole32", "dbghelp"])
+elif env["platform"] == "linux":
+    env.Append(LIBS=["dl", "m", "pthread"])   # on the library's link, not the C objects' env
 library = env.SharedLibrary(
     "bin/q3core{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
     source=Glob("src/*.cpp") + Glob("src/map/*.cpp") + Glob("src/crash/*.cpp") + engine_objs,
@@ -91,6 +96,7 @@ library = env.SharedLibrary(
 
 genv = c_env(["QAGAME"])
 genv["LIBS"] = []
+genv["SHLIBPREFIX"] = ""   # FS_FindVM loads qagamex86_64.so, not libqagamex86_64.so
 arch = {"x86_64": "x86_64", "x86_32": "x86", "arm64": "arm64"}.get(env["arch"], env["arch"])
 game = genv.SharedLibrary(
     "bin/baseq3/qagame" + arch + env["SHLIBSUFFIX"],

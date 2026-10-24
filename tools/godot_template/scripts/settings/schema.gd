@@ -124,7 +124,7 @@ static func build() -> Array:
 	L.append(_e("graphics/preset", "Preset", "enum", "high", "Sets every quality setting below. Changing one of them switches this to Custom.", g,
 		{"options": [["low", "Low"], ["medium", "Medium"], ["high", "High"], ["ultra", "Ultra"], ["custom", "Custom"]]}))
 	g = "Lighting"
-	L.append(_e("graphics/shadows", "Shadows", "enum", "high", "Shadow map resolution and filtering.", g, {"options": off + [["ultra", "Ultra"]]}))
+	L.append(_e("graphics/shadows", "Shadows", "enum", "high", "Shadow map resolution and filtering. Ultra also gives every map light a live shadow on players and the mist: barely visible, and several times slower.", g, {"options": off + [["ultra", "Ultra"]]}))
 	L.append(_e("graphics/gi", "Global illumination", "enum", "off", "Real-time bounce light (SDFGI). Maps are relit in-engine instead of using baked lightmaps.", g,
 		{"options": [["off", "Off"], ["sdfgi", "SDFGI"]]}))
 	L.append(_e("graphics/reflections", "Screen-space reflections", "bool", true, "Reflections on wet and polished floors.", g))
@@ -285,7 +285,7 @@ static func build() -> Array:
 	# ---- Profile (shown on the Profile page, not in Settings)
 	L.append(_e("profile/name", "Player name", "string", "Player", "Your name in matches.", "Profile", {"max": 32}))
 	L.append(_e("profile/model", "Character", "enum", "sarge", "Your character.", "Profile", {"options": [], "dynamic": "characters_only"}))
-	L.append(_e("profile/skin", "Skin", "enum", "default", "Team skins aren't converted yet.", "Profile", {"options": [["default", "Default"]]}))
+	L.append(_e("profile/skin", "Skin", "enum", "default", "Your character's skin. Team games paint you red or blue.", "Profile", {"options": [["default", "Default"]], "dynamic": "skins"}))
 	L.append(_e("profile/team_color", "Accent color", "color", Color(0.85, 0.08, 0.04), "Your color: the menu's rim light and your rail trail.", "Profile"))
 	_list = L
 	return L

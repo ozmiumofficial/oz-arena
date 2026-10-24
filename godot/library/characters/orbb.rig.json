@@ -374,5 +374,28 @@
    "blend": "add",
    "two_sided": false
   }
+ },
+ "skins": {
+  "blue": {
+   "materials": {
+    "orbb": "blue",
+    "orbb_h2": "blue_h",
+    "orbb_light": "orbb_light_blue",
+    "orbb_tail": "orbb_tail_blue"
+   },
+   "material_modes": {
+    "orbb_tail_blue": {
+     "blend": "add",
+     "two_sided": false
+    }
+   }
+  },
+  "red": {
+   "materials": {
+    "orbb": "red",
+    "orbb_h2": "red_h"
+   },
+   "material_modes": {}
+  }
  }
 }

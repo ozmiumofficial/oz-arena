@@ -151,4 +151,16 @@ typedef struct {
 	q3_entity_state entities[Q3_MAX_GENTITIES];
 } q3_snapshot;
 
+
+/* The net client's picture of its snapshots (engine/q3_netclient.c). */
+typedef struct {
+	int message, next_message;   /* the netchan sequences of the snapshot returned and the one after it (-1 if none) */
+	int snap_flags, ping;
+	int newest_message, newest_time;
+} q3_nc_snap_info;
+
+typedef struct {
+	int state, ping, packets_in, packets_out, bytes_in, bytes_out, dropped, snapshots, server_time, time_delta;
+} q3_nc_stats;
+
 #endif

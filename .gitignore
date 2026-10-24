@@ -50,3 +50,9 @@ __pycache__/
 /work/_pause_test/
 *.zip
 *.part
+
+# webrtc-native binaries (MIT): tools/fetch_webrtc.py downloads them
+godot/addons/webrtc_native/lib/
+
+# local secrets (the hub's TURN key): never commit
+**/.env

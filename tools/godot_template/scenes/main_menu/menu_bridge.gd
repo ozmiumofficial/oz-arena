@@ -312,11 +312,19 @@ func init_payload() -> Dictionary:
 	return {"type": "init", "version": String(ProjectSettings.get_setting("application/config/version", "")),
 		"tabs": Q3SettingsSchema.TABS, "schema": schema, "values": values, "modes": modes,
 		"rules": Q3GameMode.RULES, "modifiers": Session.modifiers, "maps": Session.maps, "bots": Session.bots,
-		"skills": Q3MatchSetup.SKILLS, "characters": Array(Q3.characters), "banner": banner,
+		"skills": Q3MatchSetup.SKILLS, "characters": Array(Q3.characters), "skins": skins_payload(), "banner": banner,
 		"crosshairs": Q3.load_json(Q3.LIB + "ui/ui.json").get("crosshairs", []),
 		"continue": last.summary() if last else "", "m_yaw": Settings.M_YAW, "context": context, "match": match_info,
 		"progress": {"level": int(Q3Profile.level()["level"]), "ranked_level": Q3Profile.RANKED_LEVEL}, "campaign": Session.campaign.to_dict(), "cinematics": cinematics(),
 		"cards": cards_payload(), "profile": Q3Profile.menu_payload()}
+
+
+## Each character's skins after default (Q3Character.skins_of): the Profile page's Skin choices.
+static func skins_payload() -> Dictionary:
+	var out := {}
+	for c in Q3.characters:
+		out[c] = Array(Q3Character.skins_of(c).slice(1))
+	return out
 
 
 ## The Replays page's list: every replay in user://replays and every Quake 3 demo found, newest

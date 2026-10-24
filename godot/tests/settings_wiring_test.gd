@@ -44,8 +44,9 @@ func _ready() -> void:
 func _schema() -> void:
 	var unwired := Settings.entries.filter(func(e): return not e.get("wired", true)).map(func(e): return e["key"])
 	_check("no setting is marked unwired %s" % [unwired], unwired.is_empty())
-	_check("Steam Input, raw input, interpolation and voice chat are gone", not (Settings.has("controls/steam_input")
-		or Settings.has("mouse/raw_input") or Settings.has("network/interp") or Settings.has("audio/voice_mode")))
+	_check("Steam Input, raw input and voice chat are gone", not (Settings.has("controls/steam_input")
+		or Settings.has("mouse/raw_input") or Settings.has("audio/voice_mode")))
+	_check("Interpolation is back, now that online matches draw other players behind the clock", Settings.has("network/interp"))
 	_check("Stick layout is there", Settings.options("controls/stick_layout").size() == 2)
 	_check("no tip still says it waits on Gameplay", Settings.entries.all(func(e): return not String(e["tip"]).contains("once the Gameplay scene exists")))
 	_check("the rate userinfo follows Connection speed", Q3Host.userinfo({}).contains("\\rate\\%d" % Settings.rate()))

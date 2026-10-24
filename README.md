@@ -6,7 +6,7 @@
 
 Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the roster, now with modern characters, lighting, effects, menus and online features. It's an unofficial, non-commercial fan project. You need your own copy of Quake III Arena to play.
 
-> **Open beta: single player only.** The [open beta for Windows](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) is out, now with Quake Live's weapon and respawn rules, a cinematic camera for spectating and replays, and the map editor. You can play the campaign and offline matches against bots. Friends, parties and leaderboards are online, but you can't play matches against other people yet. Online multiplayer is [planned](#planned-features).
+> **Open beta, now online.** The [open beta for Windows](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) adds online multiplayer: host a match from your own PC or run a dedicated server, find matches in the server browser, join friends, queue for matchmaking and ranked duels. Every connection is relayed, so no one sees anyone's IP address. The campaign, offline matches against bots and the map editor are all still there.
 
 ### Menus
 
@@ -59,10 +59,16 @@ Most remakes copy the original from memory. This one runs id Software's own game
 | **Settings** | Basic options, console variables | A full settings menu with search, live preview and shareable config codes |
 | **Replays** | Demos you had to remember to record, seen only through one player's eyes | Every match recorded automatically: watch from anyone's eyes, behind them or with a free camera, and save clips as video |
 | **Map editor** | A separate editor and command-line compile tools | A map editor built into the game, with one-key play-tests against bots |
-| **Online** | Server browser, IP addresses | Friends, parties and presence, with no accounts to sign up for |
+| **Online** | Server browser, IP addresses | Host from your own PC or a dedicated server, join friends, matchmaking and ranked; every connection relayed so no one sees your IP, and no accounts to sign up for |
 
 ## In the game now
 
+- **Online multiplayer:**
+  - Host a match from Create Match and it's listed for everyone, with an optional password. Or run a dedicated server from the menu that keeps going after you close the game.
+  - A server browser with search, region and mode filters. Join friends and party members from the Friends panel.
+  - Quick Play matchmaking for Duel, Free For All, Team Deathmatch and Capture the Flag, and ranked queues for Duel, Team Deathmatch and Capture the Flag with an Elo ladder, seasons and tiers from Bronze to Godlike (from level 30).
+  - Every connection goes through a relay, so no one sees another player's IP address, the host included. No ports to open.
+  - Vote-kick troublemakers in a match, Quake 3 style.
 - **Single player:** the original campaign, from Training through six tiers to the final duel with Xaero, with medals, skill levels and the tier movies.
 - **Offline vs bots and training:** any original map, any mode, any bot lineup.
 - **All 35 original maps,** relit, from q3dm0 to the pro duel maps.
@@ -90,7 +96,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 - **Friends and parties:**
   - Add friends with a short friend code, and see who's online and what they're playing.
   - Form a party of up to 8 and chat. No email, password or account needed.
-- **Leaderboards:** see where your level ranks against everyone or just your friends, and open any player's card. A ranked board fills in once ranked play starts.
+- **Leaderboards:** see where your level and your ranked rating stand against everyone or just your friends, and open any player's card.
 - **Player cards and levels:**
   - Build your own card from about 380 Quake 3-themed banners, emblems, frames, titles, accent colors, rail colors and taunts.
   - Every match played to the end earns XP, bots included. Levels and 89 achievements unlock new parts, and the Profile shows what each locked part needs.
@@ -104,11 +110,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 None of these are in the open beta yet. They're listed roughly in the order they're coming.
 
 - **The rest of Quake Live's rules:** its movement (jumps, step jumps and chain jumps), bots tuned for the new weapons, and a Classic choice in match setup for id's original rules.
-- **Online matches without paying for servers:**
-  - Anyone can host from their own PC, and one match browser shows every match. Optional dedicated servers.
-  - Every connection is relayed, so no one sees another player's IP address. You're matched in the closest region first, or you can pick one.
-  - Lobbies vote-kick troublemakers instead of relying on anti-cheat software.
-- **Ranked play:** a duel queue with an Elo ladder, seasons and tiers from Bronze to Godlike.
+- **Dedicated servers on Linux,** for running a server on a rented machine.
 - **Player cards online:** your card in friends' lists and lobbies, both cards sliding in on the duel versus screen, and a card image to share.
 - **A Workshop:** share the maps you build and play other people's, straight from the menu.
 - **Editing maps together** with friends in the map editor.

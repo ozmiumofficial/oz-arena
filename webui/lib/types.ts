@@ -112,6 +112,8 @@ export interface InitPayload {
   bots: BotInfo[];
   skills: string[];
   characters: string[];
+  /** each character's skins after default: red, blue and its own (Daemia is major's "daemia") */
+  skins?: Record<string, string[]>;
   banner: BannerFont;
   crosshairs: string[];
   continue: string;
@@ -252,6 +254,78 @@ export interface MatchSetup {
   training?: string;
   /** join as a spectator (Create Match, You) */
   spectate?: boolean;
+  /** a listen server's listing (server_type "listen"): shown in other players' Server Browser */
+  online?: { name: string; password: string; ranked: boolean };
+}
+
+/** A match in the hub's directory (online/src/hub.ts net_matches). */
+export interface NetMatch {
+  host: string;
+  owner: string;
+  region: string;
+  name: string;
+  mode: string;
+  map: string;
+  players: number;
+  max: number;
+  password: boolean;
+  ranked: boolean;
+  version: string;
+  /** a dedicated server (always on) rather than a player's match */
+  dedicated?: boolean;
+}
+
+/** A dedicated server's config and what it reports (the dedicated message; Q3Dedicated / Q3DedicatedLauncher). */
+export interface DedicatedConfig {
+  name: string;
+  password: string;
+  mode: string;
+  rotation: string[];
+  max_players: number;
+  bots: number;
+  bot_skill: number;
+  motd: string;
+  rcon_password: string;
+  online: boolean;
+  idle_sleep: boolean;
+}
+
+export interface DedicatedStatus {
+  running: boolean;
+  name?: string;
+  map?: string;
+  mode?: string;
+  max?: number;
+  humans?: number;
+  sleeping?: boolean;
+  listed?: boolean;
+  uptime?: number;
+  error?: string;
+  players?: { client: number; name: string; bot: boolean }[];
+}
+
+/** The matchmaking queue as Godot sends it (queue message): the hub's queue_state, and the ratings it keeps. */
+export interface QueueState {
+  status: "queued" | "found" | "idle" | "locked" | "refused" | string;
+  since?: number;
+  modes?: string[];
+  ranked?: boolean;
+  reason?: string;
+  until?: number;
+}
+
+export interface QueueRating {
+  rating: number;
+  rated: number;
+  wins: number;
+  losses: number;
+  peak: number;
+}
+
+export interface NetJoin {
+  status: "asking" | "connecting" | "failed" | "open";
+  reason: string;
+  host: string;
 }
 
 export interface MenuItemDef {

@@ -86,7 +86,7 @@ var replay_feed: Q3ReplayFeed      ## playing a replay (Session.replay) instead 
 var replay_playing := true
 var replay_speed := 1.0
 ## Replays: whose view is shown (me) and how: "first" (their eyes, HUD and gun), "chase" (behind
-## them), "free" (fly anywhere), "orbit" (circle them)
+## them), "free" (fly anywhere), "orbit" (circle them), "cinematic" (Q3CineCam's shots of them)
 var cam_mode := "first"
 var viewer: Q3ReplayViewer
 var _replay_cards: Dictionary = {} ## client -> {card, level} as the recording kept them
@@ -163,7 +163,10 @@ func _start_match() -> String:
 	p["teampref"] = "spectator" if setup.spectate else String(p.get("teampref", "auto"))
 	if setup.spectate:
 		Q3Server.set_cvar("g_readyUp", "0")   # no human would ever ready up: the warmup would never end
+	spec_view = String(Settings.get_value("gameplay/spec_view"))
 	director = bool(Settings.get_value("gameplay/spec_director"))
+	_director_forced = spec_view == "cinematic" and not director
+	director = director or spec_view == "cinematic"
 	me = Q3Server.connect_local(Q3Host.userinfo(p))
 	if me < 0:
 		return "joining: " + Q3Server.error()
@@ -427,12 +430,18 @@ func _process(delta: float) -> void:
 	if not _ended:
 		music.play(feed.configstring(E.CS_MUSIC))   # CG_StartMusic, again when CS_MUSIC changes
 	client.animate(float(feed.time()) + _acc)
-	# (dead, the death cam takes over: the server never sends a follower the body to chase)
+	# (dead, the death cam takes over: the server never sends a follower the body to chase; the
+	# cinematic camera stays on the ragdoll)
+	var cine := following(ps) and spec_view == "cinematic" and not _ended
 	var chase := following(ps) and spec_chase and int(ps["pm_type"]) != E.PM_DEAD
-	client.self_visible = chase   # the followed player's body, built from the playerState
+	client.self_visible = chase or cine   # the followed player's body, built from the playerState
 	var death_view := _update_death(ps, delta)
-	if chase:
+	if cine:
+		client.own_death = true   # their ragdoll, to stay on when they go down
+		_cine_camera(ps, int(ps["clientNum"]), client.own_body)
+	elif chase:
 		_chase_camera(ps, delta)
+	if chase or cine:
 		if _gun:
 			_gun.visible = false
 		client.view_fx = client._self.get("wfx")   # their flash and beam come from the body's gun
@@ -442,6 +451,7 @@ func _process(delta: float) -> void:
 		_update_gun(ps)
 	client.present(ps, cam.global_position)
 	_update_hud(ps)
+	_cine_hud(cine)
 	_spectator_hud(ps)
 	_direct(ps, delta)
 	hud.lagometer(delta * 1000.0, int(ps.get("ping", 0)))
@@ -1107,6 +1117,7 @@ func _on_obituary(attacker: int, target: int, means: int) -> void:
 		0 if world else team.call(attacker), team.call(target))
 	if not world:
 		_last_frag = {"attacker": attacker, "at": float(feed.time())}
+	_cine_obituary(attacker, target, world)
 	if attacker == me and target != me:
 		var ps := feed.player_state(me)
 		var pers: PackedInt32Array = ps.get("persistant", PackedInt32Array())
@@ -1329,6 +1340,7 @@ func _rebuild_view(jumped := false) -> void:
 	hud.reset_view(jumped)
 	if _chase:
 		_chase.reset()
+	_cine_reset()
 	client.local_client = me if cam_mode == "first" else -1
 	client.muted = true
 	client.apply_snapshot(feed.snapshot(_snap_client()), replay_feed.frame_player_state(me) if cam_mode == "first" else {})
@@ -1470,6 +1482,9 @@ func _update_replay_camera(ps: Dictionary, delta: float) -> void:
 		return
 	if ps.is_empty():
 		return
+	if cam_mode == "cinematic":
+		_cine_camera(ps, me, client.body_of(me))
+		return
 	var eye: Vector3 = ps["origin"]
 	eye.z += float(ps["viewheight"])
 	var t: Transform3D
@@ -1502,7 +1517,7 @@ func _notification(what: int) -> void:
 
 ## Switches the camera. Leaving first person draws the watched player's body; entering it hides it.
 func set_cam_mode(mode: String) -> void:
-	if mode == cam_mode or not mode in ["first", "chase", "free", "orbit"]:
+	if mode == cam_mode or not mode in ["first", "chase", "free", "orbit", "cinematic"]:
 		return
 	if _looking:
 		_set_looking(false)
@@ -1522,6 +1537,7 @@ func set_cam_mode(mode: String) -> void:
 		hud.layout()   # brings back what first person shows
 	elif _chase:
 		_chase.reset()
+	_cine_reset()
 
 
 ## Watches another player (first person shows their eyes, HUD and gun).
@@ -1578,14 +1594,24 @@ func _replay_input(event: InputEvent) -> void:
 # player (g_active.c SpectatorThink), "follow" picks one, and the duel's waiting line and the team
 # rules stay the game's. Following, the playerState is a copy of the followed player's
 # (PMF_FOLLOW), so the view, HUD, gun and events are theirs, and Q3Client takes them as the local
-# player. The remaster adds a chase camera (Use item) that moves only the camera, and an optional
-# auto-director (Settings > Gameplay, or Gesture while spectating) that follows the action.
+# player. The remaster adds a chase camera and a cinematic camera (Use item cycles them) that move
+# only the camera, and an optional auto-director (Settings > Gameplay, or Gesture while
+# spectating) that follows the action.
 
 const DIRECTOR_HOLD := 4.0         ## seconds the auto-director stays with a player before it may switch
+const CINE_HOLD := 9.0             ## ... under the cinematic camera, so a player gets a shot or two
+const SPEC_VIEWS := ["first", "chase", "cinematic"]
 var _spectating_now := false       ## spectating() this frame (input handlers read it)
 var _spec_card_client := -1        ## whose card the spectator HUD holds
 var _spec_card := {}
-var spec_chase := false
+## Following someone: their eyes ("first"), the chase camera or the cinematic camera (Use item
+## cycles them; Settings > Gameplay > Spectator camera is the first one)
+var spec_view := "first"
+var spec_chase: bool:
+	get:
+		return spec_view == "chase"
+	set(on):
+		set_spec_view("chase" if on else "first")
 var director := false
 var _director_t := 0.0
 var _director_hold := 0.0
@@ -1647,10 +1673,12 @@ func _spectator_hud(ps: Dictionary) -> void:
 		if cl != _spec_card_client:
 			_spec_card_client = cl
 			_spec_card = _card_of(cl)
-		info = {"mode": "chase" if spec_chase else "follow", "client": cl, "name": _name(cl), "card": _spec_card["card"],
-			"level": _spec_card["level"], "director": director}
+		info = {"mode": {"chase": "chase", "cinematic": "cinematic"}.get(spec_view, "follow"), "client": cl, "name": _name(cl),
+			"card": _spec_card["card"], "level": _spec_card["level"], "director": director}
 		hints.append([key.call("jump"), "free camera"])
-		hints.append([key.call("use_item"), "first person" if spec_chase else "chase camera"])
+		hints.append([key.call("use_item"), {"first": "chase camera", "chase": "cinematic camera"}.get(spec_view, "first person")])
+	else:
+		hints.append([key.call("use_item"), "cinematic camera"])
 	hints.append([key.call("gesture"), "auto-director " + ("off" if director else "on")])
 	info["hints"] = hints
 	hud.set_spectator(info)
@@ -1674,22 +1702,30 @@ func _spectator_input(event: InputEvent) -> bool:
 	var ps := feed.player_state(me)
 	if event.is_action_pressed("q3_attack"):
 		_director_hold = DIRECTOR_HOLD   # id follows the next player; the director lets you have it
+		_cine_follow = {}
 		return false
 	if event.is_action_pressed("q3_weapnext") or event.is_action_pressed("q3_weapprev"):
 		Q3Server.client_command(me, "follownext" if event.is_action_pressed("q3_weapnext") else "followprev")
 		_director_hold = DIRECTOR_HOLD
+		_cine_follow = {}
 		return true
 	if following(ps) and event.is_action_pressed("q3_jump"):
 		Q3Server.client_command(me, "follow")
 		director = false   # the free camera is your choice
+		_director_forced = false
+		_cine_follow = {}
 		return true
-	if following(ps) and event.is_action_pressed("q3_use_item"):
-		spec_chase = not spec_chase
+	if event.is_action_pressed("q3_use_item"):
+		# their eyes, the chase camera, the cinematic camera; free, it starts the cinematic camera
+		var next: String = "cinematic" if not following(ps) else SPEC_VIEWS[(SPEC_VIEWS.find(spec_view) + 1) % SPEC_VIEWS.size()]
+		set_spec_view(next)
 		UiSound.play("move")
 		return true
 	if event.is_action_pressed("q3_gesture"):
 		director = not director
+		_director_forced = false   # yours now
 		_director_hold = 0.0
+		_cine_follow = {}
 		UiSound.play("move")
 		return true
 	for w in range(1, 10):
@@ -1730,6 +1766,7 @@ func _follow_from_board(cl: int) -> void:
 		return
 	Q3Server.client_command(me, "follow %d" % cl)
 	_director_hold = DIRECTOR_HOLD
+	_cine_follow = {}
 	scoreboard.set_interactive(false)
 
 
@@ -1741,10 +1778,18 @@ func _direct(ps: Dictionary, delta: float) -> void:
 		return
 	_director_t -= delta
 	_director_hold -= delta
+	var current := int(ps["clientNum"]) if following(ps) else -1
+	if not _cine_follow.is_empty() and float(feed.time()) >= float(_cine_follow["at"]) and spec_view == "cinematic":
+		# the cinematic camera's cut to whoever fragged the one it watched
+		var killer := int(_cine_follow["client"])
+		_cine_follow = {}
+		if killer != current and feed.client_state(killer) >= 4:
+			Q3Server.client_command(me, "follow %d" % killer)
+			_director_hold = CINE_HOLD
+			return
 	if _director_t > 0.0:
 		return
 	_director_t = 0.5
-	var current := int(ps["clientNum"]) if following(ps) else -1
 	var flags := (1 << E.PW_REDFLAG) | (1 << E.PW_BLUEFLAG) | (1 << E.PW_NEUTRALFLAG)
 	var players: Array = []
 	for es in feed.snapshot(me).get("entities", []):
@@ -1785,7 +1830,7 @@ func _direct(ps: Dictionary, delta: float) -> void:
 			best = n
 	if best >= 0 and best != current and (_director_hold <= 0.0 or current < 0):
 		Q3Server.client_command(me, "follow %d" % best)
-		_director_hold = DIRECTOR_HOLD
+		_director_hold = CINE_HOLD if spec_view == "cinematic" else DIRECTOR_HOLD
 
 
 ## The intermission while spectating: who won, no XP (nothing was played), and the replay.
@@ -1810,6 +1855,120 @@ func _end_as_spectator(rows: Array) -> void:
 			Session.back_to_editor()
 		else:
 			Session.to_main_menu())
+
+
+# ---------------------------------------------------------------- the cinematic camera
+# Spectating, Use item's third view (or Settings > Gameplay > Spectator camera), and the replay
+# viewer's CINEMATIC camera: Q3CineCam's broadcast-style shots of the followed (or watched) player,
+# cut to what happens to them. Spectating, it turns the auto-director on (Gesture still turns it
+# off) and holds each pick for CINE_HOLD; when the player it watches is fragged it stays on the
+# body, then follows the killer. It moves only the camera.
+
+const CINE_TO_KILLER := 1400.0     ## ms after the one watched is fragged to the cut to the killer (they respawn at 1.7 s)
+var _cine: Q3CineCam
+var _cine_shown := false           ## the cinematic camera drew last frame (the HUD parts it hides come back)
+var _cine_client := -1             ## whose powerups _cine_powerups holds
+var _cine_powerups := 0
+var _cine_follow := {}             ## the auto-director's cut to a killer: {client, at (server ms)}
+var _director_forced := false      ## the cinematic camera turned the auto-director on (leaving it turns it off)
+
+
+## Switches the spectator's view of the followed player ("first", "chase", "cinematic"). The
+## cinematic camera brings the auto-director (it follows someone at once when nobody is followed).
+func set_spec_view(view: String) -> void:
+	if not view in SPEC_VIEWS or (view == spec_view and view != "cinematic"):
+		return
+	_cine_follow = {}
+	if view == "cinematic":
+		# (again from the free camera: it picks someone to follow)
+		if not director:
+			director = true
+			_director_forced = true
+			_director_hold = 0.0
+		_director_t = 0.0
+	elif spec_view == "cinematic" and _director_forced:
+		director = false
+		_director_forced = false
+	spec_view = view
+	_cine_reset()
+
+
+## Forgets the cinematic camera's shot and what it knew of the player watched (a jump, a new view).
+func _cine_reset() -> void:
+	if _cine:
+		_cine.reset()
+	_cine_client = -1
+
+
+## The cinematic camera on `cl` (their playerState `ps`; `body`: their ragdoll while they're down).
+func _cine_camera(ps: Dictionary, cl: int, body: Q3Character) -> void:
+	if _cine == null:
+		_cine = Q3CineCam.new()
+	var dead := int(ps["pm_type"]) == E.PM_DEAD
+	var origin: Vector3 = ps["origin"]
+	var look := origin + Vector3(0, 0, 10)
+	if dead and body and is_instance_valid(body):
+		look = _godot_to_id(body.body_center())
+	var others: Array = []
+	for es in feed.snapshot(-1 if replay_feed else me).get("entities", []):
+		var n := int(es["number"])
+		if int(es["eType"]) == E.ET_PLAYER and n < E.MAX_CLIENTS and n != cl and n != me and not (int(es["eFlags"]) & E.EF_DEAD):
+			others.append(Vector3(es["pos"]["trBase"]) + Vector3(0, 0, 10))
+	_cine_events(ps, cl)
+	cam.global_transform = _cine.update(feed, {"client": cl, "origin": origin, "vel": ps["velocity"],
+		"yaw": float((ps["viewangles"] as Vector3).y), "dead": dead, "look": look, "others": others}, _now_ms())
+	cam.fov = _cine.fov
+
+
+## Cuts timed to the watched player: a powerup or a flag taken (a new bit in their powerups).
+func _cine_events(ps: Dictionary, cl: int) -> void:
+	var bits := 0
+	var pws: PackedInt32Array = ps["powerups"]
+	for i in mini(pws.size(), E.PW_NEUTRALFLAG + 1):
+		if pws[i] > 0:
+			bits |= 1 << i
+	if cl == _cine_client:
+		var new := bits & ~_cine_powerups
+		var flags := (1 << E.PW_REDFLAG) | (1 << E.PW_BLUEFLAG) | (1 << E.PW_NEUTRALFLAG)
+		if new & flags:
+			_cine.hint("flag", _now_ms())
+		elif new:
+			_cine.hint("powerup", _now_ms())
+	_cine_client = cl
+	_cine_powerups = bits
+
+
+## Cuts timed to frags: the one watched fragged someone (a quick orbit), or was fragged (the shot
+## stays on the body; spectating, the auto-director then follows the killer).
+func _cine_obituary(attacker: int, target: int, world: bool) -> void:
+	if _cine == null or not _cine_on():
+		return
+	var watched := _cine_client
+	if attacker == watched and not world:
+		_cine.hint("frag", _now_ms())
+	elif target == watched:
+		_cine.hint("died", _now_ms())
+		if not world and director and replay_feed == null:
+			_cine_follow = {"client": attacker, "at": float(feed.time()) + CINE_TO_KILLER}
+
+
+## Whether the cinematic camera is the view now.
+func _cine_on() -> bool:
+	if replay_feed:
+		return cam_mode == "cinematic"
+	return _spectating_now and spec_view == "cinematic" and following(feed.player_state(me))
+
+
+## Spectating under the cinematic camera, the middle of the screen is a body, not an aim: no
+## crosshair, speedometer or weapon row (they come back with the HUD's layout after).
+func _cine_hud(on: bool) -> void:
+	if on:
+		hud.crosshair.visible = false
+		hud.speedometer.visible = false
+		hud.weapon_bar.visible = false
+	elif _cine_shown:
+		hud.layout()
+	_cine_shown = on
 
 
 # ---------------------------------------------------------------- the death cam (REPLAY_PLAN.md R6)

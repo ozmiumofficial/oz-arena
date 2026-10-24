@@ -7,7 +7,8 @@ extends CanvasLayer
 ##   frag, and a timeline to click or drag. Its markers: the watched player's frags (amber) and
 ##   deaths (red), everyone else's frags (faint), flag events (team colored), medals (white).
 ##   Cameras: first person (their eyes, HUD and gun), chase, free fly (right mouse to look, the
-##   movement keys to fly) and orbit (right mouse to turn it).
+##   movement keys to fly), orbit (right mouse to turn it) and cinematic (Q3CineCam: shots that
+##   move and cut by themselves; an exported clip picks its own from the range's start).
 ##   The player list (also the bar's name button) picks who to watch; toggles for the HUD, name
 ##   tags over players and outlines around them.
 ##   Clip export (R8): IN and OUT mark a range (Home, End), EXPORT (F9) renders it from the camera
@@ -18,7 +19,7 @@ extends CanvasLayer
 const S := preload("res://scenes/gameplay/hud/hud_style.gd")
 const E := preload("res://scripts/game/q3_enums.gd")
 const SPEEDS := [0.25, 0.5, 1.0, 2.0, 4.0]
-const CAMS := [["first", "FIRST PERSON"], ["chase", "CHASE"], ["free", "FREE"], ["orbit", "ORBIT"]]
+const CAMS := [["first", "FIRST PERSON"], ["chase", "CHASE"], ["free", "FREE"], ["orbit", "ORBIT"], ["cinematic", "CINEMATIC"]]
 const SKIP_MS := 5000.0
 const FRAG_LEAD_MS := 1500.0     ## previous/next frag lands this long before it, so you see it happen
 const OUTLINE := preload("res://shaders/outline.gdshader")

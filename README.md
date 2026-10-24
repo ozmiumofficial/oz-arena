@@ -77,12 +77,12 @@ Most remakes copy the original from memory. This one runs id Software's own game
   | ![Map editor: The Campgrounds](docs/screenshots/editor-campgrounds.jpg) | ![Map editor: building a room](docs/screenshots/editor-objects.jpg) |
   | **The Campgrounds** (q3dm6) opened from the original game, ready to edit | **Building a room:** every brush, group and spawn listed, the selected block's texture in the inspector |
 - **Replays:**
-  - Every match is recorded automatically, all of it: every player, so you can watch from anyone's eyes, from behind them, circling them or with a free camera that flies anywhere.
+  - Every match is recorded automatically, all of it: every player, so you can watch from anyone's eyes, from behind them, circling them, with a free camera that flies anywhere, or through the cinematic camera.
   - A replay viewer: pause, slow motion and fast forward, frame by frame, jump to the next or last frag, a timeline marked with your frags, deaths and medals, name tags and outlines.
   - A Replays page: rename, keep favorites forever, watch again from the results screen.
   - Save a clip of any moment as a video.
   - Plays Quake 3's own demo files too.
-- **Spectating:** follow anyone in a live match, switch to a chase camera, or let an auto-director follow the action.
+- **Spectating:** follow anyone in a live match, switch to a chase camera, or let an auto-director follow the action. The cinematic camera films the match like a broadcast by itself: slow orbits, tracking shots and wide shots of the fight, cutting to the frags.
 - **Death cam:** when you're fragged, the camera follows your body as it falls, then shows who got you with their player card.
 - **Match stats:** the Tab scoreboard shows your match: damage and accuracy with every weapon, distance traveled and your medals.
 - **Friends and parties:**

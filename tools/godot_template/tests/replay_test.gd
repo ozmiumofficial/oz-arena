@@ -387,6 +387,14 @@ func _playback(path: String) -> void:
 	game.set_cam_mode("orbit")
 	await _frames(2)
 	_check("orbit circles the player", game.cam.global_position.distance_to(eye) < 6.0)
+	game.set_cam_mode("cinematic")
+	game.replay_playing = true
+	await _frames(30)
+	game.replay_playing = false
+	var lens: Vector3 = game._cine.lens if game._cine else Vector3.INF
+	_check("the cinematic camera frames the player from clear air (%s shot, %.2f m)" % [game._cine.shot_name() if game._cine else "no",
+		Q3.q3_to_godot(lens).distance_to(eye) if game._cine else -1.0], game._cine != null and game._cine.shot_name() != ""
+		and game.feed.point_contents(lens, -1) & 1 == 0 and Q3.q3_to_godot(lens).distance_to(game.cam.global_position) < 0.05)
 	game.set_cam_mode("first")
 	# whose eyes
 	var others := Array(f.clients()).filter(func(c): return c != game.me)

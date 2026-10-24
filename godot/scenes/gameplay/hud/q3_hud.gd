@@ -244,12 +244,12 @@ func update(ps: Dictionary, info: Dictionary) -> void:
 	_msg.queue_redraw()
 
 
-## Spectating (REPLAY_PLAN.md R5): {} while playing; else {mode: "free" | "follow" | "chase",
-## name, card, level, director: bool, hints: [[key, what], ...]}. Following shows the player's
-## card under the scores with a FOLLOWING line (the vitals, ammo and weapons are already theirs:
+## Spectating (REPLAY_PLAN.md R5): {} while playing; else {mode: "free" | "follow" | "chase" |
+## "cinematic", name, card, level, director: bool, hints: [[key, what], ...]}. Following shows the
+## player's card under the scores with a FOLLOWING line (the vitals, ammo and weapons are already theirs:
 ## the playerState is a copy of the followed player's); every mode lists its keys at the bottom.
 func set_spectator(info: Dictionary) -> void:
-	var following := String(info.get("mode", "")) in ["follow", "chase"]
+	var following := String(info.get("mode", "")) in ["follow", "chase", "cinematic"]
 	if following and (int(info.get("client", -1)) != int(spectator.get("client", -1)) or not _spec_card.visible):
 		_spec_card.setup(info.get("card", {}), String(info.get("name", "")), int(info.get("level", 1)))
 	_spec_card.visible = following
@@ -833,8 +833,8 @@ func _draw_spectator(vs: Vector2, font: Font) -> void:
 	if mode == "free":
 		S.text(_msg, font, Vector2(vs.x * 0.5, 150 * u), "SPECTATING", int(30 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_CENTER)
 	else:
-		S.text(_msg, font, Vector2(vs.x * 0.5, top), "FOLLOWING" + ("  -  CHASE CAMERA" if mode == "chase" else ""),
-			int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
+		var cam: String = {"chase": "  -  CHASE CAMERA", "cinematic": "  -  CINEMATIC CAMERA"}.get(mode, "")
+		S.text(_msg, font, Vector2(vs.x * 0.5, top), "FOLLOWING" + cam, int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
 	if spectator.get("director", false):
 		S.text(_msg, font, Vector2(vs.x * 0.5, 236 * u if mode != "free" else 180 * u), "AUTO-DIRECTOR", int(15 * u), S.AMBER,
 			HORIZONTAL_ALIGNMENT_CENTER)

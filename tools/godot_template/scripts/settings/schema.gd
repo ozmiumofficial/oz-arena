@@ -256,6 +256,8 @@ static func build() -> Array:
 	g = "Death cam"
 	L.append(_e("gameplay/death_cam", "Death cam", "bool", true, "While you're dead the camera follows your body, then shows who killed you with their player card. Respawning works as in Quake 3.", g))
 	g = "Spectating"
+	L.append(_e("gameplay/spec_view", "Spectator camera", "enum", "first", "How you see the player you follow while spectating: through their eyes, the chase camera behind them, or the cinematic camera, which picks its own shots (slow orbits, tracking shots, wide shots of the fight) and cuts to the action, with the auto-director choosing who to watch. Use item switches between them.", g,
+		{"options": [["first", "First person"], ["chase", "Chase camera"], ["cinematic", "Cinematic"]]}))
 	L.append(_e("gameplay/spec_director", "Auto-director", "bool", false, "While you spectate, the camera follows the action by itself: a flag carrier, whoever just fragged, the closest fight. Gesture turns it on and off.", g))
 
 	# ---- Network

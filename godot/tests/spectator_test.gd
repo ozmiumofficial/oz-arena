@@ -1,7 +1,7 @@
 extends Node
 ## Headless spectator mode check (REPLAY_PLAN.md R5): a free-for-all on q3dm17 with three bots,
 ## joined as a spectator from match setup. Free camera first, then fire follows a bot (id's
-## SpectatorThink), the weapon wheel cycles, the chase camera, Jump back to the free camera, a
+## SpectatorThink), the weapon wheel cycles, the chase and cinematic cameras, Jump back to the free camera, a
 ## scoreboard click, the auto-director, and Join / Spectate from the pause menu.
 ##   godot --headless --path . res://tests/spectator_test.tscn
 ## Prints "SPECTATOR TEST ok|FAILED"; exit code 1 on failure.
@@ -12,11 +12,14 @@ var _game: Q3Gameplay
 var _ok := true
 var _saved_director: Variant
 var _saved_record: Variant
+var _saved_view: Variant
 
 
 func _ready() -> void:
 	_saved_director = Settings.get_value("gameplay/spec_director")
 	_saved_record = Settings.get_value("gameplay/record_replays")
+	_saved_view = Settings.get_value("gameplay/spec_view")
+	Settings.set_value("gameplay/spec_view", "first")
 	Settings.set_value("gameplay/spec_director", false)
 	Settings.set_value("gameplay/record_replays", false)
 	var s := Session.new_setup("ffa", "q3dm17")
@@ -35,6 +38,7 @@ func _ready() -> void:
 	await _run()
 	Settings.set_value("gameplay/spec_director", _saved_director)
 	Settings.set_value("gameplay/record_replays", _saved_record)
+	Settings.set_value("gameplay/spec_view", _saved_view)
 	Settings.save()
 	if Q3Server.running():
 		Q3Server.exec_now("killserver")
@@ -110,8 +114,18 @@ func _run() -> void:
 	_check("Use item: the chase camera, behind them (%.2f m) with their body drawn" % d, _game.spec_chase and d > 0.1 and d < 4.0
 		and _game.client.self_visible and ((body != null and body.visible) or int(ps["pm_type"]) == E.PM_DEAD))
 	_check("the chase camera hides the view gun", _game._gun == null or not _game._gun.visible)
+	# again: the cinematic camera (and the auto-director with it), then back to their eyes
+	_action(&"q3_use_item")
+	await _frames(6)
+	ps = _ps()
+	_check("Use item again: the cinematic camera (%s shot), the auto-director on, the HUD says so" % [
+		_game._cine.shot_name() if _game._cine else "no"], _game.spec_view == "cinematic" and _game._cine != null
+		and _game._cine.shot_name() != "" and _game.director and _game.hud.spectator.get("mode", "") == "cinematic")
+	_check("the cinematic lens is clear of the walls", Q3Server.point_contents(_game._cine.lens, -1) & 1 == 0
+		and Q3Gameplay._godot_to_id(_game.cam.global_position).distance_to(_game._cine.lens) < 0.5)
 	_action(&"q3_use_item")
 	await _frames(3)
+	_check("... and again: first person, the auto-director off as it was", _game.spec_view == "first" and not _game.director)
 	# Jump: back to the free camera
 	_action(&"q3_jump")
 	await _frames(6)

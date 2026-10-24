@@ -4,7 +4,7 @@ extends Node
 ##   godot --path . res://tests/replay_capture.tscn -- out=C:/temp/replay [path=<file.q3replay>] [map=q3dm17] [window=1920x1080]
 ## Without path= it first records 40 s of q3dm17 with five bots into user://test_replays. Writes
 ## <out>_first.png (first person with the bar), _chase.png (names and outlines on), _players.png
-## (the player list over a free camera) and _orbit.png.
+## (the player list over a free camera), _orbit.png and _cinematic.png.
 
 var out := "user://replay_capture"
 var path := ""
@@ -52,6 +52,11 @@ func _ready() -> void:
 	game.replay_playing = true
 	await _frames(60)
 	await _shot("orbit")
+	game.viewer.names = false
+	game.viewer.set_outlines(false)
+	game.set_cam_mode("cinematic")
+	await _frames(150)
+	await _shot("cinematic")
 	print("REPLAY CAPTURE ok")
 	Session.dry_run = false
 	get_tree().quit(0)

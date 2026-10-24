@@ -175,3 +175,44 @@ Order: R1 -> R2 -> R3 -> R4 -> R5 -> R6 (the death cam uses R5's chase cam), the
 - **The exported build** (`tools/export_game.py`) renders a clip: `Q3Remaster.exe --write-movie ... -- clip=...` wrote 214 frames of a bot's first-person view at 1600x900 and quit by itself.
 - **Matches run by tests** (a scene under `res://tests/`) record into `user://test_replays`, never the player's Replays. A match left by quitting keeps the last standings seen in its trailer (the server is down by then).
 - **Docs:** CLAUDE.md (stage line, "Replay facts"), DEVELOPMENT.md (the library table and the tests), README (planned features: replays, spectating, the death cam, the scoreboard's match panel, as built for the next release).
+
+**Cinematic camera done (2026-10-23).** Ozmium: "it would be cool to have a cinematic camera in the spectator mode."
+- **What it is:** `Q3CineCam` (`scripts/replay/q3_cine_cam.gd`), broadcast-style shots of one player that move by themselves. It moves only the camera, so a match plays exactly the same.
+- **The shots:**
+  - Orbit circles the player slowly.
+  - Track dollies alongside them as they run.
+  - Lead runs ahead, looking back.
+  - Wide is a crane high in the room that drifts a third of the way after the player, frames them with whoever is close, and slowly pushes in.
+  - Low is a hero shot from near the floor that cranes up.
+- **Changing shots:**
+  - Each shot lasts 4-7.5 s, then the next one eases in on a critically damped spring (speed carries over).
+  - These cut instead: a new player, a teleport, a frag (a quick low orbit 0.6 s later), a powerup (a low shot) and a flag (a tracking shot).
+  - A death holds the shot on the ragdoll.
+  - Nothing but a new player or a hidden one changes a shot in its first 0.8 s.
+- **Spectating:**
+  - Use item cycles first person, chase and cinematic; while flying free, Use item starts the cinematic camera. Settings > Gameplay > Spectator camera picks the view you start with.
+  - The cinematic camera turns the auto-director on and holds each pick 9 s. Gesture still turns the director off, and leaving the cinematic camera turns it back off only if the cinematic camera turned it on.
+  - When the watched player is fragged, it cuts to the killer 1.4 s later. That is before the 1.7 s respawn, whose teleport would cut a second time. Any follow of your own cancels the cut.
+  - The HUD says FOLLOWING - CINEMATIC CAMERA and hides the crosshair, speedometer and weapon row.
+- **Replays:** the viewer's CINEMATIC camera (F cycles to it) on the watched player, timed by the playhead: it holds still while paused and follows the speed. An exported clip picks its own shots from the range's start.
+- **Walls and bodies:**
+  - Every shot's lens is checked from the player when the shot starts, over the shot's whole path from where they stand. The check is a box trace, with no lava, slime or water at the lens and no other player within 64 units. Shots are sized down to the room first.
+  - Moving shots ride on the player. Their offset springs as yaw, pitch and distance around a point that follows closely sideways and loosely up and down, so a change of shot swings around the player, not through them, and jumps don't bob the camera.
+  - A moving shot's lens is always the end of a box trace from the player (as the chase cam's is). A wall that pulls it in hard swings the shot round to the clearest side.
+  - A lens crammed under 56 units for 0.5 s, or under 36 at all, cuts to another shot.
+  - The wide shot's lens moves only by sweeps. Its spot must see where a runner will be in 0.8 and 1.6 s, and it cuts when a wall is about to come between them.
+  - The lens never moves into a liquid: it holds its last dry spot.
+  - The camera cuts away if the player stays hidden for 0.25 s.
+- **The first version's problems, found by the test and the captures:**
+  - The lens moved only by straight sweeps and stuck on corners, losing the player in 6-8% of frames.
+  - Eased changes swung the lens through the player.
+  - A wall at the player's back pulled the lens into their body.
+  - A lens slid down a wall into water.
+- **Verified:** `tests/cine_cam_test.tscn` (headless, 18 checks), 240 s with 5 bots on q3dm6 and on q3dm13, then over each match's replay:
+  - No frame's lens touched solid, lava, slime or water, in about 57,000 frames.
+  - The player was hidden in 0.65-0.68% of live frames (0.6-1.0% in the replays).
+  - The lens came within 32 units of them in 0.1-0.7% of frames.
+  - The camera changed shot by itself every 3.6-4.0 s on average (91-94 cuts, 11-16 eases).
+  - Every shot kind came up.
+  - `spectator_test` (22 checks) covers the Use item cycle, and `replay_test` checks the viewer's cinematic camera.
+  - `tests/cine_capture.tscn` films it windowed with the trailer recorder, and `replay_capture` adds a cinematic still.

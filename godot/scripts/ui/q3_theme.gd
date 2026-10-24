@@ -146,7 +146,10 @@ static func build(high_contrast := false) -> Theme:
 	t.set_constant("separation", "VBoxContainer", 6)
 	t.set_constant("separation", "HBoxContainer", 10)
 	t.set_stylebox("panel", "ItemList", field)
-	t.set_stylebox("focus", "ItemList", field_focus)
+	# ItemList draws its focus box over the items, so it may only be a border
+	var list_focus := _box(Color(0, 0, 0, 0), GLOW, [1, 1, 1, 2])
+	list_focus.draw_center = false
+	t.set_stylebox("focus", "ItemList", list_focus)
 	t.set_stylebox("selected", "ItemList", _box(Color(0.3, 0.06, 0.03), Color(0, 0, 0, 0), [0, 0, 0, 0]))
 	t.set_stylebox("selected_focus", "ItemList", _box(Color(0.4, 0.08, 0.04), GLOW, [2, 0, 0, 0]))
 	t.set_stylebox("hovered", "ItemList", _box(Color(0.12, 0.05, 0.04), Color(0, 0, 0, 0), [0, 0, 0, 0]))

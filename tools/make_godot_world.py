@@ -19,6 +19,8 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+import q3shader
 ap = argparse.ArgumentParser()
 ap.add_argument("--work", default=os.path.join(ROOT, "work", "_world"))
 ap.add_argument("--godot", default=os.path.join(ROOT, "godot"))
@@ -130,6 +132,14 @@ def fmt(v):
     if isinstance(v, (list, tuple)):
         return "Vector%d(%s)" % (len(v), ", ".join(repr(round(float(x), 5)) for x in v))
     return v
+
+
+def deform_params(deforms):
+    """deformVertexes as q3_deform.gdshaderinc's uniforms (q3shader.deform_uniforms)."""
+    out = {}
+    for n, (a_, b_, mv) in enumerate(q3shader.deform_uniforms(deforms), 1):
+        out.update({"deform%d_a" % n: a_, "deform%d_b" % n: b_, "deform%d_move" % n: mv})
+    return out
 
 
 def write_shader_material(path, name, shader, params, textures_, next_pass=None):
@@ -316,10 +326,14 @@ for m in materials:
                           under_motion=[uscr[0], uscr[1], urot], under_turb=uturb)
         if m.get("glow_under") and not sprite:
             params["glow_under"] = True
+        if m.get("glow_lit") and not sprite:
+            params["glow_lit"] = True   # glows the lightmap multiplies: lit like the base
         if m.get("base_env") and not sprite:
             params["env_map"] = True   # the base stage is a reflection (tcGen environment)
         if sprite:
             params["sprite_mode"] = "2" if sprite == "autosprite2" else "1"   # int uniform: written as is
+        else:
+            params.update(deform_params(m.get("deforms")))   # banners wave, lamps swing
         if m["frames"] and len(m["frames"]) > 1:
             params.update(frames=float(len(m["frames"])), fps=float(m["fps"]))
         if emis and m["group"] == "liquid":

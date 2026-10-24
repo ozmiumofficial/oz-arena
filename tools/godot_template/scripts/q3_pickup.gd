@@ -39,7 +39,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _visual == null:
 		return
-	var ms := float(Time.get_ticks_msec())
+	var ms := Q3.game_ms   # cg.time: game time, not wall time
 	rotation.y = fmod(ms, 2048.0) / 2048.0 * TAU
 	_visual.position.y = (4.0 + cos((ms + 1000.0) * _bob) * 4.0) * Q3.UNIT
 

@@ -199,7 +199,7 @@ func _process(_delta: float) -> void:
 		return
 	if _cam.environment == null:
 		_view_environment()
-	var c := _camera_axes(float(Time.get_ticks_msec()))
+	var c := _camera_axes(Q3.game_ms)
 	# R_MirrorPoint: the eye through the surface's frame into the camera's
 	var e2: Vector3 = _c_origin + (c[0] as Vector3) * x + (c[1] as Vector3) * rel.dot(_s[1]) + (c[2] as Vector3) * rel.dot(_s[2])
 	var z: Vector3 = c[0]

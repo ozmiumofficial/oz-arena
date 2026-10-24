@@ -14,6 +14,7 @@ extends RefCounted
 ##   patch:  {type: "patch", id, entity, group, width, height, ctrl: PackedFloat64Array (x, y, z, s, t
 ##           per control point, row by row), material, color}
 ##   entity: {type: "entity", id, group, classname, keys: {String: String}}   id's key/values
+## Any object may have a name (the outliner's; the .map export doesn't write it).
 ## A brush or patch whose entity isn't 0 belongs to that brush entity (doors, triggers ...).
 
 signal changed(ids: Array)   ## objects added, edited or removed; empty means everything (load, undo)
@@ -37,6 +38,12 @@ var dirty := false       ## changed since the last save or load
 var _undo: Array = []
 var _redo: Array = []
 var _windings := {}      ## id -> [object, windings]
+var _patches := {}       ## id -> [object, tessellation]
+var _batch_depth := 0    ## begin_batch() nesting
+var _batched := {}       ## ids changed inside the batch
+var _batch_all := false  ## the batch changed everything
+
+const PATCH_TOLERANCE := 4.0   ## units a curve may stray from its triangles (r_subdivisions' default)
 
 
 # ---------------------------------------------------------------- objects
@@ -61,7 +68,44 @@ func put(obj: Dictionary) -> void:
 	var id: int = obj["id"]
 	objects[id] = obj
 	dirty = true
-	changed.emit([id])
+	_emit([id])
+
+
+## Edits between begin_batch() and end_batch() announce themselves once, at the end, as one
+## `changed` (a few thousand puts would otherwise redraw the selection a few thousand times).
+## Batches nest.
+func begin_batch() -> void:
+	_batch_depth += 1
+
+
+func end_batch() -> void:
+	_batch_depth = maxi(_batch_depth - 1, 0)
+	if _batch_depth == 0 and (_batch_all or _batched.size()):
+		var ids: Array = [] if _batch_all else _batched.keys()
+		_batched.clear()
+		_batch_all = false
+		changed.emit(ids)
+
+
+func batch_open() -> bool:
+	return _batch_depth > 0
+
+
+## Ends every open batch at once (the editor's safety net), announcing what they held.
+func close_batches() -> void:
+	if _batch_depth > 0:
+		_batch_depth = 1
+		end_batch()
+
+
+func _emit(ids: Array) -> void:
+	if _batch_depth == 0:
+		changed.emit(ids)
+	elif ids.is_empty():
+		_batch_all = true
+	else:
+		for id in ids:
+			_batched[id] = true
 
 
 func remove(ids: Array) -> void:
@@ -72,9 +116,33 @@ func remove(ids: Array) -> void:
 			hidden.erase(id)
 			locked.erase(id)
 			_windings.erase(id)
+			_patches.erase(id)
 	if gone.size():
 		dirty = true
-		changed.emit(gone)
+		_emit(gone)
+
+
+func set_hidden(ids: Array, on: bool) -> void:
+	_set_flag(hidden, ids, on)
+
+
+## Locked objects stay visible but the viewport can't pick them.
+func set_locked(ids: Array, on: bool) -> void:
+	_set_flag(locked, ids, on)
+
+
+func _set_flag(flags: Dictionary, ids: Array, on: bool) -> void:
+	var touched := []
+	for id in ids:
+		if objects.has(id) and flags.has(id) != on:
+			if on:
+				flags[id] = true
+			else:
+				flags.erase(id)
+			touched.append(id)
+	if touched.size():
+		dirty = true
+		_emit(touched)
 
 
 func get_obj(id: int) -> Dictionary:
@@ -105,6 +173,18 @@ func windings(id: int) -> Array:
 	return w
 
 
+## A patch's tessellation (Q3MapGeo.patch_mesh: arrays, width, height, points in id space), cached
+## until the patch changes.
+func patch_tess(id: int) -> Dictionary:
+	var p: Dictionary = objects.get(id, {})
+	var c: Array = _patches.get(id, [])
+	if c.size() and is_same(c[0], p):
+		return c[1]
+	var t: Dictionary = Q3MapGeo.patch_mesh(p["ctrl"], p["width"], p["height"], PATCH_TOLERANCE, p.get("color", Color.WHITE))
+	_patches[id] = [p, t]
+	return t
+
+
 # ---------------------------------------------------------------- undo (whole-document snapshots)
 
 ## Call before a change: the state now becomes one undo step.
@@ -113,6 +193,12 @@ func checkpoint(label: String) -> void:
 	if _undo.size() > UNDO_LIMIT:
 		_undo.pop_front()
 	_redo.clear()
+
+
+## Takes back the last checkpoint when the change it was for didn't happen (a drag that moved nothing).
+func drop_checkpoint() -> void:
+	if _undo.size():
+		_undo.pop_back()
 
 
 func can_undo() -> bool:
@@ -149,26 +235,54 @@ func redo() -> bool:
 	return true
 
 
+## The undo history for the History panel: done (oldest first, the labels undo would take back) and
+## undone (the labels redo would bring back, next first).
+func history() -> Dictionary:
+	var done := []
+	for s in _undo:
+		done.append(s["label"])
+	var undone := []
+	for i in range(_redo.size() - 1, -1, -1):
+		undone.append(_redo[i]["label"])
+	return {"done": done, "undone": undone}
+
+
+## Undoes (steps < 0) or redoes (steps > 0) that many steps as one change. Returns the steps taken.
+func step(steps: int) -> int:
+	var n := 0
+	begin_batch()
+	while n < absi(steps) and (undo() if steps < 0 else redo()):
+		n += 1
+	end_batch()
+	return n
+
+
 func _snapshot(label: String) -> Dictionary:
 	return {"label": label, "objects": objects.duplicate(), "groups": groups.duplicate(true),
 			"worldspawn": worldspawn.duplicate(), "hidden": hidden.duplicate(), "locked": locked.duplicate()}
 
 
 func _restore(s: Dictionary) -> void:
-	var touched := []
+	var touched := {}
 	for id in objects:
 		if not s["objects"].has(id) or not is_same(s["objects"][id], objects[id]):
-			touched.append(id)
+			touched[id] = true
 	for id in s["objects"]:
 		if not objects.has(id):
-			touched.append(id)
+			touched[id] = true
+	for flags in [["hidden", hidden], ["locked", locked]]:
+		var now: Dictionary = flags[1]
+		var then: Dictionary = s[flags[0]]
+		for id in now.keys() + then.keys():
+			if now.has(id) != then.has(id):
+				touched[id] = true
 	objects = s["objects"].duplicate()
 	groups = s["groups"].duplicate(true)
 	worldspawn = s["worldspawn"].duplicate()
 	hidden = s["hidden"].duplicate()
 	locked = s["locked"].duplicate()
 	dirty = true
-	changed.emit(touched)
+	_emit(touched.keys())
 
 
 # ---------------------------------------------------------------- brushes and faces
@@ -294,7 +408,10 @@ func to_data() -> Dictionary:
 					pd["color"] = (o["color"] as Color).to_html(false)
 				patches.append(pd)
 			"entity":
-				entities.append({"id": id, "group": o.get("group", 0), "classname": o["classname"], "keys": o["keys"]})
+				var ed := {"id": id, "group": o.get("group", 0), "classname": o["classname"], "keys": o["keys"]}
+				if String(o.get("name", "")) != "":
+					ed["name"] = o["name"]
+				entities.append(ed)
 	var gl := []
 	for g in groups.values():
 		gl.append(g)
@@ -319,7 +436,10 @@ static func _unnums(v: Variant) -> PackedFloat64Array:
 
 
 static func _common(o: Dictionary) -> Dictionary:
-	return {"id": o["id"], "entity": o.get("entity", 0), "group": o.get("group", 0)}
+	var c := {"id": o["id"], "entity": o.get("entity", 0), "group": o.get("group", 0)}
+	if String(o.get("name", "")) != "":
+		c["name"] = o["name"]
+	return c
 
 
 ## Replaces the whole document. Returns "" or what was wrong with the data.
@@ -330,6 +450,7 @@ func from_data(d: Dictionary) -> String:
 		return "made by a newer version (format %d)" % int(d["version"])
 	objects = {}
 	_windings = {}
+	_patches = {}
 	info = d.get("info", info)
 	worldspawn = d.get("worldspawn", {})
 	camera = d.get("camera", {})
@@ -352,12 +473,16 @@ func from_data(d: Dictionary) -> String:
 			faces.append(f)
 		objects[int(b["id"])] = {"type": "brush", "id": int(b["id"]), "entity": int(b.get("entity", 0)),
 				"group": int(b.get("group", 0)), "planes": planes, "faces": faces}
+		if b.has("name"):
+			objects[int(b["id"])]["name"] = String(b["name"])
 	for p in d.get("patches", []):
 		var po := {"type": "patch", "id": int(p["id"]), "entity": int(p.get("entity", 0)), "group": int(p.get("group", 0)),
 				"width": int(p["width"]), "height": int(p["height"]), "ctrl": _unnums(p["ctrl"]),
 				"material": String(p["material"])}
 		if p.has("color"):
 			po["color"] = Color.html(p["color"])
+		if p.has("name"):
+			po["name"] = String(p["name"])
 		objects[po["id"]] = po
 	for e in d.get("entities", []):
 		var keys := {}
@@ -365,6 +490,8 @@ func from_data(d: Dictionary) -> String:
 			keys[String(k)] = String(e["keys"][k])
 		objects[int(e["id"])] = {"type": "entity", "id": int(e["id"]), "group": int(e.get("group", 0)),
 				"classname": String(e["classname"]), "keys": keys}
+		if e.has("name"):
+			objects[int(e["id"])]["name"] = String(e["name"])
 	groups = {}
 	for g in d.get("groups", []):
 		groups[int(g["id"])] = {"id": int(g["id"]), "name": String(g.get("name", "")), "parent": int(g.get("parent", 0))}

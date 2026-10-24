@@ -62,6 +62,10 @@ export default function PauseApp() {
     { id: "crosshair", label: "Crosshair", hint: "Edit it live over your match", page: "crosshair" },
     { id: "settings", label: "Settings", hint: "Every setting, applied as you change it", page: "settings" },
   );
+  if (match && (match.spectating || match.can_spectate))
+    items.push(match.spectating
+      ? { id: "join", label: "Join match", hint: "Play: id's own rules decide when (a duel's waiting line, team balance)", act: () => (sfx.move(), send("spectate", { on: false })) }
+      : { id: "spectate", label: "Spectate", hint: "Watch: fire follows the next player, jump flies free", act: () => (sfx.move(), send("spectate", { on: true })) });
   if (match?.can_restart) items.push({ id: "restart", label: "Restart match", hint: "Start this match over", act: () => (sfx.move(), send("restart_match")) });
   items.push(
     { id: "leave", label: "Leave match", hint: "Back to the main menu", act: () => (sfx.in(), setConfirm("leave")) },

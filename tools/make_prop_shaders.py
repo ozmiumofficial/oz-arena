@@ -8,7 +8,8 @@ and tcMod scale/rotate/scroll/turb with rgbGen waves (Mega Health's crackling el
 armor's scrolling energy, Quad Damage's blue shine). This step finds the materials whose shader
 has any of that and writes prop_shaders.json:
   {material name: {shader, two_sided, add, lit, stages: [{tex, mode, env, scale, rotate, scroll,
-                   turb, wave}]}}   (up to 3 stages, in draw order)
+                   turb, wave}], deforms: [{a, b, move}]}}   (up to 3 stages, in draw order;
+                   deforms only when the shader has deformVertexes, see q3shader.deform_uniforms)
 plus stagetex/ (each stage's image, 2x). Godot's import script swaps those materials for the
 q3_stages shader (shaders/q3_stages*.gdshader), which draws the stages the way the engine does.
 Material names are matched the way build_props.py names them (texture stem + draw-mode flags).
@@ -123,6 +124,10 @@ for f in sorted(glob.glob(os.path.join(models, "**", "*.md3"), recursive=True)):
             continue
         out[mat] = dict(shader=shader, two_sided=sh.cull in ("none", "disable", "twosided"),
                         add=stages[0]["mode"] == MODES["add"], lit=any(x["lit"] for x in stages), stages=stages)
+        # deformVertexes (the CTF flags wave), as godot/shaders/q3_deform.gdshaderinc's uniforms
+        dfs = q3shader.deform_uniforms(sh.deforms)
+        if dfs:
+            out[mat]["deforms"] = [dict(a=d[0], b=d[1], move=d[2]) for d in dfs]
 json.dump(out, open(os.path.join(WORK, "prop_shaders.json"), "w"), indent=1)
 print("prop shaders: %d materials, %d stage textures" % (len(out), len(copied)))
 for k, v in sorted(out.items()):

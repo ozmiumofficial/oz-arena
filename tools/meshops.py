@@ -107,6 +107,48 @@ def subdivide(nw, F, FUV, Fmat, crease, levels):
     return S, Fh, UVh, Mh, Ch
 
 
+def subdivide_uv(P, F, FUV, S, Fh, UVh, levels):
+    """Texture coordinates that stay where the original model had its paint. subdivide() moves the
+    vertices but only interpolates uv, so the texture slid across the rounded surface (tens of
+    texels on the guns). Each smoothed vertex instead takes the uv the md3 triangle it came from
+    shows straight under it, averaged over the corners it shares within one uv island so the paint
+    doesn't tear inside an island; seams keep a value per side.
+    P: base-frame positions; F, FUV: md3 faces and uv; S, Fh, UVh: subdivide()'s output."""
+    if levels == 0:
+        return UVh
+    Ph = np.asarray(S @ P, np.float64)
+    parent = np.arange(len(Fh)) // (4 ** levels)
+    A, B, C = P[F[parent, 0]], P[F[parent, 1]], P[F[parent, 2]]
+    e1, e2 = B - A, C - A
+    n = np.cross(e1, e2)
+    n /= np.linalg.norm(n, axis=1, keepdims=True) + 1e-12
+    d00, d01, d11 = (e1 * e1).sum(1), (e1 * e2).sum(1), (e2 * e2).sum(1)
+    den = d00 * d11 - d01 * d01
+    ok = den > 1e-9 * d00 * d11  # sliver triangles keep the interpolated uv
+    den = np.where(ok, den, 1.0)
+    out = UVh.astype(np.float64).copy()
+    for k in range(3):
+        d = Ph[Fh[:, k]] - A
+        d -= (d * n).sum(1, keepdims=True) * n
+        d20, d21 = (d * e1).sum(1), (d * e2).sum(1)
+        v = (d11 * d20 - d01 * d21) / den
+        w = (d00 * d21 - d01 * d20) / den
+        uv = (1 - v - w)[:, None] * FUV[parent, 0] + v[:, None] * FUV[parent, 1] + w[:, None] * FUV[parent, 2]
+        out[ok, k] = uv[ok]
+    # one value per (vertex, island): corners of a vertex in one island share their linear uv
+    keys = {}
+    ids = np.zeros(Fh.shape, np.int64)
+    for f in range(len(Fh)):
+        for k in range(3):
+            ids[f, k] = keys.setdefault((int(Fh[f, k]), round(float(UVh[f, k, 0]) * 1048576),
+                                         round(float(UVh[f, k, 1]) * 1048576)), len(keys))
+    acc = np.zeros((len(keys), 2))
+    cnt = np.zeros(len(keys))
+    np.add.at(acc, ids.reshape(-1), out.reshape(-1, 2))
+    np.add.at(cnt, ids.reshape(-1), 1)
+    return (acc / cnt[:, None])[ids]
+
+
 def raster_uv(mask, st, tri):
     """Fill one triangle of texture coordinates into a coverage mask."""
     H, W = mask.shape

@@ -9,6 +9,7 @@ Writes into <world work>:
                    texture stem, glow layers with their tcMod/rgbGen motion, flipbook frames,
                    surface light, liquid/deform data, sky layers, group, original pixel size
   textures.json    make_pbr jobs: kind tile (painted, tiling), glow (additive layer, tiling),
+                   additive (an additive shader's base layer: light, black kept black),
                    sky (sky faces / cloud layers, upscale only); group drives the PBR rules
   src/             the source images
 Shaders without stages fall back to the image named like the shader, as the engine does.
@@ -118,12 +119,15 @@ for name, sh in sorted(world.items()):
     base_path = d["base"] or (name if q3.resolve_texture(a.root, name) else None)
     if d["kind"] == "liquid":
         group = "liquid"
-    base = register(base_path, "tile", group)
+    # an additive base layer is light, not paint: its black must stay black (kind "additive"), or
+    # every glow, beam and teleporter ring draws as a faint square (2026-10-23)
+    base_kind = "additive" if d["blend"] == "add" else "tile"
+    base = register(base_path, base_kind, group)
     if base is None:
         # id shipped shader definitions for images cut from the retail paks; no map uses them
         materials.append(dict(name=name, kind="unshipped", missing=base_path, parms=d["parms"], source=sh.source))
         continue
-    frames = [register(f, "tile", group) for f in d["anim"][1]] if d["anim"] else []
+    frames = [register(f, base_kind, group) for f in d["anim"][1]] if d["anim"] else []
     glows = []
     for g in d["glows"]:
         gs = register(g["map"], "glow", group)
@@ -137,6 +141,7 @@ for name, sh in sorted(world.items()):
         under=(dict(stem=register(d["under"]["map"], "tile", group), tcmods=d["under"]["tcmods"], env=d["under"]["env"])
                if d.get("under") else None),
         glow_under=d.get("glow_under", False),
+        glow_lit=d.get("glow_lit", False),
         glass=(dict(stem=register(d["glass"]["map"], "tile", group), tcmods=d["glass"]["tcmods"], lit=d["glass"]["lit"])
                if d.get("glass") else None),
         tcmods=d["tcmods"], glows=glows, env=d["env"], base_env=d["base_env"], lit_add=d["lit_add"], surfacelight=d["surfacelight"],

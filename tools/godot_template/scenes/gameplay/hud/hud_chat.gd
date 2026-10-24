@@ -48,9 +48,15 @@ func _ready() -> void:
 
 ## A chat line from the game ("chat" or "tchat").
 func add(text: String, team_line := false) -> void:
-	_lines.append({"text": text, "team": team_line, "at": Time.get_ticks_msec()})
+	_lines.append({"text": text, "team": team_line, "at": int(Q3.game_ms)})
 	if _lines.size() > HISTORY:
 		_lines.pop_front()
+
+
+## Every line gone (a replay jumped).
+func clear() -> void:
+	_lines.clear()
+	queue_redraw()
 
 
 func lines() -> Array[Dictionary]:
@@ -157,7 +163,7 @@ func _draw() -> void:
 	var font := S.num_medium()
 	var pad := 14.0 * u
 	var wrap_w := size.x - pad * 2.0
-	var now := Time.get_ticks_msec()
+	var now := int(Q3.game_ms)
 	var life := float(Settings.get_value("hud/chat_time")) * 1000.0
 	var max_lines := int(Settings.get_value("hud/chat_lines"))
 	# the newest lines, wrapped, bottom up

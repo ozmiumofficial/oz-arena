@@ -27,6 +27,7 @@ signal leave_requested                       ## pause menu: leave the match
 signal restart_requested                     ## pause menu: restart the match (offline)
 signal crosshair_preview(weapon: int, hit: bool)   ## crosshair editor: show this weapon's / flash the hit color
 signal ready_requested                       ## pause menu: ready up (warmup)
+signal spectate_requested(on: bool)           ## pause menu: become a spectator (true) or join the match
 
 var context := "menu"                        ## "pause" when the page is Gameplay's pause menu
 var match_info: Dictionary = {}              ## pause menu: the match on show (Gameplay fills it)
@@ -42,6 +43,11 @@ func _init() -> void:
 	Online.notice.connect(func(text, tone): post.emit({"type": "social_notice", "text": text, "tone": tone}))
 	Online.party_chat.connect(func(m): post.emit({"type": "party_chat", "from": m.get("from", {}), "text": m.get("text", ""), "at": m.get("at", 0)}))
 	Online.leaderboard.connect(func(b): post.emit({"type": "leaderboard", "board": b}))
+	# the last run crashed: say so once (Diagnostics wrote the report at this launch)
+	if Diagnostics.notice != "":
+		var text := Diagnostics.notice
+		Diagnostics.notice = ""
+		received_ready.connect(func(): post.emit({"type": "social_notice", "text": text, "tone": "warn"}), CONNECT_ONE_SHOT)
 
 
 ## The page is treated as untrusted input (Ozmium, 2026-10-22: nobody injects code through the web
@@ -54,7 +60,8 @@ const TYPES := ["ready", "sound", "hover", "page", "layout", "set", "reset", "re
 	"campaign_skill", "campaign_reset", "cinematic", "map_editor", "quit", "profile_preview", "log", "social",
 	"open_url", "modes", "bots", "banner", "crosshairs", "cinematics",
 	"resume", "leave_match", "restart_match", "ready_up", "crosshair_preview",
-	"card_set", "card_showcase", "card_seen", "taunt"]
+	"card_set", "card_showcase", "card_seen", "taunt",
+	"spectate", "replays", "replay_watch", "replay_rename", "replay_favorite", "replay_delete", "replay_folder"]
 ## Hosts open_url may send the player's browser to; nothing else leaves the game.
 const URL_HOSTS := ["store.steampowered.com", "steamcommunity.com", "github.com", "discord.gg"]
 
@@ -169,6 +176,8 @@ func handle(m: Dictionary) -> void:
 			restart_requested.emit()
 		"ready_up":
 			ready_requested.emit()
+		"spectate":
+			spectate_requested.emit(bool(m.get("on", false)))
 		"crosshair_preview":
 			crosshair_preview.emit(clampi(int(m.get("weapon", 0)), 0, 10), bool(m.get("hit", false)))
 		"card_set":
@@ -189,6 +198,37 @@ func handle(m: Dictionary) -> void:
 			var t := Q3Cards.part("taunts", String(m.get("id", "")))
 			if t.is_empty() or not UiSound.play_file(Q3.LIB + "sounds/" + String(t.get("sound", "")).trim_prefix("sound/")):
 				UiSound.buzz()
+		"replays":
+			post.emit(replays_payload())
+		"replay_watch":
+			var path := _replay_file(m)
+			if path == "":
+				UiSound.buzz()
+				post.emit({"type": "start_failed", "errors": ["That replay is gone."]})
+				return
+			# the file's own map, not the page's word for it
+			var info := Q3ReplayFile.read_demo_info(path) if Q3ReplayFile.is_demo(path) else Q3ReplayFile.read_info(path)
+			var map := String(info.get("map", ""))
+			if map != "" and Session.map_info(map).is_empty():
+				UiSound.buzz()
+				post.emit({"type": "start_failed", "errors": ["%s isn't one of the remaster's maps, so there's nothing to draw it with." % map]})
+				return
+			Session.watch_replay(path, maxi(int(m.get("at", 0)), 0), "replays")
+		"replay_rename", "replay_favorite", "replay_delete":
+			var path := _replay_file(m)
+			var where := String(m.get("where", "replays"))
+			if path == "":
+				UiSound.buzz()
+			elif m["type"] == "replay_rename":
+				Q3ReplayFile.rename(path.get_file(), String(m.get("name", "")), where)
+			elif m["type"] == "replay_favorite":
+				Q3ReplayFile.set_favorite(path.get_file(), bool(m.get("on", false)), where)
+			elif where != "replays" or not Q3ReplayFile.delete(path.get_file()):
+				UiSound.buzz()   # the Quake 3 install's demos stay where they are
+			post.emit(replays_payload())
+		"replay_folder":
+			DirAccess.make_dir_recursive_absolute(Q3ReplayFile.dir)
+			OS.shell_open(ProjectSettings.globalize_path(Q3ReplayFile.dir))
 		"open_url":
 			var url := String(m.get("url", ""))
 			var host := url.trim_prefix("https://").get_slice("/", 0).to_lower()
@@ -277,6 +317,36 @@ func init_payload() -> Dictionary:
 		"continue": last.summary() if last else "", "m_yaw": Settings.M_YAW, "context": context, "match": match_info,
 		"progress": {"level": int(Q3Profile.level()["level"]), "ranked_level": Q3Profile.RANKED_LEVEL}, "campaign": Session.campaign.to_dict(), "cinematics": cinematics(),
 		"cards": cards_payload(), "profile": Q3Profile.menu_payload()}
+
+
+## The Replays page's list: every replay in user://replays and every Quake 3 demo found, newest
+## first, with what the page shows of its header and trailer (Q3ReplayFile.list).
+func replays_payload() -> Dictionary:
+	var out: Array = []
+	for r in Q3ReplayFile.list():
+		var map := String(r.get("map", ""))
+		var mode := Session.mode(String(r.get("mode", "")))
+		var rows: Array = []
+		for s in r.get("standings", []):
+			if s is Dictionary:
+				rows.append({"name": String(s.get("name", "")), "score": int(s.get("score", 0)), "local": bool(s.get("local", false)),
+					"bot": bool(s.get("bot", false)), "model": String(s.get("model", "")), "team": int(s.get("team", 0))})
+		out.append({"file": r["file"], "where": String(r.get("where", "replays")), "demo": bool(r.get("demo", false)),
+			"name": r["name"], "favorite": r["favorite"], "complete": r["complete"],
+			"title": String(r.get("title", "")), "map": map,
+			"map_name": String(r.get("map_name", Session.map_info(map).get("name", map))) if not r.get("demo", false) else String(Session.map_info(map).get("name", map)),
+			"mode": String(r.get("mode", "")), "mode_name": String(r.get("mode_name", mode.display_name if mode else r.get("mode", ""))),
+			"date": String(r.get("date", "")), "unix": int(r.get("unix", 0)), "length_ms": int(r.get("length_ms", 0)),
+			"result": String(r.get("result", "")), "place": int(r.get("place", 0)), "ended": String(r.get("ended", "")),
+			"player": String(r.get("player", "")), "bytes": int(r.get("bytes", 0)), "players": rows,
+			"playable": not Session.map_info(map).is_empty()})
+	return {"type": "replays", "list": out, "kept": int(Settings.get_value("gameplay/replays_kept"))}
+
+
+## A replay named by the page: the full path of a bare file name of ours (or a demo in the
+## Quake 3 install's demos) that exists, else "".
+func _replay_file(m: Dictionary) -> String:
+	return Q3ReplayFile.path_of(String(m.get("file", "")), String(m.get("where", "replays")))
 
 
 ## The player card catalog for the Profile page: every part with the text saying how it unlocks,

@@ -4,7 +4,7 @@
 
 import { useSyncExternalStore } from "react";
 import { on, send, type Msg } from "./bridge";
-import type { InitPayload, MatchInfo, Value, SettingEntry } from "./types";
+import type { InitPayload, MatchInfo, ReplayList, Value, SettingEntry } from "./types";
 import type { Board, ChatLine, Social } from "./social";
 
 export interface Toast {
@@ -30,11 +30,14 @@ export interface MenuState {
   match: MatchInfo | null;
   /** "level|global" -> the last board the hub sent */
   boards: Record<string, Board>;
+  /** the Replays page's list, null until Godot answers */
+  replays: ReplayList | null;
 }
 
 let state: MenuState = {
   init: null, values: {}, conflicts: {}, subject: null, capture: null, pad: false, toasts: [], validation: [], lastCode: "",
   social: { status: "connecting", reason: "", state: null, chat: [] }, socialOpen: false, pauseOpen: 0, match: null, boards: {},
+  replays: null,
 };
 const subs = new Set<() => void>();
 let toastId = 0;
@@ -144,6 +147,7 @@ export function connect() {
     const b = m.board as Board;
     update({ boards: { ...state.boards, [`${b.board}|${b.scope}`]: b } });
   });
+  on("replays", (m) => update({ replays: { list: m.list as ReplayList["list"], kept: m.kept as number } }));
   on("party_chat", (m) => update({ social: { ...state.social, chat: [...state.social.chat, m as unknown as ChatLine].slice(-50) } }));
   void send("ready");
 }

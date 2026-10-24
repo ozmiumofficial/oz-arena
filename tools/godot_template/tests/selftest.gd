@@ -438,6 +438,14 @@ func _core_checks(q3: Node) -> void:
 			"the 'HoldableItem not found' error above is this test")
 
 
+# ---------------------------------------------------------------- map editor geometry (Q3MapGeo, Q3MapDoc)
+
+func _map_editor_checks() -> void:
+	var t: Script = load("res://tests/map_geo_test.gd")
+	for c in t.run_checks(self):
+		check(c[0], c[1], c[2])
+
+
 ## A valid value different from the entry's default, or null to skip.
 func _other_value(e: Dictionary) -> Variant:
 	var d: Variant = e["default"]
@@ -577,6 +585,7 @@ func _run() -> void:
 	_card_checks()
 	await _menu_checks()
 	_map_checks()
+	_map_editor_checks()
 	_core_checks(q3)
 
 	print("SELFTEST %d/%d passed" % [passed, passed + failed])

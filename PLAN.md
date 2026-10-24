@@ -30,8 +30,8 @@
 | Shader effects (glow layers, scrolling, additive) | Glow layers -> emissive, additive/cut-out/two-sided flags done for models; world shaders pending |
 | Godot project | Done (2026-10-22): the full library loads in Godot 4.7: layered character animation, ragdolls, pickups, every effect; showcase scene; 15-check self-test passes |
 | World textures | Done (2026-10-22). Every world shader and image is a Godot material: 1,346 surfaces, 23 liquids, 46 fog, 49 skies. Tiling-aware matte PBR, glow/motion/wave/flipbook/surface-light/cut-out semantics, stochastic tiling on 310 isotropic textures, self-test + GPU captures clean. 369 shaders reference images id never shipped (kept as `unshipped`). Still to do: HUD/menu/icon upscale for the modern UI |
-| Maps (BSP geometry, textures, entities) | Done for play (2026-10-22, gameplay G1): all 35 maps from the paks as Godot scenes with the remastered materials (99 map-object shaders added to the world library), q3map-model lights baked with LightmapGI, collision, fog, entities (`build_maps.py`, `Q3MapBuilder`, `tools/bake_maps.gd`). Still to do for the map editor: editable brushes and the .map round trip (see "Original Quake 3 maps") |
-| Built-in map editor | Not started; spec in "Built-in map editor" (same as OZMIUM's) |
+| Maps (BSP geometry, textures, entities) | Done for play (2026-10-22, gameplay G1): all 35 maps from the paks as Godot scenes with the remastered materials (99 map-object shaders added to the world library), q3map-model lights baked with LightmapGI, collision, fog, entities (`build_maps.py`, `Q3MapBuilder`, `tools/bake_maps.gd`). Editable brushes and the .map round trip came with the map editor (E6, 2026-10-23) |
+| Built-in map editor | Done (2026-10-23, phases E0-E8 in `MAP_EDITOR_PLAN.md`): brushes, faces, vertices, curves, materials, entities, lights, prefabs; compile and play-test with id's q3map and bspc; every stock map imported from its .bsp with every surface aligned; Radiant .map import and export; filters, outliner, history, thumbnails, Publish to Create Match. Still later: editing together online (after multiplayer) |
 | Sounds, music | Menu set wired (2026-10-22): `menu1-4.wav`, `weapons/change.wav`, an optional ambient loop, played as `ui_qmenu.c` does. The rest still needs a cleanup/upsample pass, not conversion |
 | Main menu | Done (2026-10-22). Splash with the fan-project disclaimer; a live React menu (Next.js in a godot_wry web view) over the Skyrim-style showcase; settings (131 entries); match setup with 7 modes as data; the single-player campaign; cinematics. Gameplay and Map editor are stubs. See "Main menu design" |
 | Cinematics | Done (2026-10-22): the 10 RoQ movies as 4:3 Ogg Theora (1280x960), played at launch, from the Cinematics menu, and (once Gameplay exists) after campaign tiers |
@@ -137,7 +137,7 @@ Several of these already exist in the GAME project on the work PC (noted as "GAM
 | Rendering | PBR (matte), dynamic lights for rockets and plasma, real-time GI, volumetric fog, HDR + bloom, SSR, high-quality shadows, modern particle VFX, decals, upscaling (FSR) | Maps relit in-engine; baked lightmaps dropped |
 | Feel and fairness | High-refresh rendering with physics independent of frame rate (Q3's 125 fps jump quirk made a deliberate setting or fixed), raw mouse input, widescreen FOV that's correct at any aspect, hit sounds, hitmarkers, damage numbers | GAME has hit registration, damage numbers and a hitmarker |
 | Netcode | 128 Hz server tick, client prediction with smoothing, lag-compensated hitscan and projectiles, delta snapshots | GAME has 128 Hz FishNet tuning and Q3-style audits to borrow ideas from |
-| Multiplayer | Full multiplayer: matchmaking, ranked (ELO), duel queue, spectator with free/follow cams, demos and replays, killcam, player-hosted and dedicated servers. Zero-cost online stack; see "Multiplayer and online services" | GAME has spectator + duel queue, ELO at match end, and Steam lobbies |
+| Multiplayer | Full multiplayer: matchmaking, ranked (ELO), duel queue, spectator with free/follow cams, demos and replays, player-hosted and dedicated servers. Zero-cost online stack; see "Multiplayer and online services" | GAME has spectator + duel queue, ELO at match end, and Steam lobbies |
 | Audio | Spatial/HRTF audio, occlusion, remastered sound set (new recordings), per-device output | GAME has Steam Audio integration |
 | Bots | Modern AI on a navmesh, difficulty that scales by skill rather than cheating | GAME has bot AI with nav baked into maps |
 | Modding | Open source; mod and map loading from packs, map editor, workshop-style browser | GAME has an in-game collaborative map editor |
@@ -150,7 +150,7 @@ Ozmium's layout: three top-level scenes with a clear handoff.
 
 | Scene | Contains | Hands off |
 |---|---|---|
-| **Main menu** | Everything a player sees on launch: play (mode select, server browser, matchmaking, offline vs bots), map editor entry, settings, profile and stats, Workshop browser, quit | Builds a **match setup** (game mode, map, rules, modifiers, bots, server type) and loads Gameplay with it; or loads Map editor |
+| **Main menu** | Everything a player sees on launch: play (mode select, server browser, matchmaking, offline vs bots), map editor entry, settings, profile and stats, quit | Builds a **match setup** (game mode, map, rules, modifiers, bots, server type) and loads Gameplay with it; or loads Map editor |
 | **Gameplay** | The match itself. Game-mode rules and every gameplay modifier live here, loaded from the setup the menu made: FFA, Duel, TDM, CTF, Clan Arena, Freeze Tag, Instagib; timelimit, fraglimit, weapon and item sets, physics variants, spawn rules | Back to the main menu (or to the editor when the match was an editor play-test) |
 | **Map editor** | The built-in editor (spec under "Built-in map editor"): all tools, Quake 3 map import (.bsp and .map), creating maps from scratch, collaborative sessions, play-test | Play-test runs the map with Gameplay rules in place; leave to main menu |
 
@@ -215,9 +215,8 @@ Played from the player's own paks like the rest of the id content (see "Licensin
 |---|---|
 | Single Player | Quake 3's campaign: tiers of arenas, skill, medals, tier movies |
 | Play | Quick play (matchmaking), Ranked, Server browser (filters, favorites, history, ping), Create match (mode, map, rules, modifiers, bots), Offline vs bots, Training/practice |
-| Map editor | Loads the Map editor scene (new map, open, import Quake 3 map, recent maps, Workshop) |
+| Map editor | Loads the Map editor scene (new map, open, import Quake 3 map, recent maps) |
 | Profile | Player card editor, level and XP, character and skin select (team colors), stats, match history, achievements, ranked ladder (see "Player cards, progression and ranked") |
-| Workshop | Maps, models, skins and mods: browse, subscribe, manage |
 | Cinematics | Quake 3's movies: id logo, intro, tiers 1-7, ending (unlocked by the campaign) |
 | Settings | See below |
 | Credits / Quit | |
@@ -227,13 +226,13 @@ Played from the player's own paks like the rest of the id content (see "Licensin
 |---|---|
 | Video | Resolution, display mode, monitor, refresh rate, VSync, frame cap, field of view (correct at any aspect), render scale, upscaler (FSR/off), brightness/gamma |
 | Graphics | Quality presets plus every individual setting: shadows, GI, reflections, AO, volumetric fog, post effects, bloom, particles, texture quality, anisotropy, decals, gibs on/off, effect intensity |
-| Audio | Master, music, effects, voice, announcer, hit sounds (style, pitch by damage), spatial/HRTF, output device, voice chat device and push-to-talk |
+| Audio | Master, music, effects, voice, announcer, hit sounds (style, pitch by damage), spatial audio, output device, voice chat device and push-to-talk (the Voice chat mode setting comes back with voice chat) |
 | Controls | Every keybind with conflict warnings (mouse buttons and the wheel included), per-weapon binds, controller layout (Godot's SDL gamepad mappings) |
 | Mouse | Sensitivity (shown as cm/360), raw input, acceleration off/on, invert, separate zoom sensitivity |
 | Crosshair | Full editor with live preview: shape, size, color, outline, dot, gap, per-weapon crosshairs, hit-indicator color |
 | HUD | Layout editor (drag elements), scale, opacity, item timers (where the mode allows), damage numbers, kill feed, ammo bar, Quake Live-style presets |
 | Gameplay | Weapon switch on pickup, auto-switch rules, view bob, gun position/FOV, enemy model forcing and bright skins, team colors, spawn effects |
-| Network | Region, max ping, rate, interpolation, net graph |
+| Network | Region, max ping, rate, net graph (interpolation comes back with RemoteMatch, MULTIPLAYER_PLAN.md M3) |
 | Accessibility | Colorblind modes, subtitles for announcer and callouts, HUD scaling, reduced flashing, high-contrast menus |
 
 ### Quality of life
@@ -250,7 +249,6 @@ Played from the player's own paks like the rest of the id content (see "Licensin
 - **Persistence and data:**
   - Profiles synced to the online backend.
   - Import and export of config and crosshair codes.
-  - Background download of Workshop content.
 - **Speed:** the first frame of the menu comes up instantly (the showcase streams in behind it).
 
 ### Prior art
@@ -275,7 +273,7 @@ Ozmium wants full multiplayer capability. **Built last (2026-10-23), after the m
   - Lag-compensated hitscan and projectiles.
   - A latency, loss and jitter overlay.
 - **Match flow:** warmup, ready-up, countdown, overtime and sudden death, map voting, intermission scoreboard, rematch.
-- **Spectating:** free and follow cams, team-only for competitive play, server-side demo recording and client demos. Replays, the replay viewer, local spectating and killcam don't need netcode and are planned in `REPLAY_PLAN.md` (approved 2026-10-23, built after the map editor).
+- **Spectating:** free and follow cams, team-only for competitive play, server-side demo recording and client demos. Replays, the replay viewer and local spectating don't need netcode (no killcam: Ozmium, 2026-10-23) and are planned in `REPLAY_PLAN.md` (approved 2026-10-23, built after the map editor).
 - **Server admin:** rcon, kick/ban, map rotation and server config files.
 
 **Hosting matches (costs nothing):**
@@ -323,7 +321,7 @@ Ozmium's rule: players never have to run a dedicated server. Any player can host
 | Friends, parties, presence | **Built 2026-10-22** (`online/`, `scripts/online/`, the menu's Friends panel). Everything lives in one Durable Object's own SQLite (not D1): friend codes, requests, presence (menu / match / map editor), parties of up to 8 with leader, invites, kick, promote and chat, over hibernating WebSockets. Live at `wss://arena-online.fragnet.workers.dev` (Ozmium's personal Cloudflare account) |
 | Matchmaking | A Durable Object queue per mode and region, by rating (window rules in "Ranked"; region rules in "Regions" above). Players stay connected with hibernating WebSockets instead of polling. The match goes to an empty matchmaking-enabled dedicated server in the region (those servers check in every 5 minutes); otherwise the matched player with the best connection to the others hosts |
 | Ranked results | Peer-to-peer for now (Ozmium, 2026-10-23: there are no dedicated servers yet). The matchmaker picks a player host, and the result counts only when the players agree on it (see "Trust" under "Player cards, progression and ranked"). Once verified dedicated servers exist, which sign results with a key we issue to trusted operators, ranked moves to them |
-| Workshop | Maps, models, skins and mods stored in Cloudflare R2 (10 GB free, no download fees), uploads through the Worker, with reports and takedowns |
+| Workshop | **Planned as M9** in `MULTIPLAYER_PLAN.md` (Ozmium, 2026-10-23): maps on Cloudflare R2's free tier, listed, rated and moderated by the hub Worker. It was dropped earlier that day for lack of hosting, and back once R2 made hosting free |
 
 - **Free-tier budget:** 100,000 Worker requests and 100,000 Durable Object requests a day (WebSocket messages count 20:1), D1's 5 million row reads and 100,000 row writes a day, free STUN, and 1,000 GB of TURN relay a month. That covers a few thousand daily players. Past that, the $5/month Workers plan, with no redesign.
 - **One interface:** all online features sit behind one `OnlineBackend` autoload. The Cloudflare backend is the first one; Steamworks (GodotSteam, in a separate helper process for the GPL) or EOS can be added later without touching gameplay code.
@@ -573,7 +571,7 @@ Ozmium wants a fully built-in map editor that works exactly like the OZMIUM one:
 | Play-test | In-place play-test (F6) with the real 128 Hz predicted movement; F7 markers, F8 dev materials, F3 third person; test bot from the pause menu |
 | Collaboration | Multiplayer editing over the same peer-to-peer connections as matches: host-authoritative, object-diff sync, per-user undo, soft locks from selections, presence avatars with names, invite friends |
 | Bots | "Bake bots" in the editor; nav data stored inside the map file |
-| Sharing | Maps as one file + thumbnail; publish and subscribe through the game's own Workshop (Cloudflare R2) |
+| Sharing | Maps as one file + thumbnail, shared by hand; Publish lists a map in Create Match. A Workshop on Cloudflare R2 is planned as M9 in `MULTIPLAYER_PLAN.md` |
 | Testing | Geometry self-test, API smoke test and input test suites (OZMIUM had 52 + 191 + 84 checks); the Godot port gets the same coverage headless |
 
 Godot notes: runtime brush meshing and its own collision/trace world (not Godot's CSG nodes); UI in Godot Control nodes (OZMIUM used OneJS/React); editor networking rides the same WebRTC connections and match browser as matches.

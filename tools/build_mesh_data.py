@@ -19,6 +19,7 @@ import scipy.sparse as sp
 import cv2
 from PIL import Image
 import q3common as q3
+import meshops
 
 ap = argparse.ArgumentParser()
 ap.add_argument("root")
@@ -200,6 +201,7 @@ def build_part(pname, basis_frame):
         Mh = np.repeat(Mh, 4)
     S = S.tocsr()
     S.eliminate_zeros()
+    UVh = meshops.subdivide_uv(wpos[basis_frame].astype(np.float64), F, FUV, S, Fh, UVh, a.levels)
 
     for ti, tri in enumerate(Ftri):
         t = textures[Fmat[ti]]

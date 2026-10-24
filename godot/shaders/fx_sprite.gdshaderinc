@@ -14,6 +14,17 @@ uniform float grow_from = 1.0;     // size at progress 0 (CG_AddSpriteExplosion 
 uniform bool billboard = true;
 uniform float uv_stretch = 1.0;    // tcMod stretch: the texture drawn at this fraction of its size, centered
 uniform float uv_rotate = 0.0;     // tcMod rotate, radians per second about the texture's center
+uniform float soft_distance = 0.35; // meters over which a billboard fades out where it meets a surface
+uniform sampler2D depth_tex : hint_depth_texture, repeat_disable, filter_nearest;
+
+// Soft particles (the remaster's): 0 where the scene behind is at the fragment, 1 from
+// soft_distance on, so a sprite crossing a wall fades into it instead of cutting off in a line.
+// vertex_z is the fragment's view-space depth (VERTEX.z in fragment()).
+float soft_fade(vec2 screen_uv, float vertex_z, mat4 inv_projection) {
+	float depth = texture(depth_tex, screen_uv).r;
+	vec4 view = inv_projection * vec4(screen_uv * 2.0 - 1.0, depth, 1.0);
+	return clamp((vertex_z - view.z / view.w) / soft_distance, 0.0, 1.0);
+}
 
 void vertex() {
 	float a = spin + TIME * spin_rate;

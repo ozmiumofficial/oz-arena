@@ -15,7 +15,9 @@ everything above that image height as face, below as mechanical (Keel: 0.62).
 World textures (kind "tile", from build_world.py) tile: every filter runs on a wrap-padded
 copy that is cropped afterwards, so the result stays seamless. Their "group" (metal, stone,
 organic, light, liquid) sets the material rules; painted red never glows (only shader glow
-layers do). Kind "glow" = a tiling additive layer (emissive only), "sky" = sky faces/clouds.
+layers do). Kind "glow" = a tiling additive layer (emissive only), "sky" = sky faces/clouds,
+"additive" = an additive shader's base layer: upscaled like a glow layer, black kept black, and
+written as <stem>_albedo (what the world_add shaders draw).
 --jobs N processes textures in parallel (each texture is seeded from its name, so results
 don't depend on the order).
 """
@@ -132,11 +134,11 @@ def process_flat(t, kind):
     stem, UP = t["stem"], t["up"]
     img = np.ascontiguousarray(np.array(Image.open(os.path.join(SRC, t["file"])).convert("RGB"))[..., ::-1])
     h0, w0 = img.shape[:2]
-    if kind in ("glow", "sky"):
-        if kind == "glow":
+    if kind in ("glow", "sky", "additive"):
+        if kind in ("glow", "additive"):
             padded, P = wrap_pad(img, w0, h0)
             up = upscale_clean(padded, (w0 + 2 * P) * UP, (h0 + 2 * P) * UP)[P * UP:(P + h0) * UP, P * UP:(P + w0) * UP]
-            name = "%s_emissive.jpg" % stem
+            name = "%s_%s.jpg" % (stem, "emissive" if kind == "glow" else "albedo")
         else:
             up = upscale_clean(img, w0 * UP, h0 * UP)
             name = "%s.jpg" % stem
@@ -173,9 +175,9 @@ def process(t):
     global rng
     stem, UP = t["stem"], t["up"]
     kind = t.get("kind", "paint")
-    if kind in ("tile", "glow", "sky"):
+    if kind in ("tile", "glow", "sky", "additive"):
         rng = np.random.default_rng(a.seed + zlib.crc32(stem.encode()))  # order-independent in a pool
-    if kind in ("add", "env", "envadd", "glow", "sky"):
+    if kind in ("add", "env", "envadd", "glow", "sky", "additive"):
         return process_flat(t, kind)
     tile = kind == "tile"
     role = t.get("group", "metal") if tile else ("head" if "head" in t["parts"] else "body")
@@ -208,12 +210,20 @@ def process(t):
         cover = cv2.dilate(cover.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
     # 1. pad islands so filtering never pulls the gutter into used texels
     padded = cv2.inpaint(img, (~cover).astype(np.uint8) * 255, 4, cv2.INPAINT_TELEA) if not cover.all() else img
-    # 2. upscale + edge-preserving cleanup of the interpolation steps
-    up = np.clip(cv2.resize(padded, (W, H), interpolation=cv2.INTER_LANCZOS4), 0, 255).astype(np.uint8)
-    for _ in range(2):
-        up = cv2.bilateralFilter(up, 9, 18, 7)
-    f = up.astype(np.float32) / 255.0
-    sharp = np.clip(f + 0.6 * (f - blur(f, 3.0)), 0, 1)
+    # 2. upscale + edge-preserving cleanup of the interpolation steps. World art is fine grain
+    # (granite, rust): a strong bilateral after the upscale posterized it into blobs and the
+    # sharpening outlined them, so tiles get a light denoise at their own size and a gentle sharpen.
+    if tile:
+        den = cv2.bilateralFilter(padded, 5, 10, 1.5)
+        up = np.clip(cv2.resize(den, (W, H), interpolation=cv2.INTER_LANCZOS4), 0, 255).astype(np.uint8)
+        f = up.astype(np.float32) / 255.0
+        sharp = np.clip(f + 0.3 * (f - blur(f, 0.5 * UP)), 0, 1)
+    else:
+        up = np.clip(cv2.resize(padded, (W, H), interpolation=cv2.INTER_LANCZOS4), 0, 255).astype(np.uint8)
+        for _ in range(2):
+            up = cv2.bilateralFilter(up, 9, 18, 7)
+        f = up.astype(np.float32) / 255.0
+        sharp = np.clip(f + 0.6 * (f - blur(f, 3.0)), 0, 1)
     b, g, r = sharp[..., 0], sharp[..., 1], sharp[..., 2]
     hsv = cv2.cvtColor((sharp * 255).astype(np.uint8), cv2.COLOR_BGR2HSV).astype(np.float32)
     hue, sat = hsv[..., 0] * 2, hsv[..., 1] / 255
@@ -255,14 +265,18 @@ def process(t):
 
     # 5. height: plates stand proud of the dark mechanics, plus painted detail
     hp_big = L - blur(L, 4.0 * UP)
-    hp_fine = L - blur(L, 0.6 * UP)
+    if tile:  # bumps from the grain itself crawled like worms under the map lights (2026-10-23)
+        Ls = blur(L, 0.35 * UP)
+        hp_fine = Ls - blur(Ls, 0.8 * UP)
+    else:
+        hp_fine = L - blur(L, 0.6 * UP)
     relief = blur(masks["bronze"] + 0.6 * masks["fiber"] + 0.4 * masks["skin"] + 0.3 * masks["heat"], 1.2 * UP)
     lump = (fbm(H, W, 4, 24) - 0.5) * masks["heat"]
     grain = (fbm(H, W, 3, 128) - 0.5) * (masks["bronze"] + masks["steel"])
-    height = (0.55 * relief + 1.1 * hp_big + 0.5 * hp_fine + 0.6 * lump + 0.04 * grain).astype(np.float32)
+    height = (0.55 * relief + 1.1 * hp_big + (0.2 if tile else 0.5) * hp_fine + 0.6 * lump + 0.04 * grain).astype(np.float32)
 
-    # normal (OpenGL convention: green = up in the image)
-    strength = 10.0
+    # normal (OpenGL convention: green = up in the image); world art is flat paint, so half as steep
+    strength = 5.0 if tile else 10.0
     gx = cv2.Sobel(height, cv2.CV_32F, 1, 0, ksize=3) / 8.0 * strength
     gy = cv2.Sobel(height, cv2.CV_32F, 0, 1, ksize=3) / 8.0 * strength
     n = np.dstack([-gx, gy, np.ones_like(gx)])
@@ -283,7 +297,8 @@ def process(t):
 
     bare = np.array([0.55, 0.62, 0.72], np.float32)  # BGR: worn bronze/brass
     albedo = albedo * (1 - 0.18 * cavity[..., None]) * (0.94 + 0.12 * grunge[..., None])
-    albedo = albedo * (1 - wear[..., None] * 0.7) + wear[..., None] * 0.7 * bare
+    wk = 0.3 if tile else 0.7  # full-strength wear streaked every panel line on the world metal
+    albedo = albedo * (1 - wear[..., None] * wk) + wear[..., None] * wk * bare
     albedo = albedo * (1 - 0.25 * scr[..., None]) + 0.25 * scr[..., None] * bare
     if tile and role in ("stone", "organic"):  # chipped carving edges catch a little light, no metal
         chip = convex * smooth(fbm(H, W, 5, 16), 0.45, 0.65)

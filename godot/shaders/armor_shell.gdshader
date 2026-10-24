@@ -3,7 +3,7 @@ shader_type spatial;
 // hit (the "armorhit" server command, tools/q3core/patches/0002). Color: the armor color, red when
 // armor is low; Q3Client tweens `flash` from 1 to 0. Drawn as a material_overlay, pushed out along
 // the normals so it sits just outside the body.
-render_mode unshaded, blend_add, depth_draw_never, cull_back, shadows_disabled;
+render_mode unshaded, blend_add, depth_draw_never, cull_back, shadows_disabled, fog_disabled;
 
 uniform vec4 color : source_color = vec4(1.0, 0.8, 0.3, 1.0);
 uniform float flash = 0.0;

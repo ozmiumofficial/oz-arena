@@ -9,6 +9,8 @@ extends Node3D
 ## (Q3Character.disintegrate); a gib replaces it.
 
 signal obituary(attacker: int, target: int, means: int)   ## EV_OBITUARY, for the kill feed
+## every EV_OBITUARY, also while a replay rebuilds quietly (the death cam's card needs the last one)
+signal death_noted(attacker: int, target: int, means: int)
 signal server_print(text: String)
 signal landed(change: float)
 signal local_event(ev: int, parm: int)   ## every predictable event of the local player (ps.events)   ## the local player's landing dip (cg.landChange): -8, -16 or -24 units
@@ -30,12 +32,18 @@ const EXPLOSIONS := {E.WP_ROCKET_LAUNCHER: "rocket", E.WP_GRENADE_LAUNCHER: "gre
 const TRAILS := {E.WP_ROCKET_LAUNCHER: [64.0, 2000.0], E.WP_GRENADE_LAUNCHER: [32.0, 700.0]}
 const MASK_SHOT := 0x6000001          ## CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_CORPSE
 const MASK_WATER := 32 | 16 | 8       ## CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA
+## the remaster's impact sparks (Q3Sparks) per weapon hit: count, speed (units/s), life (s), spread
+const SPARKS := {E.WP_MACHINEGUN: [5, 340.0, 0.45, 0.8], E.WP_SHOTGUN: [2, 300.0, 0.4, 0.8],
+	E.WP_RAILGUN: [10, 420.0, 0.6, 0.9], E.WP_ROCKET_LAUNCHER: [16, 520.0, 0.9, 1.0],
+	E.WP_GRENADE_LAUNCHER: [16, 520.0, 0.9, 1.0], E.WP_LIGHTNING: [1, 260.0, 0.3, 0.9]}
 const SURF_NOIMPACT := 0x10
+const SURF_NOMARKS := 0x20
 const ENTITYNUM_WORLD := 1022
 const LIGHTNING_RANGE := 768.0
 const TRACER_CHANCE := 0.4            ## cg_tracerChance
 
 var map: Q3Map                     ## the map scene (movers live in it)
+var feed: Q3Feed = Q3LiveFeed.shared()   ## the match: live, or a replay (Q3ReplayFeed)
 var local_client := -1
 var _ents: Dictionary = {}         ## entity number -> {"node": Node3D, "es": Dictionary, "kind": int}
 var _seen_events: Dictionary = {}  ## entity number -> last event value handled
@@ -51,9 +59,14 @@ var _now := 0.0                    ## render time (ms), cg.time
 var _local_ps: Dictionary = {}
 var _smoke: Q3Puffs                ## smokePuff: rocket and grenade trails
 var _shotgun_smoke: Q3Puffs
+var _sparks: Q3Sparks
+var _burns: Q3Burns                ## the lightning gun's burn lines
 var _beams: Dictionary = {}        ## entity -> Q3LightningBeam while the lightning gun fires
 var _loops: Dictionary = {}        ## entity -> its weapon loop (hum while out, buzz while firing)
 var self_body := false            ## draw the local player for mirrors (the map has portal views)
+## draw the local player's body for the main camera too: a spectator's chase camera on the followed
+## player, whose entity the server never sends (cgame builds it from the playerState)
+var self_visible := false
 var _self: Dictionary = {}         ## that body's entity record
 var pickup_effects := 0           ## pickup effects played (tests)
 var _pickups: Array = []           ## recent pickup events: [position, time ms] (the pickup effect)
@@ -61,6 +74,16 @@ var _ext_event := 0                ## the last ps.externalEvent played
 const MAX_PREDICTED_EVENTS := 16
 var _predictable: PackedInt32Array = PackedInt32Array()   ## cg.predictableEvents: what each slot played
 var _local_lightning := false      ## cent->pe.lightningFiring for the local player
+var _next: Dictionary = {}         ## replays: entity number -> its state in the next frame (cg.nextSnap)
+var _frac := 0.0                   ## how far between this frame and the next (cg.frameInterpolation)
+var muted := false                 ## a replay rebuilding after a jump: events are noted, not played
+var _helpers: Array = []           ## the puff, spark and burn renderers made in _ready
+## The death cam (REPLAY_PLAN.md R6): your own body goes limp where you die. Quake 3 never drew it
+## (you were the camera, and the server never sends your own entity), so it's built from the
+## playerState the moment you die, carries your speed, and stays as a corpse when you respawn.
+var own_death := false
+var own_body: Q3Character
+var _own_seen_alive := false       ## a body is only built for a death seen happening, not one already over
 ## Quake 3 sinks bodies into the floor after 5 s (g_client.c BODY_SINK_TIME); the remaster keeps
 ## them longer (Ozmium, 2026-10-22), then burns them away (Q3Character.disintegrate).
 const CORPSE_TIME := 10.0
@@ -73,6 +96,10 @@ func _ready() -> void:
 	_predictable.resize(MAX_PREDICTED_EVENTS)
 	_smoke = Q3Puffs.create(self, "smoke_puff")
 	_shotgun_smoke = Q3Puffs.create(self, "shotgun_smoke")
+	_sparks = Q3Sparks.create(self)
+	_burns = Q3Burns.create(self)
+	Settings.changed.connect(_on_setting)
+	_helpers = get_children()   # what reset() keeps
 
 
 ## One snapshot (Q3Server.snapshot()) plus the live local playerState.
@@ -98,12 +125,136 @@ func apply_snapshot(snap: Dictionary, local_ps: Dictionary) -> void:
 			_seen_events.erase(num)
 
 
-## Every frame: movers and missiles follow their trajectories at the current time.
+## Replays: the next recorded frame and how far the playhead is toward it. Players are drawn
+## between the two (cg_ents.c CG_InterpolateEntityPosition); without a next frame they stand
+## where the frame puts them.
+func set_next(next_snap: Dictionary, frac: float) -> void:
+	_next.clear()
+	_frac = frac
+	for es in next_snap.get("entities", []):
+		_next[int(es["number"])] = es
+
+
+## Every player drawn and standing (not a ragdoll): client number -> their Q3Character. The replay
+## viewer's name tags and outlines, the spectator HUD and the death cam read it.
+func player_nodes() -> Dictionary:
+	var out := {}
+	for num in _ents:
+		var e: Dictionary = _ents[num]
+		var ch := e.get("node") as Q3Character
+		if e["kind"] == E.ET_PLAYER and ch and is_instance_valid(ch) and not e.get("ragdolled", false) and num < E.MAX_CLIENTS:
+			out[num] = ch
+	return out
+
+
+## The ragdoll of a fragged player still lying where they fell (the death cam follows it), or null.
+func body_of(cl: int) -> Q3Character:
+	var e: Dictionary = _ents.get(cl, {})
+	var ch := e.get("node") as Q3Character
+	if e.get("ragdolled", false) and ch and is_instance_valid(ch) and ch.visible:
+		return ch
+	return null
+
+
+## A spectator follows someone else: their body goes (their eyes are the camera now), the one left
+## comes back from the next snapshot, and their playerState's events start over. Everything else
+## (corpses, marks, effects) stays, unlike reset().
+func set_view_client(cl: int) -> void:
+	var old := local_client
+	local_client = cl
+	# the one left behind: their ragdoll, if they're down, becomes their entity's body again
+	var left: Q3Character = own_body if own_body and is_instance_valid(own_body) else null
+	own_body = null
+	_own_seen_alive = false
+	var taken: Node3D = null
+	for n in [old, cl]:
+		var e: Dictionary = _ents.get(n, {})
+		if _beams.has(n):
+			(_beams[n] as Node).queue_free()
+			_beams.erase(n)
+		_burns.lift(n)
+		_stop_loop(n)
+		_seen_events.erase(n)
+		if e.is_empty():
+			continue
+		var node: Node3D = e["node"]
+		_ents.erase(n)
+		if n == cl and e.get("ragdolled", false) and node is Q3Character and is_instance_valid(node):
+			taken = node   # the new one is down: their ragdoll is the death cam's body
+		elif e.get("ragdolled", false):
+			_leave_corpse(node)
+		elif node and is_instance_valid(node):
+			node.queue_free()
+	if left and old >= 0 and old < E.MAX_CLIENTS:
+		_ents[old] = {"node": left, "es": {}, "kind": E.ET_PLAYER, "legs": -1, "torso": -1, "weapon": -1, "ragdolled": true}
+	elif left:
+		_leave_corpse(left)
+	if taken:
+		own_body = taken as Q3Character
+	_ps_event_seq = -1
+	_ext_event = 0
+	_predictable.fill(0)
+	if not _self.is_empty() and is_instance_valid(_self["node"]):
+		(_self["node"] as Node).queue_free()
+	_self = {}
+
+
+## A replay jumped (or changed whose eyes it shows): everything drawn goes, to be rebuilt from the
+## next snapshot with `muted` set. Corpses from before the jump aren't recreated.
+func reset() -> void:
+	for num in _ents.keys():
+		var e: Dictionary = _ents[num]
+		var node: Node3D = e["node"]
+		if e["kind"] != E.ET_MOVER and node and is_instance_valid(node):
+			node.queue_free()
+	_ents.clear()
+	for num in _loops.keys():
+		_stop_loop(num)
+	for b in _beams.values():
+		(b as Node).queue_free()
+	_beams.clear()
+	for c in _corpses:
+		if is_instance_valid(c):
+			c.queue_free()
+	_corpses.clear()
+	_seen_events.clear()
+	_ps_event_seq = -1
+	_ext_event = 0
+	_predictable.fill(0)
+	_pickups.clear()
+	_numbers.clear()
+	_next.clear()
+	if own_body and is_instance_valid(own_body):
+		own_body.queue_free()
+	own_body = null
+	_own_seen_alive = false
+	_smoke.clear()
+	_shotgun_smoke.clear()
+	_sparks.clear()
+	_burns.clear()
+	# the mirror body is rebuilt for whoever is watched now
+	if not _self.is_empty() and is_instance_valid(_self["node"]):
+		(_self["node"] as Node).queue_free()
+	_self = {}
+	# effects and sounds still playing from before the jump (the helpers made in _ready stay)
+	for child in get_children():
+		if not child in _helpers:
+			child.queue_free()
+
+
+## Every frame: movers and missiles follow their trajectories at the current time; in a replay,
+## players move between recorded frames.
 func animate(server_time_ms: float) -> void:
 	_now = server_time_ms
 	for num in _ents:
 		var e: Dictionary = _ents[num]
 		var kind: int = e["kind"]
+		if kind == E.ET_PLAYER and _next.has(num):
+			_interpolate_player(e, _next[num])
+		elif kind == E.ET_ITEM and int(e["es"]["pos"].get("trType", 0)) != 0:
+			var item: Node3D = e["node"]
+			if item and is_instance_valid(item):
+				item.global_position = Q3.q3_to_godot(trajectory(e["es"]["pos"], server_time_ms))
 		if kind == E.ET_MOVER or kind == E.ET_MISSILE:
 			var node: Node3D = e["node"]
 			if node and is_instance_valid(node):
@@ -112,6 +263,23 @@ func animate(server_time_ms: float) -> void:
 					node.basis = angles_basis(trajectory(e["es"]["apos"], server_time_ms))
 				else:
 					_missile_frame(e, node)
+
+
+## CG_InterpolateEntityPosition for a player: between this frame's origin and angles and the next
+## frame's, unless they teleported (EF_TELEPORT_BIT toggled) or died in between.
+func _interpolate_player(e: Dictionary, nx: Dictionary) -> void:
+	var ch := e["node"] as Q3Character
+	if ch == null or not is_instance_valid(ch) or e.get("ragdolled", false):
+		return
+	var es: Dictionary = e["es"]
+	if (int(es["eFlags"]) ^ int(nx["eFlags"])) & 4 or int(nx["eFlags"]) & E.EF_DEAD:
+		return
+	var a: Vector3 = es["pos"]["trBase"]
+	ch.global_position = Q3.q3_to_godot(a.lerp(nx["pos"]["trBase"], _frac)) + Vector3.DOWN * 24.0 * Q3.UNIT
+	var aa: Vector3 = es["apos"]["trBase"]
+	var ab: Vector3 = nx["apos"]["trBase"]
+	ch.rotation = Vector3(0.0, deg_to_rad(Q3ReplayFeed.lerp_angle_deg(aa.y, ab.y, _frac)), 0.0)
+	ch.aim_pitch = Q3ReplayFeed.lerp_angle_deg(aa.x, ab.x, _frac)
 
 
 ## cg_ents.c CG_Missile: the model's forward on its trajectory's direction, spun about it
@@ -136,7 +304,7 @@ func _missile_frame(e: Dictionary, node: Node3D) -> void:
 	e["trail_time"] = _now
 	if not moving:
 		return
-	if Q3Server.point_contents(trajectory(tr, _now), -1) & MASK_WATER:
+	if feed.point_contents(trajectory(tr, _now), -1) & MASK_WATER:
 		return
 	var t := step * floorf((start + step) / step)
 	while t <= _now:
@@ -180,6 +348,7 @@ func _spawn(num: int, kind: int, es: Dictionary) -> Node3D:
 			var ch := Q3Character.new()
 			ch.model = _model_for(cl)
 			add_child(ch)
+			_bright(ch, cl)
 			return ch
 		E.ET_ITEM:
 			var idx := int(es["modelindex"])
@@ -236,6 +405,8 @@ func _leave_corpse(ch: Node3D) -> void:
 		return
 	_corpses.append(ch)
 	get_tree().create_timer(CORPSE_TIME).timeout.connect(func():
+		if not is_instance_valid(ch):
+			return   # a replay's jump already cleared it
 		_corpses.erase(ch)
 		if is_instance_valid(ch):
 			if ch.visible and ch is Q3Character:
@@ -244,8 +415,8 @@ func _leave_corpse(ch: Node3D) -> void:
 				ch.queue_free())
 
 
-## A gib (EV_GIB_PLAYER) replaces the nearest body: a ragdoll still owned by its player, or a corpse.
-func _gib_body(at: Vector3) -> void:
+## The body a gib (EV_GIB_PLAYER) is for: the nearest ragdoll still owned by its player, or corpse.
+func _body_near(at: Vector3) -> Node3D:
 	var best: Node3D = null
 	var best_d := 2.5
 	for num in _ents:
@@ -255,19 +426,64 @@ func _gib_body(at: Vector3) -> void:
 			if d < best_d:
 				best_d = d
 				best = e["node"]
-	for c in _corpses:
+	var bodies: Array[Node3D] = _corpses.duplicate()
+	if own_body:
+		bodies.append(own_body)
+	for c in bodies:
 		if is_instance_valid(c) and c.global_position.distance_to(at) < best_d:
 			best_d = c.global_position.distance_to(at)
 			best = c
-	if best:
-		best.visible = false
+	return best
 
 
+## The model a player is drawn with: their own, or Gameplay > Force enemy model for enemies
+## (cg_forceModel). Their sounds stay their own model's.
 func _model_for(cl: int) -> String:
-	var info := Q3Host.parse_info(Q3Server.configstring(E.CS_PLAYERS + cl))
+	var info := Q3Host.parse_info(feed.configstring(E.CS_PLAYERS + cl))
 	var m := String(info.get("model", "sarge")).get_slice("/", 0).to_lower()
 	_player_models[cl] = m
+	var forced := String(Settings.get_value("gameplay/force_model"))
+	if forced in Q3.characters and cl != local_client and not _teammate(cl):
+		return forced
 	return m if m in Q3.characters else "sarge"
+
+
+## Whether a player is on the local player's team (team modes only).
+func _teammate(cl: int) -> bool:
+	if local_client < 0 or feed.cvar("g_gametype").to_int() < E.GT_TEAM:
+		return false
+	var team := func(c: int) -> String: return String(Q3Host.parse_info(feed.configstring(E.CS_PLAYERS + c)).get("t", ""))
+	return team.call(cl) == team.call(local_client)
+
+
+## Gameplay > Bright skins: enemies in Enemy color, teammates in Team color.
+func _bright(ch: Q3Character, cl: int) -> void:
+	if Settings.get_value("gameplay/bright_skins"):
+		ch.bright_skin(Settings.get_value("gameplay/team_color" if _teammate(cl) else "gameplay/enemy_color"))
+	else:
+		ch.bright_skin(Color(0, 0, 0, 0))
+
+
+## Player look settings changed (from the pause menu): redo the bodies standing in the match.
+func _on_setting(key: String, _v: Variant) -> void:
+	if not key in ["gameplay/bright_skins", "gameplay/enemy_color", "gameplay/team_color", "gameplay/force_model"]:
+		return
+	for num in _ents:
+		var e: Dictionary = _ents[num]
+		var ch := e.get("node") as Q3Character
+		if e["kind"] != E.ET_PLAYER or ch == null or not is_instance_valid(ch) or e.get("ragdolled", false):
+			continue
+		var cl := int(e["es"]["clientNum"])
+		if key == "gameplay/force_model":
+			ch.queue_free()
+			e["node"] = _spawn(num, E.ET_PLAYER, e["es"])
+			e.erase("armor_mat")
+			e.erase("wfx")
+			e["legs"] = -1
+			e["torso"] = -1
+			e["weapon"] = -1
+		else:
+			_bright(ch, cl)
 
 
 func _update_player(e: Dictionary, es: Dictionary) -> void:
@@ -287,6 +503,11 @@ func _update_player(e: Dictionary, es: Dictionary) -> void:
 		return
 	if e.get("ragdolled", false):
 		return   # physics owns it now
+	if dead and muted:
+		# a body from before a replay's jump: not recreated as a ragdoll
+		ch.visible = false
+		e["ragdolled"] = true
+		return
 	if dead:
 		# fragged: go limp, carrying the speed the body had
 		var vel := Q3.q3_to_godot(es["pos"]["trDelta"])
@@ -418,6 +639,10 @@ func _local_event(raw: int, ps: Dictionary, i: int) -> void:
 
 
 func _event(ev: int, es: Dictionary, at: Vector3, local := false) -> void:
+	if ev == E.EV_OBITUARY:
+		death_noted.emit(int(es["otherEntityNum2"]), int(es["otherEntityNum"]), int(es["eventParm"]))
+	if muted:
+		return
 	var cl := int(es.get("clientNum", 0))
 	match ev:
 		E.EV_FIRE_WEAPON:
@@ -449,8 +674,15 @@ func _event(ev: int, es: Dictionary, at: Vector3, local := false) -> void:
 		E.EV_DEATH1, E.EV_DEATH2, E.EV_DEATH3:
 			play_sound("sound/player/%s/death%d.wav" % [_player_models.get(cl, "sarge"), ev - E.EV_DEATH1 + 1], at, local)
 		E.EV_GIB_PLAYER:
-			_gib_body(at)
-			Q3FX.gibs(self, at)
+			# Settings > Graphics > Gibs is cg_gibs; with it off the body burns away instead
+			var body := _body_near(at)
+			if Settings.get_value("graphics/gibs"):
+				if body:
+					body.visible = false
+				Q3FX.gibs(self, at)
+			elif body is Q3Character and not body.has_meta("burning"):
+				body.set_meta("burning", true)
+				(body as Q3Character).disintegrate(CORPSE_BURN)
 			play_sound("sound/player/gibsplt1.wav", at)
 		E.EV_JUMP:
 			play_sound("sound/player/%s/jump1.wav" % _player_models.get(cl, "sarge"), at, local)
@@ -482,12 +714,13 @@ func _event(ev: int, es: Dictionary, at: Vector3, local := false) -> void:
 		E.EV_ITEM_RESPAWN:
 			play_sound("sound/items/respawn1.wav", at)
 		E.EV_PLAYER_TELEPORT_IN:
-			Q3FX.teleport(self, at)
+			if Settings.get_value("gameplay/spawn_effect"):
+				Q3FX.teleport(self, at)
 			play_sound("sound/world/telein.wav", at)
 		E.EV_PLAYER_TELEPORT_OUT:
 			play_sound("sound/world/teleout.wav", at)
 		E.EV_GENERAL_SOUND, E.EV_GLOBAL_SOUND, E.EV_GLOBAL_TEAM_SOUND:
-			var path := Q3Server.configstring(E.CS_SOUNDS + int(es["eventParm"]))
+			var path := feed.configstring(E.CS_SOUNDS + int(es["eventParm"]))
 			if path != "" and not path.begins_with("*"):
 				play_sound(path, at, ev != E.EV_GENERAL_SOUND)
 		E.EV_OBITUARY:
@@ -545,6 +778,9 @@ func missile_hit_wall(weapon: int, cl: int, at: Vector3, dir: Vector3) -> void:
 		Q3FX.explosion(self, kind, at, dir, Color.WHITE, client_colors(cl)[1])
 	else:
 		Q3FX.explosion(self, kind, at, dir)
+	var sp: Array = SPARKS.get(weapon, [])
+	if not sp.is_empty():
+		_sparks.burst(at, dir, int(sp[0]), float(sp[1]), float(sp[2]), float(sp[3]))
 
 
 ## CG_MissileHitPlayer: blood, and for grenades and rockets the blast as well.
@@ -598,7 +834,7 @@ func _muzzle_point(num: int) -> Vector3:
 func _shotgun_fire(es: Dictionary) -> void:
 	var origin: Vector3 = es["pos"]["trBase"]
 	var dir: Vector3 = (es["origin2"] as Vector3).normalized()
-	if not (Q3Server.point_contents(origin, 0) & 32):
+	if not (feed.point_contents(origin, 0) & 32):
 		# (id's code measures from origin2 - origin, but origin2 is a direction: the puff goes 32 units along it)
 		_shotgun_smoke.add(Q3.q3_to_godot(origin + dir * 32.0), Vector3(0, 8, 0) * Q3.UNIT, 32.0, 0.33, 900.0, _now, false)
 	var right := perpendicular(dir)
@@ -612,7 +848,7 @@ func _shotgun_fire(es: Dictionary) -> void:
 
 
 func _shotgun_pellet(start: Vector3, end: Vector3, skip: int) -> void:
-	var tr := Q3Server.trace(start, end, Vector3.ZERO, Vector3.ZERO, skip, MASK_SHOT)
+	var tr := feed.trace(start, end, Vector3.ZERO, Vector3.ZERO, skip, MASK_SHOT)
 	if tr.is_empty() or int(tr["surfaceFlags"]) & SURF_NOIMPACT:
 		return
 	var at := Q3.q3_to_godot(tr["endpos"])
@@ -629,8 +865,12 @@ func _shotgun_pellet(start: Vector3, end: Vector3, skip: int) -> void:
 func present(local_ps: Dictionary, eye_pos: Vector3) -> void:
 	_local_ps = local_ps
 	eye = eye_pos
-	if self_body:
+	if (own_death or own_body) and local_client >= 0:
+		_update_own_body(local_ps)
+	if self_body or self_visible:
 		_update_self(local_ps)
+	elif not _self.is_empty():
+		(_self["node"] as Node3D).visible = false
 	for num in _ents:
 		var e: Dictionary = _ents[num]
 		if e["kind"] != E.ET_PLAYER or e.get("ragdolled", false):
@@ -660,6 +900,7 @@ func present(local_ps: Dictionary, eye_pos: Vector3) -> void:
 			forward_of(local_ps["viewangles"]))
 	_smoke.step(_now, eye)
 	_shotgun_smoke.step(_now, eye)
+	_sparks.step(get_process_delta_time(), eye)
 
 
 ## The local player's own body, for mirrors and portal views only: cgame draws the predicted
@@ -684,11 +925,11 @@ func _update_self(ps: Dictionary) -> void:
 		"legsAnim": int(ps["legsAnim"]), "torsoAnim": int(ps["torsoAnim"]),
 		"pos": {"trType": 0, "trBase": ps["origin"], "trDelta": ps["velocity"]},
 		"apos": {"trType": 0, "trBase": ps["viewangles"]}})
-	if weapon != _self["weapon"] or not _self.has("layered"):
-		_self["layered"] = true
+	if weapon != _self["weapon"] or _self.get("layered", -1) != int(self_visible):
+		_self["layered"] = int(self_visible)
 		for g in ch.find_children("*", "GeometryInstance3D", true, false):
-			(g as GeometryInstance3D).layers = Q3Portal.MIRROR_LAYER
-			(g as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			(g as GeometryInstance3D).layers = 1 if self_visible else Q3Portal.MIRROR_LAYER
+			(g as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if self_visible 				else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 ## CG_LightningBolt: from the eye 14 units forward, LIGHTNING_RANGE along the aim; the beam is
@@ -698,17 +939,26 @@ func _lightning(num: int, on: bool, flash: Vector3, start: Vector3, fwd: Vector3
 	if not on or start == Vector3.INF:
 		if beam:
 			beam.visible = false
+		_burns.lift(num)
 		return
 	if beam == null:
 		beam = Q3LightningBeam.new()
 		add_child(beam)
 		_beams[num] = beam
 	beam.visible = true
-	var tr := Q3Server.trace(start, start + fwd * LIGHTNING_RANGE, Vector3.ZERO, Vector3.ZERO, num, MASK_SHOT)
+	var tr := feed.trace(start, start + fwd * LIGHTNING_RANGE, Vector3.ZERO, Vector3.ZERO, num, MASK_SHOT)
 	if tr.is_empty():
 		beam.visible = false
+		_burns.lift(num)
 		return
 	beam.aim(flash, Q3.q3_to_godot(tr["endpos"]), float(tr["fraction"]) < 1.0)
+	# the remaster's burn line where the beam touches the map (not movers, sky or nomarks surfaces)
+	if float(tr["fraction"]) < 1.0 and int(tr["entityNum"]) == ENTITYNUM_WORLD \
+			and not int(tr["surfaceFlags"]) & (SURF_NOIMPACT | SURF_NOMARKS):
+		var n: Vector3 = tr["normal"]
+		_burns.touch(num, Q3.q3_to_godot(tr["endpos"]), Vector3(n.y, n.z, n.x))
+	else:
+		_burns.lift(num)
 
 
 ## CG_AddPlayerWeapon's loops: the firing sound while fire is held, else the ready hum. Returns
@@ -741,8 +991,9 @@ func _weapon_loop(num: int, weapon: int, firing: bool, owner: Node3D, flat: bool
 		a.stream = Q3FX.looped(load(res))
 		a.unit_size = 10.0
 		a.max_distance = 40.0
+		Settings.spatialize(a)
 		player = a
-	player.set("bus", "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master")
+	player.set("bus", &"Effects")
 	if owner and is_instance_valid(owner):
 		owner.add_child(player)
 	else:
@@ -762,9 +1013,9 @@ func _stop_loop(num: int) -> void:
 ## The rail colors from a player's userinfo (c1, c2), CG_ColorFromString: 1 blue, 2 green, 4 red.
 ## Your own rail can be one color1 can't carry (a card rail past Quake 3's seven); it draws that.
 func client_colors(cl: int) -> Array:
-	var info := Q3Host.parse_info(Q3Server.configstring(E.CS_PLAYERS + cl))
+	var info := Q3Host.parse_info(feed.configstring(E.CS_PLAYERS + cl))
 	var out := [_color_from(String(info.get("c1", "4"))), _color_from(String(info.get("c2", "5")))]
-	if cl == local_client:
+	if cl == local_client and not feed.is_replay():
 		var own := Q3Profile.rail_colors(int(info.get("t", "0")))
 		for i in own.size():
 			out[i] = own[i]
@@ -846,6 +1097,8 @@ func armor_hit(target: int, armor: int) -> void:
 		e["armor_mat"] = mat
 		for mi in ch.find_children("*", "MeshInstance3D", true, false):
 			if not String(mi.get_path()).contains("Attach_"):
+				if (mi as MeshInstance3D).material_overlay and mat.next_pass == null:
+					mat.next_pass = (mi as MeshInstance3D).material_overlay   # a replay's outline stays, after the shell
 				(mi as MeshInstance3D).material_overlay = mat
 	mat.set_shader_parameter("color", ARMOR_LOW_COLOR if armor < ARMOR_LOW else ARMOR_COLOR)
 	mat.set_shader_parameter("flash", 1.0)
@@ -876,7 +1129,7 @@ func play_sound(path: String, at: Vector3, flat := false, volume_db := 0.0) -> v
 		var a := AudioStreamPlayer.new()
 		a.stream = stream
 		a.volume_db = volume_db
-		a.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
+		a.bus = &"Effects"
 		player = a
 	else:
 		var a := AudioStreamPlayer3D.new()
@@ -884,7 +1137,8 @@ func play_sound(path: String, at: Vector3, flat := false, volume_db := 0.0) -> v
 		a.volume_db = volume_db
 		a.unit_size = 12.0
 		a.max_distance = 60.0
-		a.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
+		a.bus = &"Effects"
+		Settings.spatialize(a)
 		player = a
 	add_child(player)
 	if player is Node3D:
@@ -930,3 +1184,27 @@ static func byte_dir(b: int) -> Vector3:
 		return Vector3.UP
 	var d: Vector3 = Q3Enums.BYTEDIRS[b]
 	return Vector3(d.y, d.z, d.x)
+
+
+## Your own body while you're dead (own_death): made and ragdolled when the playerState goes
+## PM_DEAD, left behind as a corpse (burning away like any other) when you're back.
+func _update_own_body(ps: Dictionary) -> void:
+	var dead := not ps.is_empty() and int(ps["pm_type"]) == E.PM_DEAD
+	if not dead:
+		_own_seen_alive = not ps.is_empty()
+	# gibbed (health at GIB_HEALTH -40 or under, as BG_PlayerStateToEntityState hides the body): no
+	# body, only the gibs
+	var gibbed := dead and int(ps["stats"][E.STAT_HEALTH]) <= -40
+	if dead and own_body == null and own_death and not muted and _own_seen_alive and not gibbed:
+		_own_seen_alive = false
+		var ch := Q3Character.new()
+		ch.model = _model_for(local_client)
+		add_child(ch)
+		_bright(ch, local_client)
+		ch.global_position = Q3.q3_to_godot(ps["origin"]) + Vector3.DOWN * 24.0 * Q3.UNIT
+		ch.rotation = Vector3(0.0, deg_to_rad(float((ps["viewangles"] as Vector3).y)), 0.0)
+		ch.ragdoll((Q3.q3_to_godot(ps["velocity"]) * 0.6).limit_length(8.0))
+		own_body = ch
+	elif not dead and own_body:
+		_leave_corpse(own_body)
+		own_body = null

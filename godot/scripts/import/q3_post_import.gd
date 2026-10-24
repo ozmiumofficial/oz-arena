@@ -98,6 +98,16 @@ func _stage_material(name: String, d: Dictionary) -> ShaderMaterial:
 	sm.set_shader_parameter("lit", lit)
 	sm.set_shader_parameter("rotate", rotate)
 	sm.set_shader_parameter("wave_func", wave_func)
+	# deformVertexes (the CTF flags wave): q3_deform.gdshaderinc, from q3shader.deform_uniforms
+	var deforms: Array = d.get("deforms", [])
+	for k in mini(deforms.size(), 2):
+		var df: Dictionary = deforms[k]
+		var da: Array = df["a"]
+		var db: Array = df["b"]
+		var mv: Array = df["move"]
+		sm.set_shader_parameter("deform%d_a" % (k + 1), Vector4(da[0], da[1], da[2], da[3]))
+		sm.set_shader_parameter("deform%d_b" % (k + 1), Vector4(db[0], db[1], db[2], db[3]))
+		sm.set_shader_parameter("deform%d_move" % (k + 1), Vector3(mv[0], mv[1], mv[2]))
 	return sm
 
 
@@ -121,6 +131,7 @@ func _apply(m: BaseMaterial3D) -> bool:
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 		m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		m.disable_fog = true   # fog on an additive quad adds the haze color over the whole square
 		return true
 	if "__mask" in nm:
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR

@@ -7,6 +7,7 @@ extends CanvasLayer
 ##                 medals: {impressive: n, ...}, xp: Q3Profile.award_match() result})
 
 signal finished
+signal watch_requested   ## Watch replay (R): the match's replay, now
 
 ## Quake 3's medal art (library/ui/hud: menu/medals at 2x)
 const MEDALS := {"impressive": "medal_impressive", "excellent": "medal_excellent", "gauntlet": "medal_gauntlet",
@@ -21,6 +22,10 @@ var _xp_label: Label
 var _xp_lines: VBoxContainer
 var _done := false
 var _can_continue := false
+var _replay := ""                 ## the match's replay file, "" if it wasn't recorded
+var _saved := false
+var _watch_button: Button
+var _save_button: Button
 
 
 func _init() -> void:
@@ -145,7 +150,55 @@ func show_results(r: Dictionary) -> void:
 	hint.position = Vector2(0, view.y * 0.92)
 	hint.size = Vector2(view.x, view.y * 0.04)
 	_root.add_child(hint)
+	_replay = String(r.get("replay", ""))
+	if _replay != "":
+		_replay_buttons(view)
 	_animate_xp(r.get("xp", {}))
+
+
+## The match's replay (Gameplay > Record replays): watch it now, or keep it for good (a favorite,
+## which auto-clean never deletes).
+func _replay_buttons(view: Vector2) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", int(view.y * 0.03))
+	_root.add_child(row)
+	_watch_button = _button("R  WATCH REPLAY", view)
+	_watch_button.pressed.connect(_watch)
+	row.add_child(_watch_button)
+	_save_button = _button("S  SAVE REPLAY", view)
+	_save_button.pressed.connect(_save)
+	row.add_child(_save_button)
+	row.position = Vector2((view.x - row.get_combined_minimum_size().x) * 0.5, view.y * 0.865)
+
+
+func _button(text: String, view: Vector2) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.flat = true
+	b.add_theme_font_override("font", Q3Fonts.prop())
+	b.add_theme_font_size_override("font_size", int(view.y * 0.026))
+	b.add_theme_color_override("font_color", Color(1, 1, 1, 0.75))
+	b.add_theme_color_override("font_hover_color", Color(1.0, 0.82, 0.3))
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_entered.connect(func(): UiSound.play("move"))
+	return b
+
+
+func _watch() -> void:
+	if _done:
+		return
+	_done = true
+	UiSound.play("move")
+	watch_requested.emit()
+
+
+func _save() -> void:
+	if _saved:
+		return
+	_saved = true
+	Q3ReplayFile.set_favorite(_replay.get_file(), true)
+	_save_button.text = "SAVED  -  KEPT FOREVER"
+	UiSound.play_in()
 
 
 func _animate_xp(xp: Dictionary) -> void:
@@ -218,6 +271,14 @@ func _label(text: String, size: int, color: Color) -> Label:
 func _unhandled_input(event: InputEvent) -> void:
 	if _done or _root == null:
 		return
+	var key := event as InputEventKey
+	if _replay != "" and key and key.pressed and not key.echo:
+		if key.keycode == KEY_R:
+			_watch()
+			return
+		if key.keycode == KEY_S:
+			_save()
+			return
 	var go: bool = event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and event.keycode == KEY_SPACE) \
 		or (event is InputEventMouseButton and event.pressed)
 	if go:

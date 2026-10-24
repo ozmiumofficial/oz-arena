@@ -1,6 +1,7 @@
 extends Node
 ## Windowed look at the Tab scoreboard's player panels: a match with three bots, Tab held, the
-## mouse mode on, your panel open, then a bot's. Saves <out>_you.png and <out>_bot.png.
+## mouse mode on, your panel open, then a bot's. Saves <out>_stats.png (your match on the left,
+## the players on the right), <out>_you.png and <out>_bot.png.
 ##   godot --path . res://tests/scoreboard_test.tscn -- out=C:/temp/board
 
 var out := "user://board"
@@ -22,10 +23,29 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	if _t > 4.0 and _step == 0:
+	if _t > 3.0 and _step == 0:
 		_step = 1
+		# a few fights' worth for the left panel (the real numbers come from play)
+		var st := _game.match_stats
+		for i in 14:
+			st.fired(7)
+		for i in 9:
+			st.damaged(100, 10, 1000 + i * 1500, 7)
+		for i in 40:
+			st.fired(6)
+		for i in 23:
+			st.damaged(8, 11, 20000 + i * 50, 6)
+		for i in 12:
+			st.fired(5)
+		for i in 5:
+			st.damaged(84, 7, 40000 + i * 900, 5)
+			st.damaged(30, 7, 40000 + i * 900, 5)
 		Input.action_press("q3_scores")
-	elif _t > 4.6 and _step == 1:
+	elif _t > 3.8 and _step == 1:
+		_step = 10
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(out + "_stats.png")
+	elif _t > 4.6 and _step == 10:
 		_step = 2
 		_game.scoreboard.set_interactive(true)
 		_game.scoreboard._selected = _game.me

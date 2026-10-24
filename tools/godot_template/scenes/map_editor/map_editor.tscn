@@ -1,12 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scenes/stub_scene.gd" id="1_e"]
+[ext_resource type="Script" path="res://scenes/map_editor/map_editor.gd" id="1_e"]
 
-[node name="MapEditor" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="MapEditor" type="Node3D"]
 script = ExtResource("1_e")
-title = "MAP EDITOR"
-coming = "The built-in editor, the same as OZMIUM's: TrenchBroom-style brushes, CSG subtract, Bezier patches, the PBR material browser, entities, prefabs, play-test (F6), collaborative editing over Steam, and import of Quake 3's .bsp and .map files."

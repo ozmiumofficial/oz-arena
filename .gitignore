@@ -17,8 +17,11 @@
 **/addons/q3core/bin/
 /tools/q3core/bin/
 /tools/q3core/build/
+# id's bspc logs into the folder it runs from (q3core's patch points it at the compile folder)
+bspc.log
 /tools/q3core/.sconsign.dblite
 *.obj
+*.pdb
 *.dll.old*
 ~*.TMP
 

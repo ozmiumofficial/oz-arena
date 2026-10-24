@@ -5,6 +5,7 @@ render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabl
 
 void fragment() {
 	vec4 c = flipbook(UV);
+	float soft = billboard ? soft_fade(SCREEN_UV, VERTEX.z, INV_PROJECTION_MATRIX) : 1.0;
 	ALBEDO = c.rgb * tint.rgb * intensity;
-	ALPHA = c.a * tint.a * fade_out();
+	ALPHA = c.a * tint.a * fade_out() * soft;
 }

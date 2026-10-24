@@ -497,10 +497,12 @@
    "perfect"
   ],
   "awards": {
+   "accuracy": 0.0,
    "assist": 0.0,
    "captures": 0.0,
    "defend": 0.0,
    "excellent": 0.0,
+   "frags": 6.0,
    "gauntlet": 0.0,
    "impressive": 0.0,
    "perfect": 1.0
@@ -8749,7 +8751,7 @@
    "restart": false,
    "step": 1.0,
    "tab": "video",
-   "tip": "Horizontal degrees at 4:3, like Quake 3's cg_fov. Wider screens see more at the sides (Hor+), so it's correct at any aspect. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Horizontal degrees at 4:3, like Quake 3's cg_fov. Wider screens see more at the sides (Hor+), so it's correct at any aspect.",
    "type": "float",
    "unit": "deg",
    "wired": true
@@ -9124,10 +9126,21 @@
    "restart": false,
    "step": 0.05,
    "tab": "graphics",
-   "tip": "Brightness of explosions and weapon effects. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Brightness of explosions, beams, flashes and their lights.",
    "type": "float",
    "unit": "x",
-   "wired": false
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Effects",
+   "key": "graphics/heat_shimmer",
+   "label": "Heat shimmer",
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Air ripples behind rockets and around explosions.",
+   "type": "bool",
+   "wired": true
   },
   {
    "default": true,
@@ -9136,7 +9149,7 @@
    "label": "Marks and decals",
    "restart": false,
    "tab": "graphics",
-   "tip": "Bullet holes, burns and blood on walls. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Bullet holes, burns and blood on walls.",
    "type": "bool",
    "wired": true
   },
@@ -9147,9 +9160,9 @@
    "label": "Gibs",
    "restart": false,
    "tab": "graphics",
-   "tip": "Bodies burst into gibs on big hits (cg_gibs). Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Bodies burst into gibs on big hits (cg_gibs). Off: they burn away instead.",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": 100,
@@ -9242,6 +9255,17 @@
    "wired": true
   },
   {
+   "default": true,
+   "group": "Volume",
+   "key": "audio/menu_music",
+   "label": "Menu music",
+   "restart": false,
+   "tab": "audio",
+   "tip": "Quake 3's soundtrack, shuffled, in the main menu.",
+   "type": "bool",
+   "wired": true
+  },
+  {
    "default": false,
    "group": "Volume",
    "key": "audio/menu_ambient",
@@ -9298,31 +9322,6 @@
    "wired": true
   },
   {
-   "default": "push",
-   "group": "Devices",
-   "key": "audio/voice_mode",
-   "label": "Voice chat",
-   "options": [
-    [
-     "off",
-     "Off"
-    ],
-    [
-     "push",
-     "Push to talk"
-    ],
-    [
-     "open",
-     "Open mic"
-    ]
-   ],
-   "restart": false,
-   "tab": "audio",
-   "tip": "Push to talk uses the Push to talk bind. Voice chat comes with Steam.",
-   "type": "enum",
-   "wired": false
-  },
-  {
    "default": "classic",
    "group": "Game sounds",
    "key": "audio/hit_sound",
@@ -9343,20 +9342,20 @@
    ],
    "restart": false,
    "tab": "audio",
-   "tip": "The beep when you hit an enemy. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "The beep when you hit an enemy. Pitch by damage beeps higher for small hits and lower for big ones.",
    "type": "enum",
-   "wired": false
+   "wired": true
   },
   {
    "default": true,
    "group": "Game sounds",
    "key": "audio/spatial",
-   "label": "Spatial audio (HRTF)",
+   "label": "Spatial audio",
    "restart": false,
    "tab": "audio",
-   "tip": "3D positional sound for headphones. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Distant sounds are muffled and placed more sharply left and right. Off is Quake 3's plain stereo panning.",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": true,
@@ -9365,9 +9364,9 @@
    "label": "Announcer",
    "restart": false,
    "tab": "audio",
-   "tip": "\"Excellent!\", \"Impressive!\", lead changes. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "The voice: \"Excellent!\", \"Impressive!\", lead changes, warnings, the countdown and \"Fight!\".",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": [
@@ -9790,15 +9789,315 @@
    "wired": true
   },
   {
+   "default": [
+    "key:K",
+    "key:Pause",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_play",
+   "label": "Play / pause",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for play / pause: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:J",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_back",
+   "label": "Back 5 seconds",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for back 5 seconds: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:L",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_forward",
+   "label": "Forward 5 seconds",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for forward 5 seconds: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Minus",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_slower",
+   "label": "Slower",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for slower: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Equal",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_faster",
+   "label": "Faster",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for faster: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Comma",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_step_back",
+   "label": "Frame back",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for frame back: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Period",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_step_forward",
+   "label": "Frame forward",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for frame forward: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:BracketLeft",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_prev_frag",
+   "label": "Previous frag",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for previous frag: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:BracketRight",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_next_frag",
+   "label": "Next frag",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for next frag: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:F",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_camera",
+   "label": "Next camera",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for next camera: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Q",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_prev_player",
+   "label": "Previous player",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for previous player: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:E",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_next_player",
+   "label": "Next player",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for next player: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:P",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_players",
+   "label": "Player list",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for player list: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:H",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_hud",
+   "label": "HUD on / off",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for hud on / off: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:N",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_names",
+   "label": "Name tags",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for name tags: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:O",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_outlines",
+   "label": "Outlines",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for outlines: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:B",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_bar",
+   "label": "Hide the controls",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for hide the controls: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:Home",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_mark_in",
+   "label": "Clip start",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for clip start: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:End",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_mark_out",
+   "label": "Clip end",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for clip end: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
+   "default": [
+    "key:F9",
+    "",
+    ""
+   ],
+   "group": "Replays",
+   "key": "controls/replay_export",
+   "label": "Export the clip",
+   "restart": false,
+   "tab": "controls",
+   "tip": "Binds for export the clip: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "type": "bind",
+   "wired": true
+  },
+  {
    "default": false,
    "group": "Options",
    "key": "controls/toggle_crouch",
    "label": "Toggle crouch",
    "restart": false,
    "tab": "controls",
-   "tip": "Tap to crouch instead of holding. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Tap to crouch instead of holding.",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": false,
@@ -9807,7 +10106,7 @@
    "label": "Toggle zoom",
    "restart": false,
    "tab": "controls",
-   "tip": "Tap to zoom instead of holding. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Tap to zoom instead of holding.",
    "type": "bool",
    "wired": true
   },
@@ -9835,30 +10134,30 @@
    "restart": false,
    "step": 0.1,
    "tab": "controls",
-   "tip": "Controller look speed in turns per second at full tilt. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Controller look speed at full tilt, in turns per second.",
    "type": "float",
-   "wired": false
+   "wired": true
   },
   {
    "default": "default",
    "group": "Options",
-   "key": "controls/steam_input",
-   "label": "Steam Input layout",
+   "key": "controls/stick_layout",
+   "label": "Stick layout",
    "options": [
     [
      "default",
-     "Default"
+     "Left moves, right looks"
     ],
     [
-     "community",
-     "Community layout"
+     "southpaw",
+     "Southpaw: left looks, right moves"
     ]
    ],
    "restart": false,
    "tab": "controls",
-   "tip": "Community controller layouts through Steam Input. Comes with Steam.",
+   "tip": "Which controller stick moves and which looks.",
    "type": "enum",
-   "wired": false
+   "wired": true
   },
   {
    "default": 5.0,
@@ -9870,9 +10169,9 @@
    "restart": false,
    "step": 0.05,
    "tab": "mouse",
-   "tip": "Quake 3 units: degrees per count = sensitivity x 0.022 (m_yaw). The cm/360 below is the distance for a full turn. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Quake 3 units: degrees per count = sensitivity x 0.022 (m_yaw). The cm/360 below is the distance for a full turn.",
    "type": "float",
-   "wired": false
+   "wired": true
   },
   {
    "default": 800,
@@ -9898,21 +10197,10 @@
    "restart": false,
    "step": 0.05,
    "tab": "mouse",
-   "tip": "Multiplier while zoomed. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Multiplier while zoomed.",
    "type": "float",
    "unit": "x",
    "wired": true
-  },
-  {
-   "default": true,
-   "group": "Input",
-   "key": "mouse/raw_input",
-   "label": "Raw input",
-   "restart": false,
-   "tab": "mouse",
-   "tip": "Read the mouse directly, skipping Windows pointer speed and acceleration. Stored now; takes effect once the Gameplay scene exists.",
-   "type": "bool",
-   "wired": false
   },
   {
    "default": 0.0,
@@ -9924,9 +10212,9 @@
    "restart": false,
    "step": 0.01,
    "tab": "mouse",
-   "tip": "Quake 3's cl_mouseAccel. 0 = off. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Quake 3's cl_mouseAccel: faster swipes turn further. 0 = off. Mouse look always reads the mouse raw, without Windows' pointer speed.",
    "type": "float",
-   "wired": false
+   "wired": true
   },
   {
    "default": false,
@@ -9935,7 +10223,7 @@
    "label": "Invert vertical",
    "restart": false,
    "tab": "mouse",
-   "tip": "Mouse up looks down. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Mouse up looks down.",
    "type": "bool",
    "wired": true
   },
@@ -10876,10 +11164,21 @@
    "wired": true
   },
   {
+   "default": true,
+   "group": "Elements",
+   "key": "hud/show_speedometer",
+   "label": "Speedometer",
+   "restart": false,
+   "tab": "hud",
+   "tip": "Your speed in units per second, with the strafe-jump readout (speed at each takeoff and the gain on the last).",
+   "type": "bool",
+   "wired": true
+  },
+  {
    "default": "arc",
    "group": "Elements",
    "key": "hud/speedometer",
-   "label": "Speedometer",
+   "label": "Speedometer style",
    "options": [
     [
      "arc",
@@ -10888,15 +11187,11 @@
     [
      "compact",
      "Compact"
-    ],
-    [
-     "off",
-     "Off"
     ]
    ],
    "restart": false,
    "tab": "hud",
-   "tip": "Your speed in units per second, with the strafe-jump readout (speed at each takeoff and the gain on the last).",
+   "tip": "Arc gauge or a compact bar. The Competitive and Quake 3 classic presets always use the compact bar.",
    "type": "enum",
    "wired": true
   },
@@ -10907,9 +11202,9 @@
    "label": "Item timers",
    "restart": false,
    "tab": "hud",
-   "tip": "Respawn timers for major items, where the mode allows them.",
+   "tip": "Countdowns for the armors, Mega Health and powerups once they're taken, left of the screen.",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": true,
@@ -10951,9 +11246,9 @@
    "label": "Net graph",
    "restart": false,
    "tab": "hud",
-   "tip": "Latency, loss and jitter overlay.",
+   "tip": "Quake 3's lagometer, bottom right: frame timing above, snapshot ping below, with ping and frame time.",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": false,
@@ -11058,22 +11353,48 @@
    "tab": "gameplay",
    "tip": "Where your gun is drawn (cg_drawGun).",
    "type": "enum",
-   "wired": false
+   "wired": true
   },
   {
-   "default": 90.0,
+   "default": 0.0,
    "group": "Weapons",
    "key": "gameplay/gun_fov",
    "label": "Gun field of view",
    "max": 120.0,
-   "min": 54.0,
+   "min": 0.0,
    "restart": false,
    "step": 1.0,
    "tab": "gameplay",
-   "tip": "Field of view of the gun model only.",
+   "tip": "Field of view the gun is drawn at. 0 draws it at your Field of view, as Quake 3 does.",
    "type": "float",
    "unit": "deg",
-   "wired": false
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Weapons",
+   "key": "gameplay/gun_widescreen",
+   "label": "Widescreen gun placement",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Keep the gun as far toward the edge as Quake 3 drew it on a 4:3 screen. Off draws it where a wide screen puts it, nearer the middle.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": 0.0,
+   "group": "Weapons",
+   "key": "gameplay/gun_offset",
+   "label": "Gun side offset",
+   "max": 10.0,
+   "min": -10.0,
+   "restart": false,
+   "step": 0.5,
+   "tab": "gameplay",
+   "tip": "Moves the gun sideways (cg_gunY): toward the edge its side is on, or back toward the middle.",
+   "type": "float",
+   "unit": "units",
+   "wired": true
   },
   {
    "default": true,
@@ -11217,7 +11538,7 @@
    "tab": "gameplay",
    "tip": "Show every enemy as one model (cg_forceModel).",
    "type": "enum",
-   "wired": false
+   "wired": true
   },
   {
    "default": false,
@@ -11226,9 +11547,9 @@
    "label": "Bright skins",
    "restart": false,
    "tab": "gameplay",
-   "tip": "Flat bright enemy colors for visibility.",
+   "tip": "Players drawn in one flat bright color: enemies in Enemy color, teammates in Team color.",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": "#4dff33",
@@ -11239,7 +11560,7 @@
    "tab": "gameplay",
    "tip": "Bright skin color for enemies.",
    "type": "color",
-   "wired": false
+   "wired": true
   },
   {
    "default": "#3399ff",
@@ -11250,7 +11571,18 @@
    "tab": "gameplay",
    "tip": "Bright skin color for teammates.",
    "type": "color",
-   "wired": false
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Players",
+   "key": "gameplay/spawn_effect",
+   "label": "Spawn effects",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "Teleport flash when players spawn and teleport.",
+   "type": "bool",
+   "wired": true
   },
   {
    "default": "first",
@@ -11284,20 +11616,56 @@
    "label": "Tier movies",
    "restart": false,
    "tab": "gameplay",
-   "tip": "Play Quake 3's tier movie when you finish a campaign tier. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Play Quake 3's tier movie when you finish a campaign tier.",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": true,
-   "group": "Players",
-   "key": "gameplay/spawn_effect",
-   "label": "Spawn effects",
+   "group": "Replays",
+   "key": "gameplay/record_replays",
+   "label": "Record replays",
    "restart": false,
    "tab": "gameplay",
-   "tip": "Teleport flash when players spawn.",
+   "tip": "Record every match you play: the whole match, every player, watchable from any view (Play > Replays).",
    "type": "bool",
-   "wired": false
+   "wired": true
+  },
+  {
+   "default": 50,
+   "group": "Replays",
+   "key": "gameplay/replays_kept",
+   "label": "Replays kept",
+   "max": 500,
+   "min": 5,
+   "restart": false,
+   "step": 5,
+   "tab": "gameplay",
+   "tip": "How many recent replays stay. Older ones are deleted, except favorites, which stay forever.",
+   "type": "int",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Death cam",
+   "key": "gameplay/death_cam",
+   "label": "Death cam",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "While you're dead the camera follows your body, then shows who killed you with their player card. Respawning works as in Quake 3.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": false,
+   "group": "Spectating",
+   "key": "gameplay/spec_director",
+   "label": "Auto-director",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "While you spectate, the camera follows the action by itself: a flag carrier, whoever just fragged, the closest fight. Gesture turns it on and off.",
+   "type": "bool",
+   "wired": true
   },
   {
    "default": "auto",
@@ -11340,9 +11708,9 @@
    ],
    "restart": false,
    "tab": "network",
-   "tip": "Matchmaking region. Automatic finds matches in your closest region first and widens if the wait runs long; a named region stays strict.",
+   "tip": "Matchmaking region, and the Server Browser's first choice. Automatic finds matches in your closest region first and widens if the wait runs long; a named region stays strict.",
    "type": "enum",
-   "wired": false
+   "wired": true
   },
   {
    "default": 120,
@@ -11354,10 +11722,10 @@
    "restart": false,
    "step": 10,
    "tab": "network",
-   "tip": "Hide servers and matches above this ping.",
+   "tip": "Hide servers and matches above this ping (the Server Browser's filter).",
    "type": "int",
    "unit": "ms",
-   "wired": false
+   "wired": true
   },
   {
    "default": "fast",
@@ -11384,24 +11752,9 @@
    ],
    "restart": false,
    "tab": "network",
-   "tip": "Bandwidth the server may use (rate).",
+   "tip": "Bandwidth a server may send you (your rate userinfo).",
    "type": "enum",
-   "wired": false
-  },
-  {
-   "default": 16,
-   "group": "Connection",
-   "key": "network/interp",
-   "label": "Interpolation",
-   "max": 100,
-   "min": 0,
-   "restart": false,
-   "step": 1,
-   "tab": "network",
-   "tip": "Delay before other players are drawn, which smooths their motion. Lower is sharper, higher is smoother.",
-   "type": "int",
-   "unit": "ms",
-   "wired": false
+   "wired": true
   },
   {
    "default": true,
@@ -11488,9 +11841,9 @@
    ],
    "restart": false,
    "tab": "accessibility",
-   "tip": "Shifts team and item colors. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Shifts the game's colors so the ones your eyes confuse stay apart (a daltonize filter over the 3D and the HUD).",
    "type": "enum",
-   "wired": false
+   "wired": true
   },
   {
    "default": false,
@@ -11499,9 +11852,9 @@
    "label": "Subtitles",
    "restart": false,
    "tab": "accessibility",
-   "tip": "Captions for the announcer and voice callouts. Stored now; takes effect once the Gameplay scene exists.",
+   "tip": "Captions for the announcer, bottom middle.",
    "type": "bool",
-   "wired": false
+   "wired": true
   },
   {
    "default": "medium",
@@ -11526,7 +11879,7 @@
    "tab": "accessibility",
    "tip": "Caption text size.",
    "type": "enum",
-   "wired": false
+   "wired": true
   },
   {
    "default": "Player",
@@ -11759,10 +12112,10 @@
   "audio/hit_sound": "classic",
   "audio/input_device": "Default",
   "audio/menu_ambient": false,
+  "audio/menu_music": true,
   "audio/mute_unfocused": true,
   "audio/output_device": "Default",
   "audio/spatial": true,
-  "audio/voice_mode": "push",
   "audio/vol_announcer": 100,
   "audio/vol_effects": 100,
   "audio/vol_master": 100,
@@ -11821,6 +12174,106 @@
   ],
   "controls/pad_deadzone": 0.15,
   "controls/pad_look": 3.0,
+  "controls/replay_back": [
+   "key:J",
+   "",
+   ""
+  ],
+  "controls/replay_bar": [
+   "key:B",
+   "",
+   ""
+  ],
+  "controls/replay_camera": [
+   "key:F",
+   "",
+   ""
+  ],
+  "controls/replay_export": [
+   "key:F9",
+   "",
+   ""
+  ],
+  "controls/replay_faster": [
+   "key:Equal",
+   "",
+   ""
+  ],
+  "controls/replay_forward": [
+   "key:L",
+   "",
+   ""
+  ],
+  "controls/replay_hud": [
+   "key:H",
+   "",
+   ""
+  ],
+  "controls/replay_mark_in": [
+   "key:Home",
+   "",
+   ""
+  ],
+  "controls/replay_mark_out": [
+   "key:End",
+   "",
+   ""
+  ],
+  "controls/replay_names": [
+   "key:N",
+   "",
+   ""
+  ],
+  "controls/replay_next_frag": [
+   "key:BracketRight",
+   "",
+   ""
+  ],
+  "controls/replay_next_player": [
+   "key:E",
+   "",
+   ""
+  ],
+  "controls/replay_outlines": [
+   "key:O",
+   "",
+   ""
+  ],
+  "controls/replay_play": [
+   "key:K",
+   "key:Pause",
+   ""
+  ],
+  "controls/replay_players": [
+   "key:P",
+   "",
+   ""
+  ],
+  "controls/replay_prev_frag": [
+   "key:BracketLeft",
+   "",
+   ""
+  ],
+  "controls/replay_prev_player": [
+   "key:Q",
+   "",
+   ""
+  ],
+  "controls/replay_slower": [
+   "key:Minus",
+   "",
+   ""
+  ],
+  "controls/replay_step_back": [
+   "key:Comma",
+   "",
+   ""
+  ],
+  "controls/replay_step_forward": [
+   "key:Period",
+   "",
+   ""
+  ],
   "controls/scores": [
    "key:Tab",
    "",
@@ -11831,7 +12284,7 @@
    "",
    ""
   ],
-  "controls/steam_input": "default",
+  "controls/stick_layout": "default",
   "controls/teamchat": [
    "key:Y",
    "",
@@ -11935,12 +12388,18 @@
   "crosshair/weapon_shotgun": "default",
   "gameplay/autoswitch": "better",
   "gameplay/bright_skins": false,
+  "gameplay/death_cam": true,
   "gameplay/draw_gun": "right",
   "gameplay/enemy_color": "#4dff33",
   "gameplay/force_model": "off",
-  "gameplay/gun_fov": 90.0,
+  "gameplay/gun_fov": 0.0,
+  "gameplay/gun_offset": 0.0,
+  "gameplay/gun_widescreen": true,
   "gameplay/intro": "first",
+  "gameplay/record_replays": true,
+  "gameplay/replays_kept": 50,
   "gameplay/spawn_effect": true,
+  "gameplay/spec_director": false,
   "gameplay/team_color": "#3399ff",
   "gameplay/tier_movies": true,
   "gameplay/view_bob": true,
@@ -11953,6 +12412,7 @@
   "graphics/effect_intensity": 1.0,
   "graphics/gi": "off",
   "graphics/gibs": true,
+  "graphics/heat_shimmer": true,
   "graphics/particles": "high",
   "graphics/preset": "high",
   "graphics/reflections": true,
@@ -11970,15 +12430,14 @@
   "hud/opacity": 1.0,
   "hud/preset": "modern",
   "hud/scale": 1.0,
+  "hud/show_speedometer": true,
   "hud/speedometer": "arc",
   "hud/team_chats_only": false,
   "mouse/acceleration": 0.0,
   "mouse/dpi": 800,
   "mouse/invert": false,
-  "mouse/raw_input": true,
   "mouse/sensitivity": 5.0,
   "mouse/zoom_sensitivity": 1.0,
-  "network/interp": 16,
   "network/max_ping": 120,
   "network/online": true,
   "network/online_server": "",

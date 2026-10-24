@@ -4,10 +4,11 @@
 // until the netcode and the hub's match directory are in. Training starts real setups.
 import { useState } from "react";
 import { motion } from "motion/react";
-import { useMenu, toast } from "@/lib/store";
+import { useMenu, toast, setValue } from "@/lib/store";
 import { send } from "@/lib/bridge";
 import { sfx } from "@/lib/sound";
 import { cn } from "@/lib/cn";
+import { shotSrc } from "@/lib/shot";
 import type { MatchSetup, Value } from "@/lib/types";
 import PagePanel, { EmptyState, SectionTitle } from "../PagePanel";
 import Button from "../controls/Button";
@@ -66,11 +67,14 @@ export function ServerBrowserPage({ back }: PageProps) {
   const modes = useMenu((s) => s.init?.modes ?? []);
   const regions = useMenu((s) => s.init?.schema.find((e) => e.key === "network/region")?.options ?? []);
   const [source, setSource] = useState<Value>("internet");
-  const [region, setRegion] = useState<Value>("auto");
+  // region and max ping are Settings > Network's, so a change here sticks
+  const region = useMenu((s) => s.values["network/region"] ?? "auto");
+  const ping = useMenu((s) => Number(s.values["network/max_ping"] ?? 120));
+  const setRegion = (v: Value) => setValue("network/region", v);
+  const setPing = (v: number) => setValue("network/max_ping", v);
   const [mode, setMode] = useState<Value>("any");
   const [full, setFull] = useState(true);
   const [empty, setEmpty] = useState(false);
-  const [ping, setPing] = useState(120);
   const cols = ["Server", "Map", "Mode", "Players", "Ping"];
   return (
     <PagePanel title="Server Browser" subtitle="Player-hosted matches and dedicated servers in one list, your region first, plus your LAN." back={back}>
@@ -131,7 +135,7 @@ export function TrainingPage({ back }: PageProps) {
               className="group relative min-h-[12rem] overflow-hidden rounded-sm border-2 border-transparent text-left focus:border-glow/70"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {shot && <img src={`/q3/${shot}`} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60 transition-all duration-500 group-focus:scale-105 group-focus:opacity-90" />}
+              {shot && <img src={shotSrc(shot)} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60 transition-all duration-500 group-focus:scale-105 group-focus:opacity-90" />}
               <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent" />
               <div className="relative p-6">
                 <div className="font-q3 text-[1.6rem] tracking-[0.05em] text-ink-hot">{t.name}</div>

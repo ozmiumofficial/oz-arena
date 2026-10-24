@@ -5,11 +5,18 @@ extends Node3D
 ## gets its own mesh.
 
 const CELL := 512.0
-const PATCH_TOLERANCE := 4.0     ## units a curve may stray from its triangles (r_subdivisions' default)
 
 var doc: Q3MapDoc
 var exclude := {}                ## id -> true: drawn elsewhere (the selection, see-through brushes)
+var show_backs := false          ## the editor: patch back faces drawn dim (Quake 3 culls them, so a
+								 ## curve seen from behind would vanish)
 var rebuilds := 0                ## cell rebuilds so far (tests, perf bench)
+var skip_kinds := {}             ## material kinds not drawn (play-test: {"hidden": true, "fog": true},
+								 ## the q3map tool shaders the game never draws)
+var only := {}                   ## when not empty, the only ids drawn (one brush model)
+var show_hidden := false         ## draw objects the editor hides too (a play-test: they're in the .bsp)
+var face_filter := Callable()    ## material -> true when the editor's view filters hide it (VIEW menu)
+var hide_patches := false        ## the Curves view filter
 
 var _cell_of := {}               ## brush id -> Vector3i
 var _cells := {}                 ## Vector3i -> {id: true}
@@ -26,6 +33,12 @@ func bind(d: Q3MapDoc) -> void:
 	doc = d
 	doc.changed.connect(_on_changed)
 	_rebuild_all()
+
+
+## Redraws everything (after the view filters change).
+func redraw_all() -> void:
+	if doc:
+		_rebuild_all()
 
 
 ## Redraws these objects at the next flush (after hide/show or a change in exclude).
@@ -90,7 +103,8 @@ func _touch(id: int) -> void:
 			_cells[key][id] = true
 			_dirty[key] = true
 		"patch":
-			if not doc.hidden.has(id) and not exclude.has(id):
+			var drawn: bool = (only.is_empty() or only.has(id)) and not hide_patches and not (face_filter.is_valid() and face_filter.call(o["material"]))
+			if drawn and (show_hidden or not doc.hidden.has(id)) and not exclude.has(id) and not skip_kinds.has(Q3MapMaterials.kind(o["material"])):
 				_patches[id] = _patch_node(o)
 
 
@@ -101,11 +115,18 @@ func _cell_key(b: Dictionary) -> Vector3i:
 	return Vector3i(floori((bb[0] + bb[3]) * 0.5 / CELL), floori((bb[1] + bb[4]) * 0.5 / CELL), floori((bb[2] + bb[5]) * 0.5 / CELL))
 
 
-func _slot(material: String) -> int:
-	if not _slots.has(material):
-		_slots[material] = _slot_names.size()
-		_slot_names.append(material)
-	return _slots[material]
+## One surface per material and tint (a tinted face uses a tinted copy of the material).
+func _slot(material: String, tint: Color) -> int:
+	var key := material if tint == Color.WHITE else material + "|" + tint.to_html(false)
+	if not _slots.has(key):
+		_slots[key] = _slot_names.size()
+		_slot_names.append(key)
+	return _slots[key]
+
+
+static func slot_material(key: String) -> Material:
+	var parts := key.split("|")
+	return Q3MapMaterials.material(parts[0], Color.html(parts[1]) if parts.size() > 1 else Color.WHITE)
 
 
 func _build_cell(key: Vector3i) -> void:
@@ -115,10 +136,8 @@ func _build_cell(key: Vector3i) -> void:
 	var uvs := PackedFloat64Array()
 	var sizes := PackedFloat64Array()
 	var slots := PackedInt32Array()
-	var colors := PackedColorArray()
-	var tinted := false
 	for id in _cells.get(key, {}):
-		if doc.hidden.has(id) or exclude.has(id):
+		if (doc.hidden.has(id) and not show_hidden) or exclude.has(id) or not (only.is_empty() or only.has(id)):
 			continue
 		var b := doc.get_obj(id)
 		var w := doc.windings(id)
@@ -126,15 +145,17 @@ func _build_cell(key: Vector3i) -> void:
 			if i >= w.size() or w[i].is_empty():
 				continue
 			var f: Dictionary = b["faces"][i]
+			if skip_kinds.size() and skip_kinds.has(Q3MapMaterials.kind(f["material"])):
+				continue
+			if face_filter.is_valid() and face_filter.call(f["material"]):
+				continue
 			var pl := Q3MapDoc.plane_of(b, i)
 			var sz := Q3MapMaterials.size(f["material"])
 			ws.append(w[i])
 			planes.append_array(pl)
 			uvs.append_array(Q3MapDoc.face_uv(f, pl))
 			sizes.append_array([sz.x, sz.y])
-			slots.append(_slot(f["material"]))
-			colors.append(f.get("color", Color.WHITE))
-			tinted = tinted or f.has("color")
+			slots.append(_slot(f["material"], f.get("color", Color.WHITE)))
 	var node: MeshInstance3D = _nodes.get(key)
 	if ws.is_empty():
 		if node:
@@ -143,11 +164,11 @@ func _build_cell(key: Vector3i) -> void:
 		if _cells.get(key, {}).is_empty():
 			_cells.erase(key)
 		return
-	var surfaces: Dictionary = Q3MapGeo.mesh_faces(ws, planes, uvs, sizes, slots, colors if tinted else PackedColorArray())
+	var surfaces: Dictionary = Q3MapGeo.mesh_faces(ws, planes, uvs, sizes, slots, PackedColorArray())
 	var mesh := ArrayMesh.new()
 	for slot in surfaces:
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surfaces[slot])
-		mesh.surface_set_material(mesh.get_surface_count() - 1, Q3MapMaterials.material(_slot_names[slot]))
+		mesh.surface_set_material(mesh.get_surface_count() - 1, slot_material(_slot_names[slot]))
 	if node == null:
 		node = MeshInstance3D.new()
 		node.name = "cell_%d_%d_%d" % [key.x, key.y, key.z]
@@ -157,15 +178,40 @@ func _build_cell(key: Vector3i) -> void:
 
 
 func _patch_node(p: Dictionary) -> MeshInstance3D:
-	var r: Dictionary = Q3MapGeo.patch_mesh(p["ctrl"], p["width"], p["height"], PATCH_TOLERANCE, p.get("color", Color.WHITE))
 	var node := MeshInstance3D.new()
 	node.name = "patch_%d" % p["id"]
-	var arrays: Array = r["arrays"]
-	if arrays[Mesh.ARRAY_VERTEX] != null:
-		var st := SurfaceTool.new()
-		st.create_from_arrays(arrays)
-		st.generate_tangents()
-		node.mesh = st.commit()
-		node.mesh.surface_set_material(0, Q3MapMaterials.material(p["material"]))
+	node.mesh = patch_mesh(doc.patch_tess(p["id"]), p["material"], p.get("color", Color.WHITE))
+	if show_backs and node.mesh:
+		var back := MeshInstance3D.new()
+		back.mesh = node.mesh
+		back.material_override = back_material()
+		back.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.add_child(back)
 	add_child(node)
 	return node
+
+
+static var _back: StandardMaterial3D
+
+## The back side of a one-sided surface: dark and see-through, only where the front isn't facing.
+static func back_material() -> StandardMaterial3D:
+	if _back == null:
+		_back = StandardMaterial3D.new()
+		_back.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_back.albedo_color = Color(0.55, 0.5, 0.48, 0.35)
+		_back.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_back.cull_mode = BaseMaterial3D.CULL_FRONT
+	return _back
+
+
+## A patch's tessellation as a mesh with tangents and its material (the overlay draws selected ones).
+static func patch_mesh(tess: Dictionary, material: String, tint := Color.WHITE) -> ArrayMesh:
+	var arrays: Array = tess["arrays"]
+	if arrays[Mesh.ARRAY_VERTEX] == null:
+		return null
+	var st := SurfaceTool.new()
+	st.create_from_arrays(arrays)
+	st.generate_tangents()
+	var mesh := st.commit()
+	mesh.surface_set_material(0, Q3MapMaterials.material(material, tint))
+	return mesh

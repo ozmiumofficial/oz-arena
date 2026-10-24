@@ -23,6 +23,7 @@ const PRESETS := {
 	"graphics/anisotropy": [2, 4, 16, 16],
 	"graphics/texture_quality": ["low", "medium", "high", "high"],
 	"graphics/particles": ["low", "medium", "high", "high"],
+	"graphics/heat_shimmer": [false, true, true, true],
 	"graphics/detail": ["low", "medium", "high", "high"],
 }
 const PRESET_NAMES := ["low", "medium", "high", "ultra"]
@@ -58,6 +59,26 @@ const BINDS := [
 	["voice", "Push to talk", ["key:V", "", ""]],
 	["screenshot", "Screenshot", ["key:F12", "", ""]],
 	["console", "Console", ["key:QuoteLeft", "", ""]],
+	["replay_play", "Play / pause", ["key:K", "key:Pause", ""]],
+	["replay_back", "Back 5 seconds", ["key:J", "", ""]],
+	["replay_forward", "Forward 5 seconds", ["key:L", "", ""]],
+	["replay_slower", "Slower", ["key:Minus", "", ""]],
+	["replay_faster", "Faster", ["key:Equal", "", ""]],
+	["replay_step_back", "Frame back", ["key:Comma", "", ""]],
+	["replay_step_forward", "Frame forward", ["key:Period", "", ""]],
+	["replay_prev_frag", "Previous frag", ["key:BracketLeft", "", ""]],
+	["replay_next_frag", "Next frag", ["key:BracketRight", "", ""]],
+	["replay_camera", "Next camera", ["key:F", "", ""]],
+	["replay_prev_player", "Previous player", ["key:Q", "", ""]],
+	["replay_next_player", "Next player", ["key:E", "", ""]],
+	["replay_players", "Player list", ["key:P", "", ""]],
+	["replay_hud", "HUD on / off", ["key:H", "", ""]],
+	["replay_names", "Name tags", ["key:N", "", ""]],
+	["replay_outlines", "Outlines", ["key:O", "", ""]],
+	["replay_bar", "Hide the controls", ["key:B", "", ""]],
+	["replay_mark_in", "Clip start", ["key:Home", "", ""]],
+	["replay_mark_out", "Clip end", ["key:End", "", ""]],
+	["replay_export", "Export the clip", ["key:F9", "", ""]],
 ]
 const WEAPONS := [["gauntlet", "Gauntlet"], ["machinegun", "Machine gun"], ["shotgun", "Shotgun"],
 	["grenadel", "Grenade launcher"], ["rocketl", "Rocket launcher"], ["lightning", "Lightning gun"],
@@ -75,7 +96,6 @@ static func build() -> Array:
 	var L: Array = []
 	var off := [["off", "Off"], ["low", "Low"], ["medium", "Medium"], ["high", "High"]]
 	var lmh := [["low", "Low"], ["medium", "Medium"], ["high", "High"]]
-	var game := "Stored now; takes effect once the Gameplay scene exists."
 
 	# ---- Video
 	var g := "Display"
@@ -89,7 +109,7 @@ static func build() -> Array:
 	L.append(_e("video/max_fps", "Frame cap", "int", 0, "Maximum frames per second. 0 = uncapped. Physics runs at its own fixed rate, so the cap never changes movement (no 125 fps jump quirk).", g,
 		{"min": 0, "max": 1000, "step": 5, "unit": "fps"}))
 	g = "View"
-	L.append(_e("video/fov", "Field of view", "float", 90.0, "Horizontal degrees at 4:3, like Quake 3's cg_fov. Wider screens see more at the sides (Hor+), so it's correct at any aspect. " + game, g,
+	L.append(_e("video/fov", "Field of view", "float", 90.0, "Horizontal degrees at 4:3, like Quake 3's cg_fov. Wider screens see more at the sides (Hor+), so it's correct at any aspect.", g,
 		{"min": 60.0, "max": 130.0, "step": 1.0, "unit": "deg"}))
 	g = "Rendering"
 	L.append(_e("video/render_scale", "Render scale", "float", 1.0, "3D resolution relative to the window. The menu and HUD always render at full resolution.", g,
@@ -120,26 +140,26 @@ static func build() -> Array:
 	L.append(_e("graphics/detail", "Model detail", "enum", "high", "How soon distant models switch to simpler meshes.", g, {"options": lmh}))
 	g = "Effects"
 	L.append(_e("graphics/particles", "Particles", "enum", "high", "Amount of smoke, sparks and embers.", g, {"options": lmh}))
-	L.append(_e("graphics/effect_intensity", "Effect intensity", "float", 1.0, "Brightness of explosions and weapon effects. " + game, g, {"min": 0.25, "max": 1.0, "step": 0.05, "unit": "x", "wired": false}))
-	L.append(_e("graphics/decals", "Marks and decals", "bool", true, "Bullet holes, burns and blood on walls. " + game, g))
-	L.append(_e("graphics/gibs", "Gibs", "bool", true, "Bodies burst into gibs on big hits (cg_gibs). " + game, g, {"wired": false}))
+	L.append(_e("graphics/effect_intensity", "Effect intensity", "float", 1.0, "Brightness of explosions, beams, flashes and their lights.", g, {"min": 0.25, "max": 1.0, "step": 0.05, "unit": "x"}))
+	L.append(_e("graphics/heat_shimmer", "Heat shimmer", "bool", true, "Air ripples behind rockets and around explosions.", g))
+	L.append(_e("graphics/decals", "Marks and decals", "bool", true, "Bullet holes, burns and blood on walls.", g))
+	L.append(_e("graphics/gibs", "Gibs", "bool", true, "Bodies burst into gibs on big hits (cg_gibs). Off: they burn away instead.", g))
 
 	# ---- Audio
 	g = "Volume"
 	for b in [["master", "Master"], ["music", "Music"], ["effects", "Effects"], ["voice", "Voice chat"], ["announcer", "Announcer"], ["ui", "Menu sounds"]]:
 		L.append(_e("audio/vol_" + b[0], b[1], "int", 80 if b[0] == "music" else 100, "%s volume." % b[1], g, {"min": 0, "max": 100, "step": 1, "unit": "%"}))
+	L.append(_e("audio/menu_music", "Menu music", "bool", true, "Quake 3's soundtrack, shuffled, in the main menu.", g))
 	L.append(_e("audio/menu_ambient", "Menu ambience", "bool", false, "A quiet ambient drone in the menu. Quake 3's menu had no music, so it's off by default.", g))
 	L.append(_e("audio/mute_unfocused", "Mute when in background", "bool", true, "Silence the game while its window isn't focused.", g))
 	g = "Devices"
 	L.append(_e("audio/output_device", "Output device", "enum", "Default", "Where sound plays.", g, {"options": [["Default", "Default"]], "dynamic": "output_devices"}))
 	L.append(_e("audio/input_device", "Voice chat device", "enum", "Default", "Microphone for voice chat.", g, {"options": [["Default", "Default"]], "dynamic": "input_devices"}))
-	L.append(_e("audio/voice_mode", "Voice chat", "enum", "push", "Push to talk uses the Push to talk bind. " + "Voice chat comes with Steam.", g,
-		{"options": [["off", "Off"], ["push", "Push to talk"], ["open", "Open mic"]], "wired": false}))
 	g = "Game sounds"
-	L.append(_e("audio/hit_sound", "Hit sound", "enum", "classic", "The beep when you hit an enemy. " + game, g,
-		{"options": [["off", "Off"], ["classic", "Quake 3 classic"], ["pitch", "Pitch by damage"]], "wired": false}))
-	L.append(_e("audio/spatial", "Spatial audio (HRTF)", "bool", true, "3D positional sound for headphones. " + game, g, {"wired": false}))
-	L.append(_e("audio/announcer", "Announcer", "bool", true, "\"Excellent!\", \"Impressive!\", lead changes. " + game, g, {"wired": false}))
+	L.append(_e("audio/hit_sound", "Hit sound", "enum", "classic", "The beep when you hit an enemy. Pitch by damage beeps higher for small hits and lower for big ones.", g,
+		{"options": [["off", "Off"], ["classic", "Quake 3 classic"], ["pitch", "Pitch by damage"]]}))
+	L.append(_e("audio/spatial", "Spatial audio", "bool", true, "Distant sounds are muffled and placed more sharply left and right. Off is Quake 3's plain stereo panning.", g))
+	L.append(_e("audio/announcer", "Announcer", "bool", true, "The voice: \"Excellent!\", \"Impressive!\", lead changes, warnings, the countdown and \"Fight!\".", g))
 
 	# ---- Controls
 	g = "Movement"
@@ -148,25 +168,26 @@ static func build() -> Array:
 			g = "Weapons"
 		elif b[0] == "use_item":
 			g = "Actions"
+		elif b[0] == "replay_play":
+			g = "Replays"
 		L.append(_e("controls/" + b[0], b[1], "bind", b[2], "Binds for %s: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button." % b[1].to_lower(), g))
 	g = "Options"
-	L.append(_e("controls/toggle_crouch", "Toggle crouch", "bool", false, "Tap to crouch instead of holding. " + game, g, {"wired": false}))
-	L.append(_e("controls/toggle_zoom", "Toggle zoom", "bool", false, "Tap to zoom instead of holding. " + game, g, {}))
+	L.append(_e("controls/toggle_crouch", "Toggle crouch", "bool", false, "Tap to crouch instead of holding.", g, {}))
+	L.append(_e("controls/toggle_zoom", "Toggle zoom", "bool", false, "Tap to zoom instead of holding.", g, {}))
 	L.append(_e("controls/pad_deadzone", "Stick deadzone", "float", 0.15, "Controller stick deadzone, menus included.", g, {"min": 0.0, "max": 0.5, "step": 0.01}))
-	L.append(_e("controls/pad_look", "Stick look speed", "float", 3.0, "Controller look speed in turns per second at full tilt. " + game, g, {"min": 0.5, "max": 8.0, "step": 0.1, "wired": false}))
-	L.append(_e("controls/steam_input", "Steam Input layout", "enum", "default", "Community controller layouts through Steam Input. Comes with Steam.", g,
-		{"options": [["default", "Default"], ["community", "Community layout"]], "wired": false}))
+	L.append(_e("controls/pad_look", "Stick look speed", "float", 3.0, "Controller look speed at full tilt, in turns per second.", g, {"min": 0.5, "max": 8.0, "step": 0.1}))
+	L.append(_e("controls/stick_layout", "Stick layout", "enum", "default", "Which controller stick moves and which looks.", g,
+		{"options": [["default", "Left moves, right looks"], ["southpaw", "Southpaw: left looks, right moves"]]}))
 
 	# ---- Mouse
 	g = "Sensitivity"
-	L.append(_e("mouse/sensitivity", "Sensitivity", "float", 5.0, "Quake 3 units: degrees per count = sensitivity x 0.022 (m_yaw). The cm/360 below is the distance for a full turn. " + game, g,
-		{"min": 0.1, "max": 30.0, "step": 0.05, "wired": false}))
+	L.append(_e("mouse/sensitivity", "Sensitivity", "float", 5.0, "Quake 3 units: degrees per count = sensitivity x 0.022 (m_yaw). The cm/360 below is the distance for a full turn.", g,
+		{"min": 0.1, "max": 30.0, "step": 0.05}))
 	L.append(_e("mouse/dpi", "Mouse DPI", "int", 800, "Your mouse's DPI (counts per inch). Only used to show cm/360.", g, {"min": 100, "max": 32000, "step": 50}))
-	L.append(_e("mouse/zoom_sensitivity", "Zoom sensitivity", "float", 1.0, "Multiplier while zoomed. " + game, g, {"min": 0.1, "max": 2.0, "step": 0.05, "unit": "x"}))
+	L.append(_e("mouse/zoom_sensitivity", "Zoom sensitivity", "float", 1.0, "Multiplier while zoomed.", g, {"min": 0.1, "max": 2.0, "step": 0.05, "unit": "x"}))
 	g = "Input"
-	L.append(_e("mouse/raw_input", "Raw input", "bool", true, "Read the mouse directly, skipping Windows pointer speed and acceleration. " + game, g, {"wired": false}))
-	L.append(_e("mouse/acceleration", "Acceleration", "float", 0.0, "Quake 3's cl_mouseAccel. 0 = off. " + game, g, {"min": 0.0, "max": 1.0, "step": 0.01, "wired": false}))
-	L.append(_e("mouse/invert", "Invert vertical", "bool", false, "Mouse up looks down. " + game, g, {}))
+	L.append(_e("mouse/acceleration", "Acceleration", "float", 0.0, "Quake 3's cl_mouseAccel: faster swipes turn further. 0 = off. Mouse look always reads the mouse raw, without Windows' pointer speed.", g, {"min": 0.0, "max": 1.0, "step": 0.01}))
+	L.append(_e("mouse/invert", "Invert vertical", "bool", false, "Mouse up looks down.", g, {}))
 
 	# ---- Crosshair
 	g = "Shape"
@@ -193,13 +214,14 @@ static func build() -> Array:
 	L.append(_e("hud/scale", "HUD scale", "float", 1.0, "Size of the HUD.", g, {"min": 0.5, "max": 2.0, "step": 0.05, "unit": "x"}))
 	L.append(_e("hud/opacity", "HUD opacity", "float", 1.0, "Transparency of the HUD.", g, {"min": 0.2, "max": 1.0, "step": 0.05, "unit": "x"}))
 	g = "Elements"
-	L.append(_e("hud/speedometer", "Speedometer", "enum", "arc", "Your speed in units per second, with the strafe-jump readout (speed at each takeoff and the gain on the last).", g,
-		{"options": [["arc", "Arc gauge"], ["compact", "Compact"], ["off", "Off"]]}))
-	L.append(_e("hud/item_timers", "Item timers", "bool", false, "Respawn timers for major items, where the mode allows them.", g, {"wired": false}))
+	L.append(_e("hud/show_speedometer", "Speedometer", "bool", true, "Your speed in units per second, with the strafe-jump readout (speed at each takeoff and the gain on the last).", g, {}))
+	L.append(_e("hud/speedometer", "Speedometer style", "enum", "arc", "Arc gauge or a compact bar. The Competitive and Quake 3 classic presets always use the compact bar.", g,
+		{"options": [["arc", "Arc gauge"], ["compact", "Compact"]]}))
+	L.append(_e("hud/item_timers", "Item timers", "bool", false, "Countdowns for the armors, Mega Health and powerups once they're taken, left of the screen.", g, {}))
 	L.append(_e("hud/damage_numbers", "Damage numbers", "bool", true, "Damage dealt floats over the target.", g, {}))
 	L.append(_e("hud/kill_feed", "Kill feed", "bool", true, "Who killed whom, top right.", g, {}))
 	L.append(_e("hud/ammo_bar", "Ammo bar", "bool", true, "Ammo for every weapon along the bottom.", g, {}))
-	L.append(_e("hud/net_graph", "Net graph", "bool", false, "Latency, loss and jitter overlay.", g, {"wired": false}))
+	L.append(_e("hud/net_graph", "Net graph", "bool", false, "Quake 3's lagometer, bottom right: frame timing above, snapshot ping below, with ping and frame time.", g, {}))
 	L.append(_e("hud/fps", "Show FPS", "bool", false, "Frame rate counter.", g, {}))
 	g = "Chat"
 	L.append(_e("hud/chat_time", "Chat time", "int", 10, "How long chat lines stay on screen. The chat key shows the recent history.", g,
@@ -212,31 +234,37 @@ static func build() -> Array:
 	L.append(_e("gameplay/autoswitch", "Switch on pickup", "enum", "better", "Switch to a weapon you pick up (cg_autoswitch).", g,
 		{"options": [["never", "Never"], ["better", "If better"], ["always", "Always"]]}))
 	L.append(_e("gameplay/draw_gun", "Gun position", "enum", "right", "Where your gun is drawn (cg_drawGun).", g,
-		{"options": [["right", "Right"], ["center", "Center"], ["left", "Left"], ["hidden", "Hidden"]], "wired": false}))
-	L.append(_e("gameplay/gun_fov", "Gun field of view", "float", 90.0, "Field of view of the gun model only.", g, {"min": 54.0, "max": 120.0, "step": 1.0, "unit": "deg", "wired": false}))
+		{"options": [["right", "Right"], ["center", "Center"], ["left", "Left"], ["hidden", "Hidden"]]}))
+	L.append(_e("gameplay/gun_fov", "Gun field of view", "float", 0.0, "Field of view the gun is drawn at. 0 draws it at your Field of view, as Quake 3 does.", g, {"min": 0.0, "max": 120.0, "step": 1.0, "unit": "deg"}))
+	L.append(_e("gameplay/gun_widescreen", "Widescreen gun placement", "bool", true, "Keep the gun as far toward the edge as Quake 3 drew it on a 4:3 screen. Off draws it where a wide screen puts it, nearer the middle.", g, {}))
+	L.append(_e("gameplay/gun_offset", "Gun side offset", "float", 0.0, "Moves the gun sideways (cg_gunY): toward the edge its side is on, or back toward the middle.", g, {"min": -10.0, "max": 10.0, "step": 0.5, "unit": "units"}))
 	L.append(_e("gameplay/view_bob", "View bob", "bool", true, "The view bobs as you run (cg_bobup/cg_bobpitch).", g, {}))
 	g = "Players"
 	L.append(_e("gameplay/force_model", "Force enemy model", "enum", "off", "Show every enemy as one model (cg_forceModel).", g,
-		{"options": [["off", "Off"]], "dynamic": "characters", "wired": false}))
-	L.append(_e("gameplay/bright_skins", "Bright skins", "bool", false, "Flat bright enemy colors for visibility.", g, {"wired": false}))
-	L.append(_e("gameplay/enemy_color", "Enemy color", "color", Color(0.3, 1.0, 0.2), "Bright skin color for enemies.", g, {"wired": false}))
-	L.append(_e("gameplay/team_color", "Team color", "color", Color(0.2, 0.6, 1.0), "Bright skin color for teammates.", g, {"wired": false}))
+		{"options": [["off", "Off"]], "dynamic": "characters"}))
+	L.append(_e("gameplay/bright_skins", "Bright skins", "bool", false, "Players drawn in one flat bright color: enemies in Enemy color, teammates in Team color.", g))
+	L.append(_e("gameplay/enemy_color", "Enemy color", "color", Color(0.3, 1.0, 0.2), "Bright skin color for enemies.", g))
+	L.append(_e("gameplay/team_color", "Team color", "color", Color(0.2, 0.6, 1.0), "Bright skin color for teammates.", g))
+	L.append(_e("gameplay/spawn_effect", "Spawn effects", "bool", true, "Teleport flash when players spawn and teleport.", g))
 	g = "Cinematics"
 	L.append(_e("gameplay/intro", "Intro movie", "enum", "first", "Quake 3's id logo and intro when the game starts.", g,
 		{"options": [["first", "First launch only"], ["always", "Every launch"], ["never", "Never"]]}))
-	L.append(_e("gameplay/tier_movies", "Tier movies", "bool", true, "Play Quake 3's tier movie when you finish a campaign tier. " + game, g, {"wired": false}))
-	g = "Players"
-	L.append(_e("gameplay/spawn_effect", "Spawn effects", "bool", true, "Teleport flash when players spawn.", g, {"wired": false}))
+	L.append(_e("gameplay/tier_movies", "Tier movies", "bool", true, "Play Quake 3's tier movie when you finish a campaign tier.", g))
+	g = "Replays"
+	L.append(_e("gameplay/record_replays", "Record replays", "bool", true, "Record every match you play: the whole match, every player, watchable from any view (Play > Replays).", g))
+	L.append(_e("gameplay/replays_kept", "Replays kept", "int", 50, "How many recent replays stay. Older ones are deleted, except favorites, which stay forever.", g, {"min": 5, "max": 500, "step": 5}))
+	g = "Death cam"
+	L.append(_e("gameplay/death_cam", "Death cam", "bool", true, "While you're dead the camera follows your body, then shows who killed you with their player card. Respawning works as in Quake 3.", g))
+	g = "Spectating"
+	L.append(_e("gameplay/spec_director", "Auto-director", "bool", false, "While you spectate, the camera follows the action by itself: a flag carrier, whoever just fragged, the closest fight. Gesture turns it on and off.", g))
 
 	# ---- Network
 	g = "Connection"
-	L.append(_e("network/region", "Region", "enum", "auto", "Matchmaking region. Automatic finds matches in your closest region first and widens if the wait runs long; a named region stays strict.", g,
-		{"options": [["auto", "Automatic"], ["na_east", "North America East"], ["na_west", "North America West"], ["eu", "Europe"], ["sa", "South America"], ["asia", "Asia"], ["oce", "Oceania"], ["meaf", "Middle East and Africa"]], "wired": false}))
-	L.append(_e("network/max_ping", "Max ping", "int", 120, "Hide servers and matches above this ping.", g, {"min": 20, "max": 400, "step": 10, "unit": "ms", "wired": false}))
-	L.append(_e("network/rate", "Connection speed", "enum", "fast", "Bandwidth the server may use (rate).", g,
-		{"options": [["slow", "Slow (25 KB/s)"], ["medium", "Medium (50 KB/s)"], ["fast", "Fast (100 KB/s)"], ["lan", "LAN (unlimited)"]], "wired": false}))
-	L.append(_e("network/interp", "Interpolation", "int", 16, "Delay before other players are drawn, which smooths their motion. Lower is sharper, higher is smoother.", g,
-		{"min": 0, "max": 100, "step": 1, "unit": "ms", "wired": false}))
+	L.append(_e("network/region", "Region", "enum", "auto", "Matchmaking region, and the Server Browser's first choice. Automatic finds matches in your closest region first and widens if the wait runs long; a named region stays strict.", g,
+		{"options": [["auto", "Automatic"], ["na_east", "North America East"], ["na_west", "North America West"], ["eu", "Europe"], ["sa", "South America"], ["asia", "Asia"], ["oce", "Oceania"], ["meaf", "Middle East and Africa"]]}))
+	L.append(_e("network/max_ping", "Max ping", "int", 120, "Hide servers and matches above this ping (the Server Browser's filter).", g, {"min": 20, "max": 400, "step": 10, "unit": "ms"}))
+	L.append(_e("network/rate", "Connection speed", "enum", "fast", "Bandwidth a server may send you (your rate userinfo).", g,
+		{"options": [["slow", "Slow (25 KB/s)"], ["medium", "Medium (50 KB/s)"], ["fast", "Fast (100 KB/s)"], ["lan", "LAN (unlimited)"]]}))
 	g = "Online"
 	L.append(_e("network/online", "Online services", "bool", true, "Friends, parties and presence. Off keeps you offline.", g))
 	L.append(_e("network/online_server", "Online server", "string", "", "Leave empty for the default. A local test server is ws://127.0.0.1:8787.", g, {"max": 200}))
@@ -246,11 +274,11 @@ static func build() -> Array:
 	L.append(_e("accessibility/ui_scale", "Menu and text size", "float", 1.0, "Size of the menu, text and HUD.", g, {"min": 0.75, "max": 1.5, "step": 0.05, "unit": "x"}))
 	L.append(_e("accessibility/high_contrast", "High-contrast menus", "bool", false, "Solid backgrounds and brighter text in menus.", g))
 	L.append(_e("accessibility/reduced_flashing", "Reduced flashing", "bool", false, "Calms pulsing, embers, muzzle flashes and screen flashes.", g))
-	L.append(_e("accessibility/colorblind", "Colorblind mode", "enum", "off", "Shifts team and item colors. " + game, g,
-		{"options": [["off", "Off"], ["protanopia", "Protanopia"], ["deuteranopia", "Deuteranopia"], ["tritanopia", "Tritanopia"]], "wired": false}))
+	L.append(_e("accessibility/colorblind", "Colorblind mode", "enum", "off", "Shifts the game's colors so the ones your eyes confuse stay apart (a daltonize filter over the 3D and the HUD).", g,
+		{"options": [["off", "Off"], ["protanopia", "Protanopia"], ["deuteranopia", "Deuteranopia"], ["tritanopia", "Tritanopia"]]}))
 	g = "Captions"
-	L.append(_e("accessibility/subtitles", "Subtitles", "bool", false, "Captions for the announcer and voice callouts. " + game, g, {"wired": false}))
-	L.append(_e("accessibility/subtitle_size", "Subtitle size", "enum", "medium", "Caption text size.", g, {"options": lmh, "wired": false}))
+	L.append(_e("accessibility/subtitles", "Subtitles", "bool", false, "Captions for the announcer, bottom middle.", g))
+	L.append(_e("accessibility/subtitle_size", "Subtitle size", "enum", "medium", "Caption text size.", g, {"options": lmh}))
 
 	# ---- Profile (shown on the Profile page, not in Settings)
 	L.append(_e("profile/name", "Player name", "string", "Player", "Your name in matches.", "Profile", {"max": 32}))

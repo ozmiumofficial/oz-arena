@@ -1,6 +1,6 @@
 # Q3Remaster: context for Claude
 
-Ozmium is planning a complete modern remaster of Quake III Arena in Unity or Godot (engine not chosen). **Current stage: Map editor (approved 2026-10-23).** The asset pipeline, main menu and Gameplay scene (`GAMEPLAY_PLAN.md`) are built. The Map editor scene is being built in phases E0-E8 per `MAP_EDITOR_PLAN.md` (E0 kernel done). **Next after it:** replays, the replay viewer, spectator mode and killcam, phases R1-R9 per `REPLAY_PLAN.md` (approved 2026-10-23). **Last:** online multiplayer, phases M1-M8 per `MULTIPLAYER_PLAN.md` (Ozmium put it last, 2026-10-23). Read `PLAN.md` for phases and open decisions, and `DEVELOPMENT.md` for how the tools run. `README.md` is the player-facing feature page (the GitHub front page, with screenshots): keep it non-technical and only claim what's built.
+Ozmium is planning a complete modern remaster of Quake III Arena in Unity or Godot (engine not chosen). **Current stage: replays are done (R1-R9, 2026-10-23), after the map editor; online multiplayer is next, once Ozmium says go.** The asset pipeline, main menu and Gameplay scene (`GAMEPLAY_PLAN.md`) are built. The Map editor scene was built in phases E0-E8 per `MAP_EDITOR_PLAN.md` (all done: kernel, editing, faces/vertices/curves, materials/inspector, entities/lights/prefabs, compile/play-test, BSP/.map import and export, workflow/polish: filters, outliner, history, thumbnails, Publish; E8 tests and docs). **Then:** replays, the replay viewer, spectator mode and the death cam, phases R1-R9 per `REPLAY_PLAN.md` (all done 2026-10-23; no killcam, Ozmium 2026-10-23). **Last:** online multiplayer, phases M1-M9 per `MULTIPLAYER_PLAN.md` (M9: a map Workshop on Cloudflare R2, back in the plan 2026-10-23) (Ozmium put it last, 2026-10-23). A hype trailer is planned (`TRAILER_PLAN.md`): its flyover and still footage is recorded in retail Quake 3 and the remaster (2026-10-23); the rest waits for Ozmium's go, after replays. Read `PLAN.md` for phases and open decisions, and `DEVELOPMENT.md` for how the tools run. `README.md` is the player-facing feature page (the GitHub front page, with screenshots): keep it non-technical and only claim what's built.
 
 **Direction (2026-10-22):**
 - Fully open source.
@@ -57,6 +57,11 @@ python tools/build_library.py [--skip-props]       # props, fx, catalog, Godot p
 python tools/build_cards.py extracted/baseq3 work/_cards [--no-render]   # player card catalog + art
 python tools/make_music.py                          # Quake 3's soundtrack -> godot/library/music (Ogg)
 python tools/export_game.py                         # Windows build -> build/windows (Q3Remaster.exe map=q3dm17 bots=3 skips the menu)
+python tools/trailer/q3cam/build.py                 # trailer: the q3cam camera mod for retail Quake 3 -> work/trailer/q3cam/pak0.pk3
+python tools/trailer/cam_path.py check --all        # trailer: camera paths against the maps' walls
+python tools/trailer/capture_q3.py <path> | --all  # trailer: record paths in retail Quake 3 -> work/trailer/retail
+python tools/trailer/capture_remaster.py <path> | --all  # trailer: the same paths in the remaster -> work/trailer/remaster
+python tools/trailer/compare.py --all               # trailer: each pair split and blended -> work/trailer/compare
 ```
 
 Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `viewer/` (web viewer: serve with `python -m http.server`), and the reports. Per-model overrides go in `tools/models.json`.
@@ -76,6 +81,7 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
   - The scene importer's name suffixes (`nodes/use_name_suffixes`) strip `_alpha` / `_vcol` from material names and turn on transparency or vertex color. `q3_post_import._shader_name()` puts the suffix back from those flags; before it did, `textures/base_wall/atech1_alpha` missed and the tech columns in q3tourney1/2/6 drew the gray `missing` fallback (2026-10-23).
 - **3D texture flags:** Godot imports every new texture as 2D (no mipmaps, uncompressed) and switches it only when a 3D material first uses it in the editor. That switch is a reimport inside another import, which prints "Task 'reimport' already exists" or a page of `progress_dialog.cpp` errors ("while flushing the message queue"). Textures never opened in the editor also shipped without mipmaps (806 of them, 2026-10-23). `tools/flag_3d_textures.py` (in `build_library.py` after the first import) flags them up front as Godot would; run it after adding 3D textures any other way.
 - **Material modes:** names carry `__add` / `__mask` / `__blend` / `__2s`. Additive materials swap the emission texture into albedo and render unshaded with additive blending.
+- **Additive materials need `fog_disabled`** (shaders) or `disable_fog` (StandardMaterial3D): Godot blends volumetric fog into transparent surfaces, and on an additive quad that adds the haze color over the whole square. q3dm6's wall-lamp flares showed as fog-colored boxes until 2026-10-23.
 - **Character clips:** every glTF clip keys every bone, so `Q3Character` filters torso bone paths in a Blend2. Restarting clips uses TimeSeek nodes.
 - **Effects:** all built at runtime by `Q3FX` from `fx.json`; nothing is pre-baked as scenes.
 - **World shaders:** they include `world_surface.gdshaderinc`. Variants exist because render modes can't be uniforms (opaque, opaque two-sided, blend, blend two-sided, add, add_lit). Godot front faces are clockwise as the camera sees them, so hand-built meshes need indices 0,2,1 / 0,3,2 for a camera-facing quad.
@@ -86,6 +92,13 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
   - `world_add_lit`: add stages followed by a `$lightmap` filter stage, lit so the lightmap dims them.
   - Two-sided shaders light back faces with the front normal. The lightmaps are directional, so a flipped normal read them black (q3dm0's tank frame).
   - These flags come from `q3shader.describe` through `build_world.py` and `make_godot_world.py`. On 2026-10-22 the existing `.tres` files were patched directly rather than regenerated under the open editor.
+  - **Fixed 2026-10-23** (seen in trailer footage), each through the pipeline, with the live `.tres` files patched to match:
+    - An additive shader's base layer is texture kind `additive` (`build_world.py`): upscaled like a glow layer and written as `_albedo`. The ordinary tile path had lifted its black to about 5/255 (edges up to 246), and every glow, beam and teleporter ring drew as a faint square.
+    - An opaque first stage makes the surface opaque even when a later additive stage is named like the shader (`chrome_metal` had turned see-through, leaving a hole in q3tourney4's console pillar).
+    - `glow_lit`: added stages before the `$lightmap` filter are lit paint, added to the albedo, not glow.
+    - The additive shaders add every stage at the same weight (glow layers had been scaled by `emission_energy`, 0.3 for console03), and `world_add_lit` draws its glow layers (red_telep's second ring was missing).
+    - `deformVertexes` wave, move and bulge (`shaders/q3_deform.gdshaderinc`, uniforms from `q3shader.deform_uniforms`) in the world shaders and the props' `q3_stages` shaders: banners, the CTF flags and the armor's energy shell move. `normal` (lighting shimmer) is left out.
+  - **Regenerating world materials:** 88 live `.tres` differ from what `make_godot_world.py` writes today (older hand patches). So regenerate into a scratch `--godot` folder and copy or patch only the materials meant to change. `make_pbr.py --only` overwrites `pbr_report.json` with just those stems; merge it back.
 - **Exporting (`tools/export_game.py`):**
   - It's a debug export, because q3core has only a template_debug library. The `.pck` is separate (3.7 GB).
   - The game module goes to `<exe dir>/q3core/baseq3`. `Q3Host.bin_path()` looks there whenever the `editor` feature is absent.
@@ -97,6 +110,7 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
 - **Sky panoramas** use `u = atan(dir.x, dir.z)/TAU + 0.5, v = acos(dir.y)/PI` (sky_panorama.gdshader). The faces follow tr_sky.c's st_to_vec table: rt=+X, lf=-X, bk=+Y, ft=-Y, up/dn in id axes, mapped to Godot with x_q=Z, y_q=X, z_q=Y.
 - **make_pbr world kinds:**
   - `tile`: wrap-padded, then cropped. The padding variable is `pad`, because `P` is the params dict.
+    - Tiles get gentler settings than models (2026-10-23): a light denoise before the upscale and a mild sharpen, bumps from smoothed brightness at half strength, edge wear at 0.3. The model settings posterized grain into leopard-print blobs and gave floors about 30° bumps that crawled like worms under the lightmaps.
   - `glow`
   - `sky`
 
@@ -125,6 +139,7 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
   - Edits to a `class_name` script on disk aren't seen by the running editor until it reloads; `bake_maps.gd rebuild()` reloads `Q3MapBuilder` itself.
 - **Weapon attachment:** the rig's `weapon` and `head` bones keep only the tag's position and forward axis; their roll is whatever Blender chose. `rig.json` "tags" (`tools/rig_extras.py`) carries the full `tag_weapon` frame, and `Q3Character.attach(prop)` uses it.
 - **Aim pitch:** `Q3Character.aim_pitch` (id degrees, positive looks down) drives an `Aim` SkeletonModifier3D, following CG_PlayerAngles. The torso's first bone takes 0.75 of the pitch, swinging after it; the head bone takes the rest. `tests/aim_test.tscn` shows three bodies side on.
+- **Gun placement (Ozmium, 2026-10-23: "too distracting" near the center):** Quake 3 framed the gun for 4:3, so on a wide screen it sat almost in the middle. Gameplay > Widescreen gun placement (on by default) scales its camera-space x by aspect / (4/3); Gun side offset is cg_gunY. Check with `tests/weapon_fx.tscn -- out=... window=3440x1440` (the out folder must exist).
 - **View weapon:** every gun is made once at match start (`_register_guns`). The hand pose eases into each torso animation over one frame time (CG_RunLerpFrame's initialLerp); `tests/weapon_switch_test.tscn` checks for snaps.
 - **Ragdolls:**
   - Capsules are sized from the skinned mesh around each bone (`_mesh_radii`, cached per model), so limbs rest on the floor instead of sinking.
@@ -136,6 +151,7 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
   - `tests/pickup_events.tscn` checks pickups against the log's `Item:` lines.
 - **Pickup effect (remaster only):** when an item leaves the snapshot within 0.5 s and 2.5 m of a pickup event, `Q3Pickup.collect()` swells and shrinks it, and `Q3FX.pickup` bursts in the item's color. See `tests/pickup_fx_test.tscn`.
 - **Music:** `Q3Music` plays CS_MUSIC (intro once, then the loop) on the Music bus, 10 dB under effects. The campaign postgame plays win or loss. See `tests/music_test.tscn`.
+- **Menu music (remaster only, 2026-10-23):** `Q3MenuMusic` (`scripts/ui/q3_menu_music.gd`, made by `main_menu.gd`) shuffles the 12 songs (an intro and its loop are one song; win and loss stay out), each heard once per round; the order is static, so a match doesn't restart it. Setting `audio/menu_music` (on) reaches it through the `menu_music` group; it pauses under cinematics. See `tests/menu_music_test.tscn` (headless, 9 checks).
 - **Levelshots:**
   - `tests/levelshots.tscn` renders 1280x960 shots from each remastered map's intermission point, with items placed, into `work/_levelshots`.
   - `make_ui.py` and `build_cards.py` prefer those over id's 128 px originals. q3tourney5 is shot without its fog.
@@ -187,6 +203,7 @@ ode_modules`.
   - Workers refuse non-handler exports from the entry module ("Incorrect type for map entry"), so constants stay unexported.
   - Settings save on a timer, so a test that changes one must call `Settings.save()` before quitting. Otherwise the change sticks and the reset is lost (the online test once left `network/online_server` pointing at localhost).
   - Names travel URI-encoded in `x-name`.
+  - **Hostname lookups crash Godot's exit (2026-10-23):** a `WebSocketPeer` closed or freed while its host is still resolving never erases its IP queue item (WSLPeer::close skips `resolver.stop()`). Two items still waiting at exit crash the resolver thread inside `IP::~IP` (0xC0000005, no stderr, no dump). One unresolvable lookup only delays the exit about 3 s. `Q3OnlineClient` therefore resolves the host itself, erases its lookup on close and on free, and calls `connect_to_url` only once the host is in IP's cache. Any new `WebSocketPeer` user has to do the same.
   - The menu lifts Quake 3's `^0` and `^4` colors, which vanish on the dark glass.
   - A hidden Browser pane pauses Motion animations, so the dev preview looks blank until the pane is shown.
 
@@ -253,6 +270,11 @@ ode_modules`.
   - While typing, the usercmd is BUTTON_TALK only; usercmd actions held when the chat closes are ignored until let go (`Gameplay._held`), so the Enter that sent a line isn't Use item.
   - `Q3Colors` follows id 1.32's Q_IsColorString (`^` + any non-`^`), not ioquake3's alnum-only one; ^0 and ^4 are lifted as in the web menu. Standings rows carry `name` (with codes) and `plain` (for logic: bot cards, the announcer's `<name>_wins`).
   - Check with `tests/chat_test.tscn` (headless, 19 checks) and `tests/chat_capture.tscn` (windowed shots).
+- **Anisotropic filtering** must be set on the viewport (`Viewport.anisotropic_filtering_level`): Godot reads the project setting only at startup, so the menu's 16x silently stayed at the 4x default until 2026-10-23.
+- **Settings are all wired (2026-10-23):** no schema entry has `wired: false`; `tests/settings_wiring_test.tscn` (headless, 31 checks) fails if one comes back.
+  - Game sounds play on the `Effects` bus and the announcer on `Announcer` (`default_bus_layout.tres`). Before, everything asked for an `SFX` bus that never existed and fell back to Master, so those volume sliders did nothing in a match.
+  - Item timers read `Q3Server.items()`: each map item's taken flag and gentity `nextthink`, found through `offsetof` in `src/engine/q3_game_layout.c` (compiled from the same patched `g_local.h` as qagame).
+  - Gun field of view scales the view gun's camera-space x and y by tan(view/2) / tan(gun/2), which is exactly that fov's projection.
 - **Holding fire from the spawn never shoots** (bg_pmove.c `PMF_RESPAWNED`); test scripts press it after spawning. Headless runs need `gameplay.test_input = true`, because firing needs a captured mouse.
 - **Physics is Jolt** (`physics/3d/physics_engine`); only ragdolls, gibs and brass use it.
   - Ragdoll bodies come only from the rig's main parts by name (`RAGDOLL_PARTS` in `q3_character.gd`), with per-part masses and limits; knees are hinges.
@@ -284,6 +306,7 @@ ode_modules`.
   - In Godot that is `E = photons / 255 / 32²` (`LIGHT_SCALE` 1.0), plus `q3map_sun` as a directional light and the sky's surfacelight as the bake's sky color (`SKY_SCALE` 4).
   - Calibrated on q3dm17: the bake's mean light is 0.23 against 0.18 for the original lightmaps (`report.q3_lightmap`, `bake_maps.gd measure()`).
   - All lights are bake-only (`BAKE_STATIC`), so the baked data must be saved in the scene, or the map renders black.
+  - Since 2026-10-23, `build_maps.py` also follows q3map's `CreateSurfaceLights` for `cull none` shaders: emitters on both faces (console03 lights the recess behind its glass). Surfaces q3map wouldn't subdivide (within the shader's `q3map_lightsubdivide`, 999 by default in id's 1.32 `light.c`, not 120) also get the backsplash point light: the shader's `q3map_backsplash` (default 5% of the photons, 24 units out; `light5_5k` turns it off). The emitters stay on 128-unit cells, which the bake is calibrated on. Only q3tourney4 has been re-exported and rebaked with them; the other maps need `build_maps.py --json-only` and a rebake (each rebake adds LFS storage).
 - **Captures:** `tests/capture.tscn -- scene=res://library/maps/<map>/<map>.tscn cam=intermission|spawn:<n>|x,y,z,lx,ly,lz`.
 - **Mirrors and portals** (`Q3Portal`, built at runtime by `Q3Map._ready` from the JSON's "portals"):
   - `build_maps.py` groups surfaces whose shader has the `portal` keyword by plane and pairs each with its `misc_portal_surface` (within 64 units). It follows R_GetPortalOrientations, CG_Portal and locateCamera: the byte-packed direction, the roll, the 4-degree swing.
@@ -291,8 +314,33 @@ ode_modules`.
   - `--json-only` re-exports the JSON without touching the baked GLB. Portal surfaces in the GLB (portal_sfx, bugmirror) are hidden with a discard material.
   - Layers: 18 is the local body (mirrors only; the main camera drops it), 19 the view gun (no mirrors), 20 the portal surfaces.
   - The views render with linear tone mapping and HDR, so the main view tone-maps once.
+- **Reflection probes (2026-10-23):** `tools/map_probes.py` cuts each map's open space (64-unit grid, BSP leaf clusters, a wall check between cells) into room boxes; `build_maps.py` writes them as "probes" (`--json-only` is enough), and `Q3Map._add_probes()` adds box-projected `UPDATE_ONCE` probes at runtime. They capture only `Q3Map.WORLD_LAYER` (layer 11, set on the map's Geometry) and use `AMBIENT_DISABLED`, so the bake's lighting is unchanged. Atlas: 128 px, 80 slots (project.godot); at most 64 probes a map.
+- **Light shafts:** `Q3Map._add_shaft_light()`: on sun maps (not blacksky) a real-time copy of the sun at 0.01 energy lights only the volumetric fog (`light_volumetric_fog_energy` compensates), shadowed by WORLD_LAYER, with a 0.0015 haze. Follows Volumetric fog and needs Shadows on; Quake 3's fog volumes are always drawn.
+- **Graphics settings reach matches only through `Q3Map._apply_settings()`** (before 2026-10-23 no map called `Settings.apply_environment`, so Brightness, Bloom, AO, SSR and Volumetric fog did nothing in a match). `Q3PlayMap` (editor play-tests) still doesn't.
+- **Remaster effects:** soft particles (`soft_fade` in `fx_sprite.gdshaderinc`, `fx_puff`; billboards only, distance scales with sprite size), heat shimmer (`fx_heat.gdshader`, `Q3FX.heat`; it draws the opaque screen copy, so its `render_priority` must stay below every other transparent), `Q3Sparks` (bounce off the map through `trace`), `Q3Burns` (lightning gun lines: decals stretched along the beam's hits, glow then fade). Comparisons: `tests/capture.tscn` `probes=0 shafts=0 heat=0 tonemap=`, `tests/weapon_fx.tscn sweep=25`.
+- **Tone mapping:** maps stay Filmic (Ozmium, 2026-10-23: AgX drains the fire color, torches went pale white, and was about 25% darker); the menu showcase and material browser use AgX.
 - **First spawn:** the local client's userinfo has `ip localhost`, as SV_DirectConnect gives it. Its first spawn therefore takes the spawn point marked initial (q3dm0: the mirror room).
 - **setviewpos** is a teleport with a 400 ups shove forward. Tests that place the player need room, or must face away and turn.
+
+## Replay facts (hard-won)
+
+- **Plan and progress:** `REPLAY_PLAN.md`. Code: `tools/q3core/src/engine/q3_replay.c` (recorder, decoder, .dm_68 converter), `src/q3replay.cpp` (`Q3Replay`), `godot/scripts/replay/` (feeds, recorder, file library, viewer, chase cam, clip export), the replay sections at the end of `gameplay.gd`.
+- **The file:** "Q3RP", version, JSON header, length-prefixed frame blocks (u32 size, u8 keyframe, i32 server time, msg.c bit stream), JSON trailer, u32 length, "Q3RT". The blocks are the index; a file without a trailer (a crash) plays to its last whole frame. A keyframe every 5 s; the first one holds every configstring.
+- **What's recorded:** every linked, non-`SVF_NOCLIENT` entity, every active client's playerState (bots too), changed configstrings, and every client's reliable commands with a client mask, harvested every server frame from `client_t`'s 64-deep ring. SINGLECLIENT / NOTSINGLECLIENT flags are kept per entity, so a player's view drops the copies of their own predicted events (`SendPendingPredictableEvents`).
+- **msg.c truncates fields** (eType 8 bits, eFlags 19, damagePitch 8 ...): a replay holds what a network client sees, so compare live values cut to the widths (`replay_test.gd` ES_BITS / PS_BITS). Not sent at all: ps.ping, externalEventTime.
+- **msg.c's string writers turn `%` and bytes over 127 into `.`:** replay text goes through `write_raw` / `read_raw` (length + bytes).
+- **The guard:** `GUARD` / `GUARD_V` and `q3_ready`, `q3_fatal_frame`, `q3_fatal_armed`, `q3_last_error` live in `engine/q3_engine.h` / q3_host.c, shared by q3_replay.c. Functions that must clean up a heap object on an error write the guard by hand (`q3_replay_open`, `q3_demo_convert`). Patch 0004 stops common.c turning a 4th ERR_DROP within 100 ms into ERR_FATAL while a guard is armed (the replay list reads demos back to back).
+- **Playback without a server:** `Q3Replay.load_map` = `Hunk_Clear` + `CM_LoadMap`; traces follow `CG_ClipMoveToEntities`. Decoding, traces and conversion refuse while a match runs (an ERR_DROP would shut it down).
+- **The feed:** Gameplay, Q3Client and the HUD (`match_feed`; the HUD's own `feed` is the kill feed) read a `Q3Feed`. `Q3LiveFeed` wraps Q3Server; `Q3ReplayFeed` steps frame by frame (events play once) or jumps (`Q3Client.reset()` + a muted rebuild) when the playhead goes back or more than 80 frames ahead. The watched view interpolates as `CG_InterpolatePlayerState`, other players via `Q3Client.set_next`.
+- **Q3Client.reset() keeps every child made in `_ready`** (`_helpers`: puffs, sparks, burns, which have `clear()`); everything else is freed. After a jump, anything stamped with a later time must be forgotten (`Gameplay._forget_times`: the landing dip, the view guns' `Q3WeaponFx.reset`, the death cam).
+- **The server never sends a client its own entity, or a follower the followed player's** (sv_snapshot.c): the death cam builds the body from the playerState (`Q3Client.own_body`), the spectator chase cam draws `_self` with `self_visible`, and demos get the POV body from `BG_PlayerStateToEntityState`.
+- **Spectating is id's:** `team spectator`, `follow`, fire cycles (SpectatorThink). While following, the playerState is the followed player's copy with PMF_FOLLOW. Team switches are limited to one per 5 s (SetTeam). `g_readyUp` is turned off when the only human spectates (`G_EveryoneReady` needs one).
+- **`teampref` reaches the game only through `Q3Host.userinfo()`** (it used to drop it): without one, team games start you on team spectator (g_session.c). Gameplay sends "auto" (PickTeam) or "spectator".
+- **The `dmg` command** (patch 0002) is `dmg <target> <amount> <armor> <means> <time>`: damage numbers, and `Q3MatchStats`' per-weapon damage and accuracy (hits once per weapon per server time).
+- **Movie Maker** (`Q3ClipExport`: a second copy with `--write-movie --fixed-fps 60`, the Gameplay scene from the editor, `clip=` through the splash in a build) writes frames at the project's base size (1600x900, `display/window/size/viewport_*`) whatever the window or `--resolution` says. Its AVI chunks are "00db" (MJPEG) and "01wb"; avih's frame count is written as the file closes, so a killed copy leaves 0.
+  - Every frame the copy draws is a movie frame: the splash skips its disclaimer, loads and fades for `clip=`. The copy takes no input (Escape stops it), stays offline (`Online` sees `clip=`; it would share the player's identity), and quits on any error. `--quit-after` (range + 600 frames) and a wall-clock limit back that up.
+  - Cancel is `OS.kill`, which `Diagnostics` would report as a crash next launch, so `cancel()` deletes the copy's session files.
+- **Tests:** `replay_test` (every frame against the live server, seeks, size, the library, the bridge, playback in Gameplay; `-- seconds=600 compare=0` for the 10-minute size run), `spectator_test`, `death_cam_test` (windowed `-- out=` saves shots), `demo_test` (id's `demos/four.dm_68` from the player's pak8), `clip_test` (windowed), `replay_capture` (viewer shots), `scoreboard_test` (windowed shots).
 
 ## Map editor facts (hard-won)
 
@@ -304,6 +352,68 @@ ode_modules`.
 - **The world shaders ignore vertex color,** so per-face tint needs its own shader variant.
 - **LightmapGI can't bake in an exported game** (Godot 4.7 class reference), so player maps get q3map's lightmaps.
 - **Checks:** `tests/map_geo_test.tscn` (headless, 25 checks, also in the self-test); `tests/map_geo_room.tscn` through `tests/capture.tscn` (`view=patch` for the curve).
+- **The editor scene (E1):** `Q3MapEditor.execute(cmd)` is the one entry for every command (keymap ids in `q3_editor_keymap.gd`). Tests drive tools with screen points from `ed.screen_of(id_point)` and set `Q3MapEditor.maps_dir` / `recent` to a scratch folder first (`tests/map_editor_smoke.tscn`, 27 checks; `tests/map_editor_shot.tscn` for captures, `sheet=1` / `dialog=1`).
+  - Constants can't hold a `class_name` script (`const K := Q3EditorKeymap` is "not a constant expression"); use `preload(...)`.
+  - The UI root under a CanvasLayer needs `set_anchors_and_offsets_preset(FULL_RECT)`; anchors alone kept its first size, so the bars stopped short of the window.
+  - Checking scripts in the live editor: `s.source_code = FileAccess.get_file_as_string(p); s.reload(true)`. A plain `reload()` recompiles the editor's cached copy, so errors already fixed on disk come back.
+- **E3 materials:**
+  - The editor screen is a VBox (bars) around an HBox (browser | open view | inspector). The open middle and the containers are MOUSE_FILTER_IGNORE, so the 3D view under them gets the mouse.
+  - `Q3MapMaterials.material(name, tint)` caches tinted copies by the tint's HTML code (8 bits a channel). Thumbnails come from the albedo path parsed out of the `.tres`, so its normal and ORM maps aren't loaded.
+  - Favorites and recents are `Q3MapMaterials.prefs_path`, which tests redirect.
+  - `paint_targets()`: the face tool's faces, else every face of the selected brushes plus the selected patches.
+  - Don't pass a multi-line lambda followed by another argument (`return g,` then the next one): define it as a local first.
+- **E5 compile and play-test:**
+  - id's q3map and bspc are built 64-bit by `tools/q3core/SConstruct.tools` (part of `build_q3core.py`); fixes live in `patches/id-q3a/`. When you rebuild them, copy `bin/tools/*.exe` into the addons again (build_q3core does): the game once ran a stale copy that still had the startup crash.
+  - q3map needs a folder named like "quake3" above `baseq3` (SetQdirFromPath), loose shader scripts plus `shaderlist.txt` (unpacked from the player's paks by `Q3MapCompiler.ensure_kit`), and textures from the paks through `Q3MAP_PAKPATH`. q3map's `-v` breaks its pak lookups (every texture "not found"); don't pass it.
+  - Exit code 0xC0000409 from a tool is the C runtime's invalid-parameter fast fail as well as a stack cookie; 0xC00000FD is a stack overflow.
+  - q3map flattens planes within 1e-5 of an axis (SnapPlane) and moves each surface's st by whole repeats toward 0. Compare texture coordinates on the snapped plane, apart from whole repeats.
+  - Any entity outside the hull is a leak, a jump pad target too. `Q3MapEntities.apex_for` keeps the top under `ceiling_over()`.
+  - Play-tests: `Session.playtest` carries the Q3MapDoc into Gameplay (`Q3PlayMap`) and back; tests that change scenes run on a second node added to the root (`tests/map_playtest_test.gd`), or the scene change frees them.
+  - Shell heredocs here eat a backslash before a newline and turn `\n` into a real newline: use the Edit tool for code with line continuations or escapes.
+- **E7 workflow:**
+  - **Batch edits to many objects** (`doc.begin_batch()` / `end_batch()`, nesting): every `put` emits `changed`, and the editor redraws the selection overlay per signal. 5,000 unbatched puts were quadratic and ran Godot out of render IDs ("Element limit reached"). `execute()` batches every command; code outside it that loops over puts (tools, `transform_selection`, `place_copies`) batches itself.
+  - **View filters** live in `Q3MapEditor.filters`. The mesher asks `face_filter` (material) and `hide_patches`; `pick`, Select all and box select skip `filtered(id)`.
+  - **Publish:** compiles as `pub_<name>` (play-tests are `ed_<name>`) and is listed in `Q3MapPublish.path`. `Session.maps` is the arenas plus those, with `special: "custom"`, `doc` and `models`, and Gameplay draws them with `Q3PlayMap`. Their levelshot is a data: URL (`webui/lib/shot.ts`).
+  - **Thumbnails** (`take_thumbnail`) render through a SubViewport on the same world_3d, with the editor's own drawing moved to layer 2. They're skipped headless.
+  - **Shot scene:** `tests/map_editor_shot.tscn` clears its recent file first, or it reopens whatever the last capture saved.
+  - **ItemList draws its focus stylebox over the items:** keep it border-only (`draw_center = false`).
+- **E6 import and export:**
+  - `Q3BspImport` (BSP) and `Q3MapImport` (.map) both make a Q3MapDoc; `Q3MapExport.to_map(doc, "brushdef" | "valve220")` writes .map. `tests/map_import_test.tscn` audits every map in the paks (`maps=a,b`, `report=`, `debug=1` prints the misses and the brushes there). A small Python reader of the raw lumps (brushes whose planes hold a missed surface's points) found the cause of every past miss.
+  - BSP lumps: shaders 72 bytes (contents at +68), drawverts 44 (normal at +28), surfaces 104 (patch size at +96/+100), models 10 ints (surfaces at 6-7, brushes at 8-9), nodes 9 ints, leaves 12 ints (cluster first). Retail BSPs drop the .map's detail flag; it's read back from the leaf at the brush's middle (solid leaf = structural).
+  - q3map2 BSPs (pro-* maps) add "noshader" bevels, some a hair off a real side, list a shader name once per flag set (match surfaces by shader name, not index), and merge coplanar sides into one surface (match by triangle).
+  - q3map maps a brush entity's faces at points less its origin (AdjustBrushesForOrigin). The editor keeps world mappings: `Q3MapExport.entity_origin` / `model_space` on export, the inverse on import.
+  - `uv_to_tex(..., tol)`: round values first, then exact. BSP fits use 0.05 texels; .map files 0.0001 (`Q3MapImport.EXACT`).
+  - The editor's import runs on a Thread; `_process` joins it and emits `_import_done`, so a script error in the worker can't strand the coroutine. Tests `await ed.import_map(kind, source)`.
+  - GDScript has no `%e`: use `String.num_scientific`.
+  - PowerShell variable names ignore case: `$l = $L[$i]` overwrote the array and a line-rewriting script truncated `q3_bsp_import.gd` to 27 bytes (restored from `tools/godot_template`). Edit code with the Edit tool; scripted rewrites need distinct names.
+  - `_fit_face` finds candidate surfaces through a 256-unit grid per model and shader (`NEAR_CELL`); scanning every surface of the shader made q3dm12's import 9 s (now about 1 s in the editor, where the audit is off).
+- **E4 entities:**
+  - `Q3MapEntities` is the class catalog and id's numbers (AimAtTarget's `push_velocity`, q3map's `light_params`); entities stay id's key/values. Brush entities own brushes through the brush's `entity` field.
+  - `pick(screen, true)` includes point entities. Only the select and entity tools pass it, so the create, face and vertex tools never land on an entity's box.
+  - `place_copies` relinks copies (entity ids and clashing targetnames) and returns the new ids; `group_all` puts a placed prefab in one group.
+  - `Q3EditorThumbs` queues one render loop at a time. Two deferred loops started in one frame cleared each other's stage, and every tile showed the same gun. Frame on `mesh.get_faces()`, not `get_aabb()`.
+  - Smoke-test clicks must miss the box at (64..192, 32..96, 0..96): a ray that hits it puts the entity on the box.
+  - Prefabs live in `Q3MapPrefabs.dir`, which tests redirect.
+- **E2 tools:** face tool (`faces`: `Vector2i(brush, face)`), vertex tool (`verts`: `Vector2i(object, index)` into `object_points()`; indices change on every hull rebuild, so moved corners are found again by position). Patches pick by ray against `doc.patch_tess(id)`.
+  - Quake 3 patches are one-sided, so a curve seen from behind vanished in the editor. `Q3MapMesher.show_backs` draws back faces with a CULL_FRONT see-through material (editor only).
+  - The smoke test's undo stack is full (100 steps) by the E2 section; tests that undo back to a point mark it with a `checkpoint()` label instead of counting steps.
+
+## Diagnostics facts (hard-won)
+
+- **What it is:** the `Diagnostics` autoload (`scripts/diagnostics/`, first in the list; Ozmium asked for it, 2026-10-23).
+  - A `Logger` (`OS.add_logger`) catches every error and warning with its script backtrace and flushes them to `user://diagnostics/sessions/<pid>.errors.log`.
+  - `<pid>.json` holds a heartbeat every 2 s with the scene, `context`, stats and breadcrumbs.
+  - q3core writes `crash_<date>_<pid>.dmp/.txt` into `user://diagnostics/reports`.
+  - At the next launch, a session whose process is gone becomes `crash_*.md` (with Godot's backtrace pulled from that session's own log by its `[diagnostics] session` marker), and the menu shows a `social_notice`.
+  - A clean exit with errors keeps `errors_*.log`. F10 shows the overlay.
+- **Native dumps:** Godot's Windows crash handler prints its backtrace and returns `EXCEPTION_CONTINUE_SEARCH`, so q3core's `SetUnhandledExceptionFilter` still runs after it. It writes the dump on a new thread, so a stack overflow gets one too, and it catches SIGABRT as well. q3core builds with `debug_symbols=yes`, and the PDB stays in `tools/q3core/bin`.
+- **Godot's `OS.is_process_running(pid)` only knows processes Godot started** (Windows). Liveness uses `Q3Core.process_start_time(pid)` (OpenProcess + GetProcessTimes) against the session's start time, so a reused pid can't hide a crash and a busy game isn't reported as dead.
+- **Never call RenderingServer (or other servers) from the watchdog thread:** with the main thread frozen it deadlocks, and the game then hangs at exit in `wait_to_finish`. `machine()` is read once at startup.
+- **Adding an autoload under the open editor:** `ProjectSettings.set_setting("autoload/...")` reaches the game but not the editor's script globals, so every script using the name shows "Identifier not found". Use an EditorPlugin's `add_autoload_singleton()` instead (a bare `EditorPlugin.new()` works through the bridge).
+  - That rebuilds every autoload. One that uses the new name before it exists fails ("Failed to create an autoload"), and loses its global in turn (Session did); remove and add it again the same way, and restore its order.
+  - `restart_editor(true)` did nothing while a scene had unsaved changes.
+- Wrap known long blocking work in `Diagnostics.expect_stall(true/false)` (tests that `OS.execute` children do). The freeze threshold is 15 s.
+- **Check:** `tests/diagnostics_test.tscn` (headless, 8 checks, about 40 s). Child processes crash through a q3core null write, `abort()`, a stack overflow and `OS.crash`, plus a 17 s freeze. The reports stay, marked as test runs, with no menu notice.
 
 ## Pipeline facts (hard-won)
 
@@ -314,6 +424,7 @@ ode_modules`.
   - Vertices are int16 / 64.
 - **Coordinates:** id Tech 3 is +X forward, +Y left, +Z up. The player origin sits 24 units above the feet. 32 units = 1 m (the GAME project's scale).
 - **Leg frame numbering:** in lower.md3, the file frame is the cfg frame minus `skip`, where skip = LEGS_WALKCR.first − TORSO_GESTURE.first.
+- **Subdivided UVs (2026-10-23):** Loop subdivision moves the vertices, so linearly interpolated uv let the paint slide across the rounded surface (zigzag waves on the railgun, up to ~100 texels). `meshops.subdivide_uv` gives each smoothed vertex the uv the md3 triangle shows straight under it, averaged per (vertex, uv island); `build_props.py` and `build_mesh_data.py` both use it. Check with a before/after `tests/prop_shot.tscn -- model=... window=1600x1000`.
 - **Texture lookup** follows the engine: exact path, then the .tga/.jpg swap, then the first `map` of a shader with that name.
 - **Rig fit:**
   - Skinning decomposition, run on lower and upper frames separately.
@@ -332,6 +443,25 @@ ode_modules`.
   - **Skies:** Quake 3's 49 sky shaders share 7 cloud-layer looks.
   - **Godot log path:** pass Godot an absolute `--log-file` path; a relative one doesn't land in the shell's directory, so you end up reading a stale log.
 
+## Trailer facts (hard-won)
+
+- **q3cam** (`tools/trailer/q3cam/`): id's 1.32 cgame and game code plus `src/cg_q3cam.c`, built into QVMs by id's own `lcc` and `q3asm` from `thirdparty/id-q3a`. `build.py` copies the code out of thirdparty and puts the hooks in there. The QVMs come out within a few KB of retail pak8's.
+- **Building id's 1999 toolchain with MSVC 2022 (x86):**
+  - q3cpp's `outp` and `memmove` clash with MSVC intrinsics; they're renamed with `/D`.
+  - q3cpp's `creat(name, 0666)` trips the CRT's mode check (0xC0000409), so it writes to stdout instead.
+  - q3asm splits list entries at `:`, so the list names files relative to its folder.
+  - cmdlib needs `user32.lib`.
+  - lcc's driver adds `-D__LCC__`; without it q_shared.h's inline functions don't parse. Under lcc `VectorCopy` is a struct cast, so `VectorCopy(v + 3, ...)` fails; write `&v[3]`.
+- **Retail capture:**
+  - Fullscreen only: 1.32 turns overbright off in a window (R_SetColorMappings), and the map loses its look.
+  - `cl_avidemo` saves each frame at the start of the next, so the first TGA is from before the path (`LEAD` in `capture_q3.py`).
+  - `cl_avidemo 60` steps 16 ms (1000 / 60 truncated), so path time counts frames, not `cg.time`.
+  - `con_notifytime 0` still draws a line printed that frame; use -1.
+  - The mod's `team spectator` start, `cam_broadcast` (every entity `SVF_BROADCAST`) and the cleared area mask let a path go anywhere. Quake 3 writes `q3cam/q3config.cfg` and `q3cam/screenshots`, never `baseq3`.
+- **Remaster capture:** `tests/trailer_shot.tscn` renders into its own 1920x1080 SubViewport (copying the root viewport's quality properties) and pipes raw RGBA into ffmpeg (`OS.execute_with_pipe`, blocking). Godot's Movie Maker records at the project's window size (1600x900) whatever `--resolution` says, and its PNGs were the slow part.
+- **Game time vs wall time:** anything Quake 3 times by cg.time reads `Q3.game_ms` (each frame's delta added up). `Time.get_ticks_msec()` is wall time: in recordings that render slower than they play (Movie Maker, `--fixed-fps`), pickups spun and portal cameras swung far too fast. Fixed in pickups, portals, chat, the damage flash and the menu logo.
+- **Paths:** the `.cam` spline is `cam_path.evaluate` and `CG_CamEval` (Hermite, Catmull-Rom tangents, flat ends); `trailer_shot.gd` `_eval` matches them. `setviewpos` can't fly a path: it's yaw-only and `TeleportPlayer` flips `EF_TELEPORT_BIT`, which turns interpolation off.
+
 ## Results so far
 
 - **Keel:** 21 bones, legs 5.4 mm and torso 6.5 mm RMS. The original session is in `case_study_keel/`. Online viewer (Ozmium's account): https://claude.ai/artifact/8idHYcHtmEor4qy1ZbvWbT
@@ -342,10 +472,10 @@ ode_modules`.
   - `world_materials.json` maps each Quake 3 shader name to its resource, size, light energy and color.
   - The self-test passes 17/17, and windowed captures of the material browser show zero shader errors.
 - **Main menu (2026-10-22):**
-  - Splash, live React menu over the 3D showcase, settings (131 entries, 10 tabs), match setup with 7 modes, the single-player campaign (8 tiers, 26 arenas), 10 cinematics, and Quake 3's menu sounds.
+  - Splash, live React menu over the 3D showcase, settings (132 entries, 10 tabs), match setup with 7 modes, the single-player campaign (8 tiers, 26 arenas), 10 cinematics, and Quake 3's menu sounds.
   - Gameplay and Map editor are stubs.
   - The self-test passes 39/39, including q3core's three checks, the two card checks and q3dm0's mirror and portal (see DEVELOPMENT.md).
-  - It exits with a segfault after passing (2026-10-22). Bisected to the main-menu web view checks in a headless run; not yet fixed.
+  - Its exit crash (0xC0000005 after passing, 2026-10-22/23) is fixed: it was the settings round trip pointing `network/online_server` at "Selftest", which left hostname lookups waiting at exit (Online facts, "Gotchas"). 5 of 5 runs exit 0.
 - **Player card catalog and art (2026-10-22):**
   - 378 parts and 89 achievements in `godot/library/cards`.
   - The data is `tools/card_catalog.py`, baked by `build_cards.py`; `Q3Cards` reads it.

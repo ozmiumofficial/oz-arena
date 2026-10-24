@@ -4,11 +4,14 @@
 // their own tcMod motion and rgbGen wave; self_illum for surface lights without a glow stage;
 // optional stochastic hex tiling so large faces show no visible repeat.
 
+#include "res://shaders/q3_deform.gdshaderinc"
+
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D orm_tex : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D emission_tex : source_color, hint_default_black, filter_linear_mipmap, repeat_enable;
 uniform float normal_strength = 1.0;
+uniform vec4 tint : source_color = vec4(1.0);   // the map editor's per-face tint (white: none)
 uniform float alpha_cut = 0.0;            // > 0: alpha scissor threshold (alphaFunc)
 uniform bool stochastic = false;          // hex tiling against visible repeats (isotropic textures)
 uniform float stochastic_scale = 1.0;     // lattice cells per texture repeat
@@ -46,6 +49,7 @@ uniform vec4 under_turb = vec4(0.0);
 // the glow stages are drawn before the blended paint (teslacoil: arcs inside the cable frame):
 // they show at full strength where the paint is clear, and not through it
 uniform bool glow_under = false;
+uniform bool glow_lit = false;   // glow stages drawn before the $lightmap filter: lit, not glowing (chrome_metal's detail)
 
 // tcGen environment (tr_shade_calc.c RB_CalcEnvironmentTexCoords): the view reflected off the
 // surface, its id y and z (Godot x and y) as texture coordinates, so the image slides as you move.
@@ -60,7 +64,7 @@ float q3_wave(vec4 w, float phase) {
 	float t = fract(phase + TIME * w.w);
 	float f = 0.0;
 	if (w.x < 1.5) f = sin(t * TAU);
-	else if (w.x < 2.5) f = 1.0 - 4.0 * abs(t - 0.5) ;
+	else if (w.x < 2.5) f = 1.0 - 4.0 * abs(fract(t + 0.25) - 0.5);   // 0, 1, 0, -1 as id's table
 	else if (w.x < 3.5) f = t < 0.5 ? 1.0 : -1.0;
 	else if (w.x < 4.5) f = t;
 	else f = 1.0 - t;
@@ -128,6 +132,8 @@ struct Surface {
 	vec3 orm;
 	vec3 normal;
 	vec3 emission;
+	vec3 emission_base;   // emission without the glow layers
+	vec3 glow;            // the glow layers at full weight (the additive shaders add them as they are)
 };
 
 // uv0: the base coordinates; env: tcGen environment coordinates (for has_under)
@@ -147,8 +153,13 @@ Surface world_surface(vec2 uv0, vec2 env) {
 	} else if (glow_under) {
 		s.albedo = vec4(s.albedo.rgb * paint, 1.0);
 	}
+	if (glow_lit) {
+		s.albedo.rgb += glow_layers(uv0);   // lit like the base (s.glow stays zero)
+	}
+	s.albedo.rgb *= tint.rgb;
 	float lum = dot(s.albedo.rgb, vec3(0.2126, 0.7152, 0.0722));
-	s.emission = (texture(emission_tex, uv).rgb + s.albedo.rgb * smoothstep(0.45, 0.9, lum) * self_illum) * emission_energy
-		+ (glow_under ? glow_layers(uv0) * (1.0 - paint) : glow_layers(uv0) * emission_energy);
+	s.emission_base = (texture(emission_tex, uv).rgb + s.albedo.rgb * smoothstep(0.45, 0.9, lum) * self_illum) * emission_energy;
+	s.glow = glow_lit ? vec3(0.0) : glow_layers(uv0);
+	s.emission = s.emission_base + (glow_under ? s.glow * (1.0 - paint) : s.glow * emission_energy);
 	return s;
 }

@@ -12,6 +12,7 @@ extends Node3D
 ## T and Y open the chat (Q3HudChat): the line goes to the game as "say" / "say_team", and while
 ## typing the usercmd carries only BUTTON_TALK, as cl_input.c sends it with a key catcher up (the
 ## game stands you still and others see the talk balloon).
+## A controller plays too: one stick moves, the other looks (Settings > Controls).
 
 const E := preload("res://scripts/game/q3_enums.gd")
 ## weapons2/<dir> per weapon number, for the hand tags in library/props/view_weapons.json
@@ -66,6 +67,29 @@ var _ready_sent := false           ## ready-up toggled from the pause menu
 var _chat_held: Array[StringName] = []
 const USERCMD_ACTIONS: Array[StringName] = [&"q3_walk", &"q3_forward", &"q3_back", &"q3_moveright", &"q3_moveleft",
 	&"q3_jump", &"q3_crouch", &"q3_attack", &"q3_use_item", &"q3_gesture"]
+var _mouse := Vector2.ZERO         ## mouse counts since the last frame (CL_MouseMove reads them per frame)
+var _pad_move := Vector2.ZERO      ## the controller's move stick, -1..1 past the deadzone
+var _crouch_on := false            ## Controls > Toggle crouch
+## HUD > Item timers: the major items, in the order they're listed
+const TIMED_ITEMS := ["item_armor_body", "item_armor_combat", "item_health_mega", "item_quad", "item_enviro",
+	"item_haste", "item_invis", "item_regen", "item_flight"]
+var _map_items: Dictionary = {}    ## the map's own item entities (not ones dropped later)
+var _timers_t := 0.0
+var match_stats := Q3MatchStats.new()   ## your match for the scoreboard's left panel
+var recorder: Q3ReplayRecorder     ## Gameplay > Record replays: this match, written as it plays
+var replay_path := ""              ## the finished recording (the results screen's Watch replay)
+const TEST_REPLAYS := "user://test_replays"
+var _last_standings: Array = []    ## the recording's trailer when the match is quit (standings once a second)
+var _standings_t := 0.0
+var feed: Q3Feed = Q3LiveFeed.shared()   ## where the match comes from: the server here, or a replay
+var replay_feed: Q3ReplayFeed      ## playing a replay (Session.replay) instead of a match
+var replay_playing := true
+var replay_speed := 1.0
+## Replays: whose view is shown (me) and how: "first" (their eyes, HUD and gun), "chase" (behind
+## them), "free" (fly anywhere), "orbit" (circle them)
+var cam_mode := "first"
+var viewer: Q3ReplayViewer
+var _replay_cards: Dictionary = {} ## client -> {card, level} as the recording kept them
 
 
 func _ready() -> void:
@@ -75,15 +99,28 @@ func _ready() -> void:
 		f3.physical_keycode = KEY_F3
 		InputMap.action_add_event("q3_ready", f3)
 	setup = Session.setup
-	if setup == null:
-		setup = Session.new_setup("ffa", "q3dm17")
-		setup.bots = [{"name": "Sarge", "skill": 3, "team": ""}, {"name": "Xaero", "skill": 3, "team": ""},
-			{"name": "Crash", "skill": 3, "team": ""}]
-	_error = _start_match()
+	if not Session.replay.is_empty():
+		_error = _start_replay(String(Session.replay.get("path", "")))
+	else:
+		if setup == null:
+			setup = Session.new_setup("ffa", "q3dm17")
+			setup.bots = [{"name": "Sarge", "skill": 3, "team": ""}, {"name": "Xaero", "skill": 3, "team": ""},
+				{"name": "Crash", "skill": 3, "team": ""}]
+		_error = _start_match()
 	_build_view()
-	if _error != "":
-		hud.fatal("Couldn't start the match:\n" + _error + "\n\nEscape: back to the menu")
+	if _error != "" and _rendering_clip():
+		printerr("clip: ", _error)
+		_end_clip(1)   # no one is there to read the message
 		return
+	if _error != "":
+		var what := "play the replay" if replay_feed else "start the match"
+		hud.fatal("Couldn't %s:\n%s\n\nEscape: back to the %s" % [what, _error, "editor" if setup.source == "editor" else "menu"])
+		return
+	if replay_feed:
+		_begin_replay()
+		return
+	if setup.source == "editor":
+		hud.notify("Play-test: F6 goes back to the editor, F7 shows the entities")
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -121,27 +158,91 @@ func _start_match() -> String:
 	var p := setup.player.duplicate()
 	if p.get("team_pref", "") != "":
 		p["teampref"] = p["team_pref"]
+	# g_session.c G_InitSessionData: the first team comes from teampref; without one, a team game
+	# starts you on team spectator. "auto" is PickTeam (the smaller team), "spectator" watches.
+	p["teampref"] = "spectator" if setup.spectate else String(p.get("teampref", "auto"))
+	if setup.spectate:
+		Q3Server.set_cvar("g_readyUp", "0")   # no human would ever ready up: the warmup would never end
+	director = bool(Settings.get_value("gameplay/spec_director"))
 	me = Q3Server.connect_local(Q3Host.userinfo(p))
 	if me < 0:
 		return "joining: " + Q3Server.error()
-	_client_time = Q3Server.time()
-	var ps := Q3Server.player_state(me)
+	_client_time = feed.time()
+	var ps := feed.player_state(me)
 	if not ps.is_empty():
 		_weapon = int(ps["weapon"])
+	_start_recording()
 	return ""
+
+
+## Gameplay > Record replays: the whole match from here on (Q3ReplayRecorder). Map editor
+## play-tests aren't recorded: their map exists only in the editor's document.
+func _start_recording() -> void:
+	if not Settings.get_value("gameplay/record_replays") or setup.source == "editor":
+		return
+	recorder = Q3ReplayRecorder.new()
+	var m := setup.game_mode()
+	# a match a test runs (the scene is one of res://tests/) records into the tests' folder, never
+	# the player's Replays
+	var path := ""
+	var top := get_tree().current_scene
+	if top and top != self and top.scene_file_path.begins_with("res://tests/"):
+		DirAccess.make_dir_recursive_absolute(TEST_REPLAYS)
+		path = TEST_REPLAYS.path_join(Q3ReplayFile.new_path(setup.map, setup.mode).get_file())
+	var err := recorder.start({"map": setup.map, "map_name": String(Session.map_info(setup.map).get("name", setup.map)),
+		"mode": setup.mode, "mode_name": m.display_name if m else setup.mode, "title": _match_title(), "source": setup.source,
+		"local_client": me, "player": String(setup.player.get("name", "Player"))}, path)
+	if err != "":
+		push_warning("replay not recorded: " + err)
+		recorder = null
+
+
+## Ends the recording with the match's result: the trailer the replay browser lists. Quitting
+## stops the server before this runs, so the standings are the last ones seen.
+func _finish_recording(results: Dictionary) -> void:
+	if recorder == null:
+		return
+	var rows := standings()
+	var t := {"standings": rows if not rows.is_empty() else _last_standings}
+	t.merge(results, true)
+	replay_path = recorder.finish(t)
+	recorder = null
 
 
 func _build_view() -> void:
 	var path := Q3MapBuilder.scene_path(setup.map)
-	if ResourceLoader.exists(path):
+	var custom := Session.map_info(setup.map)
+	if setup.source == "editor" and Session.playtest.has("doc"):
+		# a map editor play-test: drawn from the editor's document (Q3PlayMap), run from its .bsp
+		map_scene = Q3PlayMap.build(Session.playtest["doc"], Session.playtest.get("models", {}))
+		add_child(map_scene)
+	elif custom.get("special", "") == "custom":
+		# a map published from the editor: drawn from its saved document, run from its .bsp
+		var d := Q3MapDoc.new()
+		var err := d.load_file(String(custom.get("doc", "")))
+		var models := {}
+		for e in custom.get("models", {}):
+			models[int(e)] = int(custom["models"][e])
+		map_scene = Q3PlayMap.build(d, models) if err == "" else null
+		if map_scene:
+			add_child(map_scene)
+		elif _error == "":
+			# the .bsp would play with nothing drawn: refuse instead
+			_error = "%s's published copy can't be read (%s). Publish it again from the map editor." % [custom.get("name", setup.map), err]
+	elif ResourceLoader.exists(path):
 		map_scene = (load(path) as PackedScene).instantiate() as Q3Map
 		add_child(map_scene)
 	client = Q3Client.new()
 	client.name = "Client"
 	client.map = map_scene
 	client.local_client = me
+	client.feed = feed
 	add_child(client)
 	client.obituary.connect(_on_obituary)
+	client.death_noted.connect(func(attacker: int, target: int, means: int):
+		if target >= 0 and target < E.MAX_CLIENTS:
+			_deaths[target] = {"attacker": attacker, "means": means}   # the death cam's card
+			_death_cards.erase(target))
 	client.landed.connect(func(change: float):
 		_land_change = change
 		_land_time = _now_ms())
@@ -158,6 +259,7 @@ func _build_view() -> void:
 		client.self_body = true   # mirrors see the player's own body; the player's eyes don't
 		cam.cull_mask &= ~Q3Portal.MIRROR_LAYER
 	hud = Q3Hud.new()
+	hud.match_feed = feed
 	add_child(hud)
 	hud.chat.sent.connect(_say)
 	hud.chat.closed.connect(func():
@@ -170,9 +272,11 @@ func _build_view() -> void:
 	music = Q3Music.new()
 	music.name = "Music"
 	add_child(music)
-	_build_pause_menu()
+	if replay_feed == null:   # a replay's controls are its own bar (Q3ReplayViewer)
+		_build_pause_menu()
 	scoreboard = Q3Scoreboard.new()
 	add_child(scoreboard)
+	scoreboard.picked.connect(_follow_from_board)
 
 
 ## cg_view.c CG_CalcFov: Settings > Video > Field of view (cg_fov, horizontal at 4:3), and +zoom
@@ -201,7 +305,7 @@ func _poll_zoom() -> void:
 func _zoom(on: bool) -> void:
 	if on == _zoomed:
 		return
-	var ps := Q3Server.player_state(me)
+	var ps := feed.player_state(me)
 	if on and not ps.is_empty() and int(ps["pm_type"]) == E.PM_DEAD:
 		return
 	_zoomed = on
@@ -212,6 +316,8 @@ func _zoom(on: bool) -> void:
 ## it back). Here, before the scoreboard's own click handling and before Mouse 2's menu meaning
 ## (ui_cancel, "back") could pause the match.
 func _input(event: InputEvent) -> void:
+	if replay_feed:
+		return   # the viewer's own mouse; the board stays look-only
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT \
 			and not _paused and scoreboard.visible and Input.is_action_pressed("q3_scores"):
 		scoreboard.set_interactive(not scoreboard.interactive)
@@ -219,6 +325,22 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if replay_feed:
+		_replay_input(event)
+		return
+	# map editor play-tests: F6 straight back to the editor, F7 the editor's entity markers over the
+	# game (spawns, targets, jump pad arcs)
+	var key := event as InputEventKey
+	if setup.source == "editor" and key and key.pressed and not key.echo:
+		if key.keycode == KEY_F6:
+			get_viewport().set_input_as_handled()
+			_leave()
+			return
+		if key.keycode == KEY_F7 and map_scene is Q3PlayMap:
+			get_viewport().set_input_as_handled()
+			var mk: Q3EditorEntities = (map_scene as Q3PlayMap).markers
+			mk.visible = not mk.visible
+			return
 	# Mouse 2 means "back" in the menus only; in a match it's a game button, never the pause
 	if event.is_action_pressed("ui_cancel") and not event is InputEventMouseButton:
 		if _paused and pause_layer and pause_layer.web:
@@ -236,23 +358,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if hud.chat.typing and not event is InputEventMouseMotion:
 		return   # the chat line has the keyboard; you can still look around
+	if event.is_action_pressed("q3_crouch") and Settings.get_value("controls/toggle_crouch"):
+		_crouch_on = not _crouch_on
 	if (event.is_action_pressed("q3_chat") or event.is_action_pressed("q3_teamchat")) and me >= 0 and _error == "" and not _ended:
 		hud.chat.open(event.is_action_pressed("q3_teamchat"))
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		# cl_input.c CL_MouseMove: m_yaw / m_pitch 0.022 degrees per count times sensitivity
-		var sens := float(Settings.get_value("mouse/sensitivity")) * Settings.M_YAW
-		if _zoomed:
-			# cg.zoomSensitivity: fov_y / 75 while zoomed, times Settings > Mouse > Zoom sensitivity
-			sens *= cam.fov / 75.0 * float(Settings.get_value("mouse/zoom_sensitivity"))
-		var inv := -1.0 if Settings.get_value("mouse/invert") else 1.0
-		_view.y -= event.relative.x * sens
-		_view.x = clampf(_view.x + event.relative.y * sens * inv, -89.0, 89.0)
+		_mouse += event.relative   # turned into view angles once per frame (_mouse_move)
+	if not event is InputEventMouseMotion and _spectator_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	for w in range(1, 10):
 		if event.is_action_pressed("q3_weapon%d" % w):
 			_select_weapon(w)
-	if event.is_action_pressed("q3_ready") and me >= 0:
+	if event.is_action_pressed("q3_ready") and me >= 0 and not _spectating_now:
 		Q3Server.client_command(me, "ready")
 		_ready_sent = not _ready_sent
 	if event.is_action_pressed("q3_weapnext"):
@@ -265,8 +385,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if replay_feed and _error == "":
+		_process_replay(delta)
+		return
 	if _error != "" or not Q3Server.running() or _paused:
 		return
+	_mouse_move(delta * 1000.0)
+	_pad_sticks(delta)
 	# the client clock runs in whole milliseconds, like Sys_Milliseconds
 	_acc += delta * 1000.0
 	var ms := int(_acc)
@@ -278,22 +403,53 @@ func _process(delta: float) -> void:
 			_error = Q3Server.error()
 			hud.fatal("The match stopped: " + _error + "\n\nEscape: back to the menu")
 			return
-	for c in Q3Server.next_commands(me):
+		if recorder:
+			recorder.pump()
+			_standings_t -= delta
+			if _standings_t <= 0.0:
+				_standings_t = 1.0
+				_last_standings = standings()
+	for c in feed.next_commands(me):
 		_server_command(c)
-	var ps := Q3Server.player_state(me)
+	var ps := feed.player_state(me)
 	_poll_zoom()
-	client.apply_snapshot(Q3Server.snapshot(me), ps)
+	if not ps.is_empty() and int(ps["pm_type"]) == E.PM_DEAD:
+		_crouch_on = false
+	var was_spectating := _spectating_now
+	_spectating_now = spectating(ps) and not _ended
+	if was_spectating and not _spectating_now and not ps.is_empty():
+		_weapon = int(ps["weapon"])   # in again: your own weapon, as CG_Respawn takes it
+	_spectate_view(ps)
+	if not _spectating_now:
+		match_stats.moved(ps)
+	client.apply_snapshot(feed.snapshot(me), ps)
+	client.muted = false
 	if not _ended:
-		music.play(Q3Server.configstring(E.CS_MUSIC))   # CG_StartMusic, again when CS_MUSIC changes
-	client.animate(float(Q3Server.time()) + _acc)
-	_update_camera(ps)
-	_update_gun(ps)
+		music.play(feed.configstring(E.CS_MUSIC))   # CG_StartMusic, again when CS_MUSIC changes
+	client.animate(float(feed.time()) + _acc)
+	# (dead, the death cam takes over: the server never sends a follower the body to chase)
+	var chase := following(ps) and spec_chase and int(ps["pm_type"]) != E.PM_DEAD
+	client.self_visible = chase   # the followed player's body, built from the playerState
+	var death_view := _update_death(ps, delta)
+	if chase:
+		_chase_camera(ps, delta)
+		if _gun:
+			_gun.visible = false
+		client.view_fx = client._self.get("wfx")   # their flash and beam come from the body's gun
+		_gun_weapon = -1
+	elif not death_view:
+		_update_camera(ps)
+		_update_gun(ps)
 	client.present(ps, cam.global_position)
 	_update_hud(ps)
+	_spectator_hud(ps)
+	_direct(ps, delta)
+	hud.lagometer(delta * 1000.0, int(ps.get("ping", 0)))
+	_poll_item_timers(delta)
 	_board_t -= delta
-	# cg_draw.c CG_DrawScoreboard: the scores show while Tab is held, and while you're dead
-	var dead_now := not ps.is_empty() and int(ps["pm_type"]) == E.PM_DEAD
-	var show_board := ((Input.is_action_pressed("q3_scores") and not hud.chat.typing) or dead_now) and not _ended
+	# the scores show while Tab is held (Quake 3 also showed them while you're dead; Ozmium,
+	# 2026-10-23: Tab only, the dead view is the death cam's)
+	var show_board := Input.is_action_pressed("q3_scores") and not hud.chat.typing and not _ended
 	scoreboard.visible = show_board
 	if scoreboard.interactive and not Input.is_action_pressed("q3_scores"):
 		scoreboard.set_interactive(false)
@@ -301,10 +457,11 @@ func _process(delta: float) -> void:
 		_board_t = 0.25
 		var ts := Vector2i(-1, -1)
 		if GAMETYPES.get(setup.mode, 0) >= E.GT_TEAM and setup.source == "menu":
-			ts = Vector2i(int(Q3Server.configstring(E.CS_SCORES1)), int(Q3Server.configstring(E.CS_SCORES2)))
+			ts = Vector2i(int(feed.configstring(E.CS_SCORES1)), int(feed.configstring(E.CS_SCORES2)))
 		scoreboard.refresh(standings(), _match_title(), ts,
-			{"map": setup.map, "clock": hud.status.clock, "limit": hud.status.limit})
-	if not _ended and Q3Server.configstring(E.CS_INTERMISSION) == "1":
+			{"map": setup.map, "clock": hud.status.clock, "limit": hud.status.limit},
+			{} if _spectating_now else match_stats.summary(ps))
+	if not _ended and feed.configstring(E.CS_INTERMISSION) == "1":
 		_end_match(ps)
 
 
@@ -321,8 +478,11 @@ func _send_usercmd() -> void:
 	if _held(&"q3_back"): fwd -= speed
 	if _held(&"q3_moveright"): side += speed
 	if _held(&"q3_moveleft"): side -= speed
+	if _pad_move != Vector2.ZERO:
+		fwd = clampi(fwd - roundi(_pad_move.y * speed), -127, 127)
+		side = clampi(side + roundi(_pad_move.x * speed), -127, 127)
 	if _held(&"q3_jump"): up += 127
-	if _held(&"q3_crouch"): up -= 127
+	if (_crouch_on if Settings.get_value("controls/toggle_crouch") else _held(&"q3_crouch")): up -= 127
 	var buttons := 0
 	# (the click that recaptures the mouse doesn't fire; tests have no mouse to capture)
 	if _held(&"q3_attack") and (Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or test_input):
@@ -336,6 +496,83 @@ func _send_usercmd() -> void:
 	if fwd != 0 or side != 0 or up != 0 or buttons != 0:
 		buttons |= E.BUTTON_ANY
 	Q3Server.usercmd(me, _client_time, _view, buttons, _weapon, fwd, side, up)
+
+
+## cl_input.c CL_MouseMove over the frame's counts: m_yaw / m_pitch 0.022 degrees per count times
+## sensitivity, plus cl_mouseAccel (Mouse > Acceleration): the faster the swipe (counts per ms),
+## the higher the sensitivity. Godot reads captured mouse motion raw (WM_INPUT on Windows).
+func _mouse_move(frame_ms: float) -> void:
+	var m := _mouse
+	_mouse = Vector2.ZERO
+	if m == Vector2.ZERO:
+		return
+	var sens := float(Settings.get_value("mouse/sensitivity"))
+	sens += m.length() / maxf(frame_ms, 1.0) * float(Settings.get_value("mouse/acceleration"))
+	_turn(m * sens * Settings.M_YAW)
+
+
+## Turns the view by (yaw, pitch) degrees: Mouse > Invert, and while zoomed cg.zoomSensitivity
+## (fov_y / 75) times Mouse > Zoom sensitivity.
+func _turn(d: Vector2) -> void:
+	if _zoomed:
+		d *= cam.fov / 75.0 * float(Settings.get_value("mouse/zoom_sensitivity"))
+	var inv := -1.0 if Settings.get_value("mouse/invert") else 1.0
+	_view.y -= d.x
+	_view.x = clampf(_view.x + d.y * inv, -89.0, 89.0)
+
+
+## The first controller's sticks (Controls > Stick deadzone, Stick look speed, Stick layout): the
+## move stick drives the usercmd like the movement keys, scaled by how far it's pushed; the look
+## stick turns up to Stick look speed turns a second, on a squared curve for fine aim.
+func _pad_sticks(delta: float) -> void:
+	_pad_move = Vector2.ZERO
+	var pads := Input.get_connected_joypads()
+	if pads.is_empty():
+		return
+	var dev: int = pads[0]
+	var dz := float(Settings.get_value("controls/pad_deadzone"))
+	var stick := func(ax: JoyAxis, ay: JoyAxis) -> Vector2:
+		var v := Vector2(Input.get_joy_axis(dev, ax), Input.get_joy_axis(dev, ay))
+		var l := v.length()
+		return Vector2.ZERO if l <= dz else v / l * minf((l - dz) / maxf(1.0 - dz, 0.01), 1.0)
+	var left: Vector2 = stick.call(JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y)
+	var right: Vector2 = stick.call(JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y)
+	var southpaw: bool = Settings.get_value("controls/stick_layout") == "southpaw"
+	_pad_move = right if southpaw else left
+	var look: Vector2 = left if southpaw else right
+	if look != Vector2.ZERO and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		_turn(look * look.length() * float(Settings.get_value("controls/pad_look")) * 360.0 * delta)
+
+
+## HUD > Item timers: the map's armors, Mega Health and powerups from the game (Q3Server.items),
+## each with the seconds until it's back, four times a second.
+func _poll_item_timers(delta: float) -> void:
+	_timers_t -= delta
+	if _timers_t > 0.0 or not ClassDB.class_has_method("Q3Server", "items"):
+		return
+	_timers_t = 0.25
+	var items: Array = feed.items()
+	if _map_items.is_empty():
+		for it in items:
+			_map_items[int(it["number"])] = true
+	if not Settings.get_value("hud/item_timers"):
+		return
+	var names: PackedStringArray = ClassDB.class_call_static("Q3Core", "item_classnames")
+	var now := feed.time()
+	var list: Array = []
+	for it in items:
+		var idx := int(it["item"])
+		if not _map_items.has(int(it["number"])) or idx < 1 or idx > names.size():
+			continue
+		var order := TIMED_ITEMS.find(names[idx - 1])
+		if order < 0:
+			continue
+		var left := -1.0
+		if it["taken"]:
+			left = maxf((int(it["respawn_time"]) - now) / 1000.0, 0.0)
+		list.append([String(Q3.entities.get(names[idx - 1], {}).get("icon", "")).get_file(), left, order])
+	list.sort_custom(func(a, b): return a[2] < b[2])
+	hud.set_item_timers(list)
 
 
 ## Input.is_action_pressed, except for an action that was already down when the chat closed.
@@ -401,14 +638,17 @@ func _update_camera(ps: Dictionary) -> void:
 
 
 func _now_ms() -> float:
-	return float(Q3Server.time()) + _acc
+	if replay_feed:
+		return replay_feed.playhead
+	return float(feed.time()) + _acc
 
 
 ## The first-person weapon (cg_weapons.c CG_AddViewWeapon): the held weapon's model hung on its
 ## hand model's tag_weapon, whose frames are the only motion: the recoil (frames 1-6, in step with
 ## TORSO_ATTACK) and the weapon switch (6-14, TORSO_DROP then TORSO_RAISE). The hand itself sits
 ## at the eye turned by the run bob and the idle drift (CG_CalculateWeaponPosition), dips when
-## you land, and drops 0.2 units per degree of fov over 90. Gameplay > Gun position picks the side.
+## you land, and drops 0.2 units per degree of fov over 90. Gameplay > Gun position picks the side
+## (or hides it), and Gameplay > Gun field of view draws it as a camera at that fov would.
 func _update_gun(ps: Dictionary) -> void:
 	var side := String(Settings.get_value("gameplay/draw_gun"))
 	var w := int(ps.get("weapon", 0))
@@ -428,7 +668,7 @@ func _update_gun(ps: Dictionary) -> void:
 		client.view_fx = _gun_fx
 	if _gun == null:
 		return
-	_gun.visible = side != "off" and not dead
+	_gun.visible = not side in ["hidden", "off"] and not dead
 	var now := _now_ms()
 	# the hand: bob and drift angles (degrees), landing dip, fov drop
 	var vel: Vector3 = ps["velocity"]
@@ -449,19 +689,32 @@ func _update_gun(ps: Dictionary) -> void:
 		hand_z = _land_change * 0.25 * since / LAND_DEFLECT_TIME
 	elif since < LAND_DEFLECT_TIME + LAND_RETURN_TIME:
 		hand_z = _land_change * 0.25 * (LAND_DEFLECT_TIME + LAND_RETURN_TIME - since) / LAND_RETURN_TIME
-	hand_z -= 0.2 * maxf(float(Settings.get_value("video/fov")) - 90.0, 0.0)
+	var gun_fov := float(Settings.get_value("gameplay/gun_fov"))
+	hand_z -= 0.2 * maxf((gun_fov if gun_fov > 0.0 else float(Settings.get_value("video/fov"))) - 90.0, 0.0)
 	# id view axes -> camera space: forward -Z, left -X, up +Y
 	var hand := Basis(Vector3.UP, deg_to_rad(yaw)) * Basis(Vector3.RIGHT, deg_to_rad(-pitch)) * Basis(Vector3.FORWARD, deg_to_rad(roll))
 	var tag := _hand_pose(ps, now, w)
 	var o: Vector3 = tag[0]
 	var ax: Array = tag[1]
+	# Gameplay > Gun side offset: cg_gunY's sideways nudge (id's +Y is left), out toward the gun's side
+	o.y -= float(Settings.get_value("gameplay/gun_offset"))
 	# left mirrors the side offset, center drops it (Quake Live's cg_drawGun choices)
 	o.y *= -1.0 if side == "left" else 0.0 if side == "center" else 1.0
 	var conv := func(v: Vector3) -> Vector3: return Vector3(-v.y, v.z, -v.x)
 	var pos: Vector3 = hand * conv.call(o) * Q3.UNIT + Vector3(0, hand_z * Q3.UNIT, 0)
+	# Quake 3 placed the gun for a 4:3 screen; a wider one at the same vertical view squeezes it
+	# toward the middle. Widescreen placement spreads its sideways place by aspect / (4/3), so it sits
+	# as far toward the edge as it did on a 4:3 screen.
+	if Settings.get_value("gameplay/gun_widescreen"):
+		var vp := get_viewport().get_visible_rect().size
+		pos.x *= maxf((vp.x / maxf(vp.y, 1.0)) / (4.0 / 3.0), 1.0)
 	# the tag's rows (gun forward, left, up) become the prop's axes (+X left, +Y up, +Z forward)
 	var basis := Basis(conv.call(ax[1]), conv.call(ax[2]), conv.call(ax[0])).orthonormalized()
-	_gun.transform = Transform3D(hand * basis, pos)
+	# scaling camera-space x and y by tan(view/2) / tan(gun/2) gives exactly the gun fov's projection
+	var k := 1.0
+	if gun_fov > 0.0:
+		k = tan(deg_to_rad(Settings.fov_vertical()) * 0.5) / tan(deg_to_rad(Settings.fov_vertical(gun_fov)) * 0.5)
+	_gun.transform = Transform3D(Basis.from_scale(Vector3(k, k, 1.0)), Vector3.ZERO) * Transform3D(hand * basis, pos)
 
 
 ## Every view weapon, made once when the match starts (CG_RegisterWeapon at level load), so a switch
@@ -574,6 +827,9 @@ func _build_pause_menu() -> void:
 		# q3_ui's Restart Arena: the same map from the start
 		Q3Server.exec("map_restart 0")
 		_set_paused(false))
+	pause_bridge.spectate_requested.connect(func(on: bool):
+		set_spectating(on)
+		_set_paused(false))
 	pause_bridge.ready_requested.connect(func():
 		Q3Server.client_command(me, "ready")
 		_ready_sent = not _ready_sent
@@ -586,15 +842,15 @@ func _build_pause_menu() -> void:
 
 ## What the pause menu shows of the match: its title, the clock, the leaders, the ready-up state.
 func pause_info() -> Dictionary:
-	var warmup := Q3Server.configstring(E.CS_WARMUP)
-	var ps := Q3Server.player_state(me)
+	var warmup := feed.configstring(E.CS_WARMUP)
+	var ps := feed.player_state(me)
 	var rows: Array = []
 	for r in standings():
 		rows.append({"name": String(r["name"]), "score": int(r["score"]), "local": bool(r["local"])})
 	return {"title": _match_title(), "map": setup.map, "map_name": String(Session.map_info(setup.map).get("name", setup.map)),
 		"clock": hud.status.clock if hud else "", "warmup": warmup != "" and warmup != "0",
-		"ready_up": Q3Server.cvar("g_readyUp") == "1", "ready": _ready_sent, "can_restart": true,
-		"weapon": int(ps.get("weapon", 0)), "standings": rows}
+		"ready_up": feed.cvar("g_readyUp") == "1", "ready": _ready_sent, "can_restart": true,
+		"weapon": int(ps.get("weapon", 0)), "standings": rows, "spectating": spectating(ps), "can_spectate": can_spectate()}
 
 
 ## The native stand-in for the pause menu when there's no web view (headless runs): resume or
@@ -635,8 +891,8 @@ func _make_pause_panel() -> Node:
 func _update_hud(ps: Dictionary) -> void:
 	if ps.is_empty():
 		return
-	var gt := Q3Server.cvar("g_gametype").to_int()
-	hud.update(ps, {"level_time": Q3Server.time(), "gametype": gt, "standings": standings})
+	var gt := feed.cvar("g_gametype").to_int()
+	hud.update(ps, {"level_time": feed.time(), "gametype": gt, "standings": standings})
 
 
 # ---------------------------------------------------------------- scores and the end of the match
@@ -650,12 +906,12 @@ func _campaign_skill() -> int:
 func standings() -> Array:
 	var out: Array = []
 	for cl in E.MAX_CLIENTS:
-		if Q3Server.client_state(cl) < 4:
+		if feed.client_state(cl) < 4:
 			continue
-		var ps := Q3Server.player_state(cl)
-		if ps.is_empty():
-			continue
-		var info := Q3Host.parse_info(Q3Server.configstring(E.CS_PLAYERS + cl))
+		var ps := feed.player_state(cl)
+		if ps.is_empty() or int(ps["persistant"][E.PERS_TEAM]) == E.TEAM_SPECTATOR or following(ps):
+			continue   # spectators watch (a follower's playerState is the followed player's copy)
+		var info := Q3Host.parse_info(feed.configstring(E.CS_PLAYERS + cl))
 		var name := String(info.get("n", "?"))
 		var plain := Q3Colors.strip(name)
 		var model := String(info.get("model", "sarge")).get_slice("/", 0).to_lower()
@@ -664,7 +920,11 @@ func standings() -> Array:
 			"skill": int(float(info.get("skill", "0"))),
 			"frags": maxi(int(ps["persistant"][E.PERS_SCORE]), 0), "deaths": int(ps["persistant"][E.PERS_KILLED]),
 			"ping": int(ps["ping"]), "team": int(ps["persistant"][E.PERS_TEAM]), "bot": bot, "local": cl == me}
-		if cl == me:
+		if replay_feed and _replay_cards.has(cl):
+			# the card the player had in the match, as the recording kept it
+			row["card"] = _replay_cards[cl]["card"]
+			row["level"] = int(_replay_cards[cl]["level"])
+		elif cl == me and not replay_feed:
 			row["card"] = Q3Profile.card()
 			row["level"] = int(Q3Profile.level()["level"])
 		else:
@@ -703,6 +963,9 @@ func _end_match(ps: Dictionary) -> void:
 				break
 			await get_tree().process_frame
 	var rows := standings()
+	if spectating(ps) and not campaign:
+		_end_as_spectator(rows)
+		return
 	var place := 0
 	for i in rows.size():
 		if rows[i]["local"]:
@@ -749,29 +1012,37 @@ func _end_match(ps: Dictionary) -> void:
 		"frags": maxi(int(rows[place]["score"]) if place < rows.size() else 0, 0), "deaths": p[E.PERS_KILLED] if p.size() else 0,
 		"medals": medals, "perfect": perfect, "campaign_skill": _campaign_skill() if campaign else 0, "extra": extra,
 		"model": String(rows[place].get("model", "")) if place < rows.size() else "", "skin": String(setup.player.get("skin", "default")),
-		"seconds": int(Q3Server.time() / 1000.0)})
+		"seconds": int(feed.time() / 1000.0)})
 	# ui_sppostgame.c: "music music/win" (or loss) over the postgame, then "You win" or "<winner> wins"
 	if campaign:
 		music.play("music/win" if won else "music/loss")
+	_finish_recording({"ended": "intermission", "won": won, "place": place + 1, "tied": tied,
+		"result": "VICTORY" if won else ("DRAW" if tied and place == 0 else "DEFEAT")})
 	var winner := String(rows[0].get("plain", "")).to_lower() if rows.size() else ""
-	client.play_sound("sound/player/announce/youwin.wav" if won else "sound/player/announce/%s_wins.wav" % winner, Vector3.ZERO, true)
+	hud.announce("sound/player/announce/youwin.wav" if won else "sound/player/announce/%s_wins.wav" % winner)
 	var ordinal := ["1st", "2nd", "3rd"]
 	_results = Q3ResultsScreen.new()
 	add_child(_results)
 	_results.show_results({"won": won, "title": "VICTORY" if won else ("DRAW" if tied and place == 0 else "DEFEAT"),
 		"subtitle": "%s  -  %s of %d" % [_match_title(), ordinal[place] if place < 3 else "%dth" % (place + 1), rows.size()],
-		"standings": rows, "medals": medals if not perfect else medals.merged({"perfect": 1}), "xp": xp})
+		"standings": rows, "medals": medals if not perfect else medals.merged({"perfect": 1}), "xp": xp, "replay": replay_path})
+	_results.watch_requested.connect(func():
+		if Q3Server.running():
+			Q3Server.exec_now("killserver")
+		Session.watch_replay(replay_path, 0, ""))
 	_results.finished.connect(func():
 		if Q3Server.running():
 			Q3Server.exec_now("killserver")
 		if movie != "" and Settings.get_value("gameplay/tier_movies"):
 			Session.play_cinematics(PackedStringArray([movie]), Session.MAIN_MENU)
+		elif setup.source == "editor":
+			Session.back_to_editor()
 		else:
 			Session.to_main_menu())
 
 
 func _select_weapon(w: int) -> void:
-	var ps := Q3Server.player_state(me)
+	var ps := feed.player_state(me)
 	if ps.is_empty():
 		return
 	var owned := int(ps["stats"][E.STAT_WEAPONS])
@@ -781,7 +1052,7 @@ func _select_weapon(w: int) -> void:
 
 ## cg_weapons.c CG_NextWeapon / CG_PrevWeapon: the next owned weapon with ammo.
 func _cycle_weapon(dir: int) -> void:
-	var ps := Q3Server.player_state(me)
+	var ps := feed.player_state(me)
 	if ps.is_empty():
 		return
 	var owned := int(ps["stats"][E.STAT_WEAPONS])
@@ -797,12 +1068,17 @@ func _server_command(c: String) -> void:
 	var cmd := c.get_slice(" ", 0)
 	var args := c.split(" ", false)
 	if cmd == "dmg" and args.size() >= 3:
+		hud.hit_damage += int(args[2])   # Audio > Hit sound: Pitch by damage
 		client.damage(int(args[1]), int(args[2]))
+		# dmg <target> <amount> <armor> <means> <time> (the last two since the scoreboard's stats)
+		match_stats.damaged(int(args[2]), int(args[4]) if args.size() > 4 else -1, int(args[5]) if args.size() > 5 else -1,
+			int(feed.player_state(me).get("weapon", 0)))
 		return
 	if cmd == "armorhit" and args.size() >= 3:
 		client.armor_hit(int(args[1]), int(args[2]))
 		return
 	if cmd == "map_restart":
+		match_stats.reset()   # the warmup doesn't count
 		hud.fight()   # cg_servercmds.c CG_MapRestart after a warmup
 		return
 	if cmd in ["print", "cp", "chat", "tchat"]:
@@ -824,13 +1100,15 @@ func _server_command(c: String) -> void:
 ## EV_OBITUARY: the kill feed, and cg_event.c CG_Obituary's center print when you frag someone.
 func _on_obituary(attacker: int, target: int, means: int) -> void:
 	var world := attacker == target or attacker < 0 or attacker >= E.MAX_CLIENTS
-	var gt := Q3Server.cvar("g_gametype").to_int()
+	var gt := feed.cvar("g_gametype").to_int()
 	var team := func(cl: int) -> int:
-		return int(Q3Host.parse_info(Q3Server.configstring(E.CS_PLAYERS + cl)).get("t", "0")) if gt >= E.GT_TEAM else 0
+		return int(Q3Host.parse_info(feed.configstring(E.CS_PLAYERS + cl)).get("t", "0")) if gt >= E.GT_TEAM else 0
 	hud.obituary("" if world else _name(attacker), _name(target), means, not world and attacker == me, target == me,
 		0 if world else team.call(attacker), team.call(target))
+	if not world:
+		_last_frag = {"attacker": attacker, "at": float(feed.time())}
 	if attacker == me and target != me:
-		var ps := Q3Server.player_state(me)
+		var ps := feed.player_state(me)
 		var pers: PackedInt32Array = ps.get("persistant", PackedInt32Array())
 		if gt < E.GT_TEAM and pers.size():
 			hud.center_print("You fragged %s\n%s place with %d" % [_name(target), Q3HudStyle.place(int(pers[E.PERS_RANK])),
@@ -841,14 +1119,19 @@ func _on_obituary(attacker: int, target: int, means: int) -> void:
 
 ## A player's name with its color codes.
 func _name(cl: int) -> String:
-	return String(Q3Host.parse_info(Q3Server.configstring(E.CS_PLAYERS + cl)).get("n", "?"))
+	return String(Q3Host.parse_info(feed.configstring(E.CS_PLAYERS + cl)).get("n", "?"))
 
 
 ## The local player's predictable events (Q3Client.local_event): the speedometer's jump readout,
 ## the pickup display and cg_autoswitch, and CG_OutOfAmmoChange.
 func _on_local_event(ev: int, parm: int) -> void:
-	var ps := Q3Server.player_state(me)
+	if _spectating_now and ev != E.EV_JUMP:
+		return   # the followed player's pickups and empty guns aren't your weapon choices
+	var ps := feed.player_state(me)
 	match ev:
+		E.EV_FIRE_WEAPON:
+			if not ps.is_empty():
+				match_stats.fired(int(ps["weapon"]))
 		E.EV_JUMP:
 			if not ps.is_empty():
 				var v: Vector3 = ps["velocity"]
@@ -889,8 +1172,753 @@ func _out_of_ammo_change(ps: Dictionary) -> void:
 			return
 
 
+## Quit from the pause menu (or any way out that skips _leave): the replay still gets its trailer.
+func _exit_tree() -> void:
+	_finish_recording({"ended": "quit"})
+	if replay_feed:
+		replay_feed.close()
+
+
 func _leave() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if _rendering_clip():
+		_end_clip(1)
+		return
+	_finish_recording({"ended": "left"})
 	if Q3Server.running():
 		Q3Server.exec_now("killserver")
-	Session.to_main_menu()
+	if setup.source == "editor":
+		Session.back_to_editor()
+	elif replay_feed:
+		Session.leave_replay()
+	else:
+		Session.to_main_menu()
+
+
+# ---------------------------------------------------------------- replays (REPLAY_PLAN.md R2, R3)
+# A replay plays in this same scene: the feed is a Q3ReplayFeed instead of the server, so Q3Client,
+# the HUD, the scoreboard, chat, music and the announcer all work unchanged. The playhead moves at
+# the chosen speed; each recorded frame reached goes to Q3Client once (its events play), a jump
+# rebuilds Q3Client from the target frame with its sounds and effects muted, and between frames the
+# players and the view are interpolated. Q3ReplayViewer is the transport bar and the controls.
+
+const FREE_SPEED := 400.0           ## free camera, id units a second (x2.5 with Walk held)
+const ORBIT_SPEED := 14.0           ## degrees a second the orbit camera turns by itself
+var _chase: Q3ChaseCam
+var _free_pos := Vector3.ZERO      ## the free camera, id units
+var _free_angles := Vector3.ZERO   ## its pitch and yaw, degrees
+var _orbit_yaw := 0.0
+var _orbit_pitch := 20.0
+var _looking := false              ## the right mouse button is held: the mouse turns the camera
+var _clip: Dictionary = {}         ## a clip render's range and camera (Session.replay.clip)
+var _replay_damaged := false
+
+
+## Opens the replay and makes a setup that names its map and mode. "" on success, else why not.
+func _start_replay(path: String) -> String:
+	setup = Session.new_setup("ffa", "q3dm17")
+	replay_feed = Q3ReplayFeed.new()   # first: an error still leaves by the replay's way
+	feed = replay_feed
+	var err := Q3Host.start()
+	if err != "":
+		return err
+	if Q3Server.running():
+		Q3Server.exec_now("killserver")
+	err = replay_feed.open(path)
+	var h := replay_feed.header
+	var mode := String(h.get("mode", "ffa"))
+	setup = Session.new_setup(mode if mode in Session.MODES else "ffa", String(h.get("map", "q3dm17")))
+	setup.source = "replay"
+	if err != "":
+		return err
+	for row in h.get("standings", []):
+		if row is Dictionary and row.has("client"):
+			_replay_cards[int(row["client"])] = {"card": row.get("card", {}), "level": int(row.get("level", 1))}
+	var cls := replay_feed.clients()
+	me = int(h.get("local_client", -1))
+	if not cls.has(me):
+		me = cls[0] if cls.size() else -1
+	# a match you spectated: the player you followed, else the first one playing
+	var ps := replay_feed.frame_player_state(me)
+	if not ps.is_empty() and following(ps):
+		me = int(ps["clientNum"])
+	elif not ps.is_empty() and int(ps["persistant"][E.PERS_TEAM]) == E.TEAM_SPECTATOR:
+		for cl in cls:
+			var cps := replay_feed.frame_player_state(cl)
+			if int(cps["persistant"][E.PERS_TEAM]) != E.TEAM_SPECTATOR and not following(cps):
+				me = cl
+				break
+	return ""
+
+
+func _begin_replay() -> void:
+	_chase = Q3ChaseCam.new()
+	hud.respawn_text = ""   # nobody here respawns
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	replay_feed.playhead = clampf(replay_feed.start_time() + float(Session.replay.get("at", 0)), replay_feed.start_time(),
+		replay_feed.end_time())
+	replay_feed.jump(replay_feed.target_frame())
+	_rebuild_view()
+	viewer = Q3ReplayViewer.new()
+	viewer.game = self
+	add_child(viewer)
+	_clip = Session.replay.get("clip", {})
+	if not _clip.is_empty():
+		# a clip render (Q3ClipExport): the range, from the viewer's camera as it was, without the
+		# controls, then quit. Whose eyes is settled at the range's start: they may join late.
+		replay_feed.playhead = clampf(float(_clip["from"]), replay_feed.start_time(), replay_feed.end_time())
+		if not replay_feed.jump(replay_feed.target_frame()):
+			_end_clip(1)
+			return
+		if replay_feed.clients().has(int(_clip["watch"])):
+			me = int(_clip["watch"])
+		_rebuild_view(true)
+		set_cam_mode(String(_clip["cam"]))
+		if _clip.has("pos"):
+			_free_pos = _clip["pos"]
+			_free_angles = _clip["angles"]
+		if _clip.has("orbit"):
+			_orbit_yaw = (_clip["orbit"] as Vector2).x
+			_orbit_pitch = (_clip["orbit"] as Vector2).y
+		viewer.chrome = false
+		viewer.bar_shown = false
+		viewer.names = bool(_clip.get("names", false))
+		viewer.set_outlines(bool(_clip.get("outlines", false)))
+		hud.visible = bool(_clip["hud"])
+		replay_speed = 1.0
+		replay_playing = true
+		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+
+
+## A clip render's copy of the game (Q3ClipExport): no controls; it quits at the range's end.
+func _rendering_clip() -> bool:
+	return Session.replay.has("clip")
+
+
+## Ends a clip render: Movie Maker closes the file as the game quits. Code 1: it went wrong.
+func _end_clip(code := 0) -> void:
+	_clip = {}
+	replay_playing = false
+	get_tree().quit(code)
+
+
+## The camera as the viewer shows it, for a clip render to start from (Q3ClipExport.start's view).
+func clip_view() -> Dictionary:
+	var v := {}
+	if cam_mode == "free":
+		v["pos"] = _free_pos
+		v["angles"] = _free_angles
+	elif cam_mode == "orbit":
+		v["orbit"] = Vector2(_orbit_yaw, _orbit_pitch)
+	return v
+
+
+## The client whose snapshot Q3Client draws: the watched player in first person (their own
+## predicted events come through their playerState), else a free camera's (-1).
+func _snap_client() -> int:
+	return me if cam_mode == "first" else -1
+
+
+## Rebuilds the drawing from the frame shown: after a jump, or when whose eyes or which camera
+## changes. Sounds and one-shot effects stay quiet; bodies already down aren't ragdolled again.
+func _rebuild_view(jumped := false) -> void:
+	match_stats.reset()
+	if jumped:
+		_deaths.clear()   # the muted rebuild notes the obituaries still in the frame
+	client.reset()
+	hud.reset_view(jumped)
+	if _chase:
+		_chase.reset()
+	client.local_client = me if cam_mode == "first" else -1
+	client.muted = true
+	client.apply_snapshot(feed.snapshot(_snap_client()), replay_feed.frame_player_state(me) if cam_mode == "first" else {})
+	client.muted = false
+	_forget_times()
+	_zoomed = false
+
+
+## After a jump (or a new pair of eyes): the landing dip, the view gun's hand pose and its flash
+## were stamped at another time; a later stamp would hold them (the camera lifted, a flash lit)
+## until the playhead got there.
+func _forget_times() -> void:
+	_death_at = -1.0
+	_death_cards.clear()
+	hud.set_death({})
+	_land_time = -100000.0
+	_land_change = 0.0
+	_gun_weapon = -1
+	_torso_anim = -1
+	_hand_from = []
+	for g in _guns.values():
+		if g[1]:
+			(g[1] as Q3WeaponFx).reset(_now_ms())
+
+
+## Brings Q3Client to the playhead: frame by frame while playing, a jump when it moved backward or
+## far ahead.
+func _sync_replay() -> void:
+	if replay_feed.needs_jump():
+		if not replay_feed.jump(replay_feed.target_frame()):
+			_replay_broken()
+			return
+		_rebuild_view(true)
+		return
+	var target := replay_feed.target_frame()
+	# a scrub a little ahead plays only its last frames' events; the rest are noted quietly
+	var loud_from := target - 3
+	while replay_feed.frame < target:
+		if not replay_feed.step():
+			_replay_broken()
+			break
+		client.muted = replay_feed.frame < loud_from
+		for c in feed.next_commands(me):
+			if not client.muted:
+				_server_command(c)
+		client.apply_snapshot(feed.snapshot(_snap_client()), replay_feed.frame_player_state(me) if cam_mode == "first" else {})
+	client.muted = false
+
+
+## The file can't be decoded past here (damaged): playback stops with a message, once.
+func _replay_broken() -> void:
+	if _rendering_clip():
+		_end_clip(1)
+		return
+	replay_playing = false
+	if replay_feed.replay:
+		replay_feed.playhead = float(replay_feed.replay.frame_time(maxi(replay_feed.frame, 0)))
+	if not _replay_damaged:
+		_replay_damaged = true
+		hud.notify("This replay is damaged past %s; it stops here." % Q3ReplayViewer._clock(replay_feed.playhead - replay_feed.start_time()))
+
+
+func _process_replay(delta: float) -> void:
+	if not _clip.is_empty() and replay_feed.playhead >= minf(float(_clip["to"]), replay_feed.end_time()):
+		_end_clip()
+		return
+	if replay_playing:
+		replay_feed.playhead = minf(replay_feed.playhead + delta * 1000.0 * replay_speed, replay_feed.end_time())
+		if replay_feed.at_end():
+			replay_playing = false
+	_sync_replay()
+	if replay_feed.header.get("demo", false) and not replay_feed.clients().has(me) and replay_feed.clients().size():
+		watch(replay_feed.clients()[0])   # the demo's player followed someone else (follownext)
+	var first := cam_mode == "first"
+	var ps := feed.player_state(me)
+	if first:
+		match_stats.moved(ps)
+	client.set_next(replay_feed.next_snapshot(_snap_client()), replay_feed.fraction())
+	music.play(feed.configstring(E.CS_MUSIC))
+	client.animate(replay_feed.playhead)
+	_update_replay_camera(ps, delta)
+	if first and not ps.is_empty():
+		_update_gun(ps)
+	elif _gun:
+		_gun.visible = false
+	client.present(ps if first else {}, cam.global_position)
+	_update_hud(ps)
+	if not first:
+		# the middle of the screen is the player's body: no crosshair, speedometer or weapon row
+		hud.crosshair.visible = false
+		hud.speedometer.visible = false
+		hud.weapon_bar.visible = false
+	hud.lagometer(delta * 1000.0, 0)
+	_board_t -= delta
+	var pm := int(ps.get("pm_type", 0))
+	var show_board := (Input.is_action_pressed("q3_scores") and not _rendering_clip()) or pm == E.PM_INTERMISSION
+	if viewer:
+		show_board = show_board and not viewer.picking
+	scoreboard.visible = show_board
+	if show_board and _board_t <= 0.0:
+		_board_t = 0.25
+		var ts := Vector2i(-1, -1)
+		if feed.cvar("g_gametype").to_int() >= E.GT_TEAM:
+			ts = Vector2i(int(feed.configstring(E.CS_SCORES1)), int(feed.configstring(E.CS_SCORES2)))
+		# the watched player's match, from where the playhead last jumped (or the start)
+		scoreboard.refresh(standings(), _match_title(), ts, {"map": setup.map, "clock": hud.status.clock, "limit": hud.status.limit,
+			"stats_title": "%s^7'S MATCH" % _name(me)}, match_stats.summary(ps) if first else {})
+
+
+## The replay's cameras. First person is the live view (_update_camera); chase backs off behind
+## the player through Q3ChaseCam; orbit circles them; free flies anywhere (the recording has every
+## entity, so there's something to see everywhere).
+func _update_replay_camera(ps: Dictionary, delta: float) -> void:
+	var look := _mouse * float(Settings.get_value("mouse/sensitivity")) * Settings.M_YAW
+	_mouse = Vector2.ZERO
+	if cam_mode == "first":
+		if not _update_death(ps, delta):
+			_update_camera(ps)
+		return
+	cam.fov = Settings.fov_vertical(float(Settings.get_value("video/fov")))
+	if cam_mode == "free":
+		_free_angles.y -= look.x
+		_free_angles.x = clampf(_free_angles.x + look.y, -89.0, 89.0)
+		var move := Vector3.ZERO
+		var fwd := Q3Client.forward_of(_free_angles)
+		var yaw := deg_to_rad(_free_angles.y)
+		var left := Vector3(-sin(yaw), cos(yaw), 0)
+		if not _rendering_clip():   # a clip render's camera holds still
+			if Input.is_action_pressed("q3_forward"): move += fwd
+			if Input.is_action_pressed("q3_back"): move -= fwd
+			if Input.is_action_pressed("q3_moveleft"): move += left
+			if Input.is_action_pressed("q3_moveright"): move -= left
+			if Input.is_action_pressed("q3_jump"): move.z += 1.0
+			if Input.is_action_pressed("q3_crouch"): move.z -= 1.0
+		var speed := FREE_SPEED * (2.5 if Input.is_action_pressed("q3_walk") else 1.0)
+		_free_pos += move.normalized() * speed * delta
+		cam.global_position = Q3.q3_to_godot(_free_pos)
+		cam.basis = Q3Client.angles_basis(_free_angles) * Basis(Vector3.UP, PI)
+		return
+	if ps.is_empty():
+		return
+	var eye: Vector3 = ps["origin"]
+	eye.z += float(ps["viewheight"])
+	var t: Transform3D
+	if cam_mode == "orbit":
+		if _looking:
+			_orbit_yaw -= look.x
+			_orbit_pitch = clampf(_orbit_pitch + look.y, -30.0, 80.0)
+		else:
+			_orbit_yaw += ORBIT_SPEED * delta
+		_chase.distance = 170.0
+		_chase.height = 0.0
+		t = _chase.place(feed, eye, _orbit_yaw, _orbit_pitch, delta, me, 0.0)
+	else:
+		var a: Vector3 = ps["viewangles"]
+		_chase.distance = 110.0
+		_chase.height = 20.0
+		t = _chase.place(feed, eye, a.y, clampf(a.x * 0.5, -20.0, 45.0) + 8.0, delta, me)
+	cam.global_transform = t
+
+
+func _set_looking(on: bool) -> void:
+	_looking = on
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and _looking:
+		_set_looking(false)
+
+
+## Switches the camera. Leaving first person draws the watched player's body; entering it hides it.
+func set_cam_mode(mode: String) -> void:
+	if mode == cam_mode or not mode in ["first", "chase", "free", "orbit"]:
+		return
+	if _looking:
+		_set_looking(false)
+	if mode == "free":
+		# the free camera starts where the view is
+		_free_pos = _godot_to_id(cam.global_position)
+		var f := -cam.global_basis.z
+		var fi := Vector3(f.z, f.x, f.y)
+		_free_angles = Vector3(rad_to_deg(-asin(clampf(fi.z, -1.0, 1.0))), rad_to_deg(atan2(fi.y, fi.x)), 0.0)
+	if mode == "orbit":
+		var ps := feed.player_state(me)
+		_orbit_yaw = float((ps.get("viewangles", Vector3.ZERO) as Vector3).y) + 180.0
+	var was_first := cam_mode == "first"
+	cam_mode = mode
+	if was_first != (mode == "first"):
+		_rebuild_view()
+		hud.layout()   # brings back what first person shows
+	elif _chase:
+		_chase.reset()
+
+
+## Watches another player (first person shows their eyes, HUD and gun).
+func watch(cl: int) -> void:
+	if cl == me or not replay_feed.clients().has(cl):
+		return
+	me = cl
+	_rebuild_view()
+
+
+## Moves the playhead (server ms); Q3Client catches up on the next frame.
+func seek_to(ms: float) -> void:
+	replay_feed.playhead = clampf(ms, replay_feed.start_time(), replay_feed.end_time())
+
+
+## One recorded frame forward or back, paused.
+func step_frame(dir: int) -> void:
+	replay_playing = false
+	var f := clampi(replay_feed.frame + dir, 0, replay_feed.replay.frame_count() - 1)
+	seek_to(replay_feed.replay.frame_time(f))
+
+
+## Godot meters -> id units and axes (the inverse of Q3.q3_to_godot).
+static func _godot_to_id(p: Vector3) -> Vector3:
+	return Vector3(p.z, p.x, p.y) / Q3.UNIT
+
+
+func _replay_input(event: InputEvent) -> void:
+	if _rendering_clip():
+		# the render takes no controls (a key meant for the player's own game mustn't change it);
+		# Escape stops it
+		get_viewport().set_input_as_handled()
+		if event.is_action_pressed("ui_cancel") and not event is InputEventMouseButton:
+			_end_clip(1)
+		return
+	if viewer and viewer.handle_input(event):
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("ui_cancel") and not event is InputEventMouseButton:
+		get_viewport().set_input_as_handled()
+		_leave()
+		return
+	var mb := event as InputEventMouseButton
+	if mb and mb.button_index == MOUSE_BUTTON_RIGHT and (cam_mode in ["free", "orbit"] or (_looking and not mb.pressed)):
+		_set_looking(mb.pressed)
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseMotion and _looking:
+		_mouse += event.relative
+
+
+# ---------------------------------------------------------------- spectating (REPLAY_PLAN.md R5)
+# Spectators are id's own: "team spectator" flies free (PM_SPECTATOR), fire follows the next
+# player (g_active.c SpectatorThink), "follow" picks one, and the duel's waiting line and the team
+# rules stay the game's. Following, the playerState is a copy of the followed player's
+# (PMF_FOLLOW), so the view, HUD, gun and events are theirs, and Q3Client takes them as the local
+# player. The remaster adds a chase camera (Use item) that moves only the camera, and an optional
+# auto-director (Settings > Gameplay, or Gesture while spectating) that follows the action.
+
+const DIRECTOR_HOLD := 4.0         ## seconds the auto-director stays with a player before it may switch
+var _spectating_now := false       ## spectating() this frame (input handlers read it)
+var _spec_card_client := -1        ## whose card the spectator HUD holds
+var _spec_card := {}
+var spec_chase := false
+var director := false
+var _director_t := 0.0
+var _director_hold := 0.0
+var _last_frag := {}               ## the latest frag: {attacker, at (ms)}, for the auto-director
+
+
+## Whether you're watching rather than playing: on team spectator, or following someone.
+func spectating(ps := {}) -> bool:
+	if ps.is_empty():
+		ps = feed.player_state(me)
+	if ps.is_empty():
+		return false
+	return int(ps["persistant"][E.PERS_TEAM]) == E.TEAM_SPECTATOR or following(ps)
+
+
+static func following(ps: Dictionary) -> bool:
+	return not ps.is_empty() and (int(ps["pm_flags"]) & E.PMF_FOLLOW) != 0
+
+
+## Before each snapshot: the player whose body Q3Client leaves out and whose events it plays as
+## its own (the followed player; nobody in the chase camera). A change rebuilds the drawing quietly.
+func _spectate_view(ps: Dictionary) -> void:
+	var want := int(ps["clientNum"]) if following(ps) else me
+	if want == client.local_client:
+		return
+	client.set_view_client(want)
+	hud.reset_view(false)
+	_forget_times()
+	if _chase:
+		_chase.reset()
+
+
+## The remaster's chase camera on the followed player (Q3ChaseCam): it moves only the camera.
+func _chase_camera(ps: Dictionary, delta: float) -> void:
+	if _chase == null:
+		_chase = Q3ChaseCam.new()
+	var eye: Vector3 = ps["origin"]
+	eye.z += float(ps["viewheight"])
+	var a: Vector3 = ps["viewangles"]
+	_chase.distance = 110.0
+	_chase.height = 20.0
+	cam.global_transform = _chase.place(feed, eye, a.y, clampf(a.x * 0.5, -20.0, 45.0) + 8.0, delta, int(ps["clientNum"]))
+	cam.fov = Settings.fov_vertical(float(Settings.get_value("video/fov")))
+
+
+## The spectator's HUD: the followed player's card and the keys (Q3Hud.set_spectator).
+func _spectator_hud(ps: Dictionary) -> void:
+	if not spectating(ps):
+		if not hud.spectator.is_empty():
+			hud.set_spectator({})
+		return
+	var key := func(action: String) -> String:
+		var b = Settings.get_value("controls/" + action)
+		return Settings.bind_label(String(b[0])) if b is Array and b.size() and String(b[0]) != "" else "?"
+	var info := {"mode": "free", "director": director}
+	var hints: Array = [[key.call("attack"), "next player"], [key.call("weapnext"), "cycle"]]
+	if following(ps):
+		var cl := int(ps["clientNum"])
+		if cl != _spec_card_client:
+			_spec_card_client = cl
+			_spec_card = _card_of(cl)
+		info = {"mode": "chase" if spec_chase else "follow", "client": cl, "name": _name(cl), "card": _spec_card["card"],
+			"level": _spec_card["level"], "director": director}
+		hints.append([key.call("jump"), "free camera"])
+		hints.append([key.call("use_item"), "first person" if spec_chase else "chase camera"])
+	hints.append([key.call("gesture"), "auto-director " + ("off" if director else "on")])
+	info["hints"] = hints
+	hud.set_spectator(info)
+
+
+## A player's card and level as the scoreboard shows them.
+func _card_of(cl: int) -> Dictionary:
+	for r in standings():
+		if int(r["client"]) == cl:
+			return {"card": r.get("card", {}), "level": int(r.get("level", 1))}
+	return {"card": {}, "level": 1}
+
+
+## Spectator keys: the weapon wheel cycles players, Jump leaves the followed player for the free
+## camera (Cmd_Follow_f without a name stops following), Use item toggles the chase camera and
+## Gesture the auto-director. Fire is id's own: the usercmd's attack follows the next player.
+## Returns true when the key was a spectator's.
+func _spectator_input(event: InputEvent) -> bool:
+	if not _spectating_now or _ended:
+		return false   # (at the intermission every unknown command is chat)
+	var ps := feed.player_state(me)
+	if event.is_action_pressed("q3_attack"):
+		_director_hold = DIRECTOR_HOLD   # id follows the next player; the director lets you have it
+		return false
+	if event.is_action_pressed("q3_weapnext") or event.is_action_pressed("q3_weapprev"):
+		Q3Server.client_command(me, "follownext" if event.is_action_pressed("q3_weapnext") else "followprev")
+		_director_hold = DIRECTOR_HOLD
+		return true
+	if following(ps) and event.is_action_pressed("q3_jump"):
+		Q3Server.client_command(me, "follow")
+		director = false   # the free camera is your choice
+		return true
+	if following(ps) and event.is_action_pressed("q3_use_item"):
+		spec_chase = not spec_chase
+		UiSound.play("move")
+		return true
+	if event.is_action_pressed("q3_gesture"):
+		director = not director
+		_director_hold = 0.0
+		UiSound.play("move")
+		return true
+	for w in range(1, 10):
+		if event.is_action_pressed("q3_weapon%d" % w):
+			return true
+	return false
+
+
+## The pause menu's Spectate / Join match. id's SetTeam decides: a duel's waiting line and team
+## balance say when you're in.
+func set_spectating(on: bool) -> void:
+	if _ended:
+		return
+	if on:
+		Q3Server.set_cvar("g_readyUp", "0")   # a warmup waiting on you would never end
+	Q3Server.client_command(me, "team spectator" if on else "team free")
+
+
+## Whether the pause menu offers Spectate: not in the campaign (the match is yours to win), and in a
+## duel only with someone waiting to take your place (id's tournament would pull you straight back).
+func can_spectate() -> bool:
+	if setup.source in ["campaign", "training"]:
+		return false
+	if GAMETYPES.get(setup.mode, 0) == E.GT_TOURNAMENT:
+		# id's AddTournamentPlayer pulls a free spectator in: only with another one waiting
+		for cl in E.MAX_CLIENTS:
+			if cl != me and feed.client_state(cl) >= 4:
+				var ps := feed.player_state(cl)
+				if not ps.is_empty() and int(ps["persistant"][E.PERS_TEAM]) == E.TEAM_SPECTATOR and not following(ps):
+					return true
+		return false
+	return true
+
+
+## Follows a player from the scoreboard (Tab, right click, then a row).
+func _follow_from_board(cl: int) -> void:
+	if cl == me or not _spectating_now or _ended:
+		return
+	Q3Server.client_command(me, "follow %d" % cl)
+	_director_hold = DIRECTOR_HOLD
+	scoreboard.set_interactive(false)
+
+
+## The auto-director: twice a second it scores every player in view: a flag carrier first, then
+## whoever just fragged, a powerup holder, anyone firing and anyone with enemies close by. It
+## stays with a pick for DIRECTOR_HOLD seconds unless nobody is followed.
+func _direct(ps: Dictionary, delta: float) -> void:
+	if not director or not _spectating_now or _ended:
+		return
+	_director_t -= delta
+	_director_hold -= delta
+	if _director_t > 0.0:
+		return
+	_director_t = 0.5
+	var current := int(ps["clientNum"]) if following(ps) else -1
+	var flags := (1 << E.PW_REDFLAG) | (1 << E.PW_BLUEFLAG) | (1 << E.PW_NEUTRALFLAG)
+	var players: Array = []
+	for es in feed.snapshot(me).get("entities", []):
+		var n := int(es["number"])
+		if int(es["eType"]) == E.ET_PLAYER and n < E.MAX_CLIENTS and n != me and not (int(es["eFlags"]) & E.EF_DEAD):
+			players.append(es)
+	var best := -1
+	var best_score := -1.0
+	var now := float(feed.time())
+	if current >= 0 and int(ps["stats"][E.STAT_HEALTH]) > 0:
+		# the followed player is never in your snapshot (sv_snapshot.c): their playerState stands in
+		var pw := 0
+		var pws: PackedInt32Array = ps["powerups"]
+		for i in pws.size():
+			if pws[i] > 0:
+				pw |= 1 << i
+		players.append({"number": current, "powerups": pw, "eFlags": int(ps["eFlags"]), "pos": {"trBase": ps["origin"]}})
+	for es in players:
+		var n := int(es["number"])
+		var p: Vector3 = es["pos"]["trBase"]
+		var score := 0.0
+		var pw := int(es["powerups"])
+		if pw & flags:
+			score += 100.0
+		elif pw:
+			score += 20.0
+		if int(_last_frag.get("attacker", -1)) == n and now - float(_last_frag.get("at", -1e9)) < 5000.0:
+			score += 60.0
+		if int(es["eFlags"]) & E.EF_FIRING:
+			score += 15.0
+		for o in players:
+			if o != es and p.distance_to(o["pos"]["trBase"]) < 800.0:
+				score += 8.0
+		if n == current:
+			score += 12.0   # a pick holds unless someone beats it
+		if score > best_score:
+			best_score = score
+			best = n
+	if best >= 0 and best != current and (_director_hold <= 0.0 or current < 0):
+		Q3Server.client_command(me, "follow %d" % best)
+		_director_hold = DIRECTOR_HOLD
+
+
+## The intermission while spectating: who won, no XP (nothing was played), and the replay.
+func _end_as_spectator(rows: Array) -> void:
+	_finish_recording({"ended": "intermission", "won": false, "place": 0, "tied": false, "result": "SPECTATED"})
+	var winner := String(rows[0].get("plain", "")) if rows.size() else ""
+	if winner != "":
+		hud.announce("sound/player/announce/%s_wins.wav" % winner.to_lower())
+	var total := Q3Profile.total_xp()
+	_results = Q3ResultsScreen.new()
+	add_child(_results)
+	_results.show_results({"won": false, "title": "MATCH OVER", "subtitle": "%s  -  %s wins" % [_match_title(), winner.to_upper()],
+		"standings": rows, "medals": {}, "xp": {"before": total, "after": total, "lines": []}, "replay": replay_path})
+	_results.watch_requested.connect(func():
+		if Q3Server.running():
+			Q3Server.exec_now("killserver")
+		Session.watch_replay(replay_path, 0, ""))
+	_results.finished.connect(func():
+		if Q3Server.running():
+			Q3Server.exec_now("killserver")
+		if setup.source == "editor":
+			Session.back_to_editor()
+		else:
+			Session.to_main_menu())
+
+
+# ---------------------------------------------------------------- the death cam (REPLAY_PLAN.md R6)
+# While you're dead (Settings > Gameplay > Death cam, on by default) the camera leaves your eyes and
+# follows your own ragdoll from behind and above (Q3ChaseCam, so walls pull it in); about a second
+# later KILLED BY and the killer's player card come up (bots' cards for bots), or id's own
+# obituary line when nobody did it. Respawning stays id's: fire works when the game allows it
+# (1.7 s, g_combat.c player_die), and the line under the card counts down to it.
+
+const DEATH_CARD_DELAY := 1000.0   ## ms after the death: the body has mostly settled
+const RESPAWN_DELAY := 1700.0      ## g_combat.c: respawnTime = level.time + 1700
+## cg_event.c CG_Obituary's lines for deaths nobody caused, then for your own weapon
+const WORLD_DEATHS := {E.MOD_SUICIDE: "suicides", E.MOD_FALLING: "cratered", E.MOD_CRUSH: "was squished",
+	E.MOD_WATER: "sank like a rock", E.MOD_SLIME: "melted", E.MOD_LAVA: "does a back flip into the lava",
+	E.MOD_TARGET_LASER: "saw the light", E.MOD_TRIGGER_HURT: "was in the wrong place"}
+const SELF_DEATHS := {E.MOD_GRENADE_SPLASH: "tripped on his own grenade", E.MOD_ROCKET_SPLASH: "blew himself up",
+	E.MOD_PLASMA_SPLASH: "melted himself", E.MOD_BFG_SPLASH: "should have used a smaller gun"}
+## animation.cfg "sex": cgame's gender for "herself" / "itself"
+const FEMALE_MODELS := ["crash", "hunter", "lucy", "major", "mynx", "slash", "sorlag"]
+const NEUTER_MODELS := ["klesk", "orbb", "tankjr"]
+const MOD_WEAPONS := {E.MOD_SHOTGUN: "Shotgun", E.MOD_GAUNTLET: "Gauntlet", E.MOD_MACHINEGUN: "Machinegun",
+	E.MOD_GRENADE: "Grenade Launcher", E.MOD_GRENADE_SPLASH: "Grenade Launcher", E.MOD_ROCKET: "Rocket Launcher",
+	E.MOD_ROCKET_SPLASH: "Rocket Launcher", E.MOD_PLASMA: "Plasma Gun", E.MOD_PLASMA_SPLASH: "Plasma Gun",
+	E.MOD_RAILGUN: "Railgun", E.MOD_LIGHTNING: "Lightning Gun", E.MOD_BFG: "BFG10K", E.MOD_BFG_SPLASH: "BFG10K",
+	E.MOD_GRAPPLE: "Grappling Hook"}
+var _deaths: Dictionary = {}       ## client -> the obituary that last killed them: {attacker, means}
+var _death_cards: Dictionary = {}  ## client -> the card for their current death
+var _death_at := -1.0              ## when the watched player went down (ms), -1 while alive
+var _death_yaw := 0.0
+var _death_chase: Q3ChaseCam
+
+
+## Whether the death cam runs: the setting, and someone's eyes to leave (not the free spectator).
+func _death_cam_on() -> bool:
+	return bool(Settings.get_value("gameplay/death_cam")) and client.local_client >= 0
+
+
+## Every frame: while the watched player is dead, the camera on their body and the card. Returns
+## true when it placed the camera.
+func _update_death(ps: Dictionary, delta: float) -> bool:
+	client.own_death = _death_cam_on()
+	var dead := not ps.is_empty() and int(ps["pm_type"]) == E.PM_DEAD
+	if not dead:
+		if _death_at >= 0.0:
+			_death_at = -1.0
+			hud.set_death({})
+			hud.respawn_text = "" if replay_feed else "FIRE TO RESPAWN"
+		return false
+	var now := _now_ms()
+	if _death_at < 0.0:
+		_death_at = now
+		_death_yaw = float((ps["viewangles"] as Vector3).y)
+		if _death_chase == null:
+			_death_chase = Q3ChaseCam.new()
+		_death_chase.reset()
+	# id's respawn: fire works 1.7 s after the death; g_forcerespawn brings you back by itself
+	var wait := (_death_at + RESPAWN_DELAY - now) / 1000.0
+	var forced := feed.cvar("g_forcerespawn").to_int()
+	if replay_feed:
+		hud.respawn_text = ""
+	elif _spectating_now:
+		hud.respawn_text = "FIRE  -  NEXT PLAYER"   # SpectatorThink: fire follows the next one
+	else:
+		hud.respawn_text = ("RESPAWN IN %.1f" % wait) if wait > 0.0 else ("FIRE TO RESPAWN" + (
+			"  -  AUTO IN %d" % ceili(forced - (now - _death_at - RESPAWN_DELAY) / 1000.0) if forced > 0 else ""))
+	if not _death_cam_on():
+		return false
+	if now - _death_at >= DEATH_CARD_DELAY:
+		var who := int(ps["clientNum"])
+		if not _death_cards.has(who):   # built once a death (standings() and the bot cards cost)
+			_death_cards[who] = _death_card(who)
+		hud.set_death(_death_cards[who])
+	var body := client.own_body
+	if body == null or not is_instance_valid(body):
+		return false
+	_death_chase.distance = 130.0
+	_death_chase.height = 0.0
+	cam.global_transform = _death_chase.place(feed, _godot_to_id(body.body_center()), _death_yaw, 34.0, delta, int(ps["clientNum"]), 0.0)
+	cam.fov = Settings.fov_vertical(float(Settings.get_value("video/fov")))
+	if _gun:
+		_gun.visible = false
+	return true
+
+
+## What the card says about `who`'s death: the killer's card and weapon, or id's obituary line.
+func _death_card(who: int) -> Dictionary:
+	var d: Dictionary = _deaths.get(who, {})
+	if d.is_empty():
+		return {}
+	var attacker := int(d.get("attacker", -1))
+	var means := int(d.get("means", E.MOD_UNKNOWN))
+	# CG_Obituary: killing yourself overrides the world's lines (/kill is "killed himself"), and
+	# the world's lines win over a player who set it off (a laser's activator)
+	if attacker == who:
+		var model := String(Q3Host.parse_info(feed.configstring(E.CS_PLAYERS + who)).get("model", "")).get_slice("/", 0).to_lower()
+		var self_line: String = SELF_DEATHS.get(means, "killed himself")
+		if model in FEMALE_MODELS:
+			self_line = self_line.replace("himself", "herself").replace("his own", "her own")
+		elif model in NEUTER_MODELS:
+			self_line = self_line.replace("himself", "itself").replace("his own", "its own")
+		return {"line": "%s^7 %s." % [_name(who), self_line]}
+	if WORLD_DEATHS.has(means):
+		return {"line": "%s^7 %s." % [_name(who), WORLD_DEATHS[means]]}
+	if attacker >= 0 and attacker < E.MAX_CLIENTS:
+		var c := _card_of(attacker)
+		var weapon := ""
+		if means == E.MOD_TELEFRAG:
+			weapon = "TELEFRAGGED"
+		elif MOD_WEAPONS.has(means):
+			weapon = "WITH THE " + String(MOD_WEAPONS[means]).to_upper()
+		return {"name": _name(attacker), "card": c["card"], "level": c["level"], "weapon": weapon}
+	return {"line": "%s^7 died." % _name(who)}

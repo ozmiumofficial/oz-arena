@@ -4,6 +4,7 @@ extends Node
 ## after it stops (marks, smoke). One bot runs about so remote players' effects show up too.
 ##   godot --path . res://tests/weapon_fx.tscn -- out=C:/temp/wfx
 ## Writes <out>_<weapon>_<n>.png and prints "WEAPON FX done".
+## sweep=<degrees> swings the aim left and right that far while the lightning gun fires (burn lines).
 
 var out := "user://wfx"
 var _game: Q3Gameplay
@@ -14,6 +15,8 @@ var pitch := 22.0
 var _move := false
 var _old_preset := ""        ## move=1: run and jump the whole time (speedometer, bob)
 var _flash_frames := {}   ## weapon -> frames its view flash was on (-1: the model has no flash)
+var sweep := 0.0
+var _yaw0 := INF
 
 
 func _ready() -> void:
@@ -22,6 +25,8 @@ func _ready() -> void:
 			out = a.substr(4)
 		if a.begins_with("pitch="):
 			pitch = float(a.substr(6))
+		if a.begins_with("sweep="):
+			sweep = float(a.substr(6))
 		if a == "move=1":
 			_move = true
 		if a.begins_with("preset="):
@@ -59,6 +64,10 @@ func _process(delta: float) -> void:
 	if _game and _game.me >= 0:
 		_game._view.x = pitch
 		var fx: Q3WeaponFx = _game._gun_fx
+		if sweep > 0.0 and fx and fx.weapon == 6 and Input.is_action_pressed("q3_attack"):
+			if _yaw0 == INF:
+				_yaw0 = _game._view.y
+			_game._view.y = _yaw0 + sin(_t * 2.5) * sweep
 		if fx and fx.flash and fx.flash.visible:
 			_flash_frames[fx.weapon] = int(_flash_frames.get(fx.weapon, 0)) + 1
 		elif fx and fx.flash == null:

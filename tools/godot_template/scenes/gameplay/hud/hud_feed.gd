@@ -25,6 +25,12 @@ func add(attacker: String, victim: String, mod: int, attacker_me: bool, victim_m
 		_rows.pop_back()
 
 
+## Every line gone (a replay jumped: they'd be frags from another time).
+func clear() -> void:
+	_rows.clear()
+	queue_redraw()
+
+
 func _process(delta: float) -> void:
 	for r in _rows:
 		r["t"] = float(r["t"]) + delta

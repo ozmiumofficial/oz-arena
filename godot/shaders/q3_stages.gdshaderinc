@@ -4,6 +4,8 @@
 // go to ALBEDO and take the scene's lighting; the rest are full bright like rgbGen identity and
 // go to EMISSION. Variants differ only in render mode (opaque/additive, culling).
 
+#include "res://shaders/q3_deform.gdshaderinc"
+
 uniform sampler2D tex0 : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tex1 : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tex2 : source_color, filter_linear_mipmap, repeat_enable;
@@ -57,6 +59,14 @@ void apply_stage(int m, int lit_flag, vec4 s, inout vec3 lc, inout vec3 uc) {
 	else if (m == 3) { lc = mix(lc, sl, s.a); uc = mix(uc, su, s.a); }
 	else if (m == 4) { lc *= s.rgb; uc *= s.rgb; }
 }
+
+// deformVertexes (q3_deform.gdshaderinc): the CTF flags wave, the armor's energy shell swells
+void vertex() {
+	// the phase follows the model-space position, as id's tess.xyz for a model: a carried flag
+	// mustn't flutter faster because it moves
+	VERTEX = q3_deform(VERTEX, NORMAL, UV, VERTEX);
+}
+
 
 void fragment() {
 	// tcGen environment: the view direction reflected about the normal, in world space (tr_shade_calc.c)

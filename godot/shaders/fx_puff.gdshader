@@ -5,6 +5,8 @@ shader_type spatial;
 render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
 
 uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_disable;
+uniform float soft_distance = 0.5;   // meters over which a puff fades out where it meets a surface
+uniform sampler2D depth_tex : hint_depth_texture, repeat_disable, filter_nearest;
 
 varying float alpha;
 varying vec3 tint;
@@ -19,6 +21,9 @@ void vertex() {
 
 void fragment() {
 	vec4 c = texture(tex, UV);
+	// soft particles (the remaster's): fade into walls and floors instead of cutting off in a line
+	vec4 view = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, texture(depth_tex, SCREEN_UV).r, 1.0);
+	float soft = clamp((VERTEX.z - view.z / view.w) / soft_distance, 0.0, 1.0);
 	ALBEDO = c.rgb * tint;
-	ALPHA = c.a * alpha;
+	ALPHA = c.a * alpha * soft;
 }

@@ -6,6 +6,9 @@ extends Node
 ## (effects: rocket rail plasma lightning grenade bfg bullets gibs teleport).
 ## cam= places a camera in scenes without one (maps): cam=intermission, cam=spawn:<n>
 ## (info_player_deathmatch n), or cam=x,y,z,lx,ly,lz in Godot meters (position, look-at point).
+## probes=0 / shafts=0 remove a map's reflection probes or light shafts (Q3Map "Probes", "ShaftSun")
+## before the first frame, for comparisons. heat=0 turns Graphics > Heat shimmer off for the run.
+## tonemap=filmic|agx|aces sets the tone mapper of every WorldEnvironment in the scene.
 ## screen=1 grabs the window from the screen instead of the viewport, so native overlays such as
 ## the main menu's web view are in the picture (keep the window uncovered while it runs).
 
@@ -17,6 +20,9 @@ var view := ""
 var fire := ""
 var lead := 8
 var screen := false
+var probes := true
+var shafts := true
+var tonemap := ""   ## filmic / agx / aces: every WorldEnvironment in the scene, for comparisons
 const SHOWCASE := "res://showcase/showcase.tscn"
 var cam := ""
 var scene := SHOWCASE   ## scene=res://showcase/materials.tscn to capture the material browser
@@ -39,12 +45,26 @@ func _ready() -> void:
 				"lead": lead = int(kv[1])
 				"scene": scene = kv[1]
 				"cam": cam = kv[1]
+				"probes": probes = kv[1] != "0"
+				"shafts": shafts = kv[1] != "0"
+				"heat": Settings.set_value("graphics/heat_shimmer", kv[1] != "0", false)   # this run only, not saved
+				"tonemap": tonemap = kv[1]
 	Engine.max_fps = 60   # frames= counts real time, whatever the vsync setting
 	_show = load(scene).instantiate()
 	if screen:
 		# bring the window forward (always_on_top would stop the web view repainting)
 		DisplayServer.window_move_to_foreground()
 	add_child(_show)
+	if not probes and _show.has_node("Probes"):
+		_show.get_node("Probes").free()
+	if tonemap != "":
+		var mode: int = {"filmic": Environment.TONE_MAPPER_FILMIC, "agx": Environment.TONE_MAPPER_AGX,
+			"aces": Environment.TONE_MAPPER_ACES}.get(tonemap, Environment.TONE_MAPPER_FILMIC)
+		for we in _show.find_children("*", "WorldEnvironment", true, false):
+			(we as WorldEnvironment).environment.tonemap_mode = mode as Environment.ToneMapper
+	if not shafts and _show.has_node("ShaftSun"):
+		_show.get_node("ShaftSun").free()
+		(_show.get_node("WorldEnvironment") as WorldEnvironment).environment.volumetric_fog_density = 0.0
 	if cam != "":
 		_place_camera()
 	if scene != SHOWCASE:

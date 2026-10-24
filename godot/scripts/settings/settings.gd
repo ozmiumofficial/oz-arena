@@ -18,6 +18,7 @@ var _values: Dictionary = {}
 var _save_timer: Timer
 var _in_preset := false
 var _headless := false
+var _colorblind: CanvasLayer
 
 
 func _ready() -> void:
@@ -148,6 +149,9 @@ func load_from(from: String) -> bool:
 		var name := k.get_slice("/", 1)
 		if cf.has_section_key(sec, name):
 			_values[k] = _coerce(_by_key[k], cf.get_value(sec, name))
+	# the speedometer's on/off was an "off" style until 2026-10-23
+	if cf.get_value("hud", "speedometer", "") == "off" and not cf.has_section_key("hud", "show_speedometer"):
+		_values["hud/show_speedometer"] = false
 	return true
 
 
@@ -190,6 +194,19 @@ func cm_per_360() -> float:
 func particle_ratio() -> float:
 	var r: float = {"low": 0.35, "medium": 0.65, "high": 1.0}[_values["graphics/particles"]]
 	return r * (0.4 if _values["accessibility/reduced_flashing"] else 1.0)
+
+
+## Network > Connection speed as Quake 3's rate userinfo (bytes per second).
+func rate() -> int:
+	return {"slow": 25000, "medium": 50000, "fast": 90000, "lan": 99999}.get(_values["network/rate"], 25000)
+
+
+## Audio > Spatial audio for a positional sound: distance muffling and a sharper left and right,
+## or (off) Quake 3's plain stereo panning.
+func spatialize(a: AudioStreamPlayer3D) -> void:
+	var on: bool = _values["audio/spatial"]
+	a.attenuation_filter_db = -24.0 if on else 0.0
+	a.panning_strength = 1.5 if on else 1.0
 
 
 func shadows_on() -> bool:
@@ -355,7 +372,12 @@ func _apply(key: String, v: Variant) -> void:
 			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if v == "fxaa" else Viewport.SCREEN_SPACE_AA_DISABLED
 			vp.use_taa = v == "taa"
 		"graphics/anisotropy":
-			ProjectSettings.set_setting("rendering/textures/default_filters/anisotropic_filtering_level", {2: 1, 4: 2, 8: 3, 16: 4}[int(v)])
+			# the project setting is read only at startup (it stayed at its 4x default whatever the
+			# menu said); the viewport's own level changes live. The project setting still seeds
+			# viewports made later (portals, mirrors).
+			var level: int = {2: 1, 4: 2, 8: 3, 16: 4}[int(v)]
+			vp.anisotropic_filtering_level = level as Viewport.AnisotropicFiltering
+			ProjectSettings.set_setting("rendering/textures/default_filters/anisotropic_filtering_level", level)
 		"graphics/texture_quality":
 			vp.texture_mipmap_bias = {"low": 1.0, "medium": 0.5, "high": 0.0}[v]
 		"graphics/detail":
@@ -372,6 +394,9 @@ func _apply(key: String, v: Variant) -> void:
 			vp.content_scale_factor = float(v)
 		"accessibility/reduced_flashing":
 			environment_changed.emit()
+		"audio/menu_music":
+			if is_inside_tree():
+				get_tree().call_group(&"menu_music", "set_enabled", v)
 		"audio/menu_ambient":
 			if has_node("/root/UiSound"):
 				get_node("/root/UiSound").set_ambient(v)
@@ -381,6 +406,34 @@ func _apply(key: String, v: Variant) -> void:
 		"audio/input_device":
 			if not _headless:
 				AudioServer.input_device = v if AudioServer.get_input_device_list().has(v) else "Default"
+		"controls/pad_deadzone":
+			# the menus' stick directions; Gameplay reads the sticks itself with the same deadzone
+			for a in ["ui_up", "ui_down", "ui_left", "ui_right"]:
+				if InputMap.has_action(a):
+					InputMap.action_set_deadzone(a, clampf(float(v), 0.05, 0.9))
+		"accessibility/colorblind":
+			_set_colorblind(String(v))
+
+
+## Accessibility > Colorblind mode: shaders/colorblind.gdshader on a layer over everything Godot
+## draws, in every scene (the web menu is its own window and keeps its colors).
+func _set_colorblind(mode: String) -> void:
+	var i: int = ["off", "protanopia", "deuteranopia", "tritanopia"].find(mode)
+	if _colorblind == null:
+		if i <= 0 or _headless:
+			return
+		_colorblind = CanvasLayer.new()
+		_colorblind.layer = 120
+		var rect := ColorRect.new()
+		rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat := ShaderMaterial.new()
+		mat.shader = load("res://shaders/colorblind.gdshader")
+		rect.material = mat
+		_colorblind.add_child(rect)
+		add_child(_colorblind)
+	_colorblind.visible = i > 0
+	((_colorblind.get_child(0) as ColorRect).material as ShaderMaterial).set_shader_parameter("mode", maxi(i, 0))
 
 
 func _apply_display() -> void:

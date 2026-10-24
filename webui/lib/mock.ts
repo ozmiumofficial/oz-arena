@@ -4,7 +4,7 @@
 
 import { emit, type Msg } from "./bridge";
 import { codeToGodot, mouseToGodot, bindLabel } from "./binds";
-import type { InitPayload, PartKind, ProfileState, Value } from "./types";
+import type { InitPayload, PartKind, ProfileState, ReplayInfo, Value } from "./types";
 import type { Friend, Social, SocialState } from "./social";
 
 const STORE = "q3menu.values";
@@ -243,6 +243,21 @@ export function handle(m: Msg) {
     case "social":
       socialOp(m);
       break;
+    case "replays":
+    case "replay_rename":
+    case "replay_favorite":
+    case "replay_delete":
+      replayOp(m);
+      break;
+    case "spectate":
+      notice(m.on ? "Browser preview: Godot would make you a spectator here." : "Browser preview: Godot would put you back in the match here.");
+      break;
+    case "replay_watch":
+      notice("Browser preview: Godot would play the replay here.");
+      break;
+    case "replay_folder":
+      notice("Browser preview: Godot would open the replays folder here.");
+      break;
   }
 }
 
@@ -368,4 +383,42 @@ function socialOp(m: Msg) {
       return;
   }
   emitSocial();
+}
+
+// The Replays page: a few made-up matches, kept in memory while the preview runs.
+const BOTS = ["Sarge", "Xaero", "^1Klesk", "Anarki", "Crash", "Hunter", "Doom"];
+let mockReplays: ReplayInfo[] | null = null;
+
+function makeReplays(): ReplayInfo[] {
+  const maps: [string, string, string, string][] = [
+    ["q3dm17", "The Longest Yard", "ffa", "Free for All"], ["q3tourney2", "The Proving Grounds", "duel", "Duel"],
+    ["q3dm6", "The Camping Grounds", "ffa", "Free for All"], ["q3ctf1", "Dueling Keeps", "ctf", "Capture the Flag"],
+    ["q3dm7", "Temple of Retribution", "tdm", "Team Deathmatch"],
+  ];
+  const now = Math.floor(Date.now() / 1000);
+  return maps.map(([map, mapName, mode, modeName], i) => {
+    const n = mode === "duel" ? 1 : 3 + (i % 4);
+    const players = [{ name: "^3Ozmium", score: 20 - i * 3, local: true, bot: false, model: "sarge", team: mode === "ffa" || mode === "duel" ? 0 : 1 }]
+      .concat(BOTS.slice(0, n).map((b, k) => ({ name: b, score: 18 - k * 4 - i, local: false, bot: true, model: b.replace(/\^\d/g, "").toLowerCase(), team: mode === "ffa" || mode === "duel" ? 0 : 1 + (k % 2) })))
+      .sort((a, b) => b.score - a.score);
+    const place = players.findIndex((p) => p.local) + 1;
+    const t = now - i * 7200 - 600;
+    return {
+      file: `2026-10-23_${String(20 - i).padStart(2, "0")}0000_${map}_${mode}.q3replay`, where: "replays", demo: false, name: i === 1 ? "That rail" : "", favorite: i === 1,
+      complete: i !== 4, title: `${modeName.toUpperCase()}  -  ${mapName.toUpperCase()}`, map, map_name: mapName, mode, mode_name: modeName,
+      date: new Date(t * 1000).toISOString().slice(0, 19), unix: t, length_ms: i === 4 ? 0 : (6 + i * 2) * 60000 + 13000,
+      result: i === 4 ? "" : place === 1 ? "VICTORY" : "DEFEAT", place, ended: i === 4 ? "" : "intermission", player: "^3Ozmium",
+      bytes: (6 + i * 2) * 900000, players,
+    };
+  });
+}
+
+function replayOp(m: Msg) {
+  if (!mockReplays) mockReplays = makeReplays();
+  const file = String(m.file ?? "");
+  const r = mockReplays.find((x) => x.file === file);
+  if (m.type === "replay_rename" && r) r.name = String(m.name ?? "").slice(0, 64);
+  if (m.type === "replay_favorite" && r) r.favorite = !!m.on;
+  if (m.type === "replay_delete") mockReplays = mockReplays.filter((x) => x.file !== file);
+  setTimeout(() => emit({ type: "replays", list: mockReplays, kept: 50 }), 120);
 }

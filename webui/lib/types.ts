@@ -229,6 +229,10 @@ export interface MatchInfo {
   can_restart: boolean;
   weapon: number;
   standings: { name: string; score: number; local: boolean }[];
+  /** you're a spectator (id's team spectator): the menu offers Join match, else Spectate */
+  spectating?: boolean;
+  /** Spectate is offered: not in the campaign, and in a duel only with someone waiting */
+  can_spectate?: boolean;
 }
 
 export interface BotSlot {
@@ -246,6 +250,8 @@ export interface MatchSetup {
   server_type: string;
   source: string;
   training?: string;
+  /** join as a spectator (Create Match, You) */
+  spectate?: boolean;
 }
 
 export interface MenuItemDef {
@@ -278,4 +284,42 @@ export interface RankedState {
   rank: Rank;
   peak_rank: Rank | Record<string, never>;
   wins: number;
+}
+
+/** One replay in user://replays (Godot's replays_payload, menu_bridge.gd). */
+export interface ReplayInfo {
+  file: string;
+  /** "replays" (the game's folder) or "quake3" (the install's baseq3/demos) */
+  where: string;
+  /** a Quake 3 demo (.dm_68): one player's view */
+  demo: boolean;
+  /** its map is one the remaster can draw (demos may be on maps it doesn't have) */
+  playable?: boolean;
+  /** your rename, "" if none */
+  name: string;
+  favorite: boolean;
+  /** has its trailer: false when the game closed mid-match */
+  complete: boolean;
+  title: string;
+  map: string;
+  map_name: string;
+  mode: string;
+  mode_name: string;
+  date: string;
+  unix: number;
+  length_ms: number;
+  /** VICTORY / DEFEAT / DRAW, "" if the match didn't reach its end */
+  result: string;
+  place: number;
+  /** intermission, left, quit */
+  ended: string;
+  player: string;
+  bytes: number;
+  players: { name: string; score: number; local: boolean; bot: boolean; model: string; team: number }[];
+}
+
+export interface ReplayList {
+  list: ReplayInfo[];
+  /** Gameplay > Replays kept */
+  kept: number;
 }

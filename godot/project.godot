@@ -18,11 +18,17 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]
 
+Diagnostics="*uid://cu0aae7rbsfb1"
 Q3="*res://scripts/q3.gd"
 Settings="*res://scripts/settings/settings.gd"
 UiSound="*res://scripts/ui/ui_sound.gd"
-Session="*res://scripts/session.gd"
+Session="*uid://6k8xg1ava63c"
 Online="*res://scripts/online/online.gd"
+
+[debug]
+
+file_logging/max_log_files=20
+settings/gdscript/always_track_call_stacks=true
 
 [display]
 
@@ -30,6 +36,10 @@ window/size/viewport_width=1600
 window/size/viewport_height=900
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[editor]
+
+export/convert_text_resources_to_binary=false
 
 [editor_plugins]
 
@@ -49,8 +59,6 @@ common/physics_ticks_per_second=120
 
 [rendering]
 
+reflections/reflection_atlas/reflection_size=128
+reflections/reflection_atlas/reflection_count=80
 anti_aliasing/quality/msaa_3d=2
-
-[editor]
-
-export/convert_text_resources_to_binary=false

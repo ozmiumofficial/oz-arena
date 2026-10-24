@@ -87,11 +87,25 @@ func update(now_ms: float, firing: bool) -> void:
 		if on:
 			flash.basis = _flash_basis * Basis(Vector3.BACK, deg_to_rad(randf_range(-10.0, 10.0)))
 	light.visible = on
+	light.light_energy = 1.2 * Q3FX.gain()
 	if on:
 		light.omni_range = (300.0 + float(randi() & 31)) * Q3.UNIT
 
 
 ## Where the flash sits (the beam and trail origin).
+## Forgets shots and spin from another time (a replay jumped back: a flash stamped later would
+## stay lit until the playhead got there).
+func reset(now_ms: float) -> void:
+	muzzle_ms = -100000.0
+	_pending = false
+	_barrel_spinning = false
+	_barrel_time = now_ms
+	if flash:
+		flash.visible = false
+	if light:
+		light.visible = false
+
+
 func muzzle() -> Vector3:
 	if flash and is_instance_valid(flash):
 		return flash.global_position

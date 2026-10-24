@@ -27,9 +27,12 @@ var _retry_in := -1.0
 var _backoff := 2.0
 var _profile_in := -1.0
 var _career_in := -1.0
+var _clip_render := false                       ## a clip render's copy (Q3ClipExport): the player's own game holds the connection
 
 
 func _ready() -> void:
+	for a in OS.get_cmdline_user_args():
+		_clip_render = _clip_render or String(a).begins_with("clip=")
 	client = Q3OnlineClient.new(KEY_PATH)
 	client.status_changed.connect(_on_status)
 	client.social.connect(func(_s): changed.emit())
@@ -40,8 +43,15 @@ func _ready() -> void:
 	connect_now()
 
 
+## Hang up while the engine is still up: this also erases a hostname lookup still waiting, which
+## would crash Godot's exit (Q3OnlineClient explains).
+func _exit_tree() -> void:
+	if client:
+		client.close(false)
+
+
 func enabled() -> bool:
-	return bool(Settings.get_value("network/online"))
+	return bool(Settings.get_value("network/online")) and not _clip_render
 
 
 func server() -> String:

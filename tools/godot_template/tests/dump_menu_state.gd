@@ -22,6 +22,9 @@ const DEMO := {"xp": 47800, "campaign": {"q3dm0": 3, "q3dm1": 3, "q3dm2": 4, "q3
 
 
 func _ready() -> void:
+	# the dump is committed (webui/public): never this PC's published maps (their paths, their images)
+	Q3MapPublish.path = "user://dump_menu_state/none.json"
+	Session.refresh_custom_maps()
 	var out := ""
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("out="):

@@ -73,17 +73,26 @@ Hours of Claude working time, scaled to this project's pace. Each phase ends wit
 |---|---|---|---|
 | M1 | **Server transport** | `NA_GODOT` patch; `net_receive` / `net_outgoing`; real remote clients reach `SV_DirectConnect` and get snapshots; listen server (host plus remote players) and a server-only mode; userinfo `ip` for remote clients | 0.5 |
 | M2 | **Net client** | `Q3Net`: handshake, gamestate, configstrings, delta snapshots, usercmds, reliable commands, pure checksums, map changes, timeouts; client-side collision and prediction; an in-process loopback test (host and client in one process, fake latency and loss) proving the client's snapshots match the server's | 1.5 |
-| M3 | **Gameplay over the network** | `LocalMatch` / `RemoteMatch` behind one interface for Gameplay, HUD and `Q3Client`; snapshot interpolation; prediction with error decay; net overlay; connecting and error screens; host-left and kicked flows | 1.5 |
+| M3 | **Gameplay over the network** | `LocalMatch` / `RemoteMatch` behind one interface for Gameplay, HUD and `Q3Client`; snapshot interpolation; prediction with error decay; net overlay (feeds the HUD lagometer real ping and drops); the Network > Interpolation setting back in the schema (removed 2026-10-23 while nothing could use it); connecting and error screens; host-left and kicked flows | 1.5 |
 | M4 | **WebRTC and the hub** | webrtc-native addon (and in the export); TURN credential minting; signaling ops; relay-only ICE with candidate filtering; `Q3Transport`; the match directory with regions; two game windows on one PC through the local hub, then two PCs through the live hub | 1.5 |
 | M5 | **Menu online** | Live Server Browser (region, mode, ping, full/empty, password, friends in it); Create Match "Online" hosting and listing; join from Friends and party; invites and `connect` links; vote kick with the hub's 30-minute lobby ban | 1 |
 | M6 | **Matchmaking and ranked** | Region queues per mode with Auto widening; host election; ranked rules (fixed settings, map pool, duel bans); signed scoreboards and agreement; Elo with placement, divisions and seasons; leaderboard writes; void tracking | 1 |
 | M7 | **Dedicated servers** | `--server` headless mode, server identity, config and rotation, rcon and the admin page, idle sleep, start with Windows; Linux x86-64 q3core and export; plain UDP for public servers and LAN discovery | 1.5 |
 | M8 | **Tuning, tests, docs** | Bandwidth per player measured (checks PLAN.md's relay budget) and snapshot-rate defaults set; two-process tests under simulated latency and loss; self-test checks; README, PLAN.md, CLAUDE.md | 0.5 |
-| | **Total** | | **about 9** (GAMEPLAY_PLAN.md's own guess was 8-10) |
+| M9 | **Workshop** | Map sharing on Cloudflare R2: upload from the map editor beside Publish, a Workshop page in the menu (browse, search, ratings, download, "my maps"), report and admin takedown, size and rate limits (see "Workshop" below) | 1.5 |
+| | **Total** | | **about 10.5** (GAMEPLAY_PLAN.md's own guess for M1-M8 was 8-10) |
 
 The wildcards are outside the code: debugging real two-PC connections through the relay, and a Linux toolchain for M7.
 
-Order: M1 -> M2 -> M3 -> M4 (first real online match) -> M5 -> M6 / M7 (either order) -> M8.
+Order: M1 -> M2 -> M3 -> M4 (first real online match) -> M5 -> M6 / M7 (either order) -> M8, then M9.
+
+**Workshop (M9; back in the plan, Ozmium 2026-10-23, after it was dropped earlier the same day for lack of hosting):**
+- **Hosting:** Cloudflare R2 holds the files, and the existing hub Worker lists, rates and moderates them. R2's free tier is about 10 GB of storage with free downloads, plus about 1 million writes and 10 million reads a month (check the current numbers when building). Past it, cents per GB a month.
+- **What's shared:** the map editor's published map. That's its document (a few hundred KB), its thumbnail, and the compiled .bsp and .aas (usually 1-10 MB), so a download plays at once without compiling. Maps name Quake 3's textures but hold none of id's files.
+- **Identity:** uploads, ratings and "my maps" are signed with the player's existing identity key (the hub already checks it). No accounts.
+- **Moderation:** a report button, an admin takedown through the existing admin endpoints, a size cap per map, and a rate limit per player.
+- **Menu:** a Workshop page (browse, search, sort by new and top rated, download, rate, report). Downloaded maps join Create Match like published ones (`Q3MapPublish`, `special: "custom"`).
+- **Editor:** "Upload to Workshop" beside Publish, for maps already published.
 
 **Later:** Linux ARM64 build for Oracle (about 0.5 h), collaborative map editing over the same connections (MAP_EDITOR_PLAN.md), dpmaster registration.
 

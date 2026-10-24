@@ -207,6 +207,7 @@ function Control({ e, value, onChange }: { e: SettingEntry; value: Value; onChan
         const d = e.type === "float" ? Math.max(0, (String(e.step ?? 0.01).split(".")[1] ?? "").length) : 0;
         if (e.key === "mouse/sensitivity") return v.toFixed(2);
         if (e.key === "video/max_fps" && v === 0) return "Uncapped";
+        if (e.key === "gameplay/gun_fov" && v === 0) return "Same as view";
         return `${v.toFixed(d)}${e.unit && e.unit !== "x" ? " " + e.unit : e.unit === "x" ? "x" : ""}`;
       };
       return <Slider value={Number(value)} min={e.min ?? 0} max={e.max ?? 100} step={e.step ?? 1} onChange={onChange} format={fmt} />;

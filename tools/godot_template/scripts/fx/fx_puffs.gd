@@ -43,6 +43,12 @@ func add(pos: Vector3, vel: Vector3, radius: float, alpha: float, life_ms: float
 		"end": born_ms + life_ms, "grow": grow, "tint": tint, "rot": randf() * TAU})
 
 
+## Every puff gone at once (a replay jumped: puffs born later would hang in the air).
+func clear() -> void:
+	_puffs.clear()
+	multimesh.visible_instance_count = 0
+
+
 func step(now_ms: float, eye: Vector3) -> void:
 	var mm := multimesh
 	var n := 0

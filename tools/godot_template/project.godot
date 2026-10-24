@@ -18,11 +18,17 @@ buses/default_bus_layout="res://default_bus_layout.tres"
 
 [autoload]
 
+Diagnostics="*res://scripts/diagnostics/diagnostics.gd"
 Q3="*res://scripts/q3.gd"
 Settings="*res://scripts/settings/settings.gd"
 UiSound="*res://scripts/ui/ui_sound.gd"
 Session="*res://scripts/session.gd"
 Online="*res://scripts/online/online.gd"
+
+[debug]
+
+file_logging/max_log_files=20
+settings/gdscript/always_track_call_stacks=true
 
 [display]
 
@@ -50,6 +56,8 @@ common/physics_ticks_per_second=120
 [rendering]
 
 anti_aliasing/quality/msaa_3d=2
+reflections/reflection_atlas/reflection_size=128
+reflections/reflection_atlas/reflection_count=80
 
 [editor]
 

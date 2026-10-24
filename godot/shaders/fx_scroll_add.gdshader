@@ -1,7 +1,7 @@
 shader_type spatial;
 // Scrolling additive layers: rail core, lightning bolt, teleport effect.
 // Mirrors the shader stages: tcMod scale / scroll per layer, rgbGen wave sin brightness.
-render_mode unshaded, blend_add, cull_disabled, depth_draw_never, shadows_disabled;
+render_mode unshaded, blend_add, cull_disabled, depth_draw_never, shadows_disabled, fog_disabled;
 
 uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform vec4 color : source_color = vec4(1.0);

@@ -62,7 +62,9 @@ static func bin_path() -> String:
 static func userinfo(player: Dictionary) -> String:
 	var info := {"name": player.get("name", "Player"), "model": "%s/%s" % [player.get("model", "sarge"), player.get("skin", "default")],
 		"headmodel": "%s/%s" % [player.get("model", "sarge"), player.get("skin", "default")], "handicap": "100",
-		"color1": str(player.get("color1", Q3Profile.rail_color1())), "color2": "5", "sex": "male", "rate": "25000", "team": player.get("team", "")}
+		"color1": str(player.get("color1", Q3Profile.rail_color1())), "color2": "5", "sex": "male", "rate": str(Settings.rate()), "team": player.get("team", "")}
+	if String(player.get("teampref", "")) != "":
+		info["teampref"] = player["teampref"]   # g_session.c G_InitSessionData: the first team ("s": spectator)
 	var s := ""
 	for k in info:
 		s += "\\%s\\%s" % [k, info[k]]

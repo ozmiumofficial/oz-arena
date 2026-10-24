@@ -8,6 +8,7 @@ import { useMenu, toast } from "@/lib/store";
 import { send } from "@/lib/bridge";
 import { sfx } from "@/lib/sound";
 import { cn } from "@/lib/cn";
+import { shotSrc } from "@/lib/shot";
 import type { BotSlot, MatchSetup, Value } from "@/lib/types";
 import PagePanel, { SectionTitle } from "../PagePanel";
 import Spinner from "../controls/Spinner";
@@ -132,6 +133,8 @@ export default function CreateMatchPage({ back }: PageProps) {
           <Button small onClick={addBot} className="w-full">+ Add bot</Button>
           <SectionTitle>Server</SectionTitle>
           <Spinner wide value={setup.server_type} options={SERVER_TYPES} onChange={(v) => patch({ server_type: String(v) })} />
+          <SectionTitle>You</SectionTitle>
+          <Spinner wide value={setup.spectate ? "spectate" : "play"} options={[["play", "Play"], ["spectate", "Spectate: watch the bots"]]} onChange={(v) => patch({ spectate: v === "spectate" })} />
           <p className="mt-2 text-[0.85rem] text-faint">Listen servers need the netcode, which isn&apos;t built yet; the setup is stored the same way.</p>
         </div>
       </div>
@@ -167,7 +170,7 @@ function MapGrid({ maps, value, onPick }: { maps: { map: string; name: string; l
             )}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/q3/${m.levelshot}`} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-focus:scale-110" />
+            <img src={shotSrc(m.levelshot)} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-focus:scale-110" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
             <div className="absolute bottom-2 left-3 right-3">
               <div className="truncate font-q3 text-[0.95rem] tracking-[0.05em] text-ink-hot">{m.name}</div>
@@ -206,7 +209,7 @@ export function OfflineBotsPage({ back }: PageProps) {
       <div className="grid h-full grid-cols-[1fr_26rem] gap-10 px-10 py-6">
         <div className="relative overflow-hidden rounded-sm border border-white/10">
           {map && (
-            <motion.img key={map.map} src={`/q3/${map.levelshot}`} alt="" className="absolute inset-0 h-full w-full object-cover" initial={{ opacity: 0, scale: 1.08 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }} />
+            <motion.img key={map.map} src={shotSrc(map.levelshot)} alt="" className="absolute inset-0 h-full w-full object-cover" initial={{ opacity: 0, scale: 1.08 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }} />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
           <div className="absolute bottom-6 left-7">

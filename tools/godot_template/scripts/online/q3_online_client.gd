@@ -8,6 +8,12 @@ extends RefCounted
 ## connection sends the public key (base64 DER), a millisecond timestamp and an RSA-SHA256
 ## signature of "hub|<ts>" as handshake headers; the player id is derived from the key.
 ## Messages are JSON objects with a "type" (the list is at the top of online/src/hub.ts).
+##
+## The client looks the hub's host name up itself and connects once it's in IP's cache. A
+## WebSocketPeer closed or freed mid-lookup never erases its lookup (Godot 4.7, WSLPeer::close),
+## and two lookups still waiting at exit crash Godot's resolver thread (0xC0000005 after IP is
+## gone). Reconnecting on every keystroke in the server field, or the self-test's settings round
+## trip, left several behind. A lookup this client owns is erased whenever it hangs up.
 
 signal status_changed(status: String, reason: String)   ## "connecting", "online" or "offline"
 signal social(state: Dictionary)                        ## the whole picture: me, friends, requests, party, invites
@@ -29,10 +35,18 @@ var state: Dictionary = {}
 var _ws: WebSocketPeer
 var _key: CryptoKey
 var _ping_in := PING_EVERY
+var _url := ""
+var _lookup := IP.RESOLVER_INVALID_ID
 
 
 func _init(path: String) -> void:
 	key_path = path
+
+
+func _notification(what: int) -> void:
+	# methods can't be called on a RefCounted this late, only members read
+	if what == NOTIFICATION_PREDELETE and _lookup != IP.RESOLVER_INVALID_ID:
+		IP.erase_resolve_item(_lookup)
 
 
 ## Opens the connection. `base` is the server ("wss://..." or "ws://127.0.0.1:8787" for a local
@@ -55,16 +69,22 @@ func open(base: String, profile: Dictionary) -> void:
 		"x-color: " + String(profile.get("color", "#db2410")),
 	])
 	close_code = 0
-	var err := _ws.connect_to_url(base.trim_suffix("/") + "/hub")
-	if err != OK:
-		_ws = null
-		_set_status("offline", "Can't reach the online service.")
-		return
-	_set_status("connecting", "")
+	_url = base.strip_edges().trim_suffix("/") + "/hub"
+	var host := host_of(_url)
+	if host != "" and not host.is_valid_ip_address():
+		_lookup = IP.resolve_hostname_queue_item(host)
+		if _lookup == IP.RESOLVER_INVALID_ID:
+			_ws = null
+			_set_status("offline", "Can't reach the online service.")
+			return
+	_resolve()
+	if _ws:
+		_set_status("connecting", "")
 
 
 ## Hangs up. `report` false skips the status signal (open() replacing a connection).
 func close(report := true) -> void:
+	_end_lookup()
 	if _ws:
 		_ws.close()
 		_ws = null
@@ -73,9 +93,44 @@ func close(report := true) -> void:
 		_set_status("offline", "")
 
 
+## The host part of a ws:// or wss:// URL ("" when there is none).
+static func host_of(url: String) -> String:
+	var rest := url.get_slice("://", 1) if url.contains("://") else url
+	rest = rest.get_slice("/", 0).get_slice("?", 0)
+	if rest.begins_with("["):   # [IPv6]:port
+		return rest.substr(1, rest.find("]") - 1)
+	return rest.get_slice(":", 0)
+
+
+## Connects once the host name is in IP's cache (WebSocketPeer then finds it there and keeps no
+## lookup of its own); gives up if it can't be found.
+func _resolve() -> void:
+	if _lookup != IP.RESOLVER_INVALID_ID:
+		var found := IP.get_resolve_item_status(_lookup)
+		if found == IP.RESOLVER_STATUS_WAITING:
+			return
+		_end_lookup()
+		if found != IP.RESOLVER_STATUS_DONE:
+			_ws = null
+			_set_status("offline", "Can't reach the online service.")
+			return
+	if _ws.connect_to_url(_url) != OK:
+		_ws = null
+		_set_status("offline", "Can't reach the online service.")
+
+
+func _end_lookup() -> void:
+	if _lookup != IP.RESOLVER_INVALID_ID:
+		IP.erase_resolve_item(_lookup)
+		_lookup = IP.RESOLVER_INVALID_ID
+
+
 ## Runs the socket; call every frame.
 func poll(delta: float) -> void:
 	if _ws == null:
+		return
+	if _lookup != IP.RESOLVER_INVALID_ID:
+		_resolve()
 		return
 	_ws.poll()
 	match _ws.get_ready_state():

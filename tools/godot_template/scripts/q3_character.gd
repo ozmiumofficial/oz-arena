@@ -201,6 +201,39 @@ func attach(prop_id: String, tag := "weapon") -> Node3D:
 	return n
 
 
+## Gameplay > Bright skins: every surface in one flat bright color, still lit so the shape reads
+## (Quake Live's brightskins); a color with alpha 0 puts the model's own materials back. Cut-out
+## surfaces keep their alpha; additive ones (Bones' x-ray) stay as they are.
+func bright_skin(color: Color) -> void:
+	if body == null:
+		return
+	for mi in body.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if m.mesh == null or String(m.get_path()).contains("Attach_"):
+			continue
+		for i in m.mesh.get_surface_count():
+			var src := m.mesh.surface_get_material(i) as StandardMaterial3D
+			if color.a <= 0.0 or src == null:
+				m.set_surface_override_material(i, null)
+				continue
+			if src.blend_mode != BaseMaterial3D.BLEND_MODE_MIX or src.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA:
+				continue
+			var b := StandardMaterial3D.new()
+			b.albedo_color = color
+			if src.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR:
+				b.albedo_texture = src.albedo_texture
+				b.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+				b.alpha_scissor_threshold = src.alpha_scissor_threshold
+			b.normal_enabled = src.normal_enabled
+			b.normal_texture = src.normal_texture
+			b.roughness = 0.7
+			b.emission_enabled = true
+			b.emission = color
+			b.emission_energy_multiplier = 0.35
+			b.cull_mode = src.cull_mode
+			m.set_surface_override_material(i, b)
+
+
 ## A corpse burning away (fragged bodies, when they're done lying there): every surface becomes
 ## shaders/character_dissolve.gdshader with its own textures, the noise eats it from 0 to 1 over
 ## `seconds` with glowing edges, embers rise off the body, then the character frees itself.
@@ -258,6 +291,21 @@ func disintegrate(seconds := 1.6) -> void:
 	tw.tween_callback(queue_free)
 
 
+## Where the body is: the middle of its ragdoll's parts once it's limp (the node itself stays where
+## it fell from), else a meter above its feet. The death cam follows it.
+func body_center() -> Vector3:
+	if ragdolled and _sim:
+		var sum := Vector3.ZERO
+		var n := 0
+		for pb in _sim.get_children():
+			if pb is PhysicalBone3D:
+				sum += (pb as PhysicalBone3D).global_position
+				n += 1
+		if n:
+			return sum / n
+	return global_position + Vector3.UP
+
+
 ## Embers off a burning body: orange sparks drifting up from where its parts lie.
 func _embers(seconds: float) -> void:
 	var at := global_position
@@ -299,6 +347,7 @@ func _embers(seconds: float) -> void:
 	mat.billboard_keep_scale = true   # else the particle's scale is dropped and every quad is 1 m
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.disable_fog = true   # fog would add the haze color over every additive quad
 	mat.vertex_color_use_as_albedo = true
 	mat.albedo_texture = Q3.fx_texture("flare")
 	quad.material = mat

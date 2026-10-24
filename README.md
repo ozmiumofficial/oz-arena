@@ -13,7 +13,7 @@ Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the r
 | | |
 |---|---|
 | ![Main menu](docs/screenshots/menu-main.jpg) | ![Single player campaign](docs/screenshots/menu-single-player.jpg) |
-| **Main menu:** a fighter or item turning in a smoky void, with Quake 3's own menu sounds | **Single player:** id's campaign, tier by tier, with skill levels and medals |
+| **Main menu:** a fighter or item turning in a smoky void, with Quake 3's own menu sounds and its soundtrack on shuffle | **Single player:** id's campaign, tier by tier, with skill levels and medals |
 | ![Create match](docs/screenshots/menu-create-match.jpg) | ![Profile](docs/screenshots/menu-profile.jpg) |
 | **Create match:** every mode, map and rule, with modifiers on top | **Profile:** your player card, with banners, emblems, frames and titles you earn by playing |
 
@@ -51,7 +51,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 | **Lighting** | 1999 lightmaps | All 35 original maps relit with modern global illumination |
 | **Effects** | Sprite explosions and beams | Remade explosions, smoke, rail trails, lightning, blood and impacts, using the original effect timings |
 | **Movies** | Low-resolution intro and tier movies | All 10 cinematics upscaled |
-| **Main menu** | Static menu screens | A cinematic menu: one fighter or weapon floating in a dark, smoky void while the camera drifts, with the original menu sounds |
+| **Main menu** | Static menu screens | A cinematic menu: one fighter or weapon floating in a dark, smoky void while the camera drifts, with the original menu sounds and Quake 3's soundtrack on shuffle |
 | **HUD** | Fixed classic HUD | A Quake Live-style HUD with four presets, a speedometer that shows your strafe-jump gain, a kill feed, damage direction arcs and award medals |
 | **Chat** | A line of text at the top of the screen | A chat box with history, team chat, name completion and a live preview of colored text; colored names show everywhere, from the kill feed to the scoreboard |
 | **Crosshair** | Pick one of ten | A full crosshair editor with per-weapon crosshairs and shareable codes, previewed live in the match behind it |
@@ -73,25 +73,41 @@ Most remakes copy the original from memory. This one runs id Software's own game
   - Build your own card from about 380 Quake 3-themed banners, emblems, frames, titles, accent colors, rail colors and taunts.
   - Every match played to the end earns XP, bots included. Levels and 89 achievements unlock new parts, and the Profile shows what each locked part needs.
   - Your card appears on the scoreboard and the results screen. Progression is cosmetic only and never changes the game.
-- **Controller support** throughout the menus.
+- **Controller support** in the menus and in matches, with a southpaw stick layout.
+- **Competitive options:** item respawn timers, bright enemy skins, one forced enemy model, gun position and field of view, hit sounds pitched by damage, mouse acceleration and a lagometer.
+- **Accessibility:** colorblind filters, subtitles for the announcer, and a reduced-flashing mode.
 
 ## Planned features
 
 None of these are in the open beta yet. They're listed roughly in the order they're coming.
 
-- **A built-in map editor** (being built now): build arenas inside the game, import the original maps, play-test instantly, and edit together with friends.
-- **Replays and spectating:**
-  - Every match recorded automatically, with a replay viewer: pause, slow motion, seeking, and free or follow cameras.
-  - Spectator mode for live matches, and an optional killcam that shows how you died.
+- **A built-in map editor** (built, coming in the next release):
+  - Build arenas inside the game with brushes, curves, every remastered texture, pickups, jump pads, teleporters and lights.
+  - Open any original map from your own copy of Quake 3 and change it, or bring maps in and out of GtkRadiant, NetRadiant and TrenchBroom.
+  - Play-test instantly against bots, then publish a finished map to play it from Create Match.
+  - Editing a map together with friends comes after online play.
+
+  | | |
+  |---|---|
+  | ![Map editor: The Campgrounds](docs/screenshots/editor-campgrounds.jpg) | ![Map editor: building a room](docs/screenshots/editor-objects.jpg) |
+  | **The Campgrounds** (q3dm6) opened from the original game, ready to edit | **Building a room:** every brush, group and spawn listed, the selected block's texture in the inspector |
+- **Replays, spectating and the death cam** (built, coming in the next release):
+  - Every match is recorded automatically, all of it: every player, so you can watch from anyone's eyes, from behind them, circling them or with a free camera that flies anywhere.
+  - A replay viewer: pause, slow motion and fast forward, frame by frame, jump to the next or last frag, a timeline marked with your frags, deaths and medals, name tags and outlines.
+  - A Replays page: rename, keep favorites forever, watch again from the results screen.
+  - Save a clip of any moment as a video.
+  - Plays Quake 3's own demo files too.
+  - Spectator mode for live matches: follow anyone, a chase camera, or let an auto-director follow the action.
+  - When you're fragged, the camera follows your body as it falls, then shows who got you with their player card.
+  - The Tab scoreboard shows your match: damage and accuracy with every weapon, distance traveled and your medals.
 - **Online matches without paying for servers:**
   - Anyone can host from their own PC, and one match browser shows every match. Optional dedicated servers.
   - Every connection is relayed, so no one sees another player's IP address. You're matched in the closest region first, or you can pick one.
   - Lobbies vote-kick troublemakers instead of relying on anti-cheat software.
 - **Ranked play:** a duel queue with an Elo ladder, seasons and tiers from Bronze to Godlike.
 - **Player cards online:** your card in friends' lists and lobbies, both cards sliding in on the duel versus screen, and a card image to share.
+- **A Workshop:** share the maps you build and play other people's, straight from the menu.
 - **More modes:** Clan Arena, Freeze Tag and Instagib as optional rule sets.
-- **A Workshop** for sharing maps, skins and mods.
-- **Accessibility:** colorblind modes and subtitles for the announcer.
 - **Linux and macOS** versions.
 
 ## What stays the same

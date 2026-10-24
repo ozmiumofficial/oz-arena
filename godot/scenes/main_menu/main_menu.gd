@@ -16,6 +16,7 @@ const TITLE_PROP := "mapobjects/banner/banner5"
 var stage: Q3ShowcaseStage
 var bridge: Q3MenuBridge
 var web_layer: Q3WebLayer       ## the web view (scripts/ui/q3_web_layer.gd)
+var music: Q3MenuMusic          ## the soundtrack, shuffled
 var logo_view: SubViewportContainer
 var logo: Node3D
 var _logo_vp: SubViewport
@@ -37,6 +38,8 @@ func _ready() -> void:
 	_args()
 	_build_logo()
 	_build_web()
+	music = Q3MenuMusic.new()
+	add_child(music)
 	UiSound.play_in()
 
 
@@ -52,6 +55,10 @@ func _args() -> void:
 				stage._next_framing(true)
 			"swap": stage.swap_seconds = Vector2(float(kv[1]), float(kv[1]))
 			"page": _open_page = kv[1]
+	# back from a replay: the menu opens on the page it was watched from (Session.leave_replay)
+	if _open_page == "" and Session.menu_page != "":
+		_open_page = Session.menu_page
+		Session.menu_page = ""
 
 
 # ---------------------------------------------------------------- the logo
@@ -185,12 +192,14 @@ func _post(msg: Dictionary) -> void:
 ## A movie from the Cinematics page: the web view hides (it always draws on top) and comes back after.
 func play_cinematic(id: String) -> void:
 	web_layer.set_shown(false)
+	music.set_paused(true)
 	var p := Q3CinematicPlayer.play(self, PackedStringArray([id]))
 	p.finished.connect(func():
 		web_layer.set_shown(true)
+		music.set_paused(false)
 		UiSound.out())
 
 
 func _process(_delta: float) -> void:
 	if logo:
-		logo.rotation.y = deg_to_rad(5.0 * sin(float(Time.get_ticks_msec()) / 5000.0))
+		logo.rotation.y = deg_to_rad(5.0 * sin(Q3.game_ms / 5000.0))

@@ -15,30 +15,47 @@ const INTRO_PLAYED := "user://intro_played"
 
 var setup: Q3MatchSetup              ## the match Gameplay runs (null in the menu)
 var modifiers: Array = []            ## game/modifiers.json
-var maps: Array = []                 ## library/ui/maps.json: arenas.txt + .arena files
+var maps: Array = []                 ## library/ui/maps.json (arenas.txt + .arena files), then published maps
 var bots: Array = []                 ## scripts/bots.txt
 var campaign: Q3Campaign             ## Quake 3's single-player tiers and this player's progress
 var cinematics: Array = []           ## library/cinematics/cinematics.json, q3_ui's Cinematics menu order
 var cinematic_queue: PackedStringArray = []   ## what the cinematic scene plays before cinematic_then
 var cinematic_then := MAIN_MENU
-var dry_run := false                 ## tests: record scene requests instead of changing scenes
+## A map editor play-test (F5): {doc, models, map, path, camera, selection, tool}. Gameplay draws
+## the map from doc; F6 brings the editor back as it was (undo history included).
+var playtest: Dictionary = {}
+## A replay Gameplay plays instead of a match: {path, at (ms into it, optional), back (the menu page
+## to return to)}. Empty for a match.
+var replay: Dictionary = {}
+## The page the main menu opens on next ("" the main page): leaving a replay goes back to Replays.
+var menu_page := ""
+var dry_run := false               ## tests: record scene requests instead of changing scenes
 var last_request := ""
 var _modes: Dictionary = {}
+var _arenas: Array = []
 
 
 func _ready() -> void:
 	get_tree().auto_accept_quit = false   # closing the window goes through quit_game too
+	_clip_args()
 	for id in MODES:
 		var m := load("res://game/modes/%s.tres" % id) as Q3GameMode
 		if m:
 			_modes[id] = m
 	modifiers = Q3.load_json("res://game/modifiers.json").get("modifiers", [])
 	var mj: Dictionary = Q3.load_json(Q3.LIB + "ui/maps.json")
-	maps = mj.get("maps", [])
+	_arenas = mj.get("maps", [])
 	bots = mj.get("bots", [])
+	refresh_custom_maps()
 	campaign = Q3Campaign.new()
 	if FileAccess.file_exists(Q3.LIB + "cinematics/cinematics.json"):
 		cinematics = Q3.load_json(Q3.LIB + "cinematics/cinematics.json").get("cinematics", [])
+
+
+## maps is Quake 3's arenas and then the maps published from the map editor (Q3MapPublish), which
+## carry special "custom" and the document Gameplay draws them from.
+func refresh_custom_maps() -> void:
+	maps = _arenas + Q3MapPublish.list()
 
 
 func mode(id: String) -> Q3GameMode:
@@ -87,11 +104,29 @@ func start_match(s: Q3MatchSetup) -> PackedStringArray:
 	if errs.size():
 		return errs
 	setup = s
-	var f := FileAccess.open(LAST_SETUP, FileAccess.WRITE)
+	replay = {}
+	Diagnostics.set_context("match", s.summary().replace("\n", "; "))
+	# a play-test isn't the menu's "continue": its map and drawing exist only for the editor
+	var f := FileAccess.open(LAST_SETUP, FileAccess.WRITE) if s.source != "editor" else null
 	if f:
 		f.store_string(JSON.stringify(s.to_dict(), " "))
 	_go(GAMEPLAY)
 	return errs
+
+
+## Plays a replay file in the Gameplay scene (REPLAY_PLAN.md R2). `at`: ms into the match to start
+## from; `back`: the menu page to return to ("replays", or "" for the main menu).
+func watch_replay(path: String, at := 0, back := "replays") -> void:
+	setup = null
+	replay = {"path": path, "at": at, "back": back}
+	Diagnostics.set_context("match", "replay " + path.get_file())
+	_go(GAMEPLAY)
+
+
+## Leaves a replay for the menu page it was opened from (menu_page; the menu opens there).
+func leave_replay() -> void:
+	menu_page = String(replay.get("back", ""))
+	to_main_menu()
 
 
 func has_last_setup() -> bool:
@@ -132,7 +167,34 @@ func play_cinematics(ids: PackedStringArray, then := MAIN_MENU) -> void:
 ## After the splash: Quake 3's id logo and intro on the first launch (Settings: gameplay/intro).
 ## Launched with `map=<map> [mode=ffa] [bots=<n>] [skill=1-5]` (Quake 3's +map), it goes
 ## straight into that match instead: the arena's own bots first, then the classic line-up.
+## A clip render (Q3ClipExport starts the game again under Movie Maker with clip=<replay>
+## clip_from= clip_to= [clip_cam= clip_watch= clip_hud= clip_free=x,y,z,pitch,yaw
+## clip_orbit=yaw,pitch clip_tags=<names><outlines>]): Gameplay plays that range and quits.
+func _clip_args() -> void:
+	var a := {}
+	for arg in OS.get_cmdline_args() + OS.get_cmdline_user_args():
+		var kv := String(arg).split("=", true, 1)
+		if kv.size() == 2 and kv[0].begins_with("clip"):
+			a[kv[0]] = kv[1]
+	if not a.has("clip"):
+		return
+	var clip := {"from": int(a.get("clip_from", "0")), "to": int(a.get("clip_to", "0")), "cam": String(a.get("clip_cam", "first")),
+		"watch": int(a.get("clip_watch", "-1")), "hud": a.get("clip_hud", "1") == "1",
+		"names": String(a.get("clip_tags", "00")).begins_with("1"), "outlines": String(a.get("clip_tags", "00")).ends_with("1")}
+	var fr := String(a.get("clip_free", "")).split_floats(",")
+	if fr.size() == 5:
+		clip["pos"] = Vector3(fr[0], fr[1], fr[2])
+		clip["angles"] = Vector3(fr[3], fr[4], 0.0)
+	var orb := String(a.get("clip_orbit", "")).split_floats(",")
+	if orb.size() == 2:
+		clip["orbit"] = Vector2(orb[0], orb[1])
+	replay = {"path": String(a["clip"]), "at": 0, "back": "", "clip": clip}
+
+
 func after_splash() -> void:
+	if replay.has("clip"):
+		_go(GAMEPLAY)   # a clip render: straight to the replay
+		return
 	var launch := {}
 	# after "--", or bare: an exported game's console wrapper passes them on without the "--"
 	for a in OS.get_cmdline_args() + OS.get_cmdline_user_args():
@@ -159,6 +221,30 @@ func after_splash() -> void:
 
 
 func open_map_editor() -> void:
+	playtest = {}
+	_go(MAP_EDITOR)
+
+
+## F5 in the map editor: plays the compiled map (state["map"], in fs_homepath) in Gameplay as a
+## free-for-all without limits, with `bots` of id's bots when the map has a bot area file.
+func play_test(state: Dictionary, bots: int) -> PackedStringArray:
+	var s := new_setup("ffa", String(state["map"]))
+	s.source = "editor"
+	s.rules = {"fraglimit": 0, "timelimit": 0, "warmup": 0}
+	var names := ["Sarge", "Visor", "Major", "Crash", "Xaero", "Anarki", "Keel", "Hunter"]
+	for i in clampi(bots, 0, names.size()):
+		s.bots.append({"name": names[i], "skill": 3, "team": ""})
+	playtest = state
+	var errs := start_match(s)
+	if errs.size():
+		playtest = {}   # nothing started; the editor stays as it is
+	return errs
+
+
+## F6 in a play-test (or leaving it): back to the map editor, which picks up Session.playtest.
+func back_to_editor() -> void:
+	setup = null
+	Diagnostics.set_context("match", null)
 	_go(MAP_EDITOR)
 
 
@@ -182,6 +268,11 @@ func _notification(what: int) -> void:
 
 func to_main_menu() -> void:
 	setup = null
+	playtest = {}
+	replay = {}
+	refresh_custom_maps()   # the editor may have published (or the files gone) since
+	Diagnostics.set_context("match", null)
+	Diagnostics.set_context("editor_map", null)
 	_go(MAIN_MENU)
 
 

@@ -16,6 +16,7 @@ const SPRITE_ADD := "res://shaders/fx_sprite_add.gdshader"
 const SPRITE_MIX := "res://shaders/fx_sprite_mix.gdshader"
 const SCROLL_ADD := "res://shaders/fx_scroll_add.gdshader"
 const SHELL := "res://shaders/powerup_shell.gdshader"
+const HEAT := "res://shaders/fx_heat.gdshader"
 ## CG_MakeExplosion isSprite: these blasts are camera-facing sprites growing from 30 to 72 units
 ## (CG_AddSpriteExplosion); the rest are their model (bullet flash, ring) lying along the normal.
 const SPRITE_EXPLOSIONS := ["rocket", "grenade", "bfg"]
@@ -29,6 +30,11 @@ const MAX_MARKS := 160
 const LIGHTNING_WIDTH := 8.0
 
 static var _marks: Array = []   ## live and expired marks, oldest first
+
+
+## Settings > Graphics > Effect intensity: scales the additive (glowing) effects and their lights.
+static func gain() -> float:
+	return float(Settings.get_value("graphics/effect_intensity"))
 
 
 static func _root(parent: Node, pos: Vector3, normal := Vector3.UP) -> Q3FxTimed:
@@ -56,7 +62,7 @@ static func _flipbook(tex_name: String, tint: Color, intensity: float) -> Shader
 	mat.set_shader_parameter("tex", Q3.fx_texture(tex_name))
 	mat.set_shader_parameter("frames", Q3.fx_frames(tex_name))
 	mat.set_shader_parameter("tint", tint)
-	mat.set_shader_parameter("intensity", intensity)
+	mat.set_shader_parameter("intensity", intensity * (1.0 if mode == "blend" else gain()))
 	mat.set_shader_parameter("spin", randf() * TAU)
 	return mat
 
@@ -64,6 +70,9 @@ static func _flipbook(tex_name: String, tint: Color, intensity: float) -> Shader
 ## Camera-facing flipbook quad from an effect texture; radius in id units.
 static func sprite(r: Q3FxTimed, tex_name: String, radius: float, tint := Color.WHITE, intensity := 1.0) -> MeshInstance3D:
 	var mat := _flipbook(tex_name, tint, intensity)
+	# soft particles: a fade that grows with the sprite, so a big blast melts into the floor
+	# instead of showing its edge at a shallow view angle
+	mat.set_shader_parameter("soft_distance", clampf(radius * Q3.UNIT * 0.5, 0.15, 1.2))
 	var mi := MeshInstance3D.new()
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE * radius * 2.0 * Q3.UNIT
@@ -102,11 +111,38 @@ static func model_flash(r: Q3FxTimed, model_id: String, tex_name: String, tint :
 	return model
 
 
+## The remaster's heat shimmer: a camera-facing disc bending what's behind it (fx_heat.gdshader);
+## radius in id units. Under a Q3FxTimed it fades with the effect's progress; elsewhere it stays.
+## Null when Graphics > Heat shimmer is off.
+static func heat(parent: Node3D, radius: float, strength := 0.03) -> MeshInstance3D:
+	if not Settings.get_value("graphics/heat_shimmer"):
+		return null
+	var mat := ShaderMaterial.new()
+	mat.shader = load(HEAT)
+	mat.set_shader_parameter("strength", strength)
+	# it draws the opaque scene's copy, so it goes before every other transparent (flashes, smoke,
+	# sparks), which would otherwise be painted over inside the disc
+	mat.render_priority = -10
+	var mi := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * radius * 2.0 * Q3.UNIT
+	mi.mesh = quad
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.extra_cull_margin = radius * Q3.UNIT * 2.0
+	parent.add_child(mi)
+	if parent is Q3FxTimed:
+		(parent as Q3FxTimed).materials.append(mat)
+	else:
+		mat.set_shader_parameter("steady", true)
+	return mi
+
+
 static func light(r: Q3FxTimed, radius_units: float, color: Color, energy := 4.0) -> OmniLight3D:
 	var l := OmniLight3D.new()
 	l.omni_range = radius_units * Q3.UNIT
 	l.light_color = color
-	l.light_energy = energy
+	l.light_energy = energy * gain()
 	l.shadow_enabled = false
 	r.add_child(l)
 	r.add_light(l)
@@ -153,9 +189,12 @@ static func particles(r: Node3D, tex_name: String, amount: int, life: float, spe
 	mat.billboard_keep_scale = true   # else the particle's scale is dropped and every quad is 1 m
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if additive else BaseMaterial3D.BLEND_MODE_MIX
+	mat.disable_fog = additive   # fog would add the haze color over every additive quad
 	mat.vertex_color_use_as_albedo = true
 	mat.albedo_texture = Q3.fx_texture(tex_name)
 	mat.disable_receive_shadows = true
+	mat.proximity_fade_enabled = true   # soft particles: fade into surfaces
+	mat.proximity_fade_distance = 0.25
 	quad.material = mat
 	p.draw_pass_1 = quad
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -211,6 +250,9 @@ static func explosion(parent: Node, kind: String, pos: Vector3, normal := Vector
 		var s := sprite(r, d["sprite"], 72.0, tint, 1.0)
 		s.position = Vector3.UP * 16.0 * Q3.UNIT
 		(s.material_override as ShaderMaterial).set_shader_parameter("grow_from", 30.0 / 72.0)
+		var h := heat(r, 110.0)
+		if h:
+			h.position = Vector3.UP * 24.0 * Q3.UNIT
 	elif d.get("model") and d.get("sprite"):
 		model_flash(r, d["model"], d["sprite"], tint)
 	if float(d.get("light", 0)) > 0.0:
@@ -257,7 +299,7 @@ static func lightning_material() -> ShaderMaterial:
 	mat.shader = load(SCROLL_ADD)
 	mat.set_shader_parameter("tex", Q3.fx_texture(cfg["sprite"]))
 	mat.set_shader_parameter("color", Color.WHITE)
-	mat.set_shader_parameter("intensity", 1.0)
+	mat.set_shader_parameter("intensity", gain())
 	var sc: Array = cfg["scroll"]
 	var wv: Array = cfg["wave_hz"]
 	mat.set_shader_parameter("scale_a", Vector2(2, 1))
@@ -280,7 +322,7 @@ static func _beam(r: Node3D, from: Vector3, to: Vector3, tex_name: String, width
 	mat.shader = load(SCROLL_ADD)
 	mat.set_shader_parameter("tex", Q3.fx_texture(tex_name))
 	mat.set_shader_parameter("color", color)
-	mat.set_shader_parameter("intensity", 1.5)
+	mat.set_shader_parameter("intensity", 1.5 * gain())
 	mat.set_shader_parameter("scroll_a", scroll)
 	mat.set_shader_parameter("wave_a", wave)
 	var length := from.distance_to(to)
@@ -352,12 +394,17 @@ static func missile(parent: Node, weapon: int) -> Node3D:
 			spin.add_child(model)
 			for mi in model.find_children("*", "GeometryInstance3D", true, false):
 				(mi as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if weapon == 5:
+			# the exhaust: Q3Client turns the missile's +Z along its flight, so behind is -Z
+			var h := heat(p, 18.0, 0.015)
+			if h:
+				h.position = Vector3(0.0, 0.0, -20.0 * Q3.UNIT)
 	if float(d.get("light", 0)) > 0.0:
 		var lc: Array = d["light_color"]
 		var l := OmniLight3D.new()
 		l.omni_range = float(d["light"]) * Q3.UNIT
 		l.light_color = Color(lc[0], lc[1], lc[2])
-		l.light_energy = 3.0
+		l.light_energy = 3.0 * gain()
 		l.shadow_enabled = false
 		p.add_child(l)
 	var fly := {5: "rocket/rockfly", 8: "plasma/lasfly", 9: "rocket/rockfly"}
@@ -368,7 +415,8 @@ static func missile(parent: Node, weapon: int) -> Node3D:
 			a.stream = Q3FX.looped(load(path))
 			a.unit_size = 12.0
 			a.max_distance = 60.0
-			a.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
+			a.bus = &"Effects"
+			Settings.spatialize(a)
 			a.autoplay = true
 			p.add_child(a)
 	return p
@@ -396,7 +444,7 @@ static func rocket(parent: Node, from: Vector3, to: Vector3) -> Node3D:
 	var l := OmniLight3D.new()
 	l.omni_range = float(d["light"]) * Q3.UNIT
 	l.light_color = Color(lc[0], lc[1], lc[2])
-	l.light_energy = 3.0
+	l.light_energy = 3.0 * gain()
 	p.add_child(l)
 	var trail := particles(p, "smoke_puff", int(float(d["trail_life"]) / float(d["trail_step"])), float(d["trail_life"]) / 1000.0,
 			Vector2(0.0, 0.2), 180.0, -0.3, Vector2.ONE * float(d["trail_radius"]) * Q3.UNIT * 0.5, 2.0,
@@ -453,7 +501,7 @@ static func tracer(parent: Node, from: Vector3, to: Vector3, eye: Vector3) -> vo
 	var mat := ShaderMaterial.new()
 	mat.shader = load(SCROLL_ADD)
 	mat.set_shader_parameter("tex", Q3.fx_texture(cfg["sprite"]))
-	mat.set_shader_parameter("intensity", 1.0)
+	mat.set_shader_parameter("intensity", gain())
 	var mi := MeshInstance3D.new()
 	var quad := QuadMesh.new()
 	quad.size = Vector2(end - begin, float(cfg["width"]) * 2.0 * u)
@@ -562,7 +610,7 @@ static func teleport(parent: Node, pos: Vector3) -> Q3FxTimed:
 		var sp: Array = d["scroll"]
 		mat.set_shader_parameter("scale_a", Vector2(sc[0], sc[1]))
 		mat.set_shader_parameter("scroll_a", Vector2(sp[0], sp[1]))
-		mat.set_shader_parameter("intensity", 1.6)
+		mat.set_shader_parameter("intensity", 1.6 * gain())
 		for m in model.find_children("*", "MeshInstance3D", true, false):
 			(m as MeshInstance3D).material_override = mat
 			(m as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

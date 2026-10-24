@@ -12,7 +12,7 @@ For every maps/*.bsp in the player's paks (extract_pk3.py --prefix maps/ puts th
   work/_maps/<map>/<map>.json   worldspawn, entities, lights, sky, fog volumes, collision hulls (solid and
                                 playerclip brushes, convex point sets) and patch collision triangles,
                                 inline model bounds, mirrors and portal views ("portals", see portals()),
-                                the shader report
+                                reflection probe boxes ("probes", map_probes.py), the shader report
   work/_maps/maps_report.json   every map: surfaces placed, triangles, shaders resolved / missing / skipped
 With --godot, the GLB and the JSON are copied to <godot>/library/maps/<map>/. Godot imports the
 GLB on its next scan; tools/bake_maps.gd configure() then switches its import to static lightmaps
@@ -30,7 +30,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import q3bsp
+import q3shader
 import q3common as q3
+import map_probes
 
 UNIT = 1.0 / 32.0
 CELL = 1024.0   # world chunk size in id units (frustum culling and lightmap granularity)
@@ -45,9 +47,11 @@ CELL = 1024.0   # world chunk size in id units (frustum culling and lightmap gra
 POINT_SCALE = 7500.0
 AREA_SCALE = 0.25
 SUBDIVIDE = 128.0       # surface light patch size (q3map's default lightsubdivide is 120)
+Q3MAP_SUBDIVIDE = 999.0   # id 1.32 q3map's defaultLightSubdivide (light.c): what decides the backsplash
 LIGHT_SCALE = 1.0
 # per-map corrections from measuring the first bake against the original lightmaps
 MAP_LIGHTING = os.path.join(HERE, "map_lighting.json")
+SURFACE_LIGHT = {}   # shader -> q3map's light settings (q3shader): two-sided, backsplash, subdivide; filled in main()
 
 
 def q3_lightmap_stats(bsp):
@@ -333,9 +337,14 @@ def light_of(e):
     return d
 
 
-def surface_lights(pos, nrm, tris, value, color):
-    """q3map's surface lights for one drawn surface: one emitter per SUBDIVIDE cell of its
-    triangles, at the cell's area-weighted center, 2 units off the face."""
+def surface_lights(pos, nrm, tris, value, color, two_sided=False, backsplash=(0.05, 24.0), subdivide=Q3MAP_SUBDIVIDE):
+    """q3map's surface lights for one drawn surface (light.c CreateSurfaceLights): one emitter per
+    SUBDIVIDE cell of its triangles, at the cell's area-weighted center, 2 units off the face. A
+    cull none shader (q3map's twoSided) emits from both faces: console03 lights the recess behind
+    its glass. A surface q3map doesn't subdivide (no wider than the shader's q3map_lightsubdivide,
+    999 by default) also gets the backsplash: a point light with the shader's q3map_backsplash share
+    of its photons (5%) that far out (24 units) (SubdivideAreaLight). The emitters themselves stay
+    on 128-unit cells, which the bake is calibrated on."""
     a, b, c = pos[tris[:, 0]], pos[tris[:, 1]], pos[tris[:, 2]]
     cross = np.cross(b - a, c - a)
     area = np.linalg.norm(cross, axis=1) * 0.5
@@ -348,18 +357,30 @@ def surface_lights(pos, nrm, tris, value, color):
     cells = {}
     for k, key in enumerate(map(tuple, np.floor(cen / SUBDIVIDE).astype(int))):
         cells.setdefault(key, []).append(k)
-    out = []
+    patches = []
     for idx in cells.values():
         w = area[idx]
         tot = float(w.sum())
         p = (cen[idx] * w[:, None]).sum(0) / tot
         nn = n[idx].sum(0)
         nn /= max(np.linalg.norm(nn), 1e-9)
-        photons = value * tot * AREA_SCALE
-        out.append({"kind": "surface", "origin": to_godot(p + nn * 2.0).round(4).tolist(),
-                    "normal": to_godot_dir(nn).round(4).tolist(),
-                    "energy": round(photons / 255.0 * UNIT * UNIT * LIGHT_SCALE, 4),
-                    "range": round(min(np.sqrt(photons) * UNIT, 96.0), 3), "color": color})
+        patches.append((p, nn, value * tot * AREA_SCALE))
+    frac, dist = backsplash
+    splash = frac > 0 and bool(np.all(pos.max(0) - pos.min(0) <= subdivide))
+    out = []
+    for side in ((1.0, -1.0) if two_sided else (1.0,)):
+        for p, nn, photons in patches:
+            nn = nn * side
+            out.append({"kind": "surface", "origin": to_godot(p + nn * 2.0).round(4).tolist(),
+                        "normal": to_godot_dir(nn).round(4).tolist(),
+                        "energy": round(photons / 255.0 * UNIT * UNIT * LIGHT_SCALE, 4),
+                        "range": round(min(np.sqrt(photons) * UNIT, 96.0), 3), "color": color})
+            if splash:
+                bp = photons * frac
+                out.append({"kind": "point", "origin": to_godot(p + nn * (1.0 + dist)).round(4).tolist(),
+                            "energy": round(bp / 255.0 * UNIT * UNIT * LIGHT_SCALE, 4),
+                            "range": round(min(np.sqrt(bp) * UNIT, 96.0), 3), "color": color,
+                            "target": "", "intensity": 0.0, "backsplash": True})
     return out
 
 
@@ -496,7 +517,8 @@ def build_map(name, bsp_path, wm, out_dir):
                 continue
             sl = float(wm.get(sname, {}).get("surfacelight", 0) or 0)
             if sl > 0 and collect_lights:
-                emitters.extend(surface_lights(pos, nrm, tris, sl, wm[sname].get("light_color") or [1.0, 1.0, 1.0]))
+                emitters.extend(surface_lights(pos, nrm, tris, sl, wm[sname].get("light_color") or [1.0, 1.0, 1.0],
+                                               **SURFACE_LIGHT.get(sname, {})))
             if int(s["type"]) == q3bsp.MST_PATCH:
                 report["patches"] += 1
             if kind == "missing":
@@ -597,11 +619,13 @@ def build_map(name, bsp_path, wm, out_dir):
     report["q3_lightmap"] = q3_lightmap_stats(bsp)
     portal_list = portals(bsp, ents, wm)
     report["portals"] = len(portal_list)
+    probes = [{k: to_godot(v).round(4).tolist() for k, v in p.items()} for p in map_probes.reflection_probes(bsp)]
+    report["probes"] = len(probes)
     info = {
         "map": name, "bsp_version": bsp.version, "light_scale": map_scale, "worldspawn": ents[0] if ents else {},
         "entities": ents, "lights": lights, "sky": sorted(sky_shaders), "sky_light": sky_light(a.root, sorted(sky_shaders)), "fogs": fogs,
         "models": models, "collision": {"solid": solid, "clip": clip, "patches": patch_tris}, "portals": portal_list,
-        "bounds": [to_godot(m0["mins"]).round(4).tolist(), to_godot(m0["maxs"]).round(4).tolist()],
+        "probes": probes, "bounds": [to_godot(m0["mins"]).round(4).tolist(), to_godot(m0["maxs"]).round(4).tolist()],
         "report": report,
     }
     json.dump(info, open(os.path.join(out_dir, name + ".json"), "w"), separators=(",", ":"))
@@ -623,6 +647,10 @@ def main():
             sys.exit("No maps in %s and no Quake 3 install found (pass --q3 <baseq3>)" % maps_dir)
         subprocess.run([sys.executable, os.path.join(HERE, "extract_pk3.py"), q3dir, a.root, "--prefix", "maps/"], check=True)
     wm = load_world_materials()
+    # q3map's twoSided is only cull none (shaders.c); backsplash and lightsubdivide are per shader
+    SURFACE_LIGHT.update({n: dict(two_sided=sh.cull.lower() == "none", backsplash=sh.backsplash,
+                                  subdivide=sh.lightsubdivide or Q3MAP_SUBDIVIDE)
+                          for n, sh in q3shader.parse_all(a.root).items()})
     names = a.maps or sorted(os.path.splitext(os.path.basename(p))[0] for p in glob.glob(os.path.join(maps_dir, "*.bsp")))
     names = [n for n in names if n != "test_bigbox"]
     reports = []

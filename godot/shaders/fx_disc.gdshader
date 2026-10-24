@@ -1,7 +1,7 @@
 shader_type spatial;
 // Rail-trail discs drawn as one MultiMesh: each instance is a camera-facing sprite whose
 // fade comes from its custom data (x = 0..1 life), rotating like railDisc's tcMod rotate -30.
-render_mode unshaded, blend_add, cull_disabled, depth_draw_never, shadows_disabled;
+render_mode unshaded, blend_add, cull_disabled, depth_draw_never, shadows_disabled, fog_disabled;
 
 uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_disable;
 uniform vec4 color : source_color = vec4(1.0);

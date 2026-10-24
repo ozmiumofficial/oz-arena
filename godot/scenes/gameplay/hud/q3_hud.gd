@@ -10,6 +10,9 @@ extends CanvasLayer
 ##     its "three, two, one" and "FIGHT!".
 ## Chat has its own box, bottom left (hud_chat.gd). Names, prints and chat keep Quake 3's color
 ## codes (Q3Colors, S.ctext).
+## Settings: the announcer's lines play on the Announcer bus unless Audio > Announcer is off, with
+## captions under Accessibility > Subtitles; hit sounds follow Audio > Hit sound; HUD > Item
+## timers lists the major items' respawns (Gameplay feeds them); HUD > Net graph is the lagometer.
 ## Gameplay calls update() each frame and the event methods as things happen.
 
 const S := preload("res://scenes/gameplay/hud/hud_style.gd")
@@ -27,6 +30,16 @@ const PLAYEREVENT_GAUNTLETREWARD := 2
 const PLAYEREVENT_HOLYSHIT := 4
 ## powerups with their HUD icons (PW_QUAD .. PW_FLIGHT, then the flags)
 const POWERUP_ICONS := {1: "quad", 2: "envirosuit", 3: "haste", 4: "invis", 5: "regen", 6: "flight", 7: "iconf_red", 8: "iconf_blu"}
+## Accessibility > Subtitles: what the announcer says, by sound file
+const CAPTIONS := {"impressive": "Impressive!", "excellent": "Excellent!", "humiliation": "Humiliation!",
+	"defense": "Defense!", "assist": "Assist!", "denied": "Denied!", "voc_holyshit": "Holy shit!",
+	"takenlead": "You have taken the lead.", "tiedlead": "You are tied for the lead.", "lostlead": "You have lost the lead.",
+	"sudden_death": "Sudden death!", "1_minute": "One minute remaining.", "5_minute": "Five minutes remaining.",
+	"1_frag": "One frag left.", "2_frags": "Two frags left.", "3_frags": "Three frags left.",
+	"prepare": "Prepare to fight!", "three": "Three", "two": "Two", "one": "One", "fight": "Fight!",
+	"flagcapture_yourteam": "Your team captured the flag!", "youwin": "You win!"}
+const CAPTION_TIME := 2.5
+const LAG_SAMPLES := 128          ## cg_draw.c LAG_SAMPLES
 
 var u := 1.0                      ## pixels per HUD unit: 1080p = 1, times Settings' HUD scale
 var preset := "modern"
@@ -36,6 +49,14 @@ var ammo_panel: Q3HudAmmo
 var weapon_bar: Q3HudWeaponBar
 var speedometer: Q3HudSpeedometer
 var feed: Q3HudFeed
+var match_feed: Q3Feed = Q3LiveFeed.shared()   ## where the match's state comes from (live or a replay)
+## Pixels kept clear at the bottom (a replay's transport bar); set it, then call layout().
+var bottom_inset := 0.0
+var spectator: Dictionary = {}     ## set_spectator()
+var _spec_card: Q3CardView
+var death: Dictionary = {}         ## set_death()
+var respawn_text := "FIRE TO RESPAWN"   ## under the dead view (the death cam counts down to id's respawn)
+var _killer_card: Q3CardView
 var chat: Q3HudChat
 var crosshair: Q3HudCrosshair
 var damage_fx: Q3HudDamage
@@ -60,6 +81,7 @@ var _warmup_count := -1
 var _warmup_state := 0
 var _time_warnings := 0
 var _frag_warnings := 0
+var _rearm := false               ## after reset_view: mark the warnings already passed without playing them
 var _dmg_time := -100000.0
 var _dmg_pitch := 0.0
 var _dmg_roll := 0.0
@@ -69,6 +91,12 @@ var _powerups: Array = []         ## [icon, seconds] for the HUD's list
 var _warmup_text := ""
 var _fps_t := 0.0
 var _fps := 0
+var hit_damage := 0               ## the last hit's damage ("dmg"), for Hit sound: Pitch by damage
+var _captions: Array[Dictionary] = []   ## {text, t}
+var _item_timers: Array = []      ## [icon, seconds left or -1 when it's up]
+var _lag_frames: PackedFloat32Array = PackedFloat32Array()   ## frame times (ms), oldest first
+var _lag_snaps: PackedFloat32Array = PackedFloat32Array()    ## snapshot pings (ms)
+var _ping := 0
 
 
 func _init() -> void:
@@ -89,10 +117,14 @@ func _ready() -> void:
 	vitals = _add(Q3HudVitals.new())
 	ammo_panel = _add(Q3HudAmmo.new())
 	chat = _add(Q3HudChat.new())
+	_spec_card = _add(Q3CardView.new())
+	_spec_card.visible = false
+	_killer_card = _add(Q3CardView.new())
+	_killer_card.visible = false
 	_msg = _add(Control.new())
 	_msg.draw.connect(_draw_messages)
 	_announcer = AudioStreamPlayer.new()
-	_announcer.bus = "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
+	_announcer.bus = &"Announcer"
 	add_child(_announcer)
 	_announcer.finished.connect(_next_sound)
 	get_viewport().size_changed.connect(layout)
@@ -110,10 +142,12 @@ func _add(c: Control) -> Control:
 
 ## Places every widget for the preset and the current window size.
 func layout() -> void:
-	var vs := root.get_viewport_rect().size
+	var full := root.get_viewport_rect().size
 	preset = String(Settings.get_value("hud/preset"))
 	var scale := float(Settings.get_value("hud/scale")) * (0.88 if preset == "competitive" else 1.0)
-	u = vs.y / 1080.0 * scale
+	u = full.y / 1080.0 * scale
+	# the bottom row sits above a replay's transport bar (bottom_inset)
+	var vs := Vector2(full.x, full.y - bottom_inset)
 	root.modulate.a = float(Settings.get_value("hud/opacity"))
 	var m := 34.0 * u
 	var compact := preset != "modern"
@@ -121,7 +155,7 @@ func layout() -> void:
 	ammo_panel.compact = compact
 	var speed_style := String(Settings.get_value("hud/speedometer"))
 	speedometer.style = "compact" if preset in ["competitive", "classic"] and speed_style == "arc" else speed_style
-	speedometer.visible = speed_style != "off"
+	speedometer.visible = Settings.get_value("hud/show_speedometer")
 	var bar_on: bool = Settings.get_value("hud/ammo_bar") and preset != "minimal"
 	# classic: Quake 3's weapon select, shown for a moment after a switch
 	weapon_bar.visible = bar_on or preset == "classic"
@@ -129,7 +163,7 @@ func layout() -> void:
 	feed.visible = Settings.get_value("hud/kill_feed")
 	for c in [damage_fx, crosshair, _msg]:
 		c.position = Vector2.ZERO
-		c.size = vs
+		c.size = full
 	status.position = Vector2(0, 18 * u)
 	status.size = Vector2(vs.x, 90 * u)
 	feed.size = Vector2(560 * u, 260 * u)
@@ -160,6 +194,12 @@ func layout() -> void:
 	var chat_bottom := vs.y - m if preset == "classic" else vitals.position.y - 58 * u
 	chat.size = Vector2(minf(720 * u, vs.x * 0.42), 14 * 25 * u + 50 * u)
 	chat.position = Vector2(m, chat_bottom - chat.size.y)
+	# a spectator's followed player, under the scores
+	_spec_card.size = Vector2(520 * u, 80 * u)
+	_spec_card.position = Vector2((vs.x - _spec_card.size.x) * 0.5, 132 * u)
+	# the death cam's killer, under KILLED BY
+	_killer_card.size = Vector2(520 * u, 80 * u)
+	_killer_card.position = Vector2((full.x - _killer_card.size.x) * 0.5, full.y * 0.6 + 14 * u)
 
 
 # ---------------------------------------------------------------- per frame
@@ -175,6 +215,7 @@ func update(ps: Dictionary, info: Dictionary) -> void:
 	var level_time := int(info.get("level_time", 0))
 	var spectator := int(pers[E.PERS_TEAM]) == E.TEAM_SPECTATOR
 	_dead = int(ps["pm_type"]) == E.PM_DEAD
+	_killer_card.visible = _dead and death.has("card")
 	var playing := not spectator and int(ps["pm_type"]) != E.PM_INTERMISSION
 	for c in [vitals, ammo_panel, weapon_bar]:
 		c.modulate.a = 0.0 if not playing else (0.45 if _dead else 1.0)
@@ -185,7 +226,7 @@ func update(ps: Dictionary, info: Dictionary) -> void:
 		int(ps["weaponstate"]) == WEAPON_FIRING and int(ps["weaponTime"]) > 100)
 	weapon_bar.set_values(int(stats[E.STAT_WEAPONS]), ammo, w)
 	var vel: Vector3 = ps["velocity"]
-	speedometer.set_speed(Vector2(vel.x, vel.y).length())
+	speedometer.set_speed(0.0 if _dead else Vector2(vel.x, vel.y).length())
 	crosshair.weapon = w
 	# CG_ColorForHealth counts the armor that would still protect
 	var h := int(stats[E.STAT_HEALTH])
@@ -203,6 +244,53 @@ func update(ps: Dictionary, info: Dictionary) -> void:
 	_msg.queue_redraw()
 
 
+## Spectating (REPLAY_PLAN.md R5): {} while playing; else {mode: "free" | "follow" | "chase",
+## name, card, level, director: bool, hints: [[key, what], ...]}. Following shows the player's
+## card under the scores with a FOLLOWING line (the vitals, ammo and weapons are already theirs:
+## the playerState is a copy of the followed player's); every mode lists its keys at the bottom.
+func set_spectator(info: Dictionary) -> void:
+	var following := String(info.get("mode", "")) in ["follow", "chase"]
+	if following and (int(info.get("client", -1)) != int(spectator.get("client", -1)) or not _spec_card.visible):
+		_spec_card.setup(info.get("card", {}), String(info.get("name", "")), int(info.get("level", 1)))
+	_spec_card.visible = following
+	spectator = info
+
+
+## The death cam's card (REPLAY_PLAN.md R6): {name, card, level, weapon} for a killer, {line} for a
+## death with none (id's own obituary line: "Ozmium cratered"), {} for nothing. Shown while dead.
+func set_death(info: Dictionary) -> void:
+	var card := info.has("card")
+	if card and (String(info.get("name", "")) != String(death.get("name", "")) or not _killer_card.visible):
+		_killer_card.setup(info["card"], String(info["name"]), int(info.get("level", 1)))
+	_killer_card.visible = card and _dead
+	death = info
+
+
+## A replay jumped or changed whose eyes the HUD shows: forget the last playerState (its changes
+## would sound as rewards, hits and lead changes) and whatever was on show.
+## `lines`: the kill feed and chat go too (a jump in time, not a new pair of eyes).
+func reset_view(lines := true) -> void:
+	_ops = {}
+	_rewards.clear()
+	_reward = {}
+	_reward_t = 99.0
+	_pickup = {}
+	_pickup_t = 99.0
+	_center = ""
+	_center_t = 99.0
+	_sound_queue.clear()
+	_announcer.stop()
+	_time_warnings = 0
+	_frag_warnings = 0
+	_rearm = true        # warnings already passed are marked, not played
+	_warmup_count = -1
+	_low_ammo = -1       # judged quietly on the next update
+	if lines:
+		feed.clear()
+		chat.clear()
+	_dmg_time = -100000.0
+
+
 func _process(delta: float) -> void:
 	_center_t += delta
 	_pickup_t += delta
@@ -216,6 +304,9 @@ func _process(delta: float) -> void:
 	for n in _notify:
 		n["t"] = float(n["t"]) + delta
 	_notify = _notify.filter(func(n): return float(n["t"]) < 6.0)
+	for c in _captions:
+		c["t"] = float(c["t"]) + delta
+	_captions = _captions.filter(func(c): return float(c["t"]) < CAPTION_TIME)
 	_fps_t += delta
 	if _fps_t >= 0.5:
 		_fps = Engine.get_frames_per_second()
@@ -244,10 +335,10 @@ func _update_status(ps: Dictionary, info: Dictionary, level_time: int) -> void:
 	var gt := int(info.get("gametype", 0))
 	var pers: PackedInt32Array = ps["persistant"]
 	status.teams = gt >= E.GT_TEAM
-	var start := Q3Server.configstring(E.CS_LEVEL_START_TIME).to_int()
+	var start := match_feed.configstring(E.CS_LEVEL_START_TIME).to_int()
 	var elapsed := maxi(level_time - start, 0)
-	var tl := Q3Server.cvar("timelimit").to_int()
-	var warmup := Q3Server.configstring(E.CS_WARMUP)
+	var tl := match_feed.cvar("timelimit").to_int()
+	var warmup := match_feed.configstring(E.CS_WARMUP)
 	var ms := elapsed
 	if tl > 0:
 		ms = maxi(tl * 60000 - elapsed, 0)
@@ -257,14 +348,14 @@ func _update_status(ps: Dictionary, info: Dictionary, level_time: int) -> void:
 	if warmup != "" and warmup != "0":
 		status.clock = "WARMUP" if warmup.to_int() < 0 else "0:00"
 		status.warn = false
-	var fl := Q3Server.cvar("fraglimit").to_int()
-	var cl := Q3Server.cvar("capturelimit").to_int()
+	var fl := match_feed.cvar("fraglimit").to_int()
+	var cl := match_feed.cvar("capturelimit").to_int()
 	status.limit = ("FIRST TO %d" % cl) if gt == E.GT_CTF and cl > 0 else (("FRAG LIMIT %d" % fl) if fl > 0 and gt != E.GT_CTF else "")
 	status.my_score = int(pers[E.PERS_SCORE])
 	status.my_place = S.place(int(pers[E.PERS_RANK]))
 	status.my_team = int(pers[E.PERS_TEAM])
-	status.red = Q3Server.configstring(E.CS_SCORES1).to_int()
-	status.blue = Q3Server.configstring(E.CS_SCORES2).to_int()
+	status.red = match_feed.configstring(E.CS_SCORES1).to_int()
+	status.blue = match_feed.configstring(E.CS_SCORES2).to_int()
 	_standings_t -= get_process_delta_time()
 	if _standings_t <= 0.0 and info.has("standings"):
 		_standings = (info["standings"] as Callable).call()
@@ -305,11 +396,16 @@ func _check_local_sounds(ps: Dictionary, ops: Dictionary, info: Dictionary) -> v
 	var o: PackedInt32Array = ops["persistant"]
 	if p[E.PERS_TEAM] != o[E.PERS_TEAM]:
 		return
+	var hit_sound := String(Settings.get_value("audio/hit_sound"))
 	if p[E.PERS_HITS] > o[E.PERS_HITS]:
-		_play_now("sound/feedback/hit.wav")
+		if hit_sound != "off":
+			# pitch by damage: a small hit beeps high, a rocket's full hit low
+			var pitch := lerpf(1.35, 0.75, clampf(hit_damage / 100.0, 0.0, 1.0)) if hit_sound == "pitch" and hit_damage > 0 else 1.0
+			_play_effect("sound/feedback/hit.wav", pitch)
 		crosshair.hit()
-	elif p[E.PERS_HITS] < o[E.PERS_HITS]:
-		_play_now("sound/feedback/hit_teammate.wav")
+	elif p[E.PERS_HITS] < o[E.PERS_HITS] and hit_sound != "off":
+		_play_effect("sound/feedback/hit_teammate.wav")
+	hit_damage = 0
 	var reward := false
 	var awards := [[E.PERS_CAPTURES, "sound/teamplay/flagcapture_yourteam.wav", "medal_capture"],
 		[E.PERS_IMPRESSIVE_COUNT, "sound/feedback/impressive.wav", "medal_impressive"],
@@ -331,7 +427,7 @@ func _check_local_sounds(ps: Dictionary, ops: Dictionary, info: Dictionary) -> v
 			_play_now("sound/feedback/voc_holyshit.wav")
 		reward = true
 	var gt := int(info.get("gametype", 0))
-	var warmup := Q3Server.configstring(E.CS_WARMUP)
+	var warmup := match_feed.configstring(E.CS_WARMUP)
 	var in_warmup := warmup != "" and warmup != "0"
 	if not reward and not in_warmup and p[E.PERS_RANK] != o[E.PERS_RANK] and gt < E.GT_TEAM:
 		if p[E.PERS_RANK] == 0:
@@ -341,9 +437,18 @@ func _check_local_sounds(ps: Dictionary, ops: Dictionary, info: Dictionary) -> v
 		elif (int(o[E.PERS_RANK]) & ~RANK_TIED) == 0:
 			_queue_sound("sound/feedback/lostlead.wav", false)
 	# time and frag limit warnings
-	var tl := Q3Server.cvar("timelimit").to_int()
+	var tl := match_feed.cvar("timelimit").to_int()
+	var fl := match_feed.cvar("fraglimit").to_int()
+	if _rearm:
+		_rearm = false
+		var at := int(info.get("level_time", 0)) - match_feed.configstring(E.CS_LEVEL_START_TIME).to_int()
+		if tl > 0 and not in_warmup:
+			_time_warnings = 7 if at > (tl * 60 + 2) * 1000 else 3 if at > (tl - 1) * 60000 else 1 if tl > 5 and at > (tl - 5) * 60000 else 0
+		var top := match_feed.configstring(E.CS_SCORES1).to_int()
+		if fl > 0:
+			_frag_warnings = 7 if top >= fl - 1 else 3 if top >= fl - 2 else 1 if top >= fl - 3 else 0
 	if tl > 0 and not in_warmup:
-		var msec := int(info.get("level_time", 0)) - Q3Server.configstring(E.CS_LEVEL_START_TIME).to_int()
+		var msec := int(info.get("level_time", 0)) - match_feed.configstring(E.CS_LEVEL_START_TIME).to_int()
 		if not (_time_warnings & 4) and msec > (tl * 60 + 2) * 1000:
 			_time_warnings |= 7
 			_play_now("sound/feedback/sudden_death.wav")
@@ -353,9 +458,8 @@ func _check_local_sounds(ps: Dictionary, ops: Dictionary, info: Dictionary) -> v
 		elif tl > 5 and not (_time_warnings & 1) and msec > (tl - 5) * 60000:
 			_time_warnings |= 1
 			_play_now("sound/feedback/5_minute.wav")
-	var fl := Q3Server.cvar("fraglimit").to_int()
 	if fl > 0 and gt < E.GT_CTF:
-		var high := Q3Server.configstring(E.CS_SCORES1).to_int()
+		var high := match_feed.configstring(E.CS_SCORES1).to_int()
 		if not (_frag_warnings & 4) and high == fl - 1:
 			_frag_warnings |= 7
 			_queue_sound("sound/feedback/1_frag.wav", false)
@@ -392,12 +496,12 @@ func _damage_feedback(ps: Dictionary) -> void:
 		_dmg_roll = kick * left
 		_dmg_pitch = -kick * front
 		damage_fx.damage(atan2(-left, front), count)
-	_dmg_time = Time.get_ticks_msec()
+	_dmg_time = Q3.game_ms
 
 
 ## The damage kick (pitch, roll in degrees) to add to the view now (CG_OffsetFirstPersonView).
 func view_kick() -> Vector2:
-	var ratio := float(Time.get_ticks_msec()) - _dmg_time
+	var ratio := Q3.game_ms - _dmg_time
 	if ratio < DAMAGE_DEFLECT_TIME:
 		ratio /= DAMAGE_DEFLECT_TIME
 	else:
@@ -428,8 +532,8 @@ func _check_ammo(ps: Dictionary) -> void:
 			return
 	var prev := _low_ammo
 	_low_ammo = 2 if total == 0 else 1
-	if _low_ammo != prev:
-		_play_now("sound/weapons/noammo.wav")
+	if _low_ammo != prev and prev >= 0:
+		_play_effect("sound/weapons/noammo.wav")
 
 
 # ---------------------------------------------------------------- events from Gameplay
@@ -478,6 +582,26 @@ func fight() -> void:
 	center_print("FIGHT!", 0.3, true)
 
 
+## An announcer line from Gameplay (the winner at the intermission), after any already queued.
+func announce(path: String) -> void:
+	_queue_sound(path, false)
+
+
+## HUD > Item timers: [icon, seconds left (-1 once it's back)] per major item, from Gameplay.
+func set_item_timers(list: Array) -> void:
+	_item_timers = list
+
+
+## HUD > Net graph: one rendered frame's time and the ping of the snapshot it showed.
+func lagometer(frame_ms: float, ping: int) -> void:
+	_lag_frames.append(frame_ms)
+	_lag_snaps.append(float(ping))
+	_ping = ping
+	if _lag_frames.size() > LAG_SAMPLES:
+		_lag_frames = _lag_frames.slice(1)
+		_lag_snaps = _lag_snaps.slice(1)
+
+
 func _item_icon(item_index: int) -> String:
 	var names: PackedStringArray = ClassDB.class_call_static("Q3Core", "item_classnames") if ClassDB.class_exists("Q3Core") else PackedStringArray()
 	if item_index < 1 or item_index > names.size():
@@ -492,22 +616,50 @@ func _stream(path: String) -> AudioStream:
 	return load(p) if ResourceLoader.exists(p) else null
 
 
-## A local sound right away (trap_S_StartLocalSound).
+## An announcer line right away (trap_S_StartLocalSound), unless Audio > Announcer is off.
 func _play_now(path: String) -> void:
+	if not Settings.get_value("audio/announcer"):
+		return
+	_caption(path)
+	_play(path, &"Announcer", 1.0)
+
+
+## A local game sound right away: the hit beeps, the out-of-ammo click.
+func _play_effect(path: String, pitch := 1.0) -> void:
+	_play(path, &"Effects", pitch)
+
+
+func _play(path: String, bus: StringName, pitch: float) -> void:
 	var s := _stream(path)
 	if s == null:
 		return
 	var a := AudioStreamPlayer.new()
 	a.stream = s
-	a.bus = _announcer.bus
+	a.bus = bus
+	a.pitch_scale = pitch
 	add_child(a)
 	a.finished.connect(a.queue_free)
 	a.play()
 
 
+## Accessibility > Subtitles: the line's words, bottom middle.
+func _caption(path: String) -> void:
+	if not Settings.get_value("accessibility/subtitles"):
+		return
+	var key := path.get_file().get_basename()
+	var text := String(CAPTIONS.get(key, ""))
+	if text == "" and key.ends_with("_wins"):
+		text = key.trim_suffix("_wins").capitalize() + " wins!"
+	if text == "":
+		return
+	_captions.append({"text": text, "t": 0.0})
+	while _captions.size() > 3:
+		_captions.pop_front()
+
+
 ## CG_AddBufferedSound: announcer lines one after another. `front` jumps the queue (rewards).
 func _queue_sound(path: String, front: bool) -> void:
-	if path == "":
+	if path == "" or not Settings.get_value("audio/announcer"):
 		return
 	if front:
 		_sound_queue.push_front(path)
@@ -519,8 +671,10 @@ func _queue_sound(path: String, front: bool) -> void:
 
 func _next_sound() -> void:
 	while not _sound_queue.is_empty():
-		var s := _stream(_sound_queue.pop_front())
+		var path: String = _sound_queue.pop_front()
+		var s := _stream(path)
 		if s:
+			_caption(path)
 			_announcer.stream = s
 			_announcer.play()
 			return
@@ -536,6 +690,8 @@ func _draw_messages() -> void:
 		for i in lines.size():
 			S.text(_msg, S.num_medium(), Vector2(vs.x * 0.5, vs.y * 0.4 + i * 34 * u), lines[i], int(26 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_CENTER)
 		return
+	if not spectator.is_empty():
+		_draw_spectator(vs, font)
 	# console prints, top left
 	var y := 40.0 * u
 	for n in _notify:
@@ -557,7 +713,7 @@ func _draw_messages() -> void:
 	if _warmup_text != "":
 		S.text(_msg, font, Vector2(vs.x * 0.5, vs.y * 0.2), _warmup_text, int(40 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_CENTER)
 		if _warmup_text == "WARMUP":
-			var sub := "PRESS F3 WHEN YOU'RE READY" if Q3Server.cvar("g_readyUp") == "1" else "WAITING FOR PLAYERS"
+			var sub := "PRESS F3 WHEN YOU'RE READY" if match_feed.cvar("g_readyUp") == "1" else "WAITING FOR PLAYERS"
 			S.text(_msg, font, Vector2(vs.x * 0.5, vs.y * 0.2 + 34 * u), sub, int(18 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
 	# the reward on show
 	if not _reward.is_empty() and _reward_t < REWARD_TIME:
@@ -594,9 +750,96 @@ func _draw_messages() -> void:
 		S.text(_msg, font, Vector2(vs.x * 0.5, vs.y * 0.62), "OUT OF AMMO" if _low_ammo == 2 else "LOW AMMO WARNING", int(20 * u),
 			Color(S.RED, 0.85), HORIZONTAL_ALIGNMENT_CENTER)
 	# dead: who did it, and how to come back
-	if _dead:
+	if _dead and not death.is_empty():
+		# the death cam: KILLED BY over the killer's card, or id's obituary line, then the respawn line
+		var dy := vs.y * 0.6
+		if death.has("card"):
+			S.text(_msg, font, Vector2(vs.x * 0.5, dy), "KILLED BY", int(18 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
+			if String(death.get("weapon", "")) != "":
+				S.text(_msg, font, Vector2(vs.x * 0.5, dy + 122 * u), String(death["weapon"]), int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
+		else:
+			S.ctext(_msg, S.num_medium(), Vector2(vs.x * 0.5, dy + 50 * u), String(death.get("line", "")), int(28 * u), S.INK_HOT,
+				HORIZONTAL_ALIGNMENT_CENTER)
+		S.text(_msg, font, Vector2(vs.x * 0.5, dy + 156 * u), respawn_text, int(16 * u), S.INK, HORIZONTAL_ALIGNMENT_CENTER)
+	elif _dead:
 		if killer != "":
 			S.ctext(_msg, S.num_medium(), Vector2(vs.x * 0.5, vs.y * 0.7), "Fragged by " + killer, int(26 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_CENTER)
-		S.text(_msg, font, Vector2(vs.x * 0.5, vs.y * 0.7 + 34 * u), "FIRE TO RESPAWN", int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
+		S.text(_msg, font, Vector2(vs.x * 0.5, vs.y * 0.7 + 34 * u), respawn_text, int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
+	_draw_item_timers(vs)
+	_draw_captions(vs)
+	if Settings.get_value("hud/net_graph"):
+		_draw_lagometer(vs)
 	if Settings.get_value("hud/fps"):
 		S.text(_msg, S.num_medium(), Vector2(vs.x - 34 * u, vs.y * 0.5 - 140 * u), "%d FPS" % _fps, int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_RIGHT)
+
+
+## HUD > Item timers: down the left edge, each major item's icon with the seconds until it's
+## back, or dimmed and empty while it's up.
+func _draw_item_timers(vs: Vector2) -> void:
+	if not Settings.get_value("hud/item_timers") or _item_timers.is_empty() or _dead:
+		return
+	var y := vs.y * 0.5 - _item_timers.size() * 26.0 * u
+	for it in _item_timers:
+		var left := float(it[1])
+		var tex := S.icon(String(it[0]))
+		if tex:
+			_msg.draw_texture_rect(tex, Rect2(Vector2(34 * u, y), Vector2.ONE * 40 * u), false, Color(1, 1, 1, 1.0 if left >= 0.0 else 0.4))
+		if left >= 0.0:
+			S.text(_msg, S.num(), Vector2(84 * u, y + 31 * u), str(ceili(left)), int(28 * u), S.AMBER if left <= 10.0 else S.INK_HOT)
+		y += 52 * u
+
+
+## Accessibility > Subtitles: the announcer's recent lines, above the weapon bar.
+func _draw_captions(vs: Vector2) -> void:
+	if _captions.is_empty():
+		return
+	var size := int({"low": 22.0, "medium": 28.0, "high": 36.0}.get(Settings.get_value("accessibility/subtitle_size"), 28.0) * u)
+	var y := weapon_bar.position.y - 24 * u - (_captions.size() - 1) * size * 1.4
+	for c in _captions:
+		var a := clampf((CAPTION_TIME - float(c["t"])) / 0.4, 0.0, 1.0)
+		var w := S.num_medium().get_string_size(String(c["text"]), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+		_msg.draw_rect(Rect2(Vector2(vs.x * 0.5 - w * 0.5 - 12 * u, y - size * 1.05), Vector2(w + 24 * u, size * 1.4)), Color(0, 0, 0, 0.6 * a))
+		S.text(_msg, S.num_medium(), Vector2(vs.x * 0.5, y), String(c["text"]), size, Color(S.INK_HOT, a), HORIZONTAL_ALIGNMENT_CENTER)
+		y += size * 1.4
+
+
+## HUD > Net graph: cg_draw.c CG_DrawLagometer, right of the screen. Top half: each frame's time
+## against 60 fps (blue under, yellow over); bottom half: each snapshot's ping (green, red past
+## 300 ms). The numbers under it are the ping and the last frame's time.
+func _draw_lagometer(vs: Vector2) -> void:
+	var box := Rect2(Vector2(vs.x - 34 * u - 192 * u, vs.y * 0.5 - 110 * u), Vector2(192 * u, 96 * u))
+	_msg.draw_rect(box, Color(0, 0, 0, 0.45))
+	var mid := box.position.y + box.size.y * 0.5
+	var bar := box.size.x / LAG_SAMPLES
+	var half := box.size.y * 0.5
+	for i in _lag_frames.size():
+		var x := box.position.x + (LAG_SAMPLES - _lag_frames.size() + i) * bar
+		var f := _lag_frames[i]
+		var h := minf(f / 50.0, 1.0) * half
+		_msg.draw_rect(Rect2(Vector2(x, mid - h), Vector2(maxf(bar, 1.0), h)), Color(0.3, 0.5, 1.0) if f <= 1000.0 / 60.0 + 0.5 else Color(1.0, 0.85, 0.2))
+		var p := _lag_snaps[i]
+		var ph := maxf(minf(p / 300.0, 1.0) * half, 1.0)
+		_msg.draw_rect(Rect2(Vector2(x, box.end.y - ph), Vector2(maxf(bar, 1.0), ph)), Color(0.2, 0.9, 0.3) if p < 300.0 else Color(1.0, 0.2, 0.15))
+	_msg.draw_line(Vector2(box.position.x, mid), Vector2(box.end.x, mid), Color(1, 1, 1, 0.15), maxf(u, 1.0))
+	var frame := _lag_frames[_lag_frames.size() - 1] if _lag_frames.size() else 0.0
+	S.text(_msg, S.num_medium(), Vector2(box.end.x, box.end.y + 20 * u), "PING %d   FRAME %.1f MS" % [_ping, frame], int(14 * u), S.DIM, HORIZONTAL_ALIGNMENT_RIGHT)
+
+
+## The spectator's lines: FOLLOWING over the followed player's card (or SPECTATING for the free
+## camera), AUTO-DIRECTOR when it picks, and the keys along the bottom.
+func _draw_spectator(vs: Vector2, font: Font) -> void:
+	var mode := String(spectator.get("mode", "free"))
+	var top := 124.0 * u
+	if mode == "free":
+		S.text(_msg, font, Vector2(vs.x * 0.5, 150 * u), "SPECTATING", int(30 * u), S.INK_HOT, HORIZONTAL_ALIGNMENT_CENTER)
+	else:
+		S.text(_msg, font, Vector2(vs.x * 0.5, top), "FOLLOWING" + ("  -  CHASE CAMERA" if mode == "chase" else ""),
+			int(16 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)
+	if spectator.get("director", false):
+		S.text(_msg, font, Vector2(vs.x * 0.5, 236 * u if mode != "free" else 180 * u), "AUTO-DIRECTOR", int(15 * u), S.AMBER,
+			HORIZONTAL_ALIGNMENT_CENTER)
+	var line := ""
+	for h in spectator.get("hints", []):
+		line += ("     " if line != "" else "") + "%s  %s" % [String(h[0]).to_upper(), String(h[1]).to_upper()]
+	if line != "":
+		S.text(_msg, font, Vector2(vs.x * 0.5, vs.y - 22 * u), line, int(15 * u), S.DIM, HORIZONTAL_ALIGNMENT_CENTER)

@@ -3,6 +3,11 @@ shader_type spatial;
 render_mode cull_disabled;
 #include "res://shaders/world/world_surface.gdshaderinc"
 
+// deformVertexes (q3_deform.gdshaderinc): banners wave, lamps swing
+void vertex() {
+	VERTEX = q3_deform(VERTEX, NORMAL, UV, (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz);
+}
+
 void fragment() {
 	// both sides take the front's light, as Quake 3's one lightmap texel does (the baked
 	// lightmap is directional: the flipped normal of a back face would read it dark)

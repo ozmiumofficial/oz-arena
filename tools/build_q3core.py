@@ -5,11 +5,14 @@ python build_q3core.py [--release] [--clean] [--jobs 4]
 1. Fetches the pinned sources into tools/q3core/thirdparty (once):
      ioq3/      ioquake3, the 64-bit-clean GPL code the extension compiles
      godot-cpp/ the C++ bindings, built against Godot 4.7's API
-     id-q3a/    id's original 1.32 release, the reference for auditing ioquake3's game-code changes
+     id-q3a/    id's original 1.32 release, the reference for auditing ioquake3's game-code changes,
+                and the source of the map editor's q3map and bspc
    then applies tools/q3core/patches/*.patch to ioq3: id's 1.32 behavior wherever ioquake3 changed
-   gameplay (q3core/AUDIT_ioq3_vs_id.md). Already-applied patches are left alone.
+   gameplay (q3core/AUDIT_ioq3_vs_id.md), and patches/id-q3a/*.patch to id-q3a (the tools' 64-bit
+   fixes and pak path). Already-applied patches are left alone.
 2. Builds bin/q3core.windows.template_debug.x86_64.dll (and template_release with --release)
-   with SCons and MSVC.
+   with SCons and MSVC, with debug symbols (the .pdb stays in bin/ for reading crash dumps), and
+   bin/tools/q3map.exe and bspc.exe (SConstruct.tools).
 3. Copies the addon into tools/godot_template/addons/q3core and godot/addons/q3core.
    The extension is reloadable, so the open editor picks up a new build (Godot loads a copy of the DLL).
 """
@@ -62,6 +65,8 @@ for name, pin in PINS.items():
     if not name.startswith("_"):
         fetch(name, pin)
 apply_patches(os.path.join(TP, "ioq3"), os.path.join(CORE, "patches"))
+# id's map tools (q3map, bspc) for the map editor: 64-bit fixes, and reading the player's paks
+apply_patches(os.path.join(TP, "id-q3a"), os.path.join(CORE, "patches", "id-q3a"))
 
 hdr = os.path.join(CORE, "src", "ioq3_commit.h")
 text = '/* written by tools/build_q3core.py */\n#define IOQ3_COMMIT "ioquake3 %s"\n' % PINS["ioq3"]["commit"][:12]
@@ -75,10 +80,16 @@ except ImportError:
 
 targets = ["template_debug"] + (["template_release"] if a.release else [])
 for t in targets:
-    cmd = [sys.executable, "-m", "SCons", "platform=windows", "target=" + t, "-j%d" % a.jobs]
+    # debug_symbols: a .pdb beside each DLL, so crash dumps (Diagnostics) resolve q3core's frames
+    cmd = [sys.executable, "-m", "SCons", "platform=windows", "target=" + t, "debug_symbols=yes", "-j%d" % a.jobs]
     if a.clean:
         cmd.append("-c")
     run(cmd, CORE)
+# q3map.exe and bspc.exe (SConstruct.tools): separate programs, so a compile can't take the game down
+cmd = [sys.executable, "-m", "SCons", "-f", "SConstruct.tools", "-j%d" % a.jobs]
+if a.clean:
+    cmd.append("-c")
+run(cmd, CORE)
 
 # The addon: the .gdextension (kept in the template) plus the built libraries.
 for dst_root in (os.path.join(HERE, "godot_template"), os.path.join(ROOT, "godot")):
@@ -86,8 +97,8 @@ for dst_root in (os.path.join(HERE, "godot_template"), os.path.join(ROOT, "godot
         continue
     dst = os.path.join(dst_root, "addons", "q3core")
     os.makedirs(os.path.join(dst, "bin"), exist_ok=True)
-    for f in glob.glob(os.path.join(CORE, "bin", "q3core.*")) + glob.glob(os.path.join(CORE, "bin", "baseq3", "qagame*")):
-        if f.endswith((".dll", ".so", ".dylib")):
+    for f in glob.glob(os.path.join(CORE, "bin", "q3core.*")) + glob.glob(os.path.join(CORE, "bin", "baseq3", "qagame*")) +             glob.glob(os.path.join(CORE, "bin", "tools", "*.exe")):
+        if f.endswith((".dll", ".so", ".dylib", ".exe")):
             rel = os.path.relpath(f, os.path.join(CORE, "bin"))
             os.makedirs(os.path.dirname(os.path.join(dst, "bin", rel)), exist_ok=True)
             target = os.path.join(dst, "bin", rel)

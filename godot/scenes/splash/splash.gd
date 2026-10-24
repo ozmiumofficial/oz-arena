@@ -25,6 +25,11 @@ var _gate: Control   ## the setup screen, while no verified Quake III Arena is k
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	if Session.replay.has("clip"):
+		# a clip render (Q3ClipExport): every frame is a movie frame, so no disclaimer, loads or fades
+		set_process(false)
+		_leave.call_deferred()
+		return
 	theme = Q3Theme.build(Settings.get_value("accessibility/high_contrast"))
 	_build()
 	# stream the menu and its first subject in while the disclaimer is up
@@ -161,6 +166,13 @@ func _input(ev: InputEvent) -> void:
 
 
 func _leave() -> void:
+	if Session.replay.has("clip"):
+		# no one is there to answer the setup screen: without a verified game the render just ends
+		if Q3Ownership.verified() == "" or Q3.missing_packs.size():
+			get_tree().quit(1)
+		else:
+			Session.after_splash()
+		return
 	if _leaving or _gate or Q3.missing_packs.size():
 		return
 	if Q3Ownership.verified() == "":

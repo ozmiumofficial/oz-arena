@@ -16,7 +16,10 @@ Started 2026-10-22 with Keel as the test case (`case_study_keel/`), then extende
 | World materials | 1,346 surfaces + 23 liquids + 46 fog + 49 skies | Every world shader and every `textures/` image. Tiling-aware matte PBR from the painted textures (1,234 texture jobs). One Godot material per Quake 3 shader with its glow layers, tcMod motion, rgbGen waves, animMap flipbooks, surface lights and cut-outs. Liquids with refraction, flow and vertex waves; six-sided skies as panoramas, cloud skies as layers; stochastic tiling on 310 isotropic textures. `world_materials.json` maps each shader name to its resource (for the map importer) |
 | Entity catalog | 35 items + 48 map entity classes | bg_misc.c item list (names, amounts, models, icons, sounds), g_items.c respawn times, g_spawn.c entity classes |
 | Godot project | `godot/` | All of the above plus character, pickup and effect scripts, an import step that applies id Tech 3 draw modes, a showcase scene and a 39-check self-test |
-| Main menu | `godot/scenes`, `webui/` | Splash with the fan-project disclaimer, then a live React menu over a Skyrim-style 3D showcase. Quake 3's menu sounds, fonts and banner logo, settings, match setup, the single-player campaign, cinematics. Gameplay and Map editor are stubs |
+| Main menu | `godot/scenes`, `webui/` | Splash with the fan-project disclaimer, then a live React menu over a Skyrim-style 3D showcase. Quake 3's menu sounds, fonts and banner logo, settings, match setup, the single-player campaign, cinematics |
+| Map editor | `godot/scenes/map_editor`, `godot/scripts/map`, q3core `Q3MapGeo` | Opened from the menu: plane-based brushes in double precision (C++ kernel), box create, select/move/rotate/mirror/duplicate/group, CSG subtract, hide/lock/isolate, the face tool (push/pull, texture shift/scale/rotate, eyedropper, texture lock), the vertex tool (corner drags, chamfers and wedges, vertex snap), curved patches (bevel, curve, cylinder, arch), undo, OZMIUM's keymap with an F1 sheet and rebinding, save/open. Then materials and the inspector, entities, lights and prefabs, compile and play-test (id's q3map and bspc), BSP and Radiant .map import, .map export (brushDef, Valve 220), view filters, the Objects and History tabs, recent maps with thumbnails, and Publish to Create Match. Done in phases E0-E8 of [MAP_EDITOR_PLAN.md](MAP_EDITOR_PLAN.md) |
+| Replays | `godot/scripts/replay`, q3core `Q3Replay` (`engine/q3_replay.c`) | Every match recorded on the server (every entity and every player's playerState at 40 Hz, msg.c delta + Huffman, about 0.9 MB a minute for 8 players) and played back in the Gameplay scene through `Q3Feed`: a Godot-drawn viewer (speeds, frame step, frag skip, a marked timeline, first person / chase / orbit / free cameras, name tags, outlines), the menu's Replays page, clip export with Movie Maker, and Quake 3's own .dm_68 demos. Also id's spectator mode with a chase cam and an auto-director, the death cam, and the scoreboard's per-weapon stats. Done in phases R1-R9 of [REPLAY_PLAN.md](REPLAY_PLAN.md) |
+| Diagnostics | `godot/scripts/diagnostics`, q3core `install_crash_dumps` | Crash and freeze reports written at the next launch (Godot's backtrace, q3core's minidump and note, every error with its script backtrace, breadcrumbs, machine and state), a menu notice after a crash, and the F10 overlay |
 | Game code (q3core) | GDExtension + game module | id's GPL game code (ioquake3) running inside Godot as `addons/q3core`: the server, the game module (movement, weapons, items, rules) and botlib with the original `.aas` bot navigation and bot personalities, reading the player's own paks. A local player joins as an in-process client with cgame's prediction. Godot does all presentation (G3 onward, [GAMEPLAY_PLAN.md](GAMEPLAY_PLAN.md)) |
 | Maps | 35 | Every map in the player's paks (q3dm0-19, q3tourney1-6 + 6_ctf, q3ctf1-4, the four pro maps): drawn surfaces with the remastered world materials, patches re-tessellated smooth, relit with q3map's own light model (point lights, surface lights, the sky's sun) and baked with Godot's LightmapGI; collision for ragdolls and gibs, fog volumes, entity markers. The game itself still plays the .bsp through q3core |
 | Friends and parties | `online/`, `scripts/online/` | Online services on Cloudflare's free tier: no accounts (a key pair per PC, friend codes like `ABCD-1234`), friend requests, presence (menu, match, map editor), parties of up to 8 with leader, invites, kick, promote and party chat. In the menu: the top bar's status pill, party strip and friends button, and a Friends panel (F, or Y on a controller). Live on Cloudflare at `arena-online.fragnet.workers.dev` ([online/README.md](online/README.md)) |
@@ -63,9 +66,9 @@ Open `godot/project.godot` in Godot 4.7 (the first open imports about 1,000 asse
 | Splash | `scenes/splash/` | The fan-project disclaimer: models derived from id Software's and belonging to id Software, and Quake III Arena on Steam required. Loads the menu meanwhile |
 | Showcase | `scenes/main_menu/showcase_stage.gd` | One library model in a smoky void: volumetric fog, embers, a soft key light, a rim in your accent color, depth of field. The camera drifts between four framings. The subject changes every 15-25 s through the smoke (`weapons/change.wav`). Characters idle and gesture, hold a weapon at `tag_weapon`, and sometimes wear a powerup shell |
 | Logo | `scenes/main_menu/main_menu.gd` | banner5, drawn the way q3_ui's main menu draws it (60 degree strip, 5 degree sway). Flat "REMASTERED" under it in the banner font. One constant to swap once the project has its own name |
-| Menu | `webui/` (Next.js 16, React 19, Tailwind 4, Motion) | Runs live in a transparent godot_wry web view (WebView2) over the 3D. The tree is in `webui/lib/menu.json`: Single Player, Play (Continue, Quick Play, Ranked, Server Browser, Create Match, Offline vs Bots, Training), Map Editor, Profile, Workshop, Cinematics, Settings, Credits, Quit |
+| Menu | `webui/` (Next.js 16, React 19, Tailwind 4, Motion) | Runs live in a transparent godot_wry web view (WebView2) over the 3D. The tree is in `webui/lib/menu.json`: Single Player, Play (Continue, Quick Play, Ranked, Server Browser, Create Match, Offline vs Bots, Training), Map Editor, Profile, Cinematics, Settings, Credits, Quit |
 | Bridge | `scenes/main_menu/menu_bridge.gd` | The JSON messages between the page and Godot. Godot keeps settings, match setups, campaign progress, sounds, bind capture and the controller |
-| Settings | `scripts/settings/` (autoload `Settings`) | 131 settings in 10 tabs from one schema: live application, `user://settings.cfg`, search, reset (R), config/crosshair codes, a 15 s display check. Settings for systems that don't exist yet are stored and marked "not yet wired" |
+| Settings | `scripts/settings/` (autoload `Settings`) | 132 settings in 10 tabs from one schema: live application, `user://settings.cfg`, search, reset (R), config/crosshair codes, a 15 s display check. Settings for systems that don't exist yet are stored and marked "not yet wired" |
 | Match setup | `scripts/match/`, `game/modes/*.tres`, `game/modifiers.json` | `Q3MatchSetup` (mode, map, rules, modifiers, bots, server type), 7 game modes as data, validation, `Session.start_match()` -> Gameplay |
 | Campaign | `scripts/match/campaign.gd` | Quake 3's single player: Training, 6 tiers of 4, the Final. Tiers unlock in order; 5 skills; medals; progress in `user://campaign.json`. `record_result()` (for Gameplay) returns the tier movie the win unlocks |
 | Cinematics | `scripts/ui/cinematic_player.gd`, `scenes/cinematic/` | 4:3 full-screen playback; any key skips. The intro plays on the first launch (Settings > Gameplay > Intro movie); tier movies unlock with the campaign |
@@ -108,6 +111,7 @@ Scripts to build on (all in `godot/scripts`):
 | `q3.gd` (autoload `Q3`) | Catalogs (`Q3.characters`, `Q3.props`, `Q3.entities`, `Q3.map_entities`, `Q3.fx`), `Q3.UNIT` (1/32 m), `Q3.q3_to_godot()`, loaders |
 | `q3_character.gd` (`Q3Character`) | `load_model()`, `play_legs()`, `play_torso()`, `clips()`, `attach()` (a prop at `tag_weapon`/`tag_head`), `ragdoll()`, `stand_up()`; AnimationTree with a torso bone filter |
 | `q3_pickup.gd` (`Q3Pickup`) | An item by classname, spinning and bobbing like cg_ents.c |
+| `diagnostics/diagnostics.gd` (autoload `Diagnostics`, first) | Crash and freeze reports in `user://diagnostics/reports` (with q3core's minidumps), every error caught with its backtrace, breadcrumbs (`note()`), `set_context()`, `expect_stall()`, the F10 overlay |
 | `session.gd` (autoload `Session`) | Scene flow (splash, menu, Gameplay, Map editor, cinematics), the current match setup, modes, maps, bots, campaign, cinematic unlocks |
 | `settings/settings.gd` (autoload `Settings`) | Every setting: values, live application, InputMap binds, `user://settings.cfg` |
 | `ui/q3_fonts.gd`, `ui/q3_theme.gd` | Quake 3's fonts (signed-distance prop font, glow, banner) and the native UI theme (splash, stubs) |
@@ -128,8 +132,25 @@ godot --path godot res://tests/weapon_fx.tscn -- out=C:/temp/wfx [move=1 pitch=8
 godot --path godot res://tests/pause_menu.tscn   # pause menu, crosshair editor live, resume (6 checks)
 godot --headless --path godot res://tests/campaign_flow.tscn   # a campaign arena start to finish (7 checks)
 godot --headless --path godot res://tests/chat_test.tscn   # chat and color codes: T/Y, EF_TALK, G_Say round trip, Escape, held Enter (19 checks)
+godot --headless --path godot res://tests/settings_wiring_test.tscn   # every setting drives something: item timers, announcer, gun fov, toggle crouch, accel, skins, effects (29 checks)
 godot --path godot res://tests/chat_capture.tscn -- out=C:/temp/chat window=1600x900   # the chat open with a preview, and the talk balloon
 godot --headless --path godot res://tests/check_scripts.tscn   # every script parses (what the editor's Errors panel would list)
+godot --headless --path godot res://tests/map_geo_test.tscn   # map editor geometry: kernel, document, files, mesher (25 checks)
+godot --headless --path godot res://tests/map_editor_smoke.tscn   # the Map editor scene driven like the mouse and keys, imports, exports, filters, Objects and History tabs, recent maps, OZMIUM's remaining checks (96 checks)
+godot --headless --path godot res://tests/map_compile_test.tscn   # .map export, q3map bsp/vis/light, bspc, the .bsp read back, q3core plays it with a bot, q3dm17 imported and recompiled, Publish (13 checks)
+godot --headless --path godot res://tests/map_import_test.tscn    # every map in the paks imported from its .bsp: every drawn surface aligned, .map round trip (37 checks, ~150 s; -- maps=q3dm17 report=<path> debug=1)
+godot --headless --path godot res://tests/map_format_test.tscn    # .map import/export: brushDef and Valve 220 round trips, each Radiant form, a broken file (10 checks)
+godot --headless --path godot res://tests/map_editor_input.tscn  # the editor driven only by input events: keys, mouse, text focus, camera, dialogs (46 checks)
+godot --path godot res://tests/map_editor_perf.tscn               # windowed: q3dm12 in the editor, import/save/open/nudge/undo times and frame times (6 checks; -- map= report=)
+godot --headless --path godot res://tests/map_playtest_test.tscn   # F5 into Gameplay with the editor's map and bots, F6 back with the undo history
+godot --path godot res://tests/capture.tscn -- scene=res://tests/map_editor_shot.tscn out=C:/temp/ed count=1 window=1920x1080 [sheet=1 dialog=1 diag=1 e2=vertex|face e3=1 e4=1|lights|prefab]
+godot --headless --path godot res://tests/replay_test.tscn   # a recorded match against the live server, frame by frame; seeks, the library, playback (-- seconds=600 compare=0: the size run)
+godot --headless --path godot res://tests/spectator_test.tscn   # id's spectator mode: join, follow, cycle, chase cam, scoreboard, auto-director, Join/Spectate
+godot --headless --path godot res://tests/death_cam_test.tscn   # the death cam: the body, the killer's card, id's respawn timing (windowed with -- out= for shots)
+godot --headless --path godot res://tests/demo_test.tscn   # id's demos/four.dm_68 (from your pak8) parsed and played
+godot --path godot res://tests/clip_test.tscn   # clip export: a 3 s range rendered by Movie Maker, the AVI checked
+godot --path godot res://tests/replay_capture.tscn -- out=C:/temp/replay   # the replay viewer: first person, chase, the player list, orbit
+godot --headless --path godot res://tests/diagnostics_test.tscn   # real crashes and a freeze in child processes, and their reports (8 checks, ~40 s)
 godot --path godot res://tests/ragdoll_test.tscn -- out=C:/temp/rag [seq=sarge] [burn=1]
 godot --path godot res://tests/scoreboard_test.tscn -- out=C:/temp/board
 godot --path godot res://tests/capture.tscn -- out=C:/temp/shot frames=220 count=1 view=fx fire=rail
@@ -196,7 +217,7 @@ Q3Remaster/
 | `make_fx.py` | Python | Effect textures (flipbooks, decals, shells) + fx.json from cgame values |
 | `make_entities.py` | Python | Entity catalog |
 | `q3shader.py` | module | Full shader-script parser: stages, blend modes, tcMods, rgbGen waves, animMap, surfaceparms, sky/fog/light directives |
-| `build_world.py` | Python | Every world shader + `textures/` image -> material list and PBR jobs (tile, glow, sky), groups (metal, stone, light, organic, liquid) |
+| `build_world.py` | Python | Every world shader + `textures/` image -> material list and PBR jobs (tile, glow, additive base layers, sky), groups (metal, stone, light, organic, liquid) |
 | `make_godot_world.py` | Python | Godot materials, skies (six-sided -> panorama via tr_sky.c's face table), fog, `world_materials.json` |
 | `make_godot_project.py` | Python | Template + library -> `godot/` (copies only what changed) |
 | `make_ui.py` | Python | Menu sounds, Quake 3's fonts (signed-distance atlas, glow, banner, and a traced TTF for the web), maps and bots from the arena/bot scripts, level shots, crosshairs, icons, campaign medals |
@@ -205,7 +226,7 @@ Q3Remaster/
 | `make_cinematics.py` | Python + ffmpeg | `video/*.roq` -> 1280x960 Ogg Theora, thumbnails, `cinematics.json` |
 | `build_webui.py` | Python + npm | Web menu assets, Godot's state dump for browser dev, `npm run build`, copy into `godot/webui` |
 | `build_maps.py` + `q3bsp.py` | Python | BSP reader (lumps, patch tessellation, brush hulls, entities) -> `work/_maps/<map>/<map>.glb` + `.json` (entities, lights in q3map's model, sky, fog, collision, report); `--godot` copies them into `godot/library/maps/` |
-| `build_q3core.py` | Python + SCons + MSVC | Fetches the pinned ioquake3, godot-cpp and id sources (`q3core/thirdparty.json`), builds the q3core GDExtension (`q3core/`), copies the addon into the template and `godot/` |
+| `build_q3core.py` | Python + SCons + MSVC | Fetches the pinned ioquake3, godot-cpp and id sources (`q3core/thirdparty.json`), builds the q3core GDExtension (`q3core/`) and id's q3map and bspc for the map editor (`q3core/SConstruct.tools`, patched by `q3core/patches/id-q3a/`), copies the addon into the template and `godot/` |
 | `make_prop_shaders.py` | Python | Quake 3's multi-stage shaders for pickups and effect materials (chrome, energy, scrolling electricity) -> `prop_shaders.json` + stage textures; applied by the import script with `shaders/q3_stages*.gdshader` |
 | `rig_extras.py` | Python | rig.json extras: `tag_weapon`/`tag_head` rest frames and material draw modes (also run by `build_rigged.py`) |
 | `capture_window.ps1` | PowerShell | Screenshot of a window including its web view (PrintWindow) |
@@ -222,8 +243,8 @@ Q3Remaster/
 
 - **Classification:** materials are classified by color alone, so red cloth (Sarge's camo) can read as glowing heat. Per-model ID maps fix this.
 - **Shape and joints:** subdivision rounds the 1999 shapes without adding detail, and the 1999 topology bends stiffly at the joints.
-- **Not yet in the tools:** .map (Radiant source) import and export, and the map editor. Planned in PLAN.md. Map entities that move or trigger are drawn by Gameplay from the game's entity states (G3).
-- **Menu:** Gameplay and Map editor are placeholder scenes, so campaign wins, medals and tier movies after a match aren't recorded yet. Steam features (matchmaking, server list, Workshop, achievements) wait on GodotSteam.
+- **Maps in the tools:** the map editor imports any stock map from its .bsp and Radiant .map files, and exports .map (MAP_EDITOR_PLAN.md E6). Map entities that move or trigger are drawn by Gameplay from the game's entity states (G3).
+- **Menu:** Quick Play, the Server Browser's list and the Ranked queues wait on online matches (MULTIPLAYER_PLAN.md). There is no Workshop yet (planned as M9 in MULTIPLAYER_PLAN.md, on Cloudflare R2) and no Steam.
 - **Web view:** godot_wry's transparency doesn't work on Linux yet, and packaging `webui/` into an exported build is untested.
 - **Unshipped shaders:** 369 world shaders (336 surfaces, 33 skies) reference images id cut from the retail paks. They're listed in the catalog as `unshipped`.
 - **Water preview:** water is transparent and refractive, so in the material browser, with nothing behind it, it reads dark.

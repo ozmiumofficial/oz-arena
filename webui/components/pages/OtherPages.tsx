@@ -1,35 +1,9 @@
 "use client";
-// Workshop (waits on Steam), Credits (the remaster plus id Software's credits from ui_credits.c).
+// Credits: the remaster plus id Software's credits from ui_credits.c.
 import { useRef, useState } from "react";
 import { motion } from "motion/react";
-import { toast } from "@/lib/store";
-import type { Value } from "@/lib/types";
-import PagePanel, { EmptyState } from "../PagePanel";
-import TextField from "../controls/TextField";
-import Spinner from "../controls/Spinner";
-import Button from "../controls/Button";
+import PagePanel from "../PagePanel";
 import type { PageProps } from "./index";
-
-export function WorkshopPage({ back }: PageProps) {
-  const [kind, setKind] = useState<Value>("maps");
-  return (
-    <PagePanel title="Workshop" subtitle="Maps, models, skins and mods from Steam Workshop: browse, subscribe, and they download in the background." back={back}>
-      <div className="flex h-full flex-col gap-5 px-10 py-6">
-        <div className="grid grid-cols-[16rem_1fr] gap-4">
-          <Spinner wide value={kind} options={[["maps", "Maps"], ["models", "Models"], ["skins", "Skins"], ["mods", "Mods"]]} onChange={setKind} />
-          <TextField wide value="" onCommit={() => undefined} placeholder="Search the Workshop" />
-        </div>
-        <div className="grid flex-1 place-items-center">
-          <EmptyState title="The Workshop needs Steam" text="Subscriptions, ratings and downloads go through Steam Workshop (GodotSteam), which isn't wired yet. Maps you build in the editor will publish from here." />
-        </div>
-        <div data-row className="flex gap-3">
-          <Button small refuse="Needs Steam, which isn't wired yet." onRefuse={(w) => toast(w, "warn")}>Browse</Button>
-          <Button small refuse="Needs Steam, which isn't wired yet." onRefuse={(w) => toast(w, "warn")}>Subscribed</Button>
-        </div>
-      </div>
-    </PagePanel>
-  );
-}
 
 const CREDITS: [string, string[]][] = [
   ["Q3Remaster", ["Ozmium: direction, tools and remaster","Built with Godot Engine (MIT), Blender, godot_wry (MIT), Next.js, React and Motion"]],

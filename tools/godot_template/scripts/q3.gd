@@ -20,6 +20,11 @@ var _rigs: Dictionary = {}
 ## must be under 2 GiB (tools/export_game.py writes them with tests/pack_textures.tscn).
 const TEXTURE_PACKS := 2
 var missing_packs: PackedStringArray = []
+## Game time in ms: every frame's delta added up, so Engine.time_scale and --fixed-fps (Movie
+## Maker, the trailer captures) hold. Time.get_ticks_msec() is wall time: in a recording that
+## renders slower than it plays, pickups spun and portal cameras swung far too fast. Anything
+## Quake 3 times by cg.time reads this.
+var game_ms := 0.0
 
 
 func _init() -> void:
@@ -93,3 +98,7 @@ func fx_texture(name: String) -> Texture2D:
 
 func fx_frames(name: String) -> int:
 	return int(fx_textures.get(name, {}).get("frames", 1))
+
+
+func _process(delta: float) -> void:
+	game_ms += delta * 1000.0

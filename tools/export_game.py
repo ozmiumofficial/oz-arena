@@ -7,6 +7,8 @@ python export_game.py [--out ../build/windows] [--godot <godot exe>] [--release 
   <out>/Q3Remaster.pck          scripts, scenes, the remastered library, the web menu (godot/export_presets.cfg)
   <out>/*.dll                   the GDExtensions (q3core, godot_wry), placed by the export
   <out>/q3core/baseq3/qagamex86_64.dll   id's game module, which the engine loads from disk (Q3Host.bin_path)
+  <out>/q3core/tools/q3map.exe, bspc.exe   id's map compiler and bot-area compiler, which the map
+                                editor runs for play-tests (Q3MapCompiler.tool_path)
   <out>/webui_assets.pck        the web menu's images, sounds and fonts as plain files (Q3WebLayer mounts it)
   <out>/textures-1.pck, -2.pck  the world textures, left out of Q3Remaster.pck so every file is under
                                 GitHub's 2 GiB release limit (Q3._init mounts them)
@@ -51,6 +53,12 @@ os.makedirs(dst, exist_ok=True)
 for f in os.listdir(game):
     if f.endswith(".dll"):
         shutil.copy2(os.path.join(game, f), os.path.join(dst, f))
+tools = os.path.join(project, "addons", "q3core", "bin", "tools")
+os.makedirs(os.path.join(a.out, "q3core", "tools"), exist_ok=True)
+for f in ("q3map.exe", "bspc.exe"):
+    if not os.path.isfile(os.path.join(tools, f)):
+        sys.exit("export_game: %s is missing (python tools/build_q3core.py builds it)" % os.path.join(tools, f))
+    shutil.copy2(os.path.join(tools, f), os.path.join(a.out, "q3core", "tools", f))
 for i in range(1, 9):
     src = os.path.join(a.paks, "pak%d.pk3" % i)
     if not os.path.isfile(src):

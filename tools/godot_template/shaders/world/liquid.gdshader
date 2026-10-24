@@ -18,6 +18,7 @@ uniform float wave_freq = 0.0;       // Hz
 uniform float wave_spread = 0.0;     // per meter
 uniform float roughness = 0.35;      // water stays a little glossy so it reads as water
 uniform float refraction = 0.03;
+uniform vec4 tint : source_color = vec4(1.0);   // the map editor's per-face tint (white: none)
 
 void vertex() {
 	if (wave_amp > 0.0) {
@@ -30,7 +31,7 @@ void fragment() {
 	vec2 t = vec2(turb.y * sin(TIME * turb.w * TAU + UV.y * 3.0), turb.y * cos(TIME * turb.w * TAU + UV.x * 3.0));
 	vec2 uv1 = UV + scroll * TIME + t;
 	vec2 uv2 = UV * 0.7 - scroll.yx * TIME * 0.8 - t;
-	vec3 c = mix(texture(albedo_tex, uv1).rgb, texture(albedo_tex, uv2).rgb, 0.5);
+	vec3 c = mix(texture(albedo_tex, uv1).rgb, texture(albedo_tex, uv2).rgb, 0.5) * tint.rgb;
 	vec3 n = normalize(texture(normal_tex, uv1).rgb * 2.0 - 1.0 + texture(normal_tex, uv2).rgb * 2.0 - 1.0) * 0.5 + 0.5;
 	NORMAL_MAP = n;
 	ROUGHNESS = roughness;

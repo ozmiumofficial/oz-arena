@@ -8,8 +8,9 @@ import CreateMatchPage, { OfflineBotsPage } from "./CreateMatchPage";
 import { QuickPlayPage, ServerBrowserPage, TrainingPage } from "./PlayPages";
 import RankedPage from "./RankedPage";
 import LeaderboardPage from "./LeaderboardPage";
+import ReplaysPage from "./ReplaysPage";
 import ProfilePage from "./ProfilePage";
-import { CreditsPage, WorkshopPage } from "./OtherPages";
+import { CreditsPage } from "./OtherPages";
 
 export interface PageProps {
   back: () => void;
@@ -26,9 +27,9 @@ export const PAGES: Record<string, ComponentType<PageProps>> = {
   quick_play: QuickPlayPage,
   ranked: RankedPage,
   leaderboards: LeaderboardPage,
+  replays: ReplaysPage,
   server_browser: ServerBrowserPage,
   training: TrainingPage,
   profile: ProfilePage,
-  workshop: WorkshopPage,
   credits: CreditsPage,
 };

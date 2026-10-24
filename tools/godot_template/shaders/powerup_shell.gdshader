@@ -2,7 +2,7 @@ shader_type spatial;
 // Powerup shells (quad, battle suit, regen, invisibility) as an overlay material.
 // id Tech 3 draws them with deformVertexes wave (push along the normal), tcGen environment
 // (UV from the view-space normal), tcMod rotate + scroll, blendfunc add.
-render_mode unshaded, blend_add, cull_back, depth_draw_never, shadows_disabled;
+render_mode unshaded, blend_add, cull_back, depth_draw_never, shadows_disabled, fog_disabled;
 
 uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform float grow = 0.09;          // meters (3 units for bodies, 0.5 for weapons)

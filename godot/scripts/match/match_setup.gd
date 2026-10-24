@@ -14,6 +14,7 @@ const SKILLS := ["I Can Win", "Bring It On", "Hurt Me Plenty", "Hardcore", "Nigh
 @export var bots: Array = []              ## {name, skill 1-5, team "" / "red" / "blue"}
 @export var server_type := "offline"
 @export var player: Dictionary = {}       ## name, model, skin, team_color (from the Profile)
+@export var spectate := false             ## join as a spectator (id's team spectator): watch the bots
 @export var source := "menu"              ## menu, editor (play-test), dedicated, training, launch (map= argument)
 @export var training := ""                ## training preset id, when source == "training"
 
@@ -53,7 +54,9 @@ func validate() -> PackedStringArray:
 	if m == null:
 		return PackedStringArray(["Unknown game mode '%s'." % mode])
 	var info := Session.map_info(map)
-	if info.is_empty():
+	if source == "editor":
+		pass   # a play-test runs the map the editor just compiled, which isn't in arenas.txt
+	elif info.is_empty():
 		errs.append("Unknown map '%s'." % map)
 	elif not m.accepts_map(info) and not source in ["training", "campaign", "launch"]:   # these may use any arena (q3dm0)
 		errs.append("%s isn't a %s map." % [info.get("name", map), m.display_name])
@@ -72,12 +75,14 @@ func validate() -> PackedStringArray:
 			errs.append("Bot %s: skill must be 1-5." % b.get("name", "?"))
 		if m.team_based and not ["red", "blue"].has(String(b.get("team", ""))):
 			errs.append("Bot %s needs a team (red or blue)." % b.get("name", "?"))
+	if spectate and bots.size() < (2 if mode == "duel" else 1):
+		errs.append("Spectating needs bots to watch (a duel needs two).")
 	return errs
 
 
 func to_dict() -> Dictionary:
 	return {"mode": mode, "map": map, "rules": rules, "modifiers": modifiers, "bots": bots,
-		"server_type": server_type, "player": player, "source": source, "training": training}
+		"server_type": server_type, "player": player, "source": source, "training": training, "spectate": spectate}
 
 
 static func from_dict(d: Dictionary) -> Q3MatchSetup:
@@ -91,6 +96,7 @@ static func from_dict(d: Dictionary) -> Q3MatchSetup:
 	s.player = d.get("player", {})
 	s.source = String(d.get("source", s.source))
 	s.training = String(d.get("training", ""))
+	s.spectate = bool(d.get("spectate", false))
 	return s
 
 

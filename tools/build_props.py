@@ -125,6 +125,7 @@ for f in files:
     levels = 0 if all_add else (2 if len(F) <= 1200 else 1)  # effect quads stay flat
     crease = meshops.dihedral_creases(wpos[0].astype(np.float64), F, a.crease)
     S, Fh, UVh, Mh, Ch = meshops.subdivide(wpos.shape[1], F, FUV, Fmat, crease, levels)
+    UVh = meshops.subdivide_uv(wpos[0].astype(np.float64), F, FUV, S, Fh, UVh, levels)
     for ti_, tri in zip(Fmat, Ftri):
         t = textures[materials[ti_]["texture"]]
         mk = masks.setdefault(t["stem"], np.zeros((t["h"] * t["up"], t["w"] * t["up"]), np.uint8))

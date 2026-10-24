@@ -2,17 +2,24 @@ class_name Q3ResultsScreen
 extends CanvasLayer
 ## End of match: VICTORY / DEFEAT, the standings as player cards, the medals you earned (Quake 3's
 ## award icons), then the XP you gained line by line and the XP bar filling, with a flash for every
-## level crossed. Continue (Enter, Space, click) emits `finished`.
-##   show_results({won, title, subtitle, standings: [{name, score, card, level, local}],
-##                 medals: {impressive: n, ...}, xp: Q3Profile.award_match() result})
+## level crossed. Continue (Enter, Space, click) emits `finished`. In the middle, the podium (Q3PodiumStage) with
+## the top three on it; if you're one of them, your card's three taunts are buttons under it (and keys 1-3), which
+## emit `taunt_requested` for Gameplay to send, and every podium taunt comes back through play_taunt().
+##   show_results({won, title, subtitle, standings: [{client, name, score, card, level, local, model, skin, bot}],
+##                 medals: {impressive: n, ...}, xp: Q3Profile.award_match() result, me: local client})
 
 signal finished
 signal watch_requested   ## Watch replay (R): the match's replay, now
+signal taunt_requested(id: String)   ## a podium taunt button (or 1-3): Gameplay sends "ptaunt <id>"
 
 ## Quake 3's medal art (library/ui/hud: menu/medals at 2x)
 const MEDALS := {"impressive": "medal_impressive", "excellent": "medal_excellent", "gauntlet": "medal_gauntlet",
 	"defend": "medal_defend", "assist": "medal_assist", "captures": "medal_capture", "accuracy": "medal_accuracy",
 	"frags": "medal_frags", "perfect": "medal_victory"}
+
+## the right column (medals and XP), as fractions of the screen's width
+const RIGHT := 0.715
+const RIGHT_W := 0.26
 
 var _root: Control
 var _bar: ColorRect
@@ -26,6 +33,9 @@ var _replay := ""                 ## the match's replay file, "" if it wasn't re
 var _saved := false
 var _watch_button: Button
 var _save_button: Button
+var _podium: Q3PodiumStage
+var _taunts: Array = []          ## the local player's three taunt ids, when they're on the podium
+var _taunt_wait := 0.0
 
 
 func _init() -> void:
@@ -36,11 +46,33 @@ func show_results(r: Dictionary) -> void:
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_root)
+	# the map shows through: the camera is at its intermission spot (Quake 3 moves everyone there), under a light
+	# tint, with darker panels behind the standings and the XP so they stay readable
 	var bg := ColorRect.new()
 	bg.color = Color(0.02, 0.015, 0.015, 0.0)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(bg)
-	create_tween().tween_property(bg, "color:a", 0.86, 0.6)
+	create_tween().tween_property(bg, "color:a", 0.3, 0.6)
+	var view0 := _root.get_viewport_rect().size
+	for side in [[0.0, 0.36, false], [0.64, 0.36, true]]:   # [x, width, fades toward the left]
+		var g := Gradient.new()
+		g.set_color(0, Color(0.02, 0.015, 0.015, 0.0 if side[2] else 0.7))
+		g.set_color(1, Color(0.02, 0.015, 0.015, 0.7 if side[2] else 0.0))
+		g.add_point(0.75 if not side[2] else 0.25, Color(0.02, 0.015, 0.015, 0.6))
+		var tex := GradientTexture2D.new()
+		tex.gradient = g
+		tex.width = 256
+		tex.height = 4
+		var panel := TextureRect.new()
+		panel.texture = tex
+		panel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		panel.stretch_mode = TextureRect.STRETCH_SCALE
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.position = Vector2(view0.x * side[0], 0.0)
+		panel.size = Vector2(view0.x * side[1], view0.y)
+		panel.modulate.a = 0.0
+		_root.add_child(panel)
+		create_tween().tween_property(panel, "modulate:a", 1.0, 0.6)
 
 	var view := _root.get_viewport_rect().size
 	var won: bool = r.get("won", false)
@@ -69,7 +101,7 @@ func show_results(r: Dictionary) -> void:
 	# standings: one card per player, sliding in one after another
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", int(view.y * 0.01))
-	col.position = Vector2(view.x * 0.06, view.y * 0.25)
+	col.position = Vector2(view.x * 0.03, view.y * 0.25)
 	_root.add_child(col)
 	var i := 0
 	for s in r.get("standings", []):
@@ -80,11 +112,11 @@ func show_results(r: Dictionary) -> void:
 		place.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(place)
 		var card := Q3CardView.new().setup(s.get("card", {}), String(s.get("name", "")), int(s.get("level", 1)))
-		card.custom_minimum_size = Vector2(view.x * 0.32, view.y * 0.075)
+		card.custom_minimum_size = Vector2(view.x * 0.19, view.y * 0.075)
 		card.highlight = s.get("local", false)
 		row.add_child(card)
 		var score := _label(str(s.get("score", 0)), int(view.y * 0.045), Color.WHITE)
-		score.custom_minimum_size = Vector2(view.y * 0.1, 0)
+		score.custom_minimum_size = Vector2(view.y * 0.07, 0)
 		score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		score.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(score)
@@ -95,10 +127,12 @@ func show_results(r: Dictionary) -> void:
 		t.tween_property(row, "modulate:a", 1.0, 0.25)
 		i += 1
 
+	_build_podium(r, view)
+
 	# medals
 	var medals := HBoxContainer.new()
 	medals.add_theme_constant_override("separation", 18)
-	medals.position = Vector2(view.x * 0.56, view.y * 0.25)
+	medals.position = Vector2(RIGHT * view.x, view.y * 0.25)
 	_root.add_child(medals)
 	var m_i := 0
 	for k in r.get("medals", {}):
@@ -125,20 +159,20 @@ func show_results(r: Dictionary) -> void:
 
 	# XP: the lines, then the bar
 	_xp_lines = VBoxContainer.new()
-	_xp_lines.position = Vector2(view.x * 0.56, view.y * 0.42)
-	_xp_lines.custom_minimum_size = Vector2(view.x * 0.36, 0)
+	_xp_lines.position = Vector2(RIGHT * view.x, view.y * 0.42)
+	_xp_lines.custom_minimum_size = Vector2(view.x * RIGHT_W, 0)
 	_root.add_child(_xp_lines)
 	var bar_y := view.y * 0.78
 	_level_label = _label("", int(view.y * 0.05), Color.WHITE)
-	_level_label.position = Vector2(view.x * 0.56, bar_y - view.y * 0.075)
+	_level_label.position = Vector2(RIGHT * view.x, bar_y - view.y * 0.075)
 	_root.add_child(_level_label)
 	_xp_label = _label("", int(view.y * 0.022), Color(1, 1, 1, 0.75))
-	_xp_label.position = Vector2(view.x * 0.56, bar_y + view.y * 0.035)
+	_xp_label.position = Vector2(RIGHT * view.x, bar_y + view.y * 0.035)
 	_root.add_child(_xp_label)
 	_bar_back = ColorRect.new()
 	_bar_back.color = Color(1, 1, 1, 0.08)
-	_bar_back.position = Vector2(view.x * 0.56, bar_y)
-	_bar_back.size = Vector2(view.x * 0.36, view.y * 0.025)
+	_bar_back.position = Vector2(RIGHT * view.x, bar_y)
+	_bar_back.size = Vector2(view.x * RIGHT_W, view.y * 0.025)
 	_root.add_child(_bar_back)
 	_bar = ColorRect.new()
 	_bar.color = Color(1.0, 0.7, 0.15)
@@ -154,6 +188,56 @@ func show_results(r: Dictionary) -> void:
 	if _replay != "":
 		_replay_buttons(view)
 	_animate_xp(r.get("xp", {}))
+
+
+## The podium (the top three of the standings) in the middle, and the local player's taunts under it if they're on it.
+func _build_podium(r: Dictionary, view: Vector2) -> void:
+	var rows: Array = (r.get("standings", []) as Array).slice(0, 3)
+	if rows.is_empty():
+		return
+	_podium = Q3PodiumStage.new()
+	_podium.position = Vector2(view.x * 0.305, view.y * 0.2)
+	_podium.size = Vector2(view.x * 0.39, view.y * 0.6)
+	_podium.modulate.a = 0.0
+	_root.add_child(_podium)
+	_podium.setup(rows)
+	create_tween().tween_property(_podium, "modulate:a", 1.0, 0.6).set_delay(0.3)
+	var me := int(r.get("me", -1))
+	if not _podium.has_player(me):
+		return
+	var card := Q3Profile.card()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", int(view.y * 0.02))
+	_root.add_child(row)
+	for i in 3:
+		var id := String(card.get(["taunt", "taunt2", "taunt3"][i], ""))
+		var part := Q3Cards.part("taunts", id)
+		if part.is_empty():
+			continue
+		_taunts.append(id)
+		var b := _button("%d  %s" % [_taunts.size(), String(part.get("name", id)).to_upper()], view)
+		var n := _taunts.size() - 1
+		b.pressed.connect(func(): _taunt(n))
+		row.add_child(b)
+	row.position = Vector2((view.x - row.get_combined_minimum_size().x) * 0.5, view.y * 0.805)
+
+
+## Taunt n (0-2) of the local player's three: Gameplay sends it, and it comes back for everyone (play_taunt).
+func _taunt(n: int) -> void:
+	if n >= _taunts.size() or _taunt_wait > 0.0:
+		return
+	_taunt_wait = 1.5   # the server takes one every 1.5 s
+	taunt_requested.emit(String(_taunts[n]))
+
+
+## A podium taunt from anyone (the "ptaunt <client> <id>" server command).
+func play_taunt(client: int, id: String) -> void:
+	if _podium:
+		_podium.play_taunt(client, id)
+
+
+func _process(delta: float) -> void:
+	_taunt_wait = maxf(_taunt_wait - delta, 0.0)
 
 
 ## The match's replay (Gameplay > Record replays): watch it now, or keep it for good (a favorite,
@@ -283,6 +367,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _done or _root == null:
 		return
 	var key := event as InputEventKey
+	if key and key.pressed and not key.echo and key.keycode >= KEY_1 and key.keycode <= KEY_3 and not _taunts.is_empty():
+		_taunt(key.keycode - KEY_1)
+		return
 	if _replay != "" and key and key.pressed and not key.echo:
 		if key.keycode == KEY_R:
 			_watch()

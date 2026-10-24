@@ -13,7 +13,7 @@ extends RefCounted
 const PATH := "res://library/cards/cards.json"
 ## card slot -> part list
 const SLOTS := {"banner": "banners", "emblem": "emblems", "frame": "frames", "title": "titles",
-	"accent": "accents", "taunt": "taunts", "rail": "rails"}
+	"accent": "accents", "taunt": "taunts", "taunt2": "taunts", "taunt3": "taunts", "rail": "rails"}   # taunt..taunt3: the podium's three
 const SHOWCASE := 3   ## stats and badges on a card
 
 static var _cat: Dictionary = {}

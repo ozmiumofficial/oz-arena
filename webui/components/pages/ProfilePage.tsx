@@ -100,7 +100,7 @@ export default function ProfilePage({ back }: PageProps) {
 
 type EditSlot = CardSlot | "stats" | "badges";
 const EDIT_SLOTS: [EditSlot, string][] = [
-  ["banner", "Banner"], ["emblem", "Emblem"], ["frame", "Frame"], ["title", "Title"], ["accent", "Accent"], ["rail", "Rail"], ["taunt", "Taunt"], ["stats", "Stats"], ["badges", "Badges"],
+  ["banner", "Banner"], ["emblem", "Emblem"], ["frame", "Frame"], ["title", "Title"], ["accent", "Accent"], ["rail", "Rail"], ["taunt", "Taunt 1"], ["taunt2", "Taunt 2"], ["taunt3", "Taunt 3"], ["stats", "Stats"], ["badges", "Badges"],
 ];
 const SLOT_TIPS: Record<EditSlot, string> = {
   banner: "Wide art across the top of your card. Arena banners come from winning there, characters from beating them in the campaign.",
@@ -109,7 +109,9 @@ const SLOT_TIPS: Record<EditSlot, string> = {
   title: "The line under your name.",
   accent: "Your card's trim, glow and XP bar. Quake 3's seven colors are free.",
   rail: "Your rail trail's color in matches. Forced rail colors and competitive settings override it for whoever turns them on.",
-  taunt: "The voice line when your card appears on the duel versus screen. Selecting one plays it.",
+  taunt: "Your first podium taunt: on the results screen you taunt from the podium with any of your three, and everyone in the match sees and hears it. Taunt 1 is also the voice line on the duel versus screen. Selecting one plays it.",
+  taunt2: "Your second podium taunt. Selecting one plays it.",
+  taunt3: "Your third podium taunt. Selecting one plays it.",
   stats: "Three career stats shown on your card, in the order you pick them.",
   badges: "Up to three achievement medals shown on your card.",
 };

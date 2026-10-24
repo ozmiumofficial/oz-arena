@@ -136,6 +136,26 @@ func _check_prediction(ql: bool) -> void:
 		_fails.append("prediction: BFG weaponTime %s, want %d" % [pred.get("weaponTime", "none"), want])
 	else:
 		_notes.append("prediction: BFG weaponTime %d" % want)
+	_check_auto_hop(ql, int(ps["commandTime"]))
+
+
+## Quake Live's pmove_AutoHop (patch 0008): holding jump for 1.5 s hops again on every landing; id 1.32 jumps once
+## and waits for a release.
+func _check_auto_hop(ql: bool, start: int) -> void:
+	var cmds: Array = []
+	var takeoffs := 0
+	var was_up := false
+	for i in 188:
+		cmds.append({"serverTime": start + 8 * (i + 1), "up": 127})
+		var vz := float(Vector3(Q3Server.predict(_game.me, cmds).get("velocity", Vector3.ZERO)).z)
+		var up := vz > 200.0
+		if up and not was_up:
+			takeoffs += 1
+		was_up = up
+	if (ql and takeoffs < 3) or (not ql and takeoffs != 1):
+		_fails.append("auto hop: %d jumps holding jump for 1.5 s, want %s" % [takeoffs, "3 or more" if ql else "1"])
+	else:
+		_notes.append("auto hop: %d jumps holding jump for 1.5 s" % takeoffs)
 
 
 func _judge(ql: bool) -> void:

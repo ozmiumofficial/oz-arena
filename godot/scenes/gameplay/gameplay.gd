@@ -786,7 +786,11 @@ func _turn(d: Vector2) -> void:
 		d *= cam.fov / 75.0 * float(Settings.get_value("mouse/zoom_sensitivity"))
 	var inv := -1.0 if Settings.get_value("mouse/invert") else 1.0
 	_view.y -= d.x
-	_view.x = clampf(_view.x + d.y * inv, -89.0, 89.0)
+	# No limit here: the server limits the real view (PM_UpdateViewAngles, ±88°) through delta_angles, which a
+	# respawn or teleporter resets to cancel the pitch you had. Clamping these angles to ±89 cut the range by that
+	# much: look 60° down through a teleporter and you could only look 29° down after it. Like CL_CreateCmd, only a
+	# step of more than 90° in one frame is cut, and the angle wraps as ANGLE2SHORT would.
+	_view.x = wrapf(_view.x + clampf(d.y * inv, -90.0, 90.0), -180.0, 180.0)
 
 
 ## The first controller's sticks (Controls > Stick deadzone, Stick look speed, Stick layout): the
@@ -1247,6 +1251,7 @@ func standings() -> Array:
 		var model := String(info.get("model", "sarge")).get_slice("/", 0).to_lower()
 		var bot := info.has("skill")
 		var row := {"client": cl, "name": name, "plain": plain, "score": int(ps["persistant"][E.PERS_SCORE]), "model": model,
+			"skin": String(info.get("model", "sarge")).get_slice("/", 1).to_lower() if String(info.get("model", "")).contains("/") else "default",
 			"skill": int(float(info.get("skill", "0"))),
 			"frags": maxi(int(ps["persistant"][E.PERS_SCORE]), 0), "deaths": int(ps["persistant"][E.PERS_KILLED]),
 			"ping": int(ps["ping"]), "team": int(ps["persistant"][E.PERS_TEAM]), "bot": bot, "local": cl == me,
@@ -1373,7 +1378,8 @@ func _end_match(ps: Dictionary) -> void:
 	_results.show_results({"won": won, "title": "VICTORY" if won else ("DRAW" if draw else "DEFEAT"),
 		"subtitle": "%s  -  %s" % [_match_title(), team_line] if team_line != "" \
 			else "%s  -  %s of %d" % [_match_title(), ordinal[place] if place < 3 else "%dth" % (place + 1), rows.size()],
-		"standings": rows, "medals": medals if not perfect else medals.merged({"perfect": 1}), "xp": xp, "replay": replay_path})
+		"standings": rows, "medals": medals if not perfect else medals.merged({"perfect": 1}), "xp": xp, "replay": replay_path, "me": me})
+	_results.taunt_requested.connect(_send_taunt)
 	_results.watch_requested.connect(func():
 		_stop_server()
 		Session.watch_replay(replay_path, 0, ""))
@@ -1430,11 +1436,23 @@ func _respawn(ps: Dictionary) -> void:
 		_map_restarted = false
 
 
+## The results screen's podium taunt: to the server, which plays it on everyone's podium ("ptaunt").
+func _send_taunt(id: String) -> void:
+	if net_feed:
+		Q3Net.command("ptaunt " + id)
+	elif Q3Server.running():
+		Q3Server.client_command(me, "ptaunt " + id)
+
+
 func _server_command(c: String) -> void:
 	# cgame tokenizes: the server sends "map_restart\n", so the newline must go before matching
 	c = c.strip_edges()
 	var cmd := c.get_slice(" ", 0)
 	var args := c.split(" ", false)
+	if cmd == "ptaunt" and args.size() >= 3:   # a podium taunt (patch 0009), from anyone on the podium
+		if _results:
+			_results.play_taunt(int(args[1]), String(args[2]))
+		return
 	if cmd == "dmg" and args.size() >= 3:
 		hud.hit_damage += int(args[2])   # Audio > Hit sound: Pitch by damage
 		client.damage(int(args[1]), int(args[2]))
@@ -1834,7 +1852,7 @@ func _process_replay(delta: float) -> void:
 	hud.lagometer(delta * 1000.0, 0)
 	_board_t -= delta
 	var pm := int(ps.get("pm_type", 0))
-	var show_board := (Input.is_action_pressed("q3_scores") and not _rendering_clip()) or pm == E.PM_INTERMISSION
+	var show_board := ((Input.is_action_pressed("q3_scores") and not _rendering_clip()) or pm == E.PM_INTERMISSION) and _results == null
 	if viewer:
 		show_board = show_board and not viewer.picking
 	scoreboard.visible = show_board
@@ -2255,7 +2273,8 @@ func _end_as_spectator(rows: Array) -> void:
 	_results = Q3ResultsScreen.new()
 	add_child(_results)
 	_results.show_results({"won": false, "title": "MATCH OVER", "subtitle": "%s  -  %s" % [_match_title(), line],
-		"standings": rows, "medals": {}, "xp": {"before": total, "after": total, "lines": []}, "replay": replay_path})
+		"standings": rows, "medals": {}, "xp": {"before": total, "after": total, "lines": []}, "replay": replay_path, "me": me})
+	_results.taunt_requested.connect(_send_taunt)
 	_results.watch_requested.connect(func():
 		_stop_server()
 		Session.watch_replay(replay_path, 0, ""))

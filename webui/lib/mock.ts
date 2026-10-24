@@ -150,7 +150,7 @@ export function handle(m: Msg) {
       if (!p || !state?.cards) break;
       const slot = (m.slot ?? m.kind) as string;
       const value = (m.id ?? m.ids) as string | string[];
-      const kinds: Record<string, PartKind> = { banner: "banners", emblem: "emblems", frame: "frames", title: "titles", accent: "accents", rail: "rails", taunt: "taunts" };
+      const kinds: Record<string, PartKind> = { banner: "banners", emblem: "emblems", frame: "frames", title: "titles", accent: "accents", rail: "rails", taunt: "taunts", taunt2: "taunts", taunt3: "taunts" };
       const done = new Set(p.achievements.filter((a) => a.done).map((a) => a.id));
       const ok = Array.isArray(value)
         ? value.length <= 3 && (slot === "stats" ? value.every((v) => p.stats[v] !== undefined) : value.every((v) => done.has(v)))

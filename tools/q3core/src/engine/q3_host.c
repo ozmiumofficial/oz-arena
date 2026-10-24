@@ -471,6 +471,7 @@ int q3_local_predict(int client, const q3_usercmd *cmds, int count, q3_player_st
 		msec = Cvar_VariableIntegerValue("pmove_msec");
 		pm.pmove_msec = msec < 8 ? 8 : (msec > 33 ? 33 : msec);
 		BG_QLRules(&rules, pm_cvar);
+		bg_autoHop = rules.ql && atoi(pm_cvar("pmove_AutoHop")[0] ? pm_cvar("pmove_AutoHop") : "1");   /* patch 0008 */
 		pm.rules = &rules;
 		to_usercmd(&cmds[count > 0 ? count - 1 : 0], &latest);
 		for (i = 0; i < count; i++) {   /* CG_PredictPlayerState's loop */

@@ -131,7 +131,7 @@ export interface InitPayload {
 }
 
 /** Card slots holding one part, and the catalog list each draws from (Q3Cards.SLOTS). */
-export const CARD_SLOTS = { banner: "banners", emblem: "emblems", frame: "frames", title: "titles", accent: "accents", rail: "rails", taunt: "taunts" } as const;
+export const CARD_SLOTS = { banner: "banners", emblem: "emblems", frame: "frames", title: "titles", accent: "accents", rail: "rails", taunt: "taunts", taunt2: "taunts", taunt3: "taunts" } as const;
 export type CardSlot = keyof typeof CARD_SLOTS;
 export type PartKind = (typeof CARD_SLOTS)[CardSlot];
 
@@ -174,6 +174,8 @@ export interface CardData {
   accent: string;
   rail: string;
   taunt: string;
+  taunt2?: string;
+  taunt3?: string;
   stats: string[];
   badges: string[];
 }

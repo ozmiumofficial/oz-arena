@@ -1,0 +1,57 @@
+diff --git a/code/game/g_cmds.c b/code/game/g_cmds.c
+index 125b6cc..679fe07 100644
+--- a/code/game/g_cmds.c
++++ b/code/game/g_cmds.c
+@@ -1713,6 +1713,40 @@ void Cmd_Stats_f( gentity_t *ent ) {
+ ClientCommand
+ =================
+ */
++/*
++=================
++Cmd_PodiumTaunt_f
++
++q3core: "ptaunt <taunt id>": the results screen's podium taunt, sent to every client as "ptaunt <client> <id>"
++for its podium to play (the gesture and that taunt's sound). One every 1.5 s a player; ids are the card
++catalog's (taunt_sarge), so only lowercase letters, digits and underscores pass.
++=================
++*/
++static void Cmd_PodiumTaunt_f( gentity_t *ent ) {
++	static int	last[MAX_CLIENTS];
++	char		id[32];
++	int			i, num;
++
++	num = ent - g_entities;
++	if ( num < 0 || num >= MAX_CLIENTS || trap_Argc() != 2 ) {
++		return;
++	}
++	trap_Argv( 1, id, sizeof( id ) );
++	if ( !id[0] ) {
++		return;
++	}
++	for ( i = 0 ; id[i] ; i++ ) {
++		if ( !( ( id[i] >= 'a' && id[i] <= 'z' ) || ( id[i] >= '0' && id[i] <= '9' ) || id[i] == '_' ) ) {
++			return;
++		}
++	}
++	if ( last[num] && level.time - last[num] < 1500 && level.time >= last[num] ) {
++		return;
++	}
++	last[num] = level.time;
++	trap_SendServerCommand( -1, va( "ptaunt %d %s", num, id ) );
++}
++
+ void ClientCommand( int clientNum ) {
+ 	gentity_t *ent;
+ 	char	cmd[MAX_TOKEN_CHARS];
+@@ -1745,6 +1779,11 @@ void ClientCommand( int clientNum ) {
+ 		Cmd_Tell_f ( ent );
+ 		return;
+ 	}
++	// q3core: a podium taunt, also during the intermission (where every other command is chat)
++	if (Q_stricmp (cmd, "ptaunt") == 0) {
++		Cmd_PodiumTaunt_f (ent);
++		return;
++	}
+ #ifdef MISSIONPACK
+ 	if (Q_stricmp (cmd, "vsay") == 0) {
+ 		Cmd_Voice_f (ent, SAY_ALL, qfalse, qfalse);

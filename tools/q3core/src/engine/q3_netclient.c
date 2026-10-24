@@ -1107,6 +1107,7 @@ int q3_nc_predict(q3_player_state *out, float *error, int *error_time, int *tele
 		msec = atoi(nc_cvar("pmove_msec"));
 		pm.pmove_msec = msec < 8 ? 8 : (msec > 33 ? 33 : msec);
 		BG_QLRules(&nc_rules, nc_cvar);
+		bg_autoHop = nc_rules.ql && atoi(nc_cvar("pmove_AutoHop")[0] ? nc_cvar("pmove_AutoHop") : "1");   /* patch 0008 */
 		pm.rules = &nc_rules;
 
 		if (ps.pm_flags & PMF_FOLLOW) {   /* watching someone else: the snapshot's state is theirs, not ours to predict */

@@ -302,6 +302,8 @@ func capture_input(ev: InputEvent) -> bool:
 			return true
 		if code == KEY_BACKSPACE or code == KEY_DELETE:
 			Settings.set_bind(capture_key, capture_slot, "")
+			# the page closes its "press a key" veil on this; without it the veil stayed up until its timeout
+			post.emit({"type": "bind_captured", "key": capture_key, "slot": capture_slot, "value": "", "label": Settings.bind_label("")})
 			_end_capture(false)
 			return true
 	var s := Settings.event_to_string(ev)

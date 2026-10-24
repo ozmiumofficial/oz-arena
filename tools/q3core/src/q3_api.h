@@ -69,8 +69,53 @@ int q3_client_state(int client);
 int q3_trace(const float *start, const float *end, const float *mins, const float *maxs,
 		int pass_entity, int content_mask, q3_trace_result *out);
 int q3_point_contents(const float *point, int pass_entity);
+/* Every item on the map with its respawn state (item timers). Returns how many were written. */
+int q3_host_items(q3_item_state *out, int max);
 /* Single player's results ("postgame" from g_arenas.c, its arguments), once; "" if none since. */
 const char *q3_host_postgame(void);
+/* Every entity a snapshot could carry this frame (linked, not SVF_NOCLIENT), as the recorder sees them. */
+int q3_host_entities(q3_entity_state *out, int max);
+
+/* ---- replays (engine/q3_replay.c): the whole match recorded on the server ---- */
+
+/* Starts recording at `hz` frames a second (40) after every server frame; stops by itself on
+ * another map. 1 on success. */
+int q3_record_start(int hz);
+void q3_record_stop(void);
+int q3_record_active(void);
+int q3_record_frames(void);
+/* The frame blocks recorded since the last q3_record_consume(). */
+const unsigned char *q3_record_data(int *len);
+void q3_record_consume(void);
+
+/* A recording's frame blocks (the file between its JSON header and trailer), decoded for playback. */
+typedef struct q3_replay q3_replay;
+q3_replay *q3_replay_open(const unsigned char *data, int len, char *err, int errlen);
+void q3_replay_close(q3_replay *r);
+int q3_replay_frames(q3_replay *r);
+int q3_replay_frame_time(q3_replay *r, int i);
+int q3_replay_frame_is_key(q3_replay *r, int i);
+int q3_replay_current(q3_replay *r);
+int q3_replay_seek(q3_replay *r, int frame);
+int q3_replay_has_next(q3_replay *r);
+/* which 0: the frame shown, 1: the one after it. client -1: a free camera. */
+int q3_replay_entities(q3_replay *r, int which, int client, q3_entity_state *out, int max);
+int q3_replay_player_state(q3_replay *r, int which, int client, q3_player_state *out);
+const char *q3_replay_configstring(q3_replay *r, int index);
+int q3_replay_command_count(q3_replay *r);
+const char *q3_replay_command(q3_replay *r, int i, int *frame, unsigned *mask);
+int q3_replay_event_count(q3_replay *r);
+int q3_replay_get_event(q3_replay *r, int i, q3_replay_event *out);
+/* The map's collision model without a server (0 ok), for traces in playback. */
+int q3_replay_load_map(const char *name, int *checksum);
+void q3_replay_unload_map(void);
+int q3_replay_trace(q3_replay *r, const float *start, const float *end, const float *mins, const float *maxs,
+		int pass_entity, int content_mask, q3_trace_result *out);
+int q3_replay_point_contents(q3_replay *r, const float *point, int pass_entity);
+/* A Quake 3 demo (.dm_68, protocol 68) as replay frame blocks for q3_replay_open: 1 on success
+ * (free *out with q3_demo_free). max_frames > 0 stops after that many frames. */
+int q3_demo_convert(const unsigned char *data, int len, int max_frames, unsigned char **out, int *out_len, char *err, int errlen);
+void q3_demo_free(unsigned char *data);
 
 #ifdef __cplusplus
 }

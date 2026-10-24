@@ -1,0 +1,89 @@
+diff --git a/code/bspc/bspc.c b/code/bspc/bspc.c
+index e19076e..0007bcf 100644
+--- a/code/bspc/bspc.c
++++ b/code/bspc/bspc.c
+@@ -514,7 +514,10 @@ int main (int argc, char **argv)
+ 
+ 	start_time = I_FloatTime();
+ 
+-	Log_Open("bspc.log");		//open a log file
++	// q3core: the log goes where BSPC_LOG says (the map editor's compile folder), not into whatever
++	// folder the game runs from; without it, no log
++	if (getenv("BSPC_LOG"))
++		Log_Open(getenv("BSPC_LOG"));		//open a log file
+ 	Log_Print("BSPC version "BSPC_VERSION", %s %s\n", __DATE__, __TIME__);
+ 
+ 	DefaultCfg();
+diff --git a/code/bspc/l_cmd.c b/code/bspc/l_cmd.c
+index e35104b..5b93866 100644
+--- a/code/bspc/l_cmd.c
++++ b/code/bspc/l_cmd.c
+@@ -71,7 +71,7 @@ char	*ex_argv[MAX_EX_ARGC];
+ void ExpandWildcards (int *argc, char ***argv)
+ {
+ 	struct _finddata_t fileinfo;
+-	int		handle;
++	intptr_t	handle;		// q3core: was int, which cut the 64-bit _findfirst handle
+ 	int		i;
+ 	char	filename[1024];
+ 	char	filebase[1024];
+diff --git a/common/cmdlib.c b/common/cmdlib.c
+index 375b19b..31e263b 100644
+--- a/common/cmdlib.c
++++ b/common/cmdlib.c
+@@ -63,7 +63,7 @@ char	*ex_argv[MAX_EX_ARGC];
+ void ExpandWildcards( int *argc, char ***argv )
+ {
+ 	struct _finddata_t fileinfo;
+-	int		handle;
++	intptr_t	handle;		// q3core: was int, which cut the 64-bit _findfirst handle
+ 	int		i;
+ 	char	filename[1024];
+ 	char	filebase[1024];
+diff --git a/libs/pak/pakstuff.cpp b/libs/pak/pakstuff.cpp
+index 011c27d..169a22f 100644
+--- a/libs/pak/pakstuff.cpp
++++ b/libs/pak/pakstuff.cpp
+@@ -61,7 +61,8 @@ struct PK3FileInfo
+ 
+ #define __PATHSEPERATOR   '/'
+ 
+-#define LOG_PAKFAIL
++// q3core: off; it opened c:\paklog.txt on every run
++//#define LOG_PAKFAIL
+ 
+ #ifdef LOG_PAKFAIL
+ 
+@@ -1182,6 +1183,10 @@ void WINAPI InitPakFile(const char * pBasePath, const char *pName)
+   pakopen = false;
+ 	paktextures = NULL;
+   strcpy(g_strBasePath, pBasePath);
++  // q3core: the paks can live elsewhere than the .map's game folder (the player's own baseq3); file
++  // names are still looked up relative to pBasePath
++  if (getenv("Q3MAP_PAKPATH"))
++    pBasePath = getenv("Q3MAP_PAKPATH");
+   if (pName == NULL)
+   {
+     char cWork[WORK_LEN];
+@@ -1190,7 +1195,7 @@ void WINAPI InitPakFile(const char * pBasePath, const char *pName)
+   	strPath += "*.pk3";
+   	bool bGo = true;
+ 	  struct _finddata_t fileinfo;
+-  	int handle = _findfirst (strPath, &fileinfo);
++  	intptr_t handle = _findfirst (strPath, &fileinfo);	// q3core: was int, which cut the 64-bit handle
+ 	  if (handle != -1)
+   	{
+ 	  	do
+diff --git a/q3map/light_trace.c b/q3map/light_trace.c
+index 2c78575..4692c9a 100644
+--- a/q3map/light_trace.c
++++ b/q3map/light_trace.c
+@@ -623,7 +623,7 @@ Loads the node structure out of a .bsp file to be used for light occlusion
+ void InitTrace( void ) {
+ 	// 32 byte align the structs
+ 	tnodes = malloc( (MAX_TNODES+1) * sizeof(tnode_t));
+-	tnodes = (tnode_t *)(((int)tnodes + 31)&~31);
++	tnodes = (tnode_t *)(((size_t)tnodes + 31)&~(size_t)31);	// q3core: was (int), which cut 64-bit pointers
+ 	tnode_p = tnodes;
+ 
+ 	MakeTnode (0);

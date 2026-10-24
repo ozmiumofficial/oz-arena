@@ -19,6 +19,9 @@ public:
 	static PackedStringArray item_classnames();
 	static int item_quantity(const String &classname);
 	static bool error_recovers();
+	static bool install_crash_dumps(const String &dir, const String &tag);
+	static void crash_test(int kind);
+	static double process_start_time(int pid);
 };
 
 } // namespace godot

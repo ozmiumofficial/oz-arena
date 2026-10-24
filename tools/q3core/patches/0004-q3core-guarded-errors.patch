@@ -1,0 +1,23 @@
+diff --git a/code/qcommon/common.c b/code/qcommon/common.c
+index d97312c..1409e5c 100644
+--- a/code/qcommon/common.c
++++ b/code/qcommon/common.c
+@@ -47,6 +47,7 @@ int		com_argc;
+ char	*com_argv[MAX_NUM_ARGVS+1];
+ 
+ jmp_buf abortframe;		// an ERR_DROP occurred, exit the entire frame
++extern int q3_fatal_armed;	// q3core addition: a q3core guard is waiting (engine/q3_host.c)
+ 
+ 
+ FILE *debuglogfile;
+@@ -286,7 +287,9 @@ void QDECL Com_Error( int code, const char *fmt, ... ) {
+ 	// if we are getting a solid stream of ERR_DROP, do an ERR_FATAL
+ 	currentTime = Sys_Milliseconds();
+ 	if ( currentTime - lastErrorTime < 100 ) {
+-		if ( ++errorCount > 3 ) {
++		// q3core addition: an error a q3core guard catches (a damaged replay or demo, read one after
++		// another for the replay list) goes back to Godot; it never turns fatal
++		if ( ++errorCount > 3 && !q3_fatal_armed ) {
+ 			code = ERR_FATAL;
+ 		}
+ 	} else {

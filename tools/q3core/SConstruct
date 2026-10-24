@@ -13,6 +13,11 @@ id's C files only talk to Godot through src/q3_api.h (plain C), so q_shared.h ne
 import os
 
 env = SConscript("thirdparty/godot-cpp/SConstruct", {"api_version": "4.7"})
+if env.get("is_msvc", False) and env.get("debug_symbols", False):
+    # Our objects carry their own debug info (/Z7) instead of godot-cpp's shared vc140.pdb (/Zi),
+    # which the linker failed to match to them (LNK4099, an error under /WX). The DLL's .pdb is
+    # what crash dumps need (Diagnostics).
+    env["CCFLAGS"] = [f for f in env["CCFLAGS"] if str(f) not in ("/Zi", "/FS")] + ["/Z7"]
 
 CODE = "thirdparty/ioq3/code/"
 ZLIB = CODE + "thirdparty/zlib-1.3.1/"
@@ -77,10 +82,10 @@ engine_objs += [eenv.SharedObject("build/q3core/" + os.path.basename(str(s))[:-2
 
 env.Append(CPPPATH=["src/"])
 if env["platform"] == "windows":
-    env.Append(LIBS=["ws2_32", "winmm", "psapi", "advapi32", "shell32", "user32", "ole32"])
+    env.Append(LIBS=["ws2_32", "winmm", "psapi", "advapi32", "shell32", "user32", "ole32", "dbghelp"])
 library = env.SharedLibrary(
     "bin/q3core{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
-    source=Glob("src/*.cpp") + Glob("src/map/*.cpp") + engine_objs,
+    source=Glob("src/*.cpp") + Glob("src/map/*.cpp") + Glob("src/crash/*.cpp") + engine_objs,
 )
 
 genv = c_env(["QAGAME"])

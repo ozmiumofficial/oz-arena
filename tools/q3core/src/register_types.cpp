@@ -9,6 +9,7 @@
 #include "q3_api.h"
 #include "q3core.h"
 #include "q3mapgeo.h"
+#include "q3replay.h"
 #include "q3server.h"
 
 using namespace godot;
@@ -31,6 +32,7 @@ static void initialize_q3core(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(Q3Core);
 	GDREGISTER_CLASS(Q3Server);
 	GDREGISTER_CLASS(Q3MapGeo);
+	GDREGISTER_CLASS(Q3Replay);
 }
 
 static void uninitialize_q3core(ModuleInitializationLevel p_level) {

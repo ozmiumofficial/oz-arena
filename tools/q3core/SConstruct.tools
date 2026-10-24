@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+"""id's map compiler and bot-area compiler from the pinned 1.32 source (thirdparty/id-q3a, GPL),
+as two console programs for the map editor (MAP_EDITOR_PLAN.md E5). They run as separate
+processes, so a compiler's exit() or crash never takes the game down.
+  bin/tools/q3map.exe   .map -> .bsp (and -vis, -light)
+  bin/tools/bspc.exe    .bsp -> .aas (Bake bots)
+Built by tools/build_q3core.py (scons -f SConstruct.tools); patches/id-q3a/*.patch make the 1999-era
+code build and run as 64-bit Windows programs.
+"""
+import glob
+import os
+
+ID = "thirdparty/id-q3a/"
+OUT = "bin/tools/"
+OBJ = "build/tools/"
+
+env = Environment(TARGET_ARCH="x86_64")
+env.Append(CPPDEFINES=["WIN32", "_CONSOLE", "NDEBUG", "_CRT_SECURE_NO_WARNINGS", "_CRT_NONSTDC_NO_DEPRECATE"])
+env.Append(CCFLAGS=["/O2", "/MT", "/W1", "/nologo", "/Z7", "/fp:precise"])
+# id linked q3map with a 4 MB stack (q3map.vcproj StackReserveSize); 64-bit frames are bigger
+env.Append(LINKFLAGS=["/nologo", "/DEBUG", "/SUBSYSTEM:CONSOLE", "/STACK:16777216"])
+env.Append(LIBS=["user32", "ws2_32", "advapi32"])
+
+
+def objs(e, sources, tag):
+    out = []
+    for s in sources:
+        base = os.path.splitext(s.replace(ID, "").replace("src/", "").replace("/", "_"))[0]
+        out.append(e.Object(OBJ + tag + "/" + base, s))
+    return out
+
+
+# q3map: the files of q3map.vcproj, minus gldraw.c (an OpenGL debug window; a stub stands in),
+# plus libs/pak (pk3 reading) and libs/jpeg6 (JPEG textures' sizes and colors)
+q3 = env.Clone()
+q3.Append(CPPPATH=[ID + "common", ID + "libs", ID + "q3map"])
+Q3MAP = [ID + "q3map/" + f for f in [
+    "brush.c", "brush_primit.c", "bsp.c", "facebsp.c", "fog.c", "glfile.c", "leakfile.c", "light.c",
+    "light_trace.c", "lightmaps.c", "lightv.c", "map.c", "mesh.c", "misc_model.c", "nodraw.c", "patch.c",
+    "portals.c", "prtfile.c", "shaders.c", "soundv.c", "surface.c", "terrain.c", "tjunction.c", "tree.c",
+    "vis.c", "visflow.c", "writebsp.c"]] + ["src/tools/gldraw_stub.c"] + [ID + "common/" + f for f in [
+    "aselib.c", "bspfile.c", "cmdlib.c", "imagelib.c", "mathlib.c", "mutex.c", "polylib.c", "scriplib.c",
+    "threads.c"]]
+LIBS = [ID + "libs/pak/pakstuff.cpp", ID + "libs/pak/unzip.cpp"] + sorted(glob.glob(ID + "libs/jpeg6/*.cpp"))
+q3.Program(OUT + "q3map", objs(q3, Q3MAP, "q3map") + objs(q3, LIBS, "q3map_libs"))
+
+# bspc: code/bspc plus the botlib files it shares (bspc.vcproj)
+bs = env.Clone()
+bs.Append(CPPDEFINES=["BSPC"])
+# l_utils.h defines _X and _Y, which today's SDK float.h uses as parameter names: include it first
+bs.Append(CCFLAGS=["/FIfloat.h"])
+bs.Append(CPPPATH=[ID + "code/bspc", ID + "code/botlib", ID + "code/game", ID + "code/qcommon"])
+BSPC = [ID + "code/bspc/" + f for f in [
+    "_files.c", "aas_areamerging.c", "aas_cfg.c", "aas_create.c", "aas_edgemelting.c", "aas_facemerging.c",
+    "aas_file.c", "aas_gsubdiv.c", "aas_map.c", "aas_prunenodes.c", "aas_store.c", "be_aas_bspc.c",
+    "brushbsp.c", "bspc.c", "csg.c", "glfile.c", "l_bsp_ent.c", "l_bsp_hl.c", "l_bsp_q1.c", "l_bsp_q2.c",
+    "l_bsp_q3.c", "l_bsp_sin.c", "l_cmd.c", "l_log.c", "l_math.c", "l_mem.c", "l_poly.c", "l_qfiles.c",
+    "l_threads.c", "l_utils.c", "leakfile.c", "map.c", "map_hl.c", "map_q1.c", "map_q2.c", "map_q3.c",
+    "map_sin.c", "nodraw.c", "portals.c", "textures.c", "tree.c"]] + [ID + "code/botlib/" + f for f in [
+    "be_aas_bspq3.c", "be_aas_cluster.c", "be_aas_move.c", "be_aas_optimize.c", "be_aas_reach.c",
+    "be_aas_sample.c", "l_libvar.c", "l_precomp.c", "l_script.c", "l_struct.c"]] + [ID + "code/qcommon/" + f for f in [
+    "cm_load.c", "cm_patch.c", "cm_test.c", "cm_trace.c", "md4.c", "unzip.c"]]
+bs.Program(OUT + "bspc", objs(bs, BSPC, "bspc"))

@@ -123,6 +123,26 @@ typedef struct {
 	int allsolid;
 } q3_trace_result;
 
+/* An item on the map as the game holds it, for item timers. */
+typedef struct {
+	int number;
+	int item;           /* es.modelindex: the bg_itemlist index */
+	float origin[3];
+	int taken;          /* picked up (or not in yet) and waiting to come back */
+	int respawn_time;   /* the level time it comes back (gentity_t nextthink), 0 if not waiting */
+} q3_item_state;
+
+/* Something a replay's timeline marks, found when it's opened. */
+#define Q3_REPLAY_OBITUARY 1     /* a: attacker, b: target, c: means of death */
+#define Q3_REPLAY_TEAM_SOUND 2   /* a: the GTS_ sound (flag taken, captured, returned) */
+#define Q3_REPLAY_MEDAL 3        /* a: client, b: the PERS_ count, c: its new value */
+typedef struct {
+	int frame;
+	int time;
+	int type;
+	int a, b, c;
+} q3_replay_event;
+
 /* One client snapshot as the server built it (clientSnapshot_t), entities copied out. */
 typedef struct {
 	int serverTime;

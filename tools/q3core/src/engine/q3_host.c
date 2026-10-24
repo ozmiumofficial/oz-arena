@@ -4,7 +4,7 @@
  * snapshots and reliable commands the server makes for it are taken straight from client_t).
  *
  * Every entry point that can reach id's code is guarded: Com_Error(ERR_DROP) longjmps to
- * abortframe (common.c), ERR_FATAL / Sys_Error to fatal_frame (q3_sys.c via q3_engine_fatal).
+ * abortframe (common.c), ERR_FATAL / Sys_Error to q3_fatal_frame (q3_sys.c via q3_engine_fatal).
  * After a fatal error the engine is stopped for good; ioquake3 can't Com_Init twice. */
 #include <setjmp.h>
 
@@ -16,10 +16,12 @@ extern jmp_buf abortframe;
 extern char com_errorMessage[];   /* common.c */
 
 static q3_print_fn print_fn;
-static int ready, dead;
-static char last_error[1024];
-static jmp_buf fatal_frame;
-static int fatal_armed;
+static int dead;
+/* the guard's state (q3_engine.h GUARD), shared with q3_replay.c */
+int q3_ready;
+char q3_last_error[1024];
+jmp_buf q3_fatal_frame;
+int q3_fatal_armed;
 
 /* Per-client state for local (human) clients. */
 #define CMD_QUEUE 1024
@@ -47,30 +49,16 @@ void q3_engine_print(const char *text, int is_error) {
 }
 
 void q3_engine_fatal(const char *message) {
-	Q_strncpyz(last_error, message, sizeof(last_error));
+	Q_strncpyz(q3_last_error, message, sizeof(q3_last_error));
 	q3_engine_print(va("fatal: %s\n", message), 1);
-	ready = 0;
+	q3_ready = 0;
 	dead = 1;
-	if (fatal_armed) {
-		fatal_armed = 0;
-		longjmp(fatal_frame, 1);
+	if (q3_fatal_armed) {
+		q3_fatal_armed = 0;
+		longjmp(q3_fatal_frame, 1);
 	}
 	abort();
 }
-
-/* Wraps engine code: returns `drop` after an ERR_DROP, `fatal` after an ERR_FATAL. */
-#define GUARD(drop, fatal) \
-	if (!ready) return (fatal); \
-	if (setjmp(fatal_frame)) { fatal_armed = 0; return (fatal); } \
-	fatal_armed = 1; \
-	if (setjmp(abortframe)) { fatal_armed = 0; Q_strncpyz(last_error, com_errorMessage, sizeof(last_error)); return (drop); }
-/* The same for void entry points. */
-#define GUARD_V() \
-	if (!ready) return; \
-	if (setjmp(fatal_frame)) { fatal_armed = 0; return; } \
-	fatal_armed = 1; \
-	if (setjmp(abortframe)) { fatal_armed = 0; Q_strncpyz(last_error, com_errorMessage, sizeof(last_error)); return; }
-#define UNGUARD() fatal_armed = 0
 
 /* g_arenas.c UpdateTournamentInfo sends single player's results as the console command
  * "postgame ..." for q3_ui's postgame menu; there is no UI module here, so the host keeps it. */
@@ -87,30 +75,30 @@ const char *q3_host_postgame(void) {
 	return out;
 }
 
-int q3_host_ready(void) { return ready; }
-const char *q3_host_error(void) { return last_error; }
+int q3_host_ready(void) { return q3_ready; }
+const char *q3_host_error(void) { return q3_last_error; }
 
 int q3_host_init(const char *command_line) {
-	if (ready || dead) {
-		Q_strncpyz(last_error, dead ? "the engine stopped after a fatal error; restart the game" : "already initialized", sizeof(last_error));
+	if (q3_ready || dead) {
+		Q_strncpyz(q3_last_error, dead ? "the engine stopped after a fatal error; restart the game" : "already initialized", sizeof(q3_last_error));
 		return 1;
 	}
-	last_error[0] = 0;
-	if (setjmp(fatal_frame)) {
-		fatal_armed = 0;
+	q3_last_error[0] = 0;
+	if (setjmp(q3_fatal_frame)) {
+		q3_fatal_armed = 0;
 		return 2;
 	}
-	fatal_armed = 1;
+	q3_fatal_armed = 1;
 	Sys_PlatformInit();
 	Com_Init((char *)command_line);   /* its own setjmp(abortframe): an ERR_DROP here is fatal */
-	fatal_armed = 0;
+	q3_fatal_armed = 0;
 	Cmd_AddCommand("postgame", Cmd_Postgame_f);
-	ready = 1;
+	q3_ready = 1;
 	return 0;
 }
 
 void q3_host_exec(const char *text) {
-	if (ready)
+	if (q3_ready)
 		Cbuf_AddText(text);
 }
 
@@ -170,18 +158,19 @@ int q3_host_frame(int msec) {
 				locals[i].snap_time = sv.time;
 			}
 		}
+		q3_record_after_frame();
 	}
 	UNGUARD();
 	return 0;
 }
 
-int q3_host_server_running(void) { return ready && com_sv_running && com_sv_running->integer; }
+int q3_host_server_running(void) { return q3_ready && com_sv_running && com_sv_running->integer; }
 int q3_host_server_time(void) { return q3_host_server_running() ? sv.time : 0; }
 
-const char *q3_host_cvar(const char *name) { return ready ? Cvar_VariableString(name) : ""; }
+const char *q3_host_cvar(const char *name) { return q3_ready ? Cvar_VariableString(name) : ""; }
 
 void q3_host_set_cvar(const char *name, const char *value) {
-	if (ready)
+	if (q3_ready)
 		Cvar_Set(name, value);
 }
 
@@ -201,7 +190,7 @@ int q3_local_connect(const char *userinfo) {
 	char info[MAX_INFO_STRING];
 
 	if (!q3_host_server_running()) {
-		Q_strncpyz(last_error, "no map running", sizeof(last_error));
+		Q_strncpyz(q3_last_error, "no map running", sizeof(q3_last_error));
 		return -1;
 	}
 	for (i = 0; i < sv_maxclients->integer; i++) {
@@ -211,7 +200,7 @@ int q3_local_connect(const char *userinfo) {
 		}
 	}
 	if (!cl) {
-		Q_strncpyz(last_error, "server is full", sizeof(last_error));
+		Q_strncpyz(q3_last_error, "server is full", sizeof(q3_last_error));
 		return -1;
 	}
 	GUARD(-1, -1);
@@ -231,7 +220,7 @@ int q3_local_connect(const char *userinfo) {
 
 	denied = VM_Call(gvm, GAME_CLIENT_CONNECT, i, qtrue, qfalse);
 	if (denied) {
-		Q_strncpyz(last_error, (char *)VM_ExplicitArgPtr(gvm, denied), sizeof(last_error));
+		Q_strncpyz(q3_last_error, (char *)VM_ExplicitArgPtr(gvm, denied), sizeof(q3_last_error));
 		Com_Memset(cl, 0, sizeof(*cl));
 		UNGUARD();
 		return -1;
@@ -377,6 +366,33 @@ int q3_trace(const float *start, const float *end, const float *mins, const floa
 	out->startsolid = tr.startsolid;
 	out->allsolid = tr.allsolid;
 	return 1;
+}
+
+/* q3_game_layout.c */
+int q3_gentity_inuse_offset(void);
+int q3_gentity_nextthink_offset(void);
+
+/* g_items.c: a taken item is SVF_NOCLIENT until RespawnItem runs at nextthink; a powerup
+ * waits EF_NODRAW for its first spawn (FinishSpawningItem). Only reads the game's memory. */
+int q3_host_items(q3_item_state *out, int max) {
+	int i, n = 0;
+	int inuse = q3_gentity_inuse_offset(), next = q3_gentity_nextthink_offset();
+	if (!q3_host_server_running() || !sv.gentities)
+		return 0;
+	for (i = MAX_CLIENTS; i < sv.num_entities && n < max; i++) {
+		sharedEntity_t *ent = SV_GentityNum(i);
+		int think;
+		if (ent->s.eType != ET_ITEM || !*(qboolean *)((byte *)ent + inuse))
+			continue;
+		think = *(int *)((byte *)ent + next);
+		out[n].number = i;
+		out[n].item = ent->s.modelindex;
+		VectorCopy(ent->s.pos.trBase, out[n].origin);
+		out[n].taken = (ent->r.svFlags & SVF_NOCLIENT) || (ent->s.eFlags & EF_NODRAW);
+		out[n].respawn_time = out[n].taken && think > sv.time ? think : 0;
+		n++;
+	}
+	return n;
 }
 
 int q3_point_contents(const float *point, int pass_entity) {

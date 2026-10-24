@@ -7,6 +7,7 @@
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
+#include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/packed_string_array.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/vector3.hpp>
@@ -46,6 +47,13 @@ public:
 			int pass_entity, int content_mask);
 	static int point_contents(const Vector3 &point, int pass_entity);
 	static String postgame();
+	static Array items();
+	static Array entities();
+	static bool record_start(int hz);
+	static void record_stop();
+	static bool recording();
+	static int record_frames();
+	static PackedByteArray record_pull();
 };
 
 } // namespace godot

@@ -5,6 +5,7 @@
 #include <godot_cpp/variant/packed_int32_array.hpp>
 
 #include "q3_api.h"
+#include "q3_dicts.h"
 
 using namespace godot;
 
@@ -35,6 +36,13 @@ void Q3Server::_bind_methods() {
 			&Q3Server::trace);
 	ClassDB::bind_static_method("Q3Server", D_METHOD("point_contents", "point", "pass_entity"), &Q3Server::point_contents);
 	ClassDB::bind_static_method("Q3Server", D_METHOD("postgame"), &Q3Server::postgame);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("items"), &Q3Server::items);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("entities"), &Q3Server::entities);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("record_start", "hz"), &Q3Server::record_start);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("record_stop"), &Q3Server::record_stop);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("recording"), &Q3Server::recording);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("record_frames"), &Q3Server::record_frames);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("record_pull"), &Q3Server::record_pull);
 }
 
 static Vector3 v3(const float *f) {
@@ -60,7 +68,7 @@ static Dictionary trajectory(const q3_trajectory &t) {
 	return d;
 }
 
-static Dictionary entity(const q3_entity_state &e) {
+Dictionary q3_entity_dict(const q3_entity_state &e) {
 	Dictionary d;
 	d["number"] = e.number;
 	d["eType"] = e.eType;
@@ -93,7 +101,7 @@ static Dictionary entity(const q3_entity_state &e) {
 	return d;
 }
 
-static Dictionary player(const q3_player_state &p) {
+Dictionary q3_player_dict(const q3_player_state &p) {
 	Dictionary d;
 	d["commandTime"] = p.commandTime;
 	d["pm_type"] = p.pm_type;
@@ -217,10 +225,10 @@ Dictionary Q3Server::snapshot(int client) {
 		return d;
 	}
 	d["serverTime"] = snap.serverTime;
-	d["ps"] = player(snap.ps);
+	d["ps"] = q3_player_dict(snap.ps);
 	Array ents;
 	for (int i = 0; i < snap.num_entities; i++) {
-		ents.push_back(entity(snap.entities[i]));
+		ents.push_back(q3_entity_dict(snap.entities[i]));
 	}
 	d["entities"] = ents;
 	return d;
@@ -250,7 +258,7 @@ Dictionary Q3Server::predict(int client, const Array &cmds) {
 	if (n == 0 || !q3_local_predict(client, buf, n, &ps)) {
 		return Dictionary();
 	}
-	return player(ps);
+	return q3_player_dict(ps);
 }
 
 PackedStringArray Q3Server::next_commands(int client) {
@@ -271,7 +279,7 @@ Dictionary Q3Server::player_state(int client) {
 	if (!q3_client_player_state(client, &ps)) {
 		return Dictionary();
 	}
-	return player(ps);
+	return q3_player_dict(ps);
 }
 
 int Q3Server::client_state(int client) {
@@ -305,8 +313,68 @@ int Q3Server::point_contents(const Vector3 &point, int pass_entity) {
 	return q3_point_contents(p, pass_entity);
 }
 
+// Every item on the map as the game holds it, for item timers: number, item (es.modelindex),
+// origin (id units), taken (waiting to come back) and respawn_time (level ms, 0 if not waiting).
+Array Q3Server::items() {
+	static q3_item_state list[Q3_MAX_GENTITIES];
+	Array out;
+	int n = q3_host_items(list, Q3_MAX_GENTITIES);
+	for (int i = 0; i < n; i++) {
+		Dictionary d;
+		d["number"] = list[i].number;
+		d["item"] = list[i].item;
+		d["origin"] = Vector3(list[i].origin[0], list[i].origin[1], list[i].origin[2]);
+		d["taken"] = list[i].taken != 0;
+		d["respawn_time"] = list[i].respawn_time;
+		out.append(d);
+	}
+	return out;
+}
+
 // Single player's results at the intermission (g_arenas.c "postgame": clients, you, accuracy,
 // impressive, excellent, gauntlet, score, perfect, then client rank score per player), read once.
 String Q3Server::postgame() {
 	return String::utf8(q3_host_postgame());
+}
+
+// Every entity a snapshot could carry this frame (linked, not SVF_NOCLIENT): what the recorder
+// writes. Tests compare it with playback.
+Array Q3Server::entities() {
+	static q3_entity_state list[Q3_MAX_GENTITIES];
+	Array out;
+	int n = q3_host_entities(list, Q3_MAX_GENTITIES);
+	for (int i = 0; i < n; i++) {
+		out.append(q3_entity_dict(list[i]));
+	}
+	return out;
+}
+
+// Records the match from the next server frame on, `hz` frames a second (engine/q3_replay.c);
+// record_pull() hands over the frame blocks written since the last pull.
+bool Q3Server::record_start(int hz) {
+	return q3_record_start(hz) != 0;
+}
+
+void Q3Server::record_stop() {
+	q3_record_stop();
+}
+
+bool Q3Server::recording() {
+	return q3_record_active() != 0;
+}
+
+int Q3Server::record_frames() {
+	return q3_record_frames();
+}
+
+PackedByteArray Q3Server::record_pull() {
+	int len = 0;
+	const unsigned char *data = q3_record_data(&len);
+	PackedByteArray out;
+	if (len > 0) {
+		out.resize(len);
+		memcpy(out.ptrw(), data, len);
+	}
+	q3_record_consume();
+	return out;
 }

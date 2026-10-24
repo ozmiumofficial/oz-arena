@@ -20,8 +20,8 @@ extends RefCounted
 ## trace from the subject, pulled in at once and eased back out as Q3ChaseCam's is, so it always
 ## sees them, and a wall pulling it in hard swings the shot round the subject (_whisker); the wide
 ## shot's lens only moves by a box sweep from where it was, and a sweep that
-## starts in solid (a mover) cuts. Timed by the match clock (server or playhead ms), never wall
-## time: it holds still while a replay is paused and follows its speed.
+## starts in solid (a mover) cuts. Timed by game time (Q3.game_ms) or a replay's playhead, never
+## wall time: it holds still while a replay is paused and follows its speed.
 ## Points are id units in, a Godot transform out.
 
 const MASK_SOLID := 1                  ## CONTENTS_SOLID
@@ -126,6 +126,10 @@ func _ask(kind: int, at: float) -> void:
 func update(feed: Q3Feed, s: Dictionary, now_ms: float) -> Transform3D:
 	var focus := _focus(s)
 	var dt := (now_ms - _last_ms) / 1000.0
+	if _last_ms >= 0.0 and dt < 0.0 and dt > -0.1:
+		# a clock stepping back a hair (server time plus a frame's leftover ms) isn't a jump
+		dt = 0.0
+		now_ms = _last_ms
 	var fresh := _last_ms < 0.0 or dt < 0.0 or dt > 0.5 or int(s["client"]) != _subject \
 		or (_last_focus != Vector3.INF and focus.distance_to(_last_focus) > TELEPORT)
 	_last_ms = now_ms

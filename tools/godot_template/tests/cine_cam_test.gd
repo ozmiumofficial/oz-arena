@@ -133,7 +133,7 @@ func _run() -> void:
 	for k in cine.reasons:
 		if k in ["timed", "ahead", "blocked", "cramped", "solid"]:
 			changes += int(cine.reasons[k])
-	var mean := cine_frames / 60.0 / maxf(changes + 1, 1)
+	var mean := seconds * float(cine_frames) / maxf(frames, 1) / maxf(changes + 1, 1)   # match time, at any frame rate
 	_check("shots last (%.1f s on average between changes the camera made itself)" % mean, mean >= 3.0)
 	_check("the auto-director moved between players (%d switches, %d players)" % [switches, subjects.size()], switches >= 3 and subjects.size() >= 2)
 	_check("the HUD says CINEMATIC CAMERA", String(_game.hud.spectator.get("mode", "")) == "cinematic")

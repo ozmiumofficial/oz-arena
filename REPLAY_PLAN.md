@@ -192,8 +192,9 @@ Order: R1 -> R2 -> R3 -> R4 -> R5 -> R6 (the death cam uses R5's chase cam), the
 - **Spectating:**
   - Use item cycles first person, chase and cinematic; while flying free, Use item starts the cinematic camera. Settings > Gameplay > Spectator camera picks the view you start with.
   - The cinematic camera turns the auto-director on and holds each pick 9 s. Gesture still turns the director off, and leaving the cinematic camera turns it back off only if the cinematic camera turned it on.
-  - When the watched player is fragged, it cuts to the killer 1.4 s later. That is before the 1.7 s respawn, whose teleport would cut a second time. Any follow of your own cancels the cut.
+  - When the watched player is fragged, it cuts to the killer 1.4 s later. That is before the respawn (1.7 s, 2.1 s under Quake Live's rules), whose teleport would cut a second time. Any follow of your own cancels the cut.
   - The HUD says FOLLOWING - CINEMATIC CAMERA and hides the crosshair, speedometer and weapon row.
+- **Clock:** live, it runs on game time (`Q3.game_ms`). The match clock (server time plus a frame's leftover milliseconds) steps back a hair between server frames, and at real frame rates the camera took each step for a jump and cut every frame (found by the Quake Live session, 2026-10-23; the `--fixed-fps` test runs never showed it).
 - **Replays:** the viewer's CINEMATIC camera (F cycles to it) on the watched player, timed by the playhead: it holds still while paused and follows the speed. An exported clip picks its own shots from the range's start.
 - **Walls and bodies:**
   - Every shot's lens is checked from the player when the shot starts, over the shot's whole path from where they stand. The check is a box trace, with no lava, slime or water at the lens and no other player within 64 units. Shots are sized down to the room first.

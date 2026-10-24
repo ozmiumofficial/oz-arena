@@ -1864,7 +1864,9 @@ func _end_as_spectator(rows: Array) -> void:
 # off) and holds each pick for CINE_HOLD; when the player it watches is fragged it stays on the
 # body, then follows the killer. It moves only the camera.
 
-const CINE_TO_KILLER := 1400.0     ## ms after the one watched is fragged to the cut to the killer (they respawn at 1.7 s)
+## ms after the one watched is fragged to the cut to the killer: before they can respawn (1.7 s in
+## id's rules, 2.1 s in Quake Live's), whose teleport would cut a second time
+const CINE_TO_KILLER := 1400.0
 var _cine: Q3CineCam
 var _cine_shown := false           ## the cinematic camera drew last frame (the HUD parts it hides come back)
 var _cine_client := -1             ## whose powerups _cine_powerups holds
@@ -1893,6 +1895,13 @@ func set_spec_view(view: String) -> void:
 	_cine_reset()
 
 
+## The cinematic camera's clock: a replay's playhead (it stops with a pause and follows the speed),
+## else game time (Q3.game_ms), which only moves forward. _now_ms() (server time plus the frame's
+## leftover ms) steps back a hair between server frames, and the camera took each step for a jump.
+func _cine_ms() -> float:
+	return replay_feed.playhead if replay_feed else Q3.game_ms
+
+
 ## Forgets the cinematic camera's shot and what it knew of the player watched (a jump, a new view).
 func _cine_reset() -> void:
 	if _cine:
@@ -1916,7 +1925,7 @@ func _cine_camera(ps: Dictionary, cl: int, body: Q3Character) -> void:
 			others.append(Vector3(es["pos"]["trBase"]) + Vector3(0, 0, 10))
 	_cine_events(ps, cl)
 	cam.global_transform = _cine.update(feed, {"client": cl, "origin": origin, "vel": ps["velocity"],
-		"yaw": float((ps["viewangles"] as Vector3).y), "dead": dead, "look": look, "others": others}, _now_ms())
+		"yaw": float((ps["viewangles"] as Vector3).y), "dead": dead, "look": look, "others": others}, _cine_ms())
 	cam.fov = _cine.fov
 
 
@@ -1931,9 +1940,9 @@ func _cine_events(ps: Dictionary, cl: int) -> void:
 		var new := bits & ~_cine_powerups
 		var flags := (1 << E.PW_REDFLAG) | (1 << E.PW_BLUEFLAG) | (1 << E.PW_NEUTRALFLAG)
 		if new & flags:
-			_cine.hint("flag", _now_ms())
+			_cine.hint("flag", _cine_ms())
 		elif new:
-			_cine.hint("powerup", _now_ms())
+			_cine.hint("powerup", _cine_ms())
 	_cine_client = cl
 	_cine_powerups = bits
 
@@ -1945,9 +1954,9 @@ func _cine_obituary(attacker: int, target: int, world: bool) -> void:
 		return
 	var watched := _cine_client
 	if attacker == watched and not world:
-		_cine.hint("frag", _now_ms())
+		_cine.hint("frag", _cine_ms())
 	elif target == watched:
-		_cine.hint("died", _now_ms())
+		_cine.hint("died", _cine_ms())
 		if not world and director and replay_feed == null:
 			_cine_follow = {"client": attacker, "at": float(feed.time()) + CINE_TO_KILLER}
 

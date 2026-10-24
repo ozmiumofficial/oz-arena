@@ -528,6 +528,8 @@ func _present_frame(delta: float) -> void:
 		_update_camera(ps)
 		_update_gun(ps)
 		_scan_crosshair(ps)
+	if _results and _results.frame_camera(cam) and _gun:   # the podium, in the map, while the results show
+		_gun.visible = false
 	client.present(ps, cam.global_position)
 	_update_hud(ps)
 	_cine_hud(cine)
@@ -1378,7 +1380,7 @@ func _end_match(ps: Dictionary) -> void:
 	_results.show_results({"won": won, "title": "VICTORY" if won else ("DRAW" if draw else "DEFEAT"),
 		"subtitle": "%s  -  %s" % [_match_title(), team_line] if team_line != "" \
 			else "%s  -  %s of %d" % [_match_title(), ordinal[place] if place < 3 else "%dth" % (place + 1), rows.size()],
-		"standings": rows, "medals": medals if not perfect else medals.merged({"perfect": 1}), "xp": xp, "replay": replay_path, "me": me})
+		"standings": rows, "medals": medals if not perfect else medals.merged({"perfect": 1}), "xp": xp, "replay": replay_path, "me": me, "camera": cam})
 	_results.taunt_requested.connect(_send_taunt)
 	_results.watch_requested.connect(func():
 		_stop_server()
@@ -2273,7 +2275,7 @@ func _end_as_spectator(rows: Array) -> void:
 	_results = Q3ResultsScreen.new()
 	add_child(_results)
 	_results.show_results({"won": false, "title": "MATCH OVER", "subtitle": "%s  -  %s" % [_match_title(), line],
-		"standings": rows, "medals": {}, "xp": {"before": total, "after": total, "lines": []}, "replay": replay_path, "me": me})
+		"standings": rows, "medals": {}, "xp": {"before": total, "after": total, "lines": []}, "replay": replay_path, "me": me, "camera": cam})
 	_results.taunt_requested.connect(_send_taunt)
 	_results.watch_requested.connect(func():
 		_stop_server()

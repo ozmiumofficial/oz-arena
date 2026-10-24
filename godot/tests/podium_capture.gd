@@ -1,6 +1,6 @@
 extends Node
 ## The results screen's podium, windowed (3D needs a GPU): sample standings with you second, a shot when it has
-## settled, then your first taunt and a shot mid-gesture.
+## settled, then the hop taunt and a shot at the top of the jump.
 ##   godot --path . res://tests/podium_capture.tscn -- out=C:/path/shots [window=1920x1080]
 ## Prints "PODIUM CAPTURE ok|FAILED".
 
@@ -31,14 +31,20 @@ func _ready() -> void:
 	add_child(results)
 	results.taunt_requested.connect(func(id): results.play_taunt(0, id))   # as the server's echo would
 	results.show_results({"won": false, "title": "DEFEAT", "subtitle": "The Longest Yard  -  2nd of 4", "standings": rows,
-		"medals": {"impressive": 2}, "xp": {"before": 1000, "after": 1400, "lines": [["Match complete", 100]]}, "me": 0})
+		"medals": {"impressive": 2}, "xp": {"before": 1000, "after": 1400, "lines": [["Match complete", 100]]}, "me": 0, "camera": cam})
+	set_process(true)
 	await get_tree().create_timer(3.0).timeout
 	await _shot("podium.png")
-	results._taunt(0)
-	await get_tree().create_timer(0.8).timeout
+	results._taunt(2)   # the hop: the shot is at the top of the jump
+	await get_tree().create_timer(0.3).timeout
 	await _shot("podium_taunt.png")
 	print("PODIUM CAPTURE ", "ok" if shots == 2 else "FAILED")
 	get_tree().quit(0 if shots == 2 else 1)
+
+
+func _process(_delta: float) -> void:
+	if results:
+		results.frame_camera(get_viewport().get_camera_3d())   # as Gameplay does every frame
 
 
 func _shot(name: String) -> void:

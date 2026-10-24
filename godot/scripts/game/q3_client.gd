@@ -786,8 +786,9 @@ func _update_player(e: Dictionary, es: Dictionary) -> void:
 	var torso := int(es["torsoAnim"]) & ~E.ANIM_TOGGLEBIT
 	ch.aim_center = legs != E.LEGS_IDLE or torso != E.TORSO_STAND
 	# CG_AddPainTwitch: each pain rolls the torso 20 degrees, alternating sides, easing back over 200 ms
+	# (Gameplay > Hit twitch, off by default: it read as a distracting jerk)
 	var since_pain := _now - float(_pain_time.get(int(es["clientNum"]), -100000.0))
-	ch.aim_roll = 0.0 if since_pain < 0.0 or since_pain >= 200.0 \
+	ch.aim_roll = 0.0 if since_pain < 0.0 or since_pain >= 200.0 or not Settings.get_value("gameplay/pain_twitch") \
 		else (20.0 if _pain_dir.get(int(es["clientNum"]), false) else -20.0) * (1.0 - since_pain / 200.0)
 	# the toggle bit restarts a clip that's played again
 	if int(es["legsAnim"]) != e["legs"]:

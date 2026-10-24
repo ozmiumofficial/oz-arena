@@ -3,10 +3,10 @@ extends CanvasLayer
 ## End of match: VICTORY / DEFEAT, the standings as player cards, the medals you earned (Quake 3's
 ## award icons), then the XP you gained line by line and the XP bar filling, with a flash for every
 ## level crossed. Continue (Enter, Space, click) emits `finished`. In the middle, the podium (Q3PodiumStage) with
-## the top three on it; if you're one of them, your card's three taunts are buttons under it (and keys 1-3), which
+## the top three on it (Q3PodiumStage, in the map in front of `camera`); if you're one of them, the podium's three taunts are buttons under it (and keys 1-3), which
 ## emit `taunt_requested` for Gameplay to send, and every podium taunt comes back through play_taunt().
 ##   show_results({won, title, subtitle, standings: [{client, name, score, card, level, local, model, skin, bot}],
-##                 medals: {impressive: n, ...}, xp: Q3Profile.award_match() result, me: local client})
+##                 medals: {impressive: n, ...}, xp: Q3Profile.award_match() result, me: local client, camera})
 
 signal finished
 signal watch_requested   ## Watch replay (R): the match's replay, now
@@ -34,7 +34,7 @@ var _saved := false
 var _watch_button: Button
 var _save_button: Button
 var _podium: Q3PodiumStage
-var _taunts: Array = []          ## the local player's three taunt ids, when they're on the podium
+var _taunts: Array = []          ## the podium taunts' ids (Q3PodiumStage.TAUNTS), when you're on the podium
 var _taunt_wait := 0.0
 
 
@@ -193,29 +193,21 @@ func show_results(r: Dictionary) -> void:
 ## The podium (the top three of the standings) in the middle, and the local player's taunts under it if they're on it.
 func _build_podium(r: Dictionary, view: Vector2) -> void:
 	var rows: Array = (r.get("standings", []) as Array).slice(0, 3)
-	if rows.is_empty():
+	var cam: Camera3D = r.get("camera")
+	if rows.is_empty() or cam == null:
 		return
-	_podium = Q3PodiumStage.new()
-	_podium.position = Vector2(view.x * 0.305, view.y * 0.2)
-	_podium.size = Vector2(view.x * 0.39, view.y * 0.6)
-	_podium.modulate.a = 0.0
-	_root.add_child(_podium)
-	_podium.setup(rows)
-	create_tween().tween_property(_podium, "modulate:a", 1.0, 0.6).set_delay(0.3)
+	_podium = Q3PodiumStage.new()   # in the map, in front of the match camera (it frames the podium from now on)
+	add_child(_podium)
+	_podium.setup(rows, cam)
 	var me := int(r.get("me", -1))
 	if not _podium.has_player(me):
 		return
-	var card := Q3Profile.card()
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", int(view.y * 0.02))
 	_root.add_child(row)
-	for i in 3:
-		var id := String(card.get(["taunt", "taunt2", "taunt3"][i], ""))
-		var part := Q3Cards.part("taunts", id)
-		if part.is_empty():
-			continue
+	for id in Q3PodiumStage.TAUNTS:
 		_taunts.append(id)
-		var b := _button("%d  %s" % [_taunts.size(), String(part.get("name", id)).to_upper()], view)
+		var b := _button("%d  %s" % [_taunts.size(), String(Q3PodiumStage.TAUNTS[id]).to_upper()], view)
 		var n := _taunts.size() - 1
 		b.pressed.connect(func(): _taunt(n))
 		row.add_child(b)
@@ -228,6 +220,14 @@ func _taunt(n: int) -> void:
 		return
 	_taunt_wait = 1.5   # the server takes one every 1.5 s
 	taunt_requested.emit(String(_taunts[n]))
+
+
+## Holds the camera on the podium while the results show (Gameplay calls it after placing the camera itself).
+func frame_camera(cam: Camera3D) -> bool:
+	if _podium == null or not is_instance_valid(_podium):
+		return false
+	_podium.frame_camera(cam)
+	return true
 
 
 ## A podium taunt from anyone (the "ptaunt <client> <id>" server command).

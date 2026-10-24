@@ -246,6 +246,7 @@ static func build() -> Array:
 	L.append(_e("gameplay/enemy_color", "Enemy color", "color", Color(0.3, 1.0, 0.2), "Bright skin color for enemies.", g))
 	L.append(_e("gameplay/team_color", "Team color", "color", Color(0.2, 0.6, 1.0), "Bright skin color for teammates.", g))
 	L.append(_e("gameplay/spawn_effect", "Spawn effects", "bool", true, "Teleport flash when players spawn and teleport.", g))
+	L.append(_e("gameplay/pain_twitch", "Hit twitch", "bool", false, "Players' upper bodies jerk to the side when they're hit, as in Quake 3 (CG_AddPainTwitch). Off keeps them steady.", g))
 	g = "Cinematics"
 	L.append(_e("gameplay/intro", "Intro movie", "enum", "first", "Quake 3's id logo and intro when the game starts.", g,
 		{"options": [["first", "First launch only"], ["always", "Every launch"], ["never", "Never"]]}))

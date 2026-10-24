@@ -501,7 +501,7 @@ def build(src):
         "levels": {"max": 100, "xp_base": 1000, "xp_step": 25,
                    "_note": "XP to go from level L to L+1 = xp_base + xp_step * (L - 1)"},
         "default_card": {"banner": "void", "emblem": "head_sarge", "frame": "plain", "title": "title_fresh_meat",
-                         "accent": "accent_red", "taunt": "taunt_sarge", "taunt2": "taunt_xaero", "taunt3": "taunt_doom", "rail": "rail_red",
+                         "accent": "accent_red", "taunt": "taunt_sarge", "rail": "rail_red",
                          "stats": ["frags", "wins", "excellents"], "badges": []},
         "card_stats": [dict(id=s[0], label=s[1], value=s[2]) for s in CARD_STATS],
         "medal_colors": {"bronze": "#e08a4f", "silver": "#c9d6df", "gold": "#ffd24a"},

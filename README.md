@@ -77,7 +77,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
   | | |
   |---|---|
   | ![Map editor: The Campgrounds](docs/screenshots/editor-campgrounds.jpg) | ![Map editor: building a room](docs/screenshots/editor-objects.jpg) |
-  | **The Campgrounds** (q3dm6) opened from the original game, ready to edit | **Building a room:** every brush, group and spawn listed, the selected block's texture in the inspector |
+  | **The Campgrounds** (q3dm6) opened from the original game, ready to edit | **Building a room:** every brush, group and spawn listed; drag the selected block's corners and face handles to reshape it |
 - **Replays:**
   - Every match is recorded automatically, all of it: every player, so you can watch from anyone's eyes, from behind them, circling them, with a free camera that flies anywhere, or through the cinematic camera.
   - A replay viewer: pause, slow motion and fast forward, frame by frame, jump to the next or last frag, a timeline marked with your frags, deaths and medals, name tags and outlines.

@@ -6,7 +6,7 @@
 
 Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the roster, now with modern characters, lighting, effects, menus and online features. It's an unofficial, non-commercial fan project. You need your own copy of Quake III Arena to play.
 
-> **Open beta: single player only.** The [open beta for Windows](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) is out. You can play the campaign and offline matches against bots. Friends, parties and leaderboards are online, but you can't play matches against other people yet. Online multiplayer is [planned](#planned-features).
+> **Open beta: single player only.** The [open beta for Windows](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) is out, now with the map editor, replays and spectating. You can play the campaign and offline matches against bots. Friends, parties and leaderboards are online, but you can't play matches against other people yet. Online multiplayer is [planned](#planned-features).
 
 ### Menus
 
@@ -56,6 +56,8 @@ Most remakes copy the original from memory. This one runs id Software's own game
 | **Chat** | A line of text at the top of the screen | A chat box with history, team chat, name completion and a live preview of colored text; colored names show everywhere, from the kill feed to the scoreboard |
 | **Crosshair** | Pick one of ten | A full crosshair editor with per-weapon crosshairs and shareable codes, previewed live in the match behind it |
 | **Settings** | Basic options, console variables | A full settings menu with search, live preview and shareable config codes |
+| **Replays** | Demos you had to remember to record, seen only through one player's eyes | Every match recorded automatically: watch from anyone's eyes, behind them or with a free camera, and save clips as video |
+| **Map editor** | A separate editor and command-line compile tools | A map editor built into the game, with one-key play-tests against bots |
 | **Online** | Server browser, IP addresses | Friends, parties and presence, with no accounts to sign up for |
 
 ## In the game now
@@ -65,6 +67,24 @@ Most remakes copy the original from memory. This one runs id Software's own game
 - **All 35 original maps,** relit, from q3dm0 to the pro duel maps.
 - **Game modes:** Free For All, Tournament (Duel), Team Deathmatch and Capture the Flag.
 - **Pause menu:** change any setting or edit your crosshair without leaving the match.
+- **Map editor:**
+  - Build arenas inside the game with brushes, curves, every remastered texture, pickups, jump pads, teleporters and lights.
+  - Open any original map from your own copy of Quake 3 and change it, or bring maps in and out of GtkRadiant, NetRadiant and TrenchBroom.
+  - Play-test instantly against bots, then publish a finished map to play it from Create Match.
+
+  | | |
+  |---|---|
+  | ![Map editor: The Campgrounds](docs/screenshots/editor-campgrounds.jpg) | ![Map editor: building a room](docs/screenshots/editor-objects.jpg) |
+  | **The Campgrounds** (q3dm6) opened from the original game, ready to edit | **Building a room:** every brush, group and spawn listed, the selected block's texture in the inspector |
+- **Replays:**
+  - Every match is recorded automatically, all of it: every player, so you can watch from anyone's eyes, from behind them, circling them or with a free camera that flies anywhere.
+  - A replay viewer: pause, slow motion and fast forward, frame by frame, jump to the next or last frag, a timeline marked with your frags, deaths and medals, name tags and outlines.
+  - A Replays page: rename, keep favorites forever, watch again from the results screen.
+  - Save a clip of any moment as a video.
+  - Plays Quake 3's own demo files too.
+- **Spectating:** follow anyone in a live match, switch to a chase camera, or let an auto-director follow the action.
+- **Death cam:** when you're fragged, the camera follows your body as it falls, then shows who got you with their player card.
+- **Match stats:** the Tab scoreboard shows your match: damage and accuracy with every weapon, distance traveled and your medals.
 - **Friends and parties:**
   - Add friends with a short friend code, and see who's online and what they're playing.
   - Form a party of up to 8 and chat. No email, password or account needed.
@@ -81,25 +101,6 @@ Most remakes copy the original from memory. This one runs id Software's own game
 
 None of these are in the open beta yet. They're listed roughly in the order they're coming.
 
-- **A built-in map editor** (built, coming in the next release):
-  - Build arenas inside the game with brushes, curves, every remastered texture, pickups, jump pads, teleporters and lights.
-  - Open any original map from your own copy of Quake 3 and change it, or bring maps in and out of GtkRadiant, NetRadiant and TrenchBroom.
-  - Play-test instantly against bots, then publish a finished map to play it from Create Match.
-  - Editing a map together with friends comes after online play.
-
-  | | |
-  |---|---|
-  | ![Map editor: The Campgrounds](docs/screenshots/editor-campgrounds.jpg) | ![Map editor: building a room](docs/screenshots/editor-objects.jpg) |
-  | **The Campgrounds** (q3dm6) opened from the original game, ready to edit | **Building a room:** every brush, group and spawn listed, the selected block's texture in the inspector |
-- **Replays, spectating and the death cam** (built, coming in the next release):
-  - Every match is recorded automatically, all of it: every player, so you can watch from anyone's eyes, from behind them, circling them or with a free camera that flies anywhere.
-  - A replay viewer: pause, slow motion and fast forward, frame by frame, jump to the next or last frag, a timeline marked with your frags, deaths and medals, name tags and outlines.
-  - A Replays page: rename, keep favorites forever, watch again from the results screen.
-  - Save a clip of any moment as a video.
-  - Plays Quake 3's own demo files too.
-  - Spectator mode for live matches: follow anyone, a chase camera, or let an auto-director follow the action.
-  - When you're fragged, the camera follows your body as it falls, then shows who got you with their player card.
-  - The Tab scoreboard shows your match: damage and accuracy with every weapon, distance traveled and your medals.
 - **Online matches without paying for servers:**
   - Anyone can host from their own PC, and one match browser shows every match. Optional dedicated servers.
   - Every connection is relayed, so no one sees another player's IP address. You're matched in the closest region first, or you can pick one.
@@ -107,6 +108,7 @@ None of these are in the open beta yet. They're listed roughly in the order they
 - **Ranked play:** a duel queue with an Elo ladder, seasons and tiers from Bronze to Godlike.
 - **Player cards online:** your card in friends' lists and lobbies, both cards sliding in on the duel versus screen, and a card image to share.
 - **A Workshop:** share the maps you build and play other people's, straight from the menu.
+- **Editing maps together** with friends in the map editor.
 - **More modes:** Clan Arena, Freeze Tag and Instagib as optional rule sets.
 - **Linux and macOS** versions.
 

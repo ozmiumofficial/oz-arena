@@ -6,7 +6,7 @@
 
 Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the roster, now with modern characters, lighting, effects, menus and online features. It's an unofficial, non-commercial fan project. You need your own copy of Quake III Arena to play.
 
-> **Open beta: single player only.** The [open beta for Windows](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) is out, now with the map editor, replays and spectating. You can play the campaign and offline matches against bots. Friends, parties and leaderboards are online, but you can't play matches against other people yet. Online multiplayer is [planned](#planned-features).
+> **Open beta: single player only.** The [open beta for Windows](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) is out, now with Quake Live's weapon and respawn rules, a cinematic camera for spectating and replays, and the map editor. You can play the campaign and offline matches against bots. Friends, parties and leaderboards are online, but you can't play matches against other people yet. Online multiplayer is [planned](#planned-features).
 
 ### Menus
 
@@ -32,12 +32,13 @@ Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the r
 
 All screenshots are real matches against id's bots, captured in the engine at 1920x1080 (`godot/tests/screenshots.tscn`). Key art and a social preview card are in [docs/promo](docs/promo).
 
-## The same game, down to the frame
+## id's own game, Quake Live's rules
 
 Most remakes copy the original from memory. This one runs id Software's own game code.
 
-- **The original engine code runs every match.** Movement, weapons, items, damage and the rules come straight from Quake III Arena's released source, so strafe jumps, rocket jumps and circle jumps behave exactly as they did.
-- **Checked line by line against the 1999 release.** The modern open-source port of Quake 3 changed a few things over the years. Every change that affected play was found and put back the way id shipped it.
+- **The original engine code runs every match.** Movement, weapons, items and damage come straight from Quake III Arena's released source, so strafe jumps, rocket jumps and circle jumps behave exactly as they did.
+- **Quake Live's rules are the standard.** Matches use Quake Live's weapon balance: damage, splash and knockback, projectile speeds, refire times, its tight shotgun pattern, starting weapons and item amounts. Respawns work as in Quake Live too, with fire bringing you back after 2.1 seconds. Its movement is [coming next](#planned-features).
+- **The 1999 rules are kept, checked line by line.** The modern open-source port of Quake 3 changed a few things over the years. Every change that affected play was found and put back the way id shipped it, and id's original rules will be a Classic choice in match setup.
 - **The original bots, personalities and all.** Sarge, Xaero, Klesk, Doom and the rest find their way around the original maps the same way, pick fights the same way, and still talk trash in chat.
 - **The classic 125 Hz physics.** Movement runs at the fixed rate competitive players have always used, so jump heights and speeds match.
 
@@ -102,6 +103,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 
 None of these are in the open beta yet. They're listed roughly in the order they're coming.
 
+- **The rest of Quake Live's rules:** its movement (jumps, step jumps and chain jumps), bots tuned for the new weapons, and a Classic choice in match setup for id's original rules.
 - **Online matches without paying for servers:**
   - Anyone can host from their own PC, and one match browser shows every match. Optional dedicated servers.
   - Every connection is relayed, so no one sees another player's IP address. You're matched in the closest region first, or you can pick one.

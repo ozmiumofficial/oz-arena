@@ -1,18 +1,14 @@
-[gd_resource type="ShaderMaterial" load_steps=6 format=3]
+[gd_resource type="ShaderMaterial" load_steps=4 format=3]
 
 [ext_resource type="Shader" path="res://shaders/world/world_add.gdshader" id="1_r"]
-[ext_resource type="Texture2D" path="res://library/world/textures/sfx__portal_sfx_ring_albedo.jpg" id="2_r"]
-[ext_resource type="Texture2D" path="res://library/world/textures/sfx__portal_sfx_ring_normal.jpg" id="3_r"]
-[ext_resource type="Texture2D" path="res://library/world/textures/sfx__portal_sfx_ring_orm.jpg" id="4_r"]
-[ext_resource type="Texture2D" path="res://library/world/textures/sfx__portal_sfx_ring_electric__glow_emissive.jpg" id="5_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/sfx__portal_sfx_ring__additive_albedo.jpg" id="2_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/sfx__portal_sfx_ring_electric__glow_emissive.jpg" id="3_r"]
 
 [resource]
 resource_name = "textures/sfx/portal_sfx_ring"
 shader = ExtResource("1_r")
 shader_parameter/albedo_tex = ExtResource("2_r")
-shader_parameter/normal_tex = ExtResource("3_r")
-shader_parameter/orm_tex = ExtResource("4_r")
-shader_parameter/glow1_tex = ExtResource("5_r")
+shader_parameter/glow1_tex = ExtResource("3_r")
 shader_parameter/base_scale = Vector2(1.0, 1.0)
 shader_parameter/base_rotate = 0.0
 shader_parameter/base_scroll = Vector2(0.0, 0.0)
@@ -24,3 +20,6 @@ shader_parameter/glow1_scale = Vector2(1.0, 1.0)
 shader_parameter/glow1_motion = Vector3(0.0, 0.5, 0.0)
 shader_parameter/glow1_wave = Vector4(5.0, 0.0, 1.0, 0.5)
 shader_parameter/glow1_phase = 0.2
+shader_parameter/deform1_a = Vector4(1.0, 0.01, 0.0, 2.0)
+shader_parameter/deform1_b = Vector4(0.0, 0.5, 1.0, 0.0)
+shader_parameter/deform1_move = Vector3(0.0, 0.0, 0.0)

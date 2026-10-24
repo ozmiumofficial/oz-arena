@@ -24,3 +24,6 @@ shader_parameter/under_env = false
 shader_parameter/under_scale = Vector2(2.0, 2.0)
 shader_parameter/under_motion = Vector3(0.0, 0.0, 0.0)
 shader_parameter/under_turb = Vector4(0.0, 0.2, 0.0, 0.1)
+shader_parameter/deform1_a = Vector4(3.0, 3.0, 10.0, 1.0)
+shader_parameter/deform1_b = Vector4(0.0, 0.0, 0.0, 0.0)
+shader_parameter/deform1_move = Vector3(0.0, 0.0, 0.0)

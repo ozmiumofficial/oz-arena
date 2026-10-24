@@ -21,3 +21,6 @@ shader_parameter/emission_energy = 0.9
 shader_parameter/alpha_cut = 0.0
 shader_parameter/stochastic = false
 shader_parameter/self_illum = 1.0
+shader_parameter/deform1_a = Vector4(1.0, 0.01, 3.0, 2.0)
+shader_parameter/deform1_b = Vector4(0.1, 0.1, 1.0, 0.0)
+shader_parameter/deform1_move = Vector3(0.0, 0.0, 0.0)

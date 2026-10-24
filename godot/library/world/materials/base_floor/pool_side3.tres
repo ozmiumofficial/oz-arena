@@ -18,3 +18,4 @@ shader_parameter/base_turb = Vector4(0.0, 0.0, 0.0, 0.0)
 shader_parameter/emission_energy = 1.0
 shader_parameter/alpha_cut = 0.0
 shader_parameter/stochastic = false
+shader_parameter/glow_lit = true

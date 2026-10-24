@@ -30,3 +30,4 @@ shader_parameter/glow2_scale = Vector2(1.0, 1.0)
 shader_parameter/glow2_motion = Vector3(3.0, 3.0, 0.0)
 shader_parameter/glow2_wave = Vector4(0.0, 1.0, 0.0, 0.0)
 shader_parameter/glow2_phase = 0.0
+shader_parameter/glow_lit = true

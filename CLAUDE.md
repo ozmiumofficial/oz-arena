@@ -57,6 +57,7 @@ python tools/build_library.py [--skip-props]       # props, fx, catalog, Godot p
 python tools/build_cards.py extracted/baseq3 work/_cards [--no-render]   # player card catalog + art
 python tools/make_music.py                          # Quake 3's soundtrack -> godot/library/music (Ogg)
 python tools/export_game.py                         # Windows build -> build/windows (Q3Remaster.exe map=q3dm17 bots=3 skips the menu)
+python tools/make_icon.py [--preview sheet.png]     # the game icon (Quake 3's emblem + R) -> godot/icon.png (window), icon.ico (exe)
 python tools/trailer/q3cam/build.py                 # trailer: the q3cam camera mod for retail Quake 3 -> work/trailer/q3cam/pak0.pk3
 python tools/trailer/cam_path.py check --all        # trailer: camera paths against the maps' walls
 python tools/trailer/capture_q3.py <path> | --all  # trailer: record paths in retail Quake 3 -> work/trailer/retail

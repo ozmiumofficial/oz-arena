@@ -11,6 +11,8 @@ config/description="Remastered Quake III Arena: main menu, asset library, Gamepl
 config/version="0.1.0-dev"
 run/main_scene="res://scenes/splash/splash.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
+config/icon="res://icon.png"
+config/windows_native_icon="res://icon.ico"
 
 [audio]
 

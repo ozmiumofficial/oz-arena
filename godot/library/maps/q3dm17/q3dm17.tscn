@@ -1317,263 +1317,263 @@ points = PackedVector3Array(13.1667, 19.9167, -13.25, 17.9286, 10.3928, -13.25, 
 [sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_c4ehk"]
 points = PackedVector3Array(-15, 14.3333, -13.25, -15, 17, -13.25, -14.5098, 10.2476, -13.25, -14.5097, 10.2476, -13.25, -13.9286, 10.3928, -13.25, -9.1667, 19.9167, -13.25, -9.1667, 19.9167, -13.25, -15, 14.3333, -10.5, -15, 17, -10.5, -14.5098, 10.2476, -10.5, -14.5097, 10.2476, -10.5, -13.9286, 10.3928, -10.5, -9.1667, 19.9167, -10.5, -9.1667, 19.9167, -10.5)
 
-[node name="q3dm17" type="Node3D" unique_id=1592934450]
+[node name="q3dm17" type="Node3D" unique_id=1395633629]
 script = ExtResource("1_ups6y")
 map = "q3dm17"
 
 [node name="Geometry" parent="." unique_id=608000953 instance=ExtResource("2_se0tn")]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1491035181]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=211712045]
 environment = SubResource("Environment_xkqsp")
 
-[node name="Lights" type="Node3D" parent="." unique_id=1581619842]
+[node name="Lights" type="Node3D" parent="." unique_id=1682498990]
 
-[node name="point_0" type="OmniLight3D" parent="Lights" unique_id=140345936]
+[node name="point_0" type="OmniLight3D" parent="Lights" unique_id=2005342923]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.5, 12.875, -8.0625)
 light_energy = 2.0106
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.643
 
-[node name="point_1" type="OmniLight3D" parent="Lights" unique_id=1462306465]
+[node name="point_1" type="OmniLight3D" parent="Lights" unique_id=820962763]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 22, -27)
 light_energy = 8.6167
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 46.875
 
-[node name="point_2" type="OmniLight3D" parent="Lights" unique_id=1351657600]
+[node name="point_2" type="OmniLight3D" parent="Lights" unique_id=1856058690]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 26.5, -22)
 light_energy = 15.7973
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 63.469
 
-[node name="point_3" type="OmniLight3D" parent="Lights" unique_id=1900333066]
+[node name="point_3" type="OmniLight3D" parent="Lights" unique_id=1532123446]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 26.5, -22)
 light_energy = 15.7973
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 63.469
 
-[node name="point_4" type="OmniLight3D" parent="Lights" unique_id=970082026]
+[node name="point_4" type="OmniLight3D" parent="Lights" unique_id=1004947902]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 41, 13)
 light_energy = 11.489
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 54.127
 
-[node name="point_5" type="OmniLight3D" parent="Lights" unique_id=2135765519]
+[node name="point_5" type="OmniLight3D" parent="Lights" unique_id=1066362402]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 41, 13)
 light_energy = 11.489
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 54.127
 
-[node name="point_6" type="OmniLight3D" parent="Lights" unique_id=265402696]
+[node name="point_6" type="OmniLight3D" parent="Lights" unique_id=987267301]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 41, 13)
 light_energy = 11.489
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 54.127
 
-[node name="point_7" type="OmniLight3D" parent="Lights" unique_id=227528125]
+[node name="point_7" type="OmniLight3D" parent="Lights" unique_id=167645484]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 41, 6)
 light_energy = 11.489
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 54.127
 
-[node name="point_8" type="OmniLight3D" parent="Lights" unique_id=1581388307]
+[node name="point_8" type="OmniLight3D" parent="Lights" unique_id=1186722677]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 41, 6)
 light_energy = 11.489
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 54.127
 
-[node name="point_9" type="OmniLight3D" parent="Lights" unique_id=1824261640]
+[node name="point_9" type="OmniLight3D" parent="Lights" unique_id=982113236]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 22.5, 74.5)
 light_energy = 28.7224
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 85.582
 
-[node name="point_10" type="OmniLight3D" parent="Lights" unique_id=3046538]
+[node name="point_10" type="OmniLight3D" parent="Lights" unique_id=1500101637]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.75, 31.9375, -17.75)
 light_energy = 21.5418
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 74.116
 
-[node name="point_11" type="OmniLight3D" parent="Lights" unique_id=117608490]
+[node name="point_11" type="OmniLight3D" parent="Lights" unique_id=510953065]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.375, 2.5, 34.125)
 light_energy = 0.2872
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 8.558
 
-[node name="point_12" type="OmniLight3D" parent="Lights" unique_id=130414322]
+[node name="point_12" type="OmniLight3D" parent="Lights" unique_id=1440089670]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.625, 2.5, 35.375)
 light_energy = 0.2872
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 8.558
 
-[node name="point_13" type="OmniLight3D" parent="Lights" unique_id=889040847]
+[node name="point_13" type="OmniLight3D" parent="Lights" unique_id=610289790]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.375, 2.5, 36.625)
 light_energy = 0.2872
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 8.558
 
-[node name="point_14" type="OmniLight3D" parent="Lights" unique_id=404465291]
+[node name="point_14" type="OmniLight3D" parent="Lights" unique_id=711495408]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.375, 2.5, 34.125)
 light_energy = 0.2872
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 8.558
 
-[node name="point_15" type="OmniLight3D" parent="Lights" unique_id=2043515577]
+[node name="point_15" type="OmniLight3D" parent="Lights" unique_id=1441465585]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.375, 2.5, 36.625)
 light_energy = 0.2872
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 8.558
 
-[node name="point_16" type="OmniLight3D" parent="Lights" unique_id=1651165913]
+[node name="point_16" type="OmniLight3D" parent="Lights" unique_id=1736258104]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.625, 2.5, 35.375)
 light_energy = 0.2872
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 8.558
 
-[node name="point_17" type="OmniLight3D" parent="Lights" unique_id=1606473020]
+[node name="point_17" type="OmniLight3D" parent="Lights" unique_id=30730165]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.75, 31.9375, -17.75)
 light_energy = 21.5418
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 74.116
 
-[node name="point_18" type="OmniLight3D" parent="Lights" unique_id=1124272271]
+[node name="point_18" type="OmniLight3D" parent="Lights" unique_id=1139872442]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.75, 20.5, -18.75)
 light_energy = 2.1542
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 23.438
 
-[node name="point_19" type="OmniLight3D" parent="Lights" unique_id=848977519]
+[node name="point_19" type="OmniLight3D" parent="Lights" unique_id=875282756]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 22.5, 80)
 light_energy = 28.7224
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 85.582
 
-[node name="point_20" type="OmniLight3D" parent="Lights" unique_id=999986045]
+[node name="point_20" type="OmniLight3D" parent="Lights" unique_id=130843326]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 22.5, 80)
 light_energy = 28.7224
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 85.582
 
-[node name="point_21" type="OmniLight3D" parent="Lights" unique_id=2058576482]
+[node name="point_21" type="OmniLight3D" parent="Lights" unique_id=493409147]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.75, 12.875, -8.8125)
 light_energy = 2.0106
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.643
 
-[node name="point_22" type="OmniLight3D" parent="Lights" unique_id=1499965451]
+[node name="point_22" type="OmniLight3D" parent="Lights" unique_id=455508648]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.5, 12.875, -9.6875)
 light_energy = 2.0106
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.643
 
-[node name="point_23" type="OmniLight3D" parent="Lights" unique_id=616028865]
+[node name="point_23" type="OmniLight3D" parent="Lights" unique_id=1420322023]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.25, 12.875, -8.8125)
 light_energy = 2.0106
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.643
 
-[node name="point_24" type="OmniLight3D" parent="Lights" unique_id=256469802]
+[node name="point_24" type="OmniLight3D" parent="Lights" unique_id=450309836]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.5, 12.875, -8)
 light_energy = 2.0106
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.643
 
-[node name="point_25" type="OmniLight3D" parent="Lights" unique_id=1580852051]
+[node name="point_25" type="OmniLight3D" parent="Lights" unique_id=1048063978]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.25, 12.875, -8.75)
 light_energy = 2.0106
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.643
 
-[node name="point_26" type="OmniLight3D" parent="Lights" unique_id=444356221]
+[node name="point_26" type="OmniLight3D" parent="Lights" unique_id=690996674]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.5, 12.875, -9.625)
 light_energy = 2.0106
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.643
 
-[node name="point_27" type="OmniLight3D" parent="Lights" unique_id=543173094]
+[node name="point_27" type="OmniLight3D" parent="Lights" unique_id=1280810422]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.75, 12.875, -8.75)
 light_energy = 2.0106
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.643
 
-[node name="point_28" type="OmniLight3D" parent="Lights" unique_id=664092744]
+[node name="point_28" type="OmniLight3D" parent="Lights" unique_id=1769477724]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.75, 20.5, -19.75)
 light_energy = 2.1542
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 23.438
 
-[node name="point_29" type="OmniLight3D" parent="Lights" unique_id=762421007]
+[node name="point_29" type="OmniLight3D" parent="Lights" unique_id=1070503568]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.75, 20.5, -20.75)
 light_energy = 2.1542
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 23.438
 
-[node name="point_30" type="OmniLight3D" parent="Lights" unique_id=518203943]
+[node name="point_30" type="OmniLight3D" parent="Lights" unique_id=1180650549]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 39.75, 20.5, -19.75)
 light_energy = 2.1542
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 23.438
 
-[node name="point_31" type="OmniLight3D" parent="Lights" unique_id=1748555834]
+[node name="point_31" type="OmniLight3D" parent="Lights" unique_id=91929629]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.75, 20.5, -18.75)
 light_energy = 2.1542
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 23.438
 
-[node name="point_32" type="OmniLight3D" parent="Lights" unique_id=1792970348]
+[node name="point_32" type="OmniLight3D" parent="Lights" unique_id=1082343076]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.75, 20.5, -19.75)
 light_energy = 2.1542
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 23.438
 
-[node name="point_33" type="OmniLight3D" parent="Lights" unique_id=1726256295]
+[node name="point_33" type="OmniLight3D" parent="Lights" unique_id=1083959827]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.75, 20.5, -20.75)
 light_energy = 2.1542
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 23.438
 
-[node name="point_34" type="OmniLight3D" parent="Lights" unique_id=664159187]
+[node name="point_34" type="OmniLight3D" parent="Lights" unique_id=1154973889]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.75, 20.5, -19.75)
 light_energy = 2.1542
 light_bake_mode = 1
 shadow_enabled = true
 omni_range = 23.438
 
-[node name="point_35" type="OmniLight3D" parent="Lights" unique_id=325941977]
+[node name="point_35" type="OmniLight3D" parent="Lights" unique_id=592536243]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 41.75, 8.75)
 light_color = Color(0.33366886, 0.6686865, 1, 1)
 light_energy = 17.2335
@@ -1581,7 +1581,7 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 66.291
 
-[node name="point_36" type="OmniLight3D" parent="Lights" unique_id=1145757842]
+[node name="point_36" type="OmniLight3D" parent="Lights" unique_id=101483112]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9375, 13.375, 79.5625)
 light_color = Color(1, 0.837321, 0.971292, 1)
 light_energy = 5.7445
@@ -1589,7 +1589,7 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 38.273
 
-[node name="point_37" type="SpotLight3D" parent="Lights" unique_id=652111906]
+[node name="point_37" type="SpotLight3D" parent="Lights" unique_id=952305692]
 transform = Transform3D(-4.371139e-08, 0.7071068, -0.7071067, 0, 0.7071067, 0.7071068, 1, 3.090862e-08, -3.0908616e-08, -27.875, 14.75, -1.5)
 light_color = Color(1, 0.795082, 0.565574, 1)
 light_energy = 7.1806
@@ -1598,7 +1598,7 @@ shadow_enabled = true
 spot_range = 42.791
 spot_angle = 20.662643
 
-[node name="point_38" type="OmniLight3D" parent="Lights" unique_id=668577600]
+[node name="point_38" type="OmniLight3D" parent="Lights" unique_id=2003413533]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.0625, 15.25, -1.5625)
 light_color = Color(1, 0.837321, 0.971292, 1)
 light_energy = 0.8617
@@ -1606,7 +1606,7 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 14.823
 
-[node name="point_39" type="OmniLight3D" parent="Lights" unique_id=1248003407]
+[node name="point_39" type="OmniLight3D" parent="Lights" unique_id=791076333]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.4375, 15.5, -3.1875)
 light_color = Color(1, 0.837321, 0.971292, 1)
 light_energy = 0.8617
@@ -1614,7 +1614,7 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 14.823
 
-[node name="point_40" type="OmniLight3D" parent="Lights" unique_id=1808274626]
+[node name="point_40" type="OmniLight3D" parent="Lights" unique_id=333883108]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.6875, 15.5, 0.0625)
 light_color = Color(1, 0.837321, 0.971292, 1)
 light_energy = 0.8617
@@ -1622,7 +1622,7 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 14.823
 
-[node name="point_41" type="SpotLight3D" parent="Lights" unique_id=1412344483]
+[node name="point_41" type="SpotLight3D" parent="Lights" unique_id=546298948]
 transform = Transform3D(-4.371139e-08, -0.7071068, 0.7071067, 0, 0.7071067, 0.7071068, -1, 3.090862e-08, -3.0908616e-08, 31.875, 14.75, -1.5)
 light_color = Color(1, 0.795082, 0.565574, 1)
 light_energy = 7.1806
@@ -1631,7 +1631,7 @@ shadow_enabled = true
 spot_range = 42.791
 spot_angle = 20.662643
 
-[node name="point_42" type="OmniLight3D" parent="Lights" unique_id=1301840442]
+[node name="point_42" type="OmniLight3D" parent="Lights" unique_id=1577319260]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.0625, 15.25, -1.5625)
 light_color = Color(1, 0.837321, 0.971292, 1)
 light_energy = 0.8617
@@ -1639,7 +1639,7 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 14.823
 
-[node name="point_43" type="OmniLight3D" parent="Lights" unique_id=286061673]
+[node name="point_43" type="OmniLight3D" parent="Lights" unique_id=2100149716]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.4375, 15.5, -3.1875)
 light_color = Color(1, 0.837321, 0.971292, 1)
 light_energy = 0.8617
@@ -1647,7 +1647,7 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 14.823
 
-[node name="point_44" type="OmniLight3D" parent="Lights" unique_id=1341433422]
+[node name="point_44" type="OmniLight3D" parent="Lights" unique_id=751182270]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.6875, 15.5, 0.0625)
 light_color = Color(1, 0.837321, 0.971292, 1)
 light_energy = 0.8617
@@ -1655,7 +1655,7 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 14.823
 
-[node name="surface_45" type="OmniLight3D" parent="Lights" unique_id=2051316604]
+[node name="surface_45" type="OmniLight3D" parent="Lights" unique_id=865712278]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.75, 4.6875, 10)
 light_color = Color(1, 0.95, 0.786, 1)
 light_energy = 15.6863
@@ -1663,7 +1663,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 63.246
 
-[node name="surface_46" type="OmniLight3D" parent="Lights" unique_id=463133575]
+[node name="point_46" type="OmniLight3D" parent="Lights" unique_id=439174707]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.75, 3.9688, 10)
+light_color = Color(1, 0.95, 0.786, 1)
+light_energy = 0.7843
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 14.142
+
+[node name="surface_47" type="OmniLight3D" parent="Lights" unique_id=1569834409]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.75, 4.6875, 10)
 light_color = Color(1, 0.95, 0.786, 1)
 light_energy = 15.6863
@@ -1671,7 +1679,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 63.246
 
-[node name="surface_47" type="OmniLight3D" parent="Lights" unique_id=48748609]
+[node name="point_48" type="OmniLight3D" parent="Lights" unique_id=1786393994]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.75, 3.9688, 10)
+light_color = Color(1, 0.95, 0.786, 1)
+light_energy = 0.7843
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 14.142
+
+[node name="surface_49" type="OmniLight3D" parent="Lights" unique_id=556916313]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.75, 4.6875, 10)
 light_color = Color(1, 0.95, 0.786, 1)
 light_energy = 15.6863
@@ -1679,7 +1695,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 63.246
 
-[node name="surface_48" type="OmniLight3D" parent="Lights" unique_id=1735605771]
+[node name="point_50" type="OmniLight3D" parent="Lights" unique_id=959554001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.75, 3.9688, 10)
+light_color = Color(1, 0.95, 0.786, 1)
+light_energy = 0.7843
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 14.142
+
+[node name="surface_51" type="OmniLight3D" parent="Lights" unique_id=1452667047]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.4848, 3.6894, -5)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 8.0845
@@ -1687,7 +1711,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 45.404
 
-[node name="surface_49" type="OmniLight3D" parent="Lights" unique_id=638049851]
+[node name="point_52" type="OmniLight3D" parent="Lights" unique_id=1344032984]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.3105, 2.9921, -5)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.4042
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 10.153
+
+[node name="surface_53" type="OmniLight3D" parent="Lights" unique_id=1594096742]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.4848, 3.6894, 1)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 8.0845
@@ -1695,7 +1727,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 45.404
 
-[node name="surface_50" type="OmniLight3D" parent="Lights" unique_id=1086648267]
+[node name="point_54" type="OmniLight3D" parent="Lights" unique_id=1622774331]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.3105, 2.9921, 1)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.4042
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 10.153
+
+[node name="surface_55" type="OmniLight3D" parent="Lights" unique_id=1058069385]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.4848, 3.6894, -5)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 8.0845
@@ -1703,7 +1743,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 45.404
 
-[node name="surface_51" type="OmniLight3D" parent="Lights" unique_id=423830369]
+[node name="point_56" type="OmniLight3D" parent="Lights" unique_id=1777153742]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.3105, 2.9921, -5)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.4042
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 10.153
+
+[node name="surface_57" type="OmniLight3D" parent="Lights" unique_id=1918861339]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 22.2942, -21.9558)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 11.0919
@@ -1711,7 +1759,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 53.183
 
-[node name="surface_52" type="OmniLight3D" parent="Lights" unique_id=1365345800]
+[node name="point_58" type="OmniLight3D" parent="Lights" unique_id=1353365346]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 22.8024, -21.4476)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.5546
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 11.892
+
+[node name="surface_59" type="OmniLight3D" parent="Lights" unique_id=323975271]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.4848, 3.6894, 1)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 8.0845
@@ -1719,7 +1775,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 45.404
 
-[node name="surface_53" type="OmniLight3D" parent="Lights" unique_id=1436404048]
+[node name="point_60" type="OmniLight3D" parent="Lights" unique_id=2109060281]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.3105, 2.9921, 1)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.4042
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 10.153
+
+[node name="surface_61" type="OmniLight3D" parent="Lights" unique_id=317096316]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.75, 4.6875, 10)
 light_color = Color(1, 0.95, 0.786, 1)
 light_energy = 15.6863
@@ -1727,7 +1791,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 63.246
 
-[node name="surface_54" type="OmniLight3D" parent="Lights" unique_id=1296286971]
+[node name="point_62" type="OmniLight3D" parent="Lights" unique_id=1936813902]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.75, 3.9688, 10)
+light_color = Color(1, 0.95, 0.786, 1)
+light_energy = 0.7843
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 14.142
+
+[node name="surface_63" type="OmniLight3D" parent="Lights" unique_id=586839709]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21, 10.375, -3.0625)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.1991
@@ -1735,7 +1807,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.126
 
-[node name="surface_55" type="OmniLight3D" parent="Lights" unique_id=769172414]
+[node name="point_64" type="OmniLight3D" parent="Lights" unique_id=1346664889]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21, 10.375, -3.7812)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.01
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.593
+
+[node name="surface_65" type="OmniLight3D" parent="Lights" unique_id=1094403805]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21, 10.375, 1.0625)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.1991
@@ -1743,7 +1823,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.126
 
-[node name="surface_56" type="OmniLight3D" parent="Lights" unique_id=1674595251]
+[node name="point_66" type="OmniLight3D" parent="Lights" unique_id=985251427]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21, 10.375, 1.7812)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.01
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.593
+
+[node name="surface_67" type="OmniLight3D" parent="Lights" unique_id=1357428393]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.0625, 10.375, -1)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.1991
@@ -1751,7 +1839,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.126
 
-[node name="surface_57" type="OmniLight3D" parent="Lights" unique_id=1081013113]
+[node name="point_68" type="OmniLight3D" parent="Lights" unique_id=1171258157]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.7812, 10.375, -1)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.01
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.593
+
+[node name="surface_69" type="OmniLight3D" parent="Lights" unique_id=861549099]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.9375, 10.375, -1)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.1991
@@ -1759,7 +1855,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.126
 
-[node name="surface_58" type="OmniLight3D" parent="Lights" unique_id=2065480222]
+[node name="point_70" type="OmniLight3D" parent="Lights" unique_id=1288258427]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.2188, 10.375, -1)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.01
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.593
+
+[node name="surface_71" type="OmniLight3D" parent="Lights" unique_id=1276954514]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.6773, 10.5625, -1)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 1.6372
@@ -1767,7 +1871,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 20.432
 
-[node name="surface_59" type="OmniLight3D" parent="Lights" unique_id=969698986]
+[node name="point_72" type="OmniLight3D" parent="Lights" unique_id=1979901749]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.6773, 11.2812, -1)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.0819
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 4.569
+
+[node name="surface_73" type="OmniLight3D" parent="Lights" unique_id=1533943880]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.4489, 10.5625, -1)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 4.8235
@@ -1775,7 +1887,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 35.071
 
-[node name="surface_60" type="OmniLight3D" parent="Lights" unique_id=1227030273]
+[node name="point_74" type="OmniLight3D" parent="Lights" unique_id=689029055]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.4489, 11.2812, -1)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.2412
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 7.842
+
+[node name="surface_75" type="OmniLight3D" parent="Lights" unique_id=38537253]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.5496, 10.375, 0.4504)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.2058
@@ -1783,7 +1903,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.244
 
-[node name="surface_61" type="OmniLight3D" parent="Lights" unique_id=1403476810]
+[node name="point_76" type="OmniLight3D" parent="Lights" unique_id=1126236479]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.0413, 10.375, 0.9587)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.0103
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.62
+
+[node name="surface_77" type="OmniLight3D" parent="Lights" unique_id=65688757]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.4504, 10.375, -2.4504)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.2058
@@ -1791,7 +1919,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.244
 
-[node name="surface_62" type="OmniLight3D" parent="Lights" unique_id=889163655]
+[node name="point_78" type="OmniLight3D" parent="Lights" unique_id=2082109497]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.9587, 10.375, -2.9587)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.0103
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.62
+
+[node name="surface_79" type="OmniLight3D" parent="Lights" unique_id=1002053759]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.5496, 10.375, -2.4504)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.2058
@@ -1799,7 +1935,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.244
 
-[node name="surface_63" type="OmniLight3D" parent="Lights" unique_id=592445510]
+[node name="point_80" type="OmniLight3D" parent="Lights" unique_id=1410477035]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.0413, 10.375, -2.9587)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.0103
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.62
+
+[node name="surface_81" type="OmniLight3D" parent="Lights" unique_id=738108896]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.4504, 10.375, 0.4504)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.2058
@@ -1807,7 +1951,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.244
 
-[node name="surface_64" type="OmniLight3D" parent="Lights" unique_id=1089208208]
+[node name="point_82" type="OmniLight3D" parent="Lights" unique_id=106990267]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.9587, 10.375, 0.9587)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.0103
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.62
+
+[node name="surface_83" type="OmniLight3D" parent="Lights" unique_id=1597277322]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 5.25, 73.6875)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 0.9804
@@ -1815,7 +1967,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 15.811
 
-[node name="surface_65" type="OmniLight3D" parent="Lights" unique_id=227791328]
+[node name="point_84" type="OmniLight3D" parent="Lights" unique_id=512620508]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 5.25, 72.9688)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.049
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.536
+
+[node name="surface_85" type="OmniLight3D" parent="Lights" unique_id=1216422906]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 7.375, 77.8125)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 2.451
@@ -1823,7 +1983,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 25.0
 
-[node name="surface_66" type="OmniLight3D" parent="Lights" unique_id=1938850394]
+[node name="point_86" type="OmniLight3D" parent="Lights" unique_id=222881761]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 7.375, 78.5312)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.1225
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 5.59
+
+[node name="surface_87" type="OmniLight3D" parent="Lights" unique_id=1337909172]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.0625, 6.65, 76.4167)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 1.2255
@@ -1831,7 +1999,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 17.678
 
-[node name="surface_67" type="OmniLight3D" parent="Lights" unique_id=694070269]
+[node name="point_88" type="OmniLight3D" parent="Lights" unique_id=1276895387]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.7812, 6.65, 76.4167)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.0613
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.953
+
+[node name="surface_89" type="OmniLight3D" parent="Lights" unique_id=2099263588]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.0625, 6, 75.0833)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 0.4902
@@ -1839,7 +2015,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 11.18
 
-[node name="surface_68" type="OmniLight3D" parent="Lights" unique_id=1773335619]
+[node name="point_90" type="OmniLight3D" parent="Lights" unique_id=1201527830]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.7812, 6, 75.0833)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.0245
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 2.5
+
+[node name="surface_91" type="OmniLight3D" parent="Lights" unique_id=1258349906]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.9375, 6.7501, 76.4166)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 1.226
@@ -1847,7 +2031,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 17.681
 
-[node name="surface_69" type="OmniLight3D" parent="Lights" unique_id=856408838]
+[node name="point_92" type="OmniLight3D" parent="Lights" unique_id=1204610617]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2188, 6.7501, 76.4166)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.0613
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.954
+
+[node name="surface_93" type="OmniLight3D" parent="Lights" unique_id=921418421]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.9375, 5.75, 75.0833)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 0.4902
@@ -1855,7 +2047,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 11.18
 
-[node name="surface_70" type="OmniLight3D" parent="Lights" unique_id=194172577]
+[node name="point_94" type="OmniLight3D" parent="Lights" unique_id=2056567931]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2188, 5.75, 75.0833)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.0245
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 2.5
+
+[node name="surface_95" type="OmniLight3D" parent="Lights" unique_id=257500188]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.4443, 7.192, 76.339)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 5.5501
@@ -1863,7 +2063,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 37.62
 
-[node name="surface_71" type="OmniLight3D" parent="Lights" unique_id=2110585650]
+[node name="point_96" type="OmniLight3D" parent="Lights" unique_id=795984204]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.4443, 7.8015, 75.958)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.2775
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 8.412
+
+[node name="surface_97" type="OmniLight3D" parent="Lights" unique_id=767872137]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.3333, 6.2197, 74.7833)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 3.699
@@ -1871,7 +2079,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 30.712
 
-[node name="surface_72" type="OmniLight3D" parent="Lights" unique_id=962748325]
+[node name="point_98" type="OmniLight3D" parent="Lights" unique_id=1644754601]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.3333, 6.8292, 74.4023)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.1849
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 6.867
+
+[node name="surface_99" type="OmniLight3D" parent="Lights" unique_id=1073826285]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.3333, 6.2197, 74.7833)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 3.699
@@ -1879,7 +2095,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 30.712
 
-[node name="surface_73" type="OmniLight3D" parent="Lights" unique_id=442858205]
+[node name="point_100" type="OmniLight3D" parent="Lights" unique_id=2036496747]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.3333, 6.8292, 74.4023)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.1849
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 6.867
+
+[node name="surface_101" type="OmniLight3D" parent="Lights" unique_id=1696778260]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.4443, 7.192, 76.339)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 5.5501
@@ -1887,7 +2111,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 37.62
 
-[node name="surface_74" type="OmniLight3D" parent="Lights" unique_id=1592291952]
+[node name="point_102" type="OmniLight3D" parent="Lights" unique_id=724867319]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.4443, 7.8015, 75.958)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.2775
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 8.412
+
+[node name="surface_103" type="OmniLight3D" parent="Lights" unique_id=1625716960]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.8333, 17.0625, -8.6667)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 0.9804
@@ -1895,7 +2127,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 15.811
 
-[node name="surface_75" type="OmniLight3D" parent="Lights" unique_id=1429222225]
+[node name="point_104" type="OmniLight3D" parent="Lights" unique_id=351483951]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.8333, 16.3438, -8.6667)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.049
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.536
+
+[node name="surface_105" type="OmniLight3D" parent="Lights" unique_id=1834919560]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.1667, 17.0625, -8.3333)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 0.9804
@@ -1903,7 +2143,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 15.811
 
-[node name="surface_76" type="OmniLight3D" parent="Lights" unique_id=163428550]
+[node name="point_106" type="OmniLight3D" parent="Lights" unique_id=1327303473]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.1667, 16.3438, -8.3333)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.049
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.536
+
+[node name="surface_107" type="OmniLight3D" parent="Lights" unique_id=92237208]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.5, 17.0625, -8.5)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 1.9608
@@ -1911,7 +2159,14 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.361
 
-[node name="surface_77" type="OmniLight3D" parent="Lights" unique_id=1700780466]
+[node name="point_108" type="OmniLight3D" parent="Lights" unique_id=621529165]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.5, 16.3438, -8.5)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.098
+light_bake_mode = 1
+shadow_enabled = true
+
+[node name="surface_109" type="OmniLight3D" parent="Lights" unique_id=428706238]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.1667, 16.8125, -11.8333)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 0.9804
@@ -1919,7 +2174,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 15.811
 
-[node name="surface_78" type="OmniLight3D" parent="Lights" unique_id=962356105]
+[node name="point_110" type="OmniLight3D" parent="Lights" unique_id=130110543]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.1667, 16.0938, -11.8333)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.049
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.536
+
+[node name="surface_111" type="OmniLight3D" parent="Lights" unique_id=149401425]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.8333, 16.8125, -12.1667)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 0.9804
@@ -1927,7 +2190,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 15.811
 
-[node name="surface_79" type="OmniLight3D" parent="Lights" unique_id=839687308]
+[node name="point_112" type="OmniLight3D" parent="Lights" unique_id=1003327862]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.8333, 16.0938, -12.1667)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.049
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.536
+
+[node name="surface_113" type="OmniLight3D" parent="Lights" unique_id=456179062]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.8333, 16.8125, -11.8333)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 0.9804
@@ -1935,7 +2206,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 15.811
 
-[node name="surface_80" type="OmniLight3D" parent="Lights" unique_id=492723348]
+[node name="point_114" type="OmniLight3D" parent="Lights" unique_id=252025642]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16.8333, 16.0938, -11.8333)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.049
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.536
+
+[node name="surface_115" type="OmniLight3D" parent="Lights" unique_id=1525568635]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.1667, 16.8125, -12.1667)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 0.9804
@@ -1943,7 +2222,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 15.811
 
-[node name="surface_81" type="OmniLight3D" parent="Lights" unique_id=1184471465]
+[node name="point_116" type="OmniLight3D" parent="Lights" unique_id=243897134]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.1667, 16.0938, -12.1667)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.049
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.536
+
+[node name="surface_117" type="OmniLight3D" parent="Lights" unique_id=883349948]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.5, 17.0625, -8.5)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 1.9608
@@ -1951,7 +2238,14 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.361
 
-[node name="surface_82" type="OmniLight3D" parent="Lights" unique_id=1819908076]
+[node name="point_118" type="OmniLight3D" parent="Lights" unique_id=1108259217]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.5, 16.3438, -8.5)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.098
+light_bake_mode = 1
+shadow_enabled = true
+
+[node name="surface_119" type="OmniLight3D" parent="Lights" unique_id=1554122304]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.8333, 17.0625, -8.3333)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 0.9804
@@ -1959,7 +2253,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 15.811
 
-[node name="surface_83" type="OmniLight3D" parent="Lights" unique_id=926549555]
+[node name="point_120" type="OmniLight3D" parent="Lights" unique_id=1851409269]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.8333, 16.3438, -8.3333)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.049
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.536
+
+[node name="surface_121" type="OmniLight3D" parent="Lights" unique_id=190806855]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.1667, 17.0625, -8.6667)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 0.9804
@@ -1967,7 +2269,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 15.811
 
-[node name="surface_84" type="OmniLight3D" parent="Lights" unique_id=993671916]
+[node name="point_122" type="OmniLight3D" parent="Lights" unique_id=773250134]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.1667, 16.3438, -8.6667)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.049
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.536
+
+[node name="surface_123" type="OmniLight3D" parent="Lights" unique_id=1839013799]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 10.375, -3.0625)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.1991
@@ -1975,7 +2285,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.126
 
-[node name="surface_85" type="OmniLight3D" parent="Lights" unique_id=1176965796]
+[node name="point_124" type="OmniLight3D" parent="Lights" unique_id=1539040201]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 10.375, -3.7812)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.01
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.593
+
+[node name="surface_125" type="OmniLight3D" parent="Lights" unique_id=1259573514]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 10.375, 1.0625)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.1991
@@ -1983,7 +2301,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.126
 
-[node name="surface_86" type="OmniLight3D" parent="Lights" unique_id=1699345938]
+[node name="point_126" type="OmniLight3D" parent="Lights" unique_id=586231442]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 10.375, 1.7812)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.01
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.593
+
+[node name="surface_127" type="OmniLight3D" parent="Lights" unique_id=735916418]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.9375, 10.375, -1)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.1991
@@ -1991,7 +2317,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.126
 
-[node name="surface_87" type="OmniLight3D" parent="Lights" unique_id=257959125]
+[node name="point_128" type="OmniLight3D" parent="Lights" unique_id=888724540]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.2188, 10.375, -1)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.01
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.593
+
+[node name="surface_129" type="OmniLight3D" parent="Lights" unique_id=1778625149]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.0625, 10.375, -1)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.1991
@@ -1999,7 +2333,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.126
 
-[node name="surface_88" type="OmniLight3D" parent="Lights" unique_id=1177628070]
+[node name="point_130" type="OmniLight3D" parent="Lights" unique_id=41734683]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.7812, 10.375, -1)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.01
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.593
+
+[node name="surface_131" type="OmniLight3D" parent="Lights" unique_id=938256864]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.3333, 10.5625, 0.6042)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 0.473
@@ -2007,7 +2349,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 10.982
 
-[node name="surface_89" type="OmniLight3D" parent="Lights" unique_id=201601413]
+[node name="point_132" type="OmniLight3D" parent="Lights" unique_id=95750158]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.3333, 11.2812, 0.6042)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.0236
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 2.456
+
+[node name="surface_133" type="OmniLight3D" parent="Lights" unique_id=1341544864]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.9375, 10.5625, -0.3333)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 1.1202
@@ -2015,7 +2365,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 16.901
 
-[node name="surface_90" type="OmniLight3D" parent="Lights" unique_id=1758727739]
+[node name="point_134" type="OmniLight3D" parent="Lights" unique_id=1886902842]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.9375, 11.2812, -0.3333)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.056
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.779
+
+[node name="surface_135" type="OmniLight3D" parent="Lights" unique_id=1201466027]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.3093, 10.5625, -1.3093)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 4.8675
@@ -2023,7 +2381,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 35.231
 
-[node name="surface_91" type="OmniLight3D" parent="Lights" unique_id=1916043885]
+[node name="point_136" type="OmniLight3D" parent="Lights" unique_id=184992615]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.3093, 11.2812, -1.3093)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.2434
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 7.878
+
+[node name="surface_137" type="OmniLight3D" parent="Lights" unique_id=57223697]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.5496, 10.375, 0.4504)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.2058
@@ -2031,7 +2397,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.244
 
-[node name="surface_92" type="OmniLight3D" parent="Lights" unique_id=220923667]
+[node name="point_138" type="OmniLight3D" parent="Lights" unique_id=339494141]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.0413, 10.375, 0.9587)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.0103
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.62
+
+[node name="surface_139" type="OmniLight3D" parent="Lights" unique_id=2058281278]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.4504, 10.375, 0.4504)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.2058
@@ -2039,7 +2413,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.244
 
-[node name="surface_93" type="OmniLight3D" parent="Lights" unique_id=1567024184]
+[node name="point_140" type="OmniLight3D" parent="Lights" unique_id=519119893]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.9587, 10.375, 0.9587)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.0103
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.62
+
+[node name="surface_141" type="OmniLight3D" parent="Lights" unique_id=1895555852]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.5496, 10.375, -2.4504)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.2058
@@ -2047,7 +2429,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.244
 
-[node name="surface_94" type="OmniLight3D" parent="Lights" unique_id=1198811399]
+[node name="point_142" type="OmniLight3D" parent="Lights" unique_id=690594455]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.0413, 10.375, -2.9587)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.0103
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.62
+
+[node name="surface_143" type="OmniLight3D" parent="Lights" unique_id=379815136]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.4504, 10.375, -2.4504)
 light_color = Color(1, 0.928, 0.84, 1)
 light_energy = 0.2058
@@ -2055,7 +2445,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 7.244
 
-[node name="surface_95" type="OmniLight3D" parent="Lights" unique_id=2083019131]
+[node name="point_144" type="OmniLight3D" parent="Lights" unique_id=1971520723]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.9587, 10.375, -2.9587)
+light_color = Color(1, 0.928, 0.84, 1)
+light_energy = 0.0103
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.62
+
+[node name="surface_145" type="OmniLight3D" parent="Lights" unique_id=893090034]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.9661, 2.2839)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 7.8856
@@ -2063,7 +2461,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 44.842
 
-[node name="surface_96" type="OmniLight3D" parent="Lights" unique_id=1408108524]
+[node name="point_146" type="OmniLight3D" parent="Lights" unique_id=527815434]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 2.4743, 1.7757)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.3943
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 10.027
+
+[node name="surface_147" type="OmniLight3D" parent="Lights" unique_id=423183685]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.7161, 1.9661, 6)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 7.8856
@@ -2071,7 +2477,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 44.842
 
-[node name="surface_97" type="OmniLight3D" parent="Lights" unique_id=1910557242]
+[node name="point_148" type="OmniLight3D" parent="Lights" unique_id=746437885]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.2243, 2.4743, 6)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.3943
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 10.027
+
+[node name="surface_149" type="OmniLight3D" parent="Lights" unique_id=129221167]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.9661, 9.7161)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 7.8856
@@ -2079,7 +2493,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 44.842
 
-[node name="surface_98" type="OmniLight3D" parent="Lights" unique_id=1524089466]
+[node name="point_150" type="OmniLight3D" parent="Lights" unique_id=1778940221]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 2.4743, 10.2243)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.3943
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 10.027
+
+[node name="surface_151" type="OmniLight3D" parent="Lights" unique_id=1132290908]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7161, 1.9661, 6)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 7.8856
@@ -2087,7 +2509,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 44.842
 
-[node name="surface_99" type="OmniLight3D" parent="Lights" unique_id=244204793]
+[node name="point_152" type="OmniLight3D" parent="Lights" unique_id=1383732095]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2243, 2.4743, 6)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.3943
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 10.027
+
+[node name="surface_153" type="OmniLight3D" parent="Lights" unique_id=1073258933]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3.0469, 3.9375)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 0.1838
@@ -2095,7 +2525,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 6.847
 
-[node name="surface_100" type="OmniLight3D" parent="Lights" unique_id=1571538146]
+[node name="point_154" type="OmniLight3D" parent="Lights" unique_id=1351825866]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3.0469, 3.2188)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.0092
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.531
+
+[node name="surface_155" type="OmniLight3D" parent="Lights" unique_id=634736328]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3.0469, 8.0625)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 0.1838
@@ -2103,7 +2541,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 6.847
 
-[node name="surface_101" type="OmniLight3D" parent="Lights" unique_id=1860671638]
+[node name="point_156" type="OmniLight3D" parent="Lights" unique_id=1706054676]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3.0469, 8.7812)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.0092
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.531
+
+[node name="surface_157" type="OmniLight3D" parent="Lights" unique_id=1775465658]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0625, 3.0469, 6)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 0.1838
@@ -2111,7 +2557,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 6.847
 
-[node name="surface_102" type="OmniLight3D" parent="Lights" unique_id=1704784454]
+[node name="point_158" type="OmniLight3D" parent="Lights" unique_id=1720131497]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7812, 3.0469, 6)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.0092
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.531
+
+[node name="surface_159" type="OmniLight3D" parent="Lights" unique_id=1285390850]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.0625, 3.0469, 6)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 0.1838
@@ -2119,7 +2573,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 6.847
 
-[node name="surface_103" type="OmniLight3D" parent="Lights" unique_id=978461832]
+[node name="point_160" type="OmniLight3D" parent="Lights" unique_id=1466006735]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7812, 3.0469, 6)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.0092
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.531
+
+[node name="surface_161" type="OmniLight3D" parent="Lights" unique_id=113135283]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3.1562, 6)
 light_color = Color(1, 0.508, 0.028, 1)
 light_energy = 7.8431
@@ -2127,7 +2589,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 44.721
 
-[node name="surface_104" type="OmniLight3D" parent="Lights" unique_id=273708378]
+[node name="point_162" type="OmniLight3D" parent="Lights" unique_id=1582368599]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3.875, 6)
+light_color = Color(1, 0.508, 0.028, 1)
+light_energy = 0.3922
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 10.0
+
+[node name="surface_163" type="OmniLight3D" parent="Lights" unique_id=999183909]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 9.4375, 26)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 1.9608
@@ -2135,7 +2605,14 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.361
 
-[node name="surface_105" type="OmniLight3D" parent="Lights" unique_id=1658447549]
+[node name="point_164" type="OmniLight3D" parent="Lights" unique_id=1484578642]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 8.7188, 26)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.098
+light_bake_mode = 1
+shadow_enabled = true
+
+[node name="surface_165" type="OmniLight3D" parent="Lights" unique_id=1119460463]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 9.4375, 21)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 1.9608
@@ -2143,7 +2620,14 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.361
 
-[node name="surface_106" type="OmniLight3D" parent="Lights" unique_id=4502229]
+[node name="point_166" type="OmniLight3D" parent="Lights" unique_id=1884862914]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 8.7188, 21)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.098
+light_bake_mode = 1
+shadow_enabled = true
+
+[node name="surface_167" type="OmniLight3D" parent="Lights" unique_id=349990784]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 9.4375, 21)
 light_color = Color(1, 0.864, 0.897, 1)
 light_energy = 1.9608
@@ -2151,7 +2635,14 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 22.361
 
-[node name="surface_107" type="OmniLight3D" parent="Lights" unique_id=1401414149]
+[node name="point_168" type="OmniLight3D" parent="Lights" unique_id=381417495]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 8.7188, 21)
+light_color = Color(1, 0.864, 0.897, 1)
+light_energy = 0.098
+light_bake_mode = 1
+shadow_enabled = true
+
+[node name="surface_169" type="OmniLight3D" parent="Lights" unique_id=1090163587]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 10.903, 22.9441)
 light_color = Color(1, 0.998, 0.875, 1)
 light_energy = 9.591
@@ -2159,7 +2650,7 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 49.454
 
-[node name="surface_108" type="OmniLight3D" parent="Lights" unique_id=186121167]
+[node name="surface_170" type="OmniLight3D" parent="Lights" unique_id=588064844]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 10.903, 22.9441)
 light_color = Color(1, 0.998, 0.875, 1)
 light_energy = 9.591
@@ -2167,7 +2658,7 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 49.454
 
-[node name="surface_109" type="OmniLight3D" parent="Lights" unique_id=258490619]
+[node name="surface_171" type="OmniLight3D" parent="Lights" unique_id=1771528232]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9375, 8.4422, 19.5665)
 light_color = Color(1, 0.009, 0.009, 1)
 light_energy = 0.8662
@@ -2175,7 +2666,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 14.862
 
-[node name="surface_110" type="OmniLight3D" parent="Lights" unique_id=57165854]
+[node name="point_172" type="OmniLight3D" parent="Lights" unique_id=1308504735]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9375, 8.1515, 18.9092)
+light_color = Color(1, 0.009, 0.009, 1)
+light_energy = 0.0433
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.323
+
+[node name="surface_173" type="OmniLight3D" parent="Lights" unique_id=846484179]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0625, 7.5971, 19.9402)
 light_color = Color(1, 0.009, 0.009, 1)
 light_energy = 0.8662
@@ -2183,7 +2682,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 14.862
 
-[node name="surface_111" type="OmniLight3D" parent="Lights" unique_id=1791187259]
+[node name="point_174" type="OmniLight3D" parent="Lights" unique_id=1548268202]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0625, 7.3065, 19.2829)
+light_color = Color(1, 0.009, 0.009, 1)
+light_energy = 0.0433
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 3.323
+
+[node name="surface_175" type="OmniLight3D" parent="Lights" unique_id=157843182]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.2756, 16.1106, -1.6856)
 light_color = Color(1, 0.912, 0.889, 1)
 light_energy = 0.1063
@@ -2191,7 +2698,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 5.207
 
-[node name="surface_112" type="OmniLight3D" parent="Lights" unique_id=1100411335]
+[node name="point_176" type="OmniLight3D" parent="Lights" unique_id=1421704994]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.6843, 15.7023, -1.7045)
+light_color = Color(1, 0.912, 0.889, 1)
+light_energy = 0.0053
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.164
+
+[node name="surface_177" type="OmniLight3D" parent="Lights" unique_id=865213177]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.5021, 15.8472, -1.2476)
 light_color = Color(1, 0.912, 0.889, 1)
 light_energy = 0.0766
@@ -2199,7 +2714,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 4.42
 
-[node name="surface_113" type="OmniLight3D" parent="Lights" unique_id=1260359446]
+[node name="point_178" type="OmniLight3D" parent="Lights" unique_id=2070941645]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.1042, 15.2491, -1.2219)
+light_color = Color(1, 0.912, 0.889, 1)
+light_energy = 0.0038
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 0.988
+
+[node name="surface_179" type="OmniLight3D" parent="Lights" unique_id=1511679352]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.2756, 16.1106, -1.3144)
 light_color = Color(1, 0.912, 0.889, 1)
 light_energy = 0.1063
@@ -2207,7 +2730,15 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 5.207
 
-[node name="surface_114" type="OmniLight3D" parent="Lights" unique_id=1238404061]
+[node name="point_180" type="OmniLight3D" parent="Lights" unique_id=1348144469]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.6843, 15.7023, -1.2955)
+light_color = Color(1, 0.912, 0.889, 1)
+light_energy = 0.0053
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 1.164
+
+[node name="surface_181" type="OmniLight3D" parent="Lights" unique_id=1356739854]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.5021, 15.8472, -1.7524)
 light_color = Color(1, 0.912, 0.889, 1)
 light_energy = 0.0766
@@ -2215,1328 +2746,1336 @@ light_bake_mode = 1
 shadow_enabled = true
 omni_range = 4.42
 
-[node name="sun" type="DirectionalLight3D" parent="Lights" unique_id=234452277]
+[node name="point_182" type="OmniLight3D" parent="Lights" unique_id=1759451143]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.1042, 15.2491, -1.7781)
+light_color = Color(1, 0.912, 0.889, 1)
+light_energy = 0.0038
+light_bake_mode = 1
+shadow_enabled = true
+omni_range = 0.988
+
+[node name="sun" type="DirectionalLight3D" parent="Lights" unique_id=1629738345]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0)
 light_energy = 0.1255
 light_bake_mode = 1
 shadow_enabled = true
 
-[node name="Collision" type="StaticBody3D" parent="." unique_id=1249523989]
+[node name="Collision" type="StaticBody3D" parent="." unique_id=603595142]
 collision_mask = 0
 
-[node name="hull_0" type="CollisionShape3D" parent="Collision" unique_id=276391286]
+[node name="hull_0" type="CollisionShape3D" parent="Collision" unique_id=185657737]
 shape = SubResource("ConvexPolygonShape3D_a6iiu")
 
-[node name="hull_1" type="CollisionShape3D" parent="Collision" unique_id=1615583790]
+[node name="hull_1" type="CollisionShape3D" parent="Collision" unique_id=2041306369]
 shape = SubResource("ConvexPolygonShape3D_ucf5p")
 
-[node name="hull_2" type="CollisionShape3D" parent="Collision" unique_id=1137141040]
+[node name="hull_2" type="CollisionShape3D" parent="Collision" unique_id=2140563834]
 shape = SubResource("ConvexPolygonShape3D_us2mr")
 
-[node name="hull_3" type="CollisionShape3D" parent="Collision" unique_id=1192098804]
+[node name="hull_3" type="CollisionShape3D" parent="Collision" unique_id=1791124179]
 shape = SubResource("ConvexPolygonShape3D_omiua")
 
-[node name="hull_4" type="CollisionShape3D" parent="Collision" unique_id=698256218]
+[node name="hull_4" type="CollisionShape3D" parent="Collision" unique_id=1912716001]
 shape = SubResource("ConvexPolygonShape3D_iidbv")
 
-[node name="hull_5" type="CollisionShape3D" parent="Collision" unique_id=739941734]
+[node name="hull_5" type="CollisionShape3D" parent="Collision" unique_id=583716602]
 shape = SubResource("ConvexPolygonShape3D_kmmh6")
 
-[node name="hull_6" type="CollisionShape3D" parent="Collision" unique_id=879130706]
+[node name="hull_6" type="CollisionShape3D" parent="Collision" unique_id=499777670]
 shape = SubResource("ConvexPolygonShape3D_m6jnh")
 
-[node name="hull_7" type="CollisionShape3D" parent="Collision" unique_id=1237770589]
+[node name="hull_7" type="CollisionShape3D" parent="Collision" unique_id=813647096]
 shape = SubResource("ConvexPolygonShape3D_c7b5q")
 
-[node name="hull_8" type="CollisionShape3D" parent="Collision" unique_id=1120553621]
+[node name="hull_8" type="CollisionShape3D" parent="Collision" unique_id=899068155]
 shape = SubResource("ConvexPolygonShape3D_xm1l8")
 
-[node name="hull_9" type="CollisionShape3D" parent="Collision" unique_id=547965971]
+[node name="hull_9" type="CollisionShape3D" parent="Collision" unique_id=1242430399]
 shape = SubResource("ConvexPolygonShape3D_xhueg")
 
-[node name="hull_10" type="CollisionShape3D" parent="Collision" unique_id=248584270]
+[node name="hull_10" type="CollisionShape3D" parent="Collision" unique_id=175592239]
 shape = SubResource("ConvexPolygonShape3D_asplg")
 
-[node name="hull_11" type="CollisionShape3D" parent="Collision" unique_id=1376985865]
+[node name="hull_11" type="CollisionShape3D" parent="Collision" unique_id=73056430]
 shape = SubResource("ConvexPolygonShape3D_m5p1h")
 
-[node name="hull_12" type="CollisionShape3D" parent="Collision" unique_id=641813513]
+[node name="hull_12" type="CollisionShape3D" parent="Collision" unique_id=390881096]
 shape = SubResource("ConvexPolygonShape3D_5ad84")
 
-[node name="hull_13" type="CollisionShape3D" parent="Collision" unique_id=2061383237]
+[node name="hull_13" type="CollisionShape3D" parent="Collision" unique_id=1046305301]
 shape = SubResource("ConvexPolygonShape3D_32ix5")
 
-[node name="hull_14" type="CollisionShape3D" parent="Collision" unique_id=451591151]
+[node name="hull_14" type="CollisionShape3D" parent="Collision" unique_id=670098044]
 shape = SubResource("ConvexPolygonShape3D_3eh0b")
 
-[node name="hull_15" type="CollisionShape3D" parent="Collision" unique_id=944342414]
+[node name="hull_15" type="CollisionShape3D" parent="Collision" unique_id=24429237]
 shape = SubResource("ConvexPolygonShape3D_0sqfg")
 
-[node name="hull_16" type="CollisionShape3D" parent="Collision" unique_id=1126339459]
+[node name="hull_16" type="CollisionShape3D" parent="Collision" unique_id=619691104]
 shape = SubResource("ConvexPolygonShape3D_tcsp7")
 
-[node name="hull_17" type="CollisionShape3D" parent="Collision" unique_id=1599323193]
+[node name="hull_17" type="CollisionShape3D" parent="Collision" unique_id=1150413004]
 shape = SubResource("ConvexPolygonShape3D_nm21y")
 
-[node name="hull_18" type="CollisionShape3D" parent="Collision" unique_id=1116479904]
+[node name="hull_18" type="CollisionShape3D" parent="Collision" unique_id=212961168]
 shape = SubResource("ConvexPolygonShape3D_inoti")
 
-[node name="hull_19" type="CollisionShape3D" parent="Collision" unique_id=1872827945]
+[node name="hull_19" type="CollisionShape3D" parent="Collision" unique_id=1363679747]
 shape = SubResource("ConvexPolygonShape3D_dt3fq")
 
-[node name="hull_20" type="CollisionShape3D" parent="Collision" unique_id=1402719371]
+[node name="hull_20" type="CollisionShape3D" parent="Collision" unique_id=1834631161]
 shape = SubResource("ConvexPolygonShape3D_x4loq")
 
-[node name="hull_21" type="CollisionShape3D" parent="Collision" unique_id=978272366]
+[node name="hull_21" type="CollisionShape3D" parent="Collision" unique_id=1014107000]
 shape = SubResource("ConvexPolygonShape3D_iy5lu")
 
-[node name="hull_22" type="CollisionShape3D" parent="Collision" unique_id=990202534]
+[node name="hull_22" type="CollisionShape3D" parent="Collision" unique_id=2106595430]
 shape = SubResource("ConvexPolygonShape3D_o3n4r")
 
-[node name="hull_23" type="CollisionShape3D" parent="Collision" unique_id=724059510]
+[node name="hull_23" type="CollisionShape3D" parent="Collision" unique_id=1477269631]
 shape = SubResource("ConvexPolygonShape3D_kpbc8")
 
-[node name="hull_24" type="CollisionShape3D" parent="Collision" unique_id=1311250856]
+[node name="hull_24" type="CollisionShape3D" parent="Collision" unique_id=951542902]
 shape = SubResource("ConvexPolygonShape3D_n0po1")
 
-[node name="hull_25" type="CollisionShape3D" parent="Collision" unique_id=813753469]
+[node name="hull_25" type="CollisionShape3D" parent="Collision" unique_id=2096181416]
 shape = SubResource("ConvexPolygonShape3D_dmdal")
 
-[node name="hull_26" type="CollisionShape3D" parent="Collision" unique_id=1675517447]
+[node name="hull_26" type="CollisionShape3D" parent="Collision" unique_id=637933827]
 shape = SubResource("ConvexPolygonShape3D_46ol3")
 
-[node name="hull_27" type="CollisionShape3D" parent="Collision" unique_id=2057195866]
+[node name="hull_27" type="CollisionShape3D" parent="Collision" unique_id=580344418]
 shape = SubResource("ConvexPolygonShape3D_j6f8b")
 
-[node name="hull_28" type="CollisionShape3D" parent="Collision" unique_id=1273449130]
+[node name="hull_28" type="CollisionShape3D" parent="Collision" unique_id=1416380649]
 shape = SubResource("ConvexPolygonShape3D_5a57n")
 
-[node name="hull_29" type="CollisionShape3D" parent="Collision" unique_id=1326437894]
+[node name="hull_29" type="CollisionShape3D" parent="Collision" unique_id=378314979]
 shape = SubResource("ConvexPolygonShape3D_se1rr")
 
-[node name="hull_30" type="CollisionShape3D" parent="Collision" unique_id=621840361]
+[node name="hull_30" type="CollisionShape3D" parent="Collision" unique_id=157890733]
 shape = SubResource("ConvexPolygonShape3D_eo2rj")
 
-[node name="hull_31" type="CollisionShape3D" parent="Collision" unique_id=1293981122]
+[node name="hull_31" type="CollisionShape3D" parent="Collision" unique_id=1318964169]
 shape = SubResource("ConvexPolygonShape3D_sdthh")
 
-[node name="hull_32" type="CollisionShape3D" parent="Collision" unique_id=27301937]
+[node name="hull_32" type="CollisionShape3D" parent="Collision" unique_id=5412740]
 shape = SubResource("ConvexPolygonShape3D_ap1tj")
 
-[node name="hull_33" type="CollisionShape3D" parent="Collision" unique_id=1217637238]
+[node name="hull_33" type="CollisionShape3D" parent="Collision" unique_id=1288296188]
 shape = SubResource("ConvexPolygonShape3D_f14e0")
 
-[node name="hull_34" type="CollisionShape3D" parent="Collision" unique_id=42391630]
+[node name="hull_34" type="CollisionShape3D" parent="Collision" unique_id=694495436]
 shape = SubResource("ConvexPolygonShape3D_4qsi3")
 
-[node name="hull_35" type="CollisionShape3D" parent="Collision" unique_id=1368597246]
+[node name="hull_35" type="CollisionShape3D" parent="Collision" unique_id=105288035]
 shape = SubResource("ConvexPolygonShape3D_kmeha")
 
-[node name="hull_36" type="CollisionShape3D" parent="Collision" unique_id=167447437]
+[node name="hull_36" type="CollisionShape3D" parent="Collision" unique_id=1204894291]
 shape = SubResource("ConvexPolygonShape3D_oba5h")
 
-[node name="hull_37" type="CollisionShape3D" parent="Collision" unique_id=122798124]
+[node name="hull_37" type="CollisionShape3D" parent="Collision" unique_id=439658515]
 shape = SubResource("ConvexPolygonShape3D_jyejw")
 
-[node name="hull_38" type="CollisionShape3D" parent="Collision" unique_id=25114123]
+[node name="hull_38" type="CollisionShape3D" parent="Collision" unique_id=1945882765]
 shape = SubResource("ConvexPolygonShape3D_kxebk")
 
-[node name="hull_39" type="CollisionShape3D" parent="Collision" unique_id=1701631641]
+[node name="hull_39" type="CollisionShape3D" parent="Collision" unique_id=259267567]
 shape = SubResource("ConvexPolygonShape3D_3yvj6")
 
-[node name="hull_40" type="CollisionShape3D" parent="Collision" unique_id=227376739]
+[node name="hull_40" type="CollisionShape3D" parent="Collision" unique_id=575792038]
 shape = SubResource("ConvexPolygonShape3D_7s6i6")
 
-[node name="hull_41" type="CollisionShape3D" parent="Collision" unique_id=347238619]
+[node name="hull_41" type="CollisionShape3D" parent="Collision" unique_id=1852071828]
 shape = SubResource("ConvexPolygonShape3D_s833f")
 
-[node name="hull_42" type="CollisionShape3D" parent="Collision" unique_id=998049887]
+[node name="hull_42" type="CollisionShape3D" parent="Collision" unique_id=1688061535]
 shape = SubResource("ConvexPolygonShape3D_b4as0")
 
-[node name="hull_43" type="CollisionShape3D" parent="Collision" unique_id=61419686]
+[node name="hull_43" type="CollisionShape3D" parent="Collision" unique_id=1109010724]
 shape = SubResource("ConvexPolygonShape3D_i7xdv")
 
-[node name="hull_44" type="CollisionShape3D" parent="Collision" unique_id=1050674483]
+[node name="hull_44" type="CollisionShape3D" parent="Collision" unique_id=1511182184]
 shape = SubResource("ConvexPolygonShape3D_mv4a4")
 
-[node name="hull_45" type="CollisionShape3D" parent="Collision" unique_id=24016249]
+[node name="hull_45" type="CollisionShape3D" parent="Collision" unique_id=397380047]
 shape = SubResource("ConvexPolygonShape3D_dj11l")
 
-[node name="hull_46" type="CollisionShape3D" parent="Collision" unique_id=1573803160]
+[node name="hull_46" type="CollisionShape3D" parent="Collision" unique_id=1260701622]
 shape = SubResource("ConvexPolygonShape3D_btdcm")
 
-[node name="hull_47" type="CollisionShape3D" parent="Collision" unique_id=1513594914]
+[node name="hull_47" type="CollisionShape3D" parent="Collision" unique_id=1905847229]
 shape = SubResource("ConvexPolygonShape3D_dj5k1")
 
-[node name="hull_48" type="CollisionShape3D" parent="Collision" unique_id=314910381]
+[node name="hull_48" type="CollisionShape3D" parent="Collision" unique_id=1451900737]
 shape = SubResource("ConvexPolygonShape3D_asb8c")
 
-[node name="hull_49" type="CollisionShape3D" parent="Collision" unique_id=1377914395]
+[node name="hull_49" type="CollisionShape3D" parent="Collision" unique_id=759725244]
 shape = SubResource("ConvexPolygonShape3D_trdha")
 
-[node name="hull_50" type="CollisionShape3D" parent="Collision" unique_id=1614029147]
+[node name="hull_50" type="CollisionShape3D" parent="Collision" unique_id=1393466016]
 shape = SubResource("ConvexPolygonShape3D_06yn6")
 
-[node name="hull_51" type="CollisionShape3D" parent="Collision" unique_id=1343643506]
+[node name="hull_51" type="CollisionShape3D" parent="Collision" unique_id=472794482]
 shape = SubResource("ConvexPolygonShape3D_lb1u8")
 
-[node name="hull_52" type="CollisionShape3D" parent="Collision" unique_id=1321648680]
+[node name="hull_52" type="CollisionShape3D" parent="Collision" unique_id=2068793003]
 shape = SubResource("ConvexPolygonShape3D_sm1rv")
 
-[node name="hull_53" type="CollisionShape3D" parent="Collision" unique_id=1314917043]
+[node name="hull_53" type="CollisionShape3D" parent="Collision" unique_id=1632422925]
 shape = SubResource("ConvexPolygonShape3D_baktt")
 
-[node name="hull_54" type="CollisionShape3D" parent="Collision" unique_id=2080618071]
+[node name="hull_54" type="CollisionShape3D" parent="Collision" unique_id=930831291]
 shape = SubResource("ConvexPolygonShape3D_40vsa")
 
-[node name="hull_55" type="CollisionShape3D" parent="Collision" unique_id=542228872]
+[node name="hull_55" type="CollisionShape3D" parent="Collision" unique_id=1952954010]
 shape = SubResource("ConvexPolygonShape3D_8kvtc")
 
-[node name="hull_56" type="CollisionShape3D" parent="Collision" unique_id=571099878]
+[node name="hull_56" type="CollisionShape3D" parent="Collision" unique_id=886580620]
 shape = SubResource("ConvexPolygonShape3D_ps4bc")
 
-[node name="hull_57" type="CollisionShape3D" parent="Collision" unique_id=1937960922]
+[node name="hull_57" type="CollisionShape3D" parent="Collision" unique_id=1816985066]
 shape = SubResource("ConvexPolygonShape3D_qo4x8")
 
-[node name="hull_58" type="CollisionShape3D" parent="Collision" unique_id=1817267601]
+[node name="hull_58" type="CollisionShape3D" parent="Collision" unique_id=1071438818]
 shape = SubResource("ConvexPolygonShape3D_87bt4")
 
-[node name="hull_59" type="CollisionShape3D" parent="Collision" unique_id=492261016]
+[node name="hull_59" type="CollisionShape3D" parent="Collision" unique_id=2030297706]
 shape = SubResource("ConvexPolygonShape3D_g1e0c")
 
-[node name="hull_60" type="CollisionShape3D" parent="Collision" unique_id=894361129]
+[node name="hull_60" type="CollisionShape3D" parent="Collision" unique_id=1181447277]
 shape = SubResource("ConvexPolygonShape3D_1vr2y")
 
-[node name="hull_61" type="CollisionShape3D" parent="Collision" unique_id=954485803]
+[node name="hull_61" type="CollisionShape3D" parent="Collision" unique_id=729539142]
 shape = SubResource("ConvexPolygonShape3D_k2mhp")
 
-[node name="hull_62" type="CollisionShape3D" parent="Collision" unique_id=1661556898]
+[node name="hull_62" type="CollisionShape3D" parent="Collision" unique_id=1142223027]
 shape = SubResource("ConvexPolygonShape3D_qsd21")
 
-[node name="hull_63" type="CollisionShape3D" parent="Collision" unique_id=991078692]
+[node name="hull_63" type="CollisionShape3D" parent="Collision" unique_id=1906636203]
 shape = SubResource("ConvexPolygonShape3D_7lpq5")
 
-[node name="hull_64" type="CollisionShape3D" parent="Collision" unique_id=1336605080]
+[node name="hull_64" type="CollisionShape3D" parent="Collision" unique_id=1868938975]
 shape = SubResource("ConvexPolygonShape3D_vokwi")
 
-[node name="hull_65" type="CollisionShape3D" parent="Collision" unique_id=762182842]
+[node name="hull_65" type="CollisionShape3D" parent="Collision" unique_id=251312451]
 shape = SubResource("ConvexPolygonShape3D_ccpnw")
 
-[node name="hull_66" type="CollisionShape3D" parent="Collision" unique_id=1665193105]
+[node name="hull_66" type="CollisionShape3D" parent="Collision" unique_id=857058677]
 shape = SubResource("ConvexPolygonShape3D_njwsk")
 
-[node name="hull_67" type="CollisionShape3D" parent="Collision" unique_id=606480426]
+[node name="hull_67" type="CollisionShape3D" parent="Collision" unique_id=1064532757]
 shape = SubResource("ConvexPolygonShape3D_8qkdd")
 
-[node name="hull_68" type="CollisionShape3D" parent="Collision" unique_id=1921544535]
+[node name="hull_68" type="CollisionShape3D" parent="Collision" unique_id=1524144539]
 shape = SubResource("ConvexPolygonShape3D_q6syu")
 
-[node name="hull_69" type="CollisionShape3D" parent="Collision" unique_id=363955199]
+[node name="hull_69" type="CollisionShape3D" parent="Collision" unique_id=1351860404]
 shape = SubResource("ConvexPolygonShape3D_lj7e4")
 
-[node name="hull_70" type="CollisionShape3D" parent="Collision" unique_id=267842406]
+[node name="hull_70" type="CollisionShape3D" parent="Collision" unique_id=1928459194]
 shape = SubResource("ConvexPolygonShape3D_8srg3")
 
-[node name="hull_71" type="CollisionShape3D" parent="Collision" unique_id=1706168618]
+[node name="hull_71" type="CollisionShape3D" parent="Collision" unique_id=421881749]
 shape = SubResource("ConvexPolygonShape3D_6kubc")
 
-[node name="hull_72" type="CollisionShape3D" parent="Collision" unique_id=582287786]
+[node name="hull_72" type="CollisionShape3D" parent="Collision" unique_id=271615448]
 shape = SubResource("ConvexPolygonShape3D_bejhu")
 
-[node name="hull_73" type="CollisionShape3D" parent="Collision" unique_id=1715819450]
+[node name="hull_73" type="CollisionShape3D" parent="Collision" unique_id=1236274795]
 shape = SubResource("ConvexPolygonShape3D_miqhf")
 
-[node name="hull_74" type="CollisionShape3D" parent="Collision" unique_id=420717019]
+[node name="hull_74" type="CollisionShape3D" parent="Collision" unique_id=588113483]
 shape = SubResource("ConvexPolygonShape3D_4k2ve")
 
-[node name="hull_75" type="CollisionShape3D" parent="Collision" unique_id=1076394340]
+[node name="hull_75" type="CollisionShape3D" parent="Collision" unique_id=1531207754]
 shape = SubResource("ConvexPolygonShape3D_kajsq")
 
-[node name="hull_76" type="CollisionShape3D" parent="Collision" unique_id=19330115]
+[node name="hull_76" type="CollisionShape3D" parent="Collision" unique_id=1879019670]
 shape = SubResource("ConvexPolygonShape3D_pfx8g")
 
-[node name="hull_77" type="CollisionShape3D" parent="Collision" unique_id=1751655438]
+[node name="hull_77" type="CollisionShape3D" parent="Collision" unique_id=1448971270]
 shape = SubResource("ConvexPolygonShape3D_pfcs7")
 
-[node name="hull_78" type="CollisionShape3D" parent="Collision" unique_id=49640634]
+[node name="hull_78" type="CollisionShape3D" parent="Collision" unique_id=1421716780]
 shape = SubResource("ConvexPolygonShape3D_3fmdf")
 
-[node name="hull_79" type="CollisionShape3D" parent="Collision" unique_id=1257934689]
+[node name="hull_79" type="CollisionShape3D" parent="Collision" unique_id=366060901]
 shape = SubResource("ConvexPolygonShape3D_nh7te")
 
-[node name="hull_80" type="CollisionShape3D" parent="Collision" unique_id=257125565]
+[node name="hull_80" type="CollisionShape3D" parent="Collision" unique_id=865502995]
 shape = SubResource("ConvexPolygonShape3D_u8gsx")
 
-[node name="hull_81" type="CollisionShape3D" parent="Collision" unique_id=1672628361]
+[node name="hull_81" type="CollisionShape3D" parent="Collision" unique_id=1241915266]
 shape = SubResource("ConvexPolygonShape3D_fhe82")
 
-[node name="hull_82" type="CollisionShape3D" parent="Collision" unique_id=1642132696]
+[node name="hull_82" type="CollisionShape3D" parent="Collision" unique_id=1966533713]
 shape = SubResource("ConvexPolygonShape3D_jaye1")
 
-[node name="hull_83" type="CollisionShape3D" parent="Collision" unique_id=824706146]
+[node name="hull_83" type="CollisionShape3D" parent="Collision" unique_id=1958040718]
 shape = SubResource("ConvexPolygonShape3D_iwnoy")
 
-[node name="hull_84" type="CollisionShape3D" parent="Collision" unique_id=1157201198]
+[node name="hull_84" type="CollisionShape3D" parent="Collision" unique_id=1905531650]
 shape = SubResource("ConvexPolygonShape3D_yei8f")
 
-[node name="hull_85" type="CollisionShape3D" parent="Collision" unique_id=60444261]
+[node name="hull_85" type="CollisionShape3D" parent="Collision" unique_id=26633578]
 shape = SubResource("ConvexPolygonShape3D_ur3nl")
 
-[node name="hull_86" type="CollisionShape3D" parent="Collision" unique_id=1294856473]
+[node name="hull_86" type="CollisionShape3D" parent="Collision" unique_id=1093558880]
 shape = SubResource("ConvexPolygonShape3D_04fbv")
 
-[node name="hull_87" type="CollisionShape3D" parent="Collision" unique_id=924662588]
+[node name="hull_87" type="CollisionShape3D" parent="Collision" unique_id=1484478685]
 shape = SubResource("ConvexPolygonShape3D_r5jqt")
 
-[node name="hull_88" type="CollisionShape3D" parent="Collision" unique_id=1818631874]
+[node name="hull_88" type="CollisionShape3D" parent="Collision" unique_id=1610903955]
 shape = SubResource("ConvexPolygonShape3D_6wcyn")
 
-[node name="hull_89" type="CollisionShape3D" parent="Collision" unique_id=244333712]
+[node name="hull_89" type="CollisionShape3D" parent="Collision" unique_id=432875852]
 shape = SubResource("ConvexPolygonShape3D_aiiw3")
 
-[node name="hull_90" type="CollisionShape3D" parent="Collision" unique_id=230386540]
+[node name="hull_90" type="CollisionShape3D" parent="Collision" unique_id=126335201]
 shape = SubResource("ConvexPolygonShape3D_m407l")
 
-[node name="hull_91" type="CollisionShape3D" parent="Collision" unique_id=2093943285]
+[node name="hull_91" type="CollisionShape3D" parent="Collision" unique_id=574961813]
 shape = SubResource("ConvexPolygonShape3D_6r0k8")
 
-[node name="hull_92" type="CollisionShape3D" parent="Collision" unique_id=1876154682]
+[node name="hull_92" type="CollisionShape3D" parent="Collision" unique_id=1917665512]
 shape = SubResource("ConvexPolygonShape3D_j5rul")
 
-[node name="hull_93" type="CollisionShape3D" parent="Collision" unique_id=1876737887]
+[node name="hull_93" type="CollisionShape3D" parent="Collision" unique_id=1642057615]
 shape = SubResource("ConvexPolygonShape3D_6kp3e")
 
-[node name="hull_94" type="CollisionShape3D" parent="Collision" unique_id=1312485404]
+[node name="hull_94" type="CollisionShape3D" parent="Collision" unique_id=796446744]
 shape = SubResource("ConvexPolygonShape3D_xfd38")
 
-[node name="hull_95" type="CollisionShape3D" parent="Collision" unique_id=1656689629]
+[node name="hull_95" type="CollisionShape3D" parent="Collision" unique_id=509189878]
 shape = SubResource("ConvexPolygonShape3D_neglg")
 
-[node name="hull_96" type="CollisionShape3D" parent="Collision" unique_id=589049124]
+[node name="hull_96" type="CollisionShape3D" parent="Collision" unique_id=712293945]
 shape = SubResource("ConvexPolygonShape3D_m76bk")
 
-[node name="hull_97" type="CollisionShape3D" parent="Collision" unique_id=198351722]
+[node name="hull_97" type="CollisionShape3D" parent="Collision" unique_id=911919522]
 shape = SubResource("ConvexPolygonShape3D_uk0en")
 
-[node name="hull_98" type="CollisionShape3D" parent="Collision" unique_id=2039720993]
+[node name="hull_98" type="CollisionShape3D" parent="Collision" unique_id=1586233093]
 shape = SubResource("ConvexPolygonShape3D_jxsm8")
 
-[node name="hull_99" type="CollisionShape3D" parent="Collision" unique_id=642037495]
+[node name="hull_99" type="CollisionShape3D" parent="Collision" unique_id=153632350]
 shape = SubResource("ConvexPolygonShape3D_1lvio")
 
-[node name="hull_100" type="CollisionShape3D" parent="Collision" unique_id=1321691303]
+[node name="hull_100" type="CollisionShape3D" parent="Collision" unique_id=1799004931]
 shape = SubResource("ConvexPolygonShape3D_h476j")
 
-[node name="hull_101" type="CollisionShape3D" parent="Collision" unique_id=1032665021]
+[node name="hull_101" type="CollisionShape3D" parent="Collision" unique_id=69679535]
 shape = SubResource("ConvexPolygonShape3D_rvlwr")
 
-[node name="hull_102" type="CollisionShape3D" parent="Collision" unique_id=1514379971]
+[node name="hull_102" type="CollisionShape3D" parent="Collision" unique_id=1926875226]
 shape = SubResource("ConvexPolygonShape3D_26ql8")
 
-[node name="hull_103" type="CollisionShape3D" parent="Collision" unique_id=1435671791]
+[node name="hull_103" type="CollisionShape3D" parent="Collision" unique_id=1392755336]
 shape = SubResource("ConvexPolygonShape3D_en7a7")
 
-[node name="hull_104" type="CollisionShape3D" parent="Collision" unique_id=1457105888]
+[node name="hull_104" type="CollisionShape3D" parent="Collision" unique_id=757995991]
 shape = SubResource("ConvexPolygonShape3D_ns33x")
 
-[node name="hull_105" type="CollisionShape3D" parent="Collision" unique_id=1872324385]
+[node name="hull_105" type="CollisionShape3D" parent="Collision" unique_id=325707043]
 shape = SubResource("ConvexPolygonShape3D_paogq")
 
-[node name="hull_106" type="CollisionShape3D" parent="Collision" unique_id=1810580110]
+[node name="hull_106" type="CollisionShape3D" parent="Collision" unique_id=1936349391]
 shape = SubResource("ConvexPolygonShape3D_by34e")
 
-[node name="hull_107" type="CollisionShape3D" parent="Collision" unique_id=1282112651]
+[node name="hull_107" type="CollisionShape3D" parent="Collision" unique_id=857881069]
 shape = SubResource("ConvexPolygonShape3D_f2ohi")
 
-[node name="hull_108" type="CollisionShape3D" parent="Collision" unique_id=1106291233]
+[node name="hull_108" type="CollisionShape3D" parent="Collision" unique_id=2089187605]
 shape = SubResource("ConvexPolygonShape3D_cwamu")
 
-[node name="hull_109" type="CollisionShape3D" parent="Collision" unique_id=1532358359]
+[node name="hull_109" type="CollisionShape3D" parent="Collision" unique_id=518979121]
 shape = SubResource("ConvexPolygonShape3D_aa6og")
 
-[node name="hull_110" type="CollisionShape3D" parent="Collision" unique_id=1886040679]
+[node name="hull_110" type="CollisionShape3D" parent="Collision" unique_id=757729903]
 shape = SubResource("ConvexPolygonShape3D_kqbrs")
 
-[node name="hull_111" type="CollisionShape3D" parent="Collision" unique_id=1774980710]
+[node name="hull_111" type="CollisionShape3D" parent="Collision" unique_id=187289293]
 shape = SubResource("ConvexPolygonShape3D_nd10g")
 
-[node name="hull_112" type="CollisionShape3D" parent="Collision" unique_id=1206935490]
+[node name="hull_112" type="CollisionShape3D" parent="Collision" unique_id=1682577497]
 shape = SubResource("ConvexPolygonShape3D_po28f")
 
-[node name="hull_113" type="CollisionShape3D" parent="Collision" unique_id=1304234239]
+[node name="hull_113" type="CollisionShape3D" parent="Collision" unique_id=195986745]
 shape = SubResource("ConvexPolygonShape3D_k7vsp")
 
-[node name="hull_114" type="CollisionShape3D" parent="Collision" unique_id=1268611198]
+[node name="hull_114" type="CollisionShape3D" parent="Collision" unique_id=1736857433]
 shape = SubResource("ConvexPolygonShape3D_yc8ob")
 
-[node name="hull_115" type="CollisionShape3D" parent="Collision" unique_id=1025505918]
+[node name="hull_115" type="CollisionShape3D" parent="Collision" unique_id=805848396]
 shape = SubResource("ConvexPolygonShape3D_0atp2")
 
-[node name="hull_116" type="CollisionShape3D" parent="Collision" unique_id=1018445039]
+[node name="hull_116" type="CollisionShape3D" parent="Collision" unique_id=2028335840]
 shape = SubResource("ConvexPolygonShape3D_rstb3")
 
-[node name="hull_117" type="CollisionShape3D" parent="Collision" unique_id=965324589]
+[node name="hull_117" type="CollisionShape3D" parent="Collision" unique_id=186039884]
 shape = SubResource("ConvexPolygonShape3D_1u4up")
 
-[node name="hull_118" type="CollisionShape3D" parent="Collision" unique_id=1536606046]
+[node name="hull_118" type="CollisionShape3D" parent="Collision" unique_id=18725151]
 shape = SubResource("ConvexPolygonShape3D_ks7tj")
 
-[node name="hull_119" type="CollisionShape3D" parent="Collision" unique_id=289448643]
+[node name="hull_119" type="CollisionShape3D" parent="Collision" unique_id=608511211]
 shape = SubResource("ConvexPolygonShape3D_h26d4")
 
-[node name="hull_120" type="CollisionShape3D" parent="Collision" unique_id=1736142031]
+[node name="hull_120" type="CollisionShape3D" parent="Collision" unique_id=1041246880]
 shape = SubResource("ConvexPolygonShape3D_wprbx")
 
-[node name="hull_121" type="CollisionShape3D" parent="Collision" unique_id=1236411369]
+[node name="hull_121" type="CollisionShape3D" parent="Collision" unique_id=1079655225]
 shape = SubResource("ConvexPolygonShape3D_8spnh")
 
-[node name="hull_122" type="CollisionShape3D" parent="Collision" unique_id=354097967]
+[node name="hull_122" type="CollisionShape3D" parent="Collision" unique_id=1798468129]
 shape = SubResource("ConvexPolygonShape3D_7pcnt")
 
-[node name="hull_123" type="CollisionShape3D" parent="Collision" unique_id=1993923256]
+[node name="hull_123" type="CollisionShape3D" parent="Collision" unique_id=1750248822]
 shape = SubResource("ConvexPolygonShape3D_o6k3x")
 
-[node name="hull_124" type="CollisionShape3D" parent="Collision" unique_id=569007048]
+[node name="hull_124" type="CollisionShape3D" parent="Collision" unique_id=1693234784]
 shape = SubResource("ConvexPolygonShape3D_cgdge")
 
-[node name="hull_125" type="CollisionShape3D" parent="Collision" unique_id=769827090]
+[node name="hull_125" type="CollisionShape3D" parent="Collision" unique_id=1106371249]
 shape = SubResource("ConvexPolygonShape3D_khrno")
 
-[node name="hull_126" type="CollisionShape3D" parent="Collision" unique_id=1299469551]
+[node name="hull_126" type="CollisionShape3D" parent="Collision" unique_id=37571365]
 shape = SubResource("ConvexPolygonShape3D_op2m3")
 
-[node name="hull_127" type="CollisionShape3D" parent="Collision" unique_id=1209813340]
+[node name="hull_127" type="CollisionShape3D" parent="Collision" unique_id=308313187]
 shape = SubResource("ConvexPolygonShape3D_5mg1i")
 
-[node name="hull_128" type="CollisionShape3D" parent="Collision" unique_id=1131154944]
+[node name="hull_128" type="CollisionShape3D" parent="Collision" unique_id=857127878]
 shape = SubResource("ConvexPolygonShape3D_cpnbo")
 
-[node name="hull_129" type="CollisionShape3D" parent="Collision" unique_id=127523795]
+[node name="hull_129" type="CollisionShape3D" parent="Collision" unique_id=1042524453]
 shape = SubResource("ConvexPolygonShape3D_0h21m")
 
-[node name="hull_130" type="CollisionShape3D" parent="Collision" unique_id=809224386]
+[node name="hull_130" type="CollisionShape3D" parent="Collision" unique_id=284419532]
 shape = SubResource("ConvexPolygonShape3D_7rce1")
 
-[node name="hull_131" type="CollisionShape3D" parent="Collision" unique_id=1270616137]
+[node name="hull_131" type="CollisionShape3D" parent="Collision" unique_id=1914697861]
 shape = SubResource("ConvexPolygonShape3D_sit73")
 
-[node name="hull_132" type="CollisionShape3D" parent="Collision" unique_id=820331819]
+[node name="hull_132" type="CollisionShape3D" parent="Collision" unique_id=2115939007]
 shape = SubResource("ConvexPolygonShape3D_bfjkr")
 
-[node name="hull_133" type="CollisionShape3D" parent="Collision" unique_id=1314296708]
+[node name="hull_133" type="CollisionShape3D" parent="Collision" unique_id=43032846]
 shape = SubResource("ConvexPolygonShape3D_wvj7q")
 
-[node name="hull_134" type="CollisionShape3D" parent="Collision" unique_id=445642530]
+[node name="hull_134" type="CollisionShape3D" parent="Collision" unique_id=38684768]
 shape = SubResource("ConvexPolygonShape3D_7ebu1")
 
-[node name="hull_135" type="CollisionShape3D" parent="Collision" unique_id=553419425]
+[node name="hull_135" type="CollisionShape3D" parent="Collision" unique_id=1802766000]
 shape = SubResource("ConvexPolygonShape3D_6edhu")
 
-[node name="hull_136" type="CollisionShape3D" parent="Collision" unique_id=833557651]
+[node name="hull_136" type="CollisionShape3D" parent="Collision" unique_id=1615412325]
 shape = SubResource("ConvexPolygonShape3D_q4mk5")
 
-[node name="hull_137" type="CollisionShape3D" parent="Collision" unique_id=2127294322]
+[node name="hull_137" type="CollisionShape3D" parent="Collision" unique_id=713423321]
 shape = SubResource("ConvexPolygonShape3D_o6kh5")
 
-[node name="hull_138" type="CollisionShape3D" parent="Collision" unique_id=398524196]
+[node name="hull_138" type="CollisionShape3D" parent="Collision" unique_id=1905646857]
 shape = SubResource("ConvexPolygonShape3D_kgp0p")
 
-[node name="hull_139" type="CollisionShape3D" parent="Collision" unique_id=2311014]
+[node name="hull_139" type="CollisionShape3D" parent="Collision" unique_id=1028547151]
 shape = SubResource("ConvexPolygonShape3D_huo67")
 
-[node name="hull_140" type="CollisionShape3D" parent="Collision" unique_id=737558328]
+[node name="hull_140" type="CollisionShape3D" parent="Collision" unique_id=20864421]
 shape = SubResource("ConvexPolygonShape3D_onkvg")
 
-[node name="hull_141" type="CollisionShape3D" parent="Collision" unique_id=779718731]
+[node name="hull_141" type="CollisionShape3D" parent="Collision" unique_id=1714580535]
 shape = SubResource("ConvexPolygonShape3D_pena6")
 
-[node name="hull_142" type="CollisionShape3D" parent="Collision" unique_id=837599591]
+[node name="hull_142" type="CollisionShape3D" parent="Collision" unique_id=356105981]
 shape = SubResource("ConvexPolygonShape3D_pumsd")
 
-[node name="hull_143" type="CollisionShape3D" parent="Collision" unique_id=1190134910]
+[node name="hull_143" type="CollisionShape3D" parent="Collision" unique_id=980744239]
 shape = SubResource("ConvexPolygonShape3D_1nf7m")
 
-[node name="hull_144" type="CollisionShape3D" parent="Collision" unique_id=1704971032]
+[node name="hull_144" type="CollisionShape3D" parent="Collision" unique_id=1853322448]
 shape = SubResource("ConvexPolygonShape3D_0whff")
 
-[node name="hull_145" type="CollisionShape3D" parent="Collision" unique_id=1060521922]
+[node name="hull_145" type="CollisionShape3D" parent="Collision" unique_id=1253674762]
 shape = SubResource("ConvexPolygonShape3D_md0l3")
 
-[node name="hull_146" type="CollisionShape3D" parent="Collision" unique_id=1663797385]
+[node name="hull_146" type="CollisionShape3D" parent="Collision" unique_id=352468881]
 shape = SubResource("ConvexPolygonShape3D_f7eca")
 
-[node name="hull_147" type="CollisionShape3D" parent="Collision" unique_id=1417807543]
+[node name="hull_147" type="CollisionShape3D" parent="Collision" unique_id=532149427]
 shape = SubResource("ConvexPolygonShape3D_hjtad")
 
-[node name="hull_148" type="CollisionShape3D" parent="Collision" unique_id=1584481301]
+[node name="hull_148" type="CollisionShape3D" parent="Collision" unique_id=1798215192]
 shape = SubResource("ConvexPolygonShape3D_qtm5m")
 
-[node name="hull_149" type="CollisionShape3D" parent="Collision" unique_id=1022425012]
+[node name="hull_149" type="CollisionShape3D" parent="Collision" unique_id=302585363]
 shape = SubResource("ConvexPolygonShape3D_ey3uy")
 
-[node name="hull_150" type="CollisionShape3D" parent="Collision" unique_id=1878154860]
+[node name="hull_150" type="CollisionShape3D" parent="Collision" unique_id=810563281]
 shape = SubResource("ConvexPolygonShape3D_y2uoo")
 
-[node name="hull_151" type="CollisionShape3D" parent="Collision" unique_id=1291228932]
+[node name="hull_151" type="CollisionShape3D" parent="Collision" unique_id=1927155700]
 shape = SubResource("ConvexPolygonShape3D_oqtfk")
 
-[node name="hull_152" type="CollisionShape3D" parent="Collision" unique_id=1060495497]
+[node name="hull_152" type="CollisionShape3D" parent="Collision" unique_id=1373215548]
 shape = SubResource("ConvexPolygonShape3D_0iccx")
 
-[node name="hull_153" type="CollisionShape3D" parent="Collision" unique_id=1793820117]
+[node name="hull_153" type="CollisionShape3D" parent="Collision" unique_id=1835661535]
 shape = SubResource("ConvexPolygonShape3D_riqka")
 
-[node name="hull_154" type="CollisionShape3D" parent="Collision" unique_id=1978851009]
+[node name="hull_154" type="CollisionShape3D" parent="Collision" unique_id=489649979]
 shape = SubResource("ConvexPolygonShape3D_8ove4")
 
-[node name="hull_155" type="CollisionShape3D" parent="Collision" unique_id=909766632]
+[node name="hull_155" type="CollisionShape3D" parent="Collision" unique_id=1077044132]
 shape = SubResource("ConvexPolygonShape3D_5gqnm")
 
-[node name="hull_156" type="CollisionShape3D" parent="Collision" unique_id=1883300861]
+[node name="hull_156" type="CollisionShape3D" parent="Collision" unique_id=403018291]
 shape = SubResource("ConvexPolygonShape3D_v6bjq")
 
-[node name="hull_157" type="CollisionShape3D" parent="Collision" unique_id=1742341027]
+[node name="hull_157" type="CollisionShape3D" parent="Collision" unique_id=88116876]
 shape = SubResource("ConvexPolygonShape3D_5vrpa")
 
-[node name="hull_158" type="CollisionShape3D" parent="Collision" unique_id=1221760643]
+[node name="hull_158" type="CollisionShape3D" parent="Collision" unique_id=92263710]
 shape = SubResource("ConvexPolygonShape3D_v2vec")
 
-[node name="hull_159" type="CollisionShape3D" parent="Collision" unique_id=1007179016]
+[node name="hull_159" type="CollisionShape3D" parent="Collision" unique_id=2104893891]
 shape = SubResource("ConvexPolygonShape3D_ovmtj")
 
-[node name="hull_160" type="CollisionShape3D" parent="Collision" unique_id=1701980500]
+[node name="hull_160" type="CollisionShape3D" parent="Collision" unique_id=1027052354]
 shape = SubResource("ConvexPolygonShape3D_fx8rd")
 
-[node name="hull_161" type="CollisionShape3D" parent="Collision" unique_id=226439673]
+[node name="hull_161" type="CollisionShape3D" parent="Collision" unique_id=864042192]
 shape = SubResource("ConvexPolygonShape3D_4uxny")
 
-[node name="hull_162" type="CollisionShape3D" parent="Collision" unique_id=415527107]
+[node name="hull_162" type="CollisionShape3D" parent="Collision" unique_id=283180357]
 shape = SubResource("ConvexPolygonShape3D_nd7ni")
 
-[node name="hull_163" type="CollisionShape3D" parent="Collision" unique_id=1687611807]
+[node name="hull_163" type="CollisionShape3D" parent="Collision" unique_id=1274760490]
 shape = SubResource("ConvexPolygonShape3D_46p8y")
 
-[node name="hull_164" type="CollisionShape3D" parent="Collision" unique_id=1109692209]
+[node name="hull_164" type="CollisionShape3D" parent="Collision" unique_id=240387778]
 shape = SubResource("ConvexPolygonShape3D_48syo")
 
-[node name="hull_165" type="CollisionShape3D" parent="Collision" unique_id=1625584686]
+[node name="hull_165" type="CollisionShape3D" parent="Collision" unique_id=1400214810]
 shape = SubResource("ConvexPolygonShape3D_ocn1q")
 
-[node name="hull_166" type="CollisionShape3D" parent="Collision" unique_id=1129829813]
+[node name="hull_166" type="CollisionShape3D" parent="Collision" unique_id=1665419871]
 shape = SubResource("ConvexPolygonShape3D_a1ops")
 
-[node name="hull_167" type="CollisionShape3D" parent="Collision" unique_id=1490811895]
+[node name="hull_167" type="CollisionShape3D" parent="Collision" unique_id=1922463298]
 shape = SubResource("ConvexPolygonShape3D_slqiw")
 
-[node name="hull_168" type="CollisionShape3D" parent="Collision" unique_id=1911122244]
+[node name="hull_168" type="CollisionShape3D" parent="Collision" unique_id=1191294611]
 shape = SubResource("ConvexPolygonShape3D_odpdl")
 
-[node name="hull_169" type="CollisionShape3D" parent="Collision" unique_id=971245192]
+[node name="hull_169" type="CollisionShape3D" parent="Collision" unique_id=809384369]
 shape = SubResource("ConvexPolygonShape3D_a25c8")
 
-[node name="hull_170" type="CollisionShape3D" parent="Collision" unique_id=1161963585]
+[node name="hull_170" type="CollisionShape3D" parent="Collision" unique_id=620022983]
 shape = SubResource("ConvexPolygonShape3D_ppsle")
 
-[node name="hull_171" type="CollisionShape3D" parent="Collision" unique_id=1169041200]
+[node name="hull_171" type="CollisionShape3D" parent="Collision" unique_id=201094766]
 shape = SubResource("ConvexPolygonShape3D_6kt33")
 
-[node name="hull_172" type="CollisionShape3D" parent="Collision" unique_id=49537022]
+[node name="hull_172" type="CollisionShape3D" parent="Collision" unique_id=136759693]
 shape = SubResource("ConvexPolygonShape3D_70ctt")
 
-[node name="hull_173" type="CollisionShape3D" parent="Collision" unique_id=459162256]
+[node name="hull_173" type="CollisionShape3D" parent="Collision" unique_id=2044481797]
 shape = SubResource("ConvexPolygonShape3D_ctdh5")
 
-[node name="hull_174" type="CollisionShape3D" parent="Collision" unique_id=561018178]
+[node name="hull_174" type="CollisionShape3D" parent="Collision" unique_id=212095873]
 shape = SubResource("ConvexPolygonShape3D_f50kr")
 
-[node name="hull_175" type="CollisionShape3D" parent="Collision" unique_id=578139239]
+[node name="hull_175" type="CollisionShape3D" parent="Collision" unique_id=16028739]
 shape = SubResource("ConvexPolygonShape3D_sm8i4")
 
-[node name="hull_176" type="CollisionShape3D" parent="Collision" unique_id=1439495616]
+[node name="hull_176" type="CollisionShape3D" parent="Collision" unique_id=1310309589]
 shape = SubResource("ConvexPolygonShape3D_piuo2")
 
-[node name="hull_177" type="CollisionShape3D" parent="Collision" unique_id=2017827763]
+[node name="hull_177" type="CollisionShape3D" parent="Collision" unique_id=314752559]
 shape = SubResource("ConvexPolygonShape3D_d427d")
 
-[node name="hull_178" type="CollisionShape3D" parent="Collision" unique_id=458911488]
+[node name="hull_178" type="CollisionShape3D" parent="Collision" unique_id=1450514951]
 shape = SubResource("ConvexPolygonShape3D_0srq5")
 
-[node name="hull_179" type="CollisionShape3D" parent="Collision" unique_id=150221364]
+[node name="hull_179" type="CollisionShape3D" parent="Collision" unique_id=364575893]
 shape = SubResource("ConvexPolygonShape3D_6q56a")
 
-[node name="hull_180" type="CollisionShape3D" parent="Collision" unique_id=216609512]
+[node name="hull_180" type="CollisionShape3D" parent="Collision" unique_id=1947869299]
 shape = SubResource("ConvexPolygonShape3D_lq4ws")
 
-[node name="hull_181" type="CollisionShape3D" parent="Collision" unique_id=1234070620]
+[node name="hull_181" type="CollisionShape3D" parent="Collision" unique_id=1046411723]
 shape = SubResource("ConvexPolygonShape3D_admta")
 
-[node name="hull_182" type="CollisionShape3D" parent="Collision" unique_id=1704442953]
+[node name="hull_182" type="CollisionShape3D" parent="Collision" unique_id=151828100]
 shape = SubResource("ConvexPolygonShape3D_d5t4j")
 
-[node name="hull_183" type="CollisionShape3D" parent="Collision" unique_id=2063779711]
+[node name="hull_183" type="CollisionShape3D" parent="Collision" unique_id=741136065]
 shape = SubResource("ConvexPolygonShape3D_2igd1")
 
-[node name="hull_184" type="CollisionShape3D" parent="Collision" unique_id=532055462]
+[node name="hull_184" type="CollisionShape3D" parent="Collision" unique_id=1277016106]
 shape = SubResource("ConvexPolygonShape3D_owlyo")
 
-[node name="hull_185" type="CollisionShape3D" parent="Collision" unique_id=1308935401]
+[node name="hull_185" type="CollisionShape3D" parent="Collision" unique_id=517922516]
 shape = SubResource("ConvexPolygonShape3D_klcmq")
 
-[node name="hull_186" type="CollisionShape3D" parent="Collision" unique_id=524990594]
+[node name="hull_186" type="CollisionShape3D" parent="Collision" unique_id=656249282]
 shape = SubResource("ConvexPolygonShape3D_7ut2k")
 
-[node name="hull_187" type="CollisionShape3D" parent="Collision" unique_id=820576324]
+[node name="hull_187" type="CollisionShape3D" parent="Collision" unique_id=959329967]
 shape = SubResource("ConvexPolygonShape3D_ed3wt")
 
-[node name="hull_188" type="CollisionShape3D" parent="Collision" unique_id=1041488012]
+[node name="hull_188" type="CollisionShape3D" parent="Collision" unique_id=1853560103]
 shape = SubResource("ConvexPolygonShape3D_xkg3x")
 
-[node name="hull_189" type="CollisionShape3D" parent="Collision" unique_id=388881096]
+[node name="hull_189" type="CollisionShape3D" parent="Collision" unique_id=146410113]
 shape = SubResource("ConvexPolygonShape3D_6cfvb")
 
-[node name="hull_190" type="CollisionShape3D" parent="Collision" unique_id=1362130367]
+[node name="hull_190" type="CollisionShape3D" parent="Collision" unique_id=2075766543]
 shape = SubResource("ConvexPolygonShape3D_wx2fe")
 
-[node name="hull_191" type="CollisionShape3D" parent="Collision" unique_id=310392366]
+[node name="hull_191" type="CollisionShape3D" parent="Collision" unique_id=13406197]
 shape = SubResource("ConvexPolygonShape3D_2gith")
 
-[node name="hull_192" type="CollisionShape3D" parent="Collision" unique_id=1940495764]
+[node name="hull_192" type="CollisionShape3D" parent="Collision" unique_id=394658381]
 shape = SubResource("ConvexPolygonShape3D_jwfxy")
 
-[node name="hull_193" type="CollisionShape3D" parent="Collision" unique_id=1668800410]
+[node name="hull_193" type="CollisionShape3D" parent="Collision" unique_id=410854149]
 shape = SubResource("ConvexPolygonShape3D_mx5q2")
 
-[node name="hull_194" type="CollisionShape3D" parent="Collision" unique_id=595479225]
+[node name="hull_194" type="CollisionShape3D" parent="Collision" unique_id=1499321766]
 shape = SubResource("ConvexPolygonShape3D_uxuip")
 
-[node name="hull_195" type="CollisionShape3D" parent="Collision" unique_id=2058010906]
+[node name="hull_195" type="CollisionShape3D" parent="Collision" unique_id=182591757]
 shape = SubResource("ConvexPolygonShape3D_o8ej3")
 
-[node name="hull_196" type="CollisionShape3D" parent="Collision" unique_id=1679164113]
+[node name="hull_196" type="CollisionShape3D" parent="Collision" unique_id=1173409733]
 shape = SubResource("ConvexPolygonShape3D_aohni")
 
-[node name="hull_197" type="CollisionShape3D" parent="Collision" unique_id=1296793339]
+[node name="hull_197" type="CollisionShape3D" parent="Collision" unique_id=1040489780]
 shape = SubResource("ConvexPolygonShape3D_vjcxq")
 
-[node name="hull_198" type="CollisionShape3D" parent="Collision" unique_id=346341850]
+[node name="hull_198" type="CollisionShape3D" parent="Collision" unique_id=1914713119]
 shape = SubResource("ConvexPolygonShape3D_apgsy")
 
-[node name="hull_199" type="CollisionShape3D" parent="Collision" unique_id=211670463]
+[node name="hull_199" type="CollisionShape3D" parent="Collision" unique_id=1573245864]
 shape = SubResource("ConvexPolygonShape3D_qyyl3")
 
-[node name="hull_200" type="CollisionShape3D" parent="Collision" unique_id=2050838553]
+[node name="hull_200" type="CollisionShape3D" parent="Collision" unique_id=1267018344]
 shape = SubResource("ConvexPolygonShape3D_ypwwa")
 
-[node name="hull_201" type="CollisionShape3D" parent="Collision" unique_id=1212889785]
+[node name="hull_201" type="CollisionShape3D" parent="Collision" unique_id=2005914086]
 shape = SubResource("ConvexPolygonShape3D_ga4d2")
 
-[node name="hull_202" type="CollisionShape3D" parent="Collision" unique_id=122923819]
+[node name="hull_202" type="CollisionShape3D" parent="Collision" unique_id=1648091883]
 shape = SubResource("ConvexPolygonShape3D_3tgnl")
 
-[node name="hull_203" type="CollisionShape3D" parent="Collision" unique_id=1917103140]
+[node name="hull_203" type="CollisionShape3D" parent="Collision" unique_id=151457493]
 shape = SubResource("ConvexPolygonShape3D_tnwc8")
 
-[node name="hull_204" type="CollisionShape3D" parent="Collision" unique_id=1798618768]
+[node name="hull_204" type="CollisionShape3D" parent="Collision" unique_id=1239601812]
 shape = SubResource("ConvexPolygonShape3D_r8pu3")
 
-[node name="hull_205" type="CollisionShape3D" parent="Collision" unique_id=1235928074]
+[node name="hull_205" type="CollisionShape3D" parent="Collision" unique_id=557693276]
 shape = SubResource("ConvexPolygonShape3D_phw1m")
 
-[node name="hull_206" type="CollisionShape3D" parent="Collision" unique_id=1592158270]
+[node name="hull_206" type="CollisionShape3D" parent="Collision" unique_id=2025501270]
 shape = SubResource("ConvexPolygonShape3D_y847b")
 
-[node name="hull_207" type="CollisionShape3D" parent="Collision" unique_id=1906749759]
+[node name="hull_207" type="CollisionShape3D" parent="Collision" unique_id=1513040301]
 shape = SubResource("ConvexPolygonShape3D_pqnu0")
 
-[node name="hull_208" type="CollisionShape3D" parent="Collision" unique_id=1525084703]
+[node name="hull_208" type="CollisionShape3D" parent="Collision" unique_id=897193136]
 shape = SubResource("ConvexPolygonShape3D_mbx7w")
 
-[node name="hull_209" type="CollisionShape3D" parent="Collision" unique_id=842032600]
+[node name="hull_209" type="CollisionShape3D" parent="Collision" unique_id=959414270]
 shape = SubResource("ConvexPolygonShape3D_mnmna")
 
-[node name="hull_210" type="CollisionShape3D" parent="Collision" unique_id=42036645]
+[node name="hull_210" type="CollisionShape3D" parent="Collision" unique_id=613518970]
 shape = SubResource("ConvexPolygonShape3D_w0v26")
 
-[node name="hull_211" type="CollisionShape3D" parent="Collision" unique_id=776096922]
+[node name="hull_211" type="CollisionShape3D" parent="Collision" unique_id=506962097]
 shape = SubResource("ConvexPolygonShape3D_l86nw")
 
-[node name="hull_212" type="CollisionShape3D" parent="Collision" unique_id=27331728]
+[node name="hull_212" type="CollisionShape3D" parent="Collision" unique_id=654526445]
 shape = SubResource("ConvexPolygonShape3D_p8qrx")
 
-[node name="hull_213" type="CollisionShape3D" parent="Collision" unique_id=90400788]
+[node name="hull_213" type="CollisionShape3D" parent="Collision" unique_id=1689317997]
 shape = SubResource("ConvexPolygonShape3D_lmpk1")
 
-[node name="hull_214" type="CollisionShape3D" parent="Collision" unique_id=1066473812]
+[node name="hull_214" type="CollisionShape3D" parent="Collision" unique_id=654317266]
 shape = SubResource("ConvexPolygonShape3D_xasuu")
 
-[node name="hull_215" type="CollisionShape3D" parent="Collision" unique_id=1094544715]
+[node name="hull_215" type="CollisionShape3D" parent="Collision" unique_id=1723866390]
 shape = SubResource("ConvexPolygonShape3D_2uqix")
 
-[node name="hull_216" type="CollisionShape3D" parent="Collision" unique_id=941858957]
+[node name="hull_216" type="CollisionShape3D" parent="Collision" unique_id=1974572313]
 shape = SubResource("ConvexPolygonShape3D_eeuge")
 
-[node name="hull_217" type="CollisionShape3D" parent="Collision" unique_id=2018138970]
+[node name="hull_217" type="CollisionShape3D" parent="Collision" unique_id=1704325173]
 shape = SubResource("ConvexPolygonShape3D_duiwd")
 
-[node name="hull_218" type="CollisionShape3D" parent="Collision" unique_id=200658389]
+[node name="hull_218" type="CollisionShape3D" parent="Collision" unique_id=1843913414]
 shape = SubResource("ConvexPolygonShape3D_8rtsy")
 
-[node name="hull_219" type="CollisionShape3D" parent="Collision" unique_id=1370404339]
+[node name="hull_219" type="CollisionShape3D" parent="Collision" unique_id=181810362]
 shape = SubResource("ConvexPolygonShape3D_u3oqr")
 
-[node name="hull_220" type="CollisionShape3D" parent="Collision" unique_id=160132841]
+[node name="hull_220" type="CollisionShape3D" parent="Collision" unique_id=364062463]
 shape = SubResource("ConvexPolygonShape3D_x40jx")
 
-[node name="hull_221" type="CollisionShape3D" parent="Collision" unique_id=1060649839]
+[node name="hull_221" type="CollisionShape3D" parent="Collision" unique_id=1601127462]
 shape = SubResource("ConvexPolygonShape3D_0xdq4")
 
-[node name="hull_222" type="CollisionShape3D" parent="Collision" unique_id=1985254788]
+[node name="hull_222" type="CollisionShape3D" parent="Collision" unique_id=220437200]
 shape = SubResource("ConvexPolygonShape3D_1myup")
 
-[node name="hull_223" type="CollisionShape3D" parent="Collision" unique_id=603487621]
+[node name="hull_223" type="CollisionShape3D" parent="Collision" unique_id=1496630055]
 shape = SubResource("ConvexPolygonShape3D_igaw7")
 
-[node name="hull_224" type="CollisionShape3D" parent="Collision" unique_id=2038891601]
+[node name="hull_224" type="CollisionShape3D" parent="Collision" unique_id=799379075]
 shape = SubResource("ConvexPolygonShape3D_l6683")
 
-[node name="hull_225" type="CollisionShape3D" parent="Collision" unique_id=2054232518]
+[node name="hull_225" type="CollisionShape3D" parent="Collision" unique_id=408198210]
 shape = SubResource("ConvexPolygonShape3D_wn35u")
 
-[node name="hull_226" type="CollisionShape3D" parent="Collision" unique_id=673823833]
+[node name="hull_226" type="CollisionShape3D" parent="Collision" unique_id=280162712]
 shape = SubResource("ConvexPolygonShape3D_dcxot")
 
-[node name="hull_227" type="CollisionShape3D" parent="Collision" unique_id=318500532]
+[node name="hull_227" type="CollisionShape3D" parent="Collision" unique_id=1821374258]
 shape = SubResource("ConvexPolygonShape3D_dgqka")
 
-[node name="hull_228" type="CollisionShape3D" parent="Collision" unique_id=220528052]
+[node name="hull_228" type="CollisionShape3D" parent="Collision" unique_id=20391500]
 shape = SubResource("ConvexPolygonShape3D_6m2c5")
 
-[node name="hull_229" type="CollisionShape3D" parent="Collision" unique_id=1335931989]
+[node name="hull_229" type="CollisionShape3D" parent="Collision" unique_id=391177768]
 shape = SubResource("ConvexPolygonShape3D_4libo")
 
-[node name="hull_230" type="CollisionShape3D" parent="Collision" unique_id=1765535081]
+[node name="hull_230" type="CollisionShape3D" parent="Collision" unique_id=961858490]
 shape = SubResource("ConvexPolygonShape3D_ksp7g")
 
-[node name="hull_231" type="CollisionShape3D" parent="Collision" unique_id=82734354]
+[node name="hull_231" type="CollisionShape3D" parent="Collision" unique_id=1598024355]
 shape = SubResource("ConvexPolygonShape3D_k4xa6")
 
-[node name="hull_232" type="CollisionShape3D" parent="Collision" unique_id=559267324]
+[node name="hull_232" type="CollisionShape3D" parent="Collision" unique_id=94170303]
 shape = SubResource("ConvexPolygonShape3D_dcx5j")
 
-[node name="hull_233" type="CollisionShape3D" parent="Collision" unique_id=411905617]
+[node name="hull_233" type="CollisionShape3D" parent="Collision" unique_id=1228525176]
 shape = SubResource("ConvexPolygonShape3D_wuxow")
 
-[node name="hull_234" type="CollisionShape3D" parent="Collision" unique_id=200115350]
+[node name="hull_234" type="CollisionShape3D" parent="Collision" unique_id=648712499]
 shape = SubResource("ConvexPolygonShape3D_ylhg4")
 
-[node name="hull_235" type="CollisionShape3D" parent="Collision" unique_id=238147165]
+[node name="hull_235" type="CollisionShape3D" parent="Collision" unique_id=1073964647]
 shape = SubResource("ConvexPolygonShape3D_4yrlv")
 
-[node name="hull_236" type="CollisionShape3D" parent="Collision" unique_id=345325193]
+[node name="hull_236" type="CollisionShape3D" parent="Collision" unique_id=1119056605]
 shape = SubResource("ConvexPolygonShape3D_88xb0")
 
-[node name="hull_237" type="CollisionShape3D" parent="Collision" unique_id=424483546]
+[node name="hull_237" type="CollisionShape3D" parent="Collision" unique_id=1375268334]
 shape = SubResource("ConvexPolygonShape3D_lub4j")
 
-[node name="hull_238" type="CollisionShape3D" parent="Collision" unique_id=58378662]
+[node name="hull_238" type="CollisionShape3D" parent="Collision" unique_id=1073976394]
 shape = SubResource("ConvexPolygonShape3D_n3dyo")
 
-[node name="hull_239" type="CollisionShape3D" parent="Collision" unique_id=1401540219]
+[node name="hull_239" type="CollisionShape3D" parent="Collision" unique_id=1605140426]
 shape = SubResource("ConvexPolygonShape3D_af08a")
 
-[node name="hull_240" type="CollisionShape3D" parent="Collision" unique_id=2041902375]
+[node name="hull_240" type="CollisionShape3D" parent="Collision" unique_id=502799258]
 shape = SubResource("ConvexPolygonShape3D_so4op")
 
-[node name="hull_241" type="CollisionShape3D" parent="Collision" unique_id=657408865]
+[node name="hull_241" type="CollisionShape3D" parent="Collision" unique_id=1470031799]
 shape = SubResource("ConvexPolygonShape3D_xgkdd")
 
-[node name="hull_242" type="CollisionShape3D" parent="Collision" unique_id=454545700]
+[node name="hull_242" type="CollisionShape3D" parent="Collision" unique_id=1165690659]
 shape = SubResource("ConvexPolygonShape3D_apgx3")
 
-[node name="hull_243" type="CollisionShape3D" parent="Collision" unique_id=121332512]
+[node name="hull_243" type="CollisionShape3D" parent="Collision" unique_id=2053962277]
 shape = SubResource("ConvexPolygonShape3D_gpxbs")
 
-[node name="hull_244" type="CollisionShape3D" parent="Collision" unique_id=1113156823]
+[node name="hull_244" type="CollisionShape3D" parent="Collision" unique_id=370845013]
 shape = SubResource("ConvexPolygonShape3D_8mmi3")
 
-[node name="hull_245" type="CollisionShape3D" parent="Collision" unique_id=819159788]
+[node name="hull_245" type="CollisionShape3D" parent="Collision" unique_id=1349328077]
 shape = SubResource("ConvexPolygonShape3D_ve8kl")
 
-[node name="hull_246" type="CollisionShape3D" parent="Collision" unique_id=569500123]
+[node name="hull_246" type="CollisionShape3D" parent="Collision" unique_id=374888257]
 shape = SubResource("ConvexPolygonShape3D_js3gn")
 
-[node name="hull_247" type="CollisionShape3D" parent="Collision" unique_id=1177178354]
+[node name="hull_247" type="CollisionShape3D" parent="Collision" unique_id=1079758391]
 shape = SubResource("ConvexPolygonShape3D_wjb75")
 
-[node name="hull_248" type="CollisionShape3D" parent="Collision" unique_id=703446564]
+[node name="hull_248" type="CollisionShape3D" parent="Collision" unique_id=1942408279]
 shape = SubResource("ConvexPolygonShape3D_5v16e")
 
-[node name="hull_249" type="CollisionShape3D" parent="Collision" unique_id=1650670861]
+[node name="hull_249" type="CollisionShape3D" parent="Collision" unique_id=1283083104]
 shape = SubResource("ConvexPolygonShape3D_3651c")
 
-[node name="hull_250" type="CollisionShape3D" parent="Collision" unique_id=387424422]
+[node name="hull_250" type="CollisionShape3D" parent="Collision" unique_id=1952354511]
 shape = SubResource("ConvexPolygonShape3D_cp1de")
 
-[node name="hull_251" type="CollisionShape3D" parent="Collision" unique_id=626461793]
+[node name="hull_251" type="CollisionShape3D" parent="Collision" unique_id=1694451246]
 shape = SubResource("ConvexPolygonShape3D_gh54s")
 
-[node name="hull_252" type="CollisionShape3D" parent="Collision" unique_id=730841510]
+[node name="hull_252" type="CollisionShape3D" parent="Collision" unique_id=1315317031]
 shape = SubResource("ConvexPolygonShape3D_xxx7r")
 
-[node name="hull_253" type="CollisionShape3D" parent="Collision" unique_id=906481770]
+[node name="hull_253" type="CollisionShape3D" parent="Collision" unique_id=1889752347]
 shape = SubResource("ConvexPolygonShape3D_8glbn")
 
-[node name="hull_254" type="CollisionShape3D" parent="Collision" unique_id=1393313051]
+[node name="hull_254" type="CollisionShape3D" parent="Collision" unique_id=1139327116]
 shape = SubResource("ConvexPolygonShape3D_3nhej")
 
-[node name="hull_255" type="CollisionShape3D" parent="Collision" unique_id=345879608]
+[node name="hull_255" type="CollisionShape3D" parent="Collision" unique_id=2015248776]
 shape = SubResource("ConvexPolygonShape3D_3yn8m")
 
-[node name="hull_256" type="CollisionShape3D" parent="Collision" unique_id=601192586]
+[node name="hull_256" type="CollisionShape3D" parent="Collision" unique_id=1814062057]
 shape = SubResource("ConvexPolygonShape3D_bfm3e")
 
-[node name="hull_257" type="CollisionShape3D" parent="Collision" unique_id=906582825]
+[node name="hull_257" type="CollisionShape3D" parent="Collision" unique_id=239309112]
 shape = SubResource("ConvexPolygonShape3D_6mqrl")
 
-[node name="hull_258" type="CollisionShape3D" parent="Collision" unique_id=603398030]
+[node name="hull_258" type="CollisionShape3D" parent="Collision" unique_id=1936676473]
 shape = SubResource("ConvexPolygonShape3D_os3eh")
 
-[node name="hull_259" type="CollisionShape3D" parent="Collision" unique_id=1154100863]
+[node name="hull_259" type="CollisionShape3D" parent="Collision" unique_id=544256698]
 shape = SubResource("ConvexPolygonShape3D_swfp0")
 
-[node name="hull_260" type="CollisionShape3D" parent="Collision" unique_id=745642469]
+[node name="hull_260" type="CollisionShape3D" parent="Collision" unique_id=1756150879]
 shape = SubResource("ConvexPolygonShape3D_kjayp")
 
-[node name="hull_261" type="CollisionShape3D" parent="Collision" unique_id=934555525]
+[node name="hull_261" type="CollisionShape3D" parent="Collision" unique_id=1394578118]
 shape = SubResource("ConvexPolygonShape3D_xonmq")
 
-[node name="hull_262" type="CollisionShape3D" parent="Collision" unique_id=1164119556]
+[node name="hull_262" type="CollisionShape3D" parent="Collision" unique_id=571136376]
 shape = SubResource("ConvexPolygonShape3D_2iadp")
 
-[node name="hull_263" type="CollisionShape3D" parent="Collision" unique_id=807609369]
+[node name="hull_263" type="CollisionShape3D" parent="Collision" unique_id=1404821652]
 shape = SubResource("ConvexPolygonShape3D_ijq0a")
 
-[node name="hull_264" type="CollisionShape3D" parent="Collision" unique_id=896443975]
+[node name="hull_264" type="CollisionShape3D" parent="Collision" unique_id=1364444514]
 shape = SubResource("ConvexPolygonShape3D_h5vxg")
 
-[node name="hull_265" type="CollisionShape3D" parent="Collision" unique_id=1930654377]
+[node name="hull_265" type="CollisionShape3D" parent="Collision" unique_id=1373557442]
 shape = SubResource("ConvexPolygonShape3D_sina2")
 
-[node name="hull_266" type="CollisionShape3D" parent="Collision" unique_id=99936807]
+[node name="hull_266" type="CollisionShape3D" parent="Collision" unique_id=1406255531]
 shape = SubResource("ConvexPolygonShape3D_t44pa")
 
-[node name="hull_267" type="CollisionShape3D" parent="Collision" unique_id=1204360494]
+[node name="hull_267" type="CollisionShape3D" parent="Collision" unique_id=1518400748]
 shape = SubResource("ConvexPolygonShape3D_e52f6")
 
-[node name="hull_268" type="CollisionShape3D" parent="Collision" unique_id=1823924393]
+[node name="hull_268" type="CollisionShape3D" parent="Collision" unique_id=568388131]
 shape = SubResource("ConvexPolygonShape3D_phsdk")
 
-[node name="hull_269" type="CollisionShape3D" parent="Collision" unique_id=1253223868]
+[node name="hull_269" type="CollisionShape3D" parent="Collision" unique_id=1099236455]
 shape = SubResource("ConvexPolygonShape3D_qukkx")
 
-[node name="hull_270" type="CollisionShape3D" parent="Collision" unique_id=1503923539]
+[node name="hull_270" type="CollisionShape3D" parent="Collision" unique_id=1319178591]
 shape = SubResource("ConvexPolygonShape3D_fipyv")
 
-[node name="hull_271" type="CollisionShape3D" parent="Collision" unique_id=969554428]
+[node name="hull_271" type="CollisionShape3D" parent="Collision" unique_id=1607056214]
 shape = SubResource("ConvexPolygonShape3D_drdoo")
 
-[node name="hull_272" type="CollisionShape3D" parent="Collision" unique_id=691044790]
+[node name="hull_272" type="CollisionShape3D" parent="Collision" unique_id=1027636387]
 shape = SubResource("ConvexPolygonShape3D_fj5l5")
 
-[node name="hull_273" type="CollisionShape3D" parent="Collision" unique_id=1815421428]
+[node name="hull_273" type="CollisionShape3D" parent="Collision" unique_id=1087155299]
 shape = SubResource("ConvexPolygonShape3D_iwmcy")
 
-[node name="hull_274" type="CollisionShape3D" parent="Collision" unique_id=2013377951]
+[node name="hull_274" type="CollisionShape3D" parent="Collision" unique_id=1721565470]
 shape = SubResource("ConvexPolygonShape3D_3vmgo")
 
-[node name="hull_275" type="CollisionShape3D" parent="Collision" unique_id=1086762129]
+[node name="hull_275" type="CollisionShape3D" parent="Collision" unique_id=332699003]
 shape = SubResource("ConvexPolygonShape3D_jojma")
 
-[node name="hull_276" type="CollisionShape3D" parent="Collision" unique_id=924400393]
+[node name="hull_276" type="CollisionShape3D" parent="Collision" unique_id=1181827263]
 shape = SubResource("ConvexPolygonShape3D_36jji")
 
-[node name="hull_277" type="CollisionShape3D" parent="Collision" unique_id=111776285]
+[node name="hull_277" type="CollisionShape3D" parent="Collision" unique_id=1732924751]
 shape = SubResource("ConvexPolygonShape3D_ur62c")
 
-[node name="hull_278" type="CollisionShape3D" parent="Collision" unique_id=387928621]
+[node name="hull_278" type="CollisionShape3D" parent="Collision" unique_id=2092861852]
 shape = SubResource("ConvexPolygonShape3D_6c7uj")
 
-[node name="hull_279" type="CollisionShape3D" parent="Collision" unique_id=236266776]
+[node name="hull_279" type="CollisionShape3D" parent="Collision" unique_id=288687095]
 shape = SubResource("ConvexPolygonShape3D_5ys4v")
 
-[node name="hull_280" type="CollisionShape3D" parent="Collision" unique_id=615444264]
+[node name="hull_280" type="CollisionShape3D" parent="Collision" unique_id=1533970399]
 shape = SubResource("ConvexPolygonShape3D_8xykg")
 
-[node name="hull_281" type="CollisionShape3D" parent="Collision" unique_id=73263998]
+[node name="hull_281" type="CollisionShape3D" parent="Collision" unique_id=393992443]
 shape = SubResource("ConvexPolygonShape3D_3ue8y")
 
-[node name="hull_282" type="CollisionShape3D" parent="Collision" unique_id=544867322]
+[node name="hull_282" type="CollisionShape3D" parent="Collision" unique_id=554369944]
 shape = SubResource("ConvexPolygonShape3D_0p5t3")
 
-[node name="hull_283" type="CollisionShape3D" parent="Collision" unique_id=1984129483]
+[node name="hull_283" type="CollisionShape3D" parent="Collision" unique_id=1115573341]
 shape = SubResource("ConvexPolygonShape3D_xe7uj")
 
-[node name="hull_284" type="CollisionShape3D" parent="Collision" unique_id=2108495348]
+[node name="hull_284" type="CollisionShape3D" parent="Collision" unique_id=434326818]
 shape = SubResource("ConvexPolygonShape3D_t3vs1")
 
-[node name="hull_285" type="CollisionShape3D" parent="Collision" unique_id=1942321821]
+[node name="hull_285" type="CollisionShape3D" parent="Collision" unique_id=201057272]
 shape = SubResource("ConvexPolygonShape3D_0tmdl")
 
-[node name="hull_286" type="CollisionShape3D" parent="Collision" unique_id=1956338024]
+[node name="hull_286" type="CollisionShape3D" parent="Collision" unique_id=1075317350]
 shape = SubResource("ConvexPolygonShape3D_jk8ke")
 
-[node name="hull_287" type="CollisionShape3D" parent="Collision" unique_id=1865020960]
+[node name="hull_287" type="CollisionShape3D" parent="Collision" unique_id=1806144305]
 shape = SubResource("ConvexPolygonShape3D_rwmvp")
 
-[node name="hull_288" type="CollisionShape3D" parent="Collision" unique_id=1669300043]
+[node name="hull_288" type="CollisionShape3D" parent="Collision" unique_id=920838509]
 shape = SubResource("ConvexPolygonShape3D_24uso")
 
-[node name="hull_289" type="CollisionShape3D" parent="Collision" unique_id=313719887]
+[node name="hull_289" type="CollisionShape3D" parent="Collision" unique_id=25963858]
 shape = SubResource("ConvexPolygonShape3D_r4m1b")
 
-[node name="hull_290" type="CollisionShape3D" parent="Collision" unique_id=1365811411]
+[node name="hull_290" type="CollisionShape3D" parent="Collision" unique_id=1684918665]
 shape = SubResource("ConvexPolygonShape3D_7jxvu")
 
-[node name="hull_291" type="CollisionShape3D" parent="Collision" unique_id=26954481]
+[node name="hull_291" type="CollisionShape3D" parent="Collision" unique_id=2070716497]
 shape = SubResource("ConvexPolygonShape3D_ntx8m")
 
-[node name="hull_292" type="CollisionShape3D" parent="Collision" unique_id=1419343038]
+[node name="hull_292" type="CollisionShape3D" parent="Collision" unique_id=1975637598]
 shape = SubResource("ConvexPolygonShape3D_8vnme")
 
-[node name="hull_293" type="CollisionShape3D" parent="Collision" unique_id=444443121]
+[node name="hull_293" type="CollisionShape3D" parent="Collision" unique_id=142439772]
 shape = SubResource("ConvexPolygonShape3D_gs8jm")
 
-[node name="hull_294" type="CollisionShape3D" parent="Collision" unique_id=713442250]
+[node name="hull_294" type="CollisionShape3D" parent="Collision" unique_id=704746563]
 shape = SubResource("ConvexPolygonShape3D_lw0jq")
 
-[node name="hull_295" type="CollisionShape3D" parent="Collision" unique_id=2146515769]
+[node name="hull_295" type="CollisionShape3D" parent="Collision" unique_id=1034026666]
 shape = SubResource("ConvexPolygonShape3D_hnv5x")
 
-[node name="hull_296" type="CollisionShape3D" parent="Collision" unique_id=1044649762]
+[node name="hull_296" type="CollisionShape3D" parent="Collision" unique_id=1015313630]
 shape = SubResource("ConvexPolygonShape3D_xrwho")
 
-[node name="hull_297" type="CollisionShape3D" parent="Collision" unique_id=879302801]
+[node name="hull_297" type="CollisionShape3D" parent="Collision" unique_id=725884488]
 shape = SubResource("ConvexPolygonShape3D_jtqam")
 
-[node name="hull_298" type="CollisionShape3D" parent="Collision" unique_id=196562580]
+[node name="hull_298" type="CollisionShape3D" parent="Collision" unique_id=1414485164]
 shape = SubResource("ConvexPolygonShape3D_0se33")
 
-[node name="hull_299" type="CollisionShape3D" parent="Collision" unique_id=750430771]
+[node name="hull_299" type="CollisionShape3D" parent="Collision" unique_id=954065306]
 shape = SubResource("ConvexPolygonShape3D_ffnct")
 
-[node name="hull_300" type="CollisionShape3D" parent="Collision" unique_id=1974210973]
+[node name="hull_300" type="CollisionShape3D" parent="Collision" unique_id=1979728993]
 shape = SubResource("ConvexPolygonShape3D_0tqcj")
 
-[node name="hull_301" type="CollisionShape3D" parent="Collision" unique_id=1889685799]
+[node name="hull_301" type="CollisionShape3D" parent="Collision" unique_id=529675330]
 shape = SubResource("ConvexPolygonShape3D_k6ade")
 
-[node name="hull_302" type="CollisionShape3D" parent="Collision" unique_id=260272888]
+[node name="hull_302" type="CollisionShape3D" parent="Collision" unique_id=1717262154]
 shape = SubResource("ConvexPolygonShape3D_maa4x")
 
-[node name="hull_303" type="CollisionShape3D" parent="Collision" unique_id=630822691]
+[node name="hull_303" type="CollisionShape3D" parent="Collision" unique_id=752913377]
 shape = SubResource("ConvexPolygonShape3D_0b4wh")
 
-[node name="hull_304" type="CollisionShape3D" parent="Collision" unique_id=762169401]
+[node name="hull_304" type="CollisionShape3D" parent="Collision" unique_id=1340007961]
 shape = SubResource("ConvexPolygonShape3D_xtq6l")
 
-[node name="hull_305" type="CollisionShape3D" parent="Collision" unique_id=1698923198]
+[node name="hull_305" type="CollisionShape3D" parent="Collision" unique_id=194307383]
 shape = SubResource("ConvexPolygonShape3D_0q25n")
 
-[node name="hull_306" type="CollisionShape3D" parent="Collision" unique_id=733438456]
+[node name="hull_306" type="CollisionShape3D" parent="Collision" unique_id=828281075]
 shape = SubResource("ConvexPolygonShape3D_d1pc8")
 
-[node name="hull_307" type="CollisionShape3D" parent="Collision" unique_id=2117189356]
+[node name="hull_307" type="CollisionShape3D" parent="Collision" unique_id=726318782]
 shape = SubResource("ConvexPolygonShape3D_etuy0")
 
-[node name="hull_308" type="CollisionShape3D" parent="Collision" unique_id=1055607718]
+[node name="hull_308" type="CollisionShape3D" parent="Collision" unique_id=108246357]
 shape = SubResource("ConvexPolygonShape3D_680yr")
 
-[node name="hull_309" type="CollisionShape3D" parent="Collision" unique_id=601359430]
+[node name="hull_309" type="CollisionShape3D" parent="Collision" unique_id=363937188]
 shape = SubResource("ConvexPolygonShape3D_pj773")
 
-[node name="hull_310" type="CollisionShape3D" parent="Collision" unique_id=740507841]
+[node name="hull_310" type="CollisionShape3D" parent="Collision" unique_id=707476101]
 shape = SubResource("ConvexPolygonShape3D_3h1dy")
 
-[node name="hull_311" type="CollisionShape3D" parent="Collision" unique_id=677246192]
+[node name="hull_311" type="CollisionShape3D" parent="Collision" unique_id=816345910]
 shape = SubResource("ConvexPolygonShape3D_buy6u")
 
-[node name="hull_312" type="CollisionShape3D" parent="Collision" unique_id=649358166]
+[node name="hull_312" type="CollisionShape3D" parent="Collision" unique_id=511786546]
 shape = SubResource("ConvexPolygonShape3D_20ijs")
 
-[node name="hull_313" type="CollisionShape3D" parent="Collision" unique_id=867573830]
+[node name="hull_313" type="CollisionShape3D" parent="Collision" unique_id=1548070784]
 shape = SubResource("ConvexPolygonShape3D_73naw")
 
-[node name="hull_314" type="CollisionShape3D" parent="Collision" unique_id=1474208547]
+[node name="hull_314" type="CollisionShape3D" parent="Collision" unique_id=1813565648]
 shape = SubResource("ConvexPolygonShape3D_x28gw")
 
-[node name="hull_315" type="CollisionShape3D" parent="Collision" unique_id=2040408052]
+[node name="hull_315" type="CollisionShape3D" parent="Collision" unique_id=1263200434]
 shape = SubResource("ConvexPolygonShape3D_jkc6n")
 
-[node name="hull_316" type="CollisionShape3D" parent="Collision" unique_id=2130318645]
+[node name="hull_316" type="CollisionShape3D" parent="Collision" unique_id=1734653084]
 shape = SubResource("ConvexPolygonShape3D_wet13")
 
-[node name="hull_317" type="CollisionShape3D" parent="Collision" unique_id=379216492]
+[node name="hull_317" type="CollisionShape3D" parent="Collision" unique_id=640476971]
 shape = SubResource("ConvexPolygonShape3D_4v22e")
 
-[node name="hull_318" type="CollisionShape3D" parent="Collision" unique_id=516132648]
+[node name="hull_318" type="CollisionShape3D" parent="Collision" unique_id=1366081679]
 shape = SubResource("ConvexPolygonShape3D_7d73o")
 
-[node name="hull_319" type="CollisionShape3D" parent="Collision" unique_id=1626874809]
+[node name="hull_319" type="CollisionShape3D" parent="Collision" unique_id=1676381051]
 shape = SubResource("ConvexPolygonShape3D_sngch")
 
-[node name="hull_320" type="CollisionShape3D" parent="Collision" unique_id=1660795207]
+[node name="hull_320" type="CollisionShape3D" parent="Collision" unique_id=1793643861]
 shape = SubResource("ConvexPolygonShape3D_1sp5o")
 
-[node name="hull_321" type="CollisionShape3D" parent="Collision" unique_id=285945660]
+[node name="hull_321" type="CollisionShape3D" parent="Collision" unique_id=1308698371]
 shape = SubResource("ConvexPolygonShape3D_iv5md")
 
-[node name="hull_322" type="CollisionShape3D" parent="Collision" unique_id=2087562562]
+[node name="hull_322" type="CollisionShape3D" parent="Collision" unique_id=204520297]
 shape = SubResource("ConvexPolygonShape3D_tkhj3")
 
-[node name="hull_323" type="CollisionShape3D" parent="Collision" unique_id=462121125]
+[node name="hull_323" type="CollisionShape3D" parent="Collision" unique_id=317405987]
 shape = SubResource("ConvexPolygonShape3D_unfm4")
 
-[node name="hull_324" type="CollisionShape3D" parent="Collision" unique_id=313588469]
+[node name="hull_324" type="CollisionShape3D" parent="Collision" unique_id=1869553972]
 shape = SubResource("ConvexPolygonShape3D_4nu2w")
 
-[node name="hull_325" type="CollisionShape3D" parent="Collision" unique_id=1061954917]
+[node name="hull_325" type="CollisionShape3D" parent="Collision" unique_id=2125199021]
 shape = SubResource("ConvexPolygonShape3D_2fj0c")
 
-[node name="hull_326" type="CollisionShape3D" parent="Collision" unique_id=1834985973]
+[node name="hull_326" type="CollisionShape3D" parent="Collision" unique_id=988831327]
 shape = SubResource("ConvexPolygonShape3D_6uumt")
 
-[node name="hull_327" type="CollisionShape3D" parent="Collision" unique_id=586227543]
+[node name="hull_327" type="CollisionShape3D" parent="Collision" unique_id=689425774]
 shape = SubResource("ConvexPolygonShape3D_w4ukj")
 
-[node name="hull_328" type="CollisionShape3D" parent="Collision" unique_id=24104383]
+[node name="hull_328" type="CollisionShape3D" parent="Collision" unique_id=1765507981]
 shape = SubResource("ConvexPolygonShape3D_wgiuc")
 
-[node name="hull_329" type="CollisionShape3D" parent="Collision" unique_id=288397938]
+[node name="hull_329" type="CollisionShape3D" parent="Collision" unique_id=751247779]
 shape = SubResource("ConvexPolygonShape3D_53i5y")
 
-[node name="hull_330" type="CollisionShape3D" parent="Collision" unique_id=1501806274]
+[node name="hull_330" type="CollisionShape3D" parent="Collision" unique_id=1874232083]
 shape = SubResource("ConvexPolygonShape3D_52hpr")
 
-[node name="hull_331" type="CollisionShape3D" parent="Collision" unique_id=1399060]
+[node name="hull_331" type="CollisionShape3D" parent="Collision" unique_id=474581145]
 shape = SubResource("ConvexPolygonShape3D_o66as")
 
-[node name="hull_332" type="CollisionShape3D" parent="Collision" unique_id=1376766056]
+[node name="hull_332" type="CollisionShape3D" parent="Collision" unique_id=1245690399]
 shape = SubResource("ConvexPolygonShape3D_1lnn7")
 
-[node name="hull_333" type="CollisionShape3D" parent="Collision" unique_id=765110066]
+[node name="hull_333" type="CollisionShape3D" parent="Collision" unique_id=93959152]
 shape = SubResource("ConvexPolygonShape3D_j8kns")
 
-[node name="hull_334" type="CollisionShape3D" parent="Collision" unique_id=1681918319]
+[node name="hull_334" type="CollisionShape3D" parent="Collision" unique_id=1608191742]
 shape = SubResource("ConvexPolygonShape3D_xuj4t")
 
-[node name="hull_335" type="CollisionShape3D" parent="Collision" unique_id=1582832064]
+[node name="hull_335" type="CollisionShape3D" parent="Collision" unique_id=525323626]
 shape = SubResource("ConvexPolygonShape3D_h1tm1")
 
-[node name="hull_336" type="CollisionShape3D" parent="Collision" unique_id=784077578]
+[node name="hull_336" type="CollisionShape3D" parent="Collision" unique_id=1682278832]
 shape = SubResource("ConvexPolygonShape3D_21ge1")
 
-[node name="hull_337" type="CollisionShape3D" parent="Collision" unique_id=390997071]
+[node name="hull_337" type="CollisionShape3D" parent="Collision" unique_id=1030809434]
 shape = SubResource("ConvexPolygonShape3D_i7a1h")
 
-[node name="hull_338" type="CollisionShape3D" parent="Collision" unique_id=20002963]
+[node name="hull_338" type="CollisionShape3D" parent="Collision" unique_id=2058493782]
 shape = SubResource("ConvexPolygonShape3D_oj5vo")
 
-[node name="hull_339" type="CollisionShape3D" parent="Collision" unique_id=910448894]
+[node name="hull_339" type="CollisionShape3D" parent="Collision" unique_id=367054156]
 shape = SubResource("ConvexPolygonShape3D_iaede")
 
-[node name="hull_340" type="CollisionShape3D" parent="Collision" unique_id=442987980]
+[node name="hull_340" type="CollisionShape3D" parent="Collision" unique_id=201862752]
 shape = SubResource("ConvexPolygonShape3D_gl2j1")
 
-[node name="hull_341" type="CollisionShape3D" parent="Collision" unique_id=500745720]
+[node name="hull_341" type="CollisionShape3D" parent="Collision" unique_id=1737538418]
 shape = SubResource("ConvexPolygonShape3D_fi04c")
 
-[node name="hull_342" type="CollisionShape3D" parent="Collision" unique_id=1176152131]
+[node name="hull_342" type="CollisionShape3D" parent="Collision" unique_id=2049223091]
 shape = SubResource("ConvexPolygonShape3D_wqpyo")
 
-[node name="hull_343" type="CollisionShape3D" parent="Collision" unique_id=1374964500]
+[node name="hull_343" type="CollisionShape3D" parent="Collision" unique_id=1954291035]
 shape = SubResource("ConvexPolygonShape3D_gtwrt")
 
-[node name="hull_344" type="CollisionShape3D" parent="Collision" unique_id=1409024573]
+[node name="hull_344" type="CollisionShape3D" parent="Collision" unique_id=1594885493]
 shape = SubResource("ConvexPolygonShape3D_fa3v8")
 
-[node name="hull_345" type="CollisionShape3D" parent="Collision" unique_id=154301959]
+[node name="hull_345" type="CollisionShape3D" parent="Collision" unique_id=432189753]
 shape = SubResource("ConvexPolygonShape3D_utasp")
 
-[node name="hull_346" type="CollisionShape3D" parent="Collision" unique_id=297127323]
+[node name="hull_346" type="CollisionShape3D" parent="Collision" unique_id=1809464805]
 shape = SubResource("ConvexPolygonShape3D_y25u0")
 
-[node name="hull_347" type="CollisionShape3D" parent="Collision" unique_id=1175088940]
+[node name="hull_347" type="CollisionShape3D" parent="Collision" unique_id=525368399]
 shape = SubResource("ConvexPolygonShape3D_jxx1h")
 
-[node name="hull_348" type="CollisionShape3D" parent="Collision" unique_id=778194115]
+[node name="hull_348" type="CollisionShape3D" parent="Collision" unique_id=1380737471]
 shape = SubResource("ConvexPolygonShape3D_872we")
 
-[node name="hull_349" type="CollisionShape3D" parent="Collision" unique_id=202239271]
+[node name="hull_349" type="CollisionShape3D" parent="Collision" unique_id=1483059356]
 shape = SubResource("ConvexPolygonShape3D_ba7bh")
 
-[node name="hull_350" type="CollisionShape3D" parent="Collision" unique_id=1182504065]
+[node name="hull_350" type="CollisionShape3D" parent="Collision" unique_id=489066528]
 shape = SubResource("ConvexPolygonShape3D_pseve")
 
-[node name="hull_351" type="CollisionShape3D" parent="Collision" unique_id=1747103295]
+[node name="hull_351" type="CollisionShape3D" parent="Collision" unique_id=1861680228]
 shape = SubResource("ConvexPolygonShape3D_hdl1b")
 
-[node name="hull_352" type="CollisionShape3D" parent="Collision" unique_id=1031783592]
+[node name="hull_352" type="CollisionShape3D" parent="Collision" unique_id=1296709271]
 shape = SubResource("ConvexPolygonShape3D_vuxm6")
 
-[node name="hull_353" type="CollisionShape3D" parent="Collision" unique_id=1465303057]
+[node name="hull_353" type="CollisionShape3D" parent="Collision" unique_id=205822707]
 shape = SubResource("ConvexPolygonShape3D_pxxhx")
 
-[node name="hull_354" type="CollisionShape3D" parent="Collision" unique_id=1238812232]
+[node name="hull_354" type="CollisionShape3D" parent="Collision" unique_id=218381415]
 shape = SubResource("ConvexPolygonShape3D_l2gim")
 
-[node name="hull_355" type="CollisionShape3D" parent="Collision" unique_id=196800944]
+[node name="hull_355" type="CollisionShape3D" parent="Collision" unique_id=1008207523]
 shape = SubResource("ConvexPolygonShape3D_50red")
 
-[node name="hull_356" type="CollisionShape3D" parent="Collision" unique_id=363014043]
+[node name="hull_356" type="CollisionShape3D" parent="Collision" unique_id=24535904]
 shape = SubResource("ConvexPolygonShape3D_33psl")
 
-[node name="hull_357" type="CollisionShape3D" parent="Collision" unique_id=1829396549]
+[node name="hull_357" type="CollisionShape3D" parent="Collision" unique_id=285954179]
 shape = SubResource("ConvexPolygonShape3D_lgsf5")
 
-[node name="hull_358" type="CollisionShape3D" parent="Collision" unique_id=1749008391]
+[node name="hull_358" type="CollisionShape3D" parent="Collision" unique_id=298016460]
 shape = SubResource("ConvexPolygonShape3D_v0lpv")
 
-[node name="hull_359" type="CollisionShape3D" parent="Collision" unique_id=1519928928]
+[node name="hull_359" type="CollisionShape3D" parent="Collision" unique_id=1586138660]
 shape = SubResource("ConvexPolygonShape3D_uldef")
 
-[node name="hull_360" type="CollisionShape3D" parent="Collision" unique_id=1847320112]
+[node name="hull_360" type="CollisionShape3D" parent="Collision" unique_id=295363228]
 shape = SubResource("ConvexPolygonShape3D_ofb6b")
 
-[node name="hull_361" type="CollisionShape3D" parent="Collision" unique_id=777691790]
+[node name="hull_361" type="CollisionShape3D" parent="Collision" unique_id=345401962]
 shape = SubResource("ConvexPolygonShape3D_02qnh")
 
-[node name="hull_362" type="CollisionShape3D" parent="Collision" unique_id=616413725]
+[node name="hull_362" type="CollisionShape3D" parent="Collision" unique_id=979217250]
 shape = SubResource("ConvexPolygonShape3D_pup61")
 
-[node name="hull_363" type="CollisionShape3D" parent="Collision" unique_id=266851114]
+[node name="hull_363" type="CollisionShape3D" parent="Collision" unique_id=1609438379]
 shape = SubResource("ConvexPolygonShape3D_wgbyx")
 
-[node name="hull_364" type="CollisionShape3D" parent="Collision" unique_id=676598205]
+[node name="hull_364" type="CollisionShape3D" parent="Collision" unique_id=2140310065]
 shape = SubResource("ConvexPolygonShape3D_dgc4w")
 
-[node name="hull_365" type="CollisionShape3D" parent="Collision" unique_id=60723401]
+[node name="hull_365" type="CollisionShape3D" parent="Collision" unique_id=314292542]
 shape = SubResource("ConvexPolygonShape3D_25oma")
 
-[node name="hull_366" type="CollisionShape3D" parent="Collision" unique_id=1186033855]
+[node name="hull_366" type="CollisionShape3D" parent="Collision" unique_id=550542669]
 shape = SubResource("ConvexPolygonShape3D_671hb")
 
-[node name="hull_367" type="CollisionShape3D" parent="Collision" unique_id=1244923284]
+[node name="hull_367" type="CollisionShape3D" parent="Collision" unique_id=1244598835]
 shape = SubResource("ConvexPolygonShape3D_dxl34")
 
-[node name="hull_368" type="CollisionShape3D" parent="Collision" unique_id=237538684]
+[node name="hull_368" type="CollisionShape3D" parent="Collision" unique_id=1006448750]
 shape = SubResource("ConvexPolygonShape3D_ucefm")
 
-[node name="hull_369" type="CollisionShape3D" parent="Collision" unique_id=508490624]
+[node name="hull_369" type="CollisionShape3D" parent="Collision" unique_id=1346661649]
 shape = SubResource("ConvexPolygonShape3D_p2qrh")
 
-[node name="hull_370" type="CollisionShape3D" parent="Collision" unique_id=1533922548]
+[node name="hull_370" type="CollisionShape3D" parent="Collision" unique_id=1363919837]
 shape = SubResource("ConvexPolygonShape3D_sb0ua")
 
-[node name="hull_371" type="CollisionShape3D" parent="Collision" unique_id=975531596]
+[node name="hull_371" type="CollisionShape3D" parent="Collision" unique_id=636413065]
 shape = SubResource("ConvexPolygonShape3D_hdhq3")
 
-[node name="hull_372" type="CollisionShape3D" parent="Collision" unique_id=1934787494]
+[node name="hull_372" type="CollisionShape3D" parent="Collision" unique_id=2144929145]
 shape = SubResource("ConvexPolygonShape3D_xaa06")
 
-[node name="hull_373" type="CollisionShape3D" parent="Collision" unique_id=1913308004]
+[node name="hull_373" type="CollisionShape3D" parent="Collision" unique_id=1140895491]
 shape = SubResource("ConvexPolygonShape3D_025rh")
 
-[node name="hull_374" type="CollisionShape3D" parent="Collision" unique_id=1337368431]
+[node name="hull_374" type="CollisionShape3D" parent="Collision" unique_id=1257227462]
 shape = SubResource("ConvexPolygonShape3D_hd1pl")
 
-[node name="hull_375" type="CollisionShape3D" parent="Collision" unique_id=152041715]
+[node name="hull_375" type="CollisionShape3D" parent="Collision" unique_id=2106253720]
 shape = SubResource("ConvexPolygonShape3D_6wq08")
 
-[node name="hull_376" type="CollisionShape3D" parent="Collision" unique_id=39845740]
+[node name="hull_376" type="CollisionShape3D" parent="Collision" unique_id=309061846]
 shape = SubResource("ConvexPolygonShape3D_ytig5")
 
-[node name="hull_377" type="CollisionShape3D" parent="Collision" unique_id=1266859038]
+[node name="hull_377" type="CollisionShape3D" parent="Collision" unique_id=1714209133]
 shape = SubResource("ConvexPolygonShape3D_fuvq4")
 
-[node name="hull_378" type="CollisionShape3D" parent="Collision" unique_id=1014544192]
+[node name="hull_378" type="CollisionShape3D" parent="Collision" unique_id=242332420]
 shape = SubResource("ConvexPolygonShape3D_wnvwa")
 
-[node name="hull_379" type="CollisionShape3D" parent="Collision" unique_id=446584186]
+[node name="hull_379" type="CollisionShape3D" parent="Collision" unique_id=1552669313]
 shape = SubResource("ConvexPolygonShape3D_65xle")
 
-[node name="hull_380" type="CollisionShape3D" parent="Collision" unique_id=1040319856]
+[node name="hull_380" type="CollisionShape3D" parent="Collision" unique_id=222138236]
 shape = SubResource("ConvexPolygonShape3D_wy3a2")
 
-[node name="hull_381" type="CollisionShape3D" parent="Collision" unique_id=400492497]
+[node name="hull_381" type="CollisionShape3D" parent="Collision" unique_id=55923564]
 shape = SubResource("ConvexPolygonShape3D_4d7w2")
 
-[node name="hull_382" type="CollisionShape3D" parent="Collision" unique_id=474381262]
+[node name="hull_382" type="CollisionShape3D" parent="Collision" unique_id=716666300]
 shape = SubResource("ConvexPolygonShape3D_rd7yu")
 
-[node name="hull_383" type="CollisionShape3D" parent="Collision" unique_id=86478776]
+[node name="hull_383" type="CollisionShape3D" parent="Collision" unique_id=341191604]
 shape = SubResource("ConvexPolygonShape3D_khici")
 
-[node name="hull_384" type="CollisionShape3D" parent="Collision" unique_id=819437150]
+[node name="hull_384" type="CollisionShape3D" parent="Collision" unique_id=470523620]
 shape = SubResource("ConvexPolygonShape3D_ygnak")
 
-[node name="hull_385" type="CollisionShape3D" parent="Collision" unique_id=549676160]
+[node name="hull_385" type="CollisionShape3D" parent="Collision" unique_id=1827986204]
 shape = SubResource("ConvexPolygonShape3D_1hcsn")
 
-[node name="hull_386" type="CollisionShape3D" parent="Collision" unique_id=1344778148]
+[node name="hull_386" type="CollisionShape3D" parent="Collision" unique_id=988986643]
 shape = SubResource("ConvexPolygonShape3D_okgsh")
 
-[node name="hull_387" type="CollisionShape3D" parent="Collision" unique_id=1164796375]
+[node name="hull_387" type="CollisionShape3D" parent="Collision" unique_id=810900286]
 shape = SubResource("ConvexPolygonShape3D_r5rht")
 
-[node name="hull_388" type="CollisionShape3D" parent="Collision" unique_id=413144702]
+[node name="hull_388" type="CollisionShape3D" parent="Collision" unique_id=1374553955]
 shape = SubResource("ConvexPolygonShape3D_fbq3h")
 
-[node name="hull_389" type="CollisionShape3D" parent="Collision" unique_id=1755979692]
+[node name="hull_389" type="CollisionShape3D" parent="Collision" unique_id=1835063484]
 shape = SubResource("ConvexPolygonShape3D_dj5uu")
 
-[node name="hull_390" type="CollisionShape3D" parent="Collision" unique_id=1526444401]
+[node name="hull_390" type="CollisionShape3D" parent="Collision" unique_id=505799633]
 shape = SubResource("ConvexPolygonShape3D_hp3x1")
 
-[node name="hull_391" type="CollisionShape3D" parent="Collision" unique_id=513457138]
+[node name="hull_391" type="CollisionShape3D" parent="Collision" unique_id=1061831317]
 shape = SubResource("ConvexPolygonShape3D_indgi")
 
-[node name="hull_392" type="CollisionShape3D" parent="Collision" unique_id=886346642]
+[node name="hull_392" type="CollisionShape3D" parent="Collision" unique_id=436265761]
 shape = SubResource("ConvexPolygonShape3D_eexgu")
 
-[node name="hull_393" type="CollisionShape3D" parent="Collision" unique_id=246724648]
+[node name="hull_393" type="CollisionShape3D" parent="Collision" unique_id=1128141336]
 shape = SubResource("ConvexPolygonShape3D_it6bt")
 
-[node name="hull_394" type="CollisionShape3D" parent="Collision" unique_id=498116122]
+[node name="hull_394" type="CollisionShape3D" parent="Collision" unique_id=547850325]
 shape = SubResource("ConvexPolygonShape3D_86uwy")
 
-[node name="hull_395" type="CollisionShape3D" parent="Collision" unique_id=1255626820]
+[node name="hull_395" type="CollisionShape3D" parent="Collision" unique_id=1181266360]
 shape = SubResource("ConvexPolygonShape3D_ei68g")
 
-[node name="hull_396" type="CollisionShape3D" parent="Collision" unique_id=2067228427]
+[node name="hull_396" type="CollisionShape3D" parent="Collision" unique_id=1039824846]
 shape = SubResource("ConvexPolygonShape3D_bh5gm")
 
-[node name="hull_397" type="CollisionShape3D" parent="Collision" unique_id=292672956]
+[node name="hull_397" type="CollisionShape3D" parent="Collision" unique_id=1197809841]
 shape = SubResource("ConvexPolygonShape3D_kv41x")
 
-[node name="hull_398" type="CollisionShape3D" parent="Collision" unique_id=626259725]
+[node name="hull_398" type="CollisionShape3D" parent="Collision" unique_id=326013372]
 shape = SubResource("ConvexPolygonShape3D_llb6d")
 
-[node name="hull_399" type="CollisionShape3D" parent="Collision" unique_id=734720008]
+[node name="hull_399" type="CollisionShape3D" parent="Collision" unique_id=1626020355]
 shape = SubResource("ConvexPolygonShape3D_lsxcx")
 
-[node name="hull_400" type="CollisionShape3D" parent="Collision" unique_id=1175957839]
+[node name="hull_400" type="CollisionShape3D" parent="Collision" unique_id=1942469640]
 shape = SubResource("ConvexPolygonShape3D_rhgky")
 
-[node name="hull_401" type="CollisionShape3D" parent="Collision" unique_id=461297537]
+[node name="hull_401" type="CollisionShape3D" parent="Collision" unique_id=1931757310]
 shape = SubResource("ConvexPolygonShape3D_qfjql")
 
-[node name="hull_402" type="CollisionShape3D" parent="Collision" unique_id=1237908310]
+[node name="hull_402" type="CollisionShape3D" parent="Collision" unique_id=701850654]
 shape = SubResource("ConvexPolygonShape3D_mjs6o")
 
-[node name="hull_403" type="CollisionShape3D" parent="Collision" unique_id=1909968243]
+[node name="hull_403" type="CollisionShape3D" parent="Collision" unique_id=1236911465]
 shape = SubResource("ConvexPolygonShape3D_7ib4q")
 
-[node name="hull_404" type="CollisionShape3D" parent="Collision" unique_id=968069618]
+[node name="hull_404" type="CollisionShape3D" parent="Collision" unique_id=1034304083]
 shape = SubResource("ConvexPolygonShape3D_04e6q")
 
-[node name="hull_405" type="CollisionShape3D" parent="Collision" unique_id=1458060326]
+[node name="hull_405" type="CollisionShape3D" parent="Collision" unique_id=1297968522]
 shape = SubResource("ConvexPolygonShape3D_d0pdk")
 
-[node name="hull_406" type="CollisionShape3D" parent="Collision" unique_id=1022840856]
+[node name="hull_406" type="CollisionShape3D" parent="Collision" unique_id=1176606952]
 shape = SubResource("ConvexPolygonShape3D_baft7")
 
-[node name="hull_407" type="CollisionShape3D" parent="Collision" unique_id=2115773975]
+[node name="hull_407" type="CollisionShape3D" parent="Collision" unique_id=393942598]
 shape = SubResource("ConvexPolygonShape3D_4uul5")
 
-[node name="hull_408" type="CollisionShape3D" parent="Collision" unique_id=43913401]
+[node name="hull_408" type="CollisionShape3D" parent="Collision" unique_id=1089795125]
 shape = SubResource("ConvexPolygonShape3D_28mbf")
 
-[node name="hull_409" type="CollisionShape3D" parent="Collision" unique_id=1600241262]
+[node name="hull_409" type="CollisionShape3D" parent="Collision" unique_id=1049413685]
 shape = SubResource("ConvexPolygonShape3D_mpdx5")
 
-[node name="hull_410" type="CollisionShape3D" parent="Collision" unique_id=969314371]
+[node name="hull_410" type="CollisionShape3D" parent="Collision" unique_id=1798189797]
 shape = SubResource("ConvexPolygonShape3D_rri1d")
 
-[node name="hull_411" type="CollisionShape3D" parent="Collision" unique_id=1410777988]
+[node name="hull_411" type="CollisionShape3D" parent="Collision" unique_id=577807988]
 shape = SubResource("ConvexPolygonShape3D_o4hq4")
 
-[node name="hull_412" type="CollisionShape3D" parent="Collision" unique_id=534239410]
+[node name="hull_412" type="CollisionShape3D" parent="Collision" unique_id=641709472]
 shape = SubResource("ConvexPolygonShape3D_1514g")
 
-[node name="hull_413" type="CollisionShape3D" parent="Collision" unique_id=1068844323]
+[node name="hull_413" type="CollisionShape3D" parent="Collision" unique_id=1124432109]
 shape = SubResource("ConvexPolygonShape3D_ywkmp")
 
-[node name="hull_414" type="CollisionShape3D" parent="Collision" unique_id=782261315]
+[node name="hull_414" type="CollisionShape3D" parent="Collision" unique_id=1531304848]
 shape = SubResource("ConvexPolygonShape3D_8wscy")
 
-[node name="hull_415" type="CollisionShape3D" parent="Collision" unique_id=1992371639]
+[node name="hull_415" type="CollisionShape3D" parent="Collision" unique_id=1201890918]
 shape = SubResource("ConvexPolygonShape3D_0dnus")
 
-[node name="hull_416" type="CollisionShape3D" parent="Collision" unique_id=903163533]
+[node name="hull_416" type="CollisionShape3D" parent="Collision" unique_id=657592283]
 shape = SubResource("ConvexPolygonShape3D_k43t2")
 
-[node name="hull_417" type="CollisionShape3D" parent="Collision" unique_id=247927968]
+[node name="hull_417" type="CollisionShape3D" parent="Collision" unique_id=1877069977]
 shape = SubResource("ConvexPolygonShape3D_1efir")
 
-[node name="hull_418" type="CollisionShape3D" parent="Collision" unique_id=1730833953]
+[node name="hull_418" type="CollisionShape3D" parent="Collision" unique_id=307944276]
 shape = SubResource("ConvexPolygonShape3D_7msrn")
 
-[node name="hull_419" type="CollisionShape3D" parent="Collision" unique_id=285720445]
+[node name="hull_419" type="CollisionShape3D" parent="Collision" unique_id=707839900]
 shape = SubResource("ConvexPolygonShape3D_14iml")
 
-[node name="hull_420" type="CollisionShape3D" parent="Collision" unique_id=353816443]
+[node name="hull_420" type="CollisionShape3D" parent="Collision" unique_id=1432183758]
 shape = SubResource("ConvexPolygonShape3D_ykbp7")
 
-[node name="hull_421" type="CollisionShape3D" parent="Collision" unique_id=851068547]
+[node name="hull_421" type="CollisionShape3D" parent="Collision" unique_id=348513613]
 shape = SubResource("ConvexPolygonShape3D_mbtrr")
 
-[node name="hull_422" type="CollisionShape3D" parent="Collision" unique_id=31607923]
+[node name="hull_422" type="CollisionShape3D" parent="Collision" unique_id=311448571]
 shape = SubResource("ConvexPolygonShape3D_mf361")
 
-[node name="hull_423" type="CollisionShape3D" parent="Collision" unique_id=256103619]
+[node name="hull_423" type="CollisionShape3D" parent="Collision" unique_id=1021609362]
 shape = SubResource("ConvexPolygonShape3D_6qagk")
 
-[node name="patches" type="CollisionShape3D" parent="Collision" unique_id=1912227576]
+[node name="patches" type="CollisionShape3D" parent="Collision" unique_id=902143276]
 shape = SubResource("ConcavePolygonShape3D_5r5e8")
 
-[node name="PlayerClip" type="StaticBody3D" parent="." unique_id=1025464598]
+[node name="PlayerClip" type="StaticBody3D" parent="." unique_id=410537761]
 collision_layer = 2
 collision_mask = 0
 
-[node name="hull_0" type="CollisionShape3D" parent="PlayerClip" unique_id=466702423]
+[node name="hull_0" type="CollisionShape3D" parent="PlayerClip" unique_id=1293500020]
 shape = SubResource("ConvexPolygonShape3D_x0y65")
 
-[node name="hull_1" type="CollisionShape3D" parent="PlayerClip" unique_id=1354622964]
+[node name="hull_1" type="CollisionShape3D" parent="PlayerClip" unique_id=741604042]
 shape = SubResource("ConvexPolygonShape3D_3x0sb")
 
-[node name="hull_2" type="CollisionShape3D" parent="PlayerClip" unique_id=327924217]
+[node name="hull_2" type="CollisionShape3D" parent="PlayerClip" unique_id=1775037312]
 shape = SubResource("ConvexPolygonShape3D_q55og")
 
-[node name="hull_3" type="CollisionShape3D" parent="PlayerClip" unique_id=456437044]
+[node name="hull_3" type="CollisionShape3D" parent="PlayerClip" unique_id=317718678]
 shape = SubResource("ConvexPolygonShape3D_22hb0")
 
-[node name="hull_4" type="CollisionShape3D" parent="PlayerClip" unique_id=979070361]
+[node name="hull_4" type="CollisionShape3D" parent="PlayerClip" unique_id=1775647677]
 shape = SubResource("ConvexPolygonShape3D_y467l")
 
-[node name="hull_5" type="CollisionShape3D" parent="PlayerClip" unique_id=2096252947]
+[node name="hull_5" type="CollisionShape3D" parent="PlayerClip" unique_id=1513141073]
 shape = SubResource("ConvexPolygonShape3D_mdvc3")
 
-[node name="hull_6" type="CollisionShape3D" parent="PlayerClip" unique_id=354971123]
+[node name="hull_6" type="CollisionShape3D" parent="PlayerClip" unique_id=2128623893]
 shape = SubResource("ConvexPolygonShape3D_tau8l")
 
-[node name="hull_7" type="CollisionShape3D" parent="PlayerClip" unique_id=709739523]
+[node name="hull_7" type="CollisionShape3D" parent="PlayerClip" unique_id=1712301265]
 shape = SubResource("ConvexPolygonShape3D_c4ehk")
 
-[node name="Entities" type="Node3D" parent="." unique_id=1432910319]
+[node name="Entities" type="Node3D" parent="." unique_id=1454632926]
 
-[node name="ammo_bullets_0" type="Marker3D" parent="Entities" unique_id=1840244092]
+[node name="ammo_bullets_0" type="Marker3D" parent="Entities" unique_id=334851468]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.25, 10.75, -6.5)
 metadata/entity = {
 "classname": "ammo_bullets",
 "origin": "-208 776 344"
 }
 
-[node name="target_position_1" type="Marker3D" parent="Entities" unique_id=675082203]
+[node name="target_position_1" type="Marker3D" parent="Entities" unique_id=1172105146]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 19.625, 59.375)
 metadata/entity = {
 "classname": "target_position",
@@ -3544,7 +4083,7 @@ metadata/entity = {
 "targetname": "t95"
 }
 
-[node name="info_player_intermission_2" type="Marker3D" parent="Entities" unique_id=829690267]
+[node name="info_player_intermission_2" type="Marker3D" parent="Entities" unique_id=906461770]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 2, 19.25, 66)
 metadata/entity = {
 "angle": "180",
@@ -3553,7 +4092,7 @@ metadata/entity = {
 "target": "t95"
 }
 
-[node name="target_speaker_3" type="Marker3D" parent="Entities" unique_id=1898555751]
+[node name="target_speaker_3" type="Marker3D" parent="Entities" unique_id=907554169]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 41.75, 8.75)
 metadata/entity = {
 "classname": "target_speaker",
@@ -3562,21 +4101,21 @@ metadata/entity = {
 "spawnflags": "1"
 }
 
-[node name="ammo_rockets_4" type="Marker3D" parent="Entities" unique_id=1818535340]
+[node name="ammo_rockets_4" type="Marker3D" parent="Entities" unique_id=1032819963]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.75, 10.75, 11.5)
 metadata/entity = {
 "classname": "ammo_rockets",
 "origin": "368 600 344"
 }
 
-[node name="item_armor_body_5" type="Marker3D" parent="Entities" unique_id=1573757756]
+[node name="item_armor_body_5" type="Marker3D" parent="Entities" unique_id=1638079664]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 10.75, 21)
 metadata/entity = {
 "classname": "item_armor_body",
 "origin": "672 64 344"
 }
 
-[node name="target_position_6" type="Marker3D" parent="Entities" unique_id=1110824185]
+[node name="target_position_6" type="Marker3D" parent="Entities" unique_id=571748984]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22.875, -4.125, 24.875)
 metadata/entity = {
 "classname": "target_position",
@@ -3584,7 +4123,7 @@ metadata/entity = {
 "targetname": "t81"
 }
 
-[node name="info_player_intermission_7" type="Marker3D" parent="Entities" unique_id=644370304]
+[node name="info_player_intermission_7" type="Marker3D" parent="Entities" unique_id=1638266249]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 18.25, 86)
 metadata/entity = {
 "classname": "info_player_intermission",
@@ -3592,7 +4131,7 @@ metadata/entity = {
 "target": "t81"
 }
 
-[node name="target_remove_powerups_8" type="Marker3D" parent="Entities" unique_id=2008113999]
+[node name="target_remove_powerups_8" type="Marker3D" parent="Entities" unique_id=298066739]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.75, -47, 39.5)
 metadata/entity = {
 "classname": "target_remove_powerups",
@@ -3600,14 +4139,14 @@ metadata/entity = {
 "targetname": "t80"
 }
 
-[node name="ammo_shells_9" type="Marker3D" parent="Entities" unique_id=2068996662]
+[node name="ammo_shells_9" type="Marker3D" parent="Entities" unique_id=344056001]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 18.5, -14)
 metadata/entity = {
 "classname": "ammo_shells",
 "origin": "-448 -1152 592"
 }
 
-[node name="target_speaker_10" type="Marker3D" parent="Entities" unique_id=2143804026]
+[node name="target_speaker_10" type="Marker3D" parent="Entities" unique_id=941634606]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 12, -32)
 metadata/entity = {
 "classname": "target_speaker",
@@ -3616,7 +4155,7 @@ metadata/entity = {
 "spawnflags": "5"
 }
 
-[node name="target_speaker_11" type="Marker3D" parent="Entities" unique_id=1236382235]
+[node name="target_speaker_11" type="Marker3D" parent="Entities" unique_id=971258155]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.875, 12, 3.75)
 metadata/entity = {
 "classname": "target_speaker",
@@ -3625,7 +4164,7 @@ metadata/entity = {
 "spawnflags": "1"
 }
 
-[node name="info_player_deathmatch_12" type="Marker3D" parent="Entities" unique_id=376719670]
+[node name="info_player_deathmatch_12" type="Marker3D" parent="Entities" unique_id=1628073995]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 34.25, 11, 15.25)
 metadata/entity = {
 "angle": "270",
@@ -3634,7 +4173,7 @@ metadata/entity = {
 "spawnflags": "4"
 }
 
-[node name="info_player_deathmatch_13" type="Marker3D" parent="Entities" unique_id=1683616152]
+[node name="info_player_deathmatch_13" type="Marker3D" parent="Entities" unique_id=327387419]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.25, 11, 15.25)
 metadata/entity = {
 "angle": "90",
@@ -3643,7 +4182,7 @@ metadata/entity = {
 "spawnflags": "5"
 }
 
-[node name="info_player_deathmatch_14" type="Marker3D" parent="Entities" unique_id=681761762]
+[node name="info_player_deathmatch_14" type="Marker3D" parent="Entities" unique_id=1486585752]
 transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, 15.75, 11, 15.25)
 metadata/entity = {
 "angle": "135",
@@ -3652,7 +4191,7 @@ metadata/entity = {
 "spawnflags": "4"
 }
 
-[node name="info_player_deathmatch_15" type="Marker3D" parent="Entities" unique_id=291944029]
+[node name="info_player_deathmatch_15" type="Marker3D" parent="Entities" unique_id=58655529]
 transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, -11.75, 0.75, -9)
 metadata/entity = {
 "angle": "360",
@@ -3661,14 +4200,14 @@ metadata/entity = {
 "spawnflags": "4"
 }
 
-[node name="ammo_slugs_16" type="Marker3D" parent="Entities" unique_id=1461730566]
+[node name="ammo_slugs_16" type="Marker3D" parent="Entities" unique_id=686835765]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.5, 33.5)
 metadata/entity = {
 "classname": "ammo_slugs",
 "origin": "1072 160 16"
 }
 
-[node name="item_armor_combat_17" type="Marker3D" parent="Entities" unique_id=1694119577]
+[node name="item_armor_combat_17" type="Marker3D" parent="Entities" unique_id=2077724605]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 25.75, -12)
 metadata/entity = {
 "classname": "item_armor_combat",
@@ -3677,14 +4216,14 @@ metadata/entity = {
 "wait": "30"
 }
 
-[node name="weapon_rocketlauncher_18" type="Marker3D" parent="Entities" unique_id=1282519929]
+[node name="weapon_rocketlauncher_18" type="Marker3D" parent="Entities" unique_id=1854061907]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21, 10.75, 9)
 metadata/entity = {
 "classname": "weapon_rocketlauncher",
 "origin": "288 672 344"
 }
 
-[node name="item_health_mega_19" type="Marker3D" parent="Entities" unique_id=679700065]
+[node name="item_health_mega_19" type="Marker3D" parent="Entities" unique_id=813302375]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 25.5, 6)
 metadata/entity = {
 "classname": "item_health_mega",
@@ -3693,14 +4232,14 @@ metadata/entity = {
 "wait": "45"
 }
 
-[node name="weapon_railgun_20" type="Marker3D" parent="Entities" unique_id=605187660]
+[node name="weapon_railgun_20" type="Marker3D" parent="Entities" unique_id=1298483090]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 8.5, 76)
 metadata/entity = {
 "classname": "weapon_railgun",
 "origin": "2432 64 272"
 }
 
-[node name="misc_teleporter_dest_21" type="Marker3D" parent="Entities" unique_id=1474286095]
+[node name="misc_teleporter_dest_21" type="Marker3D" parent="Entities" unique_id=128636978]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 2, 10.875, 25.5)
 metadata/entity = {
 "angle": "180",
@@ -3710,7 +4249,7 @@ metadata/entity = {
 "targetname": "t33"
 }
 
-[node name="target_position_22" type="Marker3D" parent="Entities" unique_id=1984175659]
+[node name="target_position_22" type="Marker3D" parent="Entities" unique_id=2041952142]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.75, 22.75, -2.625)
 metadata/entity = {
 "classname": "target_position",
@@ -3718,7 +4257,7 @@ metadata/entity = {
 "targetname": "t91"
 }
 
-[node name="target_position_23" type="Marker3D" parent="Entities" unique_id=1764297861]
+[node name="target_position_23" type="Marker3D" parent="Entities" unique_id=2043829172]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 25.75, 6)
 metadata/entity = {
 "classname": "target_position",
@@ -3726,7 +4265,7 @@ metadata/entity = {
 "targetname": "t86"
 }
 
-[node name="item_quad_24" type="Marker3D" parent="Entities" unique_id=813844618]
+[node name="item_quad_24" type="Marker3D" parent="Entities" unique_id=330273797]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 40.5, 3.625)
 metadata/entity = {
 "classname": "item_quad",
@@ -3734,7 +4273,7 @@ metadata/entity = {
 "wait": "45"
 }
 
-[node name="item_armor_shard_25" type="Marker3D" parent="Entities" unique_id=191020062]
+[node name="item_armor_shard_25" type="Marker3D" parent="Entities" unique_id=1604317283]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 22.75, -12)
 metadata/entity = {
 "classname": "item_armor_shard",
@@ -3742,7 +4281,7 @@ metadata/entity = {
 "spawnflags": "1"
 }
 
-[node name="item_armor_shard_26" type="Marker3D" parent="Entities" unique_id=1059117351]
+[node name="item_armor_shard_26" type="Marker3D" parent="Entities" unique_id=969834256]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 24, -12)
 metadata/entity = {
 "classname": "item_armor_shard",
@@ -3750,7 +4289,7 @@ metadata/entity = {
 "spawnflags": "1"
 }
 
-[node name="item_armor_shard_27" type="Marker3D" parent="Entities" unique_id=733665617]
+[node name="item_armor_shard_27" type="Marker3D" parent="Entities" unique_id=363161396]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 25, -12)
 metadata/entity = {
 "classname": "item_armor_shard",
@@ -3758,7 +4297,7 @@ metadata/entity = {
 "spawnflags": "1"
 }
 
-[node name="item_armor_shard_28" type="Marker3D" parent="Entities" unique_id=1985751809]
+[node name="item_armor_shard_28" type="Marker3D" parent="Entities" unique_id=17143185]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 22.75, -12)
 metadata/entity = {
 "classname": "item_armor_shard",
@@ -3766,7 +4305,7 @@ metadata/entity = {
 "spawnflags": "1"
 }
 
-[node name="item_armor_shard_29" type="Marker3D" parent="Entities" unique_id=1282854437]
+[node name="item_armor_shard_29" type="Marker3D" parent="Entities" unique_id=921784804]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 24, -12)
 metadata/entity = {
 "classname": "item_armor_shard",
@@ -3774,7 +4313,7 @@ metadata/entity = {
 "spawnflags": "1"
 }
 
-[node name="item_armor_shard_30" type="Marker3D" parent="Entities" unique_id=1605050473]
+[node name="item_armor_shard_30" type="Marker3D" parent="Entities" unique_id=1990614189]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 25, -12)
 metadata/entity = {
 "classname": "item_armor_shard",
@@ -3782,14 +4321,14 @@ metadata/entity = {
 "spawnflags": "1"
 }
 
-[node name="ammo_slugs_31" type="Marker3D" parent="Entities" unique_id=721009981]
+[node name="ammo_slugs_31" type="Marker3D" parent="Entities" unique_id=473956404]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.5, 33.5)
 metadata/entity = {
 "classname": "ammo_slugs",
 "origin": "1072 -32 16"
 }
 
-[node name="info_player_deathmatch_32" type="Marker3D" parent="Entities" unique_id=839113460]
+[node name="info_player_deathmatch_32" type="Marker3D" parent="Entities" unique_id=550474754]
 transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -28, 18.75, 5)
 metadata/entity = {
 "angle": "180",
@@ -3798,7 +4337,7 @@ metadata/entity = {
 "spawnflags": "4"
 }
 
-[node name="info_player_deathmatch_33" type="Marker3D" parent="Entities" unique_id=1066074092]
+[node name="info_player_deathmatch_33" type="Marker3D" parent="Entities" unique_id=2109546911]
 transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, 15.75, 0.75, -9)
 metadata/entity = {
 "angle": "360",
@@ -3807,7 +4346,7 @@ metadata/entity = {
 "spawnflags": "4"
 }
 
-[node name="info_player_deathmatch_34" type="Marker3D" parent="Entities" unique_id=1927893599]
+[node name="info_player_deathmatch_34" type="Marker3D" parent="Entities" unique_id=89184766]
 transform = Transform3D(-0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, -0.70710677, -11.75, 11, 15.25)
 metadata/entity = {
 "angle": "225",
@@ -3816,7 +4355,7 @@ metadata/entity = {
 "spawnflags": "4"
 }
 
-[node name="target_speaker_35" type="Marker3D" parent="Entities" unique_id=899151027]
+[node name="target_speaker_35" type="Marker3D" parent="Entities" unique_id=1463152074]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 12, 40)
 metadata/entity = {
 "classname": "target_speaker",
@@ -3825,7 +4364,7 @@ metadata/entity = {
 "spawnflags": "5"
 }
 
-[node name="target_speaker_36" type="Marker3D" parent="Entities" unique_id=1592466561]
+[node name="target_speaker_36" type="Marker3D" parent="Entities" unique_id=1047207782]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -3.5, 40)
 metadata/entity = {
 "classname": "target_speaker",
@@ -3835,7 +4374,7 @@ metadata/entity = {
 "wait": "20"
 }
 
-[node name="target_speaker_37" type="Marker3D" parent="Entities" unique_id=831417582]
+[node name="target_speaker_37" type="Marker3D" parent="Entities" unique_id=1939232930]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -3.5, 48)
 metadata/entity = {
 "classname": "target_speaker",
@@ -3845,7 +4384,7 @@ metadata/entity = {
 "wait": "25"
 }
 
-[node name="target_speaker_38" type="Marker3D" parent="Entities" unique_id=1864770852]
+[node name="target_speaker_38" type="Marker3D" parent="Entities" unique_id=1971519541]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -3.5, 56)
 metadata/entity = {
 "classname": "target_speaker",
@@ -3855,7 +4394,7 @@ metadata/entity = {
 "wait": "20"
 }
 
-[node name="target_speaker_39" type="Marker3D" parent="Entities" unique_id=1697496144]
+[node name="target_speaker_39" type="Marker3D" parent="Entities" unique_id=834524468]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -3.5, 64)
 metadata/entity = {
 "classname": "target_speaker",
@@ -3865,7 +4404,7 @@ metadata/entity = {
 "wait": "23"
 }
 
-[node name="target_speaker_40" type="Marker3D" parent="Entities" unique_id=1712091692]
+[node name="target_speaker_40" type="Marker3D" parent="Entities" unique_id=297611264]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, -3.75, 3)
 metadata/entity = {
 "classname": "target_speaker",
@@ -3875,21 +4414,21 @@ metadata/entity = {
 "targetname": "t70"
 }
 
-[node name="weapon_rocketlauncher_41" type="Marker3D" parent="Entities" unique_id=1651360516]
+[node name="weapon_rocketlauncher_41" type="Marker3D" parent="Entities" unique_id=1735550633]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.875, 10.75, 9.125)
 metadata/entity = {
 "classname": "weapon_rocketlauncher",
 "origin": "292 -540 344"
 }
 
-[node name="weapon_shotgun_42" type="Marker3D" parent="Entities" unique_id=1947023269]
+[node name="weapon_shotgun_42" type="Marker3D" parent="Entities" unique_id=1639914315]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34, 18.5, -18)
 metadata/entity = {
 "classname": "weapon_shotgun",
 "origin": "-576 -1088 592"
 }
 
-[node name="target_position_43" type="Marker3D" parent="Entities" unique_id=1986608078]
+[node name="target_position_43" type="Marker3D" parent="Entities" unique_id=475002095]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 26.125, -12)
 metadata/entity = {
 "classname": "target_position",
@@ -3897,7 +4436,7 @@ metadata/entity = {
 "targetname": "t88"
 }
 
-[node name="target_position_44" type="Marker3D" parent="Entities" unique_id=1422772435]
+[node name="target_position_44" type="Marker3D" parent="Entities" unique_id=1755237125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.25, 24, 40.25)
 metadata/entity = {
 "classname": "target_position",
@@ -3905,7 +4444,7 @@ metadata/entity = {
 "targetname": "t93"
 }
 
-[node name="target_position_45" type="Marker3D" parent="Entities" unique_id=1526828987]
+[node name="target_position_45" type="Marker3D" parent="Entities" unique_id=1003568881]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 48.125, -6)
 metadata/entity = {
 "classname": "target_position",
@@ -3913,7 +4452,7 @@ metadata/entity = {
 "targetname": "t87"
 }
 
-[node name="target_position_46" type="Marker3D" parent="Entities" unique_id=495145845]
+[node name="target_position_46" type="Marker3D" parent="Entities" unique_id=1405601262]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.25, 24, 40.25)
 metadata/entity = {
 "classname": "target_position",
@@ -3921,7 +4460,7 @@ metadata/entity = {
 "targetname": "t94"
 }
 
-[node name="target_position_47" type="Marker3D" parent="Entities" unique_id=1615439559]
+[node name="target_position_47" type="Marker3D" parent="Entities" unique_id=128877225]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 26.125, -12)
 metadata/entity = {
 "classname": "target_position",
@@ -3929,7 +4468,7 @@ metadata/entity = {
 "targetname": "t89"
 }
 
-[node name="target_position_48" type="Marker3D" parent="Entities" unique_id=1386659579]
+[node name="target_position_48" type="Marker3D" parent="Entities" unique_id=1249787858]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 20, 58)
 metadata/entity = {
 "classname": "target_position",
@@ -3937,21 +4476,21 @@ metadata/entity = {
 "targetname": "t92"
 }
 
-[node name="item_health_large_49" type="Marker3D" parent="Entities" unique_id=1294501690]
+[node name="item_health_large_49" type="Marker3D" parent="Entities" unique_id=1023129508]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.75, 0.5, 19)
 metadata/entity = {
 "classname": "item_health_large",
 "origin": "608 -568 16"
 }
 
-[node name="item_health_large_50" type="Marker3D" parent="Entities" unique_id=1921276803]
+[node name="item_health_large_50" type="Marker3D" parent="Entities" unique_id=578159752]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.75, 0.5, 19)
 metadata/entity = {
 "classname": "item_health_large",
 "origin": "608 696 16"
 }
 
-[node name="info_player_deathmatch_51" type="Marker3D" parent="Entities" unique_id=1677622084]
+[node name="info_player_deathmatch_51" type="Marker3D" parent="Entities" unique_id=1399240794]
 transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, -16, 11, -8.5)
 metadata/entity = {
 "angle": "360",
@@ -3960,7 +4499,7 @@ metadata/entity = {
 "spawnflags": "4"
 }
 
-[node name="info_player_deathmatch_52" type="Marker3D" parent="Entities" unique_id=1099410989]
+[node name="info_player_deathmatch_52" type="Marker3D" parent="Entities" unique_id=278678945]
 transform = Transform3D(1.1924881e-08, 0, -1, 0, 1, 0, 1, 0, 1.1924881e-08, 20, 11, -8.5)
 metadata/entity = {
 "angle": "360",
@@ -3969,21 +4508,21 @@ metadata/entity = {
 "spawnflags": "4"
 }
 
-[node name="ammo_shells_53" type="Marker3D" parent="Entities" unique_id=982859168]
+[node name="ammo_shells_53" type="Marker3D" parent="Entities" unique_id=1122734019]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 18.5, -14)
 metadata/entity = {
 "classname": "ammo_shells",
 "origin": "-448 1280 592"
 }
 
-[node name="weapon_shotgun_54" type="Marker3D" parent="Entities" unique_id=1629530133]
+[node name="weapon_shotgun_54" type="Marker3D" parent="Entities" unique_id=1077605501]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38, 18.5, -18)
 metadata/entity = {
 "classname": "weapon_shotgun",
 "origin": "-576 1216 592"
 }
 
-[node name="target_position_55" type="Marker3D" parent="Entities" unique_id=895722732]
+[node name="target_position_55" type="Marker3D" parent="Entities" unique_id=1066640816]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.625, 22.75, -2.75)
 metadata/entity = {
 "classname": "target_position",
@@ -3991,14 +4530,14 @@ metadata/entity = {
 "targetname": "t90"
 }
 
-[node name="ammo_rockets_56" type="Marker3D" parent="Entities" unique_id=814208463]
+[node name="ammo_rockets_56" type="Marker3D" parent="Entities" unique_id=1910849947]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.5, 10.75, 11.5)
 metadata/entity = {
 "classname": "ammo_rockets",
 "origin": "368 -464 344"
 }
 
-[node name="target_position_57" type="Marker3D" parent="Entities" unique_id=1506028659]
+[node name="target_position_57" type="Marker3D" parent="Entities" unique_id=1774607649]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 18.875, 6)
 metadata/entity = {
 "classname": "target_position",
@@ -4006,7 +4545,7 @@ metadata/entity = {
 "targetname": "t83"
 }
 
-[node name="target_position_58" type="Marker3D" parent="Entities" unique_id=1117408054]
+[node name="target_position_58" type="Marker3D" parent="Entities" unique_id=535895173]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 36, -13.625)
 metadata/entity = {
 "classname": "target_position",
@@ -4014,7 +4553,7 @@ metadata/entity = {
 "targetname": "t85"
 }
 
-[node name="target_position_59" type="Marker3D" parent="Entities" unique_id=1015719745]
+[node name="target_position_59" type="Marker3D" parent="Entities" unique_id=742605245]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 18.875, 6)
 metadata/entity = {
 "classname": "target_position",
@@ -4022,7 +4561,7 @@ metadata/entity = {
 "targetname": "t82"
 }
 
-[node name="target_position_60" type="Marker3D" parent="Entities" unique_id=405811806]
+[node name="target_position_60" type="Marker3D" parent="Entities" unique_id=793778093]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 18.125, 17.5)
 metadata/entity = {
 "classname": "target_position",
@@ -4030,7 +4569,7 @@ metadata/entity = {
 "targetname": "t84"
 }
 
-[node name="target_speaker_61" type="Marker3D" parent="Entities" unique_id=1757550943]
+[node name="target_speaker_61" type="Marker3D" parent="Entities" unique_id=1144194701]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.875, 12, 3.75)
 metadata/entity = {
 "classname": "target_speaker",
@@ -4039,7 +4578,7 @@ metadata/entity = {
 "spawnflags": "1"
 }
 
-[node name="target_speaker_62" type="Marker3D" parent="Entities" unique_id=359166897]
+[node name="target_speaker_62" type="Marker3D" parent="Entities" unique_id=96975776]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 25.5, 16)
 metadata/entity = {
 "classname": "target_speaker",
@@ -4048,7 +4587,7 @@ metadata/entity = {
 "spawnflags": "5"
 }
 
-[node name="target_speaker_63" type="Marker3D" parent="Entities" unique_id=1662027842]
+[node name="target_speaker_63" type="Marker3D" parent="Entities" unique_id=830267736]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 16, 48)
 metadata/entity = {
 "classname": "target_speaker",
@@ -4057,7 +4596,7 @@ metadata/entity = {
 "spawnflags": "5"
 }
 
-[node name="target_speaker_64" type="Marker3D" parent="Entities" unique_id=174938493]
+[node name="target_speaker_64" type="Marker3D" parent="Entities" unique_id=1010387744]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 16, 48)
 metadata/entity = {
 "classname": "target_speaker",
@@ -4066,7 +4605,7 @@ metadata/entity = {
 "spawnflags": "5"
 }
 
-[node name="target_speaker_65" type="Marker3D" parent="Entities" unique_id=292075196]
+[node name="target_speaker_65" type="Marker3D" parent="Entities" unique_id=2086835977]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 25.5, 8)
 metadata/entity = {
 "classname": "target_speaker",
@@ -4075,7 +4614,7 @@ metadata/entity = {
 "spawnflags": "5"
 }
 
-[node name="target_speaker_66" type="Marker3D" parent="Entities" unique_id=576664257]
+[node name="target_speaker_66" type="Marker3D" parent="Entities" unique_id=49745046]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36, 25.5, 8)
 metadata/entity = {
 "classname": "target_speaker",
@@ -4084,42 +4623,42 @@ metadata/entity = {
 "spawnflags": "5"
 }
 
-[node name="item_health_67" type="Marker3D" parent="Entities" unique_id=2082970309]
+[node name="item_health_67" type="Marker3D" parent="Entities" unique_id=1307290299]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5, 8.5, 79)
 metadata/entity = {
 "classname": "item_health",
 "origin": "2528 368 272"
 }
 
-[node name="item_health_68" type="Marker3D" parent="Entities" unique_id=2038422997]
+[node name="item_health_68" type="Marker3D" parent="Entities" unique_id=70969772]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 8.5, 79)
 metadata/entity = {
 "classname": "item_health",
 "origin": "2528 -240 272"
 }
 
-[node name="item_health_large_69" type="Marker3D" parent="Entities" unique_id=183997677]
+[node name="item_health_large_69" type="Marker3D" parent="Entities" unique_id=943932470]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.25, 18.5, 4.75)
 metadata/entity = {
 "classname": "item_health_large",
 "origin": "152 -1000 592"
 }
 
-[node name="item_health_large_70" type="Marker3D" parent="Entities" unique_id=1884607581]
+[node name="item_health_large_70" type="Marker3D" parent="Entities" unique_id=1279111677]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.25, 18.5, 4.75)
 metadata/entity = {
 "classname": "item_health_large",
 "origin": "152 1128 592"
 }
 
-[node name="ammo_bullets_71" type="Marker3D" parent="Entities" unique_id=262793104]
+[node name="ammo_bullets_71" type="Marker3D" parent="Entities" unique_id=1346983604]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.25, 10.75, -6.5)
 metadata/entity = {
 "classname": "ammo_bullets",
 "origin": "-208 -648 344"
 }
 
-[node name="info_player_deathmatch_72" type="Marker3D" parent="Entities" unique_id=2022429835]
+[node name="info_player_deathmatch_72" type="Marker3D" parent="Entities" unique_id=224907274]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 20.5, 0.75, 6)
 metadata/entity = {
 "angle": "270",
@@ -4128,7 +4667,7 @@ metadata/entity = {
 "spawnflags": "4"
 }
 
-[node name="info_player_deathmatch_73" type="Marker3D" parent="Entities" unique_id=1046415915]
+[node name="info_player_deathmatch_73" type="Marker3D" parent="Entities" unique_id=1459929147]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.25, 0.75, 6.25)
 metadata/entity = {
 "angle": "90",
@@ -4137,7 +4676,7 @@ metadata/entity = {
 "spawnflags": "4"
 }
 
-[node name="target_position_74" type="Marker3D" parent="Entities" unique_id=1205801706]
+[node name="target_position_74" type="Marker3D" parent="Entities" unique_id=168059105]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.125, 11, -1.5)
 metadata/entity = {
 "classname": "target_position",
@@ -4145,7 +4684,7 @@ metadata/entity = {
 "targetname": "t96"
 }
 
-[node name="target_position_75" type="Marker3D" parent="Entities" unique_id=1498382239]
+[node name="target_position_75" type="Marker3D" parent="Entities" unique_id=746280198]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.125, 11, -1.5)
 metadata/entity = {
 "classname": "target_position",
@@ -4153,7 +4692,7 @@ metadata/entity = {
 "targetname": "t97"
 }
 
-[node name="LightmapGI" type="LightmapGI" parent="." unique_id=1992587422]
+[node name="LightmapGI" type="LightmapGI" parent="." unique_id=1861011825]
 quality = 2
 directional = true
 environment_mode = 3

@@ -1,31 +1,98 @@
-[gd_resource type="ShaderMaterial" load_steps=8 format=3]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://dg4chm3wqtr45"]
 
-[ext_resource type="Shader" path="res://shaders/world/world_opaque_2s.gdshader" id="1_r"]
-[ext_resource type="Texture2D" path="res://library/world/textures/base_wall__glass_frame_albedo.png" id="2_r"]
-[ext_resource type="Texture2D" path="res://library/world/textures/base_wall__glass_frame_normal.jpg" id="3_r"]
-[ext_resource type="Texture2D" path="res://library/world/textures/base_wall__glass_frame_orm.jpg" id="4_r"]
-[ext_resource type="Shader" path="res://shaders/world/world_add_lit.gdshader" id="5_r"]
-[ext_resource type="Texture2D" path="res://library/world/textures/effects__tinfx2_albedo.jpg" id="6_r"]
+[ext_resource type="Shader" uid="uid://crnyuqovxyv7f" path="res://shaders/world/world_opaque_2s.gdshader" id="1_r"]
+[ext_resource type="Texture2D" uid="uid://bdxny20sooi4p" path="res://library/world/textures/base_wall__glass_frame_albedo.png" id="2_r"]
+[ext_resource type="Texture2D" uid="uid://cje5voh8n6eo7" path="res://library/world/textures/base_wall__glass_frame_normal.jpg" id="3_r"]
+[ext_resource type="Texture2D" uid="uid://dars4io8e3hdh" path="res://library/world/textures/base_wall__glass_frame_orm.jpg" id="4_r"]
+[ext_resource type="Shader" uid="uid://b1byteddn3ixm" path="res://shaders/world/world_add_lit.gdshader" id="5_r"]
+[ext_resource type="Texture2D" uid="uid://b02esy5mrwp25" path="res://library/world/textures/effects__tinfx2_albedo.jpg" id="6_r"]
 
 [sub_resource type="ShaderMaterial" id="next_pass"]
+render_priority = 0
 shader = ExtResource("5_r")
+shader_parameter/deform1_a = Vector4(0, 0, 0, 0)
+shader_parameter/deform1_b = Vector4(0, 0, 0, 0)
+shader_parameter/deform1_move = Vector3(0, 0, 0)
+shader_parameter/deform2_a = Vector4(0, 0, 0, 0)
+shader_parameter/deform2_b = Vector4(0, 0, 0, 0)
+shader_parameter/deform2_move = Vector3(0, 0, 0)
 shader_parameter/albedo_tex = ExtResource("6_r")
-shader_parameter/hole_tex = ExtResource("2_r")
+shader_parameter/normal_strength = 1.0
+shader_parameter/tint = Color(1, 1, 1, 1)
+shader_parameter/alpha_cut = 0.0
+shader_parameter/stochastic = false
+shader_parameter/stochastic_scale = 1.0
+shader_parameter/base_scale = Vector2(1, 1)
+shader_parameter/base_rotate = 0.0
+shader_parameter/base_scroll = Vector2(0, 0)
+shader_parameter/base_turb = Vector4(0, 0, 0, 0)
+shader_parameter/frames = 1.0
+shader_parameter/fps = 0.0
+shader_parameter/glow1_scale = Vector2(1, 1)
+shader_parameter/glow1_motion = Vector3(0, 0, 0)
+shader_parameter/glow1_wave = Vector4(0, 1, 0, 0)
+shader_parameter/glow1_phase = 0.0
+shader_parameter/glow1_frames = 1.0
+shader_parameter/glow1_fps = 0.0
+shader_parameter/glow2_scale = Vector2(1, 1)
+shader_parameter/glow2_motion = Vector3(0, 0, 0)
+shader_parameter/glow2_wave = Vector4(0, 1, 0, 0)
+shader_parameter/glow2_phase = 0.0
+shader_parameter/emission_energy = 1.0
+shader_parameter/self_illum = 0.0
 shader_parameter/env_map = true
+shader_parameter/has_under = false
+shader_parameter/under_env = true
+shader_parameter/under_scale = Vector2(1, 1)
+shader_parameter/under_motion = Vector3(0, 0, 0)
+shader_parameter/under_turb = Vector4(0, 0, 0, 0)
+shader_parameter/glow_under = false
+shader_parameter/glow_lit = false
+shader_parameter/hole_tex = ExtResource("2_r")
 shader_parameter/use_holes = true
-shader_parameter/base_scale = Vector2(1.0, 1.0)
 
 [resource]
 resource_name = "textures/base_wall/glass_frame"
-shader = ExtResource("1_r")
+render_priority = 0
 next_pass = SubResource("next_pass")
+shader = ExtResource("1_r")
+shader_parameter/deform1_a = Vector4(0, 0, 0, 0)
+shader_parameter/deform1_b = Vector4(0, 0, 0, 0)
+shader_parameter/deform1_move = Vector3(0, 0, 0)
+shader_parameter/deform2_a = Vector4(0, 0, 0, 0)
+shader_parameter/deform2_b = Vector4(0, 0, 0, 0)
+shader_parameter/deform2_move = Vector3(0, 0, 0)
 shader_parameter/albedo_tex = ExtResource("2_r")
 shader_parameter/normal_tex = ExtResource("3_r")
 shader_parameter/orm_tex = ExtResource("4_r")
-shader_parameter/base_scale = Vector2(1.0, 1.0)
-shader_parameter/base_rotate = 0.0
-shader_parameter/base_scroll = Vector2(0.0, 0.0)
-shader_parameter/base_turb = Vector4(0.0, 0.0, 0.0, 0.0)
-shader_parameter/emission_energy = 1.0
+shader_parameter/normal_strength = 1.0
+shader_parameter/tint = Color(1, 1, 1, 1)
 shader_parameter/alpha_cut = 0.5
 shader_parameter/stochastic = false
+shader_parameter/stochastic_scale = 1.0
+shader_parameter/base_scale = Vector2(1, 1)
+shader_parameter/base_rotate = 0.0
+shader_parameter/base_scroll = Vector2(0, 0)
+shader_parameter/base_turb = Vector4(0, 0, 0, 0)
+shader_parameter/frames = 1.0
+shader_parameter/fps = 0.0
+shader_parameter/glow1_scale = Vector2(1, 1)
+shader_parameter/glow1_motion = Vector3(0, 0, 0)
+shader_parameter/glow1_wave = Vector4(0, 1, 0, 0)
+shader_parameter/glow1_phase = 0.0
+shader_parameter/glow1_frames = 1.0
+shader_parameter/glow1_fps = 0.0
+shader_parameter/glow2_scale = Vector2(1, 1)
+shader_parameter/glow2_motion = Vector3(0, 0, 0)
+shader_parameter/glow2_wave = Vector4(0, 1, 0, 0)
+shader_parameter/glow2_phase = 0.0
+shader_parameter/emission_energy = 1.0
+shader_parameter/self_illum = 0.0
+shader_parameter/env_map = false
+shader_parameter/has_under = false
+shader_parameter/under_env = true
+shader_parameter/under_scale = Vector2(1, 1)
+shader_parameter/under_motion = Vector3(0, 0, 0)
+shader_parameter/under_turb = Vector4(0, 0, 0, 0)
+shader_parameter/glow_under = false
+shader_parameter/glow_lit = false

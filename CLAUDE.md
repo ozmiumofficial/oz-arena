@@ -143,7 +143,10 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
 - **Gun placement (Ozmium, 2026-10-23: "too distracting" near the center):** Quake 3 framed the gun for 4:3, so on a wide screen it sat almost in the middle. Gameplay > Widescreen gun placement (on by default) scales its camera-space x by aspect / (4/3); Gun side offset is cg_gunY. Check with `tests/weapon_fx.tscn -- out=... window=3440x1440` (the out folder must exist).
 - **View weapon:** every gun is made once at match start (`_register_guns`). The hand pose eases into each torso animation over one frame time (CG_RunLerpFrame's initialLerp); `tests/weapon_switch_test.tscn` checks for snaps.
 - **Ragdolls:**
-  - Capsules are sized from the skinned mesh around each bone (`_mesh_radii`, cached per model), so limbs rest on the floor instead of sinking.
+  - Built from the skin, not bone names (`_ragdoll_plan`, cached per model): the rig fit misnames many limbs (Sarge's left arm is `belly_2..4`, Mynx's legs `hips_2..10`). Every bone with 40+ vertices gets a capsule fitted to its own vertices (principal axis, 80th-percentile radius, at least 5 cm); the trunk is pelvis to head, leg joints get hip, knee (hinge) or ankle limits by their height, everything else is an arm. Joints sit at the bone origins, where the animation turns each part.
+  - **Godot makes a PhysicalBone3D's joint where the simulator last saw the bones** (its cached pose, not the live skeleton), so limits were measured from the dying animation. `_build_ragdoll` moves every body to the standing pose (hips turned to 30 degrees forward) and remakes each joint there. A joint the dying pose already breaks is remade in that pose (`_ease_joints`), or the solver yanks it apart.
+  - Stability (Bones and Tank Jr flew apart): the pelvis is at least 8 kg and the trunk 4, no part outweighs its parent 2.5 times, and every part gets a rod's inertia reaching its farthest joint. Thin capsules otherwise spin to Jolt's 47 rad/s cap.
+  - Parts collide with each other (layer 8) except pairs touching standing or at death. CCD is on.
   - Launch speed is capped at 8 m/s, and physics runs at 120 Hz.
   - A fragged player who respawns out of sight leaves the snapshot. `_remove` keeps that body as a corpse; before, it vanished before it could burn.
 - **Local player events:**
@@ -278,9 +281,8 @@ ode_modules`.
   - Gun field of view scales the view gun's camera-space x and y by tan(view/2) / tan(gun/2), which is exactly that fov's projection.
 - **Holding fire from the spawn never shoots** (bg_pmove.c `PMF_RESPAWNED`); test scripts press it after spawning. Headless runs need `gameplay.test_input = true`, because firing needs a captured mouse.
 - **Physics is Jolt** (`physics/3d/physics_engine`); only ragdolls, gibs and brass use it.
-  - Ragdoll bodies come only from the rig's main parts by name (`RAGDOLL_PARTS` in `q3_character.gd`), with per-part masses and limits; knees are hinges.
   - Corpses stay 10 s, then `disintegrate()` burns them away (`shaders/character_dissolve.gdshader`).
-  - Check them with `tests/ragdoll_test.tscn` (`seq=sarge` for a fall sequence, `burn=1` for the burn).
+  - Check them with `tests/ragdoll_test.tscn` (`models=a,b,c,d`, `shapes=1` draws the capsules, `seq=sarge` for a fall sequence with `push=x,y,z` and `wall=1`, `burn=1` for the burn). It prints FLEW APART when a part ends over 1.6 m from the pelvis; run all 29 models after changing the ragdoll.
   - Billboarded particle materials need `billboard_keep_scale`, or every quad is 1 m.
 - **Script errors:** `tests/check_scripts.tscn` loads every script with autoloads up and lists parse errors.
   - The editor's Output and Errors panels keep every error since it started, stale ones included; `EditorInterface.restart_editor(true)` clears them.

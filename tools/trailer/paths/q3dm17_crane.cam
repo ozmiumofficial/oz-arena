@@ -1,0 +1,6 @@
+// map q3dm17
+// final crane: up and back from the arena into the black sky (the logo goes over it)
+// time  x y z  pitch yaw roll  fov
+0  1000 64 480  -36.11 180.00 0  90
+3  1300 64 900  11.31 180.00 0  90
+6  1500 64 1700  -71.57 180.00 0  90

@@ -119,8 +119,9 @@ export function FriendsButton() {
         setSocialOpen(!open);
       }}
       title="Friends (F)"
+      data-friends-button
       className={cn(
-        "relative flex h-9 items-center gap-2 rounded-full border bg-black/45 px-3 transition-colors",
+        "relative flex h-9 items-center gap-2 rounded-full border bg-black/45 px-4 transition-colors",
         open ? "border-glow/60 text-ink-hot" : "border-white/10 text-dim hover:border-white/25",
       )}
     >
@@ -128,7 +129,8 @@ export function FriendsButton() {
         <circle cx="9" cy="8" r="3.5" />
         <path d="M2.5 20c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2M16 4.8a3.4 3.4 0 0 1 0 6.4M18 13.9c2.1.7 3.5 2.9 3.5 6.1" />
       </svg>
-      <span className="font-q3 text-[0.7rem] tracking-[0.15em]">{online}</span>
+      <span className="font-q3 text-[0.75rem] tracking-[0.2em]">FRIENDS</span>
+      <span className="font-q3 text-[0.7rem] tracking-[0.15em] text-dim">{online}</span>
       {waiting > 0 && (
         <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red px-1 font-q3 text-[0.55rem] text-ink-hot shadow-[0_0_0.6rem_rgb(219_36_16/0.8)]">
           {waiting}
@@ -153,6 +155,16 @@ function Panel() {
     setSocialOpen(false);
   };
   useLayer(ref, { onBack: close });
+  // a click anywhere outside the panel closes it (the Friends button toggles on its own)
+  useEffect(() => {
+    const down = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      if (!t || ref.current?.contains(t) || t.closest("[data-friends-button]")) return;
+      close();
+    };
+    document.addEventListener("pointerdown", down, true);
+    return () => document.removeEventListener("pointerdown", down, true);
+  }, []);
   const st = sc.state;
   return (
     <motion.aside

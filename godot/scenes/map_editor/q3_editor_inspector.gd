@@ -1,31 +1,36 @@
 class_name Q3EditorInspector
 extends PanelContainer
-## The map editor's inspector (OZMIUM's Inspector): what's selected, its material, tint, the face
-## mapping (shift, rotate, scale, alignment, texture lock), the objects' position and rotation, and
-## for entities their class, the friendly fields (facing, light, sound, a jump pad's flight) and
-## every key/value. With nothing selected it edits the map's settings (worldspawn).
+## The map editor's inspector (OZMIUM's Inspector): what's selected, in sections that fold (click a
+## heading; the choice holds for the session): its material and tint, the face mapping (shift,
+## rotate, scale, alignment, texture lock; folded unless faces are picked), the objects' position and
+## rotation, and for entities their class, typed fields for the class's keys (a target picked from
+## the map's names, numbers with id's defaults, the spawnflags by name, a light's color, a sound) and
+## every raw key/value (folded). With nothing selected it edits the map's settings (worldspawn).
 ## Sections are rebuilt when the selection changes; values refresh after every edit.
 
 var editor: Q3MapEditor
 
-var _box: VBoxContainer
+var _root: VBoxContainer        ## the scroll's column
+var _box: VBoxContainer         ## the section being built (the column itself before the first)
 var _shape := ""                ## which sections are built (rebuild when it changes)
 var _fields := {}               ## name -> control
 var _busy := false              ## refreshing values: changes aren't edits
 var _player: AudioStreamPlayer  ## the sound field's preview
 var _queued := false            ## a refresh is waiting for the end of the frame
+var _defaults := {}             ## num:<key> -> the value shown while the key is absent
+static var _folded := {}        ## section -> folded, as the player left it this session
 
 
 func _ready() -> void:
-	custom_minimum_size.x = 380
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
-	_box = VBoxContainer.new()
-	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_box.add_theme_constant_override("separation", 8)
-	scroll.add_child(_box)
+	_root = VBoxContainer.new()
+	_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_root.add_theme_constant_override("separation", 6)
+	scroll.add_child(_root)
+	_box = _root
 	editor.selection_changed.connect(_queue_refresh)
 	editor.status_changed.connect(_queue_refresh)
 	_refresh()
@@ -68,9 +73,11 @@ func _refresh() -> void:
 # ---------------------------------------------------------------- building
 
 func _build() -> void:
-	for c in _box.get_children():
+	for c in _root.get_children():
 		c.queue_free()
 	_fields.clear()
+	_defaults.clear()
+	_box = _root
 	var t := editor.paint_targets()
 	var face_keys: Array = t[0]
 	var patches: Array = t[1]
@@ -89,9 +96,37 @@ func _build() -> void:
 		_build_transform()
 
 
+## A section: a heading that folds it, and its body, which the next fields go into. folded: how it
+## starts until the player folds or opens it.
+func _group(text: String, folded := false) -> void:
+	var head := Button.new()
+	head.flat = true
+	head.focus_mode = Control.FOCUS_NONE
+	head.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	head.add_theme_font_override("font", Q3Fonts.prop())
+	head.add_theme_font_size_override("font_size", 15)
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
+		head.add_theme_color_override(c, Q3Theme.RED.lightened(0.25 if c == "font_color" else 0.45))
+	_root.add_child(head)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 6)
+	_root.add_child(body)
+	var key := text.trim_prefix("%d " % text.to_int())   # "3 ENTITIES" folds with "ENTITY"
+	var shut: bool = _folded.get(key, folded)
+	body.visible = not shut
+	head.text = ("▸  " if shut else "▾  ") + text
+	head.pressed.connect(func():
+		UiSound.move()
+		body.visible = not body.visible
+		_folded[key] = not body.visible
+		head.text = ("▾  " if body.visible else "▸  ") + text)
+	_box = body
+
+
 func _build_material(face_keys: Array) -> void:
 	_group("MATERIAL")
 	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
 	_box.add_child(row)
 	var thumb := TextureRect.new()
 	thumb.custom_minimum_size = Vector2(56, 56)
@@ -102,32 +137,34 @@ func _build_material(face_keys: Array) -> void:
 	var mat := _label(row, "", "")
 	mat.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mat.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mat.add_theme_font_size_override("font_size", 14)
 	_fields["material"] = mat
 	var buttons := HBoxContainer.new()
 	_box.add_child(buttons)
-	_button(buttons, "PAINT CURRENT", "Paint the current material onto the selection", func(): editor.apply_material(editor.material))
-	_button(buttons, "PICK", "Make the selection's material the current one", func():
+	_button(buttons, "Apply current", "Paint the current material (the swatch at the bottom of the tool strip) onto the selection",
+			func(): editor.apply_material(editor.material))
+	_button(buttons, "Make current", "Make the selection's material the current one, for new brushes and Paint (Alt+click a face does it too)", func():
 		var m := _material_of(editor.paint_targets())
 		if m != "" and m != "mixed":
 			editor.material = m
 			editor.status_changed.emit())
-	# tint
-	_group("TINT")
 	var trow := HBoxContainer.new()
 	_box.add_child(trow)
+	_cell(trow, "Tint")
 	var picker := ColorPickerButton.new()
-	picker.custom_minimum_size = Vector2(120, 30)
+	picker.custom_minimum_size = Vector2(90, 30)
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	picker.edit_alpha = false
+	picker.tooltip_text = "Multiplies the material's color"
 	# applied when the picker closes: one undo step, not one per drag of the wheel
 	picker.popup_closed.connect(func(): editor.set_tint(picker.color))
 	trow.add_child(picker)
 	_fields["tint"] = picker
-	_button(trow, "CLEAR", "Remove the tint", func(): editor.set_tint(Color.WHITE))
-	# face mapping
+	var clear := _button(trow, "Clear", "Remove the tint", func(): editor.set_tint(Color.WHITE))
+	clear.size_flags_horizontal = Control.SIZE_FILL
+	# face mapping: open when faces are picked, folded for whole objects
 	if face_keys.is_empty():
 		return
-	_group("TEXTURE MAPPING")
+	_group("TEXTURE MAPPING", editor.faces.is_empty())
 	var grid := GridContainer.new()
 	grid.columns = 2
 	_box.add_child(grid)
@@ -154,8 +191,8 @@ func _build_material(face_keys: Array) -> void:
 	var align := GridContainer.new()
 	align.columns = 3
 	_box.add_child(align)
-	for a in [["FIT", "fit"], ["LEFT", "left"], ["RIGHT", "right"], ["TOP", "top"], ["BOTTOM", "bottom"], ["CENTER", "center"],
-			["FLIP U", "flipU"], ["FLIP V", "flipV"], ["RESET", ""]]:
+	for a in [["Fit", "fit"], ["Left", "left"], ["Right", "right"], ["Top", "top"], ["Bottom", "bottom"], ["Center", "center"],
+			["Flip U", "flipU"], ["Flip V", "flipV"], ["Reset", ""]]:
 		var how: String = a[1]
 		_button(align, a[0], "Reset to Quake 3's world projection" if how == "" else "Align: " + a[0].to_lower(), func():
 			if how == "":
@@ -174,7 +211,7 @@ func _build_material(face_keys: Array) -> void:
 
 
 func _build_transform() -> void:
-	_group("POSITION (MIN CORNER)")
+	_group("TRANSFORM")
 	var pg := GridContainer.new()
 	pg.columns = 2
 	_box.add_child(pg)
@@ -186,6 +223,7 @@ func _build_transform() -> void:
 		sb.step = 1
 		sb.select_all_on_focus = true
 		sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sb.tooltip_text = "The selection's lowest corner on %s (units)" % ["X", "Y", "Z"][i]
 		var axis := i
 		sb.value_changed.connect(func(v):
 			if not _busy:
@@ -195,9 +233,9 @@ func _build_transform() -> void:
 		pg.add_child(sb)
 		_fields["pos%d" % i] = sb
 	_fields["size"] = _label(_box, "", "DimLabel")
-	_group("ROTATE")
 	var rrow := HBoxContainer.new()
 	_box.add_child(rrow)
+	_cell(rrow, "Turn")
 	var ang := SpinBox.new()
 	ang.min_value = -360
 	ang.max_value = 360
@@ -206,7 +244,8 @@ func _build_transform() -> void:
 	ang.suffix = "°"
 	ang.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rrow.add_child(ang)
-	_button(rrow, "ROTATE", "Turn the selection about the vertical (R does 90°, Ctrl+R 15°)", func(): editor.rotate_selection(ang.value))
+	var turn := _button(rrow, "Rotate", "Turn the selection about the vertical (R does 90°, Ctrl+R 15°)", func(): editor.rotate_selection(ang.value))
+	turn.size_flags_horizontal = Control.SIZE_FILL
 
 
 # ---------------------------------------------------------------- entities (E4)
@@ -216,7 +255,7 @@ func _build_entity(ids: Array) -> void:
 	var cn: String = e["classname"]
 	_group("ENTITY" if ids.size() == 1 else "%d ENTITIES" % ids.size())
 	var head := _label(_box, cn, "")
-	head.add_theme_font_size_override("font_size", 16)
+	head.add_theme_font_size_override("font_size", 17)
 	head.add_theme_color_override("font_color", Q3MapEntities.color(cn).lightened(0.35))
 	_label(_box, Q3MapEntities.description(cn), "DimLabel")
 	# the class, where it has relatives to switch between
@@ -258,6 +297,9 @@ func _build_entity(ids: Array) -> void:
 		"target_speaker":
 			var sounds := Q3MapEntities.sounds()
 			_cell(grid, "Sound")
+			var srow := HBoxContainer.new()
+			srow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			grid.add_child(srow)
 			var ob := OptionButton.new()
 			ob.focus_mode = Control.FOCUS_NONE
 			ob.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -265,27 +307,83 @@ func _build_entity(ids: Array) -> void:
 			for snd in sounds:
 				ob.add_item(String(snd).trim_prefix("sound/world/"))
 			ob.item_selected.connect(func(i): editor.set_keys(ids, {"noise": sounds[i]}, "Sound"))
-			grid.add_child(ob)
+			srow.add_child(ob)
 			_fields["noise"] = ob
-			var srow := HBoxContainer.new()
-			_box.add_child(srow)
-			var loop := CheckBox.new()
-			loop.text = "Looping"
-			loop.focus_mode = Control.FOCUS_NONE
-			loop.toggled.connect(func(on):
-				if not _busy:
-					var f := int(editor.doc.get_obj(ids[0])["keys"].get("spawnflags", "0"))
-					editor.set_keys(ids, {"spawnflags": str((f | 1) if on else (f & ~1))}, "Looping"))
-			srow.add_child(loop)
-			_fields["loop"] = loop
-			_button(srow, "▶ LISTEN", "Play the sound", func(): _listen(String(editor.doc.get_obj(ids[0])["keys"].get("noise", ""))))
+			var listen := _button(srow, "▶", "Listen", func(): _listen(String(editor.doc.get_obj(ids[0])["keys"].get("noise", ""))))
+			listen.size_flags_horizontal = Control.SIZE_FILL
 		"trigger_push", "target_push":
 			_fields["flight"] = _label(_box, "", "DimLabel")
+	# the class's other keys, typed
+	for spec in Q3MapEntities.key_specs(cn):
+		_typed(grid, ids, spec)
+	var flags := Q3MapEntities.flags(cn)
+	if flags.size():
+		var fg := GridContainer.new()
+		fg.columns = 2
+		_box.add_child(fg)
+		for f in flags:
+			var bit: int = f[0]
+			var cb := CheckBox.new()
+			cb.text = f[1]
+			cb.focus_mode = Control.FOCUS_NONE
+			cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			cb.tooltip_text = "spawnflags %d" % bit
+			cb.toggled.connect(func(on):
+				if not _busy:
+					var fl := int(editor.doc.get_obj(ids[0])["keys"].get("spawnflags", "0"))
+					fl = (fl | bit) if on else (fl & ~bit)
+					editor.set_keys(ids, {"spawnflags": str(fl) if fl != 0 else ""}, cb.text))
+			fg.add_child(cb)
+			_fields["flag:%d" % bit] = cb
 	if e["keys"].has("target") or e["keys"].has("targetname"):
 		_fields["links"] = _label(_box, "", "DimLabel")
-	# every key/value
-	_group("KEYS")
+	# every key/value, as they're stored
+	_group("ALL KEYS", true)
 	_kv_rows(func(): return editor.doc.get_obj(ids[0]).get("keys", {}), func(ch: Dictionary): editor.set_keys(ids, ch))
+
+
+## One typed field from Q3MapEntities.KEY_SPECS: [key, kind, default].
+func _typed(grid: GridContainer, ids: Array, spec: Array) -> void:
+	var key: String = spec[0]
+	var label := key.capitalize()
+	match spec[1]:
+		"num":
+			var sb := _spin(grid, label, key, -100000, 100000, 0.1, 1, "", func(v): editor.set_keys(ids, {key: Q3MapEditor._num(v)}, label))
+			sb.allow_lesser = true
+			sb.tooltip_text = "%s (id's default %s)" % [key, Q3MapEditor._num(spec[2])]
+			_defaults["num:" + key] = float(spec[2])
+		"text", "name":
+			_cell(grid, label)
+			var le := LineEdit.new()
+			le.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			le.placeholder_text = "a name others target" if spec[1] == "name" else ""
+			_commit_on(le, func(t): editor.set_keys(ids, {key: t.strip_edges()}, label))
+			grid.add_child(le)
+			_fields["txt:" + key] = le
+		"target":
+			_cell(grid, label)
+			var ob := OptionButton.new()
+			ob.focus_mode = Control.FOCUS_NONE
+			ob.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			ob.fit_to_longest_item = false
+			ob.tooltip_text = "The entity this one fires or aims at: one with that targetname"
+			ob.item_selected.connect(func(i):
+				if not _busy:
+					var n := ob.get_item_text(i)
+					editor.set_keys(ids, {key: "" if i == 0 else n.get_slice("  ", 0)}, "Target"))
+			grid.add_child(ob)
+			_fields["target:" + key] = ob
+		"bool":
+			_cell(grid, "")
+			var cb := CheckBox.new()
+			cb.text = {"notfree": "Not in FFA / duel", "notteam": "Not in team games", "notsingle": "Not in single player",
+					"nobots": "No bots spawn here", "nohumans": "No humans spawn here"}.get(key, label)
+			cb.focus_mode = Control.FOCUS_NONE
+			cb.toggled.connect(func(on):
+				if not _busy:
+					editor.set_keys(ids, {key: "1" if on else ""}, cb.text))
+			grid.add_child(cb)
+			_fields["bool:" + key] = cb
 
 
 ## Map settings: worldspawn's friendly fields and every key.
@@ -315,7 +413,7 @@ func _build_world() -> void:
 	_fields["music_tracks"] = tracks
 	_spin(grid, "Gravity", "gravity", 0, 5000, 1, 50, "", func(v): editor.set_world({"gravity": Q3MapEditor._num(v)}))
 	_spin(grid, "Ambient", "ambient", 0, 255, 1, 5, "", func(v): editor.set_world({"ambient": Q3MapEditor._num(v)}))
-	_group("KEYS")
+	_group("ALL KEYS", true)
 	_kv_rows(func(): return editor.doc.worldspawn, func(ch: Dictionary): editor.set_world(ch))
 
 
@@ -472,11 +570,6 @@ func _cell(parent: Control, text: String) -> Label:
 	return l
 
 
-func _group(text: String) -> void:
-	var l := _label(_box, text, "GroupLabel")
-	l.add_theme_font_size_override("font_size", 15)
-
-
 func _button(parent: Control, text: String, tip: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
@@ -584,21 +677,28 @@ func _entity_values() -> void:
 		var c: Control = _fields[f]
 		if c.has_focus() or (c is SpinBox and (c as SpinBox).get_line_edit().has_focus()):
 			continue
-		if f.begins_with("kv:") or f.begins_with("world:"):
-			var v := String(keys.get(f.substr(f.find(":") + 1), ""))
+		var k: String = f.substr(f.find(":") + 1)
+		if f.begins_with("kv:") or f.begins_with("world:") or f.begins_with("txt:"):
+			var v := String(keys.get(k, ""))
 			(c as LineEdit).text = v
 			c.set_meta("shown", v)
 		elif f.begins_with("num:"):
-			var k: String = f.substr(4)
-			var v: float = float(keys[k]) if keys.has(k) else NUMBER_DEFAULTS.get(k, 0.0)
+			var v: float = float(keys[k]) if keys.has(k) else _defaults.get(f, NUMBER_DEFAULTS.get(k, 0.0))
 			if k == "angle" and not world:
 				v = Q3MapEntities.angle(e)
 			(c as SpinBox).set_value_no_signal(v)
+			# a key left at id's default reads dim
+			c.modulate = Color(1, 1, 1, 1.0 if keys.has(k) or k == "angle" else 0.6)
+		elif f.begins_with("bool:"):
+			(c as CheckBox).set_pressed_no_signal(String(keys.get(k, "0")) not in ["", "0"])
+		elif f.begins_with("flag:"):
+			(c as CheckBox).set_pressed_no_signal(int(keys.get("spawnflags", "0")) & int(k) != 0)
+		elif f.begins_with("target:"):
+			_fill_targets(c as OptionButton, String(keys.get(k, "")), String(keys.get("targetname", "")))
 	if _fields.has("light_color"):
 		_set_color(_fields["light_color"], Q3MapEntities.light_params(keys)["color"])
 	if _fields.has("noise"):
 		(_fields["noise"] as OptionButton).select(Q3MapEntities.sounds().find(String(keys.get("noise", ""))))
-		(_fields["loop"] as CheckBox).set_pressed_no_signal(int(keys.get("spawnflags", "0")) & 1 != 0)
 	if _fields.has("music"):
 		var tracks: PackedStringArray = _fields["music_tracks"]
 		(_fields["music"] as OptionButton).select(tracks.find(String(keys.get("music", ""))) + 1)
@@ -618,6 +718,25 @@ func _entity_values() -> void:
 					by += 1
 			parts.append("Named '%s': targeted by %d" % [keys["targetname"], by])
 		_fields["links"].text = "\n".join(parts)
+
+
+## The target menu: (none), then every targetname in the map but this entity's own (the current one
+## marked when nothing has it yet).
+func _fill_targets(ob: OptionButton, current: String, own: String) -> void:
+	var names: Array = Q3MapEntities.targetnames(editor.doc).keys()
+	names.erase(own)
+	names.sort()
+	ob.clear()
+	ob.add_item("(none)")
+	var at := 0
+	for n in names:
+		ob.add_item(n)
+		if n == current:
+			at = ob.item_count - 1
+	if current != "" and at == 0:
+		ob.add_item(current + "  (nothing has this name)")
+		at = ob.item_count - 1
+	ob.select(at)
 
 
 ## A jump pad's flight from AimAtTarget: launch speed, how high, how long to the top, how far.

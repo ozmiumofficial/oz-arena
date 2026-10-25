@@ -64,7 +64,7 @@ func click(pos: Vector2, mods: int, double: bool) -> void:
 		return
 	if h.get("kind", "") == "face":
 		return   # a diamond only drags
-	var p := editor.pick(pos, true)
+	var p := editor.pick(pos, true, true)   # clicking the same spot again takes the next object behind
 	if p.is_empty():
 		if mods == 0:
 			editor.verts.clear()
@@ -149,7 +149,10 @@ func _grab(point: Vector3, vertical: bool) -> void:
 
 func _set_plane(vertical: bool) -> void:
 	_vertical = vertical
-	if vertical:
+	if editor.view_axis() >= 0:
+		_normal = Vector3.ZERO   # a 2D view: drags stay in the view's plane
+		_normal[editor.view_axis()] = 1.0
+	elif vertical:
 		var g := -editor.camera.global_transform.basis.z
 		var f := Vector3(g.z, g.x, 0)
 		_normal = f.normalized() if f.length() > 1e-4 else Vector3(1, 0, 0)

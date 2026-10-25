@@ -104,6 +104,9 @@ const BINDINGS := [
 	["view.home", KEY_HOME, 0, "View", "Reset camera"],
 	["help.cheatsheet", KEY_F1, 0, "View", "Hotkey sheet"],
 	["view.explorer", KEY_TAB, 0, "View", "Show / hide the browser and inspector"],
+	["view.top", KEY_F2, 0, "View", "Top view (2D, X right, Y up); again: back to 3D"],
+	["view.front", KEY_F3, 0, "View", "Front view (2D, X right, Z up); again: back to 3D"],
+	["view.side", KEY_F4, 0, "View", "Side view (2D, Y right, Z up); again: back to 3D"],
 	["view.lighting", KEY_L, SHIFT, "View", "Lighting preview: the map's own lights only"],
 	["view.filter.caulk", KEY_1, ALT, "View", "Hide / show caulk"],
 	["view.filter.tools", KEY_2, ALT, "View", "Hide / show clip, hint, triggers and other tool brushes"],
@@ -117,7 +120,9 @@ const BINDINGS := [
 	["map.bots", KEY_F5, SHIFT, "Play", "Play-test with or without bots"],
 	["", "RMB hold", 0, "View", "Look around"],
 	["", "W A S D / Q E", 0, "View", "Fly while looking (Shift fast, Ctrl slow)"],
-	["", "Scroll", 0, "View", "Dolly forward / back"],
+	["", "Scroll", 0, "View", "Dolly forward / back (2D views: zoom)"],
+	["", "RMB drag (2D)", 0, "View", "Pan a 2D view"],
+	["", "Click again", 0, "Tools", "Select the next object behind the one picked (a 2D view's floor under its roof)"],
 ]
 
 static var _effective: Array = []

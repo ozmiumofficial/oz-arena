@@ -144,7 +144,7 @@ func _set_plane(vertical: bool) -> void:
 	_vertical = vertical
 	var g := -editor.camera.global_transform.basis.z
 	var f := Vector3(g.z, g.x, g.y)   # Godot -> id
-	if vertical:
+	if vertical and editor.view_axis() < 0:
 		f.z = 0
 	var axis := f.abs().max_axis_index()
 	_normal = Vector3.ZERO

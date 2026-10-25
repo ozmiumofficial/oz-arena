@@ -10,6 +10,9 @@ static var recent := "user://map_editor/recent.json"
 const AUTOSAVE := "_autosave"
 const RECENT_MAX := 10
 const DRAG_PIXELS := 4.0
+const Wire = preload("res://scenes/map_editor/q3_editor_wire.gd")
+## the 2D views and the id axis each looks along
+const VIEW_AXES := {"top": 2, "front": 1, "side": 0}
 
 signal selection_changed
 signal status_changed        ## file name, dirty flag, grid, tool, undo labels
@@ -37,6 +40,9 @@ var grid: Q3EditorGrid
 var mesher: Q3MapMesher
 var ents: Q3EditorEntities
 var overlay: Q3EditorOverlay
+var wire: MeshInstance3D       ## the 2D views' wireframe map
+var view := "3d"             ## 3d, top, front, side
+var _cycle := {}             ## the last click's hits under the cursor, to step through on the next one
 var thumbs: Q3EditorThumbs
 var compiler: Q3MapCompiler
 var ui: Q3EditorUi
@@ -74,6 +80,9 @@ static func f64(v: Vector3) -> PackedFloat64Array:
 # ---------------------------------------------------------------- setup
 
 func _ready() -> void:
+	# the keyboard to the game window (the menu's page held it; with no window focused, Windows dinged at every key)
+	if DisplayServer.get_name() != "headless":
+		get_window().grab_focus()
 	var env := WorldEnvironment.new()
 	_env = Environment.new()
 	env.environment = _env
@@ -96,6 +105,7 @@ func _ready() -> void:
 	camera.current = true
 	grid = Q3EditorGrid.new()
 	grid.follow = camera
+	grid.layers = Q3EditorCamera.ORTHO_LAYER   # the 2D views draw their own grid
 	add_child(grid)
 	mesher = Q3MapMesher.new()
 	mesher.name = "Map"
@@ -107,6 +117,10 @@ func _ready() -> void:
 	add_child(ents)
 	overlay = Q3EditorOverlay.new()
 	add_child(overlay)
+	wire = Wire.new()
+	wire.name = "Wire"
+	wire.editor = self
+	add_child(wire)
 	thumbs = Q3EditorThumbs.new()
 	thumbs.name = "Thumbnails"
 	add_child(thumbs)
@@ -501,10 +515,28 @@ func ray(screen: Vector2) -> Array:
 
 ## The nearest visible brush or patch (and with_entities, point entity) under the cursor: {id, kind,
 ## face, t, point, normal, locked}, or {}. face is the brush face (-1 on a patch or entity).
-func pick(screen: Vector2, with_entities := false) -> Dictionary:
+func pick(screen: Vector2, with_entities := false, cycle := false) -> Dictionary:
+	if not cycle:
+		return _pick_all(screen, with_entities, true)[0]
+	# a second click on the same spot takes the next object along the ray (a 2D view's floor under
+	# its roof)
+	var hits := _pick_all(screen, with_entities, false)
+	if hits.is_empty():
+		_cycle = {}
+		return {}
+	var again: bool = _cycle.size() and _cycle["screen"].distance_to(screen) < 3.0 and _cycle["rev"] == _doc_rev \
+			and _cycle["count"] == hits.size() and selection.has(hits[_cycle["at"]]["id"])
+	var at: int = (_cycle["at"] + 1) % hits.size() if again else 0
+	_cycle = {"screen": screen, "rev": _doc_rev, "count": hits.size(), "at": at}
+	return hits[at]
+
+
+## The pickable objects under the cursor, nearest first ({} alone when none and nearest_only).
+func _pick_all(screen: Vector2, with_entities: bool, nearest_only: bool) -> Array:
 	var r := ray(screen)
 	var o := f64(r[0])
 	var d := f64(r[1])
+	var hits := []
 	var best := {}
 	var best_t := INF
 	for id in doc.objects:
@@ -519,28 +551,34 @@ func pick(screen: Vector2, with_entities := false) -> Dictionary:
 				if box.size == Vector3.ZERO:
 					continue
 				var hit := ray_box(r[0], r[1], box)
-				if hit.size() and hit[0] < best_t:
-					best_t = hit[0]
+				if hit.size() and (hit[0] < best_t or not nearest_only):
+					best_t = minf(best_t, hit[0]) if not nearest_only else hit[0]
 					best = {"id": id, "kind": "entity", "face": -1, "t": hit[0], "point": r[0] + r[1] * hit[0],
 							"normal": hit[1], "locked": doc.locked.has(id)}
+					hits.append(best)
 			"brush":
 				var hit: PackedFloat64Array = Q3MapGeo.ray(b["planes"], o, d)
 				# entering through a face the view filters hide (caulk on a trim piece): nothing to see there
 				if hit.size() == 2 and filters.size() and face_filtered(b["faces"][int(hit[1])]["material"]):
 					continue
-				if hit.size() == 2 and hit[0] < best_t:
-					best_t = hit[0]
+				if hit.size() == 2 and (hit[0] < best_t or not nearest_only):
+					best_t = minf(best_t, hit[0]) if not nearest_only else hit[0]
 					var face := int(hit[1])
 					best = {"id": id, "kind": "brush", "face": face, "t": hit[0], "point": r[0] + r[1] * hit[0],
 							"normal": Vector3(b["planes"][face * 4], b["planes"][face * 4 + 1], b["planes"][face * 4 + 2]),
 							"locked": doc.locked.has(id)}
+					hits.append(best)
 			"patch":
 				var hit := _ray_patch(r[0], r[1], doc.patch_tess(id))
-				if hit.size() and hit[0] < best_t:
-					best_t = hit[0]
+				if hit.size() and (hit[0] < best_t or not nearest_only):
+					best_t = minf(best_t, hit[0]) if not nearest_only else hit[0]
 					best = {"id": id, "kind": "patch", "face": -1, "t": hit[0], "point": r[0] + r[1] * hit[0],
 							"normal": hit[1], "locked": doc.locked.has(id)}
-	return best
+					hits.append(best)
+	if nearest_only:
+		return [best]
+	hits.sort_custom(func(a, b): return a["t"] < b["t"])
+	return hits
 
 
 ## [t, normal] where the ray first crosses a patch's triangles (either side), or [].
@@ -615,12 +653,66 @@ func plane_point(screen: Vector2, point: Vector3, normal: Vector3) -> Variant:
 	return r[0] + r[1] * t if t > 0 else null
 
 
+# ---------------------------------------------------------------- 2D views
+
+## Into a 2D view (Radiant's: "top" looks down Z, "front" along Y, "side" along X) or back to "3d".
+## Asking for the view already shown goes back to 3D. The map draws as edges there (wire); the 2D
+## views center on the selection, or on what the 3D view was looking at.
+func set_view(mode: String) -> void:
+	if mode == view and mode != "3d":
+		mode = "3d"
+	if mode == view:
+		return
+	var center := Vector3.ZERO
+	var mid := get_viewport().get_visible_rect().size * 0.5
+	if selection.size():
+		center = to_godot(selection_bounds().get_center())
+	elif faces.size():
+		var box := AABB()
+		for k: Vector2i in faces:
+			box = bounds_of([k.x]) if box.size == Vector3.ZERO else box.merge(bounds_of([k.x]))
+		center = to_godot(box.get_center())
+	elif camera.ortho != "":
+		center = camera.position - camera.global_transform.basis.z * Q3EditorCamera.ORTHO_BACK
+	else:
+		# what the 3D view looks at: the surface in the middle of the screen, or a little way ahead
+		var hit := pick(mid)
+		center = to_godot(hit["point"]) if hit.size() else camera.position - camera.global_transform.basis.z * 12.0
+	tool.cancel()
+	view = mode
+	camera.set_ortho("" if mode == "3d" else mode, center)
+	var flat := mode != "3d"
+	mesher.visible = not flat
+	wire.visible = flat
+	_cycle = {}
+	notify({"3d": "3D view", "top": "Top view: X right, Y up", "front": "Front view: X right, Z up",
+			"side": "Side view: Y right, Z up"}[mode] + ("" if mode == "3d" else " · right-drag pans, the wheel zooms · %s again: 3D" % Q3EditorKeymap.key_for("view." + mode)))
+	status_changed.emit()
+
+
+## The id axis a 2D view looks along, or -1 in 3D.
+func view_axis() -> int:
+	return VIEW_AXES.get(view, -1)
+
+
+## Where a 2D view puts new things along its axis: the selection's low side, else 0.
+func work_depth() -> float:
+	var a := view_axis()
+	if a < 0:
+		return 0.0
+	return selection_bounds().position[a] if selection.size() else 0.0
+
+
 func screen_of(id_point: Vector3) -> Vector2:
 	return camera.unproject_position(to_godot(id_point))
 
 
 ## The surface under the cursor, or the ground (z = 0) when nothing is there.
 func cursor_point(screen: Vector2) -> Variant:
+	if view_axis() >= 0:
+		var n := Vector3.ZERO
+		n[view_axis()] = 1.0
+		return plane_point(screen, n * work_depth(), n)
 	var p := pick(screen)
 	if p.size():
 		return p["point"]
@@ -1036,6 +1128,8 @@ func _mouse_button(ev: InputEventMouseButton) -> void:
 			var dir := 1.0 if ev.button_index == MOUSE_BUTTON_WHEEL_UP else -1.0
 			if ev.ctrl_pressed:
 				execute("grid.bigger" if dir > 0 else "grid.smaller")
+			elif camera.ortho != "":
+				camera.zoom_at(ev.position, dir * maxf(ev.factor, 1.0))
 			else:
 				camera.dolly(dir * maxf(ev.factor, 1.0), ev.shift_pressed)
 
@@ -1263,6 +1357,8 @@ func _execute(cmd: String) -> bool:
 				camera.focus(to_godot(box.get_center()), box.size.length() * 0.5 / 32.0)
 		"view.home":
 			camera.home()
+		"view.top", "view.front", "view.side", "view.3d":
+			set_view(cmd.substr(5))
 		"help.cheatsheet":
 			ui.toggle_sheet()
 		_:
@@ -1273,6 +1369,10 @@ func _execute(cmd: String) -> bool:
 
 ## The id axis (unit, horizontal) closest to the camera's right or forward.
 func _camera_axis(which: Vector3) -> Vector3:
+	if camera.ortho != "":
+		# a 2D view: the arrows move along the screen
+		var s := camera.global_transform.basis.x if which == Vector3.RIGHT else camera.global_transform.basis.y
+		return to_id(s).round()
 	var g := camera.global_transform.basis.x if which == Vector3.RIGHT else -camera.global_transform.basis.z
 	var v := Vector3(g.z, g.x, 0)   # Godot -> id, flattened
 	if v.length() < 1e-4:
@@ -1987,10 +2087,14 @@ func take_thumbnail(name: String) -> void:
 	sv.add_child(cam)
 	add_child(sv)
 	cam.global_transform = camera.global_transform
+	if camera.ortho != "" and camera._pose_3d.size():
+		cam.global_transform = Transform3D(Basis.from_euler(Vector3(deg_to_rad(camera._pose_3d[2]), deg_to_rad(camera._pose_3d[1]), 0)), camera._pose_3d[0])
+	var flat := not mesher.visible
+	mesher.visible = true
 	cam.current = true
 	# the editor's own drawing moves to layer 2 for the shot, and the selection draws as the map
 	var moved := {}
-	for root in [grid, overlay, ents]:
+	for root in [grid, overlay, ents, wire]:
 		for g in root.find_children("*", "GeometryInstance3D", true, false):
 			moved[g] = g.layers
 			g.layers = 2
@@ -2007,6 +2111,7 @@ func take_thumbnail(name: String) -> void:
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	var img := sv.get_texture().get_image()
+	mesher.visible = not flat
 	for g in moved:
 		if is_instance_valid(g):
 			g.layers = moved[g]

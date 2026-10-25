@@ -34,6 +34,7 @@ func _ready() -> void:
 	Q3MapEditor.maps_dir = SCRATCH.path_join("maps")
 	Q3MapEditor.recent = SCRATCH.path_join("recent.json")
 	Q3MapMaterials.prefs_path = SCRATCH.path_join("materials.json")
+	Q3EditorUi.layout_path = SCRATCH.path_join("layout.json")
 	Q3MapMaterials._prefs = {}
 	Q3MapPrefabs.dir = SCRATCH.path_join("prefabs")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Q3MapEditor.recent))

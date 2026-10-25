@@ -202,7 +202,10 @@ static func make_visual(e: Dictionary, d: Q3MapDoc, with_light := true, label :=
 		l.outline_size = 8
 		l.modulate = col.lightened(0.35)
 		l.position = Q3MapEditor.to_godot(Vector3(0, 0, box.end.z + 10))
-		l.visibility_range_end = 24.0
+		# far labels fade out instead of piling up across the view (they keep their size on screen)
+		l.visibility_range_end = 18.0
+		l.visibility_range_end_margin = 8.0
+		l.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		root.add_child(l)
 	return root
 

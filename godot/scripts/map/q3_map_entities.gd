@@ -32,7 +32,84 @@ const SECTIONS := [
 	["Triggers and logic", "logic"], ["Hazards", "hazard"], ["Models and portals", "decoration|render"],
 ]
 
+## The inspector's typed fields: [key, kind, default]; kind is "num", "text", "target" (another
+## entity's targetname), "name" (this one's), or "bool" ("1" or absent). Defaults are the spawn
+## functions' (g_mover.c, g_trigger.c, g_target.c, g_items.c, g_client.c). "*item" covers every pickup.
+const KEY_SPECS := {
+	"*item": [["team", "text", ""], ["wait", "num", 0.0], ["random", "num", 0.0], ["count", "num", 0.0], ["target", "target", ""],
+			["targetname", "name", ""], ["notfree", "bool", ""], ["notteam", "bool", ""], ["notsingle", "bool", ""]],
+	"info_player_deathmatch": [["target", "target", ""], ["nobots", "bool", ""], ["nohumans", "bool", ""]],
+	"info_player_start": [["target", "target", ""]],
+	"info_player_intermission": [["target", "target", ""]],
+	"info_notnull": [["targetname", "name", ""]],
+	"func_door": [["speed", "num", 400.0], ["wait", "num", 2.0], ["lip", "num", 8.0], ["dmg", "num", 2.0], ["health", "num", 0.0],
+			["team", "text", ""], ["targetname", "name", ""]],
+	"func_button": [["target", "target", ""], ["speed", "num", 40.0], ["wait", "num", 1.0], ["lip", "num", 4.0], ["health", "num", 0.0]],
+	"func_plat": [["speed", "num", 200.0], ["lip", "num", 8.0], ["height", "num", 0.0], ["dmg", "num", 2.0], ["targetname", "name", ""]],
+	"func_bobbing": [["speed", "num", 4.0], ["height", "num", 32.0], ["phase", "num", 0.0], ["dmg", "num", 2.0]],
+	"func_pendulum": [["speed", "num", 30.0], ["phase", "num", 0.0], ["dmg", "num", 2.0]],
+	"func_rotating": [["speed", "num", 100.0], ["dmg", "num", 2.0]],
+	"func_train": [["target", "target", ""], ["speed", "num", 100.0], ["dmg", "num", 2.0]],
+	"func_static": [["targetname", "name", ""]],
+	"func_timer": [["target", "target", ""], ["targetname", "name", ""], ["wait", "num", 1.0], ["random", "num", 1.0]],
+	"trigger_multiple": [["target", "target", ""], ["wait", "num", 0.5], ["random", "num", 0.0]],
+	"trigger_hurt": [["dmg", "num", 5.0], ["targetname", "name", ""]],
+	"trigger_push": [["target", "target", ""]],
+	"trigger_teleport": [["target", "target", ""]],
+	"trigger_always": [["target", "target", ""]],
+	"target_push": [["target", "target", ""], ["targetname", "name", ""], ["speed", "num", 1000.0]],
+	"target_teleporter": [["target", "target", ""], ["targetname", "name", ""]],
+	"target_position": [["targetname", "name", ""]],
+	"misc_teleporter_dest": [["targetname", "name", ""]],
+	"target_delay": [["target", "target", ""], ["targetname", "name", ""], ["wait", "num", 1.0], ["random", "num", 0.0]],
+	"target_relay": [["target", "target", ""], ["targetname", "name", ""]],
+	"target_print": [["message", "text", ""], ["targetname", "name", ""]],
+	"target_give": [["target", "target", ""], ["targetname", "name", ""]],
+	"target_score": [["count", "num", 1.0], ["targetname", "name", ""]],
+	"target_kill": [["targetname", "name", ""]],
+	"target_laser": [["target", "target", ""], ["targetname", "name", ""], ["dmg", "num", 100.0]],
+	"target_location": [["message", "text", ""]],
+	"target_speaker": [["targetname", "name", ""], ["wait", "num", 0.0], ["random", "num", 0.0]],
+	"target_remove_powerups": [["targetname", "name", ""]],
+	"shooter_rocket": [["target", "target", ""], ["targetname", "name", ""], ["random", "num", 0.0]],
+	"shooter_plasma": [["target", "target", ""], ["targetname", "name", ""], ["random", "num", 0.0]],
+	"shooter_grenade": [["target", "target", ""], ["targetname", "name", ""], ["random", "num", 0.0]],
+	"misc_model": [["model", "text", ""], ["modelscale", "num", 1.0]],
+	"misc_portal_surface": [["target", "target", ""]],
+	"misc_portal_camera": [["targetname", "name", ""], ["roll", "num", 0.0]],
+	"light": [["target", "target", ""], ["targetname", "name", ""]],
+}
+
+## spawnflags bits by class, as the inspector names them: [[bit, label], ...].
+const FLAGS := {
+	"*item": [[1, "Suspended (floats in the air)"]],
+	"info_player_deathmatch": [[1, "Initial (the first spawn)"]],
+	"func_door": [[1, "Start open"], [4, "Crusher"]],
+	"func_bobbing": [[1, "X axis"], [2, "Y axis"]],
+	"func_rotating": [[4, "X axis"], [8, "Y axis"]],
+	"func_train": [[1, "Start on"], [2, "Toggle"], [4, "Block stops"]],
+	"func_timer": [[1, "Start on"]],
+	"trigger_hurt": [[1, "Start off"], [4, "Silent"], [8, "No protection"], [16, "Slow"]],
+	"trigger_multiple": [[1, "Red team only"], [2, "Blue team only"]],
+	"target_push": [[1, "Bounce pad sound"]],
+	"target_speaker": [[1, "Looping, on"], [2, "Looping, off"], [4, "Global"], [8, "Activator only"]],
+	"target_relay": [[1, "Red team only"], [2, "Blue team only"], [4, "One at random"]],
+	"target_print": [[1, "Red team"], [2, "Blue team"], [4, "Private"]],
+	"target_laser": [[1, "Start on"]],
+	"misc_portal_camera": [[1, "Slow rotate"], [2, "Fast rotate"], [4, "Swing"]],
+	"light": [[1, "Linear falloff"], [2, "No angle"]],
+}
+
 static var _sounds: PackedStringArray = []
+
+
+## The class's typed fields and flags (KEY_SPECS, FLAGS), pickups sharing one set.
+static func key_specs(cn: String) -> Array:
+	return KEY_SPECS.get("*item" if is_item(cn) else cn, [])
+
+
+static func flags(cn: String) -> Array:
+	return FLAGS.get("*item" if is_item(cn) else cn, [])
 
 
 # ---------------------------------------------------------------- classes

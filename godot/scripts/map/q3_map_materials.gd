@@ -26,6 +26,9 @@ const TOOL_LOOK := {
 	"slick": [Color(0.6, 0.85, 1.0), true], "invisible": [Color(0.7, 0.7, 0.7), true],
 }
 
+## tool shaders that only steer q3map's vis: drawn fainter still
+const VIS_TOOLS := ["hint", "skip", "areaportal", "clusterportal", "nodrawnonsolid"]
+
 static var _info: Dictionary = {}
 static var _cache: Dictionary = {}
 static var _thumbs: Dictionary = {}
@@ -125,16 +128,19 @@ static func _tool_look(shader: String) -> Array:
 	return TOOL_LOOK.get(shader.get_file(), [Color(0.6, 0.6, 0.65), true])
 
 
-## q3map's tool shaders: a flat color with a faint grid, see-through when Radiant draws them so.
+## q3map's tool shaders: a flat color with a faint grid, see-through when Radiant draws them so. The
+## see-through ones show their front faces only and little fill, and the vis tools (hint, skip,
+## portals) only their grid lines: a real map stacks dozens of them (q3dm6's hint brushes span whole
+## rooms), and filled, every layer washed the view in their color.
 static func _tool(shader: String) -> Material:
 	var look := _tool_look(shader)
+	var vis := shader.get_file() in VIS_TOOLS
 	var m := StandardMaterial3D.new()
-	m.albedo_texture = _swatch(look[0], 64)
+	m.albedo_texture = _swatch(look[0], 64, (0.0 if vis else 0.18) if look[1] else 1.0)
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	if look[1]:
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		m.albedo_color = Color(1, 1, 1, 0.45)
-		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.cull_mode = BaseMaterial3D.CULL_BACK
 	return m
 
 
@@ -172,13 +178,15 @@ static func _load_sky(shader: String) -> Sky:
 	return load(res) as Sky if res != "" and ResourceLoader.exists(res) else null
 
 
-static func _swatch(c: Color, n: int) -> ImageTexture:
+## A tool color with grid lines; fill_alpha < 1 makes the fill see-through and the lines stand out.
+static func _swatch(c: Color, n: int, fill_alpha := 1.0) -> ImageTexture:
 	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
-	img.fill(c)
+	img.fill(Color(c, fill_alpha))
+	var line := c.darkened(0.35) if fill_alpha >= 1.0 else Color(c.lightened(0.15), 0.6 if fill_alpha > 0.0 else 0.18)
 	for i in n:
-		for j in [0, n / 2]:
-			img.set_pixel(i, j, c.darkened(0.35))
-			img.set_pixel(j, i, c.darkened(0.35))
+		for j in ([0, n / 2] if fill_alpha > 0.0 else [0]):
+			img.set_pixel(i, j, line)
+			img.set_pixel(j, i, line)
 	return ImageTexture.create_from_image(img)
 
 

@@ -58,10 +58,18 @@ func current_class() -> String:
 
 ## Where the cursor would put things: {point, normal, origin} in id units, or {} off the map.
 func placement(pos: Vector2) -> Dictionary:
-	var p := editor.pick(pos)
+	var p := editor.pick(pos) if editor.view_axis() < 0 else {}
 	var point: Variant
 	var n := Vector3(0, 0, 1)
-	if p.size():
+	if editor.view_axis() >= 0:
+		# a 2D view: on the view's plane at the working depth (the floor under the cursor would be a roof)
+		var a := editor.view_axis()
+		var axis_n := Vector3.ZERO
+		axis_n[a] = 1.0
+		point = editor.plane_point(pos, axis_n * editor.work_depth(), axis_n)
+		if point == null:
+			return {}
+	elif p.size():
 		point = p["point"]
 		n = p["normal"]
 	else:

@@ -35,8 +35,19 @@ func cancel() -> void:
 func press(pos: Vector2, _mods: int, _double: bool) -> void:
 	if state != "idle":
 		return
-	var p := editor.pick(pos)
-	if p.size():
+	var p := editor.pick(pos) if editor.view_axis() < 0 else {}
+	if editor.view_axis() >= 0:
+		# a 2D view: the footprint on the view's plane at the working depth, the brush as deep as the last
+		_axis = editor.view_axis()
+		_sign = 1.0
+		_plane = editor.work_depth()
+		var n := Vector3.ZERO
+		n[_axis] = 1.0
+		var at: Variant = editor.plane_point(pos, n * _plane, n)
+		if at == null:
+			return
+		_a = _in_plane(at)
+	elif p.size():
 		var n: Vector3 = p["normal"]
 		_axis = n.abs().max_axis_index()
 		_sign = signf(n[_axis])
@@ -81,6 +92,9 @@ func click(pos: Vector2, _mods: int, _double: bool) -> void:
 		for i in 3:
 			if i != _axis:
 				_b[i] += cell
+		if editor.view_axis() >= 0:
+			commit()
+			return
 		_enter_height()
 
 
@@ -108,6 +122,9 @@ func drag_end(_pos: Vector2, _mods: int) -> void:
 	for i in 3:
 		if i != _axis and _a[i] == _b[i]:
 			_b[i] += cell
+	if editor.view_axis() >= 0:
+		commit()   # a 2D view can't show a height to drag: the last one's
+		return
 	_enter_height()
 
 

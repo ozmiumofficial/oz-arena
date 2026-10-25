@@ -66,6 +66,7 @@ func _run() -> void:
 	Q3MapEditor.maps_dir = SCRATCH.path_join("maps")
 	Q3MapEditor.recent = SCRATCH.path_join("recent.json")
 	Q3MapMaterials.prefs_path = SCRATCH.path_join("materials.json")
+	Q3EditorUi.layout_path = SCRATCH.path_join("layout.json")
 	Q3MapMaterials._prefs = {}
 	Q3MapPrefabs.dir = SCRATCH.path_join("prefabs")
 	_wipe()
@@ -312,6 +313,7 @@ func _run() -> void:
 	await _e6_checks()
 	await _e7_checks()
 	_e8_checks()
+	await _ux_checks()
 
 	# keymap overrides: put the player's back
 	if keymap_backup != "":
@@ -563,7 +565,7 @@ func _e3_checks(box_id: int, floor_id: int) -> void:
 			and caulk is StandardMaterial3D and clip.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
 			and Q3MapMaterials.thumbnail("textures/skies/hellsky") != null and Q3MapMaterials.thumbnail("textures/base_wall/concrete") != null)
 	_key(KEY_TAB)
-	var hidden: bool = not ed.ui.browser.visible and not ed.ui.inspector.visible
+	var hidden: bool = not ed.ui.panels_shown()
 	_key(KEY_TAB)
 	check("Tab hides and shows the browser and inspector", hidden and ed.ui.browser.visible)
 
@@ -951,8 +953,8 @@ func _e7_checks() -> void:
 	check("the status bar counts the map by kind", ed.ui._sel_label.text == "4 brushes · 1 curve · 1 entity", ed.ui._sel_label.text)
 
 	# ---- outliner
-	ed.ui.browser.set_tab("objects")
-	var ol: Q3EditorOutliner = ed.ui.browser.outliner
+	ed.ui.side.set_tab("objects")
+	var ol: Q3EditorOutliner = ed.ui.side.outliner
 	ed.select([wall, curve])
 	d.checkpoint("Group")
 	var gid := ed._new_group()
@@ -997,8 +999,8 @@ func _e7_checks() -> void:
 	for k in 2:
 		d.checkpoint("Add pillar %d" % k)
 		d.add(Q3MapDoc.box_brush(Vector3(400 + k * 64, 0, 0), Vector3(432 + k * 64, 32, 128)))
-	ed.ui.browser.set_tab("history")
-	var hp: Q3EditorHistory = ed.ui.browser.history
+	ed.ui.side.set_tab("history")
+	var hp: Q3EditorHistory = ed.ui.side.history
 	hp.refresh()
 	var steps: int = d.history()["done"].size()
 	var listed := hp._list.item_count
@@ -1143,6 +1145,111 @@ func _e8_checks() -> void:
 
 
 ## Starts an import without waiting; the signal fires when it's done.
+## The layout pass (2026-10-24): the 2D views, creating in one, a second click stepping to the object
+## behind, the browser's sections, the inspector's typed fields and folding, the docks.
+func _ux_checks() -> void:
+	ed.new_map()
+	await get_tree().process_frame
+	var d := ed.doc
+	var floor_id: int = _brushes()[0]
+	var roof := d.add(Q3MapDoc.box_brush(Vector3(-256, -256, 256), Vector3(256, 256, 272)))
+	ed.clear_selection()
+	ed.set_tool("select")
+	ed.execute("view.top")
+	await get_tree().process_frame
+	var top_ok: bool = ed.view == "top" and ed.camera.projection == Camera3D.PROJECTION_ORTHOGONAL and ed.wire.visible and not ed.mesher.visible 			and ed.wire.mesh != null
+	var at := ed.screen_of(Vector3(64, 64, 300))
+	ed.tool.click(at, 0, false)
+	var first := ed.selected_ids()
+	ed.tool.click(at, 0, false)
+	var second := ed.selected_ids()
+	check("top view: orthographic, the map as lines; a click takes the roof, a second on the same spot the floor under it",
+			top_ok and first == [roof] and second == [floor_id], "%s, %s then %s" % [top_ok, first, second])
+	# creating in a 2D view: a footprint drag makes the brush at once, as deep as the last one
+	ed.clear_selection()
+	ed.last_height = 64
+	ed.set_tool("create")
+	var ct: Q3CreateTool = ed.tool
+	var a := ed.screen_of(Vector3(0, 0, 0))
+	var b := ed.screen_of(Vector3(128, 64, 0))
+	ct.press(a, 0, false)
+	ct.drag_start(a, 0)
+	ct.drag(b, 0)
+	ct.drag_end(b, 0)
+	var made: Array = _brushes().filter(func(i): return i != floor_id and i != roof)
+	check("top view: a footprint drag creates the brush on the view's plane, the last height deep",
+			made.size() == 1 and _bounds(made[0]) == PackedFloat64Array([0, 0, 0, 128, 64, 64]), _box(made[0]) if made.size() else "none")
+	ed.set_tool("select")
+	ed.execute("view.front")
+	var front_ok: bool = ed.view == "front" and ed.view_axis() == 1 and ed.camera.ortho == "front"
+	ed.execute("view.front")
+	check("front view, and its key again goes back to 3D with the solid map",
+			front_ok and ed.view == "3d" and ed.camera.projection == Camera3D.PROJECTION_PERSPECTIVE and ed.mesher.visible and not ed.wire.visible)
+
+	# the browser: recents first, a section per folder, the models' shaders last; show_material finds a sky
+	var br: Q3EditorBrowser = ed.ui.browser
+	Q3MapMaterials.add_recent("textures/base_wall/concrete")
+	br.set_tab("surface")
+	var heads := []
+	for c in br._list.get_children():
+		if c is Label and not c.is_queued_for_deletion():
+			heads.append(c.text)
+	br.show_material("textures/skies/hellsky")
+	check("browser: favorites and recents first, then folders, the models' own shaders last; the strip's swatch finds a sky in Skies",
+			heads.size() > 3 and heads.find("RECENT") in [0, 1] and heads.find("RECENT") < heads.find("BASE_WALL") and heads.find("MODELS") > heads.find("BASE_WALL")
+			and br.tab == "sky" and br.folder == "skies", "%s, %s %s" % [heads.slice(0, 4), br.tab, br.folder])
+	br.set_tab("surface")
+
+	# the inspector: a button's typed fields (speed at id's default, its target from the map's names), a
+	# door's flags by name, the raw keys folded
+	var door_brush := d.add(Q3MapDoc.box_brush(Vector3(300, 0, 0), Vector3(316, 64, 96)))
+	ed.select([door_brush])
+	var door := ed.make_brush_entity("func_door")
+	ed.set_keys([door], {"targetname": "gate"})
+	var button_brush := d.add(Q3MapDoc.box_brush(Vector3(300, 128, 32), Vector3(304, 144, 48)))
+	ed.select([button_brush])
+	var button := ed.make_brush_entity("func_button")
+	ed.select(ed.group_of(button))
+	await get_tree().process_frame
+	var ins: Q3EditorInspector = ed.ui.inspector
+	var speed: SpinBox = ins._fields.get("num:speed")
+	var tgt: OptionButton = ins._fields.get("target:target")
+	var speed_ok := speed != null and speed.value == 40.0 and _k(button, "speed") == ""
+	var gate := -1
+	if tgt:
+		for i in tgt.item_count:
+			if tgt.get_item_text(i) == "gate":
+				gate = i
+		if gate >= 0:
+			tgt.select(gate)
+			tgt.item_selected.emit(gate)
+	var raw_folded := false
+	for c in ins._root.get_children():
+		if c is Button and (c as Button).text.ends_with("ALL KEYS"):
+			raw_folded = (c as Button).text.begins_with("▸")
+	ed.select(ed.group_of(door))
+	await get_tree().process_frame
+	var open: CheckBox = ins._fields.get("flag:1")
+	if open:
+		open.button_pressed = true
+	check("inspector: a button's speed shows id's 40 unset, its target picks 'gate' from the map; a door's Start open sets spawnflags; raw keys folded",
+			speed_ok and gate >= 0 and _k(button, "target") == "gate" and open != null and open.text == "Start open" and _k(door, "spawnflags") == "1" and raw_folded,
+			"speed %s, gate %d, target '%s', spawnflags '%s', folded %s" % [speed_ok, gate, _k(button, "target"), _k(door, "spawnflags"), raw_folded])
+
+	# the docks: Objects folds to its tabs and back, Tab hides both docks and leaves the tool strip, the
+	# layout saves
+	var side = ed.ui.side
+	side.set_folded(true)
+	var folded_h: float = side.custom_minimum_size.y
+	side.set_folded(false)
+	ed.ui.toggle_panels()
+	var hidden := not ed.ui.panels_shown() and ed.ui.strip.visible
+	ed.ui.toggle_panels()
+	check("docks: Objects folds away and comes back at its height; Tab hides the docks but not the tool strip; the layout is saved",
+			folded_h == 0.0 and side.custom_minimum_size.y == side.height and hidden and ed.ui.panels_shown()
+			and FileAccess.file_exists(Q3EditorUi.layout_path))
+
+
 func _import_signal(map: String) -> Signal:
 	var s := Signal(self, "import_finished")
 	(func():

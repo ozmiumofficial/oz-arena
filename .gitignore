@@ -56,3 +56,5 @@ godot/addons/webrtc_native/lib/
 
 # local secrets (the hub's TURN key): never commit
 **/.env
+# Godot's copies of a loaded GDExtension (it renames the old one while the editor holds it)
+**/~*.dll

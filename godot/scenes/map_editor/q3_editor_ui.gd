@@ -1,16 +1,23 @@
 class_name Q3EditorUi
 extends Control
-## The map editor's screen furniture in native controls, in the menu's theme (Q3Theme): the top bar,
-## the status bar, toasts, the box-select rectangle, the dialogs (unsaved changes, save as, open) and
-## the F1 hotkey sheet, which rebinds keys too. The 3D view gets every event these don't take.
+## The map editor's screen furniture in native controls, in the menu's theme (Q3Theme) with Barlow on
+## buttons and fields: the top bar (File, Edit, View, Play, undo, grid), the browser dock on the left,
+## the tool strip down the view's edge, the Objects / History panel and the inspector on the right
+## (both docks resize from their handles and fold away; Tab hides them), the status bar, toasts, the
+## box-select rectangle, the dialogs (unsaved changes, save as, open) and the F1 hotkey sheet, which
+## rebinds keys too. The 3D view gets every event these don't take.
 
 const K = preload("res://scenes/map_editor/q3_editor_keymap.gd")
-const BAR_H := 46
+const ToolStrip = preload("res://scenes/map_editor/q3_editor_toolstrip.gd")
+const Splitter = preload("res://scenes/map_editor/q3_editor_splitter.gd")
+const SidePanel = preload("res://scenes/map_editor/q3_editor_side.gd")
+const BAR_H := 40
+const UI_FONT := "res://fonts/barlow_semibold.woff2"
+
+static var layout_path := "user://map_editor/layout.json"   ## tests point it elsewhere
 
 var editor: Q3MapEditor
 
-var _tool_buttons := {}
-var _entities_menu: MenuButton
 var _undo: Button
 var _redo: Button
 var _grid_label: Label
@@ -27,6 +34,10 @@ var _rect: Panel
 var _canvas: Control           ## where tools draw 2D marks over the view (vertex handles)
 var browser: Q3EditorBrowser
 var inspector: Q3EditorInspector
+var strip: Control              ## the tool strip
+var side: Control               ## Objects / History, above the inspector
+var _right: VBoxContainer       ## the right dock: side + its handle + inspector
+var _handles: Array = []        ## the left, right and side resize handles
 var _view: Control              ## the open middle between the panels (the 3D view shows through)
 var _modal: Control
 var _file_dialog: FileDialog   ## the system's .map picker while it's open
@@ -34,19 +45,22 @@ var _sheet: Control
 var _sheet_version := -1
 var _rebinding := -1          ## the binding waiting for a key in the sheet
 var _hint_override := ""
+var _loading_layout := false
+var _grid2d: Control            ## a 2D view's grid and coordinates, over the open view
+var _view_buttons := {}         ## 3d, top, front, side -> the switcher's buttons
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	theme = Q3Theme.build(Settings.get_value("accessibility/high_contrast"))
+	theme = _editor_theme()
 	_canvas = Control.new()
 	_canvas.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_canvas.draw.connect(func(): editor.tool.draw_2d(_canvas))
 	add_child(_canvas)
-	# top bar / (browser | the open view | inspector) / status bar; the open middle lets the mouse
-	# through to the 3D view
+	# top bar / (browser | handle | tools | the open view | handle | objects, inspector) / status bar;
+	# the open middle lets the mouse through to the 3D view
 	var layout := VBoxContainer.new()
 	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layout.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -61,13 +75,38 @@ func _ready() -> void:
 	browser = Q3EditorBrowser.new()
 	browser.editor = editor
 	middle.add_child(browser)
+	middle.add_child(_handle(browser, false, 1.0, 300, 820))
+	strip = ToolStrip.new()
+	strip.editor = editor
+	middle.add_child(strip)
 	_view = Control.new()
 	_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_view.clip_contents = true
 	middle.add_child(_view)
+	_grid2d = Control.new()
+	_grid2d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_grid2d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_grid2d.draw.connect(func(): _draw_grid2d(_grid2d))
+	_view.add_child(_grid2d)
+	_view.add_child(_view_switcher())
+	_right = VBoxContainer.new()
+	_right.add_theme_constant_override("separation", 0)
+	_right.custom_minimum_size.x = 340
+	middle.add_child(_handle(_right, false, -1.0, 280, 700))
+	middle.add_child(_right)
+	side = SidePanel.new()
+	side.editor = editor
+	_right.add_child(side)
+	var side_handle := _handle(side, true, 1.0, 120, 900)
+	_right.add_child(side_handle)
+	side.changed.connect(func():
+		side_handle.visible = not side.folded
+		_save_layout())
 	inspector = Q3EditorInspector.new()
 	inspector.editor = editor
-	middle.add_child(inspector)
+	inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_right.add_child(inspector)
 	_build_status(layout)
 	_toast = Label.new()
 	_toast.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -88,8 +127,53 @@ func _ready() -> void:
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rect.visible = false
 	add_child(_rect)
+	_load_layout()
 	editor.status_changed.connect(_refresh)
 	_refresh()
+
+
+## Q3Theme, with Barlow on buttons, fields, lists and body text (Quake 3's prop font stays on titles
+## and section headings): the prop font's capitals were hard to read at the editor's sizes.
+func _editor_theme() -> Theme:
+	var t := Q3Theme.build(Settings.get_value("accessibility/high_contrast"))
+	# solid panels: the menu's glass let the map, and a 2D view's bright lines, show through the text
+	var glass := t.get_stylebox("panel", "PanelContainer").duplicate() as StyleBoxFlat
+	if glass:
+		glass.bg_color = Color(0.035, 0.032, 0.032, 0.98)
+		t.set_stylebox("panel", "PanelContainer", glass)
+	var f: Font = load(UI_FONT) if ResourceLoader.exists(UI_FONT) else null
+	if f == null:
+		return t
+	for type in ["Button", "OptionButton", "MenuButton", "ColorPickerButton", "CheckBox", "CheckButton"]:
+		t.set_font("font", type, f)
+		t.set_font_size("font_size", type, 15)
+	t.set_font_size("font_size", "SmallButton", 14)
+	for type in ["LineEdit", "PopupMenu", "ItemList", "Tree", "TooltipLabel", "Label", "DimLabel"]:
+		t.set_font("font", type, f)
+	t.set_font_size("font_size", "LineEdit", 15)
+	t.set_font_size("font_size", "PopupMenu", 15)
+	t.set_font_size("font_size", "Tree", 14)
+	t.set_font_size("title_button_font_size", "Tree", 13)
+	t.set_font("title_button_font", "Tree", f)
+	t.set_font_size("font_size", "ItemList", 14)
+	t.set_font_size("font_size", "TooltipLabel", 14)
+	t.set_font_size("font_size", "Label", 15)
+	t.set_font_size("font_size", "DimLabel", 14)
+	t.set_font_size("font_size", "GroupLabel", 15)
+	t.set_font_size("font_size", "TitleLabel", 24)
+	return t
+
+
+func _handle(target: Control, vertical: bool, toward: float, lo: float, hi: float) -> Control:
+	var h := Splitter.new()
+	h.target = target
+	h.vertical = vertical
+	h.side = toward
+	h.lo = lo
+	h.hi = hi
+	h.changed.connect(_save_layout)
+	_handles.append(h)
+	return h
 
 
 func _bar_button(text: String, tip: String, cb: Callable, toggle := false) -> Button:
@@ -106,7 +190,7 @@ func _bar_button(text: String, tip: String, cb: Callable, toggle := false) -> Bu
 
 
 ## A toolbar menu of commands: [[label, command], ...]; an empty label is a separator. Each item shows
-## its key.
+## its key, read again as it opens (keys can be rebound).
 func _menu(text: String, tip: String, entries: Array) -> MenuButton:
 	var m := MenuButton.new()
 	m.text = text
@@ -119,8 +203,12 @@ func _menu(text: String, tip: String, entries: Array) -> MenuButton:
 		if entries[i][0] == "":
 			pop.add_separator()
 		else:
-			var k := K.key_for(entries[i][1])
-			pop.add_item(entries[i][0] + ("    " + k if k != "" else ""), i)
+			pop.add_item(entries[i][0], i)
+	pop.about_to_popup.connect(func():
+		for i in entries.size():
+			if entries[i][0] != "":
+				var k := K.key_for(entries[i][1])
+				pop.set_item_text(pop.get_item_index(i), entries[i][0] + ("    " + k if k != "" else "")))
 	pop.id_pressed.connect(func(i):
 		UiSound.move()
 		editor.execute(entries[i][1]))
@@ -137,79 +225,37 @@ func _build_top(parent: Control) -> void:
 	panel.custom_minimum_size.y = BAR_H
 	parent.add_child(panel)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
+	row.add_theme_constant_override("separation", 4)
 	panel.add_child(row)
 	var title := Label.new()
 	title.text = "MAP EDITOR"
 	title.add_theme_font_override("font", Q3Theme.banner_font(4))
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", 18)
 	title.add_theme_color_override("font_color", Q3Theme.GLOW)
 	row.add_child(title)
 	row.add_child(VSeparator.new())
-	# the file commands share one menu, so the bar fits a 1920-wide window
-	row.add_child(_menu("FILE", "New, open and save maps", [["New map", "file.new"], ["Open map", "file.open"],
+	# the commands live in four menus, so the bar stays one short row; the tools are down the view's edge
+	row.add_child(_menu("FILE", "New, open, save, import and export maps", [["New map", "file.new"], ["Open map", "file.open"],
 			["Save", "file.save"], ["Save as", "file.saveAs"], ["Publish (play it from Create Match)", "file.publish"], ["", ""],
 			["Import a Quake 3 map", "file.importQ3"],
 			["Import .map", "file.importMap"], ["Export .map (Radiant)", "file.exportMap"], ["Export .map (TrenchBroom)", "file.exportValve"],
 			["", ""], ["Leave to the main menu", "session.leave"]]))
-	row.add_child(VSeparator.new())
-	for t in [["SELECT", "select", "Select tool", "tool.select"], ["BRUSH", "create", "Create brush", "tool.create"],
-			["FACE", "face", "Face / texture tool", "tool.face"], ["VERTEX", "vertex", "Vertex tool", "tool.vertex"]]:
-		var name: String = t[1]
-		var btn := _bar_button(t[0], _tip(t[2], t[3]), func(): editor.set_tool(name), true)
-		_tool_buttons[name] = btn
-		row.add_child(btn)
-	var curves := MenuButton.new()
-	curves.text = "CURVES"
-	curves.tooltip_text = "Drop a curved patch at the cursor"
-	curves.theme_type_variation = "SmallButton"
-	curves.focus_mode = Control.FOCUS_NONE
-	curves.flat = false
-	var pop := curves.get_popup()
-	for k in ["Bevel (quarter circle)", "Curve (half circle)", "Cylinder", "Arch"]:
-		pop.add_item(k)
-	pop.id_pressed.connect(func(i):
-		UiSound.move()
-		editor.execute("patch." + Q3PatchFactory.KINDS[i]))
-	row.add_child(curves)
-	_entities_menu = MenuButton.new()
-	_entities_menu.text = "ENTITIES"
-	_entities_menu.tooltip_text = "Place entities, lights and prefabs"
-	_entities_menu.theme_type_variation = "SmallButton"
-	_entities_menu.focus_mode = Control.FOCUS_NONE
-	_entities_menu.flat = false
-	var epop := _entities_menu.get_popup()
-	var entries := [["Spawn point", "tool.spawn"], ["Jump pad", "tool.jumppad"], ["Teleporter", "tool.teleporter"],
-			["Weapon", "tool.weapon"], ["Item", "tool.item"], ["Ambient sound", "tool.sound"], ["Light", "tool.light"],
-			["", ""], ["Save selection as prefab", "prefab.save"]]
-	for i in entries.size():
-		if entries[i][0] == "":
-			epop.add_separator()
-		else:
-			var k := K.key_for(entries[i][1])
-			epop.add_item(entries[i][0] + ("    " + k if k != "" else ""), i)
-	epop.id_pressed.connect(func(i):
-		UiSound.move()
-		editor.execute(entries[i][1]))
-	row.add_child(_entities_menu)
-	var play := MenuButton.new()
-	play.text = "PLAY"
-	play.tooltip_text = _tip("Compile and play the map", "map.playtest")
-	play.theme_type_variation = "SmallButton"
-	play.focus_mode = Control.FOCUS_NONE
-	play.flat = false
+	row.add_child(_menu("EDIT", "Copy, group, turn, mirror, hide and lock the selection", [["Undo", "edit.undo"], ["Redo", "edit.redo"], ["", ""],
+			["Copy", "edit.copy"], ["Paste at the cursor", "edit.paste"], ["Duplicate", "edit.duplicate"], ["Delete", "edit.delete"],
+			["Select all", "select.all"], ["", ""],
+			["Group", "edit.group"], ["Ungroup", "edit.ungroup"], ["", ""],
+			["Rotate 90°", "edit.rotate"], ["Rotate 15°", "edit.rotate15"], ["Mirror front-back", "edit.mirrorX"], ["Mirror left-right", "edit.mirrorY"],
+			["Mirror upside down", "edit.mirrorZ"], ["CSG subtract (carve)", "csg.subtract"], ["Snap corners to the grid", "edit.snapVertices"], ["", ""],
+			["Hide selection", "edit.hide"], ["Unhide all", "edit.unhideAll"], ["Isolate selection", "view.isolate"],
+			["Lock selection", "edit.lock"], ["Unlock all", "edit.unlockAll"], ["", ""],
+			["Save selection as prefab", "prefab.save"]]))
+	row.add_child(_view_menu())
+	var play := _menu("PLAY", _tip("Compile and play the map", "map.playtest"), [["Play-test", "map.playtest"],
+			["Full compile (check for leaks)", "map.compile"], ["Bots in play-tests", "map.bots"]])
 	var ppop := play.get_popup()
-	var play_entries := [["Play-test", "map.playtest"], ["Full compile (check for leaks)", "map.compile"], ["Bots in play-tests", "map.bots"]]
-	for i in play_entries.size():
-		var k := K.key_for(play_entries[i][1])
-		ppop.add_item(play_entries[i][0] + ("    " + k if k != "" else ""), i)
-	ppop.id_pressed.connect(func(i):
-		UiSound.move()
-		editor.execute(play_entries[i][1]))
 	ppop.about_to_popup.connect(func():
 		ppop.set_item_text(2, "Bots in play-tests: %s    %s" % ["%d" % editor.play_bots if editor.play_bots > 0 else "off", K.key_for("map.bots")]))
 	row.add_child(play)
-	row.add_child(_view_menu())
 	row.add_child(VSeparator.new())
 	_undo = _bar_button("UNDO", "Undo (Ctrl+Z)", func(): editor.execute("edit.undo"))
 	_redo = _bar_button("REDO", "Redo (Ctrl+Y)", func(): editor.execute("edit.redo"))
@@ -222,7 +268,7 @@ func _build_top(parent: Control) -> void:
 	row.add_child(g)
 	row.add_child(_bar_button("−", _tip("Smaller grid", "grid.smaller"), func(): editor.execute("grid.smaller")))
 	_grid_label = Label.new()
-	_grid_label.custom_minimum_size.x = 120
+	_grid_label.custom_minimum_size.x = 110
 	_grid_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	row.add_child(_grid_label)
 	row.add_child(_bar_button("+", _tip("Bigger grid", "grid.bigger"), func(): editor.execute("grid.bigger")))
@@ -251,6 +297,15 @@ func _view_menu() -> MenuButton:
 	pop.add_separator()
 	pop.add_check_item("Lights-only preview", cmds.size())
 	cmds.append("view.lighting")
+	pop.add_separator()
+	for v in [["3D view", "view.3d"], ["Top view (2D)", "view.top"], ["Front view (2D)", "view.front"], ["Side view (2D)", "view.side"], ["", ""],
+			["Frame selection", "view.focus"], ["Reset camera", "view.home"], ["Show / hide the grid", "grid.toggle"],
+			["Show / hide the panels", "view.explorer"]]:
+		if v[0] == "":
+			pop.add_separator()
+			continue
+		pop.add_item(v[0], cmds.size())
+		cmds.append(v[1])
 	pop.about_to_popup.connect(func():
 		for i in cmds.size():
 			var idx := pop.get_item_index(i)
@@ -291,15 +346,9 @@ func _build_status(parent: Control) -> void:
 func _refresh() -> void:
 	if not is_inside_tree():
 		return
-	for n in _tool_buttons:
-		_tool_buttons[n].set_pressed_no_signal(editor.tool == editor.tools[n])
-	var et: Q3EntityTool = editor.tools["entity"]
-	if editor.tool == et:
-		_entities_menu.text = "ENTITY: " + {"class": et.classname}.get(et.kind, et.kind).to_upper()
-	elif editor.tool == editor.tools["prefab"]:
-		_entities_menu.text = "PREFAB: " + (editor.tools["prefab"] as Q3PrefabTool).prefab.to_upper()
-	else:
-		_entities_menu.text = "ENTITIES"
+	for k in _view_buttons:
+		_view_buttons[k].set_pressed_no_signal(k == editor.view)
+	_grid2d.queue_redraw()
 	_undo.disabled = not editor.doc.can_undo()
 	_redo.disabled = not editor.doc.can_redo()
 	_undo.tooltip_text = "Undo %s (Ctrl+Z)" % editor.doc.undo_label() if editor.doc.can_undo() else "Nothing to undo"
@@ -344,16 +393,106 @@ func _counts(ids: Array) -> String:
 
 
 func _process(_delta: float) -> void:
+	if editor.camera.ortho != "":
+		_grid2d.queue_redraw()   # it pans and zooms with the camera
 	if editor.tool.wants_2d() or _canvas.get_meta("drawn", false):
 		_canvas.queue_redraw()
 		_canvas.set_meta("drawn", editor.tool.wants_2d())
 
 
-## Tab: the material browser and the inspector both show or both hide.
+## Tab: the browser and the right dock (Objects, inspector) both show or both hide, with their handles;
+## the tool strip stays.
 func toggle_panels() -> void:
-	var on := not browser.visible
+	var on := not panels_shown()
 	browser.visible = on
-	inspector.visible = on
+	_right.visible = on
+	for h in _handles:
+		if h.target != side:
+			h.visible = on
+	_save_layout()
+
+
+func panels_shown() -> bool:
+	return browser.visible or _right.visible
+
+
+# ---------------------------------------------------------------- 2D views
+
+## The view switcher in the view's corner: 3D, Top, Front, Side.
+func _view_switcher() -> Control:
+	var row := HBoxContainer.new()
+	row.position = Vector2(10, 10)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 2)
+	for v in [["3D", "3d", "The 3D view"], ["TOP", "top", "Top view: X right, Y up"], ["FRONT", "front", "Front view: X right, Z up"],
+			["SIDE", "side", "Side view: Y right, Z up"]]:
+		var id: String = v[1]
+		var b := _bar_button(v[0], _tip(v[2], "view." + id), func(): editor.execute("view." + id), true)
+		b.custom_minimum_size.x = 52
+		b.add_theme_font_size_override("font_size", 13)
+		row.add_child(b)
+		_view_buttons[id] = b
+	return row
+
+
+## A 2D view's grid (the grid size, coarser when its lines would crowd), the axes in their colors
+## (X red, Y green, Z blue) and coordinates on every major line.
+func _draw_grid2d(c: Control) -> void:
+	var cam := editor.camera
+	if cam.ortho == "" or not editor.grid.visible:
+		return
+	var axes: Array = {"top": [0, 1], "front": [0, 2], "side": [1, 2]}[cam.ortho]
+	var colors := [Color(0.95, 0.3, 0.25, 0.75), Color(0.3, 0.85, 0.35, 0.75), Color(0.35, 0.55, 1.0, 0.75)]
+	var ppu := get_viewport().get_visible_rect().size.y / (cam.size * 32.0)   # pixels per unit
+	var o := editor.screen_of(Vector3.ZERO) - c.global_position              # the id origin on screen
+	var step := float(editor.grid.units())
+	while step * ppu < 7.0:
+		step *= 8.0
+	var minor := Color(0.6, 0.57, 0.55, 0.13)
+	var major := Color(0.75, 0.7, 0.65, 0.3)
+	var font := get_theme_font("font", "Label")
+	for i in range(floori(-o.x / ppu / step), ceili((c.size.x - o.x) / ppu / step) + 1):
+		var x := o.x + i * step * ppu
+		c.draw_line(Vector2(x, 0), Vector2(x, c.size.y), colors[axes[1]] if i == 0 else (major if i % 8 == 0 else minor), 1.0)
+		if i % 8 == 0:
+			c.draw_string(font, Vector2(x + 3, c.size.y - 6), str(int(i * step)), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.45))
+	for j in range(floori((o.y - c.size.y) / ppu / step), ceili(o.y / ppu / step) + 1):
+		var y := o.y - j * step * ppu
+		c.draw_line(Vector2(0, y), Vector2(c.size.x, y), colors[axes[0]] if j == 0 else (major if j % 8 == 0 else minor), 1.0)
+		if j % 8 == 0:
+			c.draw_string(font, Vector2(c.size.x - 52, y - 3), str(int(j * step)), HORIZONTAL_ALIGNMENT_RIGHT, 46, 11, Color(1, 1, 1, 0.45))
+	var names := ["X", "Y", "Z"]
+	c.draw_string(font, Vector2(c.size.x - 70, 26), "%s →   %s ↑" % [names[axes[0]], names[axes[1]]], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 1, 1, 0.6))
+
+
+# ---------------------------------------------------------------- layout
+
+## The docks' widths, the Objects panel's height and fold, and the browser's tile size, kept between
+## sessions (hidden panels always come back: a panel that stayed away would look lost).
+func _save_layout() -> void:
+	if _loading_layout or not is_inside_tree():
+		return
+	var data := {"left": browser.custom_minimum_size.x, "right": _right.custom_minimum_size.x,
+			"side_height": side.custom_minimum_size.y if not side.folded else side.height,
+			"side_folded": side.folded, "side_tab": side.tab, "tile": browser.tile_size}
+	DirAccess.make_dir_recursive_absolute(layout_path.get_base_dir())
+	var f := FileAccess.open(layout_path, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(data, "\t"))
+
+
+func _load_layout() -> void:
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(layout_path)) if FileAccess.file_exists(layout_path) else null
+	if not d is Dictionary:
+		return
+	_loading_layout = true
+	browser.custom_minimum_size.x = clampf(float(d.get("left", browser.custom_minimum_size.x)), 300, 820)
+	_right.custom_minimum_size.x = clampf(float(d.get("right", _right.custom_minimum_size.x)), 280, 700)
+	side.height = clampf(float(d.get("side_height", side.height)), 120, 900)
+	side.set_tab(String(d.get("side_tab", "objects")))
+	side.set_folded(bool(d.get("side_folded", false)))
+	browser.set_tile_size(String(d.get("tile", browser.tile_size)))
+	_loading_layout = false
 
 
 ## A temporary hint from a tool (a drag in progress); "" goes back to the tool's own.

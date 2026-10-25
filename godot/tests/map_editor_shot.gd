@@ -5,7 +5,8 @@ extends Node
 ## diagnostics overlay. e4=1 adds entities (spawns, pickups, a jump pad, a teleporter, lights, a
 ## sound) with the Entities tab and the jump pad selected; e4=lights the same lit by its own lights;
 ## e4=prefab saves a prefab and shows the Prefabs tab with the prefab tool's ghost. e6=<map> imports
-## one of Quake 3's maps from the paks.
+## one of Quake 3's maps from the paks. view=top | front | side shows a 2D view; with e6, hide=caulk,tools
+## turns view filters on.
 
 var ed: Q3MapEditor
 
@@ -13,6 +14,8 @@ var ed: Q3MapEditor
 func _ready() -> void:
 	Q3MapEditor.maps_dir = "user://map_editor_test/maps"
 	Q3MapEditor.recent = "user://map_editor_test/recent.json"
+	Q3EditorUi.layout_path = "user://map_editor_test/layout.json"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Q3EditorUi.layout_path))
 	# every shot starts from a new map, not whatever the last one saved
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Q3MapEditor.recent))
 	ed = load("res://scenes/map_editor/map_editor.tscn").instantiate()
@@ -32,6 +35,11 @@ func _ready() -> void:
 	ed.select([block] + steps.slice(3))
 	ed.camera.set_pose(Vector3(-11, 7.5, -12), -138, -24)
 	var args := OS.get_cmdline_user_args()
+	for a in args:
+		# view=top | front | side: a 2D view (after an e6 import, once it's in)
+		if a.begins_with("view=") and not Array(args).any(func(x): return x.begins_with("e6=")):
+			ed.set_tool("select")
+			ed.set_view.call_deferred(a.substr(5))
 	for a in args:
 		if a.begins_with("e6="):
 			_e6(a.substr(3))
@@ -156,6 +164,13 @@ func _e6(map: String) -> void:
 	if best.x >= 0:
 		ed.set_tool("face")
 		ed.select_faces([best])
+	# hide=caulk,tools,...: view filters on (comparing what draws over the map)
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("hide="):
+			for f in a.substr(5).split(","):
+				ed.set_filter(f, true)
+		if a.begins_with("view="):
+			ed.set_view(a.substr(5))
 	ed.notify("Imported " + map)
 
 
@@ -182,10 +197,13 @@ func _e7(mode: String, block: int, steps: Array) -> void:
 			ed.execute("edit.nudge.up")
 			ed.execute("edit.nudge.up")
 			ed.doc.undo()
-			ed.ui.browser.set_tab(mode)
+			if mode in ["objects", "history"]:
+				ed.ui.side.set_tab(mode)
+			else:
+				ed.ui.browser.set_tab(mode)
 			if mode == "objects":
 				await get_tree().process_frame
-				var ol := ed.ui.browser.outliner
+				var ol: Q3EditorOutliner = ed.ui.side.outliner
 				ol.refresh()
 				for it in ol._tree.get_root().get_children():
 					if it.get_metadata(0) is Dictionary:

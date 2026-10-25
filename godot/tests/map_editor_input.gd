@@ -144,6 +144,7 @@ func _run() -> void:
 	Q3MapEditor.maps_dir = SCRATCH.path_join("maps")
 	Q3MapEditor.recent = SCRATCH.path_join("recent.json")
 	Q3MapMaterials.prefs_path = SCRATCH.path_join("materials.json")
+	Q3EditorUi.layout_path = SCRATCH.path_join("layout.json")
 	Q3MapMaterials._prefs = {}
 	Q3MapPrefabs.dir = SCRATCH.path_join("prefabs")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Q3MapEditor.recent))
@@ -357,9 +358,9 @@ func _run() -> void:
 	check("the top bar's Undo button brings a deleted brush back", _brushes().size() == count, "%d -> %d" % [count, _brushes().size()])
 
 	# ---- 9. the browser and outliner by mouse
-	ed.ui.browser.set_tab("objects")
+	ed.ui.side.set_tab("objects")
 	await _frames(2)
-	var ol: Q3EditorOutliner = ed.ui.browser.outliner
+	var ol: Q3EditorOutliner = ed.ui.side.outliner
 	ol.refresh()
 	check("the Objects tab lists the map's objects", ol._tree.get_root().get_child_count() == ed.doc.objects.size())
 	ed.ui.browser.set_tab("surface")

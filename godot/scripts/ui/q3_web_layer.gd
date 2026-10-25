@@ -43,6 +43,7 @@ static func _mount_assets() -> void:
 ## The owner connects bridge.post to post() (or to its own handler that calls it).
 func _init(b: Q3MenuBridge) -> void:
 	bridge = b
+	add_to_group("web_layers")
 
 
 ## Creates the web view (call once the node is in the tree). Returns false when there is none.
@@ -85,6 +86,15 @@ func set_shown(on: bool) -> void:
 	if on:
 		web.call("focus")
 	else:
+		web.call("focus_parent")
+
+
+## Hands the keyboard back to the game window before a scene change frees the page (Session._go). Destroyed while
+## it held the focus, the page left no window focused, and Windows then sent every key to the game window as a
+## system key: Godot still read it, but each one played Windows' "no such menu shortcut" ding (in the map editor,
+## which has no page of its own to take the focus).
+func release_focus() -> void:
+	if web != null and is_instance_valid(web):
 		web.call("focus_parent")
 
 

@@ -314,4 +314,6 @@ func _go(path: String) -> void:
 	Online.scene_changed(path)
 	if dry_run:
 		return
+	for l in get_tree().get_nodes_in_group("web_layers"):   # the keyboard back to the game window first
+		l.release_focus()
 	get_tree().change_scene_to_file.call_deferred(path)

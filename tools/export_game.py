@@ -116,14 +116,12 @@ for f in ["vcruntime140.dll", "vcruntime140_1.dll"]:
         shutil.copy2(os.path.join(crt[-1], f), os.path.join(a.out, f))
     else:
         print("export_game: warning: %s not found (install the MSVC build tools)" % f)
-# the Maps folder players drop map pk3s into (Q3MapPacks, fs_mapspath). A local build links in the
-# repo's Maps (community maps: their authors allow free electronic copies of the unmodified pk3, but
-# not the remastered textures, so a --release build ships the folder empty)
+# the Maps folder players drop map pk3s into (Q3MapPacks, fs_mapspath). The repo's Maps (community maps,
+# unmodified pk3s with their readmes) go in, since their remastered versions ship in the library
 maps = os.path.join(a.out, "Maps")
 os.makedirs(maps, exist_ok=True)
-if not a.release:
-    for f in sorted(glob.glob(os.path.join(ROOT, "Maps", "*.pk3"))):
-        os.link(f, os.path.join(maps, os.path.basename(f)))
+for f in sorted(glob.glob(os.path.join(ROOT, "Maps", "*"))):
+    os.link(f, os.path.join(maps, os.path.basename(f)))
 size = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(a.out) for f in fs)
 print("exported: %s (%.1f GB)" % (a.out, size / 1e9))
 

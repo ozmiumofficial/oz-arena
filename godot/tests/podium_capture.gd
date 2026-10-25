@@ -33,6 +33,13 @@ func _ready() -> void:
 	results.show_results({"won": false, "title": "DEFEAT", "subtitle": "The Longest Yard  -  2nd of 4", "standings": rows,
 		"medals": {"impressive": 2}, "xp": {"before": 1000, "after": 1400, "lines": [["Match complete", 100]]}, "me": 0, "camera": cam})
 	set_process(true)
+	if OS.get_cmdline_user_args().has("wall=1"):   # a wall between the camera and the podium: it must stay in front
+		var wall := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = Vector3(8.0, 5.0, 0.3)
+		wall.mesh = box
+		results._podium.add_sibling(wall)
+		wall.global_transform = results._podium.global_transform.translated_local(Vector3(0.0, 1.5, 3.0))
 	await get_tree().create_timer(3.0).timeout
 	await _shot("podium.png")
 	results._taunt(2)   # the hop: the shot is at the top of the jump

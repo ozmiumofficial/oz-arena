@@ -199,6 +199,15 @@ func _build_podium(r: Dictionary, view: Vector2) -> void:
 	_podium = Q3PodiumStage.new()   # in the map, in front of the match camera (it frames the podium from now on)
 	add_child(_podium)
 	_podium.setup(rows, cam)
+	# drawn on top of the map (no wall can cut it), under the screen's text
+	var vp := _podium.overlay(cam.get_world_3d(), Vector2i(get_viewport().get_visible_rect().size))
+	add_child(vp)
+	var over := TextureRect.new()
+	over.texture = vp.get_texture()
+	over.set_anchors_preset(Control.PRESET_FULL_RECT)
+	over.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(over)
+	_root.move_child(over, 3)   # after the tint and its two side panels
 	var me := int(r.get("me", -1))
 	if not _podium.has_player(me):
 		return

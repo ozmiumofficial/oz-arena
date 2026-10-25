@@ -53,6 +53,8 @@ var _shown_legs := ""             ## the legs clip playing: legs_clip, or LEGS_T
 var _clip_fps := {}               ## clip -> frames a second (rig.json)
 const MOVE_OFFSETS := [0.0, 22.0, 45.0, -22.0, 0.0, 22.0, -45.0, -22.0]   ## CG_PlayerAngles movementOffsets
 const SWING_SPEED := 0.3          ## cg_swingSpeed: degrees a millisecond
+const LEAN_MAX := 20.0            ## degrees: the lean into the direction of travel never goes past this (running is 16)
+const LEAN_EASE_MS := 120.0       ## how fast the lean follows the velocity (a hit's knockback mustn't snap it)
 var _bright := Color(0, 0, 0, 0)  ## the bright skin color drawn (alpha 0: none)
 static var _skin_mats := {}       ## "model/skin/stem" -> WeakRef to the material bodies share
 
@@ -236,7 +238,11 @@ func _step(ms: float) -> void:
 	_pitch_torso.step(wrapf(aim_pitch, -180.0, 180.0) * 0.75, 15.0, 30.0, 0.1, ms)
 	# 0.05 degrees per unit a second along the legs' forward (pitch) and left (roll, the other way)
 	var y := deg_to_rad(legs_yaw)
-	_lean = Vector2(0.05 * (velocity.x * cos(y) + velocity.y * sin(y)), -0.05 * (velocity.y * cos(y) - velocity.x * sin(y)))
+	var lean := Vector2(0.05 * (velocity.x * cos(y) + velocity.y * sin(y)), -0.05 * (velocity.y * cos(y) - velocity.x * sin(y)))
+	# eased (about 120 ms) and held within 20 degrees: a hit's knockback is a sudden 200-400 ups shove, and followed at
+	# once it snapped the body 10-20 degrees over in one frame, a twitch at every hit
+	lean = lean.clamp(Vector2(-LEAN_MAX, -LEAN_MAX), Vector2(LEAN_MAX, LEAN_MAX))
+	_lean = _lean.lerp(lean, 1.0 - exp(-ms / LEAN_EASE_MS))
 	var shown := "LEGS_TURN" if turn and _yaw_legs.swinging and legs_clip == "LEGS_IDLE" and _clip_fps.has("LEGS_TURN") \
 		else legs_clip
 	if shown != _shown_legs:

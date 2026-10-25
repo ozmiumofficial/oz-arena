@@ -8,6 +8,8 @@ extends Node3D
 ## the camera on it. play_taunt() plays one of TAUNTS for a player, always in their own character's voice (Quake 3
 ## gives each character one taunt line): the local player's buttons and everyone else's "ptaunt" server commands
 ## both come here. Bots taunt once by themselves.
+## Drawn on top: everything here is on LAYER, which the match camera leaves out; an overlay camera in the same world
+## (overlay(), following the match camera) draws only LAYER over the map, so a wall in front can't cut the podium.
 
 const PODIUM := "mapobjects/podium/podium4"
 ## [forward, right, up] (g_arenas.c), for 1st, 2nd and 3rd
@@ -18,11 +20,14 @@ const HOP_HEIGHT := 0.22   ## on top of LEGS_JUMP's own lift
 ## the camera, in the stage's space (it faces +Z): where it is, what it looks at, its vertical fov
 const VIEW_FROM := Vector3(0.0, 2.4, 6.4)
 const VIEW_AT := Vector3(0.0, 1.55, 0.0)
+const LAYER := 1 << 16   ## render layer 17: the podium and its players
 const VIEW_FOV := 60.0   ## vertical: the podium about 60% of the screen's height, between the two columns of text
 
 var _chars := {}          ## client -> Q3Character
 var _feet := {}           ## client -> where their feet rest
 var _rng := RandomNumberGenerator.new()
+var _overlay_cam: Camera3D
+static var _nothing: ShaderMaterial
 
 
 ## rows: the top of the standings, best first: [{client, model, skin, bot}, ...] (up to 3 are used). `cam`: the
@@ -64,11 +69,62 @@ func setup(rows: Array, cam: Camera3D) -> void:
 			get_tree().create_timer(_rng.randf_range(1.5, 4.5)).timeout.connect(func(): play_taunt(cl, pick))
 
 
-## Holds `cam` on the podium (every frame while the results show).
+## Holds `cam` on the podium (every frame while the results show), and the overlay's camera with it.
 func frame_camera(cam: Camera3D) -> void:
 	cam.global_position = to_global(VIEW_FROM)
 	cam.look_at(to_global(VIEW_AT))
 	cam.fov = VIEW_FOV
+	cam.cull_mask &= ~LAYER
+	_put_on_layer(self)   # the characters build their meshes as they load
+	if _overlay_cam:
+		_overlay_cam.global_transform = cam.global_transform
+		_overlay_cam.fov = cam.fov
+		_overlay_cam.near = cam.near
+		_overlay_cam.far = cam.far
+
+
+## The overlay: a view of the same world (`world`) that draws only the podium, `size` pixels, transparent elsewhere.
+func overlay(world: World3D, size: Vector2i) -> SubViewport:
+	var vp := SubViewport.new()
+	vp.world_3d = world
+	vp.transparent_bg = true
+	vp.size = size
+	vp.msaa_3d = Viewport.MSAA_4X
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	_overlay_cam = Camera3D.new()
+	_overlay_cam.cull_mask = LAYER
+	vp.add_child(_overlay_cam)
+	_overlay_cam.current = true
+	return vp
+
+
+## Everything onto LAYER. The additive surfaces (the energy columns: names carry "__add") draw nothing: in the
+## overlay's transparent view they'd write their near-black color as opaque (black columns), and their faint sparks
+## barely show in the map anyway.
+func _put_on_layer(n: Node) -> void:
+	for c in n.get_children():
+		if c is VisualInstance3D:
+			(c as VisualInstance3D).layers = LAYER
+			_hide_additive(c)
+		_put_on_layer(c)
+
+
+func _hide_additive(v: Node) -> void:
+	var mi := v as MeshInstance3D
+	if mi == null or mi.mesh == null:
+		return
+	if _nothing == null:
+		var sh := Shader.new()
+		sh.code = "shader_type spatial;
+render_mode unshaded;
+void fragment() { discard; }
+"
+		_nothing = ShaderMaterial.new()
+		_nothing.shader = sh
+	for i in mi.mesh.get_surface_count():
+		var m := mi.mesh.surface_get_material(i)
+		if m and m.resource_name.contains("__add") and mi.get_surface_override_material(i) != _nothing:
+			mi.set_surface_override_material(i, _nothing)
 
 
 ## A podium offset (forward, right, up; id units, at the player's origin) as the feet's place in the stage: id's

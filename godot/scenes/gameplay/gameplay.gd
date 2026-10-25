@@ -149,6 +149,7 @@ func _ready() -> void:
 		return
 	if setup.source == "editor":
 		hud.notify("Play-test: F6 goes back to the editor, F7 shows the entities")
+		_start_at = Array(Session.playtest.get("start", []))
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
@@ -1421,6 +1422,7 @@ func _cycle_weapon(dir: int) -> void:
 
 
 var _spawn_count := -1         ## the PERS_SPAWN_COUNT last seen
+var _start_at := []            ## a map editor play-test's start: [origin, pitch, yaw] (id), done at the first spawn
 var _map_restarted := false    ## cg.mapRestart: a restart re-selects the spawn weapon too
 
 
@@ -1436,6 +1438,23 @@ func _respawn(ps: Dictionary) -> void:
 			_weapon = int(ps["weapon"])
 		_spawn_count = sc
 		_map_restarted = false
+		if _start_at.size() and Q3Server.running():
+			_playtest_start()
+
+
+## A map editor play-test starts where the editor's camera was: on the floor under it, facing its
+## way. A camera in a wall, or over nothing, leaves the player at the spawn point.
+func _playtest_start() -> void:
+	var o: Vector3 = _start_at[0]
+	var angles := Vector2(_start_at[1], _start_at[2])
+	_start_at = []
+	const MASK_PLAYERSOLID := 1 | 0x10000 | 0x2000000   # solid, player clip, bodies
+	var tr := Q3Server.trace(o, o - Vector3(0, 0, 8192), Vector3(-15, -15, -24), Vector3(15, 15, 32), me, MASK_PLAYERSOLID)
+	if tr.is_empty() or tr["startsolid"] or float(tr["fraction"]) >= 1.0:
+		hud.notify("The camera was in a wall or over nothing: you start at a spawn point")
+		return
+	var at: Vector3 = tr["endpos"]
+	Q3Server.client_command(me, "edpos %.2f %.2f %.2f %.2f %.2f" % [at.x, at.y, at.z + 0.25, angles.x, angles.y])
 
 
 ## The results screen's podium taunt: to the server, which plays it on everyone's podium ("ptaunt").

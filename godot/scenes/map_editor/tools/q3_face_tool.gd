@@ -125,9 +125,9 @@ func drag(pos: Vector2, mods: int) -> void:
 	if mods & K.CTRL == 0:
 		if _on_grid:
 			var d0: float = _start[_keys[0].x]["planes"][_keys[0].y * 4 + 3]
-			s = editor.grid.snap(d0 + s, true) - d0
+			s = editor.grid.snap(d0 + s) - d0
 		else:
-			s = editor.grid.snap(s, true)
+			s = editor.grid.snap(s)
 	if s == distance:
 		return
 	var pushed := {}

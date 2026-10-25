@@ -77,9 +77,10 @@ Most remakes copy the original from memory. This one runs id Software's own game
 - **Map editor:**
   - Build arenas inside the game with brushes, curves, every remastered texture, pickups, jump pads, teleporters and lights.
   - Shape brushes right where they are: grab a face's handle to push or pull it, or a corner to move it.
-  - Work in the 3D view or in top, front and side views drawn as lines, Radiant style; resize or fold the side panels to give the view more room.
+  - Work in the 3D view or in top, front and side views drawn as lines, Radiant style; resize or fold the side panels to give the view more room. Grid snapping can be turned off.
+  - Bring in any Quake 3 map from a .bsp or .pk3 file, and export yours as a .pk3 that plays in the original Quake 3.
   - Open any original map from your own copy of Quake 3 and change it, or bring maps in and out of GtkRadiant, NetRadiant and TrenchBroom.
-  - Play-test instantly against bots, then publish a finished map to play it from Create Match.
+  - Play-test instantly against bots, starting right where the editor's camera is, then publish a finished map to play it from Create Match.
 
   | | |
   |---|---|

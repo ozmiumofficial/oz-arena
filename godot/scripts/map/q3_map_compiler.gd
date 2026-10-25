@@ -50,7 +50,9 @@ static func ensure_kit() -> String:
 		return "Quake 3's files aren't set up (the game's setup screen points at them)."
 	var names := []
 	for f in DirAccess.get_files_at(paks):
-		if f.to_lower().ends_with(".pk3"):
+		# id's own paks only: the editor's materials are Quake 3's, and a downloaded map's shader script
+		# can crash id's 1999 parser (one beside "woodsteps" in a player's baseq3 stopped every compile)
+		if f.to_lower().match("pak?.pk3"):
 			names.append(f)
 	names.sort()   # pak0 .. pak8: later paks override earlier ones, as Quake 3 loads them
 	var stamp := ""

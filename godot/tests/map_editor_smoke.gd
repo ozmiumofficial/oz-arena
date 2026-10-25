@@ -1163,8 +1163,10 @@ func _ux_checks() -> void:
 	var first := ed.selected_ids()
 	ed.tool.click(at, 0, false)
 	var second := ed.selected_ids()
-	check("top view: orthographic, the map as lines; a click takes the roof, a second on the same spot the floor under it",
-			top_ok and first == [roof] and second == [floor_id], "%s, %s then %s" % [top_ok, first, second])
+	ed.tool.click(at, 0, true)
+	var double := ed.selected_ids()
+	check("top view: orthographic, the map as lines; a click takes the roof, a second on the same spot the floor under it; a double-click takes the nearest alone",
+			top_ok and first == [roof] and second == [floor_id] and double == [roof], "%s, %s then %s then %s" % [top_ok, first, second, double])
 	# creating in a 2D view: a footprint drag makes the brush at once, as deep as the last one
 	ed.clear_selection()
 	ed.last_height = 64

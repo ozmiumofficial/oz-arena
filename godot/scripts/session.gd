@@ -262,6 +262,7 @@ func play_test(state: Dictionary, bots: int) -> PackedStringArray:
 	var s := new_setup("ffa", String(state["map"]))
 	s.source = "editor"
 	s.rules = {"fraglimit": 0, "timelimit": 0, "warmup": 0}
+	s.set_meta("devmap", true)   # cheats on: the start at the camera (edpos), and noclip / give for testing
 	var names := ["Sarge", "Visor", "Major", "Crash", "Xaero", "Anarki", "Keel", "Hunter"]
 	for i in clampi(bots, 0, names.size()):
 		s.bots.append({"name": names[i], "skill": 3, "team": ""})

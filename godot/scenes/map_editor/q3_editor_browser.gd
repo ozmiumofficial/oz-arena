@@ -7,8 +7,9 @@ extends PanelContainer
 ##   Entities    every pickup (rendered by the thumbnail camera) and map class, by section; a click
 ##               arms the entity tool, or makes the selected brushes into a brush entity
 ##   Prefabs     saved prefabs with their thumbnails; a click arms the prefab tool, right-click deletes
-## S M L sets the tile size; the columns follow the panel's width. Thumbnails load as their tiles
-## scroll into view. The map's own panels (Objects, History) are on the right, above the inspector.
+## It's docked along the bottom, under the view (Unity's Project panel), its controls in one row. S M L
+## sets the tile size; the columns follow the panel's width. Thumbnails load as their tiles scroll
+## into view. The map's own panels (Objects, History) are on the right, above the inspector.
 
 const TILES := {"S": Vector2(76, 96), "M": Vector2(104, 126), "L": Vector2(148, 170)}
 const LOADS_PER_FRAME := 8
@@ -40,29 +41,33 @@ static var _swatches := {}      ## color -> Texture2D (map class tiles)
 
 
 func _ready() -> void:
-	custom_minimum_size.x = 420
+	custom_minimum_size.y = 250
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	add_child(box)
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 4)
-	box.add_child(tabs)
+	# one row across the bottom: the tabs, the material kinds, search, folder, the count and tile size
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 4)
+	box.add_child(head)
 	for t in TABS:
 		var b := _toggle(t[0], "")
+		b.size_flags_horizontal = Control.SIZE_FILL
+		b.custom_minimum_size.x = 104
 		var id: String = t[1]
 		b.pressed.connect(func():
 			UiSound.move()
 			set_tab(tab if id == "surface" and tab in ["surface", "sky", "tool"] else id))
-		tabs.add_child(b)
+		head.add_child(b)
 		_tabs[id] = b
-	# under Materials: which kind
+	head.add_child(VSeparator.new())
+	# beside Materials: which kind
 	_kind_row = HBoxContainer.new()
 	_kind_row.add_theme_constant_override("separation", 2)
-	box.add_child(_kind_row)
+	head.add_child(_kind_row)
 	for k in KINDS:
 		var b := _toggle(k[0], k[2])
-		b.theme_type_variation = "SmallButton"
+		b.size_flags_horizontal = Control.SIZE_FILL
 		b.add_theme_font_size_override("font_size", 13)
 		var id: String = k[1]
 		b.pressed.connect(func():
@@ -72,33 +77,36 @@ func _ready() -> void:
 		_kinds[id] = b
 	_search = LineEdit.new()
 	_search.clear_button_enabled = true
+	_search.custom_minimum_size.x = 200
+	_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_search.text_changed.connect(func(_t): rebuild())
-	box.add_child(_search)
+	head.add_child(_search)
 	_folder = OptionButton.new()
 	_folder.focus_mode = Control.FOCUS_NONE
+	_folder.custom_minimum_size.x = 190
+	_folder.fit_to_longest_item = false
 	_folder.item_selected.connect(func(i):
 		folder = String(_folder.get_item_metadata(i))
 		rebuild())
-	box.add_child(_folder)
-	var info := HBoxContainer.new()
-	box.add_child(info)
+	head.add_child(_folder)
 	_count = Label.new()
 	_count.theme_type_variation = "DimLabel"
 	_count.add_theme_font_size_override("font_size", 13)
-	_count.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_count.clip_text = true
+	_count.mouse_filter = Control.MOUSE_FILTER_PASS
+	_count.custom_minimum_size.x = 120
 	_count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_child(_count)
+	head.add_child(_count)
 	for z in ["S", "M", "L"]:
 		var b := _toggle(z, "Tile size")
-		b.theme_type_variation = "SmallButton"
 		b.custom_minimum_size.x = 28
-		b.size_flags_horizontal = Control.SIZE_SHRINK_END
+		b.size_flags_horizontal = Control.SIZE_FILL
 		var size_id: String = z
 		b.pressed.connect(func():
 			UiSound.move()
 			set_tile_size(size_id)
 			editor.ui._save_layout())
-		info.add_child(b)
+		head.add_child(b)
 		_sizes[z] = b
 	_scroll = ScrollContainer.new()
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -111,6 +119,7 @@ func _ready() -> void:
 	_list.add_theme_constant_override("separation", 4)
 	_scroll.add_child(_list)
 	resized.connect(_fit_columns)
+	_scroll.resized.connect(_fit_columns)   # the first layout gives it a width only after the tiles are made
 	editor.status_changed.connect(_show_current)
 	editor.thumbs.rendered.connect(_on_rendered)
 	editor.prefabs_changed.connect(func():
@@ -190,8 +199,12 @@ func _show_sizes() -> void:
 ## prefab names).
 func visible_names() -> PackedStringArray:
 	var out := PackedStringArray()
+	var seen := {}
 	for s in _sections():
-		out.append_array(s[1])
+		for n in s[1]:
+			if not seen.has(n):   # favorites and recents show in their folders too
+				seen[n] = true
+				out.append(n)
 	return out
 
 
@@ -293,12 +306,14 @@ func rebuild() -> void:
 	var shown := _tiles.size()
 	match tab:
 		"entity":
-			_count.text = "%d entit%s · click to place · brush classes (func_, trigger_) make the selected brushes into one" % [shown, "y" if shown == 1 else "ies"]
+			_count.text = "%d entit%s" % [shown, "y" if shown == 1 else "ies"]
+			_count.tooltip_text = "Click to place · brush classes (func_, trigger_) make the selected brushes into one"
 		"prefab":
-			_count.text = "%d prefab%s · click to place · Ctrl+P saves the selection · right-click: delete" % [shown, "" if shown == 1 else "s"] \
-					if shown else "No prefabs yet: select part of the map and press Ctrl+P to save it as one."
+			_count.text = "%d prefab%s" % [shown, "" if shown == 1 else "s"] if shown else "No prefabs yet: Ctrl+P saves the selection as one"
+			_count.tooltip_text = "Click to place · Ctrl+P saves the selection · right-click: delete"
 		_:
-			_count.text = "%d · click: paint and make current · right-click: favorite" % shown
+			_count.text = "%d material%s" % [shown, "" if shown == 1 else "s"]
+			_count.tooltip_text = "Click: paint the selection and make it current · right-click: favorite"
 	_scroll.scroll_vertical = 0
 	_settle = 3
 	_show_current()

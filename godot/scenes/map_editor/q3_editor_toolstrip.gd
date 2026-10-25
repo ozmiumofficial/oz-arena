@@ -4,7 +4,7 @@ extends PanelContainer
 ## bottom the current material (what new brushes and Paint use; a click shows it in the browser).
 
 const K = preload("res://scenes/map_editor/q3_editor_keymap.gd")
-const SIZE := 44
+const SIZE := 40
 
 var editor: Q3MapEditor
 
@@ -24,9 +24,15 @@ func _ready() -> void:
 	sb.content_margin_top = 6
 	sb.content_margin_bottom = 6
 	add_theme_stylebox_override("panel", sb)
+	# it scrolls when the window is too short for every tool (the browser docked under it)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	add_child(scroll)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
-	add_child(box)
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(box)
 	for t in [["select", "tool.select", "Select and move"], ["create", "tool.create", "Create brush"],
 			["face", "tool.face", "Face / texture tool"], ["vertex", "tool.vertex", "Vertex tool: corners and curve control points"]]:
 		box.add_child(_tool_button(t[0], t[1], t[2]))

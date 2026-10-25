@@ -161,7 +161,7 @@ func drag(pos: Vector2, mods: int) -> void:
 		return
 	var target: Vector3 = p
 	if mods & K.CTRL == 0:
-		target = editor.grid.snap_vec(target, true)
+		target = editor.grid.snap_vec(target)
 	var d := target - _grab
 	d -= _normal * d.dot(_normal)       # stay in the drag plane
 	if _vertical:

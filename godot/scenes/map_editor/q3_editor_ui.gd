@@ -1,8 +1,8 @@
 class_name Q3EditorUi
 extends Control
 ## The map editor's screen furniture in native controls, in the menu's theme (Q3Theme) with Barlow on
-## buttons and fields: the top bar (File, Edit, View, Play, undo, grid), the browser dock on the left,
-## the tool strip down the view's edge, the Objects / History panel and the inspector on the right
+## buttons and fields: the top bar (File, Edit, View, Play, undo, grid, snap), the browser docked under
+## the view, the tool strip down the view's edge, the Objects / History panel and the inspector on the right
 ## (both docks resize from their handles and fold away; Tab hides them), the status bar, toasts, the
 ## box-select rectangle, the dialogs (unsaved changes, save as, open) and the F1 hotkey sheet, which
 ## rebinds keys too. The 3D view gets every event these don't take.
@@ -21,6 +21,7 @@ var editor: Q3MapEditor
 var _undo: Button
 var _redo: Button
 var _grid_label: Label
+var _snap: Button
 var _hint: Label
 var _sel_label: Label
 var _cursor_label: Label
@@ -59,7 +60,7 @@ func _ready() -> void:
 	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_canvas.draw.connect(func(): editor.tool.draw_2d(_canvas))
 	add_child(_canvas)
-	# top bar / (browser | handle | tools | the open view | handle | objects, inspector) / status bar;
+	# top bar / ((tools | the open view) over the browser | handle | objects, inspector) / status bar;
 	# the open middle lets the mouse through to the 3D view
 	var layout := VBoxContainer.new()
 	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -72,24 +73,35 @@ func _ready() -> void:
 	middle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	middle.add_theme_constant_override("separation", 0)
 	layout.add_child(middle)
-	browser = Q3EditorBrowser.new()
-	browser.editor = editor
-	middle.add_child(browser)
-	middle.add_child(_handle(browser, false, 1.0, 300, 820))
+	# the view and its tool strip over the browser; the right dock runs the full height beside them
+	var main := VBoxContainer.new()
+	main.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	main.add_theme_constant_override("separation", 0)
+	middle.add_child(main)
+	var work := HBoxContainer.new()
+	work.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	work.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	work.add_theme_constant_override("separation", 0)
+	main.add_child(work)
 	strip = ToolStrip.new()
 	strip.editor = editor
-	middle.add_child(strip)
+	work.add_child(strip)
 	_view = Control.new()
 	_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_view.clip_contents = true
-	middle.add_child(_view)
+	work.add_child(_view)
 	_grid2d = Control.new()
 	_grid2d.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_grid2d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_grid2d.draw.connect(func(): _draw_grid2d(_grid2d))
 	_view.add_child(_grid2d)
 	_view.add_child(_view_switcher())
+	browser = Q3EditorBrowser.new()
+	browser.editor = editor
+	main.add_child(_handle(browser, true, -1.0, 140, 800))
+	main.add_child(browser)
 	_right = VBoxContainer.new()
 	_right.add_theme_constant_override("separation", 0)
 	_right.custom_minimum_size.x = 340
@@ -237,8 +249,9 @@ func _build_top(parent: Control) -> void:
 	# the commands live in four menus, so the bar stays one short row; the tools are down the view's edge
 	row.add_child(_menu("FILE", "New, open, save, import and export maps", [["New map", "file.new"], ["Open map", "file.open"],
 			["Save", "file.save"], ["Save as", "file.saveAs"], ["Publish (play it from Create Match)", "file.publish"], ["", ""],
-			["Import a Quake 3 map", "file.importQ3"],
-			["Import .map", "file.importMap"], ["Export .map (Radiant)", "file.exportMap"], ["Export .map (TrenchBroom)", "file.exportValve"],
+			["Import a Quake 3 map", "file.importQ3"], ["Import a .bsp or .pk3 file", "file.importBsp"],
+			["Import .map", "file.importMap"], ["", ""], ["Export .map (Radiant)", "file.exportMap"], ["Export .map (TrenchBroom)", "file.exportValve"],
+			["Export compiled .bsp / .pk3 (plays in Quake 3)", "file.exportBsp"],
 			["", ""], ["Leave to the main menu", "session.leave"]]))
 	row.add_child(_menu("EDIT", "Copy, group, turn, mirror, hide and lock the selection", [["Undo", "edit.undo"], ["Redo", "edit.redo"], ["", ""],
 			["Copy", "edit.copy"], ["Paste at the cursor", "edit.paste"], ["Duplicate", "edit.duplicate"], ["Delete", "edit.delete"],
@@ -250,11 +263,12 @@ func _build_top(parent: Control) -> void:
 			["Lock selection", "edit.lock"], ["Unlock all", "edit.unlockAll"], ["", ""],
 			["Save selection as prefab", "prefab.save"]]))
 	row.add_child(_view_menu())
-	var play := _menu("PLAY", _tip("Compile and play the map", "map.playtest"), [["Play-test", "map.playtest"],
-			["Full compile (check for leaks)", "map.compile"], ["Bots in play-tests", "map.bots"]])
+	var play := _menu("PLAY", _tip("Play the map", "map.playtest"), [["Play-test", "map.playtest"],
+			["Full compile (check for leaks)", "map.compile"], ["Bots in play-tests", "map.bots"], ["Start at the camera", "map.fromCamera"]])
 	var ppop := play.get_popup()
 	ppop.about_to_popup.connect(func():
-		ppop.set_item_text(2, "Bots in play-tests: %s    %s" % ["%d" % editor.play_bots if editor.play_bots > 0 else "off", K.key_for("map.bots")]))
+		ppop.set_item_text(2, "Bots in play-tests: %s    %s" % ["%d" % editor.play_bots if editor.play_bots > 0 else "off", K.key_for("map.bots")])
+		ppop.set_item_text(3, "Start at the camera: %s    %s" % ["on" if editor.play_from_camera else "off (a spawn point)", K.key_for("map.fromCamera")]))
 	row.add_child(play)
 	row.add_child(VSeparator.new())
 	_undo = _bar_button("UNDO", "Undo (Ctrl+Z)", func(): editor.execute("edit.undo"))
@@ -272,6 +286,9 @@ func _build_top(parent: Control) -> void:
 	_grid_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	row.add_child(_grid_label)
 	row.add_child(_bar_button("+", _tip("Bigger grid", "grid.bigger"), func(): editor.execute("grid.bigger")))
+	_snap = _bar_button("SNAP", _tip("Grid snapping: moves, new brushes, faces, corners and entities land on the grid", "grid.snap"),
+			func(): editor.execute("grid.snap"), true)
+	row.add_child(_snap)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
@@ -354,6 +371,7 @@ func _refresh() -> void:
 	_undo.tooltip_text = "Undo %s (Ctrl+Z)" % editor.doc.undo_label() if editor.doc.can_undo() else "Nothing to undo"
 	_redo.tooltip_text = "Redo %s (Ctrl+Y)" % editor.doc.redo_label() if editor.doc.can_redo() else "Nothing to redo"
 	_grid_label.text = editor.grid.label()
+	_snap.set_pressed_no_signal(editor.grid.snapping)
 	var n := editor.selection.size()
 	if n == 0:
 		# counting a big map's objects on every status change adds up: once per document change
@@ -368,6 +386,8 @@ func _refresh() -> void:
 	var flags := PackedStringArray()
 	if editor.is_isolated():
 		flags.append("isolated · Shift+I shows all")
+	if not editor.grid.snapping:
+		flags.append("snap off · %s turns it on" % K.key_for("grid.snap"))
 	if editor.filters.size():
 		flags.append("filtered: %s · Alt+0 shows all" % ", ".join(PackedStringArray(editor.filters.keys())))
 	_flags_label.text = "   ".join(flags)
@@ -467,12 +487,12 @@ func _draw_grid2d(c: Control) -> void:
 
 # ---------------------------------------------------------------- layout
 
-## The docks' widths, the Objects panel's height and fold, and the browser's tile size, kept between
+## The docks' sizes, the Objects panel's height and fold, the browser's tile size and grid snapping, kept between
 ## sessions (hidden panels always come back: a panel that stayed away would look lost).
 func _save_layout() -> void:
 	if _loading_layout or not is_inside_tree():
 		return
-	var data := {"left": browser.custom_minimum_size.x, "right": _right.custom_minimum_size.x,
+	var data := {"bottom": browser.custom_minimum_size.y, "right": _right.custom_minimum_size.x, "snap": editor.grid.snapping,
 			"side_height": side.custom_minimum_size.y if not side.folded else side.height,
 			"side_folded": side.folded, "side_tab": side.tab, "tile": browser.tile_size}
 	DirAccess.make_dir_recursive_absolute(layout_path.get_base_dir())
@@ -486,7 +506,8 @@ func _load_layout() -> void:
 	if not d is Dictionary:
 		return
 	_loading_layout = true
-	browser.custom_minimum_size.x = clampf(float(d.get("left", browser.custom_minimum_size.x)), 300, 820)
+	browser.custom_minimum_size.y = clampf(float(d.get("bottom", browser.custom_minimum_size.y)), 140, 800)
+	editor.grid.snapping = bool(d.get("snap", true))
 	_right.custom_minimum_size.x = clampf(float(d.get("right", _right.custom_minimum_size.x)), 280, 700)
 	side.height = clampf(float(d.get("side_height", side.height)), 120, 900)
 	side.set_tab(String(d.get("side_tab", "objects")))
@@ -506,7 +527,7 @@ func cursor_moved() -> void:
 	if p == null:
 		_cursor_label.text = ""
 	else:
-		var s := editor.grid.snap_vec(p, true)
+		var s := editor.grid.snap_vec(p)
 		_cursor_label.text = "%d %d %d" % [int(s.x), int(s.y), int(s.z)]
 
 
@@ -757,17 +778,40 @@ func import_q3_dialog() -> void:
 	list.grab_focus.call_deferred()
 
 
+## Picks one of `items` from a list; then gets it.
+func pick_dialog(title: String, text: String, items: Array, then: Callable) -> void:
+	var list := ItemList.new()
+	list.custom_minimum_size = Vector2(520, 320)
+	for it in items:
+		list.add_item(String(it))
+	list.select(0)
+	var go := func():
+		var sel := list.get_selected_items()
+		if sel.size():
+			then.call(items[sel[0]])
+	list.item_activated.connect(func(_i):
+		close_modal()
+		go.call())
+	_show_modal(title, text, [["IMPORT", go], ["CANCEL", func(): pass]], list)
+	list.grab_focus.call_deferred()
+
+
 ## The system's file picker for a .map: opening one when save_name is "", else saving under it.
 func map_file_dialog(save_name: String, then: Callable) -> void:
+	file_dialog(save_name, PackedStringArray(["*.map ; Radiant maps"]), "Export .map" if save_name != "" else "Import .map", then)
+
+
+## The system's file picker: opening a file when save_name is "", else saving under it.
+func file_dialog(save_name: String, filters: PackedStringArray, title: String, then: Callable) -> void:
 	if is_instance_valid(_file_dialog):
 		return   # one picker at a time
 	var fd := FileDialog.new()
 	_file_dialog = fd
 	fd.access = FileDialog.ACCESS_FILESYSTEM
 	fd.file_mode = FileDialog.FILE_MODE_SAVE_FILE if save_name != "" else FileDialog.FILE_MODE_OPEN_FILE
-	fd.filters = PackedStringArray(["*.map ; Radiant maps"])
+	fd.filters = filters
 	fd.use_native_dialog = true
-	fd.title = "Export .map" if save_name != "" else "Import .map"
+	fd.title = title
 	fd.current_dir = OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
 	if save_name != "":
 		fd.current_file = save_name

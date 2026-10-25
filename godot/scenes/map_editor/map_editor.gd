@@ -47,6 +47,10 @@ var thumbs: Q3EditorThumbs
 var compiler: Q3MapCompiler
 var ui: Q3EditorUi
 static var play_bots := 3    ## bots in a play-test (they need the .aas, so bspc runs too); 0 = none
+static var play_from_camera := true   ## play-tests start where the 3D camera is (inside the map), facing its way
+## the last play-test compile: {key (the .map text's md5 and the stages), r}; F5 on an unchanged map
+## plays it again without running q3map (static: it outlives the trip into Gameplay and back)
+static var _play_cache := {}
 var last_compile := {}       ## the last compile's result (Q3MapCompiler.finished)
 var _compile_job := {}       ## the compile under way: {models, warnings, play, map, doc, rev}
 var _doc_rev := 0            ## counts document changes, so a play-test plays what was compiled
@@ -336,6 +340,20 @@ func import_map(kind: String, source: String) -> String:
 
 
 static func _import_work(kind: String, source: String) -> Dictionary:
+	if kind == "bspfile":
+		# a .bsp on disk, or "<pk3>::maps/<name>.bsp" inside a package
+		var inner := source.get_slice("::", 1) if source.contains("::") else source
+		var bytes := PackedByteArray()
+		if source.contains("::"):
+			var zr := ZIPReader.new()
+			if zr.open(source.get_slice("::", 0)) == OK:
+				bytes = zr.read_file(inner)
+				zr.close()
+		else:
+			bytes = FileAccess.get_file_as_bytes(source)
+		if bytes.is_empty():
+			return {"doc": null, "report": {"errors": ["no map could be read from it"]}}
+		return Q3BspImport.import_bsp(bytes, inner.get_file().get_basename(), false)
 	if kind == "bsp":
 		var bytes := Q3BspImport.read_from_paks(source)
 		if bytes.is_empty():
@@ -534,6 +552,12 @@ func pick(screen: Vector2, with_entities := false, cycle := false) -> Dictionary
 ## The pickable objects under the cursor, nearest first ({} alone when none and nearest_only).
 func _pick_all(screen: Vector2, with_entities: bool, nearest_only: bool) -> Array:
 	var r := ray(screen)
+	return _hits(r[0], r[1], with_entities, nearest_only)
+
+
+## What a ray from `from` along `dir` (id space) passes through, as _pick_all.
+func _hits(from: Vector3, dir: Vector3, with_entities: bool, nearest_only: bool) -> Array:
+	var r := [from, dir]
 	var o := f64(r[0])
 	var d := f64(r[1])
 	var hits := []
@@ -1199,6 +1223,9 @@ func _execute(cmd: String) -> bool:
 		"map.bots":
 			play_bots = 0 if play_bots > 0 else 3
 			notify("Play-test bots: " + ("%d (bspc builds their area file)" % play_bots if play_bots > 0 else "none"))
+		"map.fromCamera":
+			play_from_camera = not play_from_camera
+			notify("Play-tests start " + ("where the camera is" if play_from_camera else "at a spawn point"))
 		"tool.vertex":
 			set_tool("vertex")
 		"face.lockTexture":
@@ -1218,6 +1245,10 @@ func _execute(cmd: String) -> bool:
 		"grid.bigger":
 			grid.step(1)
 			notify("Grid " + grid.label())
+		"grid.snap":
+			grid.snapping = not grid.snapping
+			notify("Grid snapping " + ("on" if grid.snapping else "off: things go where the cursor puts them"))
+			ui._save_layout()
 		"grid.toggle":
 			grid.visible = not grid.visible
 		"edit.undo":
@@ -1253,7 +1284,7 @@ func _execute(cmd: String) -> bool:
 				var at: Variant = cursor_point(mouse_pos)
 				if at == null:
 					at = to_id(camera.global_position - camera.global_transform.basis.z * 6.0)
-				place_copies(clipboard, grid.snap_vec(at, true), "Paste")
+				place_copies(clipboard, grid.snap_vec(at), "Paste")
 		"select.all":
 			var ids := []
 			for id in doc.objects:
@@ -1343,6 +1374,13 @@ func _execute(cmd: String) -> bool:
 			ui.ask_unsaved(func(): ui.import_q3_dialog())
 		"file.importMap":
 			ui.ask_unsaved(func(): ui.map_file_dialog("", func(p): import_map("map", p)))
+		"file.importBsp":
+			ui.ask_unsaved(func(): ui.file_dialog("", PackedStringArray(["*.bsp, *.pk3 ; Quake 3 maps and packages"]), "Import a .bsp or .pk3",
+					func(p): import_bsp_file(p)))
+		"file.exportBsp":
+			ui.file_dialog(Q3EditorUi.clean_name(String(doc.info.get("name", "untitled"))) + ".pk3",
+					PackedStringArray(["*.pk3 ; Quake 3 package (map, bot file, arena, levelshot)", "*.bsp ; Compiled map"]), "Export the compiled map",
+					func(p): export_compiled(p))
 		"file.exportMap", "file.exportValve":
 			var format := "valve220" if cmd == "file.exportValve" else "brushdef"
 			ui.map_file_dialog(Q3EditorUi.clean_name(String(doc.info.get("name", "untitled"))) + ".map",
@@ -1523,7 +1561,7 @@ func create_curve(kind: String) -> int:
 	var at: Variant = cursor_point(mouse_pos)
 	if at == null:
 		at = to_id(camera.global_position - camera.global_transform.basis.z * 6.0)
-	var p := Q3PatchFactory.make(kind, grid.snap_vec(at, true), 64.0, 128.0, material)
+	var p := Q3PatchFactory.make(kind, grid.snap_vec(at), 64.0, 128.0, material)
 	if p.is_empty():
 		return -1
 	doc.checkpoint("Create " + kind)
@@ -1949,7 +1987,7 @@ func play_test() -> void:
 
 ## Writes the map for q3map and starts a background compile of these stages; `then_play` hands the
 ## result to Gameplay when it works, `publish` lists it for matches (publish()).
-func compile_map(stages: Array, then_play: bool, publish := false) -> void:
+func compile_map(stages: Array, then_play: bool, publish := false, export_to := "") -> void:
 	if compiler.busy or importing != "":
 		notify("Already compiling" if compiler.busy else "Wait for the import to finish", true)
 		return
@@ -1958,7 +1996,15 @@ func compile_map(stages: Array, then_play: bool, publish := false) -> void:
 	var base := Q3EditorUi.clean_name(String(doc.info.get("name", "untitled")))
 	var name := Q3MapCompiler.published_name(base) if publish else Q3MapCompiler.output_name(base)
 	_compile_job = {"models": ex["models"], "warnings": ex["warnings"], "play": then_play, "map": name,
-			"doc": doc, "rev": _doc_rev, "publish": publish, "path": path}
+			"doc": doc, "rev": _doc_rev, "publish": publish, "path": path, "export": export_to}
+	var key := "%s|%s|%s" % [String(ex["text"]).md5_text(), name, ",".join(stages)]
+	_compile_job["key"] = key
+	var cached_bsp := String(_play_cache.get("r", {}).get("bsp", ""))
+	if then_play and _play_cache.get("key", "") == key and FileAccess.file_exists(cached_bsp) 			and FileAccess.get_modified_time(cached_bsp) == int(_play_cache.get("time", -1)):   # not since rewritten by another map of that name
+		# nothing changed since the last play-test's compile: its .bsp is still right
+		_on_compiled.call_deferred(_play_cache["r"])
+		ui.set_hint("Starting the play-test ...")
+		return
 	if publish:
 		# what's published is the map as compiled: a frozen copy of the document goes beside the .bsp,
 		# so later edits (or opening another map meanwhile) can't change what players see
@@ -1986,6 +2032,9 @@ func _on_compiled(r: Dictionary) -> void:
 		# q3map's leak line runs from an entity out to the void through the hole
 		overlay.show_leak(r["leak"])
 		notes.append("The map leaks: the red line runs from an entity out through the gap. Vis, light and bots need it sealed.")
+	if job.get("export", "") != "":
+		_finish_export(job, r, notes)
+		return
 	if job.get("publish", false):
 		if r["leaked"] or r["aas"] == "":
 			ui.show_compile_log("CAN'T PUBLISH YET", "\n".join(notes) if notes.size() else "The bot file (bspc) wasn't made.", r["log"])
@@ -2004,13 +2053,33 @@ func _on_compiled(r: Dictionary) -> void:
 		# Gameplay would draw today's document over the .bsp compiled from the old one
 		notify("The map changed while it compiled: press F5 again", true)
 		return
+	_play_cache = {"key": job.get("key", ""), "r": r, "time": FileAccess.get_modified_time(String(r["bsp"]))}
 	var bots := play_bots if r["aas"] != "" else 0
+	# the 3D view's pose, also from a 2D view (where the player starts, and the view to come back to)
+	var pose := [camera.position, camera.yaw, camera.pitch]
+	if camera.ortho != "" and camera._pose_3d.size():
+		pose = camera._pose_3d.duplicate()
+	var start := camera_start(pose[0], pose[1], pose[2]) if play_from_camera else []
+	if play_from_camera and start.is_empty():
+		notify("The camera is outside the map: the play-test starts at a spawn point")
 	var errs := Session.play_test({"doc": doc, "models": job["models"], "map": job["map"], "path": path,
-			"camera": [camera.position, camera.yaw, camera.pitch], "selection": selected_ids(),
+			"camera": pose, "view": view, "start": start, "selection": selected_ids(),
 			"tool": tools.find_key(tool), "leaked": r["leaked"], "isolated": _isolated.duplicate(),
 			"faces": faces.keys(), "verts": verts.keys()}, bots)
 	if errs.size():
 		notify("Can't play: " + "; ".join(errs), true)
+
+
+## Where a play-test starts the player: the camera's spot (Godot space) and facing as [origin, pitch,
+## yaw] in id units and degrees, or [] when the camera isn't inside the map (a ray out from it meets
+## nothing in some direction). Gameplay drops the player to the floor under it (Cmd_EditorPos_f).
+func camera_start(pos: Vector3, yaw_deg: float, pitch_deg: float) -> Array:
+	var o := to_id(pos)
+	for d in [Vector3(1, 0, 0), Vector3(-1, 0, 0), Vector3(0, 1, 0), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(0, 0, -1)]:
+		if (_hits(o, d, false, true)[0] as Dictionary).is_empty():
+			return []
+	var fwd := to_id(Basis.from_euler(Vector3(deg_to_rad(pitch_deg), deg_to_rad(yaw_deg), 0.0)) * Vector3.FORWARD)
+	return [o, -pitch_deg, rad_to_deg(atan2(fwd.y, fwd.x))]
 
 
 ## Publish (OZMIUM's "freeze for players"): saves the map, compiles it in full (bsp, vis, light and
@@ -2053,6 +2122,80 @@ func _finish_publish(job: Dictionary, r: Dictionary) -> void:
 		return
 	Session.refresh_custom_maps()
 	notify("Published %s in %.0f s: it's in Create Match as \"%s\"" % [name, r["seconds"], entry["name"]])
+
+
+## File > Import a .bsp or .pk3: a .bsp imports as it is; a package's map does, or the player picks
+## one when it holds several.
+func import_bsp_file(p: String) -> void:
+	if p.get_extension().to_lower() != "pk3":
+		import_map("bspfile", p)
+		return
+	var zr := ZIPReader.new()
+	if zr.open(p) != OK:
+		notify("Couldn't open " + p.get_file(), true)
+		return
+	var maps := Array(zr.get_files()).filter(func(f): return String(f).to_lower().begins_with("maps/") and String(f).to_lower().ends_with(".bsp"))
+	zr.close()
+	if maps.is_empty():
+		notify("%s has no maps in it" % p.get_file(), true)
+	elif maps.size() == 1:
+		import_map("bspfile", p + "::" + maps[0])
+	else:
+		ui.pick_dialog("IMPORT FROM " + p.get_file().to_upper(), "This package holds %d maps." % maps.size(), maps,
+				func(m): import_map("bspfile", p + "::" + m))
+
+
+## File > Export the compiled map: compiles it in full (bsp, vis, light and the bots' aas) and writes
+## it where the player chose: a .bsp (its .aas beside it), or a .pk3 for Quake 3's baseq3 with
+## maps/<name>.bsp and .aas, scripts/<name>.arena and the thumbnail as levelshots/<name>.jpg.
+func export_compiled(p: String) -> void:
+	compile_map(Q3MapCompiler.STAGES, false, false, p)
+
+
+func _finish_export(job: Dictionary, r: Dictionary, notes: PackedStringArray) -> void:
+	var dest: String = job["export"]
+	var d: Q3MapDoc = job["doc"]
+	var base := Q3EditorUi.clean_name(String(d.info.get("name", "untitled")))
+	base = base if base != "" and base != AUTOSAVE else "untitled"
+	var err := OK
+	if dest.get_extension().to_lower() == "pk3":
+		err = _write_pk3(dest, base, d, r)
+	else:
+		err = DirAccess.copy_absolute(r["bsp"], dest)
+		if err == OK and r["aas"] != "":
+			err = DirAccess.copy_absolute(r["aas"], dest.get_basename() + ".aas")
+	if err != OK:
+		notify("Couldn't write %s (error %d)" % [dest.get_file(), err], true)
+		return
+	if notes.size():
+		ui.show_compile_log("EXPORTED, WITH WARNINGS", "Wrote %s.\n%s" % [dest, "\n".join(notes)], r["log"])
+	else:
+		notify("Exported %s in %.0f s" % [dest.get_file(), r["seconds"]])
+
+
+## A Quake 3 package: the map, its bot file, an arena script (so the game's menus list it) and a
+## levelshot from the editor's thumbnail.
+func _write_pk3(dest: String, base: String, d: Q3MapDoc, r: Dictionary) -> Error:
+	var files := {"maps/%s.bsp" % base: FileAccess.get_file_as_bytes(r["bsp"])}
+	if r["aas"] != "":
+		files["maps/%s.aas" % base] = FileAccess.get_file_as_bytes(r["aas"])
+	var title := String(d.worldspawn.get("message", "")).replace("\\n", " ").replace("\"", "'").strip_edges()
+	files["scripts/%s.arena" % base] = ("{\n\tmap \"%s\"\n\tlongname \"%s\"\n\ttype \"%s\"\n\tfraglimit \"20\"\n}\n" % [
+			base, title if title != "" else base, " ".join(Q3MapPublish.types_of(d))]).to_utf8_buffer()
+	var shot := thumb_path(String(d.info.get("name", "")))
+	if FileAccess.file_exists(shot):
+		var img := Image.load_from_file(ProjectSettings.globalize_path(shot))
+		if img and not img.is_empty():
+			files["levelshots/%s.jpg" % base] = img.save_jpg_to_buffer(0.9)
+	var zp := ZIPPacker.new()
+	var err := zp.open(dest)
+	if err != OK:
+		return err
+	for f in files:
+		zp.start_file(f)
+		zp.write_file(files[f])
+		zp.close_file()
+	return zp.close()
 
 
 ## A saved map's thumbnail, beside it.
@@ -2133,6 +2276,8 @@ func _back_from_playtest(state: Dictionary) -> void:
 	var cam: Array = state.get("camera", [])
 	if cam.size() == 3:
 		camera.set_pose(cam[0], cam[1], cam[2])
+	if String(state.get("view", "3d")) != "3d":
+		set_view(String(state["view"]))
 	select(Array(state.get("selection", [])).filter(func(i): return doc.objects.has(i)))
 	_isolated = Array(state.get("isolated", [])).filter(func(i): return doc.objects.has(i))
 	var t := String(state.get("tool", "select"))

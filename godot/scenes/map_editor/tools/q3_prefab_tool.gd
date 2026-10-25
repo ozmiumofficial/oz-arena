@@ -101,8 +101,8 @@ func hover(pos: Vector2, mods: int) -> void:
 		return
 	var target: Vector3 = p - Vector3(_size.x * 0.5, _size.y * 0.5, 0)
 	if mods & Q3EditorKeymap.CTRL == 0:
-		target.x = editor.grid.snap(target.x, true)
-		target.y = editor.grid.snap(target.y, true)
+		target.x = editor.grid.snap(target.x)
+		target.y = editor.grid.snap(target.y)
 	at = target
 	if _ghost:
 		_ghost.position = Q3MapEditor.to_godot(at)

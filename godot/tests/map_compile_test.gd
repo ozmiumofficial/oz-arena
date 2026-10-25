@@ -194,6 +194,7 @@ func _run() -> void:
 				sw[0] < 0.002 and sw[1] > 3000, "worst %.5f repeats over %d vertices (%d in brush models): %s" % [sw[0], sw[1], sw[3], sw[2]])
 
 	await _publish_check()
+	await _export_check()
 
 	# play-test drawing: the map node Gameplay gets
 	var pm := Q3PlayMap.build(d, ex["models"])
@@ -262,6 +263,51 @@ func _publish_check() -> void:
 	Q3MapEditor.maps_dir = maps_dir
 	Q3MapEditor.recent = recent
 	Q3MapPublish.path = pub_path
+
+
+## Export (2026-10-24): the arena compiled in full into a .pk3 for Quake 3 (map, bot file, arena script),
+## then imported back from the package as a new document.
+func _export_check() -> void:
+	var maps_dir := Q3MapEditor.maps_dir
+	var recent := Q3MapEditor.recent
+	Q3MapEditor.maps_dir = "user://map_compile_test/maps"
+	Q3MapEditor.recent = "user://map_compile_test/recent.json"
+	var pk3 := ProjectSettings.globalize_path("user://map_compile_test/exporttest.pk3")
+	var ed: Q3MapEditor = load("res://scenes/map_editor/map_editor.tscn").instantiate()
+	add_child(ed)
+	await get_tree().process_frame
+	var src := arena()
+	src.info["name"] = "exporttest"
+	ed._set_doc(src, "")
+	var brushes := src.ids_of("brush").size()
+	ed.export_compiled(pk3)
+	var r: Dictionary = await ed.compiler.finished
+	await get_tree().process_frame
+	var zr := ZIPReader.new()
+	var files := PackedStringArray()
+	var arena_text := ""
+	if zr.open(pk3) == OK:
+		files = zr.get_files()
+		arena_text = zr.read_file("scripts/exporttest.arena").get_string_from_utf8()
+		zr.close()
+	check("Export: compiled in full into a .pk3 with maps/<name>.bsp, its bot file and an arena script listing the map",
+			r.get("ok", false) and files.has("maps/exporttest.bsp") and files.has("maps/exporttest.aas") and arena_text.contains("map \"exporttest\"")
+			and arena_text.contains("ffa"), "%s, files %s" % [r.get("error", ""), files])
+	var err: String = await ed.import_map("bspfile", pk3 + "::maps/exporttest.bsp")
+	var back := ed.doc
+	check("Import a .pk3: the exported map comes back from the package as editable brushes and entities",
+			err == "" and back != src and back.ids_of("brush").size() >= brushes - 1 and back.ids_of("entity").size() >= 3,
+			"'%s', %d brushes (of %d), %d entities" % [err, back.ids_of("brush").size(), brushes, back.ids_of("entity").size()])
+	ed.queue_free()
+	DirAccess.remove_absolute(pk3)
+	for ext in [".bsp", ".aas"]:
+		var p := Q3MapCompiler.output_dir.path_join("ed_exporttest" + ext)
+		if FileAccess.file_exists(p):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
+	for f in ["maps/_autosave.q3map.json", "recent.json"]:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://map_compile_test/" + f))
+	Q3MapEditor.maps_dir = maps_dir
+	Q3MapEditor.recent = recent
 
 
 func _finish(t0: int) -> void:

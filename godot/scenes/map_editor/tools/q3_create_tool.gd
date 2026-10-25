@@ -69,7 +69,7 @@ func press(pos: Vector2, _mods: int, _double: bool) -> void:
 
 ## Snaps the two in-plane coordinates to the grid and pins the third to the plane.
 func _in_plane(p: Vector3) -> Vector3:
-	var s := editor.grid.snap_vec(p, true)
+	var s := editor.grid.snap_vec(p)
 	s[_axis] = _plane
 	return s
 
@@ -155,7 +155,7 @@ func hover(pos: Vector2, _mods: int) -> void:
 	if absf(denom) < 1e-6:
 		return
 	var t := (d.dot(d) * e.dot(w) - b * d.dot(w)) / denom
-	var h := editor.grid.snap(t * _sign, true)
+	var h := editor.grid.snap(t * _sign)
 	if absf(h) >= 1.0:
 		height = h
 	_preview()

@@ -64,7 +64,9 @@ func click(pos: Vector2, mods: int, double: bool) -> void:
 		return
 	if h.get("kind", "") == "face":
 		return   # a diamond only drags
-	var p := editor.pick(pos, true, true)   # clicking the same spot again takes the next object behind
+	# a plain click on the same spot again takes the next object behind (not a double-click's second
+	# click, which picks one object out of its group)
+	var p := editor.pick(pos, true, mods == 0 and not double)
 	if p.is_empty():
 		if mods == 0:
 			editor.verts.clear()
@@ -197,7 +199,7 @@ func drag(pos: Vector2, mods: int) -> void:
 func _snap_axis(min_v: float, move: float, snap: bool) -> float:
 	if not snap:
 		return move
-	return editor.grid.snap(min_v + move, true) - min_v
+	return editor.grid.snap(min_v + move) - min_v
 
 
 static func _fmt(v: Vector3) -> String:

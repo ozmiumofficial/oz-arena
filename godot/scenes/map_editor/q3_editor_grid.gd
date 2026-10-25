@@ -2,6 +2,8 @@ class_name Q3EditorGrid
 extends MeshInstance3D
 ## The editor's ground grid and snapping, as OZMIUM's MapEditorGrid: nine sizes from 1 to 256 units
 ## (16 by default), lines every step and a brighter line every 8, on a quad that follows the camera.
+## Snapping is on unless the SNAP toggle (Shift+G) turns it off; Ctrl skips it for one drag, and the
+## things that must stay on the grid (a turn's center, Snap corners to the grid) force it.
 
 const SIZES := [1, 2, 4, 8, 16, 32, 64, 128, 256]
 const QUAD := 512.0          ## meters each side of the camera
@@ -39,7 +41,7 @@ func step(delta: int) -> void:
 	set_index(index + delta)
 
 
-## Rounds an id coordinate to the grid (always, with force; otherwise only while snapping is on).
+## Rounds an id coordinate to the grid (always with force; otherwise only while snapping is on).
 func snap(v: float, force := false) -> float:
 	if not snapping and not force:
 		return v

@@ -78,13 +78,13 @@ func placement(pos: Vector2) -> Dictionary:
 		return {}
 	# on the grid along the surface, exactly on it across
 	var axis := n.abs().max_axis_index()
-	var base := editor.grid.snap_vec(point, true)
+	var base := editor.grid.snap_vec(point)
 	base[axis] = point[axis]
 	var cn := current_class()
 	var origin := base
 	var on_floor := n.z > 0.7
 	if kind == "light":
-		origin = editor.grid.snap_vec(point + n * maxf(editor.grid.units(), 16.0), true)
+		origin = editor.grid.snap_vec(point + n * maxf(editor.grid.units(), 16.0))
 	elif on_floor:
 		origin.z += -Q3MapEntities.bounds(cn).position.z if not Q3MapEntities.is_brush_class(cn) else 0.0
 	else:

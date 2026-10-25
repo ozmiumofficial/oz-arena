@@ -10,11 +10,11 @@ const WORLD_LAYER := 1 << 10   ## the map's own geometry: all the reflection pro
 ## walks the world BSP alone, so marks never paint players, items, guns or doors)
 const MARK_LAYER := 1 << 11
 const PROBE_BLEND := 0.5        ## meters each probe reaches past its box, fading into its neighbors
-const SHAFT_DENSITY := 0.0015   ## the faint haze that shows the sun's light shafts
+const SHAFT_DENSITY := 0.0011   ## the faint haze that shows the sun's light shafts (0.0015 until 2026-10-24: too foggy)
 const SHAFT_LIGHT := 0.01       ## the shaft light's own energy on surfaces: next to nothing (the sun is baked)
 const SHAFT_GAIN := 1.5         ## shaft brightness against the baked sun's energy
 const FOG_LIGHT_CAP := 6.0      ## the most any one map light adds to the mist (typical lamps: 0.2 to 10)
-const FOG_LIGHT_SCALE := 0.8    ## the mist a little under full strength (Ozmium: "tone the fog down a little")
+const FOG_LIGHT_SCALE := 0.6    ## the mist under full strength (Ozmium: "tone the fog down a little", twice: 0.8, then 0.6)
 
 @export var map := ""
 var portals: Array[Q3Portal] = []   ## its mirrors and portal views

@@ -68,7 +68,11 @@ func _run() -> void:
 	ed.doc.checkpoint("Test edit")
 	var block := ed.doc.add(Q3MapDoc.box_brush(Vector3(-96, -96, 0), Vector3(-64, -64, 32), "textures/gothic_block/blocks15"))
 	ed.select([block])
-	ed.camera.set_pose(Vector3(3, 6, -9), -150, -20)
+	# the camera inside the room, 200 units up, looking along id +X (Godot yaw 180): the player starts on
+	# the floor under it, facing that way
+	var cam_id := Vector3(64, -96, 200)
+	ed.camera.set_pose(Q3MapEditor.to_godot(cam_id), 180, -20)
+	var cam_pose := ed.camera.position
 	var doc_before := ed.doc
 	ed.execute("map.playtest")
 	ok = await _wait(func(): return get_tree().current_scene != null and get_tree().current_scene.name == "Gameplay", 1800)
@@ -91,6 +95,10 @@ func _run() -> void:
 	check("Gameplay draws the editor's map (Q3PlayMap), the player is in it, with 2 bots",
 			map_scene is Q3PlayMap and absf(o.x) < 384 and absf(o.y) < 384 and o.z > 0 and o.z < 128 and bots == 2,
 			"map %s, origin %s, %d bots" % [map_scene, o, bots])
+	var yaw := fposmod(float(ps.get("viewangles", Vector3.ZERO).y), 360.0)
+	check("the play-test starts on the floor under the editor's camera, facing its way",
+			Vector2(o.x, o.y).distance_to(Vector2(cam_id.x, cam_id.y)) < 48.0 and o.z < 40.0 and (yaw < 10.0 or yaw > 350.0),
+			"origin %s, yaw %.1f" % [o, yaw])
 	await _shot("playtest")
 	gp.call("_unhandled_input", _key(KEY_F7))
 	for i in 3:
@@ -109,8 +117,21 @@ func _run() -> void:
 	if ok:
 		check("the editor comes back as it was: the same document with its undo history, the selection and the view",
 				is_same(ed.doc, doc_before) and ed.doc.can_undo() and ed.doc.undo_label() == "Test edit"
-				and ed.selected_ids() == [block] and ed.camera.position.distance_to(Vector3(3, 6, -9)) < 0.01
+				and ed.selected_ids() == [block] and ed.camera.position.distance_to(cam_pose) < 0.01
 				and Session.playtest.is_empty(), "undo %s, selection %s" % [ed.doc.undo_label(), ed.selected_ids()])
+	# F5 again on the unchanged map: no q3map run, straight into the match
+	var compiled_before: Dictionary = ed.last_compile
+	ed.execute("map.playtest")
+	var fast := not ed.compiler.busy
+	ok = await _wait(func(): return get_tree().current_scene != null and get_tree().current_scene.name == "Gameplay", 1800)
+	check("F5 on an unchanged map skips the compile and plays the last one", ok and fast, "busy at once %s" % (not fast))
+	if ok:
+		for i in 30:
+			await get_tree().process_frame
+		get_tree().current_scene.call("_unhandled_input", _key(KEY_F6))
+		await _wait(func(): return get_tree().current_scene is Q3MapEditor)
+		for i in 5:
+			await get_tree().process_frame
 	_finish(t0, bots_before)
 
 

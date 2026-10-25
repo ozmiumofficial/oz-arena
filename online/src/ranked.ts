@@ -15,7 +15,7 @@ export interface ModeInfo {
  * built so far; add each map's library id here as it ships. The hub picks one at random for now (alternating bans come later).
  */
 export const MODES: Record<string, ModeInfo> = {
-  duel: { size: 2, team: false, ranked: true, maps: ['pro-q3dm6', 'pro-q3dm13', 'pro-q3tourney4'] },
+  duel: { size: 2, team: false, ranked: true, maps: ['hub3aeroq3', 'ztn3tourney1', 'phantq3dm1_rev', 'pro-q3dm6', 'hub3dm1', 'pro-q3dm13', 'oxodm76', 'pukka3tourney2', 'pro-q3tourney4'] },
   ffa: { size: 4, team: false, ranked: false, maps: ['q3dm1', 'q3dm6', 'q3dm7', 'q3dm11', 'q3dm17'] },
   tdm: { size: 4, team: true, ranked: true, maps: ['q3dm1', 'q3dm6', 'q3dm7', 'q3dm11', 'q3dm17'] },
   ctf: { size: 6, team: true, ranked: true, maps: ['q3ctf1', 'q3ctf2', 'q3ctf3', 'q3ctf4'] },

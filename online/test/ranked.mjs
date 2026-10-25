@@ -82,7 +82,7 @@ b.send('queue_join', { modes: ['duel'], ranked: true, region: 'auto', rtt: 25 })
 const [foundA, foundB] = [await fa, await fb];
 check(foundA && foundB && foundA.match === foundB.match && foundA.mode === 'duel', 'both players get the same match');
 check(foundB?.you_host === true && foundA?.you_host === false && foundA.host === b.pid, 'the best connected player (rtt 25) hosts');
-check(/^pro-(q3dm6|q3dm13|q3tourney4)$/.test(foundA?.map ?? ''), `the map is from the duel pool (${foundA?.map})`);
+check(['hub3aeroq3','ztn3tourney1','phantq3dm1_rev','pro-q3dm6','hub3dm1','pro-q3dm13','oxodm76','pukka3tourney2','pro-q3tourney4'].includes(foundA?.map ?? ''), `the map is from the duel pool (${foundA?.map})`);
 const id = foundA.match;
 
 // ---- the match is private: hidden from the browser, joinable only by its players

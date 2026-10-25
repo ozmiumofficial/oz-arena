@@ -20,6 +20,8 @@ python export_game.py [--out ../build/windows] [--godot <godot exe>] [--release 
 --release <tag> also writes build/release/<tag>/: Q3Remaster-<tag>-windows.zip (everything but the
 texture packs) plus the texture packs themselves. Only the zip goes on a game release; the packs go on
 the permanent "textures" release, and only when they changed.
+manifest.json and manifest.sig (tools/release_manifest.py) list every file's SHA-256, signed, for the game's updater;
+they go on the game release too.
 The player's own Quake 3 install is still found as in the editor (fs_steampath), and pak0 is checked.
 Close the Godot editor's project or let it be: the export only reads the project.
 """
@@ -144,6 +146,14 @@ if a.release:
             os.link(os.path.join(a.out, f), os.path.join(rel, f))
         except OSError:
             shutil.copy2(os.path.join(a.out, f), os.path.join(rel, f))
+    # the signed manifest the game's updater checks (UPDATES_PLAN.md U2): every file of the export with its
+    # SHA-256, signed with the release key (python release_manifest.py keygen makes it once)
+    import release_manifest
+    if release_manifest.write_release(a.out, a.release, rel):
+        print("manifest signed")
+    else:
+        print("export_game: warning: no release key at %s, so manifest.json is unsigned and the game's updater will refuse "
+              "this release (python tools/release_manifest.py keygen)" % release_manifest.private_key_path())
     for f in sorted(os.listdir(rel)):
         print("  %-36s %7.1f MB" % (f, os.path.getsize(os.path.join(rel, f)) / 1e6))
     if any(os.path.getsize(os.path.join(rel, f)) >= LIMIT for f in os.listdir(rel)):

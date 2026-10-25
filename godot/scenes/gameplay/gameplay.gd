@@ -288,6 +288,8 @@ func _build_view() -> void:
 			add_child(map_scene)
 		elif _error == "":
 			_error = "%s's .bsp in %s can't be read." % [custom.get("name", setup.map), String(custom.get("pk3", "")).get_file()]
+	if map_scene:
+		map_scene.cover_probes()   # no pops from probes still rendering (Q3Map.cover_probes)
 	client = Q3Client.new()
 	client.name = "Client"
 	client.map = map_scene

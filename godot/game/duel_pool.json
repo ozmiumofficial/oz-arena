@@ -1,0 +1,95 @@
+{
+ "_comment": "Duel map pool (DUEL_MAPS_PLAN.md, Ozmium 2026-10-25). Ranked duels play only these. 'map' is the library id once the remastered map exists; empty means not built yet.",
+ "maps": [
+  {
+   "id": "aerowalk",
+   "name": "Aerowalk",
+   "map": "hub3aeroq3",
+   "source": "Hubster's hub3aeroq3 (lvlworld)"
+  },
+  {
+   "id": "bloodrun",
+   "name": "Blood Run",
+   "map": "ztn3tourney1",
+   "source": "ztn's ztn3tourney1 (lvlworld)"
+  },
+  {
+   "id": "battleforged",
+   "name": "Battleforged",
+   "map": "phantq3dm1_rev",
+   "source": "Phantazm11's map_phantq3dm1_rev (lvlworld)"
+  },
+  {
+   "id": "campgrounds",
+   "name": "Campgrounds",
+   "map": "pro-q3dm6",
+   "source": "id's pro-q3dm6"
+  },
+  {
+   "id": "cure",
+   "name": "Cure",
+   "map": "",
+   "source": "needs a source (QL exclusive)"
+  },
+  {
+   "id": "dismemberment",
+   "name": "Dismemberment",
+   "map": "hub3dm1",
+   "source": "Hubster's hub3dm1 (lvlworld)"
+  },
+  {
+   "id": "elder",
+   "name": "Elder",
+   "map": "",
+   "source": "needs a source (QL exclusive)"
+  },
+  {
+   "id": "furiousheights",
+   "name": "Furious Heights",
+   "map": "",
+   "source": "needs a source (QL exclusive)"
+  },
+  {
+   "id": "hektik",
+   "name": "Hektik",
+   "map": "",
+   "source": "needs a source (Q3 remake on ws.q3df.org)"
+  },
+  {
+   "id": "houseofdecay",
+   "name": "House of Decay",
+   "map": "",
+   "source": "Team Arena mptourney1"
+  },
+  {
+   "id": "lostworld",
+   "name": "Lost World",
+   "map": "pro-q3dm13",
+   "source": "id's pro-q3dm13"
+  },
+  {
+   "id": "silence",
+   "name": "Silence",
+   "map": "oxodm76",
+   "source": "OXOTHuK's oxodm76 (lvlworld)"
+  },
+  {
+   "id": "sinister",
+   "name": "Sinister",
+   "map": "",
+   "source": "needs a source (QL exclusive)"
+  },
+  {
+   "id": "toxicity",
+   "name": "Toxicity",
+   "map": "pukka3tourney2",
+   "source": "thefury's pukka3tourney2 (lvlworld)"
+  },
+  {
+   "id": "verticalvengeance",
+   "name": "Vertical Vengeance",
+   "map": "pro-q3tourney4",
+   "source": "id's pro-q3tourney4"
+  }
+ ]
+}

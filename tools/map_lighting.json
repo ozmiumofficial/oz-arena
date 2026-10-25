@@ -26,6 +26,21 @@
   },
   "hub3aeroq3": {
    "gain": 2.0
+  },
+  "oxodm76": {
+   "texel_scale": 0.4,
+   "quality": "medium",
+   "bounces": 2,
+   "floor": 0.24,
+   "gain": 1.7
+  },
+  "phantq3dm1_rev": {
+   "floor": 0.16,
+   "gain": 1.8
+  },
+  "pukka3tourney2": {
+   "floor": 0.2,
+   "gain": 1.9
   }
  }
 }

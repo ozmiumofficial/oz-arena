@@ -27803,6 +27803,8743 @@
    "group": "metal",
    "surfacelight": 0.0,
    "light_color": null
+  },
+  "models/gwdm1/jumppads/a_pad": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/jumppads/a_pad.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/jumppads/jumppad_01": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/jumppads/jumppad_01.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/jumppads/jumppad_01_shadow": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/jumppads/jumppad_01_shadow.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/jumppads/jumppad_support_plate": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/jumppads/jumppad_support_plate.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/jumppads/jumppad_support_plate_shadow": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/jumppads/jumppad_support_plate_shadow.tres",
+   "size": [
+    128,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/lights/big_light": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/lights/big_light.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/lights/jump_light_base": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/lights/jump_light_base.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/lights/light_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/lights/light_1.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/lights/light_2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/lights/light_2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/rock/ground_01": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/rock/ground_01.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/rock/rock_smooth": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/rock/rock_smooth.tres",
+   "size": [
+    1024,
+    1024
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/rock/rock_smooth_02": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/rock/rock_smooth_02.tres",
+   "size": [
+    1024,
+    1024
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/rock/rock_smooth_02_clip": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/rock/rock_smooth_02_clip.tres",
+   "size": [
+    1024,
+    1024
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/rock/rock_smooth_clip": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/rock/rock_smooth_clip.tres",
+   "size": [
+    1024,
+    1024
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/teleporter/teleporter_back_plate_shadow": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/teleporter/teleporter_back_plate_shadow.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/teleporter/teleporter_backplate": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/teleporter/teleporter_backplate.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/teleporter/teleporter_base": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/teleporter/teleporter_base.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/teleporter/teleporter_base_shadow": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/teleporter/teleporter_base_shadow.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/teleporter/teleporter_top": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/teleporter/teleporter_top.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/wall/wall_symbol_shadow": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/wall/wall_symbol_shadow.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_floor/floor_grate": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_floor/floor_grate.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/blue_beam": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/blue_beam.tres",
+   "size": [
+    64,
+    256
+   ],
+   "group": "light",
+   "surfacelight": 50.0,
+   "light_color": [
+    0.551,
+    1.0,
+    0.995
+   ]
+  },
+  "textures/gwdm1_sfx/energyblue": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/energyblue.tres",
+   "size": [
+    128,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/fog": {
+   "kind": "fog",
+   "parms": [
+    "fog",
+    "nolightmap",
+    "nonsolid",
+    "trans"
+   ],
+   "res": "res://library/world/materials/gwdm1_sfx/fog.tres",
+   "color": [
+    0.192157,
+    0.156863,
+    0.101961
+   ],
+   "distance": 1000.0
+  },
+  "textures/gwdm1_sfx/plant_1": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/plant_1.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/plant_1_shadow": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/plant_1_shadow.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/portal_rotate_lightning": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/portal_rotate_lightning.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/portal_rotate_plasma": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/portal_rotate_plasma.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/portal_rotate_quad": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/portal_rotate_quad.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/portal_rotate_rail": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/portal_rotate_rail.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/portal_rotate_rocket": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/portal_rotate_rocket.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/portal_rotate_shotgun": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/portal_rotate_shotgun.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/portal_rotate_yellow_armor": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/portal_rotate_yellow_armor.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/teleporter_light_speckles": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/teleporter_light_speckles.tres",
+   "size": [
+    128,
+    256
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/teleporter_pulse": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/teleporter_pulse.tres",
+   "size": [
+    128,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/vine01": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/vine01.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/vine01_shadow": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/vine01_shadow.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/vine02": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/vine02.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/vine03": {
+   "kind": "unshipped",
+   "parms": [
+    "nolightmap",
+    "trans"
+   ],
+   "missing": "textures/gwdm1_sfx/vine03"
+  },
+  "textures/gwdm1_sfx/water": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_blend_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/water.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/water_volume": {
+   "kind": "liquid",
+   "parms": [
+    "nodraw",
+    "noimpact",
+    "nomarks",
+    "nonsolid",
+    "trans",
+    "water"
+   ],
+   "res": "res://library/world/materials/gwdm1_sfx/water_volume.tres",
+   "size": [
+    64,
+    64
+   ],
+   "group": "liquid",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/weapon_marker_lightning": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/weapon_marker_lightning.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/weapon_marker_plasma": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/weapon_marker_plasma.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/weapon_marker_quad": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/weapon_marker_quad.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/weapon_marker_rail": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/weapon_marker_rail.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/weapon_marker_rocket": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/weapon_marker_rocket.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/weapon_marker_shadow": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/weapon_marker_shadow.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/weapon_marker_shotgun": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/weapon_marker_shotgun.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/weapon_marker_yellow_armor": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/weapon_marker_yellow_armor.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sky/sky": {
+   "kind": "sky",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ],
+   "res": "res://library/world/skies/gwdm1_sky/sky.tres",
+   "surfacelight": 100.0
+  },
+  "textures/gwdm1_sky/sky_2": {
+   "kind": "sky",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ],
+   "res": "res://library/world/skies/gwdm1_sky/sky_2.tres",
+   "surfacelight": 100.0
+  },
+  "textures/gwdm1_sky/skybox": {
+   "kind": "sky",
+   "parms": [
+    "noimpact",
+    "nolightmap"
+   ],
+   "res": "res://library/world/skies/gwdm1_sky/skybox.tres",
+   "surfacelight": 100.0
+  },
+  "textures/gwdm1_trim/chainlink_fence": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/chainlink_fence.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/chainlink_post": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/chainlink_post.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/fan": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/fan.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/fan_grate": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/fan_grate.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/pipe_cap": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/pipe_cap.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/pipe_cap_rust": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/pipe_cap_rust.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/support_base": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/support_base.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_05_b_grate": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_05_b_grate.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/floor_paint": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "missing": "textures/gwdm1_wall/floor_paint"
+  },
+  "textures/gwdm1_wall/grunge_1": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/grunge_1.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/grunge_2": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/grunge_2.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/grunge_4": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/grunge_4.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/grunge_5": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/grunge_5.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/grunge_6": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/grunge_6.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/grunge_7": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/grunge_7.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/o_paint": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_blend",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/o_paint.tres",
+   "size": [
+    64,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/one_decal": {
+   "kind": "unshipped",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/gwdm1_wall/one_decal"
+  },
+  "textures/hipshot_m8/064-20a_decal": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "missing": "textures/hipshot_m8/064-20a"
+  },
+  "textures/hipshot_m8/1_rust_grill01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "missing": "textures/hipshot_m8/1_rust_grill01"
+  },
+  "textures/hipshot_m8/1r_clocktrim02_trans": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "missing": "textures/hipshot_m8/1r_clocktrim02"
+  },
+  "textures/hipshot_m8/black": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks"
+   ],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/black.tres",
+   "size": [
+    8,
+    8
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/black_ns": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/black_ns.tres",
+   "size": [
+    8,
+    8
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/blocks18d_decal": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/blocks18d_decal.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/bricks_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/bricks_1.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/cart_wheel": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/cart_wheel.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/cart_wheel2": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/cart_wheel2.tres",
+   "size": [
+    32,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/ceil1_22a_static": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/ceil1_22a_static.tres",
+   "size": [
+    16,
+    16
+   ],
+   "group": "stone",
+   "surfacelight": 3000.0,
+   "light_color": [
+    1.0,
+    0.005,
+    0.005
+   ]
+  },
+  "textures/hipshot_m8/ceil1_38": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/ceil1_38.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 3000.0,
+   "light_color": [
+    1.0,
+    0.991,
+    0.852
+   ]
+  },
+  "textures/hipshot_m8/ceil1_4_nouse": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/ceil1_4_nouse.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 8000.0,
+   "light_color": [
+    1.0,
+    0.842,
+    0.12
+   ]
+  },
+  "textures/hipshot_m8/cliff_bd": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_blend_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/cliff_bd.tres",
+   "size": [
+    1024,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/cliff_shade": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/cliff_shade.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/cliffbecomesgrass": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/cliffbecomesgrass.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/concrete_1_hq_shade": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/concrete_1_hq_shade.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/concrete_2_ref": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/concrete_2_ref.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/concrete_3_shade": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/concrete_3_shade.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/concrete_4_nodlight": {
+   "kind": "surface",
+   "parms": [
+    "nodlight",
+    "nolightmap",
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/concrete_4_nodlight.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/dirt_1_blend": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/dirt_1_blend.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/dirt_1_hq_shade": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/dirt_1_hq_shade.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/dirt_decal": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "missing": "textures/hipshot_m8/dirt_decal"
+  },
+  "textures/hipshot_m8/e6cyb0rpipes": {
+   "kind": "unshipped",
+   "parms": [],
+   "missing": "textures/hipshot_m8/e6cyb0rpipes"
+  },
+  "textures/hipshot_m8/e6metalfan_s": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "missing": "textures/hipshot_m8/fan"
+  },
+  "textures/hipshot_m8/e6metalfan_s_slow": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "missing": "textures/hipshot_m8/fan"
+  },
+  "textures/hipshot_m8/fan999": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/fan999.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/fan_normal": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/fan_normal.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/fan_slow": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/fan_slow.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/fan_slow999": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/fan_slow999.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/fanfx999": {
+   "kind": "unshipped",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/hipshot_m8/fanfx"
+  },
+  "textures/hipshot_m8/fern_brt": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/fern_brt.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/fern_drk": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/fern_drk.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/fern_sun": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/fern_sun.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/fog_dark": {
+   "kind": "fog",
+   "parms": [
+    "fog",
+    "nolightmap",
+    "nonsolid",
+    "trans"
+   ],
+   "res": "res://library/world/materials/hipshot_m8/fog_dark.tres",
+   "color": [
+    0.0,
+    0.04,
+    0.01
+   ],
+   "distance": 25.0
+  },
+  "textures/hipshot_m8/fog_light": {
+   "kind": "fog",
+   "parms": [
+    "fog",
+    "nolightmap",
+    "nonsolid",
+    "trans"
+   ],
+   "res": "res://library/world/materials/hipshot_m8/fog_light.tres",
+   "color": [
+    0.125,
+    0.15,
+    0.15
+   ],
+   "distance": 200.0
+  },
+  "textures/hipshot_m8/grass_brt": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grass_brt.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/grass_drk": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grass_drk.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/grass_mine": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grass_mine.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/grass_mine2": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grass_mine2.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/grass_mine3": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grass_mine3.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/grass_sun": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grass_sun.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/grassbecomesdirt": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grassbecomesdirt.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/grate2_7_small_scroll": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grate2_7_small_scroll.tres",
+   "size": [
+    64,
+    64
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/grate_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grate_1.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/ivy_5": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/ivy_5.tres",
+   "size": [
+    512,
+    1024
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/jumpgrid": {
+   "kind": "surface",
+   "parms": [
+    "nodamage",
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/jumpgrid.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 1000.0,
+   "light_color": [
+    1.0,
+    0.042,
+    0.043
+   ]
+  },
+  "textures/hipshot_m8/lamp_atlas_glow": {
+   "kind": "surface",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_atlas_glow.tres",
+   "size": [
+    32,
+    64
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_cylinder_glow": {
+   "kind": "surface",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_cylinder_glow.tres",
+   "size": [
+    32,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_blue_brt": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_blue_brt.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_brt": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_brt.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_dark_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_dark_1.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_dark_2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_dark_2.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_dark_3": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_dark_3.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_dark_4": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_dark_4.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_dark_5": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_dark_5.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_red_1": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_red_1.tres",
+   "size": [
+    16,
+    16
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_red_2": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_red_2.tres",
+   "size": [
+    16,
+    16
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_red_3": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_red_3.tres",
+   "size": [
+    16,
+    16
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_red_4": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_red_4.tres",
+   "size": [
+    16,
+    16
+   ],
+   "group": "light",
+   "surfacelight": 3000.0,
+   "light_color": [
+    1.0,
+    0.005,
+    0.005
+   ]
+  },
+  "textures/hipshot_m8/lamp_small_red_5": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_red_5.tres",
+   "size": [
+    16,
+    16
+   ],
+   "group": "light",
+   "surfacelight": 3000.0,
+   "light_color": [
+    1.0,
+    0.005,
+    0.005
+   ]
+  },
+  "textures/hipshot_m8/lamp_square": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_square.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_square_surfacelight": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_square_surfacelight.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "light",
+   "surfacelight": 5000.0,
+   "light_color": [
+    1.0,
+    0.998,
+    0.918
+   ]
+  },
+  "textures/hipshot_m8/lamp_square_surfacelight_weak": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_square_surfacelight_weak.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "light",
+   "surfacelight": 2500.0,
+   "light_color": [
+    1.0,
+    0.998,
+    0.918
+   ]
+  },
+  "textures/hipshot_m8/leaf": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/leaf.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/letter_b": {
+   "kind": "unshipped",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "missing": "textures/hipshot_m8/b"
+  },
+  "textures/hipshot_m8/litpan2": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks"
+   ],
+   "missing": "textures/hipshot_m8/litpan2"
+  },
+  "textures/hipshot_m8/logo_rustgrad": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "missing": "textures/hipshot_m8/logo_rustgrad"
+  },
+  "textures/hipshot_m8/mech1_d": {
+   "kind": "unshipped",
+   "parms": [],
+   "missing": "textures/hipshot_m8/mech1_d"
+  },
+  "textures/hipshot_m8/metal_1_blue": {
+   "kind": "unshipped",
+   "parms": [
+    "metalsteps"
+   ],
+   "missing": "textures/hipshot_m8/metal_1_blue"
+  },
+  "textures/hipshot_m8/metal_3_cut_hq_shade": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/metal_3_cut_hq_shade.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/metal_3_hq_shade": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/metal_3_hq_shade.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/metal_5_decal": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "missing": "textures/hipshot_m8/metal_5"
+  },
+  "textures/hipshot_m8/metal_9_hq": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/metal_9_hq.tres",
+   "size": [
+    1024,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/moats": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/moats.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/moats2": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/moats2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/movesquare1": {
+   "kind": "surface",
+   "parms": [
+    "nodlight",
+    "noimpact",
+    "nolightmap",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/movesquare1.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/movesquare2": {
+   "kind": "surface",
+   "parms": [
+    "nodlight",
+    "noimpact",
+    "nolightmap",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/movesquare2.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/movesquare3": {
+   "kind": "surface",
+   "parms": [
+    "nodlight",
+    "noimpact",
+    "nolightmap",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/movesquare3.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/movesquare4": {
+   "kind": "surface",
+   "parms": [
+    "nodlight",
+    "noimpact",
+    "nolightmap",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/movesquare4.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/nut": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/nut.tres",
+   "size": [
+    16,
+    16
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/pjceil1_39_1p5k": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/pjceil1_39_1p5k.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 8000.0,
+   "light_color": [
+    1.0,
+    0.885,
+    0.622
+   ]
+  },
+  "textures/hipshot_m8/pjceil1_40": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/pjceil1_40.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 6000.0,
+   "light_color": [
+    0.538,
+    1.0,
+    0.921
+   ]
+  },
+  "textures/hipshot_m8/plaster_1_ns": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/plaster_1_ns.tres",
+   "size": [
+    512,
+    1024
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/plaster_1_shade": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/plaster_1_shade.tres",
+   "size": [
+    512,
+    1024
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/plaster_4_shade_special": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/plaster_4_shade_special.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/quake3sign_outside": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_blend",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/quake3sign_outside.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/sky": {
+   "kind": "sky",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ],
+   "res": "res://library/world/skies/hipshot_m8/sky.tres",
+   "surfacelight": 0.0
+  },
+  "textures/hipshot_m8/stripe_light": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks"
+   ],
+   "missing": "textures/hipshot_m8/stripe_light"
+  },
+  "textures/hipshot_m8/sun": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/sun.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/support_grate_trans": {
+   "kind": "unshipped",
+   "parms": [
+    "alphashadow",
+    "trans"
+   ],
+   "missing": "textures/hipshot_m8/support_grate"
+  },
+  "textures/hipshot_m8/tele": {
+   "kind": "surface",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/tele.tres",
+   "size": [
+    64,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 100.0,
+   "light_color": [
+    0.218,
+    1.0,
+    0.976
+   ]
+  },
+  "textures/hipshot_m8/teleglow": {
+   "kind": "surface",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/teleglow.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/textures_metal_q3_c": {
+   "kind": "unshipped",
+   "parms": [],
+   "missing": "textures/hipshot_m8/textures_metal_q3_c"
+  },
+  "textures/hipshot_m8/threadplate": {
+   "kind": "unshipped",
+   "parms": [
+    "metalsteps"
+   ],
+   "missing": "textures/hipshot_m8/threadplate"
+  },
+  "textures/hipshot_m8/threadplate2": {
+   "kind": "unshipped",
+   "parms": [
+    "metalsteps"
+   ],
+   "missing": "textures/hipshot_m8/threadplate2"
+  },
+  "textures/hipshot_m8/threadplate2_hq": {
+   "kind": "surface",
+   "parms": [
+    "metalsteps"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/threadplate2_hq.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/threadplate3": {
+   "kind": "unshipped",
+   "parms": [
+    "metalsteps"
+   ],
+   "missing": "textures/hipshot_m8/threadplate3"
+  },
+  "textures/hipshot_m8/threadplate3_hq": {
+   "kind": "surface",
+   "parms": [
+    "metalsteps"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/threadplate3_hq.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/threadplate_spec2": {
+   "kind": "unshipped",
+   "parms": [
+    "metalsteps"
+   ],
+   "missing": "textures/hipshot_m8/threadplate_spec2"
+  },
+  "textures/hipshot_m8/tile_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/tile_1.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/tile_1_cut": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/tile_1_cut.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trim_6_ns": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trim_6_ns.tres",
+   "size": [
+    512,
+    64
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trim_9_decal": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trim_9_decal.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trunk": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trunk.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wall_6_hq_shade": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/wall_6_hq_shade.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wall_6_hq_shade_special": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/wall_6_hq_shade_special.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wall_vent": {
+   "kind": "surface",
+   "parms": [
+    "metalsteps"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/wall_vent.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wall_vent_rust": {
+   "kind": "surface",
+   "parms": [
+    "metalsteps"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/wall_vent_rust.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/water_caulk": {
+   "kind": "unshipped",
+   "parms": [
+    "nodraw",
+    "noimpact",
+    "nomarks",
+    "nonsolid",
+    "trans",
+    "water"
+   ],
+   "missing": null
+  },
+  "textures/hipshot_m8/waterbecomesnull": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_blend_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/waterbecomesnull.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/waterplant_1": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/waterplant_1.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/waterplant_2": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/waterplant_2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/window_1_trans": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_blend",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/window_1_trans.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wire": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/wire.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wood_1_hq_ns": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/wood_1_hq_ns.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wp_gl": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "missing": "textures/hipshot_m8/wp_gl"
+  },
+  "textures/hipshot_m8_sky/sky": {
+   "kind": "sky",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ],
+   "res": "res://library/world/skies/hipshot_m8_sky/sky.tres",
+   "surfacelight": 0.0
+  },
+  "textures/hipshot_m8_sky/sky2": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/hipshot_m8_sky/sky_notused": {
+   "kind": "sky",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ],
+   "res": "res://library/world/skies/hipshot_m8_sky/sky_notused.tres",
+   "surfacelight": 0.0
+  },
+  "textures/hipshot_m8_sky/sky_old": {
+   "kind": "sky",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ],
+   "res": "res://library/world/skies/hipshot_m8_sky/sky_old.tres",
+   "surfacelight": 0.0
+  },
+  "textures/hub3aeroq3/blocks11c": {
+   "kind": "unshipped",
+   "parms": [
+    "trans"
+   ],
+   "missing": "textures/hub3aeroq3/blocks11c"
+  },
+  "textures/hub3aeroq3/blocks15_bluetr": {
+   "kind": "unshipped",
+   "parms": [
+    "trans"
+   ],
+   "missing": "textures/hub3aeroq3/blocks15_bluetr"
+  },
+  "textures/hub3aeroq3/hub3_beam_blue": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3aeroq3/hub3_beam_blue.tres",
+   "size": [
+    80,
+    256
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3aeroq3/hub3_beam_blue_wide": {
+   "kind": "unshipped",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "missing": "textures/hub3aeroq3/hub3_beam_blue_wide"
+  },
+  "textures/hub3aeroq3/hub3_beam_red": {
+   "kind": "unshipped",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "missing": "textures/hub3aeroq3/hub3_beam_red"
+  },
+  "textures/hub3aeroq3/hub3_beam_red_wide": {
+   "kind": "unshipped",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "missing": "textures/hub3aeroq3/hub3_beam_red_wide"
+  },
+  "textures/hub3aeroq3/hub3_bounce_dkfloor": {
+   "kind": "surface",
+   "parms": [
+    "nodamage"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3aeroq3/hub3_bounce_dkfloor.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 400.0,
+   "light_color": [
+    0.333,
+    0.839,
+    1.0
+   ]
+  },
+  "textures/hub3aeroq3/hub3_bounce_dkfloor_red": {
+   "kind": "surface",
+   "parms": [
+    "nodamage"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3aeroq3/hub3_bounce_dkfloor_red.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 400.0,
+   "light_color": [
+    1.0,
+    0.895,
+    0.798
+   ]
+  },
+  "textures/hub3aeroq3/hub3_dimfloor_wep": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3aeroq3/hub3_dimfloor_wep.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3aeroq3/hub3_wep_floor_red": {
+   "kind": "unshipped",
+   "parms": [],
+   "missing": "textures/hub3aeroq3/zzz_dkred"
+  },
+  "textures/hub3aeroq3/hub3techfloor": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3aeroq3/hub3techfloor.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3aeroq3/hub3techfloor_red": {
+   "kind": "unshipped",
+   "parms": [],
+   "missing": "textures/hub3aeroq3/hub3_fireswirl2red"
+  },
+  "textures/hub3aeroq3/q1_tele": {
+   "kind": "surface",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3aeroq3/q1_tele.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 25.0,
+   "light_color": [
+    1.0,
+    0.966,
+    0.943
+   ]
+  },
+  "textures/hub3aeroq3/xblocks10tr": {
+   "kind": "unshipped",
+   "parms": [
+    "trans"
+   ],
+   "missing": "textures/hub3aeroq3/xblocks10tr"
+  },
+  "textures/ik_sky/ik_sky_night": {
+   "kind": "sky",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ],
+   "res": "res://library/world/skies/ik_sky/ik_sky_night.tres",
+   "surfacelight": 200.0
+  },
+  "textures/ztn3tourney1/hellfog01": {
+   "kind": "fog",
+   "parms": [
+    "fog",
+    "nodrop",
+    "nolightmap",
+    "nonsolid",
+    "trans"
+   ],
+   "res": "res://library/world/materials/ztn3tourney1/hellfog01.tres",
+   "color": [
+    0.55,
+    0.11,
+    0.1
+   ],
+   "distance": 128.0
+  },
+  "textures/ztn3tourney1/lava_1500": {
+   "kind": "liquid",
+   "parms": [
+    "lava",
+    "noimpact",
+    "nolightmap",
+    "trans"
+   ],
+   "res": "res://library/world/materials/ztn3tourney1/lava_1500.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "liquid",
+   "surfacelight": 1500.0,
+   "light_color": [
+    1.0,
+    0.392,
+    0.142
+   ]
+  },
+  "textures/ztn3tourney1/sky_200": {
+   "kind": "sky",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ],
+   "res": "res://library/world/skies/ztn3tourney1/sky_200.tres",
+   "surfacelight": 200.0
+  },
+  "textures/ctf/blocks18c_3_b": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ctf/blocks18c_3_b.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gothic_trim/baseboard09_j": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gothic_trim/baseboard09_j.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_floor/c_floor1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_floor/c_floor1.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_floor/concrete_floor2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_floor/concrete_floor2.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_floor/concrete_floor2 (2)": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_floor/concrete_floor2 (2).tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_floor/floor_panel": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_floor/floor_panel.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_floor/floor_tiles1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_floor/floor_tiles1.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_floor/threadplate2_white": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_floor/threadplate2_white.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_floor/threadplate_rust": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_floor/threadplate_rust.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_floor/threadplate_white_dark": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_floor/threadplate_white_dark.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/lightning_icon": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/lightning_icon.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/plasma_icon": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/plasma_icon.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/plasma_portal": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/plasma_portal.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/portal_rotate": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/portal_rotate.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/quad_icon": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/quad_icon.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/rail_icon": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/rail_icon.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/rocket_icon": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/rocket_icon.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/shotgun_icon": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/shotgun_icon.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/vine01_light": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/vine01_light.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/water1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/water1.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/water2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/water2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/weapon_marker": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/weapon_marker.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_sfx/yellow_armor_icon": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_sfx/yellow_armor_icon.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/beam": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/beam.tres",
+   "size": [
+    128,
+    512
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/crate_side": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/crate_side.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/crate_side_2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/crate_side_2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/crate_top": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/crate_top.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/crate_top_2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/crate_top_2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/exit_only": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/exit_only.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/grate_01": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/grate_01.tres",
+   "size": [
+    128,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/large_door": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/large_door.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/large_door2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/large_door2.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/metal_red": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/metal_red.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/pipe_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/pipe_1.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/pipe_2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/pipe_2.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/pipe_3": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/pipe_3.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/pipe_4": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/pipe_4.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/pipe_rust": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/pipe_rust.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/pipe_y": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/pipe_y.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/pipe_y_rust": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/pipe_y_rust.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_01": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_01.tres",
+   "size": [
+    512,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_01_a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_01_a.tres",
+   "size": [
+    512,
+    16
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_02": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_02.tres",
+   "size": [
+    512,
+    16
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_03": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_03.tres",
+   "size": [
+    512,
+    16
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_04": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_04.tres",
+   "size": [
+    512,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_05": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_05.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_08": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_08.tres",
+   "size": [
+    512,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_09": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_09.tres",
+   "size": [
+    512,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_10": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_10.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_11": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_11.tres",
+   "size": [
+    512,
+    16
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_12": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_12.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_13": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_13.tres",
+   "size": [
+    512,
+    16
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_14": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_14.tres",
+   "size": [
+    512,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_15": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_15.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_trim/trim_16": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_trim/trim_16.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/brick_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/brick_1.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_02": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_02.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_02_a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_02_a.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_02_b": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_02_b.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_02_c": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_02_c.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_02_c_left": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_02_c_left.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_02_c_right": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_02_c_right.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_02_center": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_02_center.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_03": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_03.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_05": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_05.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_05_b": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_05_b.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_06": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_06.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_06_a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_06_a.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_08": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_08.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_10": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_10.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/concrete_pillar": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/concrete_pillar.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/panel_back": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/panel_back.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/panels": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/panels.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/panels_2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/panels_2.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/trim_15": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/trim_15.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/wall_panels_02": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/wall_panels_02.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gwdm1_wall/wall_panels_03": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gwdm1_wall/wall_panels_03.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/cliff": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/cliff.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/concrete_1_hq": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/concrete_1_hq.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/concrete_2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/concrete_2.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/concrete_3": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/concrete_3.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/concrete_4": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/concrete_4.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/concrete_5": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/concrete_5.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/concrete_tile": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/concrete_tile.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/crate0_side": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/crate0_side.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/crate0_top": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/crate0_top.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/crate1_side": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/crate1_side.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/crate1_top": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/crate1_top.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/dirt": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/dirt.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/dirt_1_hq": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/dirt_1_hq.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/door_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/door_1.tres",
+   "size": [
+    128,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/electricalbox": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/electricalbox.tres",
+   "size": [
+    64,
+    64
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/fan_frame": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/fan_frame.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/fan_hq": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/fan_hq.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/fern": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/fern.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/floor_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/floor_1.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/floor_2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/floor_2.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/floor_3": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/floor_3.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/floor_4": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/floor_4.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/grass": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grass.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/grass_sprite": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/grass_sprite.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/jumpplat": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/jumpplat.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/jumpring1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/jumpring1.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/jumpring2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/jumpring2.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/jumpring3": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/jumpring3.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/jumpring4": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/jumpring4.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/jumpsquare": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/jumpsquare.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_industrial_square": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_industrial_square.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_industrial_square_off": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_industrial_square_off.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_dark": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_dark.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_dark_on": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_dark_on.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_off": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_off.tres",
+   "size": [
+    16,
+    16
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_small_red": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_small_red.tres",
+   "size": [
+    16,
+    16
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/lamp_square_off": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/lamp_square_off.tres",
+   "size": [
+    8,
+    8
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/map_pipebase": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/map_pipebase.tres",
+   "size": [
+    128,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/map_pipetop": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/map_pipetop.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/mask": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/mask.tres",
+   "size": [
+    64,
+    64
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/metal_2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/metal_2.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/metal_3_cut_hq": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/metal_3_cut_hq.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/metal_3_hq": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/metal_3_hq.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/metal_4": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/metal_4.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/particles": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/particles.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/particles2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/particles2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/pipe_inside": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/pipe_inside.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/pipe_outside": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/pipe_outside.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/pipe_outside_cap": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/pipe_outside_cap.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/pipe_outside_trim": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/pipe_outside_trim.tres",
+   "size": [
+    256,
+    64
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/plaster_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/plaster_1.tres",
+   "size": [
+    512,
+    1024
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/plaster_4": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/plaster_4.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/ref_tile": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/ref_tile.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/ref_water": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/ref_water.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/ref_win": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/ref_win.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/stairs_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/stairs_1.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/sun_blend": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/sun_blend.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/tele_scan": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/tele_scan.tres",
+   "size": [
+    64,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/tele_scan2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/tele_scan2.tres",
+   "size": [
+    64,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trim_10": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trim_10.tres",
+   "size": [
+    512,
+    64
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trim_4": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trim_4.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trim_5": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trim_5.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trim_6": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trim_6.tres",
+   "size": [
+    512,
+    64
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trim_8": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trim_8.tres",
+   "size": [
+    256,
+    64
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trim_9": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trim_9.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trim_pipebolts": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trim_pipebolts.tres",
+   "size": [
+    64,
+    64
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/trim_pipeside": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/trim_pipeside.tres",
+   "size": [
+    64,
+    32
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wall_6_hq": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/wall_6_hq.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wall_7_hq": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/wall_7_hq.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/water": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/water.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/water2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/water2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/window_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/window_1.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wood_1_hq": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/wood_1_hq.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hipshot_m8/wood_support_hq": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hipshot_m8/wood_support_hq.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3aeroq3/hub3_bouncepad01b_layer1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3aeroq3/hub3_bouncepad01b_layer1.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3aeroq3/hub3_fireswirl2blue": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3aeroq3/hub3_fireswirl2blue.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3aeroq3/hub3_jumppadsmall": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3aeroq3/hub3_jumppadsmall.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/jumppads/jumppad_support_angle": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/jumppads/jumppad_support_angle.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/wall/door_beam": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/wall/door_beam.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/wall/support_mid": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/wall/support_mid.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/gwdm1/wall/support_top": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/gwdm1/wall/support_top.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/mapobjects/portal1/portal": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/mapobjects/portal1/portal.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "models/mapobjects/portal2/portal": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/models/mapobjects/portal2/portal.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/base_support/metal_support2": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/base_support/metal_support2.tres",
+   "size": [
+    64,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/base_support/metal_support3": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/base_support/metal_support3.tres",
+   "size": [
+    128,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/base_wall/bluemetalsupport2e_rusty": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/base_wall/bluemetalsupport2e_rusty.tres",
+   "size": [
+    128,
+    64
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/common/blackout": {
+   "kind": "hidden",
+   "parms": [
+    "nolightmap",
+    "nomarks"
+   ]
+  },
+  "textures/ct_infinity/fence": {
+   "kind": "surface",
+   "parms": [
+    "alphashado",
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_infinity/fence.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_infinity/gauge_01_360": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_infinity/gauge_01_360.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_infinity/gauge_01_540": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_infinity/gauge_01_540.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_infinity/grate_02": {
+   "kind": "surface",
+   "parms": [
+    "metalsteps"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_infinity/grate_02.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_infinity/trim_07": {
+   "kind": "surface",
+   "parms": [
+    "metalsteps"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_infinity/trim_07.tres",
+   "size": [
+    512,
+    64
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/ceil1_38_5k": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/ceil1_38_5k.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 5000.0,
+   "light_color": [
+    1.0,
+    0.991,
+    0.852
+   ]
+  },
+  "textures/ct_silence/ceil_green_5k": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/ceil_green_5k.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 5000.0,
+   "light_color": [
+    0.253,
+    1.0,
+    0.253
+   ]
+  },
+  "textures/ct_silence/ceil_yellow": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/ceil_yellow.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/ceil_yellow_2k": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/ceil_yellow_2k.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 2000.0,
+   "light_color": [
+    1.0,
+    0.953,
+    0.7
+   ]
+  },
+  "textures/ct_silence/circle_lamp_5k": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/circle_lamp_5k.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 5000.0,
+   "light_color": [
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "textures/ct_silence/greenflag": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/greenflag.tres",
+   "size": [
+    128,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/jumppad_green": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/jumppad_green.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 1000.0,
+   "light_color": [
+    0.106,
+    1.0,
+    0.327
+   ]
+  },
+  "textures/ct_silence/pipe_liquid": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/pipe_liquid.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/quad_spawn": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/quad_spawn.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/wall_jump": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/wall_jump.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3media/hub3_beam_blue": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3media/hub3_beam_blue.tres",
+   "size": [
+    80,
+    256
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3media/hub3_beam_blue_wide": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3media/hub3_beam_blue_wide.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3media/hub3_bounce_dkfloor": {
+   "kind": "surface",
+   "parms": [
+    "nodamage"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3media/hub3_bounce_dkfloor.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 400.0,
+   "light_color": [
+    0.333,
+    0.839,
+    1.0
+   ]
+  },
+  "textures/hub3media/hub3techfloor": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3media/hub3techfloor.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3media/q1_tele": {
+   "kind": "surface",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3media/q1_tele.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 25.0,
+   "light_color": [
+    1.0,
+    0.955,
+    0.923
+   ]
+  },
+  "textures/myth-decals/arrow01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/arrow01"
+  },
+  "textures/myth-decals/bullets01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/bullets01"
+  },
+  "textures/myth-decals/bullets02": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/myth-decals/bullets02.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/myth-decals/bullets03": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/bullets03"
+  },
+  "textures/myth-decals/bullets04": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/bullets04"
+  },
+  "textures/myth-decals/crack01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/crack01"
+  },
+  "textures/myth-decals/crack02": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/crack02"
+  },
+  "textures/myth-decals/crack03": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/crack03"
+  },
+  "textures/myth-decals/crack04": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/myth-decals/crack04.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/myth-decals/crack05": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/crack05"
+  },
+  "textures/myth-decals/hand01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/hand01"
+  },
+  "textures/myth-decals/moss01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/moss01"
+  },
+  "textures/myth-decals/shotgunblast01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/shotgunblast01"
+  },
+  "textures/myth-decals/shotgunblast02": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/shotgunblast02"
+  },
+  "textures/myth-decals/smear01": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/myth-decals/smear01.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/myth-decals/smear02": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/smear02"
+  },
+  "textures/myth-decals/smear03": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/smear03"
+  },
+  "textures/myth-decals/splat01": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/myth-decals/splat01.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/myth-decals/splat02": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/myth-decals/splat02.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/myth-decals/splat03": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/splat03"
+  },
+  "textures/myth-decals/splat04": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/myth-decals/splat04"
+  },
+  "textures/myth-decals/splat05": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/myth-decals/splat05.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/myth-decals/splat06": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/myth-decals/splat06.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/myth-decals/splat07": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/myth-decals/splat07.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/oxothuk_ad/2x1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/oxothuk_ad/2x1.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/acid_lm": {
+   "kind": "liquid",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "slime",
+    "trans"
+   ],
+   "res": "res://library/world/materials/pukka3tourney2/acid_lm.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "liquid",
+   "surfacelight": 100.0,
+   "light_color": [
+    0.752,
+    1.0,
+    0.212
+   ]
+  },
+  "textures/pukka3tourney2/acid_vertex": {
+   "kind": "liquid",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "slime",
+    "trans"
+   ],
+   "res": "res://library/world/materials/pukka3tourney2/acid_vertex.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "liquid",
+   "surfacelight": 100.0,
+   "light_color": [
+    0.752,
+    1.0,
+    0.212
+   ]
+  },
+  "textures/pukka3tourney2/arrow01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/arrow01"
+  },
+  "textures/pukka3tourney2/base1_nonsolid": {
+   "kind": "surface",
+   "parms": [
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/base1_nonsolid.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/beam1": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nonsolid",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_sprite_add",
+   "sprite": 2,
+   "res": "res://library/world/materials/pukka3tourney2/beam1.tres",
+   "size": [
+    128,
+    512
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/beam2": {
+   "kind": "unshipped",
+   "parms": [
+    "nolightmap",
+    "nonsolid",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/s2"
+  },
+  "textures/pukka3tourney2/bullets01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/bullets01"
+  },
+  "textures/pukka3tourney2/bullets02": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bullets02.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bullets03": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/mpukka3tourney2/bullets03"
+  },
+  "textures/pukka3tourney2/bullets04": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/bullets04"
+  },
+  "textures/pukka3tourney2/chainlnk": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "metalsteps",
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/chainlnk.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/chainlnk_ow": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "metalsteps",
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/chainlnk_ow.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/crack01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/crack01"
+  },
+  "textures/pukka3tourney2/crack02": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/crack02"
+  },
+  "textures/pukka3tourney2/crack03": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/crack03"
+  },
+  "textures/pukka3tourney2/crack04": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/crack04.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/crack05": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/crack05"
+  },
+  "textures/pukka3tourney2/hand01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/hand01"
+  },
+  "textures/pukka3tourney2/light2": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/light2.tres",
+   "size": [
+    32,
+    96
+   ],
+   "group": "light",
+   "surfacelight": 250.0,
+   "light_color": [
+    0.987,
+    1.0,
+    0.998
+   ]
+  },
+  "textures/pukka3tourney2/moss01": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/moss01"
+  },
+  "textures/pukka3tourney2/roundgrate": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "metalsteps",
+    "nodrop",
+    "nomarks",
+    "nonsolid",
+    "playerclip",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque_2s",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/roundgrate.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/small_light": {
+   "kind": "surface",
+   "parms": [
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/small_light.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/smear01": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/smear01.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/smear02": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/smear02"
+  },
+  "textures/pukka3tourney2/smear03": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/smear03"
+  },
+  "textures/pukka3tourney2/splat01": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/splat01.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/splat02": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/splat02.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/splat03": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/splat03"
+  },
+  "textures/pukka3tourney2/splat04": {
+   "kind": "unshipped",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "missing": "textures/pukka3tourney2/splat04"
+  },
+  "textures/pukka3tourney2/splat05": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/splat05.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/splat06": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/splat06.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/splat07": {
+   "kind": "surface",
+   "parms": [
+    "nomarks",
+    "trans"
+   ],
+   "stochastic": false,
+   "shader": "world_mul",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/splat07.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/valleysky": {
+   "kind": "sky",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ],
+   "res": "res://library/world/skies/pukka3tourney2/valleysky.tres",
+   "surfacelight": 140.0
+  },
+  "textures/pukka3tourney2/yellowtech_shiny": {
+   "kind": "unshipped",
+   "parms": [],
+   "missing": "textures/pukka3tourney2/yellowtech_shiny"
+  },
+  "textures/ql/telex": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks",
+    "nonsolid"
+   ],
+   "stochastic": false,
+   "shader": "world_add",
+   "sprite": 0,
+   "res": "res://library/world/materials/ql/telex.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/sfx/portal_new_static_teal": {
+   "kind": "surface",
+   "parms": [
+    "nolightmap",
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/sfx/portal_new_static_teal.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/sfx/red_techfloor_kc": {
+   "kind": "surface",
+   "parms": [
+    "alphashadow",
+    "metalsteps",
+    "nomarks"
+   ],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/sfx/red_techfloor_kc.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/skies/ares": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/arrakisday": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/atsea": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/bel": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/bloodline": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/brightblue": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/captivation-blue": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/captivation-red": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/deepblue": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/dragonfire": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/dragonheart": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/dragonmoon": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/dragonmoon-clouds": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/dragonvale": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/dunes": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/duske": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/dust": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/eaglesdare": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/epiphany": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/floodland": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/gehenna": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/grassland": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/heather": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/highlandspring": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/horus": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/intheclouds": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/khem": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/kradegar": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/labyrinthus": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/luna": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/med-amour": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/med-siesta": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/med-tramonto": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/med-troubadour": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/mensae": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/ofelas": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/olos": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/ozymandias": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/predator": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/purplepeopleeater": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/rlyeh": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/saltflats": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/scapulaflow": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/seraphim": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/shol": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/snowmoon": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/starfrost": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/verdanis-cool": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/verdanis-warm": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/wakeworld": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/skies/whitecrispness": {
+   "kind": "unshipped",
+   "parms": [
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ]
+  },
+  "textures/tp_gothic/tp_stormclouds_001": {
+   "kind": "sky",
+   "parms": [
+    "nodlight",
+    "noimpact",
+    "nolightmap",
+    "sky"
+   ],
+   "res": "res://library/world/skies/tp_gothic/tp_stormclouds_001.tres",
+   "surfacelight": 0.0
+  },
+  "textures/base_floor/step_32": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/base_floor/step_32.tres",
+   "size": [
+    256,
+    64
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_infinity/gauge_01": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_infinity/gauge_01.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_infinity/gauge_01_blend": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_infinity/gauge_01_blend.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_infinity/trim_08": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_infinity/trim_08.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_infinity/wall_07": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_infinity/wall_07.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/ceil1_green": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/ceil1_green.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/ceil1_green.blend": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/ceil1_green.blend.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/ceil1_yellow": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/ceil1_yellow.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/ceil1_yellow.blend": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/ceil1_yellow.blend.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/green": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/green.tres",
+   "size": [
+    32,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/jumppad_01": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/jumppad_01.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/jumppadsmall_green": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/jumppadsmall_green.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/lamp_01": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/lamp_01.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/lamp_01_blend": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/lamp_01_blend.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/quad_spawn_glow": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/quad_spawn_glow.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/rlaunch3_green": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/rlaunch3_green.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/tin_floor04ach_green": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/tin_floor04ach_green.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ct_silence/wood_crate": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ct_silence/wood_crate.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/effects/spawnarmormap2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/effects/spawnarmormap2.tres",
+   "size": [
+    64,
+    64
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gothic_floor/q1metal7_98a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gothic_floor/q1metal7_98a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gothic_trim/copper_128": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gothic_trim/copper_128.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gothic_trim/copper_128_tile": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gothic_trim/copper_128_tile.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gothic_trim/copper_64_tile": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gothic_trim/copper_64_tile.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gothic_trim/copper_8_tile": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gothic_trim/copper_8_tile.tres",
+   "size": [
+    16,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gothic_trim/copper_8_tile_r": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gothic_trim/copper_8_tile_r.tres",
+   "size": [
+    128,
+    16
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gothic_trim/copper_plate": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gothic_trim/copper_plate.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/gothic_trim/copper_sm": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/gothic_trim/copper_sm.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3media/hub3_bouncepad01b_layer1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3media/hub3_bouncepad01b_layer1.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3media/hub3_fireswirl2blue": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3media/hub3_fireswirl2blue.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3media/hub3_jumppadsmall": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3media/hub3_jumppadsmall.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/hub3media/hub3_techfloor": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/hub3media/hub3_techfloor.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/oxothuk_ad/ad2x1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/oxothuk_ad/ad2x1.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/phantq3dm1/evilwindow": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/phantq3dm1/evilwindow.tres",
+   "size": [
+    256,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/proto2/crackcrete": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/proto2/crackcrete.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/proto2/grimy_ceiling": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/proto2/grimy_ceiling.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/proto2/tin_floor05big": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/proto2/tin_floor05big.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/acid": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/acid.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/an_back2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/an_back2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/an_side": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/an_side.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/an_top": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/an_top.tres",
+   "size": [
+    512,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bas03r3_a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bas03r3_a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bas04r2_a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bas04r2_a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bas08r2_a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bas08r2_a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/base1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/base1.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bdr01r2_a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bdr01r2_a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bdr02r2_a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bdr02r2_a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bdr03r2_a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bdr03r2_a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bdr07r1_a-1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bdr07r1_a-1.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bdr08r2_1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bdr08r2_1.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bdr09r1_b": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bdr09r1_b.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/bubbles": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/bubbles.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/ceiling1_l1_1a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/ceiling1_l1_1a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/conc_l1_3a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/conc_l1_3a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/ea_hmtl_88": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/ea_hmtl_88.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/el_crate01": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/el_crate01.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/el_crate01_top": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/el_crate01_top.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "organic",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/floor2_l1_1a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/floor2_l1_1a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/flr01st2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/flr01st2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/goth1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/goth1.tres",
+   "size": [
+    64,
+    64
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/goth1blend": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/goth1blend.tres",
+   "size": [
+    64,
+    64
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/light2_blend": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/light2_blend.tres",
+   "size": [
+    32,
+    96
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/light_01": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/light_01.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/light_01.blend": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/light_01.blend.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "light",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/msc01st1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/msc01st1.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/msc01st2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/msc01st2.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/msc03st1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/msc03st1.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/mtl-vent_l3_1a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/mtl-vent_l3_1a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/mtl-well_l3_88b": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/mtl-well_l3_88b.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/pl-orange_l1_88": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/pl-orange_l1_88.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/s1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/s1.tres",
+   "size": [
+    128,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/trim": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/trim.tres",
+   "size": [
+    256,
+    32
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/u_gr8_8c": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/u_gr8_8c.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/wal12st1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/wal12st1.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/yellowtech1_l1_5a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/yellowtech1_l1_5a.tres",
+   "size": [
+    256,
+    64
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/yellowtech1_l3_4a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/yellowtech1_l3_4a.tres",
+   "size": [
+    256,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukka3tourney2/yellowtech1_l3_c1a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukka3tourney2/yellowtech1_l3_c1a.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/pukkatex1/brick1": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/pukkatex1/brick1.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/ql/concrete_black": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/ql/concrete_black.tres",
+   "size": [
+    512,
+    512
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/sfx/portal_sfx2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/sfx/portal_sfx2.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/sfx/portaledge_teal2": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/sfx/portaledge_teal2.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/sfx/portalnoise": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": true,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/sfx/portalnoise.tres",
+   "size": [
+    64,
+    64
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/sfx/techfloor2_kc": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/sfx/techfloor2_kc.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/sfx/techfloor_kc": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/sfx/techfloor_kc.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/sfx/techfloor_kc_shadow": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/sfx/techfloor_kc_shadow.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/sfx/zzztred_kc": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/sfx/zzztred_kc.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/shw/box_01_01": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/shw/box_01_01.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/shw/box_01_02": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/shw/box_01_02.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/shw/box_01_03": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/shw/box_01_03.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/shw/box_01_04": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/shw/box_01_04.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/shw/box_01_05": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/shw/box_01_05.tres",
+   "size": [
+    128,
+    128
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/shw/shw_streetbricks1b": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/shw/shw_streetbricks1b.tres",
+   "size": [
+    256,
+    256
+   ],
+   "group": "stone",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/tp_gothic/tp_metaltrim_001a": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/tp_gothic/tp_metaltrim_001a.tres",
+   "size": [
+    512,
+    32
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
+  },
+  "textures/tp_gothic/tp_metaltrim_001b": {
+   "kind": "surface",
+   "parms": [],
+   "stochastic": false,
+   "shader": "world_opaque",
+   "sprite": 0,
+   "res": "res://library/world/materials/tp_gothic/tp_metaltrim_001b.tres",
+   "size": [
+    512,
+    64
+   ],
+   "group": "metal",
+   "surfacelight": 0.0,
+   "light_color": null
   }
  }
 }

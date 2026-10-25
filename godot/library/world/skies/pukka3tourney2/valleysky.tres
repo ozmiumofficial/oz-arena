@@ -1,0 +1,14 @@
+[gd_resource type="Sky" format=3 uid="uid://lieg37t2gmfd"]
+
+[ext_resource type="Shader" uid="uid://0yf83gx4ifta" path="res://shaders/world/sky_panorama.gdshader" id="1_r"]
+[ext_resource type="Texture2D" uid="uid://c5dc5t2naoaci" path="res://library/world/skies/env_pukka3tourney2_blood-valley_rt_pano.png" id="2_r"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+resource_name = "textures/pukka3tourney2/valleysky"
+shader = ExtResource("1_r")
+shader_parameter/panorama = ExtResource("2_r")
+shader_parameter/energy = 1.0
+
+[resource]
+resource_name = "textures/pukka3tourney2/valleysky"
+sky_material = SubResource("ShaderMaterial_sky")

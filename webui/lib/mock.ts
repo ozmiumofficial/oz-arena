@@ -112,6 +112,20 @@ async function ready() {
     document.body.style.background = "url(/q3/levelshots/q3dm17.jpg) center / cover";
   }
   emit({ ...state, type: "init" } as unknown as Msg);
+  // ?update previews the "update available" offer
+  if (location.search.includes("update")) {
+    emit({
+      type: "update",
+      info: {
+        tag: "v0.4.0-beta", version: "0.4.0-beta", name: "v0.4.0-beta: replays and the duel maps", published: "2026-10-25", beta: true,
+        size: 1_240_000_000, url: "https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases/tag/v0.4.0-beta",
+        notes: [
+          "## What's new", "- Replays and the replay viewer", "- Spectator mode and the cinematic camera", "- The 15-map duel pool", "",
+          "## Fixed", "- Additive glow layers drew as faint squares", "- Item timers read the right respawn",
+        ].join("\n"),
+      },
+    } as unknown as Msg);
+  }
   emit({ type: "conflicts", map: conflicts() });
   emitSocial();
   const names = [...state.characters.map((c) => [c, "Character"]), ["Rocket Launcher", "Weapon"], ["Quad Damage", "Powerup"], ["Railgun", "Weapon"]];

@@ -7,6 +7,7 @@ extends RefCounted
 ##                 cancel_capture, clear_bind, export_code, import_code, validate, start, continue,
 ##                 map_editor, quit, profile_preview, open_url, social {op, ...}
 ##                 card_set {slot, id}, card_showcase {kind: stats|badges, ids}, card_seen {keys}, taunt {id}
+##                 update_skip {tag}
 ##                 net_browse {region?}, net_join {host, password?}, net_cancel (online matches, MULTIPLAYER_PLAN.md M5)
 ##                 queue_join {modes, ranked}, queue_leave (matchmaking, M6)
 ##                 dedicated_get, dedicated_start {config}, dedicated_stop, dedicated_command {line}, dedicated_autostart {on} (M7)
@@ -16,6 +17,7 @@ extends RefCounted
 ##                 social {status, reason, state, chat}, social_notice, party_chat, profile {profile},
 ##                 net_matches {matches, region}, net_join_state {status, reason, host}, queue {state, ratings, rtt}, dedicated {config, status, autostart},
 ##                 leaderboard {board} (asked for with social {op: "leaderboard", board, scope})
+##                 update {info} (a newer release exists: tag, version, name, notes, url, size, published, beta)
 ##                 pause menu: pause {match}
 
 signal post(msg: Dictionary)                 ## to the web page
@@ -57,6 +59,21 @@ func _init() -> void:
 		received_ready.connect(func(): post.emit({"type": "social_notice", "text": text, "tone": "warn"}), CONNECT_ONE_SHOT)
 
 
+## Tells the page about a newer release: now if the check already found one, else when it does.
+func _offer_update() -> void:
+	var u := Q3UpdateCheck.instance()
+	if not u.info.is_empty():
+		post.emit({"type": "update", "info": u.info})
+		return
+	if not u.available.is_connected(_on_update_available):
+		u.available.connect(_on_update_available)
+	u.check()
+
+
+func _on_update_available(info: Dictionary) -> void:
+	post.emit({"type": "update", "info": info})
+
+
 ## The page is treated as untrusted input (Ozmium, 2026-10-22: nobody injects code through the web
 ## UI). Godot only ever acts on the fixed message types below, with checked fields; anything else,
 ## anything oversized and anything that isn't a JSON object is dropped. main_menu.gd also only
@@ -67,7 +84,7 @@ const TYPES := ["ready", "sound", "hover", "page", "layout", "set", "reset", "re
 	"campaign_skill", "campaign_reset", "cinematic", "map_editor", "quit", "profile_preview", "log", "social",
 	"open_url", "modes", "bots", "banner", "crosshairs", "cinematics",
 	"resume", "leave_match", "restart_match", "ready_up", "crosshair_preview",
-	"card_set", "card_showcase", "card_seen", "taunt",
+	"card_set", "card_showcase", "card_seen", "taunt", "update_skip",
 	"net_browse", "net_join", "net_cancel", "queue_join", "queue_leave", "dedicated_get", "dedicated_start", "dedicated_stop", "dedicated_command", "dedicated_autostart",
 	"spectate", "replays", "replay_watch", "replay_rename", "replay_favorite", "replay_delete", "replay_folder"]
 ## Hosts open_url may send the player's browser to; nothing else leaves the game.
@@ -96,6 +113,8 @@ func handle(m: Dictionary) -> void:
 			post.emit({"type": "conflicts", "map": _conflict_map()})
 			post.emit(social_payload())
 			post.emit(queue_payload())
+			if context == "menu":
+				_offer_update()
 			received_ready.emit()
 		"sound":
 			var n := String(m.get("name", ""))
@@ -278,6 +297,8 @@ func handle(m: Dictionary) -> void:
 		"replay_folder":
 			DirAccess.make_dir_recursive_absolute(Q3ReplayFile.dir)
 			OS.shell_open(ProjectSettings.globalize_path(Q3ReplayFile.dir))
+		"update_skip":
+			Q3UpdateCheck.skip(String(m.get("tag", "")))
 		"open_url":
 			var url := String(m.get("url", ""))
 			var host := url.trim_prefix("https://").get_slice("/", 0).to_lower()

@@ -15,6 +15,7 @@ import BannerText from "./BannerText";
 import { BottomBar, DevBackdrop, Shade, SubjectCaption, Toasts, TopBar } from "./Chrome";
 import { SocialPanel } from "./Social";
 import { PAGES } from "./pages";
+import UpdatePrompt from "./UpdatePrompt";
 
 const SUBMENUS: Record<string, { title: string; items: MenuItemDef[] }> = {
   single: { title: "Single Player", items: menu.single as MenuItemDef[] },
@@ -109,6 +110,7 @@ export default function MenuApp() {
         </AnimatePresence>
         <AnimatePresence mode="wait">{Page && <Page key={top} back={back} open={open} />}</AnimatePresence>
         <AnimatePresence>{top === "quit" && <QuitConfirm key="quit" back={back} />}</AnimatePresence>
+        <UpdatePrompt hidden={top !== "main" || socialOpen} />
         <SubjectCaption hidden={wide || socialOpen} />
         <BottomBar hints={hints} />
         <SocialPanel />

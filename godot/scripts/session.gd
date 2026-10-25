@@ -88,7 +88,34 @@ func map_info(map: String) -> Dictionary:
 
 func maps_for(mode_id: String) -> Array:
 	var m := mode(mode_id)
-	return maps.filter(func(x): return m != null and m.accepts_map(x))
+	var out := maps.filter(func(x): return m != null and m.accepts_map(x))
+	if mode_id == "duel":   # the duel pool leads the list; the other tourney maps follow
+		var pool := out.filter(func(x): return in_duel_pool(String(x["map"])))
+		pool.append_array(out.filter(func(x): return not in_duel_pool(String(x["map"]))))
+		return pool
+	return out
+
+
+## The duel pool (DUEL_MAPS_PLAN.md): all 15 entries, built or not.
+func duel_pool_entries() -> Array:
+	return Q3.load_json("res://game/duel_pool.json").get("maps", [])
+
+
+## The pool's maps that exist and can be played, in pool order. Ranked duels use only these.
+func ranked_maps() -> Array:
+	var out: Array = []
+	for e in duel_pool_entries():
+		var info := map_info(String(e.get("map", "")))
+		if not info.is_empty():
+			out.append(info)
+	return out
+
+
+func in_duel_pool(map: String) -> bool:
+	for e in duel_pool_entries():
+		if String(e.get("map", "")) == map and map != "":
+			return true
+	return false
 
 
 func modifier_label(id: String, value: Variant) -> String:

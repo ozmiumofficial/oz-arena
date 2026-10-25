@@ -98,6 +98,11 @@ func validate() -> PackedStringArray:
 		errs.append("Unknown map '%s'." % map)
 	elif not m.accepts_map(info) and not source in ["training", "campaign", "launch"]:   # these may use any arena (q3dm0)
 		errs.append("%s isn't a %s map." % [info.get("name", map), m.display_name])
+	if bool(online.get("ranked", false)):   # ranked duels play the duel pool's maps only (DUEL_MAPS_PLAN.md)
+		if mode != "duel":
+			errs.append("Ranked matches are duels.")
+		elif not Session.in_duel_pool(map):
+			errs.append("%s isn't in the ranked duel pool." % info.get("name", map))
 	if not SERVER_TYPES.has(server_type):
 		errs.append("Unknown server type '%s'." % server_type)
 	if server_type == "listen" and source not in ["editor"] and (not Online.enabled() or Online.client.status != "online"):

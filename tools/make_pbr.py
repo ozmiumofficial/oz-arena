@@ -34,6 +34,9 @@ ap.add_argument("--face-band", type=float, default=None)
 ap.add_argument("--seed", type=int, default=3)
 ap.add_argument("--jobs", type=int, default=1)
 ap.add_argument("--only", help="comma-separated stems to (re)process")
+ap.add_argument("--bump", type=float, default=1.0, help="world tile normal strength multiplier (community maps: 1.8)")
+ap.add_argument("--gloss", type=float, default=1.0, help="world tile roughness scale, below 1 is shinier (community maps: 0.65)")
+ap.add_argument("--rough-min", type=float, default=None, help="glossiest allowed roughness for world tiles (default: 0.45)")
 a = ap.parse_args()
 SRC, CAGE, OUT = (os.path.join(a.work, d) for d in ("src", "cage", "tex"))
 os.makedirs(OUT, exist_ok=True)
@@ -288,7 +291,7 @@ def process(t):
     height = (0.55 * relief + 1.1 * hp_big + (0.2 if tile else 0.5) * hp_fine + 0.6 * lump + 0.04 * grain).astype(np.float32)
 
     # normal (OpenGL convention: green = up in the image); world art is flat paint, so half as steep
-    strength = 5.0 if tile else 10.0
+    strength = (5.0 * a.bump) if tile else 10.0
     gx = cv2.Sobel(height, cv2.CV_32F, 1, 0, ksize=3) / 8.0 * strength
     gy = cv2.Sobel(height, cv2.CV_32F, 0, 1, ksize=3) / 8.0 * strength
     n = np.dstack([-gx, gy, np.ones_like(gx)])
@@ -324,7 +327,11 @@ def process(t):
         bare = 1 - np.clip(cv2.resize(under_a, (W, H), interpolation=cv2.INTER_LINEAR), 0, 1)
         metal = metal * (1 - bare) + 0.85 * bare
         rough = rough * (1 - bare) + 0.5 * bare
-    rough, metal = np.clip(rough, ROUGH_MIN, 0.98), np.clip(metal, 0, 1)
+    rmin = ROUGH_MIN
+    if tile:   # --gloss / --rough-min: the community maps' flat stone needs more sheen (Ozmium, 2026-10-25)
+        rough = rough * a.gloss
+        rmin = a.rough_min if a.rough_min is not None else ROUGH_MIN
+    rough, metal = np.clip(rough, rmin, 0.98), np.clip(metal, 0, 1)
     ao = np.clip(shade ** 0.8, 0, 1) * (1 - 0.35 * cavity)
     ao = np.clip(ao / max(np.percentile(ao, 97), 1e-3), 0, 1)
 

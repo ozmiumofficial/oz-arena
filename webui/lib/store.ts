@@ -13,6 +13,18 @@ export interface Toast {
   tone: "info" | "warn" | "error";
 }
 
+/** A newer release (Godot's Q3UpdateCheck): the menu asks whether to get it. */
+export interface UpdateInfo {
+  tag: string;
+  version: string;
+  name: string;
+  notes: string;
+  url: string;
+  size: number;
+  published: string;
+  beta: boolean;
+}
+
 export interface MenuState {
   init: InitPayload | null;
   values: Record<string, Value>;
@@ -32,6 +44,8 @@ export interface MenuState {
   boards: Record<string, Board>;
   /** the Replays page's list, null until Godot answers */
   replays: ReplayList | null;
+  /** a newer release to offer; null once the player says Later or Skip */
+  update: UpdateInfo | null;
   /** the Server Browser: the hub's directory (null until it answers), and the join in progress */
   net: { matches: NetMatch[] | null; region: string; offline: boolean; join: NetJoin | null };
   /** matchmaking: the queue, the ratings per ranked queue (duel, tdm, ctf), and the round trip to the hub */
@@ -43,7 +57,7 @@ export interface MenuState {
 let state: MenuState = {
   init: null, values: {}, conflicts: {}, subject: null, capture: null, pad: false, toasts: [], validation: [], lastCode: "",
   social: { status: "connecting", reason: "", state: null, chat: [] }, socialOpen: false, pauseOpen: 0, match: null, boards: {},
-  replays: null, net: { matches: null, region: "", offline: false, join: null },
+  replays: null, update: null, net: { matches: null, region: "", offline: false, join: null },
   queue: { state: { status: "idle" }, ratings: {}, season: "", rtt: 0 }, dedicated: null,
 };
 const subs = new Set<() => void>();
@@ -199,7 +213,15 @@ export function connect() {
     update({ net: { ...state.net, join: join.status === "failed" || join.status === "open" ? (join.status === "open" ? join : null) : join } });
     if (join.status === "failed") toast(join.reason || "Couldn't join that match.", "error");
   });
+  on("update", (m) => update({ update: m.info as UpdateInfo }));
   on("replays", (m) => update({ replays: { list: m.list as ReplayList["list"], kept: m.kept as number } }));
   on("party_chat", (m) => update({ social: { ...state.social, chat: [...state.social.chat, m as unknown as ChatLine].slice(-50) } }));
   void send("ready");
+}
+
+/** Later: hide the offer until the next launch. Skip: never offer this version again. */
+export function dismissUpdate(skip: boolean) {
+  const tag = state.update?.tag;
+  if (skip && tag) void send("update_skip", { tag });
+  update({ update: null });
 }

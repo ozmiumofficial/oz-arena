@@ -84,7 +84,10 @@ func _add_shaft_light() -> void:
 		return
 	var env := we.environment
 	env.volumetric_fog_albedo = Color.WHITE
-	env.volumetric_fog_anisotropy = 0.6   # forward scattering: shafts glow looking toward the sun
+	# Mild forward scattering. At 0.6 the haze was (1.6 / 0.4)^3 = 64x brighter facing the sun than
+	# away, so a sunlit courtyard turned blue-gray or stayed warm depending on where you looked
+	# (phantq3dm1_rev, oxodm76; Ozmium, 2026-10-25: "like 2 different setups at the same time").
+	env.volumetric_fog_anisotropy = 0.2
 	env.volumetric_fog_length = 64.0
 	env.volumetric_fog_sky_affect = 0.0
 	env.volumetric_fog_gi_inject = 0.0
@@ -103,6 +106,32 @@ func _add_shaft_light() -> void:
 	_shaft.shadow_enabled = true
 	_shaft.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	_shaft.directional_shadow_max_distance = 96.0
+
+
+## Reflection probes render one at a time, about eight frames each, and every finished one pops the
+## specular lighting of everything it reaches (Toxicity flickered all over for its first 3 seconds).
+## A match calls this: a black cover over the screen until the probes are done, then a short fade.
+func cover_probes() -> void:
+	if not has_node("Probes") or has_node("ProbeCover"):
+		return
+	var frames := mini(get_node("Probes").get_child_count() * 8 + 12, 300)
+	var layer := CanvasLayer.new()
+	layer.name = "ProbeCover"
+	layer.layer = 90
+	var rect := ColorRect.new()
+	rect.color = Color.BLACK
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(rect)
+	add_child(layer)
+	for i in frames:
+		await get_tree().process_frame
+		if not is_inside_tree():
+			return
+	var tw := create_tween()
+	tw.tween_property(rect, "color:a", 0.0, 0.3)
+	await tw.finished
+	layer.queue_free()
 
 
 ## A box-projected reflection probe for each room tools/map_probes.py found ("probes"), so PBR

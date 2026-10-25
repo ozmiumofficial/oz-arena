@@ -17,6 +17,10 @@ const SHOT_WIDTH := 384
 const TYPES := {"tdm": "team", "team": "team", "ffa": "ffa", "dm": "ffa", "tourney": "tourney",
 		"duel": "tourney", "1v1": "tourney", "ctf": "ctf", "single": "single"}
 
+## Duel-pool maps (DUEL_MAPS_PLAN.md) by bsp name: their menu names, whatever the author's arena file says
+const POOL_NAMES := {"hub3aeroq3": "Aerowalk", "ztn3tourney1": "Blood Run", "phantq3dm1_rev": "Battleforged",
+		"hub3dm1": "Dismemberment", "pukka3tourney2": "Toxicity", "oxodm76": "Silence"}
+
 static var _cache: Array = []
 static var _stamp := ""
 static var dir_override := ""   ## tests: another folder (a joiner without the host's maps)
@@ -125,9 +129,13 @@ static func _scan(files: PackedStringArray) -> Array:
 					types.append(TYPES[t])
 			if types.is_empty():
 				types = ["ffa"]
+			if not types.has("ctf") and not types.has("single"):   # a deathmatch map plays every deathmatch mode
+				for t in ["ffa", "tourney", "team"]:
+					if not types.has(t):
+						types.append(t)
 			if not by_map.has(map):
 				order.append(map)
-			by_map[map] = {"map": map, "name": String(d.get("longname", map)), "types": types, "special": "pack",
+			by_map[map] = {"map": map, "name": String(POOL_NAMES.get(map, d.get("longname", map))), "types": types, "special": "pack",
 				"bots": String(d.get("bots", "")).split(" ", false), "fraglimit": int(d.get("fraglimit", "0")),
 				"timelimit": int(d.get("timelimit", "0")), "levelshot": _levelshot(z, names, map), "pk3": p}
 		z.close()

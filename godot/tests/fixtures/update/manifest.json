@@ -1,0 +1,41 @@
+{
+ "format": 1,
+ "game": "Q3Remaster",
+ "version": "v9.9.9-beta",
+ "created": "2026-10-25T19:57:07Z",
+ "files": [
+  {
+   "path": "Q3Remaster.exe",
+   "size": 3,
+   "sha256": "9095bdb859308b62acf04036ffd4adfe366d7f737d276eb6c46ae434f3816c9b",
+   "source": "release",
+   "asset": "Q3Remaster.exe"
+  },
+  {
+   "path": "Q3Remaster.pck",
+   "size": 300,
+   "sha256": "d8e5339a85ba839180b318bdca00f22da5c2a50e1150c1db608b065ae72630ea",
+   "source": "release",
+   "asset": "Q3Remaster.pck"
+  },
+  {
+   "path": "q3core/baseq3/pak1.pk3",
+   "size": 6,
+   "sha256": "1778c2d9b45bac0ae39a11b400add3b0461f6d8413262678ee3b0c573a4c63a8",
+   "source": "retail"
+  },
+  {
+   "path": "q3core/baseq3/qagamex86_64.dll",
+   "size": 3,
+   "sha256": "0343b13708cd52d33ecbb1043b5ae145e73a532bdccf7de6925db5cce6054fd3",
+   "source": "release",
+   "asset": "q3core__baseq3__qagamex86_64.dll"
+  },
+  {
+   "path": "textures-1.pck",
+   "size": 150,
+   "sha256": "095434dae01804606ff9d107f202b484c2c54ebe89321be14b250ef6abdfac30",
+   "source": "textures"
+  }
+ ]
+}

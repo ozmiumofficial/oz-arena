@@ -64,8 +64,13 @@ def q3_lightmap_stats(bsp):
     for s in bsp.surfaces:
         if s["lm_num"] >= 0 and int(s["type"]) != q3bsp.MST_FLARE:
             vals.append(lm[s["lm_num"], s["lm_y"]:s["lm_y"] + s["lm_h"], s["lm_x"]:s["lm_x"] + s["lm_w"]].reshape(-1, 3))
-    if not vals:
-        return {}
+    if not vals or not sum(len(v) for v in vals):
+        # q3map2 keeps the rectangles in the vertices' lightmap coordinates, not the surfaces' fields:
+        # take the pages' lit pixels instead
+        flat = lm.reshape(-1, 3)
+        vals = [flat[flat.max(1) > 0]]
+        if not len(vals[0]):
+            return {}
     lin = ((np.concatenate(vals).mean(1) * 2.0 / 255.0) ** 2.2)
     return {"mean": round(float(lin.mean()), 4), "median": round(float(np.median(lin)), 4)}
 
@@ -389,9 +394,11 @@ def sky_light(root, sky_names):
     bodies = q3.shader_bodies(root)
     for name in sky_names:
         body = bodies.get(name, "")
-        sun = re.search(r"q3map_sun\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)", body)
+        sun = re.search(r"q3map_sun(?:ext)?\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)", body)
         sl = re.search(r"q3map_surfacelight\s+([-\d.]+)", body)
-        out = {"shader": name, "surfacelight": float(sl.group(1)) if sl else 0.0}
+        # q3map2's q3map_skyLight <value> <iterations> is the sky's ambient light: the sky as a surface light
+        skyl = re.search(r"q3map_skylight\s+([-\d.]+)", body)
+        out = {"shader": name, "surfacelight": float(sl.group(1)) if sl else (float(skyl.group(1)) if skyl else 0.0)}
         if sun:
             r, g, b, inten, yaw, elev = (float(x) for x in sun.groups())
             m = max(r, g, b) or 1.0
@@ -470,6 +477,14 @@ def vec(s):
     return np.array([float(x) for x in s.split()[:3]])
 
 
+CONTENTS_TRANSLUCENT = 0x20000000
+SURF_ALPHASHADOW = 0x10000
+
+
+def cell_name(key):
+    return "world_%d_%d_%d" % key[:3] + ("_ns" if len(key) > 3 else "")
+
+
 def build_map(name, bsp_path, wm, out_dir):
     global LIGHT_SCALE
     per_map = json.load(open(MAP_LIGHTING)) if os.path.exists(MAP_LIGHTING) else {}
@@ -524,6 +539,14 @@ def build_map(name, bsp_path, wm, out_dir):
             if kind == "missing":
                 report["missing"][sname] = report["missing"].get(sname, 0) + 1
             key = cell_of(pos)
+            # q3map traces light through translucent surfaces (surfaceparm trans) unless they're
+            # alphashadow (q3map2: cut-out shadows, leaves). They go on their own nodes (world_..._ns),
+            # which the builder sets not to cast; otherwise Rustgrad's sun sprite and cliff backdrop,
+            # wrapped around the map, shadowed all of it
+            sh = bsp.shaders[int(s["shader"])]
+            if (isinstance(key, tuple) and int(sh["content_flags"]) & CONTENTS_TRANSLUCENT
+                    and not int(sh["surface_flags"]) & SURF_ALPHASHADOW):
+                key = key + ("ns",)
             g = groups.setdefault(key, {}).setdefault(sname, [[], [], [], [], 0])
             g[0].append(to_godot(pos))
             g[1].append(to_godot_dir(nrm))
@@ -547,8 +570,8 @@ def build_map(name, bsp_path, wm, out_dir):
     m0 = bsp.models[0]
     world = gather(int(m0["first_surface"]), int(m0["num_surfaces"]),
                    lambda pos: tuple(np.floor(pos.mean(0) / CELL).astype(int).tolist()))
-    for key in sorted(world):
-        glb.mesh_node("world_%d_%d_%d" % key, prims(world[key]))
+    for key in sorted(world, key=lambda k: (k[:3], len(k))):
+        glb.mesh_node(cell_name(key), prims(world[key]))
     # camera-facing quads (deformVertexes autosprite/autosprite2), each centered on its own node
     for k, (sname, (c, q, loc, uv, tri)) in enumerate(sprites):
         nrm = np.tile([0.0, 0.0, 1.0], (4, 1))
@@ -622,7 +645,8 @@ def build_map(name, bsp_path, wm, out_dir):
     probes = [{k: to_godot(v).round(4).tolist() for k, v in p.items()} for p in map_probes.reflection_probes(bsp)]
     report["probes"] = len(probes)
     info = {
-        "map": name, "bsp_version": bsp.version, "light_scale": map_scale, "worldspawn": ents[0] if ents else {},
+        "map": name, "bsp_version": bsp.version, "light_scale": map_scale,
+        "bake": per_map.get("_bake", {}).get(name, {}), "worldspawn": ents[0] if ents else {},
         "entities": ents, "lights": lights, "sky": sorted(sky_shaders), "sky_light": sky_light(a.root, sorted(sky_shaders)), "fogs": fogs,
         "models": models, "collision": {"solid": solid, "clip": clip, "patches": patch_tris}, "portals": portal_list,
         "probes": probes, "bounds": [to_godot(m0["mins"]).round(4).tolist(), to_godot(m0["maxs"]).round(4).tolist()],

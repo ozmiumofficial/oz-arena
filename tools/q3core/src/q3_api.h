@@ -117,6 +117,8 @@ int q3_nc_frame(int msec, int extrapolated);
 /* The server time to draw at, and to stamp usercmds with. */
 /* Holds a primed client out of the world while the game loads the map (cleared by every connect). */
 void q3_nc_hold_entry(int hold);
+const char *q3_nc_missing_map(void);
+int q3_nc_reload_map(void);
 /* A remote console command with the server's rconpassword; its answer is read back with q3_nc_rcon_output. */
 void q3_nc_rcon(const char *password, const char *command);
 const char *q3_nc_rcon_output(void);

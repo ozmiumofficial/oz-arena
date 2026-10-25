@@ -121,7 +121,7 @@ func _menu_checks() -> void:
 	var quit_asked := [false]
 	bridge.quit_requested.connect(func(): quit_asked[0] = true)
 	var n := 0
-	for group in ["main", "play"]:
+	for group in ["main", "single", "play"]:
 		for it in tree.get(group, []):
 			n += 1
 			if it.has("page"):

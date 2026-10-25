@@ -1,0 +1,72 @@
+diff --git a/code/qcommon/files.c b/code/qcommon/files.c
+index b3b9f1e..a7c1584 100644
+--- a/code/qcommon/files.c
++++ b/code/qcommon/files.c
+@@ -254,6 +254,7 @@ static	cvar_t		*fs_apppath;
+ static	cvar_t		*fs_steampath;
+ static	cvar_t		*fs_gogpath;
+ static	cvar_t		*fs_microsoftstorepath;
++static	cvar_t		*fs_mapspath;	// q3core: a folder of map pk3s, read as base game paks
+ 
+ static	cvar_t		*fs_basepath;
+ static	cvar_t		*fs_basegame;
+@@ -3033,6 +3034,40 @@ static void FS_AddGameDirectories(const char *dir)
+ 	}
+ }
+ 
++/*
++================
++FS_AddMapsDirectory
++
++q3core: every .pk3 straight in fs_mapspath (the game's Maps folder, no baseq3 under it), loaded
++like a base game pak and after them, so a map pack wins over the retail paks as it would in baseq3.
++================
++*/
++static void FS_AddMapsDirectory( const char *path ) {
++	searchpath_t	*search;
++	pack_t			*pak;
++	char			**pakfiles;
++	int				numfiles, i;
++
++	pakfiles = Sys_ListFiles( path, ".pk3", NULL, &numfiles, qfalse );
++	if ( !pakfiles ) {
++		return;
++	}
++	qsort( pakfiles, numfiles, sizeof(char *), paksort );
++	for ( i = 0; i < numfiles; i++ ) {
++		if ( ( pak = FS_LoadZipFile( va( "%s%c%s", path, PATH_SEP, pakfiles[i] ), pakfiles[i] ) ) == 0 ) {
++			continue;
++		}
++		Q_strncpyz( pak->pakPathname, path, sizeof(pak->pakPathname) );
++		Q_strncpyz( pak->pakGamename, BASEGAME, sizeof(pak->pakGamename) );
++		fs_packFiles += pak->numfiles;
++		search = Z_Malloc( sizeof(searchpath_t) );
++		search->pack = pak;
++		search->next = fs_searchpaths;
++		fs_searchpaths = search;
++	}
++	Sys_FreeFileList( pakfiles );
++}
++
+ /*
+ ================
+ FS_idPak
+@@ -3386,6 +3421,7 @@ static void FS_Startup( const char *gameName )
+ 	fs_steampath = Cvar_Get ("fs_steampath", Sys_SteamPath(), CVAR_INIT|CVAR_PROTECTED );
+ 	fs_gogpath = Cvar_Get ("fs_gogpath", Sys_GogPath(), CVAR_INIT|CVAR_PROTECTED );
+ 	fs_microsoftstorepath = Cvar_Get ("fs_microsoftstorepath", Sys_MicrosoftStorePath(), CVAR_INIT|CVAR_PROTECTED );
++	fs_mapspath = Cvar_Get ("fs_mapspath", "", CVAR_INIT|CVAR_PROTECTED );
+ 
+ #ifdef __APPLE__
+ 	fs_apppath = Cvar_Get ("fs_apppath", Sys_DefaultAppPath(), CVAR_INIT|CVAR_PROTECTED );
+@@ -3420,6 +3456,10 @@ static void FS_Startup( const char *gameName )
+ 
+ 	FS_AddGameDirectories(gameName);
+ 
++	if ( fs_mapspath->string[0] ) {
++		FS_AddMapsDirectory( fs_mapspath->string );
++	}
++
+ 	// check for additional base game so mods can be based upon other mods
+ 	if ( fs_basegame->string[0] && Q_stricmp( fs_basegame->string, gameName ) ) {
+ 		FS_AddGameDirectories(fs_basegame->string);

@@ -41,10 +41,14 @@ for d in ("sounds", "levelshots", "icons", "crosshairs", "campaign", "hud"):
 copytree(os.path.join(ROOT, "work", "_cinematics", "thumbs"), os.path.join(pub, "cinematics"))
 for d in ("emblems", "banners", "frames"):   # player card art (build_cards.py)
     copytree(os.path.join(ROOT, "work", "_cards", d), os.path.join(pub, "cards", d))
-os.makedirs(os.path.join(pub, "fonts"), exist_ok=True)
-shutil.copy2(os.path.join(UI, "fonts", "q3_banner.png"), os.path.join(pub, "fonts", "q3_banner.png"))
-os.makedirs(os.path.join(WEB, "app", "fonts"), exist_ok=True)
-shutil.copy2(os.path.join(UI, "fonts", "q3_prop.ttf"), os.path.join(WEB, "app", "fonts", "q3_prop.ttf"))
+# a PC that never ran make_ui.py (work/_ui) keeps the copies already in webui (the repo holds them)
+for src, dst in ((os.path.join(UI, "fonts", "q3_banner.png"), os.path.join(pub, "fonts", "q3_banner.png")),
+                 (os.path.join(UI, "fonts", "q3_prop.ttf"), os.path.join(WEB, "app", "fonts", "q3_prop.ttf"))):
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if os.path.isfile(src):
+        shutil.copy2(src, dst)
+    elif not os.path.isfile(dst):
+        sys.exit("webui: %s is missing and webui has no copy (run make_ui.py)" % src)
 print("webui: assets copied")
 
 godot = next((c for c in [a.godot] + q3.default_godot() if c and os.path.isfile(c)), None)

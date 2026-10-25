@@ -18,7 +18,8 @@ python export_game.py [--out ../build/windows] [--godot <godot exe>] [--release 
                                 pak0.pk3: the engine refuses to start without all nine (files.c FS_CheckPak0)
   <out>/vcruntime140*.dll       the VC++ runtime godot_wry needs, so players don't need the redistributable
 --release <tag> also writes build/release/<tag>/: Q3Remaster-<tag>-windows.zip (everything but the
-texture packs) plus the texture packs themselves, the files a GitHub release carries.
+texture packs) plus the texture packs themselves. Only the zip goes on a game release; the packs go on
+the permanent "textures" release, and only when they changed.
 The player's own Quake 3 install is still found as in the editor (fs_steampath), and pak0 is checked.
 Close the Godot editor's project or let it be: the export only reads the project.
 """
@@ -115,6 +116,14 @@ for f in ["vcruntime140.dll", "vcruntime140_1.dll"]:
         shutil.copy2(os.path.join(crt[-1], f), os.path.join(a.out, f))
     else:
         print("export_game: warning: %s not found (install the MSVC build tools)" % f)
+# the Maps folder players drop map pk3s into (Q3MapPacks, fs_mapspath). A local build links in the
+# repo's Maps (community maps: their authors allow free electronic copies of the unmodified pk3, but
+# not the remastered textures, so a --release build ships the folder empty)
+maps = os.path.join(a.out, "Maps")
+os.makedirs(maps, exist_ok=True)
+if not a.release:
+    for f in sorted(glob.glob(os.path.join(ROOT, "Maps", "*.pk3"))):
+        os.link(f, os.path.join(maps, os.path.basename(f)))
 size = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(a.out) for f in fs)
 print("exported: %s (%.1f GB)" % (a.out, size / 1e9))
 

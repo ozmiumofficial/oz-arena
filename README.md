@@ -136,8 +136,8 @@ Some things shouldn't change, so they don't:
 
 **Installing the open beta:**
 
-1. From the [Releases](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) page, download the game's zip and both texture packs (`textures-1.pck` and `textures-2.pck`).
-2. Unzip the game anywhere, and put both texture packs in the `Q3Remaster` folder, next to `Q3Remaster.exe`.
+1. From the [Releases](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) page, first download the three texture packs (`textures-1.pck`, `textures-2.pck` and `textures-3.pck`, about 4 GB) from the [Textures release](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases/tag/textures), then the game's zip from the newest release.
+2. Unzip the game anywhere, and put all three texture packs in the `Q3Remaster` folder, next to `Q3Remaster.exe`.
 3. Run `Q3Remaster.exe`.
 
 You can also build the game yourself from this source code and the Quake III Arena files on your PC; [DEVELOPMENT.md](DEVELOPMENT.md) walks through it.

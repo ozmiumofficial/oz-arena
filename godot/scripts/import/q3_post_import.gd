@@ -186,7 +186,8 @@ func _map_import(scene: Node) -> void:
 			var kind := String(wm.get(name, {}).get("kind", ""))
 			if kind != "liquid":
 				see_through = false
-		if see_through:
+		# world_..._ns: translucent surfaces (surfaceparm trans, build_maps.py), which q3map doesn't let block light
+		if see_through or String(m.name).ends_with("_ns"):
 			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		if String(m.name).begins_with("model_"):
 			m.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC

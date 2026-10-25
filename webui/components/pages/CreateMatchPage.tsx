@@ -1,6 +1,6 @@
 "use client";
-// Create match: mode, map (level shots, filtered by what the mode plays on), rules, modifiers, bots
-// and server type. Builds the match setup Godot validates and hands to the Gameplay scene.
+// Create match: mode, map (MapBrowser: every map, the mode's first), rules, modifiers, bots and
+// server type. Builds the match setup Godot validates and hands to the Gameplay scene.
 // Offline vs bots is the same thing cut down to four choices.
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
@@ -9,7 +9,8 @@ import { send } from "@/lib/bridge";
 import { sfx } from "@/lib/sound";
 import { cn } from "@/lib/cn";
 import { shotSrc } from "@/lib/shot";
-import type { BotSlot, MatchSetup, Value } from "@/lib/types";
+import type { BotSlot, MapInfo, MatchSetup, ModeInfo, Value } from "@/lib/types";
+import MapBrowser, { fits } from "../MapBrowser";
 import PagePanel, { SectionTitle } from "../PagePanel";
 import Spinner from "../controls/Spinner";
 import Slider from "../controls/Slider";
@@ -31,7 +32,13 @@ function useSetup(initialMode: string) {
     setSetup((s) => ({ ...s, map: pick.map }));
   }, [maps, setup.map]);
   const patch = (p: Partial<MatchSetup>) => setSetup((s) => ({ ...s, ...p }));
-  return { init, setup, patch, mode, maps };
+  // a map made for other modes: the first of the page's modes that plays it (Aerowalk -> Duel)
+  const pickMap = (m: MapInfo, offered: ModeInfo[]) => {
+    if (fits(m, mode)) return patch({ map: m.map });
+    const to = offered.find((x) => fits(m, x));
+    if (to) setSetup((s) => ({ ...s, mode: to.id, map: m.map, rules: {}, bots: s.bots.map((b) => ({ ...b, team: "" })) }));
+  };
+  return { init, setup, patch, mode, maps, pickMap };
 }
 
 function start(setup: MatchSetup) {
@@ -39,7 +46,7 @@ function start(setup: MatchSetup) {
 }
 
 export default function CreateMatchPage({ back }: PageProps) {
-  const { init, setup, patch, mode, maps } = useSetup("ffa");
+  const { init, setup, patch, mode, pickMap } = useSetup("ffa");
   const errors = useMenu((s) => s.validation);
   useEffect(() => {
     if (setup.map) void send("validate", { setup });
@@ -79,7 +86,7 @@ export default function CreateMatchPage({ back }: PageProps) {
           <Spinner wide value={setup.mode} options={init.modes.map((m) => [m.id, m.name])} onChange={(v) => patch({ mode: String(v), rules: {}, bots: setup.bots.map((b) => ({ ...b, team: "" })) })} />
           <p className="mt-2 min-h-[2.8rem] text-[0.95rem] text-dim">{mode?.description}</p>
           <SectionTitle>Map</SectionTitle>
-          <MapGrid maps={maps} value={setup.map} onPick={(m) => patch({ map: m })} />
+          <MapBrowser maps={init.maps} mode={mode} modes={init.modes} value={setup.map} onPick={(m) => pickMap(m, init.modes)} cols={3} />
         </div>
         <div className="min-h-0 overflow-y-auto pr-2">
           <SectionTitle>Rules</SectionTitle>
@@ -162,47 +169,16 @@ function Field({ label, tip, children }: { label: string; tip?: string; children
   );
 }
 
-function MapGrid({ maps, value, onPick }: { maps: { map: string; name: string; levelshot: string }[]; value: string; onPick: (m: string) => void }) {
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto pr-2">
-      <div data-grid="3" className="grid grid-cols-3 gap-3">
-        {maps.map((m) => (
-          <button
-            key={m.map}
-            data-nav
-            data-autofocus={m.map === value ? "" : undefined}
-            onClick={() => {
-              sfx.move();
-              onPick(m.map);
-            }}
-            className={cn(
-              "group relative aspect-[4/3] overflow-hidden rounded-sm border-2 text-left transition-all",
-              m.map === value ? "border-glow shadow-[0_0_1.4rem_rgb(219_36_16/0.5)]" : "border-transparent focus:border-ink/60",
-            )}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={shotSrc(m.levelshot)} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-focus:scale-110" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-            <div className="absolute bottom-2 left-3 right-3">
-              <div className="truncate font-q3 text-[0.95rem] tracking-[0.05em] text-ink-hot">{m.name}</div>
-              <div className="font-q3 text-[0.6rem] tracking-[0.2em] text-dim">{m.map}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 const QUICK_MODES = ["ffa", "duel", "tdm", "ctf"];
 
 export function OfflineBotsPage({ back }: PageProps) {
-  const { init, setup, patch, maps } = useSetup("ffa");
+  const { init, setup, patch, pickMap } = useSetup("ffa");
   const [count, setCount] = useState(5);
   const [skill, setSkill] = useState(3);
   if (!init) return null;
-  const map = maps.find((m) => m.map === setup.map);
+  const map = init.maps.find((m) => m.map === setup.map);
   const mode = init.modes.find((m) => m.id === setup.mode);
+  const quick = init.modes.filter((m) => QUICK_MODES.includes(m.id));
   const go = () => {
     const n = setup.mode === "duel" ? 1 : count;
     const pool = [...(map?.bots ?? []), ...init.bots.map((b) => b.name.toLowerCase())];
@@ -216,23 +192,24 @@ export function OfflineBotsPage({ back }: PageProps) {
     start({ ...setup, bots });
   };
   return (
-    <PagePanel title="Offline vs Bots" subtitle="Pick a mode and an arena; the map's own bots come first, as in Quake 3's single-player tiers." back={back}>
+    <PagePanel title="Skirmish" subtitle="Pick a mode and an arena; the map's own bots come first, as in Quake 3's single-player tiers." back={back}>
       <div className="grid h-full grid-cols-[1fr_26rem] gap-10 px-10 py-6">
-        <div className="relative overflow-hidden rounded-sm border border-white/10">
-          {map && (
-            <motion.img key={map.map} src={shotSrc(map.levelshot)} alt="" className="absolute inset-0 h-full w-full object-cover" initial={{ opacity: 0, scale: 1.08 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }} />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
-          <div className="absolute bottom-6 left-7">
-            <div className="font-q3 text-[2.4rem] leading-none tracking-[0.04em] text-ink-hot">{map?.name}</div>
-            <div className="mt-1 font-q3 text-[0.75rem] tracking-[0.3em] text-dim">{map?.map}</div>
-          </div>
+        <div className="flex min-h-0 flex-col">
+          <MapBrowser maps={init.maps} mode={mode} modes={quick} value={setup.map} onPick={(m) => pickMap(m, quick)} cols={3} />
         </div>
-        <div className="flex flex-col">
+        <div className="flex min-h-0 flex-col">
+          <div className="relative aspect-video w-full overflow-hidden rounded-sm border border-white/10">
+            {map && (
+              <motion.img key={map.map} src={shotSrc(map.levelshot)} alt="" className="absolute inset-0 h-full w-full object-cover" initial={{ opacity: 0, scale: 1.08 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }} />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
+            <div className="absolute bottom-3 left-4 right-4">
+              <div className="truncate font-q3 text-[1.6rem] leading-none tracking-[0.04em] text-ink-hot">{map?.name}</div>
+              <div className="mt-1 font-q3 text-[0.7rem] tracking-[0.3em] text-dim">{map?.map}</div>
+            </div>
+          </div>
           <SectionTitle>Mode</SectionTitle>
-          <Spinner wide value={setup.mode} options={init.modes.filter((m) => QUICK_MODES.includes(m.id)).map((m) => [m.id, m.name])} onChange={(v) => patch({ mode: String(v) })} />
-          <SectionTitle>Arena</SectionTitle>
-          <Spinner wide value={setup.map} options={maps.map((m) => [m.map, m.name])} onChange={(v) => patch({ map: String(v) })} />
+          <Spinner wide value={setup.mode} options={quick.map((m) => [m.id, m.name])} onChange={(v) => patch({ mode: String(v) })} />
           {setup.mode !== "duel" && (
             <>
               <SectionTitle>Bots</SectionTitle>

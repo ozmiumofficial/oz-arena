@@ -26,6 +26,7 @@ var tonemap := ""   ## filmic / agx / aces: every WorldEnvironment in the scene,
 const SHOWCASE := "res://showcase/showcase.tscn"
 var cam := ""
 var scene := SHOWCASE   ## scene=res://showcase/materials.tscn to capture the material browser
+var classic := ""       ## classic=<map>: a Maps folder map drawn from its .bsp (Q3ClassicMap), not a scene
 var _n := 0
 var _shot := 0
 var _show   ## the scene under capture (the showcase is a Node3D, the menu a Node)
@@ -49,8 +50,19 @@ func _ready() -> void:
 				"shafts": shafts = kv[1] != "0"
 				"heat": Settings.set_value("graphics/heat_shimmer", kv[1] != "0", false)   # this run only, not saved
 				"tonemap": tonemap = kv[1]
+				"classic": classic = kv[1]
 	Engine.max_fps = 60   # frames= counts real time, whatever the vsync setting
-	_show = load(scene).instantiate()
+	if classic != "":
+		var t := Time.get_ticks_msec()
+		_show = Q3ClassicMap.build(classic)
+		if _show == null:
+			push_error("capture: no classic map %s" % classic)
+			get_tree().quit(1)
+			return
+		scene = "classic"
+		print("classic %s built in %d ms" % [classic, Time.get_ticks_msec() - t])
+	else:
+		_show = load(scene).instantiate()
 	if screen:
 		# bring the window forward (always_on_top would stop the web view repainting)
 		DisplayServer.window_move_to_foreground()

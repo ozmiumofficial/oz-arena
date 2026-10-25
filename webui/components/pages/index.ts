@@ -19,7 +19,7 @@ export interface PageProps {
 }
 
 export const PAGES: Record<string, ComponentType<PageProps>> = {
-  single_player: SinglePlayerPage,
+  campaign: SinglePlayerPage,
   cinematics: CinematicsPage,
   settings: SettingsPage,
   crosshair: CrosshairEditor,

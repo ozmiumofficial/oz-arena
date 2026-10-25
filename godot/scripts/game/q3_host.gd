@@ -41,6 +41,9 @@ static func start(q3_path := "", extra := {}) -> String:
 	cvars["fs_homepath"] = home
 	if q3_path != "":
 		cvars["fs_steampath"] = q3_path.get_base_dir() if q3_path.ends_with("baseq3") else q3_path
+	# maps dropped into the Maps folder: every pk3 there loads like a baseq3 pak (patch 0011)
+	if DirAccess.dir_exists_absolute(Q3MapPacks.dir()):
+		cvars["fs_mapspath"] = Q3MapPacks.dir()
 	cvars.merge(extra, true)
 	var line := ""
 	for k in cvars:

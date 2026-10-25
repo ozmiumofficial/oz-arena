@@ -32,6 +32,8 @@ public:
 	static Array outgoing(int max_packets);
 	static int frame(int msec, bool extrapolated);
 	static void hold_entry(bool hold);
+	static String missing_map();
+	static int reload_map();
 	static void rcon(const String &password, const String &command);
 	static String rcon_output();
 	static int time();

@@ -98,6 +98,7 @@ var _join_loaded := false
 var _preloaded_map: Q3Map      ## loaded at the gamestate, added by _build_view
 var host_net: Q3HostNet            ## hosting for other players (setup.server_type listen/dedicated and Online): their WebRTC connections
 var _joining := false              ## connecting: the view is built once the gamestate is in
+var _map_fetch: Q3MapFetch          ## the match's map, coming from the host (a map this player doesn't have)
 var _join_layer: CanvasLayer
 var _join_label: Label
 var replay_playing := true
@@ -280,6 +281,13 @@ func _build_view() -> void:
 	elif ResourceLoader.exists(path):
 		map_scene = (load(path) as PackedScene).instantiate() as Q3Map
 		add_child(map_scene)
+	elif custom.get("special", "") == "pack":
+		# a map from the Maps folder the pipeline hasn't remastered: drawn from its .bsp
+		map_scene = Q3ClassicMap.build(setup.map)
+		if map_scene:
+			add_child(map_scene)
+		elif _error == "":
+			_error = "%s's .bsp in %s can't be read." % [custom.get("name", setup.map), String(custom.get("pk3", "")).get_file()]
 	client = Q3Client.new()
 	client.name = "Client"
 	client.map = map_scene
@@ -686,7 +694,43 @@ func _preload_join_map() -> void:
 	var path := Q3MapBuilder.scene_path(map)
 	if map != "" and Session.map_info(map).get("special", "") != "custom" and ResourceLoader.exists(path):
 		_preloaded_map = (load(path) as PackedScene).instantiate() as Q3Map
+	elif map != "" and Session.map_info(map).get("special", "") == "pack":
+		_preloaded_map = Q3ClassicMap.build(map)
 	Q3Net.hold_entry(false)
+
+
+## While the server's map isn't here (Q3Net.missing_map): downloads its pk3 from the host into the Maps
+## folder (Q3MapFetch), then has q3core read the paks again. True until the map can load (or the join failed).
+func _fetching_map(delta: float) -> bool:
+	var missing := Q3Net.missing_map()
+	if missing == "":
+		return false
+	if _map_fetch == null:
+		var t := net_feed.transport as Q3RtcTransport
+		if t == null:
+			_join_failed("This match is on %s, which isn't in your Maps folder." % missing)
+			return true
+		_map_fetch = Q3MapFetch.new(t, missing)
+	_map_fetch.poll(delta)
+	match _map_fetch.state:
+		"failed":
+			var why := _map_fetch.error
+			_join_failed(why if why.begins_with("This match") else "Couldn't download %s: %s" % [missing, why])
+			_map_fetch = null
+		"done":
+			_map_fetch = null
+			Session.refresh_custom_maps()
+			if Q3Net.reload_map() != 0:
+				_join_failed("%s downloaded, but it doesn't load: %s" % [missing, Q3Net.error()])
+				return true
+			return false
+		_:
+			if _join_label:
+				var pct := "" if _map_fetch.size == 0 else "  %d%%  (%.1f / %.1f MB)" % [
+						roundi(_map_fetch.progress() * 100.0), _map_fetch.got / 1048576.0, _map_fetch.size / 1048576.0]
+				_join_label.text = ("CONNECTING TO THE HOST FOR %s" % missing.to_upper() if _map_fetch.state != "downloading"
+						else "DOWNLOADING %s%s" % [missing.to_upper(), pct])
+	return true
 
 
 ## A connection that failed or ended: the message stays up until Escape.
@@ -718,6 +762,8 @@ func _process_net(delta: float) -> void:
 		if _join_label:
 			_join_label.text = ["CONNECTING", "CONNECTING", "CONNECTING", "LOADING", "LOADING", ""][clampi(st, 0, 5)]
 		if st == 4 and not _join_loaded:
+			if _fetching_map(delta):
+				return
 			_preload_join_map()
 		net_feed.update(delta)
 		if st == 5 and not net_feed.snapshot(-1).is_empty():

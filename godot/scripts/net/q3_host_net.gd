@@ -8,6 +8,10 @@ extends Node
 ##
 ## A peer is the small integer id the server knows as its address (10.77.x.x, patch 0006); the hub
 ## knows the player by id. Players leave by closing their data channel or by the server timing them out.
+##
+## A joiner without the match's map asks for it on the files channel (Q3MapFetch); it gets the pk3
+## the map came from in this side's Maps folder, never anything else (id's paks included), over a
+## direct connection (Q3DirectLink) when both sides allow it, never through the relay.
 
 signal renewed(pid: String)   ## a player's connection moved to fresh relay credentials (the handover)
 signal peer_joined(pid: String, name: String, id: int)
@@ -20,6 +24,8 @@ const LIST_EVERY := 5.0
 ## idle or sleeping server holding fresh ones all day used that budget up (M8).
 const ICE_EVERY := 2700.0
 const OPEN_TIMEOUT := 25.0
+const SEND_PER_FRAME := 16        ## file chunks a peer gets per frame at most (16 x 16 KB)
+const LINGER := 15.0              ## s a finished download's direct link stays up for the joiner to close it
 
 var client: Q3OnlineClient
 ## The listing: name, mode, map, max (players and bots), password ("" for none), ranked, version.
@@ -192,6 +198,83 @@ func _drop_next(p: Dictionary) -> void:
 	p.erase("next_gen")
 
 
+## A map download for one peer (Q3MapFetch): its requests and the direct link's setup come over the
+## relayed files channel; the file itself goes only over the direct link (Q3DirectLink), never the relay.
+func _serve(p: Dictionary, rtc: Q3RtcPeer, delta: float) -> void:
+	for m in rtc.files_receive():
+		var b: PackedByteArray = m
+		if b.is_empty() or b[0] != Q3MapFetch.MSG_JSON:
+			continue
+		var d: Variant = JSON.parse_string(b.slice(1).get_string_from_utf8())
+		if not d is Dictionary:
+			continue
+		if d.has("want"):
+			_start_send(p, rtc, String(d["want"]).to_lower(), int(d.get("offset", 0)))
+		elif d.has("rtc") and p.has("send") and d["rtc"] is Dictionary:
+			(p["send"]["link"] as Q3DirectLink).apply(d["rtc"])
+	var s: Dictionary = p.get("send", {})
+	if s.is_empty():
+		return
+	var link: Q3DirectLink = s["link"]
+	link.poll(delta)
+	for o in link.outgoing():
+		rtc.files_send(Q3MapFetch.json({"rtc": o}))
+	if link.state == "failed" or link.state == "closed":
+		_stop_send(p)   # failed, or the joiner closed it once it had the file
+		return
+	if link.state != "open":
+		return
+	for i in SEND_PER_FRAME:
+		if (s["pending"] as PackedByteArray).is_empty():
+			var f: FileAccess = s["file"]
+			if f.get_position() >= f.get_length():
+				# all sent: the joiner closes the link when it has read it all (or after a while, this side)
+				s["done_t"] = float(s.get("done_t", 0.0)) + delta
+				if float(s["done_t"]) > LINGER:
+					_stop_send(p)
+				return
+			var chunk := PackedByteArray([Q3MapFetch.MSG_DATA])
+			chunk.append_array(f.get_buffer(Q3MapFetch.CHUNK))
+			s["pending"] = chunk
+		if not link.send(s["pending"]):
+			return   # the link is full: the rest next frame
+		s["pending"] = PackedByteArray()
+
+
+## Whether this side sends maps directly: a dedicated server always, a player when they allow it.
+static func sends_maps() -> bool:
+	return Session.dedicated != "" or Q3MapFetch.allowed()
+
+
+func _start_send(p: Dictionary, rtc: Q3RtcPeer, map: String, offset: int) -> void:
+	_stop_send(p)
+	if not sends_maps():
+		rtc.files_send(Q3MapFetch.json({"error": "This match is on %s, which you don't have, and the host doesn't allow direct map downloads (Settings > Network). Put its pk3 in your Maps folder to join." % map}))
+		return
+	var pk3 := ""
+	for m in Q3MapPacks.list():
+		if m["map"] == map:
+			pk3 = m["pk3"]
+	var f: FileAccess = FileAccess.open(pk3, FileAccess.READ) if pk3 != "" else null
+	if f == null or f.get_length() > Q3MapFetch.MAX_SIZE:
+		rtc.files_send(Q3MapFetch.json({"error": "The host can't send %s (it isn't a map from its Maps folder)." % map}))
+		return
+	var link := Q3DirectLink.new()
+	if not link.start(true):
+		rtc.files_send(Q3MapFetch.json({"error": link.error}))
+		return
+	rtc.files_send(Q3MapFetch.json({"map": map, "file": pk3.get_file(), "size": f.get_length(), "md5": Q3MapPacks.md5_of(pk3)}))
+	f.seek(clampi(offset, 0, f.get_length()))
+	p["send"] = {"file": f, "pending": PackedByteArray(), "link": link}
+
+
+func _stop_send(p: Dictionary) -> void:
+	if p.has("send"):
+		(p["send"]["file"] as FileAccess).close()
+		(p["send"]["link"] as Q3DirectLink).close()
+		p.erase("send")
+
+
 ## A renewed connection opened: it carries this player's packets from now on, in the same engine slot.
 func _swap(pid: String, p: Dictionary) -> void:
 	var old: Q3RtcPeer = p["peer"]
@@ -200,6 +283,7 @@ func _swap(pid: String, p: Dictionary) -> void:
 	if p["link"] != null:
 		(p["link"] as Q3RtcLink).release()
 	old.close()
+	_stop_send(p)   # the joiner asks again on the new connection, from what it has
 	p["peer"] = p["next"]
 	p["link"] = p["next_link"]
 	p["gen"] = int(p["next_gen"])
@@ -214,6 +298,7 @@ func _drop(pid: String, tell_hub: bool) -> void:
 		return
 	var p: Dictionary = peers[pid]
 	_drop_next(p)
+	_stop_send(p)
 	peers.erase(pid)
 	if p["link"] != null:
 		(p["link"] as Q3RtcLink).release()
@@ -267,6 +352,7 @@ func pump_in(delta: float) -> void:
 				p["plain"] = Q3Colors.strip(String(Q3Host.parse_info(Q3Server.configstring(E.CS_PLAYERS + slot)).get("n", "")))
 			for pk in rtc.receive():
 				Q3Server.net_receive(int(p["id"]), pk)
+			_serve(p, rtc, delta)
 	_list_t -= delta
 	if _waiting.size():
 		# joiners wait for fresh credentials; ask again if the answer was lost (the hub reconnected)

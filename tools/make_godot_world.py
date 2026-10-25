@@ -24,6 +24,8 @@ import q3shader
 ap = argparse.ArgumentParser()
 ap.add_argument("--work", default=os.path.join(ROOT, "work", "_world"))
 ap.add_argument("--godot", default=os.path.join(ROOT, "godot"))
+ap.add_argument("--keep-existing", action="store_true",
+                help="community maps: never overwrite a library texture or panorama, and merge into world_materials.json")
 a = ap.parse_args()
 TEX = os.path.join(a.work, "tex")
 SRC = os.path.join(a.work, "src")
@@ -46,7 +48,7 @@ def put(stem, suffix):
         src = os.path.join(TEX, stem + suffix + ext)
         if os.path.exists(src):
             dst = os.path.join(LIB, "textures", stem + suffix + ext)
-            if not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst):
+            if not os.path.exists(dst) or (not a.keep_existing and os.path.getmtime(src) > os.path.getmtime(dst)):
                 shutil.copy2(src, dst)
             return res(dst)
     return None
@@ -259,7 +261,8 @@ for m in materials:
             for i, l in enumerate(layers[:2]):
                 src = os.path.join(TEX, l["stem"] + ".jpg")
                 dstt = os.path.join(LIB, "textures", l["stem"] + ".jpg")
-                shutil.copy2(src, dstt)
+                if not (a.keep_existing and os.path.exists(dstt)):
+                    shutil.copy2(src, dstt)
                 tex_["layer%d" % (i + 1)] = res(dstt)
                 sc, _, scr, _ = tcmods(l["tcmods"])
                 params["scale%d" % (i + 1)] = sc
@@ -307,7 +310,18 @@ for m in materials:
                               {k: v for k, v in tex_.items() if k in ("albedo_tex", "normal_tex") and v})
     else:
         blend, two = m["blend"], m["two_sided"]
-        shader = (("world_add_lit" if m.get("lit_add") else "world_add") if blend == "add" else
+        if blend in ("filter", "darken"):
+            # multiply decals draw the original image (the PBR albedo moved painted shading into AO)
+            src = os.path.join(SRC, textures[base]["file"]) if base in textures else None
+            if src and os.path.exists(src):
+                dstm = os.path.join(LIB, "textures", base + "_mul.png")
+                if not (a.keep_existing and os.path.exists(dstm)):
+                    Image.open(src).convert("RGB").save(dstm)
+                tex_["albedo_tex"] = res(dstm)
+            for k in ("normal_tex", "orm_tex", "emission_tex"):
+                tex_.pop(k, None)
+        shader = ("world_mul" if blend in ("filter", "darken") else
+                  ("world_add_lit" if m.get("lit_add") else "world_add") if blend == "add" else
                   ("world_blend_2s" if two else "world_blend") if blend == "blend" else
                   ("world_opaque_2s" if two else "world_opaque"))
         # deformVertexes autosprite / autosprite2: camera-facing quads (build_maps.py gives each its own node)
@@ -319,6 +333,8 @@ for m in materials:
                       alpha_cut=0.5 if blend == "mask" else 0.0,
                       stochastic=bool(m["group"] in ("stone", "organic", "metal") and not m["frames"] and blend == "opaque"
                                       and not m.get("glows") and isotropic(base, name)))
+        if blend == "darken":
+            params["invert"] = True
         if m.get("under") and m["under"].get("stem") and not sprite:
             tex_["under_tex"] = put(m["under"]["stem"], "_albedo")
             usc, urot, uscr, uturb = tcmods(m["under"]["tcmods"])
@@ -366,8 +382,13 @@ for m in materials:
                                          + [(base, "_albedo")]) if sl > 0 else None)
     catalog[name] = entry
 
+_cat = os.path.join(LIB, "world_materials.json")
+if a.keep_existing and os.path.isfile(_cat):
+    _old = json.load(open(_cat))["materials"]
+    _old.update(catalog)
+    catalog = _old
 json.dump(dict(_note="q3 shader name -> remastered Godot resource. size = base image pixels (texture scale "
                      "for map UVs). surfacelight = q3map_surfacelight; light_color for placing real lights.",
-               materials=catalog), open(os.path.join(LIB, "world_materials.json"), "w"), indent=1)
+               materials=catalog), open(_cat, "w"), indent=1)
 stoch = sum(1 for e in catalog.values() if e.get("stochastic"))
 print("world materials: %s; %d with stochastic tiling; %d panoramas" % (counts, stoch, len(done_panoramas)))

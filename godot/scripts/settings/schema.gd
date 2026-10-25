@@ -273,6 +273,7 @@ static func build() -> Array:
 	g = "Online"
 	L.append(_e("network/online", "Online services", "bool", true, "Friends, parties and presence. Off keeps you offline.", g))
 	L.append(_e("network/online_server", "Online server", "string", "", "Leave empty for the default. A local test server is ws://127.0.0.1:8787.", g, {"max": 200}))
+	L.append(_e("network/direct_downloads", "Allow direct map downloads", "bool", false, "When a match is on a map one of you doesn't have, send or get it over a direct connection between the two PCs instead of through the relay. While it runs, the other player (or server) sees your IP address; the match itself always stays on the relay. Both sides need this on (dedicated servers always allow it).", g))
 
 	# ---- Accessibility
 	g = "Display"

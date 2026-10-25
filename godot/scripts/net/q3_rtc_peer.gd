@@ -1,9 +1,10 @@
 class_name Q3RtcPeer
 extends RefCounted
 ## One WebRTC connection to another player (MULTIPLAYER_PLAN.md M4), as the godot-webrtc-native
-## extension (libdatachannel) provides it, carrying id's client packets over a single unreliable,
-## unordered data channel. Both ends create the same channel (negotiated, id 1), so there is no
-## in-band channel setup. The joiner makes the offer; the host answers.
+## extension (libdatachannel) provides it, carrying id's client packets over an unreliable,
+## unordered data channel, and files (a map the joiner doesn't have, Q3MapFetch) over a reliable,
+## ordered one beside it. Both ends create the same channels (negotiated, ids 1 and 2), so there is
+## no in-band channel setup. The joiner makes the offer; the host answers.
 ##
 ## Privacy: the connection is meant to run through Cloudflare's TURN relay only, so neither player
 ## sees the other's address. The extension has no relay-only switch, so it is enforced where it can
@@ -17,16 +18,20 @@ signal description_ready(kind: String, sdp: String)             ## "offer" or "a
 signal candidate_ready(mid: String, index: int, candidate: String)
 
 const CHANNEL_ID := 1
+const FILES_ID := 2
+const FILES_BUFFER := 1 << 20   ## bytes queued on the files channel before files_send waits
 const CONNECT_TIMEOUT := 20.0
 const MAX_PACKET := 2048
 
 var pc: WebRTCPeerConnection
 var channel: WebRTCDataChannel
+var files: WebRTCDataChannel     ## reliable, ordered: map downloads
 var relay_only := true
 var state := "new"          ## new, connecting, open, closed or failed
 var error := ""
 var sent := 0
 var received := 0
+var files_bytes := 0        ## bytes that came in on the files channel (tests: map data never rides the relay)
 var _remote_set := false
 var _queued: Array = []     ## candidates that arrived before the remote description
 var _age := 0.0
@@ -72,6 +77,9 @@ func start(ice: Dictionary, offerer: bool) -> bool:
 		state = "failed"
 		return false
 	channel.write_mode = WebRTCDataChannel.WRITE_MODE_BINARY
+	files = pc.create_data_channel("files", {"negotiated": true, "id": FILES_ID, "ordered": true})
+	if files != null:
+		files.write_mode = WebRTCDataChannel.WRITE_MODE_BINARY
 	state = "connecting"
 	if offerer:
 		pc.create_offer()
@@ -154,6 +162,28 @@ func send(data: PackedByteArray) -> void:
 		sent += 1
 
 
+## Messages that arrived on the files channel since the last call.
+func files_receive() -> Array:
+	var out: Array = []
+	if files == null or state != "open":
+		return out
+	while files.get_available_packet_count() > 0:
+		var b := files.get_packet()
+		files_bytes += b.size()
+		out.append(b)
+	return out
+
+
+## Queues one message on the files channel; false when it's closed or already holds FILES_BUFFER
+## bytes (try again next frame).
+func files_send(data: PackedByteArray) -> bool:
+	if files == null or state != "open" or files.get_ready_state() != WebRTCDataChannel.STATE_OPEN:
+		return false
+	if files.get_buffered_amount() > FILES_BUFFER:
+		return false
+	return files.put_packet(data) == OK
+
+
 func close() -> void:
 	if pc != null:
 		# the connection's signals call back into this object and it holds the connection: break the cycle, or
@@ -164,7 +194,10 @@ func close() -> void:
 			pc.ice_candidate_created.disconnect(_on_candidate)
 		if channel != null:
 			channel.close()
+		if files != null:
+			files.close()
 		pc.close()
 		channel = null
+		files = null
 		pc = null
 	state = "closed"

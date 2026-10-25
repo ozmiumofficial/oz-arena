@@ -48,7 +48,7 @@ export default function SinglePlayerPage({ back }: PageProps) {
   };
   return (
     <PagePanel
-      title="Single Player"
+      title="Campaign"
       subtitle="Quake III Arena's campaign: fight through the tiers of arenas to reach the final duel. Win every arena of a tier to open the next."
       back={back}
       onTab={(d) => {

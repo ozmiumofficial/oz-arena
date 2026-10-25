@@ -7,5 +7,25 @@
  "q3dm13": 0.773,
  "q3dm18": 0.235,
  "q3dm7": 0.781,
- "q3dm15": 0.625
+ "q3dm15": 0.625,
+ "hub3aeroq3": 0.5,
+ "ztn3tourney1": 0.78,
+ "rustgrad": 0.5,
+ "_bake": {
+  "_note": "LightmapGI settings for maps too big for the default bake: Rustgrad's atlas at texel scale 1 / high quality ran 37 min and failed to save (empty image, 2026-10-24); floor: minimum L0 after the bake (tools/lightmap_floor.py), for q3map2 maps whose light entities were stripped; gain: L0 x gain after the bake (lightmap_floor.py), matched to Q3ClassicMap's brightness",
+  "rustgrad": {
+   "texel_scale": 0.4,
+   "quality": "medium",
+   "bounces": 2,
+   "floor": 0.2,
+   "gain": 1.7
+  },
+  "q3gwdm1": {
+   "floor": 0.16,
+   "gain": 1.8
+  },
+  "hub3aeroq3": {
+   "gain": 2.0
+  }
+ }
 }

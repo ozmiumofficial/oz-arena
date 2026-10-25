@@ -80,6 +80,7 @@ typedef struct {
 	entityState_t baselines[MAX_GENTITIES];
 	char mapname[MAX_QPATH];
 	int map_loaded;           /* this client loaded the collision model (and frees it) */
+	int map_missing;          /* the server's map isn't in any pak here: the game fetches it, then q3_nc_reload_map */
 
 	/* snapshots */
 	nc_snapshot_t snapshots[PACKET_BACKUP];
@@ -252,6 +253,7 @@ static void nc_unload_map(void) {
 	if (nc.map_loaded && q3_ready && !com_sv_running->integer)
 		CM_ClearMap();
 	nc.map_loaded = 0;
+	nc.map_missing = 0;
 }
 
 static void nc_fail(const char *message) {
@@ -472,6 +474,11 @@ static void nc_load_map(void) {
 		return;
 	Q_strncpyz(nc.mapname, name, sizeof(nc.mapname));
 	nc.map_loaded = 0;
+	/* a map this player doesn't have (the host's Maps folder): stay primed and say so instead of dropping;
+	   the game downloads its pk3 from the host, then q3_nc_reload_map loads it */
+	nc.map_missing = FS_ReadFile(va("maps/%s.bsp", name), NULL) <= 0;
+	if (nc.map_missing)
+		return;
 	Hunk_Clear();
 	CM_LoadMap(va("maps/%s.bsp", name), qtrue, &checksum);
 	nc.map_loaded = 1;
@@ -801,6 +808,29 @@ int q3_nc_frame(int msec, int extrapolated) {
    server doesn't spawn the player until the game has loaded the map. Entered during a load, the player stood still
    on the server through it, and the first command after spanned the whole load: a jump of hundreds of units (M8). */
 void q3_nc_hold_entry(int hold) { nc_hold_entry = hold; }
+
+/* The server's map when this process couldn't find it (nc_load_map), else "". */
+const char *q3_nc_missing_map(void) { return nc.map_missing ? nc.mapname : ""; }
+
+/* After the game saved the missing map's pk3: the file system looks at the paks again (FS_Restart, as
+   Quake 3's client does once its downloads are done) and the map loads. 0 on success. */
+int q3_nc_reload_map(void) {
+	char name[MAX_QPATH];
+	NC_GUARD_FAIL(1);
+	if (nc.map_missing) {
+		Q_strncpyz(name, nc.mapname, sizeof(name));
+		FS_Restart(nc.checksumFeed);
+		nc.map_missing = 0;
+		nc.mapname[0] = 0;
+		nc_load_map();
+		if (nc.map_missing || Q_stricmp(nc.mapname, name)) {
+			q3_fatal_armed = 0;
+			return 1;
+		}
+	}
+	q3_fatal_armed = 0;
+	return 0;
+}
 
 /* A remote console command (the server's rconpassword): an out-of-band packet, answered by print packets. */
 void q3_nc_rcon(const char *password, const char *command) {

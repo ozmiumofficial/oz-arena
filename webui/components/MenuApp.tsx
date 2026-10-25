@@ -16,7 +16,11 @@ import { BottomBar, DevBackdrop, Shade, SubjectCaption, Toasts, TopBar } from ".
 import { SocialPanel } from "./Social";
 import { PAGES } from "./pages";
 
-const NOT_WIDE = new Set(["main", "play", "quit"]);
+const SUBMENUS: Record<string, { title: string; items: MenuItemDef[] }> = {
+  single: { title: "Single Player", items: menu.single as MenuItemDef[] },
+  play: { title: "Play", items: menu.play as MenuItemDef[] },
+};
+const NOT_WIDE = new Set(["main", "quit", ...Object.keys(SUBMENUS)]);
 
 export default function MenuApp() {
   const [stack, setStack] = useState<string[]>(["main"]);
@@ -41,8 +45,8 @@ export default function MenuApp() {
     const offOpen = on("open", (m) => {
       const id = String(m.page);
       if (id === "friends") return setSocialOpen(true);
-      const inPlay = (menu.play as MenuItemDef[]).some((it) => it.page === id);
-      setStack(id === "main" ? ["main"] : inPlay ? ["main", "play", id] : ["main", id]);
+      const sub = Object.keys(SUBMENUS).find((k) => SUBMENUS[k].items.some((it) => it.page === id));
+      setStack(id === "main" ? ["main"] : sub ? ["main", sub, id] : ["main", id]);
     });
     return () => {
       offNav();
@@ -75,7 +79,10 @@ export default function MenuApp() {
   }, []);
   const activate = useCallback(
     (it: MenuItemDef, from: string) => {
-      if (it.page) {
+      if (it.submenu) {
+        setStack(["main", it.submenu]);
+        sfx.in();
+      } else if (it.page) {
         // a main-menu item opened while something else is up replaces it
         setStack((s) => (from === "main" ? ["main", it.page!] : [...s, it.page!]));
         sfx.in();
@@ -97,7 +104,9 @@ export default function MenuApp() {
       <motion.div className="absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: shown ? 1 : 0 }} transition={{ duration: 0.6 }}>
         <TopBar />
         <MainColumn stack={stack} activate={activate} open={open} dev={dev} />
-        <AnimatePresence>{stack.includes("play") && <PlayMenu key="play" stack={stack} activate={activate} back={back} />}</AnimatePresence>
+        <AnimatePresence>
+          {stack[1] in SUBMENUS && <SubMenu key={stack[1]} id={stack[1]} stack={stack} activate={activate} back={back} />}
+        </AnimatePresence>
         <AnimatePresence mode="wait">{Page && <Page key={top} back={back} open={open} />}</AnimatePresence>
         <AnimatePresence>{top === "quit" && <QuitConfirm key="quit" back={back} />}</AnimatePresence>
         <SubjectCaption hidden={wide || socialOpen} />
@@ -117,8 +126,9 @@ function MainColumn({ stack, activate, open, dev }: { stack: string[]; activate:
   useLayer(ref, {
     onSide: (d) => {
       const el = document.activeElement as HTMLElement | null;
-      if (d > 0 && el?.dataset.id === "play" && !deep) {
-        open("play");
+      const sub = (menu.main as MenuItemDef[]).find((it) => it.id === el?.dataset.id)?.submenu;
+      if (d > 0 && sub && !deep) {
+        open(sub);
         return true;
       }
       return false;
@@ -155,7 +165,7 @@ function MainColumn({ stack, activate, open, dev }: { stack: string[]; activate:
               label={it.label}
               hint={it.hint}
               index={i}
-              current={deep && stack[1] === it.page}
+              current={deep && stack[1] === (it.submenu ?? it.page)}
               onFocusItem={() => void send("hover", { id: it.id })}
               onActivate={() => {
                 sfx.move();
@@ -169,14 +179,15 @@ function MainColumn({ stack, activate, open, dev }: { stack: string[]; activate:
   );
 }
 
-function PlayMenu({ stack, activate, back }: { stack: string[]; activate: (it: MenuItemDef, from: string) => void; back: () => void }) {
+function SubMenu({ id, stack, activate, back }: { id: string; stack: string[]; activate: (it: MenuItemDef, from: string) => void; back: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const cont = useMenu((s) => s.init?.continue ?? "");
   const progress = useMenu((s) => s.init?.progress);
   const rankedLocked = !!progress && progress.level < progress.ranked_level;
-  const covered = stack[stack.length - 1] !== "play";
+  const covered = stack[stack.length - 1] !== id;
   useLayer(ref, { onBack: back, onSide: (d) => (d < 0 ? (back(), true) : false) });
-  const items = (menu.play as MenuItemDef[]).filter((it) => it.when !== "continue" || cont);
+  const { title, items: all } = SUBMENUS[id];
+  const items = all.filter((it) => it.when !== "continue" || cont);
   return (
     <motion.div
       ref={ref}
@@ -188,7 +199,7 @@ function PlayMenu({ stack, activate, back }: { stack: string[]; activate: (it: M
       className={cn("absolute bottom-[8.5rem] left-[35rem] w-[30rem]", covered && "pointer-events-none")}
     >
       <div className="mb-3 flex items-center gap-4 pl-6">
-        <BannerText text="Play" height={1.7} />
+        <BannerText text={title} height={1.7} />
         <span className="h-px flex-1 bg-gradient-to-r from-red/60 to-transparent" />
       </div>
       <div className="border-l border-white/10">
@@ -203,7 +214,7 @@ function PlayMenu({ stack, activate, back }: { stack: string[]; activate: (it: M
               onFocusItem={() => void send("hover", { id: it.id })}
               onActivate={() => {
                 sfx.move();
-                activate(it, "play");
+                activate(it, id);
               }}
             />
           </motion.div>

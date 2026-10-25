@@ -55,6 +55,8 @@ export interface MapInfo {
   fraglimit: number;
   timelimit: number;
   levelshot: string;
+  /** "" Quake 3's arenas (or "training" / "final"), "pack" a Maps folder pk3, "custom" published from the editor */
+  special?: string;
 }
 
 export interface BotInfo {
@@ -333,6 +335,8 @@ export interface MenuItemDef {
   label: string;
   hint: string;
   page?: string;
+  /** opens a submenu (a group in menu.json) instead of a page */
+  submenu?: string;
   action?: string;
   when?: string;
 }

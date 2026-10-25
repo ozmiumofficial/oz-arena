@@ -8,7 +8,7 @@ config_version=5
 
 config/name="Q3Remaster"
 config/description="Remastered Quake III Arena: main menu, asset library, Gameplay and Map editor scenes."
-config/version="0.4.4-beta"
+config/version="0.4.5-beta"
 run/main_scene="res://scenes/splash/splash.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.png"

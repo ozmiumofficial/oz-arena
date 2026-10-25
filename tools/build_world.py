@@ -27,6 +27,9 @@ ap = argparse.ArgumentParser()
 ap.add_argument("root")
 ap.add_argument("work")
 ap.add_argument("--target", type=int, default=1024)
+ap.add_argument("--only-from", help="a root holding only some files (community maps' pk3s, extracted): the "
+                "materials, images and maps to emit are the ones that root has; `root` stays the full lookup "
+                "(id's textures first, these over them)")
 a = ap.parse_args()
 SRC = os.path.join(a.work, "src")
 os.makedirs(SRC, exist_ok=True)
@@ -43,9 +46,23 @@ GROUPS = {"base_wall": "metal", "base_trim": "metal", "base_floor": "metal", "ba
 textures, tex_index = [], {}
 
 
+# community maps keep their textures in folders of their own: the PBR group comes from the name
+KEYWORDS = (("sky", ("sky", "cloud")), ("light", ("lamp", "light", "glow", "beam", "lit", "neon")),
+            ("organic", ("grass", "leaf", "ivy", "fern", "vine", "wood", "crate", "straw", "trunk", "plant", "dirt", "moss")),
+            ("metal", ("metal", "steel", "iron", "chrome", "grate", "grill", "pipe", "plate", "rivet", "vent", "fan",
+                       "bolt", "nut", "electrical", "jump", "tele", "support", "beam", "girder", "rail")),
+            ("stone", ("concrete", "brick", "stone", "rock", "cliff", "plaster", "ground", "tile", "floor_paint", "grunge", "pillar")))
+
+
 def group_of(path):
     parts = path.split("/")
-    return GROUPS.get(parts[1] if len(parts) > 2 and parts[0] == "textures" else "", "metal")
+    folder = parts[1] if len(parts) > 2 and parts[0] == "textures" else ""
+    if folder in GROUPS:
+        return GROUPS[folder]
+    low = path.lower()
+    # anything else is painted or bare masonry: a metal default made lightmapped floors and walls
+    # nearly black (metals take little diffuse light; Rustgrad, 2026-10-24)
+    return next((g for g, words in KEYWORDS if any(w in low for w in words)), "stone")
 
 
 def register(path, kind, group, target=None):
@@ -56,6 +73,9 @@ def register(path, kind, group, target=None):
     if not full:
         return None
     key = (full, kind)
+    if a.only_from and group not in ("sky", "liquid"):
+        # a community texture's own path says what it is (a lamp image used by a ceiling shader is still a lamp)
+        group = group_of(os.path.splitext(os.path.relpath(full, a.root).replace("\\", "/"))[0])
     if key not in tex_index:
         rel = os.path.relpath(full, a.root).replace("\\", "/")
         stem = os.path.splitext(rel)[0].replace("textures/", "", 1).replace("/", "__")
@@ -79,17 +99,25 @@ def size_of(stem):
 
 
 shaders = q3shader.parse_all(a.root)
-world = {k: v for k, v in shaders.items() if k.startswith("textures/")}
+only_scripts = (set(os.path.basename(f).lower() for f in glob.glob(os.path.join(a.only_from, "scripts", "*.shader")))
+                if a.only_from else None)
+# a community pk3 can redefine an id shader (hub3aeroq3's gratelamp_flare): id's stays
+id_names = set(q3shader.parse_all(os.path.join(os.path.dirname(a.root.rstrip("/\\")), "retail"))) if a.only_from else set()
+world = {k: v for k, v in shaders.items() if k.startswith("textures/") and k not in id_names
+         and (only_scripts is None or v.source.lower() in only_scripts)}
 import q3bsp
 map_shaders = set()
-for bsp_file in glob.glob(os.path.join(a.root, "maps", "*.bsp")):
+for bsp_file in glob.glob(os.path.join(a.only_from or a.root, "maps", "*.bsp")):
     b = q3bsp.read_bsp(open(bsp_file, "rb").read())
     map_shaders.update(n for n in b.shader_names if not n.startswith("textures/") and n != "noshader")
 map_implicit = sorted(n for n in map_shaders if n not in shaders)
-world.update({n: shaders[n] for n in map_shaders if n in shaders})
+world.update({n: shaders[n] for n in map_shaders if n in shaders and n not in id_names and (only_scripts is None or shaders[n].source.lower() in only_scripts)})
+if only_scripts is not None:
+    map_implicit = [n for n in map_implicit if q3.resolve_texture(a.only_from, n)]
 images = sorted(os.path.splitext(os.path.relpath(f, a.root).replace("\\", "/"))[0]
                 for f in glob.glob(os.path.join(a.root, "textures", "**", "*.*"), recursive=True)
-                if f.lower().endswith((".tga", ".jpg")))
+                if f.lower().endswith((".tga", ".jpg"))
+                and (not a.only_from or os.path.isfile(os.path.join(a.only_from, os.path.relpath(f, a.root)))))
 materials = []
 
 for name, sh in sorted(world.items()):

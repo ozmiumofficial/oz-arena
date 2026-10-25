@@ -51,7 +51,7 @@ export function QuickPlayPage({ back }: PageProps) {
   const [on, setOn] = useState<Set<string>>(new Set(["ffa", "tdm", "ctf"]));
   const busy = queue.status === "queued" || queue.status === "found";
   return (
-    <PagePanel title="Quick Play" subtitle="Pick the playlists you're in the mood for; matchmaking finds the closest game." back={back}>
+    <PagePanel title="Matchmaking" subtitle="Pick the playlists you're in the mood for; matchmaking finds the closest game." back={back}>
       <div className="flex h-full flex-col px-10 py-6">
         <SectionTitle>Playlists</SectionTitle>
         <div data-grid="4" className="grid grid-cols-4 gap-3">
@@ -80,7 +80,7 @@ export function QuickPlayPage({ back }: PageProps) {
   );
 }
 
-export function ServerBrowserPage({ back }: PageProps) {
+export function ServerBrowserPage({ back, open }: PageProps) {
   const modes = useMenu((s) => s.init?.modes ?? []);
   const maps = useMenu((s) => s.init?.maps ?? []);
   const regions = useMenu((s) => s.init?.schema.find((e) => e.key === "network/region")?.options ?? []);
@@ -177,6 +177,8 @@ export function ServerBrowserPage({ back }: PageProps) {
         )}
         <div data-row className="flex items-center gap-3">
           <Button small onClick={() => netBrowse()}>Refresh</Button>
+          <Button small onClick={() => open("create_match")}>Host a match</Button>
+          <Button small onClick={() => open("dedicated")}>Dedicated server</Button>
           {joining && (
             <>
               <span className="text-[0.95rem] text-ink-hot">{joining.status === "asking" ? "Asking the host..." : "Connecting through the relay..."}</span>

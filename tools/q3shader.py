@@ -18,7 +18,7 @@ class Stage:
         self.map = None          # image path, "$lightmap", "$whiteimage"
         self.clamp = False
         self.anim = None         # (fps, [frames])
-        self.blend = "opaque"    # opaque | add | filter | blend | mask | other
+        self.blend = "opaque"    # opaque | add | filter | darken | blend | mask | other
         self.alphafunc = None
         self.rgbgen = None       # ("wave", func, base, amp, phase, freq) | ("identity",) | ...
         self.tcgen = None        # "environment" | "lightmap" | None
@@ -82,6 +82,11 @@ class Shader:
                 blend = "blend"
             elif base_stage.blend == "add":
                 blend = "add"
+            # a decal that multiplies what's under it: filter with no $lightmap stage (a lit wall
+            # is $lightmap then the texture as filter, which stays opaque), or darken
+            elif base_stage is layers[0] and (base_stage.blend == "darken" or (
+                    base_stage.blend == "filter" and not any(st.map == "$lightmap" for st in self.stages))):
+                blend = "filter" if base_stage.blend == "filter" else "darken"
         anim = base_stage.anim if base_stage is not None else None
         # an opaque layer drawn first and a paint layer blended over it: the first layer shows
         # where the paint is clear (console: a reflection; diamond2c_ow: energy under a grate)
@@ -177,6 +182,10 @@ def _parse_stage(text):
                 st.blend = "filter"
             elif pair == ("gl_src_alpha", "gl_one_minus_src_alpha"):
                 st.blend = "blend"
+            elif pair == ("gl_src_alpha", "gl_one"):
+                st.blend = "add"      # added by alpha: a jpg (no alpha) adds in full (Rustgrad's dust motes)
+            elif pair == ("gl_zero", "gl_one_minus_src_color"):
+                st.blend = "darken"   # dst * (1 - src): grunge and dirt decals
             elif pair == ("gl_one", "gl_zero"):
                 st.blend = "opaque"
             else:

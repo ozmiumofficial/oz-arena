@@ -19,6 +19,8 @@ void Q3Net::_bind_methods() {
 	ClassDB::bind_static_method("Q3Net", D_METHOD("outgoing", "max_packets"), &Q3Net::outgoing);
 	ClassDB::bind_static_method("Q3Net", D_METHOD("frame", "msec", "extrapolated"), &Q3Net::frame);
 	ClassDB::bind_static_method("Q3Net", D_METHOD("hold_entry", "hold"), &Q3Net::hold_entry);
+	ClassDB::bind_static_method("Q3Net", D_METHOD("missing_map"), &Q3Net::missing_map);
+	ClassDB::bind_static_method("Q3Net", D_METHOD("reload_map"), &Q3Net::reload_map);
 	ClassDB::bind_static_method("Q3Net", D_METHOD("rcon", "password", "command"), &Q3Net::rcon);
 	ClassDB::bind_static_method("Q3Net", D_METHOD("rcon_output"), &Q3Net::rcon_output);
 	ClassDB::bind_static_method("Q3Net", D_METHOD("time"), &Q3Net::time);
@@ -90,6 +92,16 @@ int Q3Net::frame(int msec, bool extrapolated) {
 // While the game loads the map, a primed client stays out of the world (see q3_nc_hold_entry).
 void Q3Net::hold_entry(bool hold) {
 	q3_nc_hold_entry(hold ? 1 : 0);
+}
+
+// The server's map when it isn't in any pak here (the game downloads it from the host), else "".
+String Q3Net::missing_map() {
+	return String::utf8(q3_nc_missing_map());
+}
+
+// After the missing map's pk3 is saved: the paks are read again and the map loads. 0 on success.
+int Q3Net::reload_map() {
+	return q3_nc_reload_map();
 }
 
 // A remote console command (the server's rconpassword); the answer is read back with rcon_output() after the packets travel.

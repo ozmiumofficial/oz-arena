@@ -11,8 +11,8 @@ people yet. Online multiplayer is planned; see the project page below for what's
 Installing
 ----------
 1. Unzip this folder anywhere.
-2. Put textures-1.pck and textures-2.pck (separate downloads on the same release page)
-   in this folder, next to Q3Remaster.exe.
+2. Put textures-1.pck, textures-2.pck and textures-3.pck (the "Textures" release on the project page, a separate
+   download that is only needed once) in this folder, next to Q3Remaster.exe.
 3. Run Q3Remaster.exe.
 
 On the first launch the game asks for your Quake III Arena: drag your pak0.pk3 (from the game's

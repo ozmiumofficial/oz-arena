@@ -58,3 +58,6 @@ godot/addons/webrtc_native/lib/
 **/.env
 # Godot's copies of a loaded GDExtension (it renames the old one while the editor holds it)
 **/~*.dll
+
+# --- community maps (author licenses forbid modification/redistribution: local only until permission) ---
+/Maps/

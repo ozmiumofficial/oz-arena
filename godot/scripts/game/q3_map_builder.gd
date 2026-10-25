@@ -56,6 +56,12 @@ static func build(map: String) -> Error:
 	lm.environment_custom_color = Color.WHITE
 	lm.environment_custom_energy = sky_sl / 255.0 * SKY_SCALE * float(info.get("light_scale", 1.0))
 	lm.texel_scale = 1.0
+	# per-map overrides (tools/map_lighting.json "_bake"): big maps bake coarser or the atlas fails to save
+	var bake: Dictionary = info.get("bake", {})
+	lm.texel_scale = float(bake.get("texel_scale", lm.texel_scale))
+	lm.bounces = int(bake.get("bounces", lm.bounces))
+	if bake.get("quality", "") == "medium":
+		lm.quality = LightmapGI.BAKE_QUALITY_MEDIUM
 	_add(root, lm)
 
 	for n in root.find_children("*", "", true, false):

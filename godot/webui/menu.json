@@ -4,14 +4,20 @@
     {
       "id": "single_player",
       "label": "Single Player",
-      "hint": "Quake III Arena's campaign: tiers of arenas up to the final duel",
-      "page": "single_player"
+      "hint": "Skirmish against bots, or the Quake III Arena campaign",
+      "submenu": "single"
     },
     {
       "id": "play",
       "label": "Play",
-      "hint": "Matchmaking, servers, bots and training",
-      "page": "play"
+      "hint": "Matchmaking and ranked",
+      "submenu": "play"
+    },
+    {
+      "id": "multiplayer",
+      "label": "Multiplayer",
+      "hint": "Find a server: filters, favorites, history",
+      "page": "server_browser"
     },
     {
       "id": "map_editor",
@@ -24,6 +30,18 @@
       "label": "Profile",
       "hint": "Character, colors, stats",
       "page": "profile"
+    },
+    {
+      "id": "leaderboards",
+      "label": "Leaderboards",
+      "hint": "The top players by level and by ranked MMR",
+      "page": "leaderboards"
+    },
+    {
+      "id": "replays",
+      "label": "Replays",
+      "hint": "Watch your recorded matches from any player's view",
+      "page": "replays"
     },
     {
       "id": "cinematics",
@@ -60,8 +78,8 @@
     },
     {
       "id": "quick_play",
-      "label": "Quick Play",
-      "hint": "Matchmaking into a casual game",
+      "label": "Matchmaking",
+      "hint": "Casual games: the closest match for the playlists you pick",
       "page": "quick_play"
     },
     {
@@ -69,52 +87,11 @@
       "label": "Ranked",
       "hint": "Competitive queues with a ladder",
       "page": "ranked"
-    },
-    {
-      "id": "leaderboards",
-      "label": "Leaderboards",
-      "hint": "The top players by level and by ranked MMR",
-      "page": "leaderboards"
-    },
-    {
-      "id": "replays",
-      "label": "Replays",
-      "hint": "Watch your recorded matches from any player's view",
-      "page": "replays"
-    },
-    {
-      "id": "server_browser",
-      "label": "Server Browser",
-      "hint": "Find a server: filters, favorites, history",
-      "page": "server_browser"
-    },
-    {
-      "id": "dedicated",
-      "label": "Dedicated Server",
-      "hint": "Run an always-on server from this PC",
-      "page": "dedicated"
-    },
-    {
-      "id": "create_match",
-      "label": "Create Match",
-      "hint": "Mode, map, rules, modifiers and bots",
-      "page": "create_match"
-    },
-    {
-      "id": "offline_bots",
-      "label": "Offline vs Bots",
-      "hint": "A quick game against bots",
-      "page": "offline_bots"
-    },
-    {
-      "id": "training",
-      "label": "Training",
-      "hint": "Practice movement, aim and duels",
-      "page": "training"
     }
   ],
   "pages": [
     "single_player",
+    "campaign",
     "play",
     "quick_play",
     "ranked",
@@ -138,5 +115,25 @@
     "quit",
     "campaign_start",
     "cinematic"
+  ],
+  "single": [
+    {
+      "id": "skirmish",
+      "label": "Skirmish",
+      "hint": "Offline with bots: pick the mode and the map",
+      "page": "offline_bots"
+    },
+    {
+      "id": "campaign",
+      "label": "Campaign",
+      "hint": "Quake III Arena's tiers of arenas up to the final duel",
+      "page": "campaign"
+    },
+    {
+      "id": "training",
+      "label": "Training",
+      "hint": "Practice movement, aim and duels",
+      "page": "training"
+    }
   ]
 }

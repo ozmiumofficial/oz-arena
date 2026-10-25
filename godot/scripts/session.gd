@@ -16,7 +16,7 @@ const INTRO_PLAYED := "user://intro_played"
 
 var setup: Q3MatchSetup              ## the match Gameplay runs (null in the menu)
 var modifiers: Array = []            ## game/modifiers.json
-var maps: Array = []                 ## library/ui/maps.json (arenas.txt + .arena files), then published maps
+var maps: Array = []                 ## library/ui/maps.json (arenas.txt + .arena files), the Maps folder's pk3s, then published maps
 var bots: Array = []                 ## scripts/bots.txt
 var campaign: Q3Campaign             ## Quake 3's single-player tiers and this player's progress
 var cinematics: Array = []           ## library/cinematics/cinematics.json, q3_ui's Cinematics menu order
@@ -61,10 +61,14 @@ func _ready() -> void:
 		cinematics = Q3.load_json(Q3.LIB + "cinematics/cinematics.json").get("cinematics", [])
 
 
-## maps is Quake 3's arenas and then the maps published from the map editor (Q3MapPublish), which
-## carry special "custom" and the document Gameplay draws them from.
+## maps is Quake 3's arenas, then the maps dropped into the Maps folder (Q3MapPacks, special "pack":
+## found at startup, nothing rebuilt), then the maps published from the map editor (Q3MapPublish),
+## which carry special "custom" and the document Gameplay draws them from.
 func refresh_custom_maps() -> void:
-	maps = _arenas + Q3MapPublish.list()
+	var known := {}
+	for m in _arenas:
+		known[m["map"]] = true
+	maps = _arenas + Q3MapPacks.list(known) + Q3MapPublish.list()
 
 
 func mode(id: String) -> Q3GameMode:

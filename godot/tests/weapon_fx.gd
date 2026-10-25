@@ -1,5 +1,5 @@
 extends Node
-## Windowed check of every weapon's effects in a real match: devmap q3dm17, "give all", then each
+## Windowed check of every weapon's effects in a real match: devmap q3dm6 (map=), "give all", then each
 ## weapon (gauntlet to BFG) fired for 1.5 s at the floor ahead, with frames saved while it fires and
 ## after it stops (marks, smoke). One bot runs about so remote players' effects show up too.
 ##   godot --path . res://tests/weapon_fx.tscn -- out=C:/temp/wfx
@@ -17,6 +17,7 @@ var _old_preset := ""        ## move=1: run and jump the whole time (speedometer
 var _flash_frames := {}   ## weapon -> frames its view flash was on (-1: the model has no flash)
 var sweep := 0.0
 var _yaw0 := INF
+var map_name := "q3dm6"   ## map=<name>; not q3dm17, whose edges drop into the void (Ozmium, 2026-10-25)
 
 
 func _ready() -> void:
@@ -29,12 +30,19 @@ func _ready() -> void:
 			sweep = float(a.substr(6))
 		if a == "move=1":
 			_move = true
+		if a.begins_with("map="):
+			map_name = a.substr(4)
+		if a.begins_with("set="):
+			# set=graphics/rail_style=classic: a setting for this run only, not saved
+			var kv := a.substr(4).split("=", true, 1)
+			var v: Variant = Settings.get_value(kv[0])
+			Settings.set_value(kv[0], type_convert(kv[1], typeof(v)) if typeof(v) != TYPE_STRING else kv[1], false)
 		if a.begins_with("preset="):
 			# shown for this run only; the player's own setting is put back before quitting
 			_old_preset = String(Settings.get_value("hud/preset"))
 			Settings.set_value("hud/preset", a.substr(7))
 	Engine.max_fps = 60
-	var s := Session.new_setup("ffa", "q3dm17")
+	var s := Session.new_setup("ffa", map_name)
 	s.bots = [{"name": "Sarge", "skill": 1, "team": ""}]
 	s.set_meta("devmap", true)
 	Session.setup = s

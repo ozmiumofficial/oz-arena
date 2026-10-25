@@ -12,7 +12,8 @@ const CAPACITY := 512
 var _puffs: Array[Dictionary] = []
 
 
-static func create(parent: Node, tex_name: String) -> Q3Puffs:
+## `additive`: glowing puffs (the remaster's fire and energy trails), added instead of blended.
+static func create(parent: Node, tex_name: String, additive := false) -> Q3Puffs:
 	var p := Q3Puffs.new()
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -25,8 +26,10 @@ static func create(parent: Node, tex_name: String) -> Q3Puffs:
 	mm.visible_instance_count = 0
 	p.multimesh = mm
 	var mat := ShaderMaterial.new()
-	mat.shader = load("res://shaders/fx_puff.gdshader")
+	mat.shader = load("res://shaders/fx_puff_add.gdshader" if additive else "res://shaders/fx_puff.gdshader")
 	mat.set_shader_parameter("tex", Q3.fx_texture(tex_name))
+	if additive:
+		mat.set_shader_parameter("intensity", Q3FX.gain())
 	p.material_override = mat
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	p.extra_cull_margin = 16384.0   # instances spread over the whole map

@@ -32,6 +32,12 @@ const EXPLOSIONS := {E.WP_ROCKET_LAUNCHER: "rocket", E.WP_GRENADE_LAUNCHER: "gre
 	E.WP_LIGHTNING: "lightning"}
 ## missile smoke (CG_RocketTrail / CG_GrenadeTrail): a puff every 50 ms; radius, life (ms)
 const TRAILS := {E.WP_ROCKET_LAUNCHER: [64.0, 2000.0], E.WP_GRENADE_LAUNCHER: [32.0, 700.0]}
+## Graphics > Missile trails > Enhanced (the remaster's, after WolfcamQL's trail options): glowing
+## puffs behind each missile: step (ms), radius (units), life (ms), color
+const GLOW_TRAILS := {E.WP_ROCKET_LAUNCHER: [10.0, 9.0, 170.0, Color(1.0, 0.55, 0.2)],
+	E.WP_GRENADE_LAUNCHER: [16.0, 5.0, 220.0, Color(1.0, 0.4, 0.12)],
+	E.WP_PLASMAGUN: [6.0, 6.0, 160.0, Color(0.35, 0.5, 1.0)],
+	E.WP_BFG: [10.0, 16.0, 320.0, Color(0.3, 1.0, 0.3)]}
 const MASK_SHOT := 0x6000001          ## CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_CORPSE
 const MASK_WATER := 32 | 16 | 8       ## CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA
 const CONTENTS_WATER := 32
@@ -72,6 +78,7 @@ var _local_ps: Dictionary = {}
 var _smoke: Q3Puffs                ## smokePuff: rocket and grenade trails
 var _shotgun_smoke: Q3Puffs
 var _bubbles: Q3Puffs              ## CG_BubbleTrail: rockets, grenades, bullets and pellets under water
+var _glow_trail: Q3Puffs           ## the remaster's glowing missile trails (GLOW_TRAILS)
 var _sparks: Q3Sparks
 var _burns: Q3Burns                ## the lightning gun's burn lines
 var _beams: Dictionary = {}        ## entity -> Q3LightningBeam while the lightning gun fires
@@ -112,6 +119,7 @@ func _ready() -> void:
 	_sparks = Q3Sparks.create(self)
 	_burns = Q3Burns.create(self)
 	_bubbles = Q3Puffs.create(self, "bubble")
+	_glow_trail = Q3Puffs.create(self, "flare", true)
 	Settings.changed.connect(_on_setting)
 	_helpers = get_children()   # what reset() keeps
 	Q3FX.warm_up(self)
@@ -274,6 +282,7 @@ func reset() -> void:
 	_smoke.clear()
 	_shotgun_smoke.clear()
 	_bubbles.clear()
+	_glow_trail.clear()
 	_sparks.clear()
 	_burns.clear()
 	# the mirror body is rebuilt for whoever is watched now
@@ -309,6 +318,7 @@ func clear_local() -> void:
 	_smoke.clear()
 	_shotgun_smoke.clear()
 	_bubbles.clear()
+	_glow_trail.clear()
 	_sparks.clear()
 	_burns.clear()
 	for child in get_children():
@@ -392,8 +402,10 @@ func _missile_frame(e: Dictionary, node: Node3D) -> void:
 	var x0 := z.cross(Vector3.UP if absf(z.y) < 0.95 else Vector3.RIGHT).normalized()
 	var x := x0.rotated(z, deg_to_rad(_now / 4.0 if moving else float(es.get("time", 0))))
 	node.basis = Basis(x, z.cross(x), z)
-	var trail: Array = TRAILS.get(int(es["weapon"]), [])
-	if trail.is_empty():
+	var weapon := int(es["weapon"])
+	var trail: Array = TRAILS.get(weapon, [])
+	var glow: Array = GLOW_TRAILS.get(weapon, []) if Settings.get_value("graphics/missile_trails") == "enhanced" else []
+	if trail.is_empty() and glow.is_empty():
 		return
 	# CG_RocketTrail: a puff at every 50 ms step of the trajectory since the last frame
 	var step := 50.0
@@ -405,13 +417,20 @@ func _missile_frame(e: Dictionary, node: Node3D) -> void:
 	var contents := feed.point_contents(here, -1)
 	if contents & MASK_WATER:
 		# under water: CG_RocketTrail's bubbles instead of smoke, while it was in water last frame too
-		if contents & feed.point_contents(trajectory(tr, start), -1) & CONTENTS_WATER:
+		if not trail.is_empty() and contents & feed.point_contents(trajectory(tr, start), -1) & CONTENTS_WATER:
 			_bubble_trail(trajectory(tr, start), here, 8.0)
 		return
-	var t := step * floorf((start + step) / step)
-	while t <= _now:
-		_smoke.add(Q3.q3_to_godot(trajectory(tr, t)), Vector3.ZERO, trail[0], 0.33, trail[1], t)
-		t += step
+	if not trail.is_empty():
+		var t := step * floorf((start + step) / step)
+		while t <= _now:
+			_smoke.add(Q3.q3_to_godot(trajectory(tr, t)), Vector3.ZERO, trail[0], 0.33, trail[1], t)
+			t += step
+	if not glow.is_empty():
+		var gs: float = glow[0]
+		var t := gs * floorf((start + gs) / gs)
+		while t <= _now:
+			_glow_trail.add(Q3.q3_to_godot(trajectory(tr, t)), Vector3.ZERO, glow[1], 1.0, glow[2], t, false, glow[3])
+			t += gs
 
 
 # ---------------------------------------------------------------- entities
@@ -1520,6 +1539,7 @@ func present(local_ps: Dictionary, eye_pos: Vector3) -> void:
 	_smoke.step(_now, eye)
 	_shotgun_smoke.step(_now, eye)
 	_bubbles.step(_now, eye)
+	_glow_trail.step(_now, eye)
 	_sparks.step(get_process_delta_time(), eye)
 
 

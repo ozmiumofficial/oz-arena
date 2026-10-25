@@ -17,6 +17,9 @@ const SPRITE_MIX := "res://shaders/fx_sprite_mix.gdshader"
 const SCROLL_ADD := "res://shaders/fx_scroll_add.gdshader"
 const SHELL := "res://shaders/powerup_shell.gdshader"
 const HEAT := "res://shaders/fx_heat.gdshader"
+const GLOW_BEAM := "res://shaders/fx_glow_beam.gdshader"
+## Graphics > Particles: share of the remaster's particles each effect throws (as Q3Sparks.AMOUNT)
+const AMOUNT := {"low": 0.35, "medium": 0.65, "high": 1.0}
 ## CG_MakeExplosion isSprite: these blasts are camera-facing sprites growing from 30 to 72 units
 ## (CG_AddSpriteExplosion); the rest are their model (bullet flash, ring) lying along the normal.
 const SPRITE_EXPLOSIONS := ["rocket", "grenade", "bfg"]
@@ -149,8 +152,9 @@ static func light(r: Q3FxTimed, radius_units: float, color: Color, energy := 4.0
 	return l
 
 
-## One-shot GPU particles, emitted along the root's +Y (the surface normal). Showcase only: the
-## game's effects are Quake 3's own.
+## One-shot GPU particles, emitted along the root's +Y (the surface normal). The remaster's own
+## additions use them (pickup bursts, enhanced explosions, heavy blood, gib blood trails);
+## Quake 3's effects don't.
 static func particles(r: Node3D, tex_name: String, amount: int, life: float, speed: Vector2, spread: float,
 		gravity: float, size: Vector2, grow: float, ramp: Gradient, additive: bool) -> GPUParticles3D:
 	var p := GPUParticles3D.new()
@@ -275,24 +279,147 @@ static func explosion(parent: Node, kind: String, pos: Vector3, normal := Vector
 		r.light_hold = true
 	if mark and d.get("mark") and Settings.get_value("graphics/decals"):
 		decal(r, d["mark"], float(d["mark_radius"]), String(d["mark"]) == "mark_energy", mark_tint)
+	if Settings.get_value("graphics/explosions") == "enhanced":
+		blast(r, kind, mark_tint)
 	return r
+
+
+## Graphics > Explosions > Enhanced (the remaster's, after WolfcamQL's explosion and smoke
+## options), added to an explosion's root (its +Y the surface normal): embers thrown off and smoke
+## left rising after rocket and grenade blasts, and a small glow where energy shots hit. `color` is
+## the rail's (its color2); the other kinds have their own.
+static func blast(r: Q3FxTimed, kind: String, color := Color.WHITE) -> void:
+	match kind:
+		"rocket", "grenade":
+			var fire := Color(1.0, 0.55, 0.2)
+			# id's own fireball sprite stays the blast; this adds what's left after it
+			_embers(r, 30, Vector2(3.0, 10.0), 1.1, _ramp([Color(1, 0.9, 0.6, 1), Color(1, 0.45, 0.1, 1), Color(0.5, 0.08, 0.02, 0)]))
+			_smoke(r, 12, 2.6, Color(0.22, 0.2, 0.19))
+		"bfg":
+			var green := Color(0.35, 1.0, 0.35)
+			_embers(r, 24, Vector2(3.0, 9.0), 0.9, _ramp([Color(0.8, 1, 0.8, 1), green, Color(0.1, 0.4, 0.1, 0)]))
+		"plasma":
+			var blue := Color(0.45, 0.6, 1.0)
+			_flash(r, blue, 26.0, 0.16)
+			_embers(r, 8, Vector2(1.5, 4.0), 0.4, _ramp([Color(0.9, 0.95, 1, 1), blue, Color(0.1, 0.15, 0.6, 0)]))
+		"rail":
+			_flash(r, color, 28.0, 0.22)
+		"lightning":
+			_flash(r, Color(0.6, 0.75, 1.0), 12.0, 0.1)
+
+
+## A small flare swelling from a third of `radius` (id units) and fading over `seconds`, off the
+## surface: the energy weapons' impact glow.
+static func _flash(r: Q3FxTimed, color: Color, radius: float, seconds: float) -> void:
+	var f := Q3FxTimed.new()
+	r.add_child(f)
+	f.position = Vector3.UP * radius * 0.25 * Q3.UNIT
+	f.life = seconds
+	var s := sprite(f, "flare", radius, color, 1.2)
+	var mat := s.material_override as ShaderMaterial
+	mat.set_shader_parameter("grow_from", 0.35)
+	mat.set_shader_parameter("fade_start", 0.0)
+	r.linger = maxf(r.linger, seconds - r.life)
+
+
+## Glowing embers thrown off the surface, falling (`speed` in m/s), for about `life` seconds.
+static func _embers(r: Q3FxTimed, count: int, speed: Vector2, life: float, ramp: Gradient) -> void:
+	var n := _amount(count)
+	if n <= 0:
+		return
+	particles(r, "flare", n, life, speed, 75.0, 9.0, Vector2(0.05, 0.12), 0.3, ramp, true)
+	r.linger = maxf(r.linger, life * 1.5 - r.life)
+
+
+## Dark smoke rising slowly from the blast and spreading, for `life` seconds.
+static func _smoke(r: Q3FxTimed, count: int, life: float, color: Color) -> void:
+	var n := _amount(count)
+	if n <= 0:
+		return
+	var p := particles(r, "smoke_puff", n, life, Vector2(0.3, 1.3), 55.0, -0.35, Vector2(0.7, 1.3), 2.6,
+		_ramp([Color(color.r, color.g, color.b, 0.0), Color(color.r, color.g, color.b, 0.55),
+			Color(color.r * 1.4, color.g * 1.4, color.b * 1.4, 0.0)]), false)
+	(p.process_material as ParticleProcessMaterial).emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	(p.process_material as ParticleProcessMaterial).emission_sphere_radius = 0.4
+	r.linger = maxf(r.linger, life * 1.5 - r.life)
+
+
+static func _amount(count: int) -> int:
+	return int(round(count * float(AMOUNT.get(Settings.get_value("graphics/particles"), 1.0))))
 
 
 ## CG_RailTrail: the core from the muzzle (4 units lower) to the end in color1, fading over
 ## cg_railTrailTime 400 ms, and the spiral of discs in color2 starting 20 units out.
-static func rail(parent: Node, from: Vector3, to: Vector3, color1 := Color(1, 0, 0), color2 := Color(1, 0, 1)) -> Q3FxTimed:
+## Graphics > Rail trail (the remaster's, after WolfcamQL's rail options): "classic" is that;
+## "glow" adds a halo in color1 that outlasts the core and spreads as it fades; "ql" is Quake
+## Live's single thick glowing beam; "core" drops the spiral. Rail width scales core and halo.
+static func rail(parent: Node, from: Vector3, to: Vector3, color1 := Color(1, 0, 0), color2 := Color(1, 0, 1),
+		style := "") -> Q3FxTimed:
 	var cfg: Dictionary = Q3.fx["rail_trail"]
+	if style == "":
+		style = String(Settings.get_value("graphics/rail_style"))
+	var w := float(Settings.get_value("graphics/rail_width"))
 	var r := Q3FxTimed.new()
 	parent.add_child(r)
 	r.life = float(cfg["core_life"]) / 1000.0
 	r.linger = 1.2
 	var start := from + Vector3.DOWN * 4.0 * Q3.UNIT
-	r.materials.append(_beam(r, start, to, cfg["core"], 6.0, color1 * 0.75, Vector2.ZERO, 0.0, {}))
-	var rings := MultiMeshInstance3D.new()
-	rings.set_script(Q3.held("res://scripts/fx/fx_rail_rings.gd"))
-	r.add_child(rings)
-	rings.setup(start + (to - start).normalized() * float(cfg["core_start"]) * Q3.UNIT, to, cfg, color2)
+	if style == "ql":
+		var g := Q3FxTimed.new()
+		r.add_child(g)
+		g.life = 0.7
+		g.materials.append(glow_beam(g, start, to, 12.0 * w, color1, {"core": 0.3, "core_gain": 1.6,
+			"halo_gain": 0.8, "spread": 0.6, "fade_pow": 1.6}))
+		return r
+	r.materials.append(_beam(r, start, to, cfg["core"], 6.0 * w, color1 * 0.75, Vector2.ZERO, 0.0, {}))
+	if style == "glow":
+		var g := Q3FxTimed.new()
+		r.add_child(g)
+		g.life = 1.0
+		g.materials.append(glow_beam(g, start, to, 14.0 * w, color1, {"core": 0.22, "core_gain": 1.0,
+			"halo_gain": 0.55, "spread": 2.5, "fade_pow": 1.3}))
+	if style != "core":
+		var rings := MultiMeshInstance3D.new()
+		rings.set_script(Q3.held("res://scripts/fx/fx_rail_rings.gd"))
+		r.add_child(rings)
+		rings.setup(start + (to - start).normalized() * float(cfg["core_start"]) * Q3.UNIT, to, cfg, color2)
 	return r
+
+
+## The remaster's glowing beam (fx_glow_beam.gdshader): three soft quads from `from` to `to`,
+## crossed 60° apart about the beam as id's beams are, `width` id units across, its material's
+## uniforms overridden by `opts`. One Node3D holds them (child 0 of `r`'s new children; aim it with
+## beam_transform and size its quads with glow_beam_size). It fades with its Q3FxTimed's progress
+## when the caller adds the material to that effect's `materials`.
+static func glow_beam(r: Node3D, from: Vector3, to: Vector3, width: float, color: Color, opts := {}) -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = Q3.held(GLOW_BEAM)
+	mat.set_shader_parameter("color", color)
+	mat.set_shader_parameter("intensity", gain())
+	for k in opts:
+		mat.set_shader_parameter(k, opts[k])
+	var holder := Node3D.new()
+	holder.name = "GlowBeam"
+	r.add_child(holder)
+	for i in 3:
+		var mi := MeshInstance3D.new()
+		mi.mesh = QuadMesh.new()
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.rotation.x = PI / 3.0 * float(i)
+		holder.add_child(mi)
+	glow_beam_size(holder, mat, from, to, width)
+	return mat
+
+
+## Aims and sizes a glow_beam's holder from `from` to `to`, `width` id units across.
+static func glow_beam_size(holder: Node3D, mat: ShaderMaterial, from: Vector3, to: Vector3, width: float) -> void:
+	var length := maxf(from.distance_to(to), 0.001)
+	holder.global_transform = beam_transform(from, to)
+	for mi in holder.get_children():
+		((mi as MeshInstance3D).mesh as QuadMesh).size = Vector2(length, width * Q3.UNIT)
+		(mi as MeshInstance3D).extra_cull_margin = width * Q3.UNIT * 4.0
+	mat.set_shader_parameter("length_m", length)
 
 
 ## A lightning beam that lasts `seconds` (showcase); the game holds a Q3LightningBeam instead.
@@ -571,13 +698,33 @@ static func brass(parent: Node, kind: String, at: Vector3, axis: Basis, water :=
 		_expire_fragment(parent, body, randf_range(float(life[0]), float(life[1])))
 
 
-## CG_Bleed: the blood sprite, 24 units, 500 ms.
+## CG_Bleed: the blood sprite, 24 units, 500 ms. Graphics > Blood: "off" draws nothing, "heavy"
+## (the remaster's) adds a spray of droplets falling away.
 static func blood(parent: Node, pos: Vector3) -> Q3FxTimed:
 	var d: Dictionary = Q3.fx["blood"]
 	var r := _root(parent, pos)
 	r.life = float(d["duration"]) / 1000.0
+	var level := String(Settings.get_value("graphics/blood"))
+	if level == "off":
+		return r
 	sprite(r, d["sprite"], float(d["radius"]))
+	if level == "heavy":
+		var n := _amount(18)
+		if n > 0:
+			particles(r, "mark_blood", n, 0.8, Vector2(1.0, 4.0), 90.0, 9.8, Vector2(0.05, 0.11), 0.6,
+				_ramp([Color(0.55, 0.0, 0.0, 0.95), Color(0.35, 0.0, 0.0, 0.0)]), false)
+			r.linger = 1.2
 	return r
+
+
+## cg_localents.c CG_BloodTrail: a flying gib leaves blood puffs that fall behind it (id draws one
+## every 150 ms); here a stream of particles in world space, on the gib until it goes.
+static func _blood_trail(body: Node3D) -> void:
+	var p := particles(body, "mark_blood", 14, 0.7, Vector2(0.0, 0.3), 180.0, 4.0, Vector2(0.1, 0.18), 1.6,
+		_ramp([Color(0.5, 0.0, 0.0, 0.85), Color(0.3, 0.0, 0.0, 0.0)]), false)
+	p.one_shot = false
+	p.explosiveness = 0.0
+	p.local_coords = false
 
 
 ## CG_GibPlayer: 10 gibs, xy = crandom * 250, z = 250 + crandom * 250 units/s, bounce 0.6.
@@ -591,6 +738,7 @@ static func gibs(parent: Node, pos: Vector3) -> void:
 	var ids: Array = (d["models"] as Array).duplicate()
 	if not ids.is_empty() and ids[0] == "gibs/skull" and randi() & 1:
 		ids[0] = "gibs/brain"
+	var bloody: bool = Settings.get_value("graphics/blood") != "off"
 	for id in ids:
 		var body := RigidBody3D.new()
 		body.physics_material_override = mat
@@ -604,6 +752,8 @@ static func gibs(parent: Node, pos: Vector3) -> void:
 		var model := Q3.instance_prop(id)
 		if model:
 			body.add_child(model)
+		if bloody:
+			_blood_trail(body)
 		parent.add_child(body)
 		body.global_position = pos + Vector3(randf_range(-0.2, 0.2), 0.3, randf_range(-0.2, 0.2))
 		var v := Vector3(randf_range(-1, 1) * 250.0, randf_range(-1, 1) * 250.0, 250.0 + randf_range(-1, 1) * 250.0)
@@ -636,7 +786,7 @@ static func _gib_bounce(body: RigidBody3D, parent: Node) -> void:
 			a.global_position = at
 			a.finished.connect(a.queue_free)
 			a.play()
-	if not Settings.get_value("graphics/decals"):
+	if not Settings.get_value("graphics/decals") or Settings.get_value("graphics/blood") == "off":
 		return
 	# the surface it hit (CG_FragmentBounceMark's trace->plane): toward the contact the physics
 	# reports, else straight down, else along its flight (already bounced off by now)
@@ -806,8 +956,16 @@ static func warm_up(parent: Node3D) -> void:
 	var p := at.global_position
 	for kind in Q3.fx.get("explosions", {}):
 		explosion(at, kind, p)
-	rail(at, p, p + Vector3.FORWARD * 8.0)
+		var b := _root(at, p)
+		blast(b, kind)   # whatever Graphics > Explosions says now, it may change mid-match
+	for style in ["classic", "glow", "ql"]:
+		rail(at, p, p + Vector3.FORWARD * 8.0, Color.RED, Color.RED, style)
 	lightning(at, p, p + Vector3.FORWARD * 8.0)
+	blood(at, p)
+	_blood_trail(at)
+	var trail := Q3Puffs.create(at, "flare", true)
+	trail.add(p, Vector3.ZERO, 8.0, 1.0, 100.0, 0.0)
+	trail.step(0.0, p + Vector3.UP * 100.0)
 	tracer(at, p, p + Vector3.FORWARD * 8.0, p + Vector3.UP)
 	for w in [4, 5, 8, 9]:   # WP_GRENADE_LAUNCHER, WP_ROCKET_LAUNCHER, WP_PLASMAGUN, WP_BFG
 		missile(at, w)

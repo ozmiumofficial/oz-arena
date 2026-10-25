@@ -144,6 +144,19 @@ static func build() -> Array:
 	L.append(_e("graphics/heat_shimmer", "Heat shimmer", "bool", true, "Air ripples behind rockets and around explosions.", g))
 	L.append(_e("graphics/decals", "Marks and decals", "bool", true, "Bullet holes, burns and blood on walls.", g))
 	L.append(_e("graphics/gibs", "Gibs", "bool", true, "Bodies burst into gibs on big hits (cg_gibs). Off: they burn away instead.", g))
+	g = "Weapon effects"
+	L.append(_e("graphics/rail_style", "Rail trail", "enum", "glow", "How the railgun's shot is drawn. Classic is Quake 3's core and spiral; Glow adds a bright halo that lingers and spreads; Quake Live is one thick glowing beam; Core is the beam alone.", g,
+		{"options": [["classic", "Classic spiral"], ["glow", "Glow spiral"], ["ql", "Quake Live beam"], ["core", "Core only"]]}))
+	L.append(_e("graphics/rail_width", "Rail width", "float", 1.0, "Thickness of the rail's core and halo.", g, {"min": 0.5, "max": 3.0, "step": 0.05, "unit": "x"}))
+	L.append(_e("graphics/lightning_style", "Lightning beam", "enum", "glow", "Classic is Quake 3's bolt. Glow wraps it in a soft halo and lights up where it hits.", g,
+		{"options": [["classic", "Classic"], ["glow", "Glow"]]}))
+	L.append(_e("graphics/lightning_width", "Lightning width", "float", 1.0, "Thickness of the lightning gun's beam.", g, {"min": 0.25, "max": 3.0, "step": 0.05, "unit": "x"}))
+	L.append(_e("graphics/missile_trails", "Missile trails", "enum", "enhanced", "Classic is Quake 3's smoke. Enhanced adds a burning core to rockets and grenades and glowing trails to plasma and the BFG.", g,
+		{"options": [["classic", "Classic"], ["enhanced", "Enhanced"]]}))
+	L.append(_e("graphics/explosions", "Explosions", "enum", "enhanced", "Classic is Quake 3's flash and mark. Enhanced adds flying embers and lingering smoke to blasts, and a glow to energy hits.", g,
+		{"options": [["classic", "Classic"], ["enhanced", "Enhanced"]]}))
+	L.append(_e("graphics/blood", "Blood", "enum", "classic", "Off removes blood puffs, trails and stains. Heavy adds sprays of droplets.", g,
+		{"options": [["off", "Off"], ["classic", "Classic"], ["heavy", "Heavy"]]}))
 
 	# ---- Audio
 	g = "Volume"

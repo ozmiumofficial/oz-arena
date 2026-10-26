@@ -370,9 +370,18 @@ func _lightmaps(pages: Array[Image], users: Array) -> void:
 	var gi := LightmapGI.new()
 	gi.name = "LightmapGI"
 	add_child(gi)
+	var bounds := AABB()
 	for u in users:
 		if u[1] < pages.size():
 			data.add_user(NodePath("../Geometry/" + String(u[0])), Rect2(0, 0, 1, 1), u[1], -1)
+			var box := (get_node("Geometry/" + String(u[0])) as MeshInstance3D).get_aabb()
+			bounds = box if bounds.size == Vector3.ZERO else bounds.merge(box)
+	# Godot culls a lightmap by these bounds like any object, and the meshes it lights lose it while
+	# they're out of view. A bake stores them; without them they were a point at the map's origin,
+	# so turning away from that point dropped every lightmap and the walls flashed to the flat
+	# ambient light (Ozmium, 2026-10-26: "like 2 different systems laid on top of each other").
+	data.set("probe_data", {"bounds": bounds.grow(1.0), "points": PackedVector3Array(), "tetrahedra": PackedInt32Array(),
+		"bsp": PackedInt32Array(), "sh": PackedColorArray(), "interior": false, "baked_exposure": 1.0})
 	gi.light_data = data
 
 

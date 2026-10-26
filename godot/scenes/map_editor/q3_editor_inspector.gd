@@ -411,6 +411,20 @@ func _build_world() -> void:
 	grid.add_child(ob)
 	_fields["music"] = ob
 	_fields["music_tracks"] = tracks
+	_cell(grid, "Sky")
+	var skies := Q3MapMaterials.names("sky")
+	var sb := OptionButton.new()
+	sb.focus_mode = Control.FOCUS_NONE
+	sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sb.add_item("(none)")
+	for sn in skies:
+		sb.add_item(Q3MapMaterials.short_name(sn).trim_prefix("skies/"))
+	sb.item_selected.connect(func(i):
+		if not _busy:
+			editor.set_sky("" if i == 0 else skies[i - 1]))
+	grid.add_child(sb)
+	_fields["sky"] = sb
+	_fields["sky_names"] = skies
 	_spin(grid, "Gravity", "gravity", 0, 5000, 1, 50, "", func(v): editor.set_world({"gravity": Q3MapEditor._num(v)}))
 	_spin(grid, "Ambient", "ambient", 0, 255, 1, 5, "", func(v): editor.set_world({"ambient": Q3MapEditor._num(v)}))
 	_group("ALL KEYS", true)
@@ -702,6 +716,9 @@ func _entity_values() -> void:
 	if _fields.has("music"):
 		var tracks: PackedStringArray = _fields["music_tracks"]
 		(_fields["music"] as OptionButton).select(tracks.find(String(keys.get("music", ""))) + 1)
+	if _fields.has("sky") and world:
+		var skies: PackedStringArray = _fields["sky_names"]
+		(_fields["sky"] as OptionButton).select(skies.find(String(keys.get("_sky", ""))) + 1)
 	if _fields.has("flight"):
 		_fields["flight"].text = _flight(e)
 	if _fields.has("links"):

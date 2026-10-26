@@ -56,6 +56,7 @@ var _compile_job := {}       ## the compile under way: {models, warnings, play, 
 var _doc_rev := 0            ## counts document changes, so a play-test plays what was compiled
 var lights_only := false     ## Shift+L: the preview sun and ambient off, the map's lights casting shadows
 var _env: Environment
+var _sky_name := "?"         ## the sky the view background shows now
 var _sun: DirectionalLight3D
 var _isolated: Array = []    ## ids hidden by Isolate, shown again by the next Isolate
 var importing := ""          ## the map or file being imported in the background ("" = none)
@@ -287,6 +288,7 @@ func _set_doc(d: Q3MapDoc, p: String) -> void:
 	verts.clear()
 	_isolated.clear()
 	doc.changed.connect(_on_doc_changed)
+	apply_sky()
 	mesher.exclude = {}
 	mesher.bind(doc)
 	ents.exclude = {}
@@ -803,6 +805,7 @@ func _refresh_selection() -> void:
 
 func _on_doc_changed(ids: Array) -> void:
 	_doc_rev += 1
+	apply_sky()
 	var gone := false
 	for id in selection.keys():
 		if not doc.objects.has(id):
@@ -2007,6 +2010,67 @@ func delete_set(ids: Array) -> Array:
 		elif own[e].all(func(b): return gone.has(b)):
 			gone[e] = true
 	return gone.keys()
+
+
+## Chooses the map's skybox ("" clears it): every sky face and curve takes the shader, so the compiled
+## map shows it too, and the view's background follows. Returns how many faces and curves changed.
+func set_sky(shader: String) -> int:
+	doc.checkpoint("Sky")
+	if shader == "":
+		doc.worldspawn.erase("_sky")
+	else:
+		doc.worldspawn["_sky"] = shader
+	var n := 0
+	if shader != "":
+		doc.begin_batch()
+		for id in doc.objects.keys():
+			var o: Dictionary = doc.objects[id]
+			match o.get("type", ""):
+				"brush":
+					var hit := false
+					for f in o["faces"]:
+						if Q3MapMaterials.kind(String(f["material"])) == "sky" and f["material"] != shader:
+							hit = true
+					if hit:
+						var b := doc.edit(id)
+						for f in b["faces"]:
+							if Q3MapMaterials.kind(String(f["material"])) == "sky" and f["material"] != shader:
+								f["material"] = shader
+								n += 1
+						doc.put(b)
+				"patch":
+					if Q3MapMaterials.kind(String(o["material"])) == "sky" and o["material"] != shader:
+						var p := doc.edit(id)
+						p["material"] = shader
+						doc.put(p)
+						n += 1
+		doc.end_batch()
+	doc.dirty = true
+	apply_sky()
+	if shader == "":
+		notify("Sky: none chosen")
+	elif n > 0:
+		notify("Sky: %s (%d surfaces)" % [Q3MapMaterials.short_name(shader), n])
+	else:
+		notify("Sky: %s. Paint a brush face with a sky material to show it in the map" % Q3MapMaterials.short_name(shader))
+	status_changed.emit()
+	return n
+
+
+## The view's background: the chosen sky, or the plain dark color.
+func apply_sky() -> void:
+	if _env == null or doc == null:
+		return
+	var name := String(doc.worldspawn.get("_sky", ""))
+	if name == _sky_name:
+		return
+	_sky_name = name
+	var sky: Sky = Q3MapMaterials.sky_resource(name)
+	if sky:
+		_env.sky = sky
+		_env.background_mode = Environment.BG_SKY
+	else:
+		_env.background_mode = Environment.BG_COLOR
 
 
 ## Shift+L: the map lit by its own lights (preview sun off, worldspawn's ambient as q3map's minimum

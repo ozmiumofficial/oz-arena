@@ -798,6 +798,22 @@ func _e4_checks() -> void:
 			flight.begins_with("Launch") and world and msg_ok and absf(v400.z - sqrt(2.0 * 400.0 * (apex.z - from.z))) < 0.01,
 			"%s, message field %s" % [flight, msg_ok])
 
+	# the map's skybox: sky faces take it, the background follows, undo puts it back
+	var skies := Q3MapMaterials.names("sky")
+	if skies.size() >= 2:
+		var sb := Q3MapDoc.box_brush(Vector3(2000, 2000, 2000), Vector3(2064, 2064, 2064), skies[0])
+		var sid := ed.doc.add(sb)
+		var sn := ed.set_sky(skies[1])
+		await get_tree().process_frame
+		var took: bool = String(ed.doc.get_obj(sid)["faces"][0]["material"]) == skies[1]
+		var bg: bool = ed._env.background_mode == Environment.BG_SKY or Q3MapMaterials.sky_resource(skies[1]) == null
+		var sel: OptionButton = ins._fields.get("sky")
+		var picked: bool = sel != null and sel.selected == 1 + skies.find(skies[1])
+		ed.set_sky("")
+		check("map settings: Sky retextures the sky faces, sets the view background and the field", sn >= 6 and took and bg and picked,
+				"%d changed, took %s, bg %s, field %s" % [sn, took, bg, picked])
+		ed.doc.remove([sid])
+
 	# the browser's Entities tab
 	var br: Q3EditorBrowser = ed.ui.browser
 	br.set_tab("entity")

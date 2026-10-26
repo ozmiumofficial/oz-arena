@@ -173,6 +173,11 @@ static func _sky_face(shader: String) -> Material:
 	return m
 
 
+## The Sky resource of a sky shader, for a background (null when it has none).
+static func sky_resource(shader: String) -> Sky:
+	return _load_sky(shader)
+
+
 static func _load_sky(shader: String) -> Sky:
 	var res := String(all().get(shader, {}).get("res", ""))
 	return load(res) as Sky if res != "" and ResourceLoader.exists(res) else null

@@ -128,6 +128,10 @@ func _lights(d: Q3MapDoc) -> void:
 	var en := env.environment
 	en.background_mode = Environment.BG_COLOR
 	en.background_color = Color(0.03, 0.03, 0.035)
+	var sky: Sky = Q3MapMaterials.sky_resource(String(d.worldspawn.get("_sky", "")))
+	if sky:
+		en.sky = sky
+		en.background_mode = Environment.BG_SKY
 	en.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	en.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	if any:

@@ -1,5 +1,5 @@
 {
- "_note": "Per-map light scale (all lights, sun and sky), from comparing the first bake's mean light with Quake 3's own lightmaps (2026-10-22): maps more than 0.85-1.65x the original are pulled to 1.3x (bounce light makes the remaster a little brighter by design). q3map clips bright panels at 255; Godot doesn't, so maps with 4000-10000 surface lights over-light.",
+ "_note": "Per-map light scale (all lights, sun and sky), from comparing the first bake's mean light with Quake 3's own lightmaps (2026-10-22): maps more than 0.85-1.65x the original are pulled to 1.3x (bounce light makes the remaster a little brighter by design). q3map clips bright panels at 255; Godot doesn't, so maps with 4000-10000 surface lights over-light. An object entry adds per-shader surface-light factors (q3dm12: the BFG room's ceiling lamps, at a quarter once their beams stopped trapping their light, Ozmium 2026-10-25: a little dark, with the spotlights' contrast).",
  "q3tourney6": 0.58,
  "q3tourney6_ctf": 0.743,
  "q3tourney3": 0.711,
@@ -11,6 +11,14 @@
  "hub3aeroq3": 0.5,
  "ztn3tourney1": 0.78,
  "rustgrad": 0.5,
+ "q3dm12": {
+  "scale": 1.0,
+  "shaders": {
+   "textures/gothic_light/gothic_light3_2k": 0.25,
+   "textures/gothic_light/gothic_light3_3k": 0.25,
+   "textures/gothic_light/gothic_light3_4k": 0.25
+  }
+ },
  "_bake": {
   "_note": "LightmapGI settings for maps too big for the default bake: Rustgrad's atlas at texel scale 1 / high quality ran 37 min and failed to save (empty image, 2026-10-24); floor: minimum L0 after the bake (tools/lightmap_floor.py), for q3map2 maps whose light entities were stripped; gain: L0 x gain after the bake (lightmap_floor.py), matched to Q3ClassicMap's brightness",
   "rustgrad": {
@@ -18,7 +26,7 @@
    "quality": "medium",
    "bounces": 2,
    "floor": 0.2,
-   "gain": 1.7
+   "gain": 1.37
   },
   "q3gwdm1": {
    "floor": 0.16,

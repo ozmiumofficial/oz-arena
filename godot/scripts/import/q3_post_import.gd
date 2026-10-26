@@ -160,6 +160,45 @@ static func _shader_name(mat: Material) -> String:
 	return name
 
 
+const GLOW_SHADERS := ["world_add", "world_sprite_add", "world_mul"]   ## light effects: they add or tint, never block
+
+
+## A translucent chunk's glows (light beams, flares, glowing grates) go to a sibling "<name>_fx" out of the
+## lightmap bake: Godot's lightmapper ignores cast_shadow, so the beams around q3dm12's lamps boxed their
+## light in and left the BFG room black (2026-10-25). Lit like the movers, by the bake's probes and the
+## lamps. The chunk's other surfaces (Rustgrad's cliffs and ferns) stay baked: they bounce the light.
+static func _split_glows(m: MeshInstance3D, shaders: PackedStringArray, wm: Dictionary) -> void:
+	var src := m.mesh as ArrayMesh
+	if src == null:
+		return
+	var glow: Array[int] = []
+	for i in src.get_surface_count():
+		if String(wm.get(shaders[i], {}).get("shader", "")) in GLOW_SHADERS:
+			glow.append(i)
+	if glow.is_empty():
+		return
+	if glow.size() == src.get_surface_count():
+		m.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
+		return
+	var keep := ArrayMesh.new()
+	var fx := ArrayMesh.new()
+	keep.lightmap_size_hint = src.lightmap_size_hint
+	for i in src.get_surface_count():
+		var to := fx if i in glow else keep
+		to.add_surface_from_arrays(src.surface_get_primitive_type(i), src.surface_get_arrays(i))
+		to.surface_set_material(to.get_surface_count() - 1, src.surface_get_material(i))
+	m.mesh = keep
+	var f := MeshInstance3D.new()
+	f.name = String(m.name) + "_fx"
+	f.mesh = fx
+	f.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
+	f.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	f.layers = m.layers
+	m.add_sibling(f)
+	f.owner = m.owner
+	f.transform = m.transform
+
+
 ## Shader names -> world materials. world_* chunks are static (baked by LightmapGI, UV2 from the
 ## importer's light_baking setting); model_* nodes are movers, lit dynamically; sprite_* nodes are
 ## camera-facing quads, left out of the bake.
@@ -176,8 +215,10 @@ func _map_import(scene: Node) -> void:
 	for mi in scene.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
 		var see_through := true
+		var shaders := PackedStringArray()
 		for i in m.mesh.get_surface_count():
 			var name := _shader_name(m.mesh.surface_get_material(i))
+			shaders.append(name)
 			if not cache.has(name):
 				var e: Dictionary = wm.get(name, {})
 				var res := String(e.get("res", ""))
@@ -189,6 +230,8 @@ func _map_import(scene: Node) -> void:
 		# world_..._ns: translucent surfaces (surfaceparm trans, build_maps.py), which q3map doesn't let block light
 		if see_through or String(m.name).ends_with("_ns"):
 			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if String(m.name).ends_with("_ns"):
+			_split_glows(m, shaders, wm)
 		if String(m.name).begins_with("model_"):
 			m.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 		elif String(m.name).begins_with("sprite_"):

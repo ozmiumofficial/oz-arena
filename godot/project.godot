@@ -68,3 +68,4 @@ common/physics_ticks_per_second=120
 reflections/reflection_atlas/reflection_size=128
 reflections/reflection_atlas/reflection_count=80
 anti_aliasing/quality/msaa_3d=2
+limits/cluster_builder/max_clustered_elements=8192

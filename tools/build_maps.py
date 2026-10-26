@@ -488,7 +488,11 @@ def cell_name(key):
 def build_map(name, bsp_path, wm, out_dir):
     global LIGHT_SCALE
     per_map = json.load(open(MAP_LIGHTING)) if os.path.exists(MAP_LIGHTING) else {}
-    map_scale = float(per_map.get(name, 1.0))
+    entry = per_map.get(name, 1.0)
+    # a number scales the whole map; {"scale": x, "shaders": {shader: factor}} also scales single
+    # surface-light shaders (q3dm12's ceiling lamps, once their beams stopped boxing their light in)
+    map_scale = float(entry.get("scale", 1.0) if isinstance(entry, dict) else entry)
+    shader_scale = entry.get("shaders", {}) if isinstance(entry, dict) else {}
     LIGHT_SCALE = 1.0 * map_scale
     bsp = q3bsp.read_bsp(open(bsp_path, "rb").read())
     os.makedirs(out_dir, exist_ok=True)
@@ -530,7 +534,7 @@ def build_map(name, bsp_path, wm, out_dir):
                 report["drawn"] += 1
                 report["sprites"] = report.get("sprites", 0) + 1
                 continue
-            sl = float(wm.get(sname, {}).get("surfacelight", 0) or 0)
+            sl = float(wm.get(sname, {}).get("surfacelight", 0) or 0) * float(shader_scale.get(sname, 1.0))
             if sl > 0 and collect_lights:
                 emitters.extend(surface_lights(pos, nrm, tris, sl, wm[sname].get("light_color") or [1.0, 1.0, 1.0],
                                                **SURFACE_LIGHT.get(sname, {})))

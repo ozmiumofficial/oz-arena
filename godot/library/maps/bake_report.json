@@ -3,14 +3,140 @@
  "done": [
   {
    "bake": {
-    "ms": 28110,
+    "ms": 40565,
     "ok": true
    },
    "light": {
-    "mean": 0.0685227716485008,
-    "median": 0.037078857421875,
+    "mean": 0.164442318120383,
+    "median": 0.11867269128561,
     "ok": true,
-    "samples": 42099
+    "samples": 121716
+   },
+   "map": "q3dm12",
+   "rebuild": {
+    "ok": true
+   },
+   "save": {
+    "error": "OK",
+    "ok": true
+   },
+   "seconds": 91.05
+  },
+  {
+   "bake": {
+    "ms": 41348,
+    "ok": true
+   },
+   "light": {
+    "mean": 0.181059981743072,
+    "median": 0.16194660961628,
+    "ok": true,
+    "samples": 41802
+   },
+   "map": "hub3dm1",
+   "rebuild": {
+    "ok": true
+   },
+   "save": {
+    "error": "OK",
+    "ok": true
+   },
+   "seconds": 83.78
+  },
+  {
+   "bake": {
+    "ms": 29579,
+    "ok": true
+   },
+   "light": {
+    "mean": 0.187254958975636,
+    "median": 0.15909831225872,
+    "ok": true,
+    "samples": 43613
+   },
+   "map": "ztn3tourney1",
+   "rebuild": {
+    "ok": true
+   },
+   "save": {
+    "error": "OK",
+    "ok": true
+   },
+   "seconds": 75.942
+  },
+  {
+   "bake": {
+    "ms": 32557,
+    "ok": true
+   },
+   "light": {
+    "mean": 0.0928977345693537,
+    "median": 0.08544921875,
+    "ok": true,
+    "samples": 22619
+   },
+   "map": "hub3aeroq3",
+   "rebuild": {
+    "ok": true
+   },
+   "save": {
+    "error": "OK",
+    "ok": true
+   },
+   "seconds": 72.879
+  },
+  {
+   "bake": {
+    "ms": 75014,
+    "ok": true
+   },
+   "light": {
+    "mean": 0.0376058029461617,
+    "median": 0.00619379663839936,
+    "ok": true,
+    "samples": 127642
+   },
+   "map": "q3gwdm1",
+   "rebuild": {
+    "ok": true
+   },
+   "save": {
+    "error": "OK",
+    "ok": true
+   },
+   "seconds": 121.515
+  },
+  {
+   "bake": {
+    "ms": 40010,
+    "ok": true
+   },
+   "light": {
+    "mean": 0.15438102395903,
+    "median": 0.0839029923081398,
+    "ok": true,
+    "samples": 53280
+   },
+   "map": "phantq3dm1_rev",
+   "rebuild": {
+    "ok": true
+   },
+   "save": {
+    "error": "OK",
+    "ok": true
+   },
+   "seconds": 83.358
+  },
+  {
+   "bake": {
+    "ms": 37456,
+    "ok": true
+   },
+   "light": {
+    "mean": 0.0656291488018662,
+    "median": 0.0333353690803051,
+    "ok": true,
+    "samples": 40750
    },
    "map": "pukka3tourney2",
    "rebuild": {
@@ -20,18 +146,18 @@
     "error": "OK",
     "ok": true
    },
-   "seconds": 69.97
+   "seconds": 82.772
   },
   {
    "bake": {
-    "ms": 33837,
+    "ms": 33998,
     "ok": true
    },
    "light": {
-    "mean": 0.127844951048061,
-    "median": 0.0929768905043602,
+    "mean": 0.142808654033605,
+    "median": 0.10850016027689,
     "ok": true,
-    "samples": 68673
+    "samples": 68203
    },
    "map": "oxodm76",
    "rebuild": {
@@ -41,9 +167,30 @@
     "error": "OK",
     "ok": true
    },
-   "seconds": 77.824
+   "seconds": 93.167
+  },
+  {
+   "bake": {
+    "ms": 91620,
+    "ok": true
+   },
+   "light": {
+    "mean": 0.404303111576893,
+    "median": 0.424560546875,
+    "ok": true,
+    "samples": 397626
+   },
+   "map": "rustgrad",
+   "rebuild": {
+    "ok": true
+   },
+   "save": {
+    "error": "OK",
+    "ok": true
+   },
+   "seconds": 140.115
   }
  ],
  "finished": true,
- "started": "2026-10-25T10:38:51"
+ "started": "2026-10-25T19:28:59"
 }

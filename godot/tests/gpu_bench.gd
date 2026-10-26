@@ -25,6 +25,9 @@ var configs := [
 	["fade 20m", {"fade": 20.0}],
 	["r0.5+fade30", {"range": 0.5, "fade": 30.0}],
 	["lamp fog 0", {"lampfog": 0.0}],
+	["drop 0.05", {"min_energy": 0.05}],
+	["drop 0.1", {"min_energy": 0.1}],
+	["drop 0.25", {"min_energy": 0.25}],
 	["r0.5 fog x2", {"range": 0.5, "lampfog": 2.0}],
 	["r0.5 fog x1.6", {"range": 0.5, "lampfog": 1.6}],
 	["r0.5 fog x2.5", {"range": 0.5, "lampfog": 2.5}],
@@ -91,7 +94,7 @@ func _apply(over: Dictionary) -> void:
 		Settings.set_value(k, over.get(k, _saved[k]), false)
 	for l in _show._lamps:
 		var light := l as Light3D
-		light.visible = over.get("lamps", true)
+		light.visible = over.get("lamps", true) and light.light_energy >= float(over.get("min_energy", 0.0))
 		if not _ranges.has(light):
 			_ranges[light] = light.get("omni_range") if light is OmniLight3D else light.get("spot_range")
 		light.set("omni_range" if light is OmniLight3D else "spot_range", _ranges[light] * float(over.get("range", 1.0)))

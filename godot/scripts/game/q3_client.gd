@@ -104,6 +104,7 @@ var _helpers: Array = []           ## the puff, spark and burn renderers made in
 ## (you were the camera, and the server never sends your own entity), so it's built from the
 ## playerState the moment you die, carries your speed, and stays as a corpse when you respawn.
 var own_death := false
+const PLAYER_FILL := 1.2  ## energy of each of the two player fill lights
 var own_body: Q3Character
 var _own_seen_alive := false       ## a body is only built for a death seen happening, not one already over
 ## Quake 3 sinks bodies into the floor after 5 s (g_client.c BODY_SINK_TIME); the remaster keeps
@@ -123,9 +124,28 @@ func _ready() -> void:
 	_bubbles = Q3Puffs.create(self, "bubble")
 	_glow_trail = Q3Puffs.create(self, "flare", true)
 	Settings.changed.connect(_on_setting)
+	_add_fill_lights()
 	_helpers = get_children()   # what reset() keeps
 	Q3FX.warm_up(self)
 	load_footsteps()
+
+
+## Players never go dark (remaster only): two soft lights from opposite sides, unshadowed, that
+## light only Q3Character.FILL_LAYER, so no player drops below a floor of brightness in an unlit
+## corridor. They stay out of the bake and the volumetric fog, and the map's own lighting still
+## decides everything above the floor.
+func _add_fill_lights() -> void:
+	for yaw in [35.0, 215.0]:
+		var l := DirectionalLight3D.new()
+		l.name = "PlayerFill"
+		l.light_cull_mask = Q3Character.FILL_LAYER
+		l.light_energy = PLAYER_FILL
+		l.light_color = Color(0.9, 0.93, 1.0)
+		l.light_bake_mode = Light3D.BAKE_DISABLED
+		l.light_volumetric_fog_energy = 0.0
+		l.shadow_enabled = false
+		l.rotation_degrees = Vector3(-40.0, yaw, 0.0)
+		add_child(l)
 
 
 ## While a match draws, the models it loads stay loaded: a respawn or an explosion doesn't read its
@@ -1773,7 +1793,7 @@ func _update_self(ps: Dictionary) -> void:
 	if weapon != _self["weapon"] or _self.get("layered", -1) != int(self_visible):
 		_self["layered"] = int(self_visible)
 		for g in ch.find_children("*", "GeometryInstance3D", true, false):
-			(g as GeometryInstance3D).layers = 1 if self_visible else Q3Portal.MIRROR_LAYER
+			(g as GeometryInstance3D).layers = (1 if self_visible else Q3Portal.MIRROR_LAYER) | Q3Character.FILL_LAYER
 			(g as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if self_visible 				else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 

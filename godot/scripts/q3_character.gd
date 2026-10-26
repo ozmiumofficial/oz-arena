@@ -52,6 +52,7 @@ var _lean := Vector2.ZERO         ## the legs' lean into the direction of travel
 var _shown_legs := ""             ## the legs clip playing: legs_clip, or LEGS_TURN while the legs shuffle round
 var _clip_fps := {}               ## clip -> frames a second (rig.json)
 const MOVE_OFFSETS := [0.0, 22.0, 45.0, -22.0, 0.0, 22.0, -45.0, -22.0]   ## CG_PlayerAngles movementOffsets
+const FILL_LAYER := 1 << 20       ## render layer 21: the match's player fill lights (Q3Client) light only this
 const SWING_SPEED := 0.3          ## cg_swingSpeed: degrees a millisecond
 const LEAN_MAX := 20.0            ## degrees: the lean into the direction of travel never goes past this (running is 16)
 const LEAN_EASE_MS := 120.0       ## how fast the lean follows the velocity (a hit's knockback mustn't snap it)
@@ -283,6 +284,8 @@ func load_model(m: String) -> void:
 		return
 	body = scene.instantiate()
 	add_child(body)
+	for g in body.find_children("*", "GeometryInstance3D", true, false):
+		(g as GeometryInstance3D).layers |= FILL_LAYER
 	player = body.find_child("AnimationPlayer", true, false)
 	skeleton = body.find_child("*Skeleton*", true, false)
 	if player == null or skeleton == null:

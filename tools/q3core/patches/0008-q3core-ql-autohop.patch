@@ -46,7 +46,7 @@ index 89de65c..fbcccdb 100644
 +==============
 +G_AutoHop
 +
-+q3core: Quake Live's pmove_AutoHop (on by default; off under Classic rules). In systeminfo, so clients
++q3core: Quake Live's pmove_AutoHop (on by default; off under Classic rules, on in Race). In systeminfo, so clients
 +predict it as the server runs it.
 +==============
 +*/
@@ -59,7 +59,7 @@ index 89de65c..fbcccdb 100644
 +		registered = 1;
 +	}
 +	trap_Cvar_Update( &autoHop );
-+	return G_QL() && autoHop.integer;
++	return ( G_QL() || g_race.integer ) && autoHop.integer;
 +}
 +
  /*

@@ -16,9 +16,11 @@ import Button from "../controls/Button";
 import PlayerCard, { Banner } from "../PlayerCard";
 import RankIcon from "../RankIcon";
 import { Q3Name } from "../Social";
+import RaceBoard from "./RaceBoard";
 import type { PageProps } from "./index";
 
-const BOARDS: [BoardKind, string][] = [["level", "Level"], ["ranked", "Ranked MMR"]];
+type Tab = BoardKind | "race";
+const BOARDS: [Tab, string][] = [["level", "Level"], ["ranked", "Ranked MMR"], ["race", "Race"]];
 const SCOPES: [BoardScope, string][] = [["global", "Everyone"], ["friends", "Friends"]];
 const PODIUM = ["#ffd24a", "#c9d6df", "#e08a4f"];
 
@@ -26,7 +28,9 @@ export default function LeaderboardPage({ back }: PageProps) {
   const init = useMenu((s) => s.init);
   const status = useMenu((s) => s.social.status);
   const reason = useMenu((s) => s.social.reason);
-  const [board, setBoard] = useState<BoardKind>("level");
+  const [tab, setBoard] = useState<Tab>("level");
+  const raceTab = tab === "race";
+  const board: BoardKind = tab === "race" ? "level" : tab;
   const [scope, setScope] = useState<BoardScope>("global");
   const data = useMenu((s) => s.boards[`${board}|${scope}`]);
   const [asked, setAsked] = useState(0);
@@ -37,16 +41,16 @@ export default function LeaderboardPage({ back }: PageProps) {
 
   // ask whenever the board, the scope or the connection changes; an old hub never answers
   useEffect(() => {
-    if (status !== "online") return;
+    if (status !== "online" || raceTab) return;
     social("leaderboard", { board, scope });
     setSlow(false);
     const t = setTimeout(() => setSlow(true), 6000);
     return () => clearTimeout(t);
-  }, [board, scope, status, asked]);
+  }, [board, scope, status, asked, raceTab]);
   useEffect(() => setPick(null), [board, scope]);
 
   const switchBoard = (d: number) => {
-    const i = BOARDS.findIndex((b) => b[0] === board);
+    const i = BOARDS.findIndex((b) => b[0] === tab);
     sfx.move();
     setBoard(BOARDS[(i + d + BOARDS.length) % BOARDS.length][0]);
   };
@@ -58,7 +62,7 @@ export default function LeaderboardPage({ back }: PageProps) {
   return (
     <PagePanel
       title="Leaderboards"
-      subtitle={board === "level" ? "Every player's level, from the XP their matches earn. Self-reported, like any offline career, and cosmetic only." : "Ranked MMR from matches whose players all agreed on the result, highest first."}
+      subtitle={raceTab ? "Your fastest finishes on every Defrag course, best first." : board === "level" ? "Every player's level, from the XP their matches earn. Self-reported, like any offline career, and cosmetic only." : "Ranked MMR from matches whose players all agreed on the result, highest first."}
       back={back}
       onTab={switchBoard}
     >
@@ -67,15 +71,15 @@ export default function LeaderboardPage({ back }: PageProps) {
           {BOARDS.map(([id, label]) => (
             <button
               key={id}
-              onClick={() => id !== board && (sfx.move(), setBoard(id))}
-              className={cn("relative px-3 py-2 font-q3 text-[0.8rem] tracking-[0.12em] transition-colors", id === board ? "text-ink-hot" : "text-dim hover:text-ink")}
+              onClick={() => id !== tab && (sfx.move(), setBoard(id))}
+              className={cn("relative px-3 py-2 font-q3 text-[0.8rem] tracking-[0.12em] transition-colors", id === tab ? "text-ink-hot" : "text-dim hover:text-ink")}
             >
               {label}
-              {id === board && <motion.span layoutId="board-tab" className="absolute inset-x-2 -bottom-px h-[2px] bg-glow shadow-[0_0_0.6rem_rgb(255_74_28)]" />}
+              {id === tab && <motion.span layoutId="board-tab" className="absolute inset-x-2 -bottom-px h-[2px] bg-glow shadow-[0_0_0.6rem_rgb(255_74_28)]" />}
             </button>
           ))}
           <div data-row className="ml-auto flex items-center gap-1.5">
-            {SCOPES.map(([id, label]) => (
+            {!raceTab && SCOPES.map(([id, label]) => (
               <button
                 key={id}
                 data-nav
@@ -85,13 +89,13 @@ export default function LeaderboardPage({ back }: PageProps) {
                 {label}
               </button>
             ))}
-            <Button small onClick={() => setAsked((n) => n + 1)}>Refresh</Button>
+            {!raceTab && <Button small onClick={() => setAsked((n) => n + 1)}>Refresh</Button>}
             <kbd className="ml-2 rounded-sm border border-white/15 px-1.5 py-0.5 font-q3 text-[0.6rem] text-dim">Q</kbd>
             <kbd className="rounded-sm border border-white/15 px-1.5 py-0.5 font-q3 text-[0.6rem] text-dim">E</kbd>
           </div>
         </div>
         <div className="mx-10 h-px bg-white/[0.06]" />
-        {!cat ? null : status !== "online" ? (
+        {raceTab ? <RaceBoard /> : !cat ? null : status !== "online" ? (
           <div className="grid flex-1 place-items-center px-10">
             <div className="flex flex-col items-center gap-4">
               <EmptyState

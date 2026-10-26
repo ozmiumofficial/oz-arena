@@ -87,12 +87,6 @@
       "label": "Ranked",
       "hint": "Competitive queues with a ladder",
       "page": "ranked"
-    },
-    {
-      "id": "race",
-      "label": "Race",
-      "hint": "Defrag's timed courses: your best run, checkpoints and a ghost",
-      "page": "race"
     }
   ],
   "pages": [
@@ -141,6 +135,12 @@
       "label": "Training",
       "hint": "Practice movement, aim and duels",
       "page": "training"
+    },
+    {
+      "id": "race",
+      "label": "Race",
+      "hint": "Defrag's timed courses: your best run, checkpoints and a ghost",
+      "page": "race"
     }
   ]
 }

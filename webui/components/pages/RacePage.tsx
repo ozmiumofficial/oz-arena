@@ -2,6 +2,8 @@
 // Race (RACE_PLAN.md D3): Defrag's timed courses. The maps are the Maps folder's pk3s that have a .defi
 // file (style, author), plus any published from the editor with race settings; your best time on each
 // is kept by Godot (Q3RaceRecords). The movement is id 1.32's (Classic), set by the mode itself.
+// Click courses to tick them into a playlist: Run plays them in the order ticked, the next one starting
+// after each finish (Session.race_queue, the race_queue message).
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { useMenu, toast } from "@/lib/store";
@@ -18,10 +20,25 @@ import type { PageProps } from "./index";
 export default function RacePage({ back }: PageProps) {
   const init = useMenu((s) => s.init);
   const records = init?.race_records ?? {};
+  const board = init?.race_board ?? {};
   const maps = useMemo(() => (init?.maps ?? []).filter((m) => m.types.includes("race")), [init]);
   const [map, setMap] = useState("");
   const [query, setQuery] = useState("");
   const [style, setStyle] = useState("all");
+  const [picked, setPicked] = useState<string[]>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem("race_playlist") ?? "[]");
+      return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+    } catch {
+      return [];
+    }
+  });
+  const setPlaylist = (next: string[]) => {
+    setPicked(next);
+    try {
+      localStorage.setItem("race_playlist", JSON.stringify(next));
+    } catch {}
+  };
   useEffect(() => {
     if (!map && maps.length) setMap(maps[0].map);
   }, [maps, map]);
@@ -29,10 +46,20 @@ export default function RacePage({ back }: PageProps) {
   const q = query.trim().toLowerCase();
   const shown = maps.filter((m) => (style === "all" || (m.race?.style ?? "run") === style) && (!q || m.name.toLowerCase().includes(q) || m.map.toLowerCase().includes(q)));
   const chosen = maps.find((m) => m.map === map);
-  const run = (m: MapInfo) => void send("start", { setup: { mode: "race", map: m.map, rules: {}, modifiers: {}, bots: [], server_type: "offline", source: "menu" } });
+  const have = picked.filter((p) => maps.some((m) => m.map === p));   // a course taken out of the folder drops off
+  const run = (m: MapInfo, rest: string[] = []) => {
+    void send("race_queue", { maps: rest });
+    void send("start", { setup: { mode: "race", map: m.map, rules: {}, modifiers: {}, bots: [], server_type: "offline", source: "menu" } });
+  };
+  const runPlaylist = () => {
+    const first = maps.find((m) => m.map === have[0]);
+    if (first) run(first, have.slice(1));
+    else if (chosen) run(chosen);
+  };
+  const toggle = (map: string) => setPlaylist(have.includes(map) ? have.filter((p) => p !== map) : [...have, map]);
 
   return (
-    <PagePanel title="Race" subtitle="Run the course from the start line to the finish as fast as you can. Quake 3's own movement, no health to lose, and a restart on R." back={back}>
+    <PagePanel title="Race" subtitle="Click courses to pick the ones you want to run, in the order you pick them, or double-click one to run it now. Quake 3's own movement, no health to lose, and a restart on R." back={back}>
       {maps.length === 0 ? (
         <div className="flex h-full flex-col items-center justify-center gap-5 px-10">
           <EmptyState
@@ -71,6 +98,10 @@ export default function RacePage({ back }: PageProps) {
                   </button>
                 ))}
               </div>
+              <div data-row className="ml-auto flex gap-2">
+                <Button small onClick={() => setPlaylist([...have, ...shown.map((m) => m.map).filter((x) => !have.includes(x))])}>Select all shown</Button>
+                <Button small onClick={() => setPlaylist([])}>Clear</Button>
+              </div>
             </div>
             <div data-grid="3" className="grid min-h-0 flex-1 grid-cols-3 content-start gap-3 overflow-y-auto pr-2">
               {shown.map((m, i) => (
@@ -84,11 +115,12 @@ export default function RacePage({ back }: PageProps) {
                   onClick={() => {
                     sfx.move();
                     setMap(m.map);
+                    toggle(m.map);
                   }}
                   onDoubleClick={() => run(m)}
                   className={cn(
                     "group relative aspect-[4/3] overflow-hidden rounded-sm border-2 text-left transition-all",
-                    m.map === map ? "border-glow shadow-[0_0_1.4rem_rgb(219_36_16/0.5)]" : "border-transparent focus:border-ink/60",
+                    m.map === map ? "border-glow shadow-[0_0_1.4rem_rgb(219_36_16/0.5)]" : have.includes(m.map) ? "border-amber/70" : "border-transparent focus:border-ink/60",
                   )}
                 >
                   {m.levelshot ? (
@@ -104,6 +136,9 @@ export default function RacePage({ back }: PageProps) {
                   {records[m.map] ? (
                     <div className="absolute right-2 top-2 rounded-sm bg-black/70 px-1.5 py-0.5 font-q3 text-[0.65rem] tracking-[0.1em] text-amber">{raceTime(records[m.map])}</div>
                   ) : null}
+                  {have.includes(m.map) && (
+                    <div className="absolute bottom-2 right-2 grid h-7 min-w-7 place-items-center rounded-full bg-amber px-1.5 font-q3 text-[0.8rem] text-black">{have.indexOf(m.map) + 1}</div>
+                  )}
                   <div className="absolute bottom-2 left-3 right-3">
                     <div className="line-clamp-2 font-q3 text-[0.9rem] leading-tight tracking-[0.04em] text-ink-hot">{m.name}</div>
                     <div className="truncate font-q3 text-[0.6rem] tracking-[0.2em] text-dim">{m.race?.author || m.map}</div>
@@ -127,12 +162,28 @@ export default function RacePage({ back }: PageProps) {
                   <div className="font-q3 text-[2.4rem] leading-none text-amber">{records[chosen.map] ? raceTime(records[chosen.map]) : "—"}</div>
                   <p className="mt-2 text-[0.85rem] text-faint">{records[chosen.map] ? "Your best run races beside you as a ghost." : "Finish it once to set a time and a ghost to beat."}</p>
                 </div>
+                {(board[chosen.map]?.length ?? 0) > 1 && (
+                  <div className="rounded-sm border border-white/10 bg-black/30 p-3">
+                    <div className="font-q3 text-[0.7rem] tracking-[0.2em] text-dim">YOUR FASTEST</div>
+                    {board[chosen.map].slice(0, 3).map((r, i) => (
+                      <div key={i} className="flex justify-between font-mono text-[0.9rem] text-ink"><span>{i + 1}</span><span>{raceTime(r.ms)}</span></div>
+                    ))}
+                  </div>
+                )}
                 <p className="text-[0.85rem] text-faint">R restarts, F5 saves a spot to practice from and F9 returns to it (the timer stops).</p>
               </>
             )}
             <div className="mt-auto flex flex-col gap-2">
-              <Button primary onClick={() => chosen && run(chosen)} refuse={chosen ? undefined : "Pick a course."} onRefuse={(w) => toast(w, "warn")} className="py-4 text-[1.3rem]">
-                Run
+              {have.length > 0 && (
+                <div className="max-h-[9rem] overflow-y-auto rounded-sm border border-amber/30 bg-black/30 p-3 text-[0.85rem] text-ink">
+                  <div className="mb-1 font-q3 text-[0.7rem] tracking-[0.2em] text-amber">PLAYLIST  {have.length}</div>
+                  {have.map((p, i) => (
+                    <div key={p} className="truncate">{i + 1}. {maps.find((m) => m.map === p)?.name}</div>
+                  ))}
+                </div>
+              )}
+              <Button primary onClick={() => (have.length ? runPlaylist() : chosen && run(chosen))} refuse={chosen || have.length ? undefined : "Pick a course."} onRefuse={(w) => toast(w, "warn")} className="py-4 text-[1.3rem]">
+                {have.length > 1 ? `Run ${have.length} courses` : "Run"}
               </Button>
               <Button small onClick={() => void send("maps_folder")}>Open the Maps folder</Button>
             </div>

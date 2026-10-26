@@ -177,6 +177,12 @@ func _run() -> void:
 	check("the slower second run finishes, and isn't a record", fin and not gp.race_run.last_record and gp.race_run.last_ms > first_ms,
 			"%d ms against %d" % [gp.race_run.last_ms, first_ms])
 	check("the best on file stays the first run's", int(Q3RaceRecords.best(NAME)["ms"]) == first_ms)
+	var runs: Array = Q3RaceRecords.board().get(NAME, [])
+	check("the leaderboard keeps both finishes, fastest first", runs.size() == 2 and int(runs[0]["ms"]) == first_ms and int(runs[1]["ms"]) == gp.race_run.last_ms,
+			"%s" % [runs])
+	Session.race_queue = ["a_next_course"]
+	check("a playlist's queue lives on Session", Session.race_queue.size() == 1)
+	Session.race_queue = []
 	gp.queue_free()
 	Q3MapPacks.dir_override = ""
 	_finish(t0)

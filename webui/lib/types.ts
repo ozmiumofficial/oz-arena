@@ -108,6 +108,8 @@ export interface InitPayload {
   version: string;
   /** your best run on each race map, in ms */
   race_records?: Record<string, number>;
+  /** your fastest runs on each race map, fastest first (the Race leaderboard) */
+  race_board?: Record<string, { ms: number; when: number }[]>;
   tabs: [string, string][];
   schema: SettingEntry[];
   values: Record<string, Value>;

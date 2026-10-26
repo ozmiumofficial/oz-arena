@@ -89,6 +89,7 @@ var _timers_t := 0.0
 var match_stats := Q3MatchStats.new()   ## your match for the scoreboard's left panel
 var race_run := Q3RaceRun.new()         ## your run in a race (g_race), from the game's "race ..." commands
 var race_active := false                ## this match is a race (RACE_PLAN.md): the timer HUD, restart and practice keys
+var _race_next_at := 0                  ## wall-clock ms the next playlist course starts (0: none queued)
 var race_ghost: Q3RaceGhost             ## your best run, running beside you
 var _race_recorder: Q3RaceGhostRecorder ## this run, sampled
 var recorder: Q3ReplayRecorder     ## Gameplay > Record replays: this match, written as it plays
@@ -169,6 +170,8 @@ func _start_match() -> String:
 	var cvars := setup.game_cvars(_campaign_skill())
 	for k in cvars:
 		Q3Server.set_cvar(k, str(cvars[k]))
+	if setup.mode != "race":
+		Session.race_queue = []
 	if setup.mode != "race" and Q3Server.cvar("g_race") == "1":   # a race earlier in this run left its rules in the cvars
 		Q3Server.set_cvar("g_race", "0")
 		Q3Server.set_cvar("g_ruleset", "ql")
@@ -1621,6 +1624,8 @@ func _race_begin() -> void:
 		if race_ghost:
 			race_ghost.restart())
 	race_run.reset.connect(func() -> void:
+		_race_next_at = 0
+		hud.race.next_text = ""
 		hud.race.note_reset()
 		if _race_recorder:
 			_race_recorder.stop()
@@ -1637,6 +1642,13 @@ func _race_begin() -> void:
 
 
 func _race_frame(ps: Dictionary) -> void:
+	if _race_next_at > 0:
+		var left := _race_next_at - Time.get_ticks_msec()
+		var nxt := Session.map_info(String(Session.race_queue[0])) if not Session.race_queue.is_empty() else {}
+		hud.race.next_text = "NEXT COURSE  %s  in %d  (R repeats this one)" % [String(nxt.get("name", "")), maxi(1, ceili(left / 1000.0))]
+		if left <= 0:
+			_race_start_next()
+			return
 	var now := feed.time()
 	if _race_recorder and race_run.is_running():
 		_race_recorder.sample(now - race_run.start_time, ps)
@@ -1644,11 +1656,29 @@ func _race_frame(ps: Dictionary) -> void:
 		race_ghost.update(now - race_run.start_time if race_run.is_running() else -1)
 
 
+const RACE_NEXT_MS := 5000
+
+## The playlist's next course (Session.race_queue, set by the Race page): a fresh race on it.
+func _race_start_next() -> void:
+	_race_next_at = 0
+	var map := String(Session.race_queue.pop_front())
+	var s := Q3MatchSetup.from_dict({"mode": "race", "map": map, "rules": {}, "modifiers": {}, "bots": [],
+			"server_type": "offline", "source": "menu"})
+	s.player = Session.new_setup("race", map).player
+	var errs := Session.start_match(s)
+	if errs.size():
+		push_warning("race playlist: %s" % ", ".join(errs))
+
+
 func _race_finished(ms: int, record: bool) -> void:
 	var prev := int(Q3RaceRecords.best(setup.map).get("ms", 0))
 	hud.race.note_finish(ms, record, prev)
 	if record:
 		Q3RaceRecords.submit(setup.map, ms, race_run.splits)
+	Q3RaceRecords.add_run(setup.map, ms)
+	if not Session.race_queue.is_empty():   # a playlist: the next course follows
+		_race_next_at = Time.get_ticks_msec() + RACE_NEXT_MS
+	if record:
 		if _race_recorder:
 			_race_recorder.save(setup.map, ms)
 		client.play_sound("sound/feedback/excellent.wav", Vector3.ZERO, true)

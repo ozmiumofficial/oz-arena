@@ -13,6 +13,7 @@ const BEHIND := Color("#ff6a52")
 var hud: Q3Hud
 var run: Q3RaceRun
 var now_ms := 0                ## the server time, for the running clock
+var next_text := ""            ## the playlist's next course and its countdown, under the finish
 var practice := false          ## a loaded position: the timer is off
 var _flash_t := 99.0
 var _flash_text := ""
@@ -94,6 +95,8 @@ func _draw() -> void:
 		var a := clampf((FLASH_TIME - _flash_t) / 0.7, 0.0, 1.0)
 		S.text(self, S.num_medium(), Vector2(cx, timer_r.end.y + 66 * u), _flash_text, int(24 * u), Color(_flash_color, a),
 			HORIZONTAL_ALIGNMENT_CENTER)
+	if next_text != "":
+		S.text(self, S.label(), Vector2(cx, size.y * 0.36 + 100 * u), next_text, int(24 * u), S.AMBER, HORIZONTAL_ALIGNMENT_CENTER)
 	# the finish: the middle of the screen
 	if _finish_t < FINISH_TIME:
 		var a2 := clampf((FINISH_TIME - _finish_t) / 1.0, 0.0, 1.0)

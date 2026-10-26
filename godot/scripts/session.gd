@@ -18,6 +18,7 @@ var setup: Q3MatchSetup              ## the match Gameplay runs (null in the men
 var modifiers: Array = []            ## game/modifiers.json
 var maps: Array = []                 ## library/ui/maps.json (arenas.txt + .arena files), the Maps folder's pk3s, then published maps
 var bots: Array = []                 ## scripts/bots.txt
+var race_queue: Array = []           ## Race playlist: the courses to run after the current one (menu_bridge race_queue)
 var campaign: Q3Campaign             ## Quake 3's single-player tiers and this player's progress
 var cinematics: Array = []           ## library/cinematics/cinematics.json, q3_ui's Cinematics menu order
 var cinematic_queue: PackedStringArray = []   ## what the cinematic scene plays before cinematic_then

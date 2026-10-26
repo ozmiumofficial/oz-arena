@@ -8,6 +8,7 @@ extends RefCounted
 ##                 map_editor, quit, profile_preview, open_url, social {op, ...}
 ##                 card_set {slot, id}, card_showcase {kind: stats|badges, ids}, card_seen {keys}, taunt {id}
 ##                 update_skip {tag}
+##                 race_queue {maps}: the courses a Race run continues with after the first
 ##                 net_browse {region?}, net_join {host, password?}, net_cancel (online matches, MULTIPLAYER_PLAN.md M5)
 ##                 queue_join {modes, ranked}, queue_leave (matchmaking, M6)
 ##                 dedicated_get, dedicated_start {config}, dedicated_stop, dedicated_command {line}, dedicated_autostart {on} (M7)
@@ -86,7 +87,7 @@ const TYPES := ["ready", "sound", "hover", "page", "layout", "set", "reset", "re
 	"resume", "leave_match", "restart_match", "ready_up", "crosshair_preview",
 	"card_set", "card_showcase", "card_seen", "taunt", "update_skip",
 	"net_browse", "net_join", "net_cancel", "queue_join", "queue_leave", "dedicated_get", "dedicated_start", "dedicated_stop", "dedicated_command", "dedicated_autostart",
-	"spectate", "replays", "replay_watch", "replay_rename", "replay_favorite", "replay_delete", "replay_folder", "maps_folder"]
+	"spectate", "replays", "replay_watch", "replay_rename", "replay_favorite", "replay_delete", "replay_folder", "maps_folder", "race_queue"]
 ## Hosts open_url may send the player's browser to; nothing else leaves the game.
 const URL_HOSTS := ["store.steampowered.com", "steamcommunity.com", "github.com", "discord.gg"]
 
@@ -297,6 +298,12 @@ func handle(m: Dictionary) -> void:
 		"replay_folder":
 			DirAccess.make_dir_recursive_absolute(Q3ReplayFile.dir)
 			OS.shell_open(ProjectSettings.globalize_path(Q3ReplayFile.dir))
+		"race_queue":   # the courses to run after the one that starts next, in order ([] for a single run)
+			var q := []
+			for x in m.get("maps", []):
+				if x is String and q.size() < 64 and not Session.map_info(x).is_empty():
+					q.append(x)
+			Session.race_queue = q
 		"maps_folder":   # the Maps folder (community pk3s, race maps), made if it isn't there yet
 			var dir := Q3MapPacks.dir()
 			DirAccess.make_dir_recursive_absolute(dir)
@@ -392,7 +399,7 @@ func init_payload() -> Dictionary:
 		"crosshairs": Q3.load_json(Q3.LIB + "ui/ui.json").get("crosshairs", []),
 		"continue": last.summary() if last else "", "m_yaw": Settings.M_YAW, "context": context, "match": match_info,
 		"progress": {"level": int(Q3Profile.level()["level"]), "ranked_level": Q3Profile.RANKED_LEVEL}, "campaign": Session.campaign.to_dict(), "cinematics": cinematics(),
-		"cards": cards_payload(), "profile": Q3Profile.menu_payload(), "race_records": Q3RaceRecords.summary()}
+		"cards": cards_payload(), "profile": Q3Profile.menu_payload(), "race_records": Q3RaceRecords.summary(), "race_board": Q3RaceRecords.board()}
 
 
 ## Each character's skins after default (Q3Character.skins_of): the Profile page's Skin choices.

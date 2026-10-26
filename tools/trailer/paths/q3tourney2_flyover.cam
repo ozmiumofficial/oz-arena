@@ -1,7 +1,0 @@
-// map q3tourney2
-// into the main hall from the south door, arcing around the central tower
-// time  x y z  pitch yaw roll  fov
-0  -64 560 380  -6.55 89.62 0  90
-2  -64 820 470  3.27 89.35 0  90
-4  200 960 520  11.83 141.07 0  90
-6  260 1360 520  10.65 210.70 0  90

@@ -216,4 +216,4 @@ Order: R1 -> R2 -> R3 -> R4 -> R5 -> R6 (the death cam uses R5's chase cam), the
   - The camera changed shot by itself every 3.6-4.0 s on average (91-94 cuts, 11-16 eases).
   - Every shot kind came up.
   - `spectator_test` (22 checks) covers the Use item cycle, and `replay_test` checks the viewer's cinematic camera.
-  - `tests/cine_capture.tscn` films it windowed with the trailer recorder, and `replay_capture` adds a cinematic still.
+  - `replay_capture` adds a cinematic still.

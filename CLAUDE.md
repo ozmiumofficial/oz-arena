@@ -1,6 +1,6 @@
 # Q3Remaster: context for Claude
 
-Ozmium is planning a complete modern remaster of Quake III Arena in Unity or Godot (engine not chosen). **Current stage: replays are done (R1-R9, 2026-10-23), after the map editor; online multiplayer is next, once Ozmium says go.** The asset pipeline, main menu and Gameplay scene (`GAMEPLAY_PLAN.md`) are built. The Map editor scene was built in phases E0-E8 per `MAP_EDITOR_PLAN.md` (all done: kernel, editing, faces/vertices/curves, materials/inspector, entities/lights/prefabs, compile/play-test, BSP/.map import and export, workflow/polish: filters, outliner, history, thumbnails, Publish; E8 tests and docs). **Then:** replays, the replay viewer, spectator mode and the death cam, phases R1-R9 per `REPLAY_PLAN.md` (all done 2026-10-23; no killcam, Ozmium 2026-10-23). **Last:** online multiplayer, phases M1-M9 per `MULTIPLAYER_PLAN.md` (M9: a map Workshop on Cloudflare R2, back in the plan 2026-10-23) (Ozmium put it last, 2026-10-23). Quake Live's rules and physics are planned next to it (`QUAKE_LIVE_PLAN.md`, phases Q1-Q7, 2026-10-23; Q1 done). A Race mode in Defrag's style (VQ3 only, no CPM), with race tools in the map editor, is being built (`RACE_PLAN.md`, phases D1-D8, Ozmium 2026-10-25; the `defrag` folder in the Quake 3 install holds only the mod and mapping kit, no race maps). A hype trailer is planned (`TRAILER_PLAN.md`): its flyover and still footage is recorded in retail Quake 3 and the remaster (2026-10-23); the rest waits for Ozmium's go, after replays. Read `PLAN.md` for phases and open decisions, and `DEVELOPMENT.md` for how the tools run. `README.md` is the player-facing feature page (the GitHub front page, with screenshots): keep it non-technical and only claim what's built.
+Ozmium is planning a complete modern remaster of Quake III Arena in Unity or Godot (engine not chosen). **Current stage: replays are done (R1-R9, 2026-10-23), after the map editor; online multiplayer is next, once Ozmium says go.** The asset pipeline, main menu and Gameplay scene (`GAMEPLAY_PLAN.md`) are built. The Map editor scene was built in phases E0-E8 per `MAP_EDITOR_PLAN.md` (all done: kernel, editing, faces/vertices/curves, materials/inspector, entities/lights/prefabs, compile/play-test, BSP/.map import and export, workflow/polish: filters, outliner, history, thumbnails, Publish; E8 tests and docs). **Then:** replays, the replay viewer, spectator mode and the death cam, phases R1-R9 per `REPLAY_PLAN.md` (all done 2026-10-23; no killcam, Ozmium 2026-10-23). **Last:** online multiplayer, phases M1-M9 per `MULTIPLAYER_PLAN.md` (M9: a map Workshop on Cloudflare R2, back in the plan 2026-10-23) (Ozmium put it last, 2026-10-23). Quake Live's rules and physics are planned next to it (`QUAKE_LIVE_PLAN.md`, phases Q1-Q7, 2026-10-23; Q1 done). A Race mode in Defrag's style (VQ3 only, no CPM), with race tools in the map editor, is being built (`RACE_PLAN.md`, phases D1-D8, Ozmium 2026-10-25; the `defrag` folder in the Quake 3 install holds only the mod and mapping kit, no race maps). Read `PLAN.md` for phases and open decisions, and `DEVELOPMENT.md` for how the tools run. `README.md` is the player-facing feature page (the GitHub front page, with screenshots): keep it non-technical and only claim what's built.
 
 **Direction (2026-10-22):**
 - Fully open source.
@@ -64,14 +64,6 @@ python tools/make_music.py                          # Quake 3's soundtrack -> go
 python tools/export_game.py                         # Windows build -> build/windows (Q3Remaster.exe map=q3dm17 bots=3 skips the menu)
 python tools/make_icon.py [--preview sheet.png]     # the game icon (Quake 3's emblem + R) -> godot/icon.png (window), icon.ico (exe)
 python tools/ql/extract_ql.py                       # Quake Live's rules (DLL cvar + item tables, factories) -> tools/ql/ql_rules.json (needs Quake Live installed; it isn't any more, and ql_rules.json is the kept record)
-python tools/trailer/q3cam/build.py                 # trailer: the q3cam camera mod for retail Quake 3 -> work/trailer/q3cam/pak0.pk3
-python tools/trailer/cam_path.py check --all        # trailer: camera paths against the maps' walls
-python tools/trailer/capture_q3.py <path> | --all  # trailer: record paths in retail Quake 3 -> work/trailer/retail
-python tools/trailer/capture_remaster.py <path> | --all [--showcase] [--action]  # trailer: the same paths in the remaster; --showcase: fighters taunting in the menu's mist; --action: directed action from bot-match replays -> work/trailer/remaster
-python tools/trailer/compare.py --all               # trailer: each pair split and blended -> work/trailer/compare
-python tools/trailer/beats.py                       # trailer: the track's beats, bars, sections, drop -> work/trailer/music/beats.json
-cd trailer && npm run media && npm run render       # trailer: link footage into public/media, render the edit -> trailer/out/
-cd trailer && npm run dev                           # trailer: the preview page (player + bar timeline) on :3100
 ```
 
 Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `viewer/` (web viewer: serve with `python -m http.server`), and the reports. Per-model overrides go in `tools/models.json`.
@@ -104,7 +96,7 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
   - `world_add_lit`: add stages followed by a `$lightmap` filter stage, lit so the lightmap dims them.
   - Two-sided shaders light back faces with the front normal. The lightmaps are directional, so a flipped normal read them black (q3dm0's tank frame).
   - These flags come from `q3shader.describe` through `build_world.py` and `make_godot_world.py`. On 2026-10-22 the existing `.tres` files were patched directly rather than regenerated under the open editor.
-  - **Fixed 2026-10-23** (seen in trailer footage), each through the pipeline, with the live `.tres` files patched to match:
+  - **Fixed 2026-10-23**, each through the pipeline, with the live `.tres` files patched to match:
     - An additive shader's base layer is texture kind `additive` (`build_world.py`): upscaled like a glow layer and written as `_albedo`. The ordinary tile path had lifted its black to about 5/255 (edges up to 246), and every glow, beam and teleporter ring drew as a faint square.
     - An opaque first stage makes the surface opaque even when a later additive stage is named like the shader (`chrome_metal` had turned see-through, leaving a hole in q3tourney4's console pillar).
     - `glow_lit`: added stages before the `$lightmap` filter are lit paint, added to the albedo, not glow.
@@ -178,6 +170,7 @@ Results go in `work/<model>/`: `export/` (blend/fbx/glb, textures, unity/), `vie
 - **Pickup effect (remaster only):** when an item leaves the snapshot within 0.5 s and 2.5 m of a pickup event, `Q3Pickup.collect()` swells and shrinks it, and `Q3FX.pickup` bursts in the item's color. See `tests/pickup_fx_test.tscn`.
 - **Music:** `Q3Music` plays CS_MUSIC (intro once, then the loop) on the Music bus, 10 dB under effects. The campaign postgame plays win or loss. See `tests/music_test.tscn`.
 - **Menu music (remaster only, 2026-10-23):** `Q3MenuMusic` (`scripts/ui/q3_menu_music.gd`, made by `main_menu.gd`) shuffles the 12 songs (an intro and its loop are one song; win and loss stay out), each heard once per round; the order is static, so a match doesn't restart it. Setting `audio/menu_music` (on) reaches it through the `menu_music` group; it pauses under cinematics. See `tests/menu_music_test.tscn` (headless, 9 checks).
+- **Items placed outside a match** (`tests/levelshots.gd`) skip what Quake 3 wouldn't spawn in a free-for-all: `Q3Map.spawns_in_ffa(e)` (g_spawn.c: `notfree` is team games only, `notq3a` Team Arena only). Maps keep team-game items over their free-for-all ones, so placing both stacked two quads on Brimstone Abbey's altar (2026-10-23). Levelshots made before then have them too. Matches are unaffected: their items come from the server.
 - **Levelshots:**
   - `tests/levelshots.tscn` renders 1280x960 shots from each remastered map's intermission point, with items placed, into `work/_levelshots`.
   - `make_ui.py` and `build_cards.py` prefer those over id's 128 px originals. q3tourney5 is shot without its fog.
@@ -429,6 +422,8 @@ ode_modules`.
   - Every frame the copy draws is a movie frame: the splash skips its disclaimer, loads and fades for `clip=`. The copy takes no input (Escape stops it), stays offline (`Online` sees `clip=`; it would share the player's identity), and quits on any error. `--quit-after` (range + 600 frames) and a wall-clock limit back that up.
   - Cancel is `OS.kill`, which `Diagnostics` would report as a crash next launch, so `cancel()` deletes the copy's session files.
 - **Tests:** `replay_test` (every frame against the live server, seeks, size, the library, the bridge, playback in Gameplay; `-- seconds=600 compare=0` for the 10-minute size run), `spectator_test`, `cine_cam_test`, `death_cam_test` (windowed `-- out=` saves shots), `demo_test` (id's `demos/four.dm_68` from the player's pak8), `clip_test` (windowed), `replay_capture` (viewer shots), `scoreboard_test` (windowed shots).
+- **Game time vs wall time:** anything Quake 3 times by cg.time reads `Q3.game_ms` (each frame's delta added up). `Time.get_ticks_msec()` is wall time: in recordings that render slower than they play (Movie Maker, `--fixed-fps`), pickups spun and portal cameras swung far too fast. Fixed in pickups, portals, chat, the damage flash and the menu logo.
+- **Timer lambdas that capture nodes:** Godot prints "Lambda capture at index 0 was freed" when the node is freed first, even if the lambda checks `is_instance_valid`. Replay jumps free corpses and burn embers, so `Q3Client._leave_corpse` and `Q3Character`'s embers capture a `WeakRef`.
 
 ## Map editor facts (hard-won)
 
@@ -568,33 +563,6 @@ ode_modules`.
   - **Levelshots:** they're mostly 128 px (a few are 143, 512 or 640), so the bake normalizes them to 384 px.
   - **Skies:** Quake 3's 49 sky shaders share 7 cloud-layer looks.
   - **Godot log path:** pass Godot an absolute `--log-file` path; a relative one doesn't land in the shell's directory, so you end up reading a stale log.
-
-## Trailer facts (hard-won)
-
-- **q3cam** (`tools/trailer/q3cam/`): id's 1.32 cgame and game code plus `src/cg_q3cam.c`, built into QVMs by id's own `lcc` and `q3asm` from `thirdparty/id-q3a`. `build.py` copies the code out of thirdparty and puts the hooks in there. The QVMs come out within a few KB of retail pak8's.
-- **Building id's 1999 toolchain with MSVC 2022 (x86):**
-  - q3cpp's `outp` and `memmove` clash with MSVC intrinsics; they're renamed with `/D`.
-  - q3cpp's `creat(name, 0666)` trips the CRT's mode check (0xC0000409), so it writes to stdout instead.
-  - q3asm splits list entries at `:`, so the list names files relative to its folder.
-  - cmdlib needs `user32.lib`.
-  - lcc's driver adds `-D__LCC__`; without it q_shared.h's inline functions don't parse. Under lcc `VectorCopy` is a struct cast, so `VectorCopy(v + 3, ...)` fails; write `&v[3]`.
-- **Retail capture:**
-  - Fullscreen only: 1.32 turns overbright off in a window (R_SetColorMappings), and the map loses its look.
-  - `cl_avidemo` saves each frame at the start of the next, so the first TGA is from before the path (`LEAD` in `capture_q3.py`).
-  - `cl_avidemo 60` steps 16 ms (1000 / 60 truncated), so path time counts frames, not `cg.time`.
-  - `con_notifytime 0` still draws a line printed that frame; use -1.
-  - The mod's `team spectator` start, `cam_broadcast` (every entity `SVF_BROADCAST`) and the cleared area mask let a path go anywhere. Quake 3 writes `q3cam/q3config.cfg` and `q3cam/screenshots`, never `baseq3`.
-- **Remaster capture:** `tests/trailer_capture.gd` is the shared recorder for `tests/trailer_shot.tscn` (paths) and `tests/trailer_showcase.tscn` (a fighter in the menu's `Q3ShowcaseStage`, `centered`, taunting at set frames; shots in `tools/trailer/showcase.json`). It renders into its own 1920x1080 SubViewport (copying the root viewport's quality properties) and pipes raw RGBA into ffmpeg (`OS.execute_with_pipe`, blocking). Godot's Movie Maker records at the project's window size (1600x900) whatever `--resolution` says, and its PNGs were the slow part. It encodes with NVENC (`h264_nvenc -cq 14`, about 4x x264 medium at SSIM 0.991 vs 0.994; `encoder=x264` without an NVIDIA card): with x264 the game waited on the encoder every frame. `finish_now()` ends a take whose length isn't known up front.
-- **Game time vs wall time:** anything Quake 3 times by cg.time reads `Q3.game_ms` (each frame's delta added up). `Time.get_ticks_msec()` is wall time: in recordings that render slower than they play (Movie Maker, `--fixed-fps`), pickups spun and portal cameras swung far too fast. Fixed in pickups, portals, chat, the damage flash and the menu logo.
-- **Directed action** (`tests/trailer_replay_rec.tscn` records a bot match as a replay headless; `tests/trailer_action.tscn` films it; shots in `tools/trailer/action.json`). Every frag by a real weapon becomes a shot: rockets, rails and the gauntlet first (the machinegun is skipped). It runs 1.8 s at full speed, slows to 22% around the hit, then full speed again, with one of four cameras in turn (side, low behind the killer, reverse from beyond the victim, orbit). The director owns the playhead (`replay_playing` false, `seek_to` every frame, `process_priority` after Gameplay) and the camera (free mode, overridden after Gameplay draws). `<name>_shots.json` lists each shot's first frame, kill frame, weapon and camera, and names the replay; `--refilm` films that replay again (same shots), for a fix in the game. The edit names shots as `{"src": "remaster/action_<map>.mp4", "shot": n, "at": seconds from the kill}`; `npm run media` gathers the lists into `edit/shots.json`. The spectator chase camera (`tests/trailer_match.tscn`) only follows; Ozmium rejected it for trailer action (2026-10-23).
-  - **First-person gameplay** (`tests/trailer_pov.tscn -- replay=... max=6`): from the same replays, each clip watches a killer's own eyes, HUD and gun at full speed (3.5 s before a frag to 1.5 s after), runs of frags first, a different killer each clip where it can. Its camera can't clip through walls, which the directed cameras sometimes do (Ozmium, 2026-10-23: replace those shots with gameplay). Clips are 5 s each, back to back, so the edit names them by seconds.
-  - **Map editor footage** (`tests/trailer_editor.tscn`): the editor driven by input events (as `map_editor_input.gd`) with a drawn cursor: two walls, one duplicated and dragged across, materials from the browser's search, a weapon, armor and a light, then the camera eases around. The create tool reads a brush's height off the footprint corner nearest the camera in 3D (`_corners()`); aim the mouse there or the walls come out any height. Ozmium found a bigger, faster build "made no sense": keep it a few clear, practical steps.
-  - **Timer lambdas that capture nodes:** Godot prints "Lambda capture at index 0 was freed" when the node is freed first, even if the lambda checks `is_instance_valid`. Replay jumps free corpses and burn embers, so `Q3Client._leave_corpse` and `Q3Character`'s embers capture a `WeakRef`.
-- **The edit (`trailer/`):** Remotion 4.0.538 compositions (`remotion/`) with a Next.js 16 preview page (`app/`). The edit is data: `edit/trailer.json` places segments in bars of the track (`edit/beats.json` from `tools/trailer/beats.py`; "Data Destruction" by Skyth x Boom Kitty, 143.6 BPM, drop at bar 21 = 0:34.27). Footage, the track and id's sounds are hard-linked into gitignored `public/media` by `npm run media`; never commit them.
-  - Remotion's `AbsoluteFill` is `width: 100%`, so an inset box needs an explicit width, not `left` and `right`.
-  - `OffthreadVideo` takes `trimBefore` (`startFrom` is deprecated).
-  - Don't edit files while a render bundles: the first full render quit after 31 s with no file.
-- **Paths:** the `.cam` spline is `cam_path.evaluate` and `CG_CamEval` (Hermite, Catmull-Rom tangents, flat ends); `trailer_shot.gd` `_eval` matches them. `setviewpos` can't fly a path: it's yaw-only and `TeleportPlayer` flips `EF_TELEPORT_BIT`, which turns interpolation off.
 
 ## Results so far
 

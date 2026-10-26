@@ -21,7 +21,7 @@ var _rigs: Dictionary = {}
 const TEXTURE_PACKS := 3
 var missing_packs: PackedStringArray = []
 ## Game time in ms: every frame's delta added up, so Engine.time_scale and --fixed-fps (Movie
-## Maker, the trailer captures) hold. Time.get_ticks_msec() is wall time: in a recording that
+## Maker, clip export) hold. Time.get_ticks_msec() is wall time: in a recording that
 ## renders slower than it plays, pickups spun and portal cameras swung far too fast. Anything
 ## Quake 3 times by cg.time reads this.
 var game_ms := 0.0

@@ -1,7 +1,0 @@
-// map q3dm17
-// sweeps over the void past the rail platform, rising toward the arena
-// time  x y z  pitch yaw roll  fov
-0  2900 -560 360  -3.42 166.50 0  90
-2  2300 -420 480  0.56 166.40 0  90
-4  1650 -250 700  13.42 167.27 0  90
-6  1100 -80 950  38.69 170.91 0  90

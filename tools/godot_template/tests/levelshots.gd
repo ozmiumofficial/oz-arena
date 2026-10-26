@@ -82,7 +82,8 @@ func _place_items(map: Q3Map) -> void:
 	for marker in map.get_node("Entities").get_children():
 		var e: Dictionary = marker.get_meta("entity", {})
 		var cls := String(e.get("classname", ""))
-		if not ITEM_PREFIXES.any(func(p: String) -> bool: return cls.begins_with(p)) or not Q3.entities.has(cls):
+		if not ITEM_PREFIXES.any(func(p: String) -> bool: return cls.begins_with(p)) or not Q3.entities.has(cls) \
+				or not Q3Map.spawns_in_ffa(e):
 			continue
 		var p := Q3Pickup.new()
 		p.classname = cls

@@ -150,6 +150,13 @@ func model_node(n: int) -> Node3D:
 	return get_node_or_null("Geometry/model_%d" % n) as Node3D
 
 
+## Whether Quake 3 spawns this entity in a free-for-all (g_spawn.c G_SpawnGEntityFromSpawnVars):
+## "notfree" keeps it out of free-for-all and duels, "notq3a" out of Quake 3 altogether (Team
+## Arena only). Brimstone Abbey keeps a team-game quad over its free-for-all one.
+static func spawns_in_ffa(e: Dictionary) -> bool:
+	return int(e.get("notfree", "0")) == 0 and int(e.get("notq3a", "0")) == 0
+
+
 ## Entity markers of one classname (metadata "entity" holds the key/values).
 func entities_of(classname: String) -> Array[Marker3D]:
 	var out: Array[Marker3D] = []

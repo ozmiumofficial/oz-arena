@@ -8,12 +8,6 @@
       "port": 3217
     },
     {
-      "name": "trailer",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "trailer", "run", "dev"],
-      "port": 3100
-    },
-    {
       "name": "webui-static",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "3219", "--directory", "godot/webui"],

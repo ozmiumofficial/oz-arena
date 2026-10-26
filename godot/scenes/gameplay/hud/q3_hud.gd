@@ -65,6 +65,7 @@ var chat: Q3HudChat
 var crosshair: Q3HudCrosshair
 var damage_fx: Q3HudDamage
 var status: Q3HudStatus
+var race: Q3HudRace                ## the run timer in a race (set_race), in the status's place
 var _msg: Control                 ## center prints, rewards, pickups, powerups, warmup, notices
 var _notify: Array[Dictionary] = []   ## console prints, top left
 var _fatal := ""
@@ -118,6 +119,8 @@ func _ready() -> void:
 	damage_fx = _add(Q3HudDamage.new())
 	crosshair = _add(Q3HudCrosshair.new())
 	status = _add(Q3HudStatus.new())
+	race = _add(Q3HudRace.new())
+	race.visible = false
 	feed = _add(Q3HudFeed.new())
 	speedometer = _add(Q3HudSpeedometer.new())
 	weapon_bar = _add(Q3HudWeaponBar.new())
@@ -147,6 +150,13 @@ func _add(c: Control) -> Control:
 	return c
 
 
+## A race (RACE_PLAN.md D4): the run timer takes the match clock's place.
+func set_race(run: Q3RaceRun) -> void:
+	race.run = run
+	race.visible = true
+	status.visible = false
+
+
 ## Places every widget for the preset and the current window size.
 func layout() -> void:
 	var full := root.get_viewport_rect().size
@@ -173,6 +183,8 @@ func layout() -> void:
 		c.size = full
 	status.position = Vector2(0, 18 * u)
 	status.size = Vector2(vs.x, 90 * u)
+	race.position = status.position
+	race.size = Vector2(vs.x, vs.y - 18 * u)
 	feed.size = Vector2(560 * u, 260 * u)
 	feed.position = Vector2(vs.x - feed.size.x - m, m)
 	var vit := Vector2(530 * u, 92 * u) if not compact else Vector2(400 * u, 66 * u)
@@ -891,12 +903,20 @@ func _draw_item_timers(vs: Vector2) -> void:
 		y += 52 * u
 
 
-## Accessibility > Subtitles: the announcer's recent lines, above the weapon bar.
+## Accessibility > Subtitles: the announcer's recent lines, bottom middle, stacked above whatever
+## is highest there (speedometer, weapon bar, classic status row), or above the death text.
 func _draw_captions(vs: Vector2) -> void:
 	if _captions.is_empty():
 		return
 	var size := int({"low": 22.0, "medium": 28.0, "high": 36.0}.get(Settings.get_value("accessibility/subtitle_size"), 28.0) * u)
-	var y := weapon_bar.position.y - 24 * u - (_captions.size() - 1) * size * 1.4
+	var top := minf(vitals.position.y, ammo_panel.position.y) if preset == "classic" else vs.y - 34 * u
+	if weapon_bar.visible:
+		top = minf(top, weapon_bar.position.y)
+	if speedometer.visible:
+		top = minf(top, speedometer.position.y)
+	if _dead:
+		top = minf(top, vs.y * (0.6 if not death.is_empty() else 0.7) - 30 * u)
+	var y := top - 16 * u - size * 0.35 - (_captions.size() - 1) * size * 1.4
 	for c in _captions:
 		var a := clampf((CAPTION_TIME - float(c["t"])) / 0.4, 0.0, 1.0)
 		var w := S.num_medium().get_string_size(String(c["text"]), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x

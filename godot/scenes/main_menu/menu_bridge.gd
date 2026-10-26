@@ -86,7 +86,7 @@ const TYPES := ["ready", "sound", "hover", "page", "layout", "set", "reset", "re
 	"resume", "leave_match", "restart_match", "ready_up", "crosshair_preview",
 	"card_set", "card_showcase", "card_seen", "taunt", "update_skip",
 	"net_browse", "net_join", "net_cancel", "queue_join", "queue_leave", "dedicated_get", "dedicated_start", "dedicated_stop", "dedicated_command", "dedicated_autostart",
-	"spectate", "replays", "replay_watch", "replay_rename", "replay_favorite", "replay_delete", "replay_folder"]
+	"spectate", "replays", "replay_watch", "replay_rename", "replay_favorite", "replay_delete", "replay_folder", "maps_folder"]
 ## Hosts open_url may send the player's browser to; nothing else leaves the game.
 const URL_HOSTS := ["store.steampowered.com", "steamcommunity.com", "github.com", "discord.gg"]
 
@@ -297,6 +297,10 @@ func handle(m: Dictionary) -> void:
 		"replay_folder":
 			DirAccess.make_dir_recursive_absolute(Q3ReplayFile.dir)
 			OS.shell_open(ProjectSettings.globalize_path(Q3ReplayFile.dir))
+		"maps_folder":   # the Maps folder (community pk3s, race maps), made if it isn't there yet
+			var dir := Q3MapPacks.dir()
+			DirAccess.make_dir_recursive_absolute(dir)
+			OS.shell_open(dir)
 		"update_skip":
 			Q3UpdateCheck.skip(String(m.get("tag", "")))
 		"open_url":
@@ -388,7 +392,7 @@ func init_payload() -> Dictionary:
 		"crosshairs": Q3.load_json(Q3.LIB + "ui/ui.json").get("crosshairs", []),
 		"continue": last.summary() if last else "", "m_yaw": Settings.M_YAW, "context": context, "match": match_info,
 		"progress": {"level": int(Q3Profile.level()["level"]), "ranked_level": Q3Profile.RANKED_LEVEL}, "campaign": Session.campaign.to_dict(), "cinematics": cinematics(),
-		"cards": cards_payload(), "profile": Q3Profile.menu_payload()}
+		"cards": cards_payload(), "profile": Q3Profile.menu_payload(), "race_records": Q3RaceRecords.summary()}
 
 
 ## Each character's skins after default (Q3Character.skins_of): the Profile page's Skin choices.

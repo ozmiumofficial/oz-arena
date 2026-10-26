@@ -152,7 +152,7 @@ func _menu_checks() -> void:
 	bridge.handle({"type": "ready"})
 	var init: Dictionary = posts[0] if posts.size() else {}
 	check("menu: bridge sends the whole menu state", init.get("type") == "init" and init["schema"].size() == Settings.entries.size()
-			and init["maps"].size() >= 30 and init["modes"].size() == 7 and init["characters"].size() == Q3.characters.size()
+			and init["maps"].size() >= 30 and init["modes"].size() == 8 and init["characters"].size() == Q3.characters.size()
 			and init["banner"]["glyphs"].size() >= 26,
 			"%d settings, %d maps, %d modes, %d bots" % [init.get("schema", []).size(), init.get("maps", []).size(), init.get("modes", []).size(), init.get("bots", []).size()])
 
@@ -230,7 +230,7 @@ func _menu_checks() -> void:
 	var again := Q3MatchSetup.from_dict(JSON.parse_string(JSON.stringify(good.to_dict())))
 	Session.last_request = ""
 	Session.start_match(good)
-	check("match setup: modes load, validation, round trip, hand-off", Session.mode_ids().size() == 7 and good.validate().is_empty()
+	check("match setup: modes load, validation, round trip, hand-off", Session.mode_ids().size() == 8 and good.validate().is_empty()
 			and ctf_wrong.validate().size() > 0 and duel_full.validate().size() > 0 and again.to_dict() == good.to_dict()
 			and Session.last_request == Session.GAMEPLAY and Session.setup == good,
 			"%s; ctf on q3dm17: %s" % [", ".join(Session.mode_ids()), ctf_wrong.validate()[0] if ctf_wrong.validate().size() else "accepted"])

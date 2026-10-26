@@ -41,6 +41,7 @@ var _last_frame := 0                    ## Time.get_ticks_msec() at the last fra
 var _hang_report := ""                  ## the freeze report being written, while frozen
 var _hang_since := 0
 var _overlay: CanvasLayer
+var console: Q3Console                  ## the developer console (Q3Console), over every scene
 var _machine := {}                      ## read once on the main thread: the watchdog must never call
 										## RenderingServer while the main thread is frozen (it deadlocks)
 var _stalls := 0                        ## expect_stall() depth: the watchdog looks away
@@ -70,6 +71,8 @@ func _enter_tree() -> void:
 	note("started: " + args)
 	_last_frame = Time.get_ticks_msec()
 	_write_session()
+	console = Q3Console.new()
+	add_child(console)
 	_watchdog = Thread.new()
 	_watchdog.start(_watch)
 

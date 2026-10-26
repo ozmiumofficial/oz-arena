@@ -17,6 +17,7 @@ using namespace godot;
 
 // id's Com_Printf -> Godot's output; Com_Error -> push_error.
 static void q3_print(const char *text, int is_error) {
+	q3_console_append(text, is_error); // the developer console keeps the raw text: Com_Printf pieces and their newlines
 	String s = String::utf8(text).strip_edges(false, true);
 	if (is_error) {
 		UtilityFunctions::push_error("q3core: ", s);

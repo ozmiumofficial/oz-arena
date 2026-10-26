@@ -316,6 +316,9 @@ export function handle(m: Msg) {
     case "replay_folder":
       notice("Browser preview: Godot would open the replays folder here.");
       break;
+    case "maps_folder":
+      notice("Browser preview: Godot would open the Maps folder here.");
+      break;
   }
 }
 

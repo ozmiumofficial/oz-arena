@@ -87,6 +87,12 @@
       "label": "Ranked",
       "hint": "Competitive queues with a ladder",
       "page": "ranked"
+    },
+    {
+      "id": "race",
+      "label": "Race",
+      "hint": "Defrag's timed courses: your best run, checkpoints and a ghost",
+      "page": "race"
     }
   ],
   "pages": [
@@ -95,6 +101,7 @@
     "play",
     "quick_play",
     "ranked",
+    "race",
     "leaderboards",
     "replays",
     "server_browser",

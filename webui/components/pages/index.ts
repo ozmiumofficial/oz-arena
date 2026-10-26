@@ -12,6 +12,7 @@ import ReplaysPage from "./ReplaysPage";
 import ProfilePage from "./ProfilePage";
 import { CreditsPage } from "./OtherPages";
 import DedicatedPage from "./DedicatedPage";
+import RacePage from "./RacePage";
 
 export interface PageProps {
   back: () => void;
@@ -27,6 +28,7 @@ export const PAGES: Record<string, ComponentType<PageProps>> = {
   offline_bots: OfflineBotsPage,
   quick_play: QuickPlayPage,
   ranked: RankedPage,
+  race: RacePage,
   leaderboards: LeaderboardPage,
   replays: ReplaysPage,
   server_browser: ServerBrowserPage,

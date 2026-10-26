@@ -5,7 +5,7 @@ extends Resource
 
 ## g_gametype for each mode (bg_public.h gametype_t). Clan Arena, Freeze Tag and Instagib play as their base types until
 ## their rules land in the game module.
-const GAMETYPES := {"ffa": 0, "duel": 1, "tdm": 3, "ctf": 4, "clan_arena": 3, "freeze_tag": 3, "instagib": 0}
+const GAMETYPES := {"ffa": 0, "duel": 1, "tdm": 3, "ctf": 4, "clan_arena": 3, "freeze_tag": 3, "instagib": 0, "race": 0}
 const SERVER_TYPES := ["offline", "listen", "dedicated", "matchmaking"]
 ## Quake 3's bot skill names (ui_startserver.c)
 const SKILLS := ["I Can Win", "Bring It On", "Hurt Me Plenty", "Hardcore", "Nightmare!"]
@@ -43,7 +43,7 @@ func game_cvars(sp_skill := 3) -> Dictionary:
 	var rules := effective_rules()
 	var mods := effective_modifiers()
 	var campaign := source in ["campaign", "training"]
-	return {
+	var cvars := {
 		"g_gametype": 2 if campaign else GAMETYPES.get(mode, 0),   # 2: GT_SINGLE_PLAYER
 		"g_spSkill": sp_skill,
 		"fraglimit": rules.get("fraglimit", 20), "timelimit": rules.get("timelimit", 10),
@@ -55,6 +55,10 @@ func game_cvars(sp_skill := 3) -> Dictionary:
 		"g_weaponrespawn": mods.get("weapon_respawn", 5), "g_friendlyfire": 1 if mods.get("friendly_fire", false) else 0,
 		"sv_maxclients": maxi(int(rules.get("max_players", 16)), bots.size() + 1),
 	}
+	if mode == "race":   # RACE_PLAN.md D2: id 1.32's movement (Classic) and the game's race rules; Gameplay restores the defaults after
+		cvars["g_ruleset"] = "classic"
+		cvars["g_race"] = 1
+	return cvars
 
 
 func game_mode() -> Q3GameMode:

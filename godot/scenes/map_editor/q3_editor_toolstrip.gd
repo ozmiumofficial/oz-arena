@@ -43,6 +43,10 @@ func _ready() -> void:
 			["item", "Item pickup: health, armor, ammo, powerups (, and . change it)"], ["sound", "Ambient sound"],
 			["light", "Light (Shift+click: a spot light aimed at the surface)"]]:
 		box.add_child(_tool_button(t[0], "tool." + t[0], t[1]))
+	box.add_child(_rule())
+	for t in [["startline", "Race start line: click one side of the course, then the other"], ["finishline", "Race finish line"],
+			["checkpoint", "Race checkpoint"]]:
+		box.add_child(_tool_button(t[0], "tool." + t[0], t[1]))
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -197,6 +201,20 @@ func _draw_icon(c: Control, id: String, key: String) -> void:
 			c.draw_colored_polygon(PackedVector2Array([p.call(3, 9), p.call(7, 9), p.call(12, 4.5), p.call(12, 19.5), p.call(7, 15), p.call(3, 15)]), m)
 			c.draw_arc(p.call(12, 12), 4.5 * s, -PI / 3, PI / 3, 10, m, w, true)
 			c.draw_arc(p.call(12, 12), 8.5 * s, -PI / 3, PI / 3, 14, m, w, true)
+		"startline", "finishline", "checkpoint":
+			var m: Color = Q3MapEntities.COLORS["race"]
+			c.draw_line(p.call(4, 21), p.call(4, 3), m, w, true)
+			if id == "startline":
+				c.draw_colored_polygon(PackedVector2Array([p.call(4, 3), p.call(20, 8), p.call(4, 13)]), m)
+			elif id == "finishline":
+				for i in 4:
+					for j in 3:
+						if (i + j) % 2 == 0:
+							c.draw_rect(Rect2(p.call(4 + i * 4.5, 3 + j * 4.5), Vector2(4.5, 4.5) * s), m)
+				c.draw_rect(Rect2(p.call(4, 3), Vector2(18, 13.5) * s), Color(m, 0.9), false, 1.5)
+			else:
+				c.draw_line(p.call(4, 12), p.call(20, 12), Color(m, 0.8), w, true)
+				c.draw_circle(p.call(12, 12), 3.5 * s, m)
 		"light":
 			var m := Color(1.0, 0.85, 0.35)
 			c.draw_circle(p.call(12, 9.5), 6.5 * s, m)

@@ -286,9 +286,9 @@ func _run() -> void:
 	for i in K.BINDINGS.size():
 		if K.BINDINGS[i][0] == "view.focus":
 			idx = i
-	var clash := K.rebind(idx, KEY_Y, 0)
+	var clash := K.rebind(idx, KEY_F9, 0)
 	var ev := InputEventKey.new()
-	ev.keycode = KEY_Y
+	ev.keycode = KEY_F9
 	var bound := K.commands_for(ev)
 	K.reset()
 	ev.keycode = KEY_F

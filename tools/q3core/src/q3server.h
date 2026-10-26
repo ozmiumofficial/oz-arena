@@ -14,6 +14,10 @@
 
 namespace godot {
 
+// Everything id's code prints (Com_Printf, Sys_Print, errors in red), raw, for the developer
+// console: appended by register_types.cpp's print hook, read out by Q3Server::console_take().
+void q3_console_append(const char *text, int is_error);
+
 class Q3Server : public RefCounted {
 	GDCLASS(Q3Server, RefCounted)
 
@@ -23,6 +27,12 @@ protected:
 public:
 	static int start(const String &command_line);
 	static bool is_ready();
+	static String console_take();
+	static PackedStringArray engine_commands();
+	static PackedStringArray engine_cvars();
+	static int cvar_flags(const String &name);
+	static PackedByteArray read_file(const String &path);
+	static String pak_names(bool referenced);
 	static String error();
 	static void exec(const String &text);
 	static int exec_now(const String &text);

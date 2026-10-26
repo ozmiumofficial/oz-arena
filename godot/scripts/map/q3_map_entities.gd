@@ -21,6 +21,7 @@ const COLORS := {
 	"marker": Color(0.35, 0.75, 0.35), "audio": Color(0.3, 0.85, 0.85), "world": Color(0.4, 1.0, 0.3),
 	"logic": Color(0.95, 0.85, 0.3), "hazard": Color(1.0, 0.45, 0.2), "mover": Color(0.4, 0.6, 1.0),
 	"decoration": Color(0.8, 0.7, 0.55), "render": Color(0.7, 0.5, 1.0), "item": Color(0.35, 0.5, 1.0),
+	"race": Color(1.0, 0.62, 0.12),
 }
 
 ## The Entities tab's sections: [label, filter] (filter: an item type, or a map entity category).
@@ -29,7 +30,7 @@ const SECTIONS := [
 	["Powerups and holdables", "powerup|holdable"], ["Flags", "team"],
 	["Spawns", "spawn"], ["Jump pads and pushers", "movement"], ["Teleporters", "teleport"],
 	["Lights and sound", "world|audio"], ["Markers", "marker"], ["Movers (brushes)", "mover"],
-	["Triggers and logic", "logic"], ["Hazards", "hazard"], ["Models and portals", "decoration|render"],
+	["Triggers and logic", "logic"], ["Hazards", "hazard"], ["Race (Defrag)", "race"], ["Models and portals", "decoration|render"],
 ]
 
 ## The inspector's typed fields: [key, kind, default]; kind is "num", "text", "target" (another
@@ -78,6 +79,19 @@ const KEY_SPECS := {
 	"misc_portal_surface": [["target", "target", ""]],
 	"misc_portal_camera": [["targetname", "name", ""], ["roll", "num", 0.0]],
 	"light": [["target", "target", ""], ["targetname", "name", ""]],
+	# Defrag's (g_race.c)
+	"target_startTimer": [["targetname", "name", ""]],
+	"target_stopTimer": [["target", "target", ""], ["targetname", "name", ""]],
+	"target_checkpoint": [["targetname", "name", ""]],
+	"target_fragsFilter": [["frags", "num", 1.0], ["target", "target", ""], ["targetname", "name", ""]],
+	"target_init": [["target", "target", ""], ["targetname", "name", ""]],
+	"target_smallprint": [["message", "text", ""], ["targetname", "name", ""]],
+	"target_speed": [["speed", "num", 100.0], ["targetname", "name", ""]],
+	"target_multimanager": [["wait", "num", 0.0], ["random", "num", 0.0], ["targetname", "name", ""]],
+	"trigger_push_velocity": [["target", "target", ""], ["speed", "num", 0.0], ["count", "num", 0.0]],
+	"shooter_rocket_targetplayer": [["target", "target", ""], ["targetname", "name", ""], ["random", "num", 0.0], ["speed", "num", 0.0], ["count", "num", 0.0]],
+	"shooter_plasma_targetplayer": [["target", "target", ""], ["targetname", "name", ""], ["random", "num", 0.0], ["speed", "num", 0.0], ["count", "num", 0.0]],
+	"shooter_grenade_targetplayer": [["target", "target", ""], ["targetname", "name", ""], ["random", "num", 0.0], ["speed", "num", 0.0], ["count", "num", 0.0]],
 }
 
 ## spawnflags bits by class, as the inspector names them: [[bit, label], ...].
@@ -98,6 +112,16 @@ const FLAGS := {
 	"target_laser": [[1, "Start on"]],
 	"misc_portal_camera": [[1, "Slow rotate"], [2, "Fast rotate"], [4, "Swing"]],
 	"light": [[1, "Linear falloff"], [2, "No angle"]],
+	"target_fragsFilter": [[1, "Remove the frags it asks for"], [2, "Run once (unused)"], [4, "Silent"], [8, "Reset the score"], [16, "Exactly this many"]],
+	"target_init": [[1, "Keep armor"], [2, "Keep health"], [4, "Keep weapons"], [8, "Keep powerups"], [16, "Keep holdable item"], [32, "Remove the machinegun"]],
+	"target_smallprint": [[8, "Everyone sees it"]],
+	"target_speed": [[1, "Percentage"], [2, "Add"], [4, "+X"], [8, "-X"], [16, "+Y"], [32, "-Y"], [64, "+Z"], [128, "-Z"], [256, "Launcher"]],
+	"target_multimanager": [[4, "Add the wait to every delay"], [8, "Each waits its number times the wait"]],
+	"trigger_push_velocity": [[1, "Player direction (XY)"], [2, "Add (XY)"], [4, "Player direction (Z)"], [8, "Add (Z)"],
+			[16, "Both ways (XY)"], [32, "Both ways (Z)"], [64, "Clamp negative adds"]],
+	"shooter_rocket_targetplayer": [[1, "Aim at the player"], [2, "Predict XY"], [4, "Predict Z"], [8, "Quad"]],
+	"shooter_plasma_targetplayer": [[1, "Aim at the player"], [2, "Predict XY"], [4, "Predict Z"], [8, "Quad"]],
+	"shooter_grenade_targetplayer": [[1, "Aim at the player"], [2, "Predict XY"], [4, "Predict Z"], [8, "Quad"]],
 }
 
 static var _sounds: PackedStringArray = []

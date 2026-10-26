@@ -6,12 +6,16 @@ extends Q3EditorTool
 ##                   target_position at the top of the arc, which lands on the second click
 ##   teleporter (K)  click the pad, then the exit: trigger_teleport and misc_teleporter_dest
 ##   weapon (I), item (O)  a pickup on the floor; , and . change which one
+##   startline (Y), finishline (U), checkpoint (C)
+##                   click one side of the course, then the other: a trigger across it and the Defrag
+##                   timer entity it fires (Race, RACE_PLAN.md D5)
 ##   sound (N)       a looping target_speaker
 ##   light (L)       a light one grid step off the surface; Shift: a spot aimed at the surface
 ##   class           any point class picked in the Entities tab
 ## Clicking an entity selects it instead of placing one. Esc drops a half-placed pad.
 
 const K = preload("res://scenes/map_editor/q3_editor_keymap.gd")
+const LINES := ["startline", "finishline", "checkpoint"]
 
 var kind := "spawn"
 var classname := "info_player_deathmatch"   ## the class kind "class" places
@@ -53,6 +57,9 @@ func current_class() -> String:
 		"item": return item
 		"sound": return "target_speaker"
 		"light": return "light"
+		"startline": return Q3MapRace.START
+		"finishline": return Q3MapRace.STOP
+		"checkpoint": return Q3MapRace.CHECKPOINT
 	return classname
 
 
@@ -121,6 +128,14 @@ func click(pos: Vector2, mods: int, _double: bool) -> void:
 				editor.place_teleporter(first, pl["point"], camera_yaw())
 			first = null
 			_clear_ghost()
+		"startline", "finishline", "checkpoint":
+			if first == null:
+				first = pl["point"]
+				UiSound.move()
+				return
+			editor.place_race_line(kind, first, pl["point"])
+			first = null
+			_clear_ghost()
 		"light":
 			editor.place_light(pl["origin"], pl["point"] if mods & K.SHIFT else null)
 		"sound":
@@ -154,8 +169,13 @@ func key(ev: InputEventKey) -> bool:
 
 func hint() -> String:
 	if first != null:
+		if kind in LINES:
+			return "Click the other side of the course · Esc: cancel"
 		return "Click where the player lands · Esc: cancel" if kind == "jumppad" else "Click where the teleporter comes out (facing the way you look) · Esc: cancel"
 	match kind:
+		"startline": return "Click one side of the course for the start line, then the other · the timer starts when the player crosses it"
+		"finishline": return "Click one side of the course for the finish line, then the other · it stops the timer"
+		"checkpoint": return "Click one side of the course for a checkpoint, then the other · a split time"
 		"spawn": return "Click the floor for a spawn point (faces the way you look) · Shift+P: one where the camera is"
 		"jumppad": return "Click the floor for a jump pad, then where to land · double-click its target to move it alone"
 		"teleporter": return "Click the floor for a teleporter, then its exit"
@@ -217,6 +237,10 @@ func _show_ghost(pl: Dictionary) -> void:
 			else:
 				Q3EditorEntities._line(im, from, pl["point"] + Vector3(0, 0, 24), c)
 				Q3EditorEntities._arrow(im, pl["point"] + Vector3(0, 0, 24), camera_yaw(), c)
+	elif kind in LINES:
+		var a: Vector3 = first if first != null else pl["point"]
+		var vol := Q3MapEditor.race_line_box(a, pl["point"])
+		_box(im, vol[0], vol[1], Q3MapEntities.COLORS["race"])
 	elif kind == "light":
 		Q3EditorEntities._line(im, pl["origin"], pl["point"], c)
 	elif Q3MapEntities.faces(cn):

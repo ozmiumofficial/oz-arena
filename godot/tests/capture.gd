@@ -50,6 +50,7 @@ func _ready() -> void:
 				"shafts": shafts = kv[1] != "0"
 				"heat": Settings.set_value("graphics/heat_shimmer", kv[1] != "0", false)   # this run only, not saved
 				"tonemap": tonemap = kv[1]
+				"preset": Settings.set_value("graphics/preset", kv[1], false)   # this run only, not saved
 				"classic": classic = kv[1]
 	Engine.max_fps = 60   # frames= counts real time, whatever the vsync setting
 	if classic != "":

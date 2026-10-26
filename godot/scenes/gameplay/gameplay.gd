@@ -74,6 +74,8 @@ var _ready_sent := false           ## ready-up toggled from the pause menu
 ## usercmd actions held when the chat closed, ignored until let go: the Enter that sent the line
 ## isn't Use item (Quake 3's keys pressed in message mode never reach their binds either)
 var _chat_held: Array[StringName] = []
+var crosshair_client := -1         ## cg.crosshairClientNum: the player last under the crosshair
+var crosshair_ms := -100000.0      ## cg.crosshairClientTime (Q3.game_ms)
 const USERCMD_ACTIONS: Array[StringName] = [&"q3_walk", &"q3_forward", &"q3_back", &"q3_moveright", &"q3_moveleft",
 	&"q3_jump", &"q3_crouch", &"q3_attack", &"q3_use_item", &"q3_gesture"]
 var _mouse := Vector2.ZERO         ## mouse counts since the last frame (CL_MouseMove reads them per frame)
@@ -85,6 +87,10 @@ const TIMED_ITEMS := ["item_armor_body", "item_armor_combat", "item_health_mega"
 var _map_items: Dictionary = {}    ## the map's own item entities (not ones dropped later)
 var _timers_t := 0.0
 var match_stats := Q3MatchStats.new()   ## your match for the scoreboard's left panel
+var race_run := Q3RaceRun.new()         ## your run in a race (g_race), from the game's "race ..." commands
+var race_active := false                ## this match is a race (RACE_PLAN.md): the timer HUD, restart and practice keys
+var race_ghost: Q3RaceGhost             ## your best run, running beside you
+var _race_recorder: Q3RaceGhostRecorder ## this run, sampled
 var recorder: Q3ReplayRecorder     ## Gameplay > Record replays: this match, written as it plays
 var replay_path := ""              ## the finished recording (the results screen's Watch replay)
 const TEST_REPLAYS := "user://test_replays"
@@ -111,12 +117,13 @@ var _replay_cards: Dictionary = {} ## client -> {card, level} as the recording k
 
 
 func _ready() -> void:
+	Diagnostics.console.host = self   # the developer console sends your commands to the game as you
 	if not InputMap.has_action("q3_ready"):
 		InputMap.add_action("q3_ready")
 		var f3 := InputEventKey.new()
 		f3.physical_keycode = KEY_F3
 		InputMap.action_add_event("q3_ready", f3)
-	for v in [["q3_vote_yes", KEY_F1], ["q3_vote_no", KEY_F2]]:
+	for v in [["q3_vote_yes", KEY_F1], ["q3_vote_no", KEY_F2], ["q3_race_restart", KEY_R], ["q3_race_save", KEY_F5], ["q3_race_load", KEY_F9]]:
 		if not InputMap.has_action(v[0]):
 			InputMap.add_action(v[0])
 			var vk := InputEventKey.new()
@@ -162,6 +169,9 @@ func _start_match() -> String:
 	var cvars := setup.game_cvars(_campaign_skill())
 	for k in cvars:
 		Q3Server.set_cvar(k, str(cvars[k]))
+	if setup.mode != "race" and Q3Server.cvar("g_race") == "1":   # a race earlier in this run left its rules in the cvars
+		Q3Server.set_cvar("g_race", "0")
+		Q3Server.set_cvar("g_ruleset", "ql")
 	# the campaign starts like q3_ui's: "spmap" keeps g_gametype single player (plain "map" turns it
 	# back into free-for-all, sv_ccmds.c SV_Map_f), so the game spawns the arena's bots itself.
 	# devmap (cheats on) only when a test asks for it: setup.set_meta("devmap", true)
@@ -338,6 +348,7 @@ func _build_view() -> void:
 	scoreboard = Q3Scoreboard.new()
 	add_child(scoreboard)
 	scoreboard.picked.connect(_follow_from_board)
+	_race_begin()
 
 
 ## cg_view.c CG_CalcFov: Settings > Video > Field of view (cg_fov, horizontal at 4:3), and +zoom
@@ -386,6 +397,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Q3Console.open_now:
+		return   # the console has the keyboard and the mouse
 	if replay_feed:
 		_replay_input(event)
 		return
@@ -442,6 +455,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("q3_ready") and me >= 0 and not _spectating_now:
 		_cmd("ready")
 		_ready_sent = not _ready_sent
+	if race_active and me >= 0 and _error == "" and not _ended:
+		if event.is_action_pressed("q3_race_restart"):
+			_cmd("racerestart")
+		elif event.is_action_pressed("q3_race_save"):
+			_cmd("racesave")
+		elif event.is_action_pressed("q3_race_load"):
+			_cmd("raceload")
 	if event.is_action_pressed("q3_weapnext"):
 		_cycle_weapon(1)
 	if event.is_action_pressed("q3_weapprev"):
@@ -494,6 +514,8 @@ func _process(delta: float) -> void:
 ## Everything drawn and shown in a frame of a live match, from the feed's state: the server commands,
 ## the camera, the bodies, the HUD, the scoreboard. A network match reaches it the same way (the
 ## feed is a Q3NetFeed).
+
+
 func _present_frame(delta: float) -> void:
 	for c in feed.next_commands(me):
 		_server_command(c)
@@ -523,7 +545,8 @@ func _present_frame(delta: float) -> void:
 	# cinematic camera stays on the ragdoll)
 	var cine := following(ps) and spec_view == "cinematic" and not _ended
 	var chase := following(ps) and spec_chase and int(ps["pm_type"]) != E.PM_DEAD
-	client.self_visible = chase or cine   # the followed player's body, built from the playerState
+	var third := not chase and not cine and _third_person(ps)
+	client.self_visible = chase or cine or third   # the followed player's body (or yours), built from the playerState
 	var death_view := _update_death(ps, delta)
 	if cine:
 		client.own_death = true   # their ragdoll, to stay on when they go down
@@ -537,7 +560,14 @@ func _present_frame(delta: float) -> void:
 		_gun_weapon = -1
 	elif not death_view:
 		_update_camera(ps)
-		_update_gun(ps)
+		if third:
+			_offset_third_person(ps)
+			if _gun:
+				_gun.visible = false
+			client.view_fx = client._self.get("wfx")   # the flash and beam come from the body's gun
+			_gun_weapon = -1
+		else:
+			_update_gun(ps)
 		_scan_crosshair(ps)
 	if _results and _results.frame_camera(cam) and _gun:   # the podium, in the map, while the results show
 		_gun.visible = false
@@ -551,7 +581,7 @@ func _present_frame(delta: float) -> void:
 	_board_t -= delta
 	# the scores show while Tab is held (Quake 3 also showed them while you're dead; Ozmium,
 	# 2026-10-23: Tab only, the dead view is the death cam's)
-	var show_board := Input.is_action_pressed("q3_scores") and not hud.chat.typing and not _ended
+	var show_board := Input.is_action_pressed("q3_scores") and not hud.chat.typing and not Q3Console.open_now and not _ended
 	scoreboard.visible = show_board
 	if scoreboard.interactive and not Input.is_action_pressed("q3_scores"):
 		scoreboard.set_interactive(false)
@@ -785,7 +815,7 @@ func _process_net(delta: float) -> void:
 
 
 func _send_usercmd() -> void:
-	if hud.chat.typing:
+	if hud.chat.typing or Q3Console.open_now:
 		# CL_CmdButtons: BUTTON_TALK while a key catcher is up; bg_pmove.c PmoveSingle then holds still
 		_usercmd(E.BUTTON_TALK, 0, 0, 0)
 		return
@@ -800,6 +830,8 @@ func _send_usercmd() -> void:
 	if _pad_move != Vector2.ZERO:
 		fwd = clampi(fwd - roundi(_pad_move.y * speed), -127, 127)
 		side = clampi(side + roundi(_pad_move.x * speed), -127, 127)
+	var keys := Diagnostics.console.commands.client
+	side = clampi(side + roundi(keys.strafe_side() * speed), -127, 127)
 	if _held(&"q3_jump"): up += 127
 	if (_crouch_on if Settings.get_value("controls/toggle_crouch") else _held(&"q3_crouch")): up -= 127
 	var buttons := 0
@@ -812,6 +844,7 @@ func _send_usercmd() -> void:
 		buttons |= E.BUTTON_GESTURE
 	if speed < 127:
 		buttons |= E.BUTTON_WALKING
+	buttons |= keys.buttons
 	if fwd != 0 or side != 0 or up != 0 or buttons != 0:
 		buttons |= E.BUTTON_ANY
 	_usercmd(buttons, fwd, side, up)
@@ -900,6 +933,8 @@ func _poll_item_timers(delta: float) -> void:
 
 ## Input.is_action_pressed, except for an action that was already down when the chat closed.
 func _held(action: StringName) -> bool:
+	if Q3Console.open_now:
+		return false
 	if not Input.is_action_pressed(action):
 		_chat_held.erase(action)
 		return false
@@ -915,7 +950,9 @@ func _say(text: String, team: bool) -> void:
 	if t.begins_with("/") and t.get_slice(" ", 0).trim_prefix("/") in ["callvote", "vote"]:
 		_cmd(t.substr(1))   # /callvote kick <name>, /vote yes: Quake 3's own voting (the game checks everything)
 		return
-	if t != "" and me >= 0:
+	if t != "" and me >= 0 and hud.chat.tell_to >= 0:
+		_cmd("tell %d \"%s\"" % [hud.chat.tell_to, t])   # the console's messagemode3 / messagemode4
+	elif t != "" and me >= 0:
 		_cmd("%s \"%s\"" % ["say_team" if team else "say", t])
 
 
@@ -982,6 +1019,46 @@ func _update_camera(ps: Dictionary) -> void:
 	cam.fov = Settings.fov_vertical(_fov_x())
 
 
+## The console's cg_thirdPerson, for your own view (not while following someone or spectating).
+func _third_person(ps: Dictionary) -> bool:
+	return not ps.is_empty() and Diagnostics.console.commands.client.cvar_float("cg_thirdPerson") != 0.0 \
+			and not following(ps) and int(ps["pm_type"]) != E.PM_SPECTATOR
+
+
+## cg_view.c CG_OffsetThirdPersonView: the eye backs off cg_thirdPersonRange along half the pitch
+## (cg_thirdPersonAngle swings it round), stops short of walls, and looks at a point 512 units ahead.
+func _offset_third_person(ps: Dictionary) -> void:
+	var keys := Diagnostics.console.commands.client
+	var org := _godot_to_id(cam.global_position)   # the eye: origin + viewheight
+	var angles: Vector3 = ps["viewangles"]
+	var stats: PackedInt32Array = ps["stats"]
+	if int(stats[E.STAT_HEALTH]) <= 0:
+		angles.y = float(stats[E.STAT_DEAD_YAW])   # dead: look at the killer
+	var focus := org + Q3Client.forward_of(Vector3(minf(angles.x, 45.0), angles.y, 0.0)) * 512.0
+	var view := org + Vector3(0.0, 0.0, 8.0)
+	angles.x *= 0.5
+	var fwd := Q3Client.forward_of(Vector3(angles.x, angles.y, 0.0))
+	var right := Vector3(sin(deg_to_rad(angles.y)), -cos(deg_to_rad(angles.y)), 0.0)
+	var swing := deg_to_rad(keys.cvar_float("cg_thirdPersonAngle"))
+	var reach := keys.cvar_float("cg_thirdPersonRange")
+	view += fwd * (-reach * cos(swing)) + right * (-reach * sin(swing))
+	var box := Vector3(4.0, 4.0, 4.0)
+	var pass_ent := int(ps["clientNum"])
+	var tr := feed.trace(org, view, -box, box, pass_ent, 1)   # MASK_SOLID
+	if not tr.is_empty() and float(tr["fraction"]) < 1.0:
+		view = tr["endpos"]
+		view.z += (1.0 - float(tr["fraction"])) * 32.0
+		# another trace there, in case a low ceiling now pokes through
+		tr = feed.trace(org, view, -box, box, pass_ent, 1)
+		if not tr.is_empty():
+			view = tr["endpos"]
+	var to_focus := focus - view
+	var flat := maxf(Vector2(to_focus.x, to_focus.y).length(), 1.0)
+	var pitch := -rad_to_deg(atan2(to_focus.z, flat))
+	cam.global_position = Q3.q3_to_godot(view)
+	cam.basis = Q3Client.angles_basis(Vector3(pitch, angles.y - rad_to_deg(swing), 0.0)) * Basis(Vector3.UP, PI)
+
+
 ## cg_draw.c CG_ScanForCrosshairEntity: a trace from the eye along the aim; a player it reaches,
 ## not standing in fog and not invisible, has their name shown under the crosshair (the HUD fades it).
 func _scan_crosshair(ps: Dictionary) -> void:
@@ -1000,6 +1077,8 @@ func _scan_crosshair(ps: Dictionary) -> void:
 	if int(es.get("powerups", 0)) & (1 << E.PW_INVIS):
 		return
 	hud.crosshair_target(_name(hit))
+	crosshair_client = hit
+	crosshair_ms = Q3.game_ms
 
 
 ## cg_playerstate.c CG_TransitionPlayerState: any change of the watched view height starts the duck
@@ -1278,6 +1357,9 @@ func _update_hud(ps: Dictionary) -> void:
 		return
 	var gt := feed.cvar("g_gametype").to_int()
 	hud.update(ps, {"level_time": feed.time(), "gametype": gt, "standings": standings})
+	if race_active:
+		hud.race.now_ms = feed.time()
+		_race_frame(ps)
 
 
 # ---------------------------------------------------------------- scores and the end of the match
@@ -1505,6 +1587,69 @@ func _playtest_start() -> void:
 	Q3Server.client_command(me, "edpos %.2f %.2f %.2f %.2f %.2f" % [at.x, at.y, at.z + 0.25, angles.x, angles.y])
 
 
+# ---------------------------------------------------------------- race (RACE_PLAN.md)
+
+## A race (g_race): your best run is loaded, the timer HUD takes the clock's place, and the ghost of
+## your best run is made ready. The game answers "raceinfo" with the checkpoint count, as at a spawn.
+func _race_begin() -> void:
+	if feed.cvar("g_race") != "1" or replay_feed != null or net_feed != null or setup == null:
+		return
+	race_active = true
+	var map := setup.map
+	race_run.load_best(int(Q3RaceRecords.best(map).get("ms", 0)), Q3RaceRecords.best_splits(map))
+	hud.set_race(race_run)
+	race_run.checkpoint.connect(func(n: int, ms: int, split: int) -> void:
+		hud.race.note_checkpoint(n, ms, split, race_run.checkpoints_total)
+		client.play_sound("sound/items/s_health.wav", Vector3.ZERO, true, -4.0))
+	race_run.finished.connect(_race_finished)
+	race_run.started.connect(func() -> void:
+		hud.race.practice = false
+		hud.race.note_reset()
+		if _race_recorder:
+			_race_recorder.begin()
+		if race_ghost:
+			race_ghost.restart())
+	race_run.reset.connect(func() -> void:
+		hud.race.note_reset()
+		if _race_recorder:
+			_race_recorder.stop()
+		if race_ghost:
+			race_ghost.hide_ghost())
+	_race_recorder = Q3RaceGhostRecorder.new()
+	_race_recorder.model = String(setup.player.get("model", "sarge"))
+	_race_recorder.skin = String(setup.player.get("skin", "default"))
+	var gh := Q3RaceGhost.load_for(map)
+	if gh:
+		race_ghost = gh
+		add_child(race_ghost)
+	_cmd("raceinfo")
+
+
+func _race_frame(ps: Dictionary) -> void:
+	var now := feed.time()
+	if _race_recorder and race_run.is_running():
+		_race_recorder.sample(now - race_run.start_time, ps)
+	if race_ghost:
+		race_ghost.update(now - race_run.start_time if race_run.is_running() else -1)
+
+
+func _race_finished(ms: int, record: bool) -> void:
+	var prev := int(Q3RaceRecords.best(setup.map).get("ms", 0))
+	hud.race.note_finish(ms, record, prev)
+	if record:
+		Q3RaceRecords.submit(setup.map, ms, race_run.splits)
+		if _race_recorder:
+			_race_recorder.save(setup.map, ms)
+		client.play_sound("sound/feedback/excellent.wav", Vector3.ZERO, true)
+		if race_ghost:
+			race_ghost.queue_free()
+		race_ghost = Q3RaceGhost.load_for(setup.map)
+		if race_ghost:
+			add_child(race_ghost)
+	if _race_recorder:
+		_race_recorder.stop()
+
+
 ## The results screen's podium taunt: to the server, which plays it on everyone's podium ("ptaunt").
 func _send_taunt(id: String) -> void:
 	if net_feed:
@@ -1528,6 +1673,9 @@ func _server_command(c: String) -> void:
 		# dmg <target> <amount> <armor> <means> <time> (the last two since the scoreboard's stats)
 		match_stats.damaged(int(args[2]), int(args[4]) if args.size() > 4 else -1, int(args[5]) if args.size() > 5 else -1,
 			int(feed.player_state(me).get("weapon", 0)))
+		return
+	if cmd == "race":   # RACE_PLAN.md: reset, start, cp, stop
+		race_run.feed(c)
 		return
 	if cmd == "armorhit" and args.size() >= 3:
 		client.armor_hit(int(args[1]), int(args[2]))
@@ -1556,6 +1704,7 @@ func _server_command(c: String) -> void:
 		elif cmd == "print":
 			if text != "":
 				hud.notify(text.replace("\n", " "))
+				Diagnostics.console.print_line(text)
 				if host_net and text.ends_with(" was kicked"):   # a passed vote kick: the hub bans them from this host for 30 minutes
 					host_net.note_kick(Q3Colors.strip(text.trim_suffix(" was kicked")))
 		else:
@@ -1564,6 +1713,7 @@ func _server_command(c: String) -> void:
 			if cmd == "chat" and Settings.get_value("hud/team_chats_only"):
 				return
 			client.play_sound("sound/player/talk.wav", Vector3.ZERO, true)
+			Diagnostics.console.print_line(text.replace(char(0x19), ""))
 			hud.chat.add(text.replace(char(0x19), "").replace("\n", " "), cmd == "tchat")
 
 
@@ -1662,6 +1812,8 @@ func _out_of_ammo_change(ps: Dictionary) -> void:
 
 ## Quit from the pause menu (or any way out that skips _leave): the replay still gets its trailer.
 func _exit_tree() -> void:
+	if Diagnostics.console.host == self:
+		Diagnostics.console.host = null
 	_finish_recording({"ended": "quit"})
 	if replay_feed:
 		replay_feed.close()

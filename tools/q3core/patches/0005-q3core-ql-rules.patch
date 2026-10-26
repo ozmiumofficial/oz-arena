@@ -193,7 +193,7 @@ index 7ec0a68..125b6cc 100644
  
  /*
 diff --git a/code/game/g_combat.c b/code/game/g_combat.c
-index 6734eaa..ed02345 100644
+index 6734eaa..70a9edb 100644
 --- a/code/game/g_combat.c
 +++ b/code/game/g_combat.c
 @@ -96,7 +96,8 @@ void TossClientItems( gentity_t *self ) {
@@ -241,17 +241,27 @@ index 6734eaa..ed02345 100644
  	if ( targ->flags & FL_NO_KNOCKBACK ) {
  		knockback = 0;
  	}
-@@ -908,6 +917,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
+@@ -908,6 +917,19 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
  		mass = 200;
  
  		VectorScale (dir, g_knockback.value * (float)knockback / mass, kvel);
-+		if ( G_QL() ) {		// q3core: Quake Live's fixed upward kick
-+			kvel[2] += targ == attacker ? g_knockback_z_self.value : g_knockback_z.value;
++		if ( G_QL() ) {		// q3core: Quake Live's fixed upward kick, once a shot: each of the
++			// shotgun's 20 pellets is its own hit, and 20 kicks threw a target 480 ups up
++			static int	sgTime[MAX_GENTITIES], sgFrom[MAX_GENTITIES];
++			int			n = targ - g_entities;
++
++			if ( mod != MOD_SHOTGUN || sgTime[n] != level.time || sgFrom[n] != attacker->s.number + 1 ) {
++				kvel[2] += targ == attacker ? g_knockback_z_self.value : g_knockback_z.value;
++			}
++			if ( mod == MOD_SHOTGUN ) {
++				sgTime[n] = level.time;
++				sgFrom[n] = attacker->s.number + 1;
++			}
 +		}
  		VectorAdd (targ->client->ps.velocity, kvel, targ->client->ps.velocity);
  
  		// set the timer so that the other client can't cancel
-@@ -965,7 +977,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
+@@ -965,7 +987,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
  		if ( ( dflags & DAMAGE_RADIUS ) || ( mod == MOD_FALLING ) ) {
  			return;
  		}

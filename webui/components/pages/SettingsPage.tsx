@@ -226,8 +226,8 @@ function Control({ e, value, onChange }: { e: SettingEntry; value: Value; onChan
 function PresetBar() {
   const preset = useMenu((s) => String(s.values["graphics/preset"] ?? "high"));
   return (
-    <div data-row className="mb-2 grid grid-cols-4 gap-2">
-      {["low", "medium", "high", "ultra"].map((p) => (
+    <div data-row className="mb-2 grid grid-cols-5 gap-2">
+      {["classic", "low", "medium", "high", "ultra"].map((p) => (
         <button
           key={p}
           data-nav

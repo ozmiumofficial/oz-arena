@@ -5,6 +5,10 @@ extends RefCounted
 ## bots (.aas) and collision see them like baseq3 paks; this lists them for the menu.
 ##   <exe dir>/Maps       an exported game
 ##   <repo>/Maps          the editor (next to godot/)
+## Race maps (Defrag, RACE_PLAN.md) come with a scripts/<map>.defi (map, longname, style, cpm, vq3,
+## author) in any pk3 of the folder, or an arena type of "race"/"defrag". They are race-only maps
+## (types ["race"], entry "race" {style, author}); a map for CPM physics alone is left out: the
+## remaster plays id 1.32 movement only.
 ## Each map comes from its pk3's scripts/*.arena (map, longname, type, bots, limits) or, without
 ## one, from its maps/*.bsp alone (free for all). Entries carry the arena fields Session.maps uses
 ## plus special "pack", pk3 (its path), and levelshot as a data: URL read from the pk3 (the web
@@ -15,7 +19,7 @@ const DIR_NAME := "Maps"
 const SHOT_WIDTH := 384
 ## arena "type" words that mean a mode's own type (game/modes/*.tres map_types)
 const TYPES := {"tdm": "team", "team": "team", "ffa": "ffa", "dm": "ffa", "tourney": "tourney",
-		"duel": "tourney", "1v1": "tourney", "ctf": "ctf", "single": "single"}
+		"duel": "tourney", "1v1": "tourney", "ctf": "ctf", "single": "single", "race": "race", "defrag": "race"}
 
 ## Duel-pool maps (DUEL_MAPS_PLAN.md) by bsp name: their menu names, whatever the author's arena file says
 const POOL_NAMES := {"hub3aeroq3": "Aerowalk", "ztn3tourney1": "Blood Run", "phantq3dm1_rev": "Battleforged",
@@ -105,6 +109,7 @@ static func read(map: String, path: String) -> PackedByteArray:
 static func _scan(files: PackedStringArray) -> Array:
 	var by_map := {}
 	var order: Array = []
+	var defis := _defis(files)
 	for p in files:
 		var z := ZIPReader.new()
 		if z.open(p) != OK:
@@ -123,13 +128,22 @@ static func _scan(files: PackedStringArray) -> Array:
 				continue
 			var map: String = e.get_file().get_basename()
 			var d: Dictionary = arenas.get(map, {})
+			var df: Dictionary = defis.get(map, {})
 			var types := []
 			for t in String(d.get("type", "ffa")).to_lower().split(" ", false):
 				if TYPES.has(t) and not types.has(TYPES[t]):
 					types.append(TYPES[t])
 			if types.is_empty():
 				types = ["ffa"]
-			if not types.has("ctf") and not types.has("single"):   # a deathmatch map plays every deathmatch mode
+			var race := {}
+			if not df.is_empty() or types.has("race"):
+				if df.has("cpm") and String(df.get("cpm", "0")) == "1" and String(df.get("vq3", "0")) != "1":
+					continue   # CPM physics only: not played here
+				types = ["race"]
+				race = {"style": String(df.get("style", "run")).to_lower(), "author": String(df.get("author", ""))}
+				if df.has("longname") and not d.has("longname"):
+					d["longname"] = df["longname"]
+			elif not types.has("ctf") and not types.has("single"):   # a deathmatch map plays every deathmatch mode
 				for t in ["ffa", "tourney", "team"]:
 					if not types.has(t):
 						types.append(t)
@@ -138,10 +152,30 @@ static func _scan(files: PackedStringArray) -> Array:
 			by_map[map] = {"map": map, "name": String(POOL_NAMES.get(map, d.get("longname", map))), "types": types, "special": "pack",
 				"bots": String(d.get("bots", "")).split(" ", false), "fraglimit": int(d.get("fraglimit", "0")),
 				"timelimit": int(d.get("timelimit", "0")), "levelshot": _levelshot(z, names, map), "pk3": p}
+			if not race.is_empty():
+				by_map[map]["race"] = race
 		z.close()
 	var out := []
 	for m in order:
 		out.append(by_map[m])
+	return out
+
+
+## Every scripts/*.defi in the folder's pk3s, by map name: Defrag's map definition files
+## (map, longname, style, cpm, vq3, author). Later pk3s win.
+static func _defis(files: PackedStringArray) -> Dictionary:
+	var out := {}
+	for p in files:
+		var z := ZIPReader.new()
+		if z.open(p) != OK:
+			continue
+		for e in z.get_files():
+			var le := e.to_lower()
+			if le.begins_with("scripts/") and le.ends_with(".defi"):
+				for d in _info_blocks(z.read_file(e).get_string_from_ascii()):
+					if d.has("map"):
+						out[String(d["map"]).to_lower()] = d
+		z.close()
 	return out
 
 

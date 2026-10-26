@@ -83,10 +83,10 @@ export default function CreateMatchPage({ back }: PageProps) {
       <div className="grid h-full grid-cols-[1fr_27rem] gap-8 px-10 py-5">
         <div className="flex min-h-0 flex-col">
           <SectionTitle>Game mode</SectionTitle>
-          <Spinner wide value={setup.mode} options={init.modes.map((m) => [m.id, m.name])} onChange={(v) => patch({ mode: String(v), rules: {}, bots: setup.bots.map((b) => ({ ...b, team: "" })) })} />
+          <Spinner wide value={setup.mode} options={init.modes.filter((m) => m.id !== "race").map((m) => [m.id, m.name])} onChange={(v) => patch({ mode: String(v), rules: {}, bots: setup.bots.map((b) => ({ ...b, team: "" })) })} />
           <p className="mt-2 min-h-[2.8rem] text-[0.95rem] text-dim">{mode?.description}</p>
           <SectionTitle>Map</SectionTitle>
-          <MapBrowser maps={init.maps} mode={mode} modes={init.modes} value={setup.map} onPick={(m) => pickMap(m, init.modes)} cols={3} />
+          <MapBrowser maps={init.maps} mode={mode} modes={init.modes.filter((m) => m.id !== "race")} value={setup.map} onPick={(m) => pickMap(m, init.modes.filter((x) => x.id !== "race"))} cols={3} />
         </div>
         <div className="min-h-0 overflow-y-auto pr-2">
           <SectionTitle>Rules</SectionTitle>

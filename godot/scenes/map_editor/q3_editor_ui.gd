@@ -270,6 +270,9 @@ func _build_top(parent: Control) -> void:
 		ppop.set_item_text(2, "Bots in play-tests: %s    %s" % ["%d" % editor.play_bots if editor.play_bots > 0 else "off", K.key_for("map.bots")])
 		ppop.set_item_text(3, "Start at the camera: %s    %s" % ["on" if editor.play_from_camera else "off (a spawn point)", K.key_for("map.fromCamera")]))
 	row.add_child(play)
+	row.add_child(_menu("RACE", "Defrag courses: start and finish lines, checkpoints, and a check of the course",
+			[["Start line", "tool.startline"], ["Finish line", "tool.finishline"], ["Checkpoint", "tool.checkpoint"], ["", ""],
+			["Check the course", "race.check"], ["Course style and author", "race.settings"]]))
 	row.add_child(VSeparator.new())
 	_undo = _bar_button("UNDO", "Undo (Ctrl+Z)", func(): editor.execute("edit.undo"))
 	_redo = _bar_button("REDO", "Redo (Ctrl+Y)", func(): editor.execute("edit.redo"))
@@ -779,7 +782,7 @@ func import_q3_dialog() -> void:
 
 
 ## Picks one of `items` from a list; then gets it.
-func pick_dialog(title: String, text: String, items: Array, then: Callable) -> void:
+func pick_dialog(title: String, text: String, items: Array, then: Callable, ok_label := "IMPORT") -> void:
 	var list := ItemList.new()
 	list.custom_minimum_size = Vector2(520, 320)
 	for it in items:
@@ -792,7 +795,7 @@ func pick_dialog(title: String, text: String, items: Array, then: Callable) -> v
 	list.item_activated.connect(func(_i):
 		close_modal()
 		go.call())
-	_show_modal(title, text, [["IMPORT", go], ["CANCEL", func(): pass]], list)
+	_show_modal(title, text, [[ok_label, go], ["CANCEL", func(): pass]], list)
 	list.grab_focus.call_deferred()
 
 

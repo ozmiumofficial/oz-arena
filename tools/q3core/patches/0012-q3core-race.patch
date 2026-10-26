@@ -1,0 +1,1097 @@
+diff --git a/code/game/bg_misc.c b/code/game/bg_misc.c
+index 5b31307..544d4d2 100644
+--- a/code/game/bg_misc.c
++++ b/code/game/bg_misc.c
+@@ -1413,6 +1413,80 @@ void BG_AddPredictableEventToPlayerstate( int newEvent, int eventParm, playerSta
+ 	ps->eventSequence++;
+ }
+ 
++/*
++========================
++BG_TouchVelocityPad
++
++flags (generic1): 1 PLAYERDIR_XY, 2 ADD_XY, 4 PLAYERDIR_Z, 8 ADD_Z, 16 BIDIRECTIONAL_XY,
++32 BIDIRECTIONAL_Z, 64 CLAMP_NEGATIVE_ADDS. origin2 is the target's direction, time the horizontal
++speed, time2 the vertical one.
++========================
++*/
++static void BG_TouchVelocityPad( playerState_t *ps, entityState_t *pad ) {
++	int		flags = pad->generic1 & 0x7f;
++	qboolean entering = ps->jumppad_ent != pad->number;
++	float	dx, dy, dz, len, speed = pad->time, count = pad->time2;
++	float	vx = ps->velocity[0], vy = ps->velocity[1], vz = ps->velocity[2];
++	float	nx, ny, nz;
++
++	if ( entering ) {
++		BG_AddPredictableEventToPlayerstate( EV_JUMP_PAD, fabs( count ) > fabs( speed ) ? 1 : 0, ps );
++	}
++	ps->jumppad_ent = pad->number;
++	ps->jumppad_frame = ps->pmove_framecount;
++
++	// horizontal
++	if ( flags & 1 ) {
++		len = sqrt( vx * vx + vy * vy );
++		dx = len > 0 ? vx / len : 0;
++		dy = len > 0 ? vy / len : 0;
++	} else {
++		dx = pad->origin2[0];
++		dy = pad->origin2[1];
++		if ( ( flags & 16 ) && dx * vx + dy * vy < 0 ) {
++			dx = -dx;
++			dy = -dy;
++		}
++	}
++	if ( dx != 0 || dy != 0 ) {
++		if ( flags & 2 ) {
++			if ( entering ) {
++				nx = vx + dx * speed;
++				ny = vy + dy * speed;
++				if ( ( flags & 64 ) && nx * vx + ny * vy <= 0 ) {
++					nx = ny = 0;
++				}
++				ps->velocity[0] = nx;
++				ps->velocity[1] = ny;
++			}
++		} else {
++			ps->velocity[0] = dx * speed;
++			ps->velocity[1] = dy * speed;
++		}
++	}
++
++	// vertical
++	if ( flags & 4 ) {
++		dz = vz >= 0 ? 1 : -1;
++	} else {
++		dz = pad->origin2[2] >= 0 ? 1 : -1;
++		if ( ( flags & 32 ) && dz * vz < 0 ) {
++			dz = -dz;
++		}
++	}
++	if ( flags & 8 ) {
++		if ( entering ) {
++			nz = vz + dz * count;
++			if ( ( flags & 64 ) && nz * vz < 0 ) {
++				nz = 0;
++			}
++			ps->velocity[2] = nz;
++		}
++	} else if ( count != 0 ) {
++		ps->velocity[2] = dz * count;
++	}
++}
++
+ /*
+ ========================
+ BG_TouchJumpPad
+@@ -1433,6 +1507,12 @@ void BG_TouchJumpPad( playerState_t *ps, entityState_t *jumppad ) {
+ 		return;
+ 	}
+ 
++	// q3core: Defrag's trigger_push_velocity (g_race.c); generic1 bit 7 marks it
++	if ( jumppad->generic1 & 0x80 ) {
++		BG_TouchVelocityPad( ps, jumppad );
++		return;
++	}
++
+ 	// if we didn't hit this same jumppad the previous frame
+ 	// then don't play the event sound again if we are in a fat trigger
+ 	if ( ps->jumppad_ent != jumppad->number ) {
+diff --git a/code/game/g_active.c b/code/game/g_active.c
+index fbcccdb..e851bbb 100644
+--- a/code/game/g_active.c
++++ b/code/game/g_active.c
+@@ -1154,6 +1154,8 @@ void ClientEndFrame( gentity_t *ent ) {
+ 		return;
+ 	}
+ 
++	G_RaceEndFrame( ent );	// q3core: weapons never run dry in a race
++
+ 	// turn off any expired powerups
+ 	for ( i = 0 ; i < MAX_POWERUPS ; i++ ) {
+ 		if ( ent->client->ps.powerups[ i ] < level.time ) {
+diff --git a/code/game/g_client.c b/code/game/g_client.c
+index 9d841b6..a69f705 100644
+--- a/code/game/g_client.c
++++ b/code/game/g_client.c
+@@ -1231,6 +1231,8 @@ void ClientSpawn(gentity_t *ent) {
+ 		// move players to intermission
+ 		MoveClientToIntermission(ent);
+ 	}
++	G_RaceSpawn( ent );	// q3core: a spawn ends any run
++
+ 	// run a client frame to drop exactly to the floor,
+ 	// initialize animations and other things
+ 	client->ps.commandTime = level.time - 100;
+diff --git a/code/game/g_cmds.c b/code/game/g_cmds.c
+index 7b2d2f5..0829ed8 100644
+--- a/code/game/g_cmds.c
++++ b/code/game/g_cmds.c
+@@ -1805,6 +1805,10 @@ void ClientCommand( int clientNum ) {
+ 
+ 	trap_Argv( 0, cmd, sizeof( cmd ) );
+ 
++	if ( G_RaceCommand( ent, cmd ) ) {	// q3core: racerestart, racesave, raceload
++		return;
++	}
++
+ 	if (Q_stricmp (cmd, "say") == 0) {
+ 		Cmd_Say_f (ent, SAY_ALL, qfalse);
+ 		return;
+diff --git a/code/game/g_combat.c b/code/game/g_combat.c
+index ed02345..89cf185 100644
+--- a/code/game/g_combat.c
++++ b/code/game/g_combat.c
+@@ -993,6 +993,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
+ 		attacker->client->ps.persistant[PERS_ATTACKEE_ARMOR] = (targ->health<<8)|(client->ps.stats[STAT_ARMOR]);
+ 	}
+ 
++	// q3core: a race costs no health to yourself or to a fall; the knockback above is kept
++	if ( G_Race() && ( targ == attacker || mod == MOD_FALLING ) ) {
++		return;
++	}
++
+ 	// always give half damage if hurting self
+ 	// calculated after knockback, so rocket jumping works
+ 	if ( targ == attacker) {
+diff --git a/code/game/g_local.h b/code/game/g_local.h
+index 14f3774..941d793 100644
+--- a/code/game/g_local.h
++++ b/code/game/g_local.h
+@@ -153,6 +153,9 @@ struct gentity_s {
+ 
+ 	int			count;
+ 
++	int			raceIndex;		// q3core: checkpoint number, frags filter state (g_race.c)
++	struct raceMulti_s	*raceMulti;	// q3core: target_multimanager
++
+ 	gentity_t	*chain;
+ 	gentity_t	*enemy;
+ 	gentity_t	*activator;
+@@ -224,6 +227,9 @@ typedef struct {
+ 	int			spectatorClient;	// for chasecam and follow mode
+ 	int			wins, losses;		// tournament stats
+ 	qboolean	teamLeader;			// true when this client is a team leader
++	int			raceBest;			// q3core: best run in ms this map, 0 = none (g_race.c; not saved across maps)
++	qboolean	raceSaved;			// q3core: racesave's position, for raceload
++	vec3_t		raceSaveOrigin, raceSaveAngles;
+ } clientSession_t;
+ 
+ //
+@@ -250,6 +256,15 @@ typedef struct {
+ } clientPersistant_t;
+ 
+ 
++// q3core: the run timer (g_race.c); cleared with the client at every spawn
++typedef struct {
++	qboolean	running;
++	int			startTime;
++	int			checkpoints;
++	unsigned	seen[2];		// checkpoints reached this run, one bit each
++	int			warnTime;
++} raceState_t;
++
+ // this structure is cleared on each ClientSpawn(),
+ // except for 'client->pers' and 'client->sess'
+ struct gclient_s {
+@@ -260,6 +275,8 @@ struct gclient_s {
+ 	clientPersistant_t	pers;
+ 	clientSession_t		sess;
+ 
++	raceState_t			race;
++
+ 	qboolean	readyToExit;		// wishes to leave the intermission
+ 
+ 	qboolean	noclip;
+@@ -404,6 +421,7 @@ typedef struct {
+ 	qboolean	locationLinked;			// target_locations get linked
+ 	gentity_t	*locationHead;			// head of the location list
+ 	int			bodyQueIndex;			// dead bodies
++	int			raceCheckpoints;		// q3core: target_checkpoints in the map
+ 	gentity_t	*bodyQue[BODY_QUEUE_SIZE];
+ #ifdef MISSIONPACK
+ 	int			portalSequence;
+@@ -713,6 +731,15 @@ extern	vmCvar_t	g_gravity;
+ extern	vmCvar_t	g_speed;
+ extern	vmCvar_t	g_knockback;
+ extern	vmCvar_t	g_quadfactor;
++extern	vmCvar_t	g_race;
++qboolean G_Race( void );
++void G_RaceSpawn( gentity_t *ent );
++void G_RaceEndFrame( gentity_t *ent );
++qboolean G_RaceCommand( gentity_t *ent, const char *cmd );
++void G_RaceSpawnPrint( gentity_t *ent );
++void G_RaceKeepSpeed( gentity_t *player, const vec3_t oldVel, float oldYaw, const vec3_t destAngles );
++void trigger_push_touch( gentity_t *self, gentity_t *other, trace_t *trace );
++void InitTrigger( gentity_t *self );
+ extern	vmCvar_t	g_forcerespawn;
+ extern	vmCvar_t	g_inactivity;
+ extern	vmCvar_t	g_debugMove;
+diff --git a/code/game/g_main.c b/code/game/g_main.c
+index 497f72f..058d88a 100644
+--- a/code/game/g_main.c
++++ b/code/game/g_main.c
+@@ -160,6 +160,7 @@ static cvarTable_t		gameCvarTable[] = {
+ 
+ 	{ &g_allowVote, "g_allowVote", "1", CVAR_ARCHIVE, 0, qfalse },
+ 	{ &g_listEntity, "g_listEntity", "0", 0, 0, qfalse },
++	{ &g_race, "g_race", "0", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse },	// q3core: Race mode (g_race.c)
+ 
+ #ifdef MISSIONPACK
+ 	{ &g_obeliskHealth, "g_obeliskHealth", "2500", 0, 0, qfalse },
+diff --git a/code/game/g_race.c b/code/game/g_race.c
+new file mode 100644
+index 0000000..b5efd58
+--- /dev/null
++++ b/code/game/g_race.c
+@@ -0,0 +1,757 @@
++/*
++q3core: Race mode (RACE_PLAN.md). The Defrag mod's map entities and its run timer, written from the
++entity definitions in Defrag's defrag.def (the mod's own code is closed).
++
++g_race 1 turns the mode on: the run timer reports to the client with "race ..." server commands,
++self damage and falling cost no health (knockback is kept, so rocket jumps work), and weapons never
++run dry. The entities exist whether or not g_race is set, so a Defrag map loads in any game.
++
++Server commands, one client each:
++	race reset <checkpoints> <best ms>		the player spawned (the run is over, nothing is running)
++	race start <server time>				the timer started
++	race cp <n> <ms>						checkpoint n reached after ms
++	race stop <ms> <record 0|1> <best ms>	finished; record is 1 for a new personal best
++*/
++
++#include "g_local.h"
++
++vmCvar_t	g_race;
++
++qboolean G_Race( void ) {
++	return g_race.integer != 0;
++}
++
++/*
++==============================================================================
++
++the run timer
++
++==============================================================================
++*/
++
++static qboolean Race_Eligible( gentity_t *a ) {
++	return a && a->client && a->health > 0
++		&& a->client->sess.sessionTeam != TEAM_SPECTATOR
++		&& a->client->ps.pm_type == PM_NORMAL;
++}
++
++static void Race_Send( gentity_t *ent, const char *cmd ) {
++	trap_SendServerCommand( ent - g_entities, cmd );
++}
++
++/*
++================
++G_RaceSpawn
++
++Called from ClientSpawn: a spawn ends any run.
++================
++*/
++void G_RaceSpawn( gentity_t *ent ) {
++	if ( !G_Race() ) {
++		return;
++	}
++	Race_Send( ent, va( "race reset %i %i", level.raceCheckpoints, ent->client->sess.raceBest ) );
++}
++
++/*
++================
++G_RaceEndFrame
++
++Called from ClientEndFrame: weapons never run dry in a race.
++================
++*/
++void G_RaceEndFrame( gentity_t *ent ) {
++	int w;
++
++	if ( !G_Race() ) {
++		return;
++	}
++	// a restart is never a wait: attack respawns at once
++	if ( ent->client->ps.stats[STAT_HEALTH] <= 0 && ent->client->respawnTime > level.time ) {
++		ent->client->respawnTime = level.time;
++	}
++	for ( w = WP_MACHINEGUN; w < WP_NUM_WEAPONS; w++ ) {
++		if ( w == WP_GRAPPLING_HOOK ) {
++			continue;
++		}
++		if ( ent->client->ps.stats[STAT_WEAPONS] & ( 1 << w ) ) {
++			ent->client->ps.ammo[w] = 200;
++		}
++	}
++}
++
++/*QUAKED target_startTimer (1 0 0) (-8 -8 -8) (8 8 8)
++Starts the player's run timer; fired again, it restarts it.
++*/
++static void Use_target_startTimer( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
++	gclient_t *cl;
++
++	if ( !Race_Eligible( activator ) ) {
++		return;
++	}
++	if ( g_cheats.integer ) {
++		if ( activator->client->race.warnTime < level.time ) {
++			activator->client->race.warnTime = level.time + 3000;
++			Race_Send( activator, "cp \"Timer is off while cheats are on\"" );
++		}
++		return;
++	}
++	cl = activator->client;
++	cl->race.running = qtrue;
++	cl->race.startTime = level.time;
++	cl->race.checkpoints = 0;
++	cl->race.seen[0] = cl->race.seen[1] = 0;
++	Race_Send( activator, va( "race start %i", level.time ) );
++}
++
++void SP_target_startTimer( gentity_t *ent ) {
++	ent->use = Use_target_startTimer;
++}
++
++/*QUAKED target_checkpoint (1 0 0) (-8 -8 -8) (8 8 8)
++A split time. Each checkpoint counts once a run.
++*/
++static void Use_target_checkpoint( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
++	gclient_t	*cl;
++	int			bit;
++
++	if ( !Race_Eligible( activator ) ) {
++		return;
++	}
++	cl = activator->client;
++	if ( !cl->race.running ) {
++		return;
++	}
++	bit = ent->raceIndex & 63;
++	if ( cl->race.seen[bit >> 5] & ( 1u << ( bit & 31 ) ) ) {
++		return;
++	}
++	cl->race.seen[bit >> 5] |= 1u << ( bit & 31 );
++	cl->race.checkpoints++;
++	Race_Send( activator, va( "race cp %i %i", cl->race.checkpoints, level.time - cl->race.startTime ) );
++}
++
++void SP_target_checkpoint( gentity_t *ent ) {
++	ent->raceIndex = level.raceCheckpoints++;
++	ent->use = Use_target_checkpoint;
++}
++
++/*QUAKED target_stopTimer (1 0 0) (-8 -8 -8) (8 8 8)
++Stops the run. Its targets fire when the run is a new personal best.
++*/
++static void Use_target_stopTimer( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
++	gclient_t	*cl;
++	int			ms;
++	qboolean	record;
++
++	if ( !Race_Eligible( activator ) ) {
++		return;
++	}
++	cl = activator->client;
++	if ( !cl->race.running ) {
++		return;
++	}
++	ms = level.time - cl->race.startTime;
++	cl->race.running = qfalse;
++	record = cl->sess.raceBest == 0 || ms < cl->sess.raceBest;
++	if ( record ) {
++		cl->sess.raceBest = ms;
++	}
++	Race_Send( activator, va( "race stop %i %i %i", ms, record ? 1 : 0, cl->sess.raceBest ) );
++	if ( record ) {
++		G_UseTargets( ent, activator );
++	}
++}
++
++void SP_target_stopTimer( gentity_t *ent ) {
++	ent->use = Use_target_stopTimer;
++}
++
++/*
++==============================================================================
++
++target_fragsFilter, target_init, target_smallprint
++
++==============================================================================
++*/
++
++#define FF_REMOVER	1
++#define FF_RUNONCE	2
++#define FF_SILENT	4
++#define FF_RESET	8
++#define FF_MATCH	16
++
++static qboolean FragsFilter_Pass( gentity_t *ent, gentity_t *activator, qboolean tell ) {
++	int need = ent->count;
++	int score;
++
++	if ( !activator || !activator->client ) {
++		return qfalse;
++	}
++	score = activator->client->ps.persistant[PERS_SCORE];
++	if ( ( ent->spawnflags & FF_MATCH ) ? score != need : score < need ) {
++		if ( tell && !( ent->spawnflags & FF_SILENT ) && score < need ) {
++			Race_Send( activator, va( "cp \"%i more frags needed\"", need - score ) );
++		}
++		return qfalse;
++	}
++	if ( ent->spawnflags & FF_REMOVER ) {
++		activator->client->ps.persistant[PERS_SCORE] -= need;
++	}
++	if ( ent->spawnflags & FF_RESET ) {
++		activator->client->ps.persistant[PERS_SCORE] = 0;
++	}
++	return qtrue;
++}
++
++static void Use_target_fragsFilter( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
++	if ( FragsFilter_Pass( ent, activator, qtrue ) ) {
++		G_UseTargets( ent, activator );
++	}
++}
++
++// not bound to a trigger: always active, fires once each time a player reaches the score
++static void FragsFilter_Think( gentity_t *ent ) {
++	int i;
++
++	for ( i = 0; i < level.maxclients; i++ ) {
++		gentity_t *pl = &g_entities[i];
++
++		if ( !Race_Eligible( pl ) ) {
++			ent->raceIndex &= ~( 1 << i );
++			continue;
++		}
++		if ( pl->client->ps.persistant[PERS_SCORE] < ent->count && !( ent->spawnflags & FF_MATCH ) ) {
++			ent->raceIndex &= ~( 1 << i );
++			continue;
++		}
++		if ( ent->raceIndex & ( 1 << i ) ) {
++			continue;
++		}
++		if ( FragsFilter_Pass( ent, pl, qfalse ) ) {
++			ent->raceIndex |= 1 << i;
++			G_UseTargets( ent, pl );
++		}
++	}
++	ent->nextthink = level.time + FRAMETIME;
++}
++
++static void FragsFilter_Bind( gentity_t *ent ) {
++	gentity_t *t = NULL;
++	qboolean bound = qfalse;
++
++	if ( ent->targetname ) {
++		while ( ( t = G_Find( t, FOFS( target ), ent->targetname ) ) != NULL ) {
++			bound = qtrue;
++		}
++	}
++	if ( bound ) {
++		ent->think = 0;
++		ent->nextthink = 0;
++		return;
++	}
++	ent->raceIndex = 0;
++	ent->think = FragsFilter_Think;
++	ent->nextthink = level.time + FRAMETIME;
++}
++
++void SP_target_fragsFilter( gentity_t *ent ) {
++	G_SpawnInt( "frags", "1", &ent->count );
++	ent->use = Use_target_fragsFilter;
++	ent->think = FragsFilter_Bind;
++	ent->nextthink = level.time + 400;
++}
++
++#define INIT_KEEPARMOR		1
++#define INIT_KEEPHEALTH		2
++#define INIT_KEEPWEAPONS	4
++#define INIT_KEEPPOWERUPS	8
++#define INIT_KEEPHOLDABLE	16
++#define INIT_REMOVEMG		32
++
++/*QUAKED target_init (1 0 0) (-8 -8 -8) (8 8 8) KEEPARMOR KEEPHEALTH KEEPWEAPONS KEEPPOWERUPS KEEPHOLDABLE REMOVEMACHINEGUN
++Takes away what the player picked up, then fires its targets.
++*/
++static void Use_target_init( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
++	if ( activator && activator->client ) {
++		gclient_t *cl = activator->client;
++		int w;
++
++		if ( !( ent->spawnflags & INIT_KEEPARMOR ) ) {
++			cl->ps.stats[STAT_ARMOR] = 0;
++		}
++		if ( !( ent->spawnflags & INIT_KEEPHEALTH ) ) {
++			activator->health = cl->ps.stats[STAT_HEALTH] = 100;
++		}
++		if ( !( ent->spawnflags & INIT_KEEPWEAPONS ) ) {
++			for ( w = 0; w < WP_NUM_WEAPONS; w++ ) {
++				cl->ps.ammo[w] = 0;
++			}
++			cl->ps.stats[STAT_WEAPONS] = 1 << WP_GAUNTLET;
++			cl->ps.ammo[WP_GAUNTLET] = -1;
++			if ( !( ent->spawnflags & INIT_REMOVEMG ) ) {
++				cl->ps.stats[STAT_WEAPONS] |= 1 << WP_MACHINEGUN;
++				cl->ps.ammo[WP_MACHINEGUN] = 100;
++				cl->ps.weapon = WP_MACHINEGUN;
++			} else {
++				cl->ps.weapon = WP_GAUNTLET;
++			}
++		}
++		if ( !( ent->spawnflags & INIT_KEEPPOWERUPS ) ) {
++			memset( cl->ps.powerups, 0, sizeof( cl->ps.powerups ) );
++		}
++		if ( !( ent->spawnflags & INIT_KEEPHOLDABLE ) ) {
++			cl->ps.stats[STAT_HOLDABLE_ITEM] = 0;
++		}
++	}
++	G_UseTargets( ent, activator );
++}
++
++void SP_target_init( gentity_t *ent ) {
++	ent->use = Use_target_init;
++}
++
++// Defrag's target_print / target_smallprint: only the activator sees it, unless BROADCAST
++static void Use_target_smallprint( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
++	if ( !ent->message ) {
++		return;
++	}
++	if ( ( ent->spawnflags & 8 ) || !activator || !activator->client ) {
++		trap_SendServerCommand( -1, va( "cp \"%s\"", ent->message ) );
++	} else {
++		Race_Send( activator, va( "cp \"%s\"", ent->message ) );
++	}
++}
++
++void SP_target_smallprint( gentity_t *ent ) {
++	ent->use = Use_target_smallprint;
++}
++
++void G_RaceSpawnPrint( gentity_t *ent ) {
++	ent->use = Use_target_smallprint;
++}
++
++/*
++==============================================================================
++
++target_speed
++
++==============================================================================
++*/
++
++#define SPD_PERCENT	1
++#define SPD_ADD		2
++#define SPD_PX		4
++#define SPD_NX		8
++#define SPD_PY		16
++#define SPD_NY		32
++#define SPD_PZ		64
++#define SPD_NZ		128
++#define SPD_LAUNCH	256
++
++/*QUAKED target_speed (1 1 0) (-8 -8 -8) (8 8 8) PERCENTAGE ADD +X -X +Y -Y +Z -Z LAUNCHER
++Sets, or with ADD changes, the speed of the player. "speed" defaults to 100.
++Read from defrag.def: without LAUNCHER the player's own direction of travel is used, narrowed to the
++axes the flags name; with it the flags give the direction.
++*/
++static void Use_target_speed( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
++	float	*vel;
++	float	speed;
++	int		sf = ent->spawnflags;
++	int		pos[3], neg[3], a;
++	qboolean anyAxis;
++
++	if ( !activator || !activator->client || activator->client->ps.pm_type != PM_NORMAL ) {
++		return;
++	}
++	vel = activator->client->ps.velocity;
++	speed = ent->speed ? ent->speed : 100;
++	pos[0] = sf & SPD_PX; neg[0] = sf & SPD_NX;
++	pos[1] = sf & SPD_PY; neg[1] = sf & SPD_NY;
++	pos[2] = sf & SPD_PZ; neg[2] = sf & SPD_NZ;
++	anyAxis = pos[0] || neg[0] || pos[1] || neg[1] || pos[2] || neg[2];
++
++	if ( sf & SPD_LAUNCH ) {
++		vec3_t	d;
++		float	m, len;
++
++		for ( a = 0; a < 3; a++ ) {
++			d[a] = ( pos[a] ? 1 : 0 ) - ( neg[a] ? 1 : 0 );
++		}
++		len = VectorNormalize( d );
++		if ( len == 0 ) {
++			return;
++		}
++		m = ( sf & SPD_PERCENT ) ? VectorLength( vel ) * speed / 100 : speed;
++		for ( a = 0; a < 3; a++ ) {
++			if ( d[a] == 0 ) {
++				continue;
++			}
++			if ( sf & SPD_ADD ) {
++				vel[a] += d[a] * m;
++			} else {
++				vel[a] = d[a] * m;
++			}
++		}
++	} else {
++		vec3_t	comp;
++		float	cur, m, nm;
++
++		for ( a = 0; a < 3; a++ ) {
++			if ( !anyAxis || ( pos[a] && vel[a] > 0 ) || ( neg[a] && vel[a] < 0 ) ) {
++				comp[a] = vel[a];
++			} else {
++				comp[a] = 0;
++			}
++		}
++		cur = VectorLength( comp );
++		if ( cur < 1 ) {
++			return;
++		}
++		m = ( sf & SPD_PERCENT ) ? cur * speed / 100 : speed;
++		nm = ( sf & SPD_ADD ) ? cur + m : m;
++		if ( nm < 0 ) {
++			nm = 0;
++		}
++		for ( a = 0; a < 3; a++ ) {
++			vel[a] += comp[a] * ( nm / cur - 1 );
++		}
++	}
++}
++
++void SP_target_speed( gentity_t *ent ) {
++	ent->use = Use_target_speed;
++}
++
++/*
++==============================================================================
++
++target_multimanager
++
++==============================================================================
++*/
++
++#define RM_MAX			40
++#define RM_ADD_WAIT		4
++#define RM_WAIT_OFFSET	8
++
++typedef struct raceMulti_s {
++	int			n;
++	char		*name[RM_MAX];
++	int			delay[RM_MAX];		// ms after the trigger
++	int			fired;				// bit mask
++	qboolean	running;
++	int			startTime;
++} raceMulti_t;
++
++static void Race_UseName( gentity_t *self, const char *name, gentity_t *activator ) {
++	gentity_t *t = NULL;
++
++	while ( ( t = G_Find( t, FOFS( targetname ), name ) ) != NULL ) {
++		if ( t != self && t->use ) {
++			t->use( t, self, activator );
++		}
++		if ( !self->inuse ) {
++			return;
++		}
++	}
++}
++
++static void Think_multimanager( gentity_t *ent ) {
++	raceMulti_t	*m = ent->raceMulti;
++	int			i, left = 0;
++
++	for ( i = 0; i < m->n; i++ ) {
++		if ( m->fired & ( 1 << i ) ) {
++			continue;
++		}
++		if ( level.time - m->startTime >= m->delay[i] ) {
++			m->fired |= 1 << i;
++			Race_UseName( ent, m->name[i], ent->activator );
++			if ( !ent->inuse ) {
++				return;
++			}
++		} else {
++			left++;
++		}
++	}
++	if ( left ) {
++		ent->nextthink = level.time + 1;	// a server frame (FRAMETIME is 100 ms)
++	} else {
++		m->running = qfalse;
++		ent->nextthink = 0;
++	}
++}
++
++static void Use_target_multimanager( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
++	raceMulti_t *m = ent->raceMulti;
++
++	if ( m->running || m->n == 0 ) {
++		return;
++	}
++	m->running = qtrue;
++	m->fired = 0;
++	m->startTime = level.time;
++	ent->activator = activator;
++	ent->think = Think_multimanager;
++	Think_multimanager( ent );	// what has no delay goes at once
++}
++
++/*QUAKED target_multimanager (.8 .7 .8) (-8 -8 -8) (8 8 8) RED_ONLY BLUE_ONLY ADD_WAIT WAIT_OFFSET
++target01 to target40: "delay:targetname" or "targetname". Fired once, it fires its targets after
++their delays, and can't be fired again until the last one has gone.
++The "count" key (a random subset) is not supported.
++*/
++void SP_target_multimanager( gentity_t *ent ) {
++	raceMulti_t	*m = G_Alloc( sizeof( *m ) );
++	int			i;
++	float		wait = ent->wait, rnd = ent->random;
++
++	memset( m, 0, sizeof( *m ) );
++	for ( i = 1; i <= RM_MAX; i++ ) {
++		char	*val, *colon, *name;
++		float	d;
++		qboolean explicitDelay = qfalse;
++
++		if ( !G_SpawnString( va( "target%02i", i ), "", &val ) || !val[0] ) {
++			continue;
++		}
++		colon = strchr( val, ':' );
++		if ( colon ) {
++			d = atof( val );
++			name = colon + 1;
++			explicitDelay = qtrue;
++		} else {
++			d = 0;
++			name = val;
++		}
++		if ( ent->spawnflags & RM_WAIT_OFFSET ) {
++			d += i * wait;
++		} else if ( ent->spawnflags & RM_ADD_WAIT ) {
++			d += wait;
++		} else if ( !explicitDelay ) {
++			d = wait;
++		}
++		if ( rnd > 0 ) {
++			d += rnd * random();
++		}
++		m->name[m->n] = G_NewString( name );
++		m->delay[m->n] = (int)( d * 1000 );
++		m->n++;
++	}
++	ent->raceMulti = m;
++	ent->use = Use_target_multimanager;
++}
++
++/*
++==============================================================================
++
++shooter_*_targetplayer
++
++==============================================================================
++*/
++
++#define SH_TARGETPLAYER	1
++#define SH_PREDICT_XY	2
++#define SH_PREDICT_Z	4
++#define SH_QUAD			8
++
++extern void InitShooter( gentity_t *ent, int weapon );
++
++static void Use_shooter_targetplayer( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
++	vec3_t		dir, up, right;
++	float		deg;
++	gentity_t	*bolt = NULL;
++	float		projSpeed;
++
++	switch ( ent->s.weapon ) {
++	case WP_GRENADE_LAUNCHER:	projSpeed = 700; break;
++	case WP_PLASMAGUN:			projSpeed = 2000; break;
++	default:					projSpeed = 900; break;
++	}
++
++	if ( ( ent->spawnflags & SH_TARGETPLAYER ) && activator && activator->client ) {
++		vec3_t	p;
++		float	t, xyScale = ent->speed ? ent->speed : 1.0f, zScale = ent->count ? (float)ent->count : 1.0f;
++
++		VectorCopy( activator->client->ps.origin, p );
++		t = Distance( p, ent->s.origin ) / projSpeed;
++		if ( ent->spawnflags & SH_PREDICT_XY ) {
++			p[0] += activator->client->ps.velocity[0] * t * xyScale;
++			p[1] += activator->client->ps.velocity[1] * t * xyScale;
++		}
++		if ( ent->spawnflags & SH_PREDICT_Z ) {
++			p[2] += activator->client->ps.velocity[2] * t * zScale - 0.5f * g_gravity.value * t * t;
++		}
++		VectorSubtract( p, ent->s.origin, dir );
++		VectorNormalize( dir );
++	} else if ( ent->enemy ) {
++		VectorSubtract( ent->enemy->r.currentOrigin, ent->s.origin, dir );
++		VectorNormalize( dir );
++	} else {
++		VectorCopy( ent->movedir, dir );
++	}
++
++	PerpendicularVector( up, dir );
++	CrossProduct( up, dir, right );
++	deg = crandom() * ent->random;
++	VectorMA( dir, deg, up, dir );
++	deg = crandom() * ent->random;
++	VectorMA( dir, deg, right, dir );
++	VectorNormalize( dir );
++
++	switch ( ent->s.weapon ) {
++	case WP_GRENADE_LAUNCHER:	bolt = fire_grenade( ent, ent->s.origin, dir ); break;
++	case WP_ROCKET_LAUNCHER:	bolt = fire_rocket( ent, ent->s.origin, dir ); break;
++	case WP_PLASMAGUN:			bolt = fire_plasma( ent, ent->s.origin, dir ); break;
++	}
++	if ( bolt && ( ent->spawnflags & SH_QUAD ) ) {
++		bolt->damage *= g_quadfactor.value;
++		bolt->splashDamage *= g_quadfactor.value;
++	}
++	G_AddEvent( ent, EV_FIRE_WEAPON, 0 );
++}
++
++static void SpawnShooterTP( gentity_t *ent, int weapon ) {
++	InitShooter( ent, weapon );
++	ent->use = Use_shooter_targetplayer;
++}
++
++void SP_shooter_rocket_targetplayer( gentity_t *ent )	{ SpawnShooterTP( ent, WP_ROCKET_LAUNCHER ); }
++void SP_shooter_plasma_targetplayer( gentity_t *ent )	{ SpawnShooterTP( ent, WP_PLASMAGUN ); }
++void SP_shooter_grenade_targetplayer( gentity_t *ent )	{ SpawnShooterTP( ent, WP_GRENADE_LAUNCHER ); }
++
++/*
++==============================================================================
++
++trigger_push_velocity
++
++BG_TouchVelocityPad (bg_misc.c) reads the pad from its entity state so the client predicts it:
++origin2 = the target's direction (xy unit vector, z = sign), time = speed, time2 = count,
++generic1 = 0x80 | spawnflags.
++
++==============================================================================
++*/
++
++static void Race_AimVelocityPad( gentity_t *self ) {
++	gentity_t	*target;
++	vec3_t		center, d;
++	float		len;
++
++	VectorAdd( self->r.absmin, self->r.absmax, center );
++	VectorScale( center, 0.5f, center );
++	VectorClear( self->s.origin2 );
++	target = self->target ? G_PickTarget( self->target ) : NULL;
++	if ( target ) {
++		VectorSubtract( target->s.origin, center, d );
++		len = sqrt( d[0] * d[0] + d[1] * d[1] );
++		if ( len > 0 ) {
++			self->s.origin2[0] = d[0] / len;
++			self->s.origin2[1] = d[1] / len;
++		}
++		self->s.origin2[2] = d[2] >= 0 ? 1 : -1;
++	} else {
++		self->s.origin2[2] = 1;
++	}
++	self->s.time = (int)self->speed;
++	self->s.time2 = self->count;
++	self->s.generic1 = 0x80 | ( self->spawnflags & 0x7f );
++	self->think = 0;
++	self->nextthink = 0;
++}
++
++/*QUAKED trigger_push_velocity (.5 .5 .5) ? PLAYERDIR_XY ADD_XY PLAYERDIR_Z ADD_Z BIDIRECTIONAL_XY BIDIRECTIONAL_Z CLAMP_NEGATIVE_ADDS
++A launch ramp that can add to the player's speed. "speed" is horizontal, "count" vertical.
++Points at a target_position that gives the direction.
++*/
++void SP_trigger_push_velocity( gentity_t *self ) {
++	InitTrigger( self );
++	self->r.svFlags &= ~SVF_NOCLIENT;
++	G_SoundIndex( "sound/world/jumppad.wav" );
++	self->s.eType = ET_PUSH_TRIGGER;
++	self->touch = trigger_push_touch;
++	self->think = Race_AimVelocityPad;
++	self->nextthink = level.time + FRAMETIME;
++	trap_LinkEntity( self );
++}
++
++/*
++================
++G_RaceKeepSpeed
++
++trigger_teleport KEEP_SPEED: the speed the player came in with, turned with the view.
++================
++*/
++void G_RaceKeepSpeed( gentity_t *player, const vec3_t oldVel, float oldYaw, const vec3_t destAngles ) {
++	float	delta = destAngles[0] > 999999.0f ? 0 : AngleNormalize180( destAngles[YAW] - oldYaw );
++	float	c = cos( DEG2RAD( delta ) ), s = sin( DEG2RAD( delta ) );
++
++	player->client->ps.velocity[0] = oldVel[0] * c - oldVel[1] * s;
++	player->client->ps.velocity[1] = oldVel[0] * s + oldVel[1] * c;
++	player->client->ps.velocity[2] = oldVel[2];
++	player->client->ps.pm_time = 0;
++	player->client->ps.pm_flags &= ~PMF_TIME_KNOCKBACK;
++}
++
++/*
++================
++G_RaceCommand
++
++Race's client commands (Defrag's respawn and savepos / loadpos): "racerestart" spawns again, with a
++running timer thrown away; "racesave" keeps the position and view; "raceload" goes back there,
++standing still, with the timer stopped (practice).
++================
++*/
++qboolean G_RaceCommand( gentity_t *ent, const char *cmd ) {
++	gclient_t *cl = ent->client;
++
++	if ( !G_Race() ) {
++		return qfalse;
++	}
++	if ( !Q_stricmp( cmd, "racerestart" ) ) {
++		if ( cl->sess.sessionTeam == TEAM_SPECTATOR || level.intermissiontime ) {
++			return qtrue;
++		}
++		if ( ent->health <= 0 ) {
++			ClientRespawn( ent );
++		} else {
++			ClientSpawn( ent );
++		}
++		return qtrue;
++	}
++	if ( !Q_stricmp( cmd, "raceinfo" ) ) {	// the HUD asks for the checkpoint count and best time (the first spawn's answer comes too early)
++		G_RaceSpawn( ent );
++		return qtrue;
++	}
++	if ( !Q_stricmp( cmd, "racesave" ) ) {
++		if ( !Race_Eligible( ent ) ) {
++			return qtrue;
++		}
++		VectorCopy( cl->ps.origin, cl->sess.raceSaveOrigin );
++		VectorCopy( cl->ps.viewangles, cl->sess.raceSaveAngles );
++		cl->sess.raceSaved = qtrue;
++		Race_Send( ent, "cp \"Position saved\"" );
++		return qtrue;
++	}
++	if ( !Q_stricmp( cmd, "raceload" ) ) {
++		if ( !Race_Eligible( ent ) ) {
++			return qtrue;
++		}
++		if ( !cl->sess.raceSaved ) {
++			Race_Send( ent, "cp \"No saved position\"" );
++			return qtrue;
++		}
++		trap_UnlinkEntity( ent );
++		VectorCopy( cl->sess.raceSaveOrigin, cl->ps.origin );
++		VectorClear( cl->ps.velocity );
++		cl->ps.eFlags ^= EF_TELEPORT_BIT;	// no lerp from where it was
++		SetClientViewAngle( ent, cl->sess.raceSaveAngles );
++		BG_PlayerStateToEntityState( &cl->ps, &ent->s, qtrue );
++		VectorCopy( cl->ps.origin, ent->r.currentOrigin );
++		trap_LinkEntity( ent );
++		cl->race.running = qfalse;
++		G_RaceSpawn( ent );	// the HUD goes idle
++		return qtrue;
++	}
++	return qfalse;
++}
+diff --git a/code/game/g_spawn.c b/code/game/g_spawn.c
+index a34ced5..28b653d 100644
+--- a/code/game/g_spawn.c
++++ b/code/game/g_spawn.c
+@@ -168,6 +168,20 @@ void SP_shooter_rocket( gentity_t *ent );
+ void SP_shooter_plasma( gentity_t *ent );
+ void SP_shooter_grenade( gentity_t *ent );
+ 
++// q3core: Race mode's Defrag entities (g_race.c)
++void SP_target_startTimer( gentity_t *ent );
++void SP_target_stopTimer( gentity_t *ent );
++void SP_target_checkpoint( gentity_t *ent );
++void SP_target_fragsFilter( gentity_t *ent );
++void SP_target_init( gentity_t *ent );
++void SP_target_smallprint( gentity_t *ent );
++void SP_target_speed( gentity_t *ent );
++void SP_target_multimanager( gentity_t *ent );
++void SP_trigger_push_velocity( gentity_t *ent );
++void SP_shooter_rocket_targetplayer( gentity_t *ent );
++void SP_shooter_plasma_targetplayer( gentity_t *ent );
++void SP_shooter_grenade_targetplayer( gentity_t *ent );
++
+ void SP_team_CTF_redplayer( gentity_t *ent );
+ void SP_team_CTF_blueplayer( gentity_t *ent );
+ 
+@@ -241,6 +255,19 @@ spawn_t	spawns[] = {
+ 	{"shooter_grenade", SP_shooter_grenade},
+ 	{"shooter_plasma", SP_shooter_plasma},
+ 
++	{"target_startTimer", SP_target_startTimer},
++	{"target_stopTimer", SP_target_stopTimer},
++	{"target_checkpoint", SP_target_checkpoint},
++	{"target_fragsFilter", SP_target_fragsFilter},
++	{"target_init", SP_target_init},
++	{"target_smallprint", SP_target_smallprint},
++	{"target_speed", SP_target_speed},
++	{"target_multimanager", SP_target_multimanager},
++	{"trigger_push_velocity", SP_trigger_push_velocity},
++	{"shooter_rocket_targetplayer", SP_shooter_rocket_targetplayer},
++	{"shooter_plasma_targetplayer", SP_shooter_plasma_targetplayer},
++	{"shooter_grenade_targetplayer", SP_shooter_grenade_targetplayer},
++
+ 	{"team_CTF_redplayer", SP_team_CTF_redplayer},
+ 	{"team_CTF_blueplayer", SP_team_CTF_blueplayer},
+ 
+@@ -290,6 +317,13 @@ qboolean G_CallSpawn( gentity_t *ent ) {
+ 			return qtrue;
+ 		}
+ 	}
++	// q3core: Defrag maps spell some classnames in mixed case (the editor is case blind)
++	for ( s=spawns ; s->name ; s++ ) {
++		if ( !Q_stricmp(s->name, ent->classname) ) {
++			s->spawn(ent);
++			return qtrue;
++		}
++	}
+ 	G_Printf ("%s doesn't have a spawn function\n", ent->classname);
+ 	return qfalse;
+ }
+diff --git a/code/game/g_target.c b/code/game/g_target.c
+index 195cfc6..d3c0b71 100644
+--- a/code/game/g_target.c
++++ b/code/game/g_target.c
+@@ -160,6 +160,9 @@ void Use_Target_Print (gentity_t *ent, gentity_t *other, gentity_t *activator) {
+ 
+ void SP_target_print( gentity_t *ent ) {
+ 	ent->use = Use_Target_Print;
++	if ( G_Race() ) {	// q3core: Defrag's target_print speaks to the activator only
++		G_RaceSpawnPrint( ent );
++	}
+ }
+ 
+ 
+diff --git a/code/game/g_trigger.c b/code/game/g_trigger.c
+index f43163a..bf4aa58 100644
+--- a/code/game/g_trigger.c
++++ b/code/game/g_trigger.c
+@@ -290,6 +290,16 @@ void trigger_teleporter_touch (gentity_t *self, gentity_t *other, trace_t *trace
+ 		return;
+ 	}
+ 
++	if ( self->spawnflags & 2 ) {	// q3core: KEEP_SPEED (Defrag)
++		vec3_t oldVel;
++		float oldYaw = other->client->ps.viewangles[YAW];
++
++		VectorCopy( other->client->ps.velocity, oldVel );
++		TeleportPlayer( other, dest->s.origin, dest->s.angles );
++		G_RaceKeepSpeed( other, oldVel, oldYaw, dest->s.angles );
++		return;
++	}
++
+ 	TeleportPlayer( other, dest->s.origin, dest->s.angles );
+ }
+ 

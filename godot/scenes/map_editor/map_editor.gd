@@ -1204,8 +1204,12 @@ func _execute(cmd: String) -> bool:
 			notify("Paint target: " + ("whole objects" if ft.object_mode else "single faces"))
 		"view.explorer":
 			ui.toggle_panels()
-		"tool.spawn", "tool.jumppad", "tool.teleporter", "tool.weapon", "tool.item", "tool.sound", "tool.light":
+		"tool.spawn", "tool.jumppad", "tool.teleporter", "tool.weapon", "tool.item", "tool.sound", "tool.light", "tool.startline", "tool.finishline", "tool.checkpoint":
 			start_entity(cmd.substr(5))
+		"race.check":
+			race_check()
+		"race.settings":
+			race_settings()
 		"entity.spawnAtCamera":
 			spawn_at_camera()
 		"pickup.prev":
@@ -1771,6 +1775,97 @@ func place_teleporter(at: Vector3, exit: Vector3, yaw: float) -> int:
 	return eid
 
 
+## The volume of a race line across a course: the box from one side to the other (a corner of the floor
+## each), as thick as LINE_DEPTH along the way the player runs (the longer of the two axes is the
+## width) and tall as TRIGGER_HEIGHT, or up to the roof. {min, max}.
+static func race_line_box(a: Vector3, b: Vector3, roof := 0.0) -> Array:
+	var lo := Vector3(minf(a.x, b.x), minf(a.y, b.y), minf(a.z, b.z))
+	var hi := Vector3(maxf(a.x, b.x), maxf(a.y, b.y), maxf(a.z, b.z))
+	var half := Q3MapRace.LINE_DEPTH * 0.5
+	if hi.x - lo.x >= hi.y - lo.y:
+		var cy := (lo.y + hi.y) * 0.5
+		lo.y = cy - half
+		hi.y = cy + half
+		if hi.x - lo.x < 64.0:
+			var cx := (lo.x + hi.x) * 0.5
+			lo.x = cx - 32.0
+			hi.x = cx + 32.0
+	else:
+		var cx2 := (lo.x + hi.x) * 0.5
+		lo.x = cx2 - half
+		hi.x = cx2 + half
+		if hi.y - lo.y < 64.0:
+			var cy2 := (lo.y + hi.y) * 0.5
+			lo.y = cy2 - 32.0
+			hi.y = cy2 + 32.0
+	var top := lo.z + Q3MapRace.TRIGGER_HEIGHT
+	if roof > 0.0:
+		top = maxf(minf(top, roof), lo.z + 64.0)
+	lo.z = lo.z
+	hi.z = top
+	return [lo, hi]
+
+
+## Y, U and C: a race line across the course from `a` to `b`: a trigger_multiple volume and the Defrag
+## timer entity it fires (target_startTimer, target_stopTimer or target_checkpoint), grouped like a jump
+## pad. Returns the trigger's id.
+func place_race_line(kind: String, a: Vector3, b: Vector3) -> int:
+	var cls := {"startline": Q3MapRace.START, "finishline": Q3MapRace.STOP, "checkpoint": Q3MapRace.CHECKPOINT}[kind] as String
+	var prefix := {"startline": "start", "finishline": "finish", "checkpoint": "cp"}[kind] as String
+	var label := {"startline": "Start line", "finishline": "Finish line", "checkpoint": "Checkpoint"}[kind] as String
+	var mid := (a + b) * 0.5
+	var roof := ceiling_over(mid, mid)
+	var box := race_line_box(a, b, roof if roof < INF else 0.0)
+	doc.checkpoint(label)
+	var name := Q3MapEntities.unique_name(doc, prefix)
+	var gid := _new_group()
+	var trig := Q3MapEntities.brush_entity("trigger_multiple", {"target": name, "wait": "0.5"})
+	trig["group"] = gid
+	var tid := doc.add(trig)
+	var vol := Q3MapDoc.box_brush(box[0], box[1], TRIGGER_MATERIAL)
+	vol["entity"] = tid
+	vol["group"] = gid
+	# the timer entity sits inside the volume (an entity outside the hull is a leak)
+	var at := Vector3((box[0].x + box[1].x) * 0.5, (box[0].y + box[1].y) * 0.5, box[0].z + 24.0)
+	var timer := Q3MapEntities.point(cls, at.round(), {"targetname": name})
+	timer["group"] = gid
+	var ids := [tid, doc.add(vol), doc.add(timer)]
+	select(ids)
+	UiSound.move()
+	notify("%s placed (%s)" % [label, Q3MapRace.summary(doc)])
+	return tid
+
+
+## Shift+C: what's wrong with the course. The problems come as a list; picking one selects what it's
+## about.
+func race_check() -> void:
+	var problems := Q3MapRace.problems(doc)
+	if problems.is_empty():
+		if Q3MapRace.has_course(doc):
+			notify("Course OK: %s" % Q3MapRace.summary(doc))
+		else:
+			notify("Not a course yet: place a start line (Y) and a finish line (U)")
+		return
+	var items := problems.map(func(p): return ("ERROR  " if p["error"] else "Note   ") + String(p["text"]))
+	var by_item := {}
+	for i in items.size():
+		by_item[items[i]] = problems[i]
+	ui.pick_dialog("RACE COURSE", "%s. Pick one to select what it's about." % Q3MapRace.summary(doc), items, func(it):
+		var ids: Array = by_item[it]["ids"]
+		if ids.size():
+			select(ids)
+			execute("view.focus"), "SELECT")
+
+
+## Shift+Y: the course's style (what the menu files it under) and its author.
+func race_settings() -> void:
+	ui.pick_dialog("COURSE STYLE", "Run: start to finish. Training: practice. Accuracy: shoot targets. Level: collect items.",
+			Q3MapRace.STYLES.duplicate(), func(style):
+		ui.name_dialog("COURSE AUTHOR", Q3MapRace.author(doc), func(author):
+			set_world({"race_style": String(style), "race_author": String(author)})
+			notify("Course: %s, by %s" % [style, author if author != "" else "unknown"])), "NEXT")
+
+
 ## L: a light at `at`; with spot_at, a spot aimed there through an info_null target, as q3map wants.
 func place_light(at: Vector3, spot_at: Variant = null) -> int:
 	doc.checkpoint("Spot light" if spot_at != null else "Light")
@@ -1982,7 +2077,8 @@ func delete_prefab(name: String) -> void:
 
 ## F5: compiles the map (q3map, and bspc for the bots) and plays it in Gameplay; F6 there comes back.
 func play_test() -> void:
-	compile_map(["bsp", "aas"] if play_bots > 0 else ["bsp"], true)
+	var course := Q3MapRace.has_course(doc)   # a course is run with the timer, not fought over
+	compile_map(["bsp", "aas"] if play_bots > 0 and not course else ["bsp"], true)
 
 
 ## Writes the map for q3map and starts a background compile of these stages; `then_play` hands the
@@ -2012,6 +2108,8 @@ func compile_map(stages: Array, then_play: bool, publish := false, export_to := 
 		_compile_job["name"] = String(doc.info.get("name", "untitled"))
 		_compile_job["message"] = String(doc.worldspawn.get("message", "")).replace("\\n", " ").strip_edges()
 		_compile_job["types"] = Q3MapPublish.types_of(doc)
+		if Q3MapRace.has_course(doc):
+			_compile_job["race"] = {"style": Q3MapRace.style(doc), "author": Q3MapRace.author(doc)}
 	overlay.show_leak(PackedVector3Array())
 	compiler.compile(name, ex["text"], stages)
 	ui.set_hint("Compiling %s: %s ..." % [name, ", ".join(stages)])
@@ -2054,18 +2152,19 @@ func _on_compiled(r: Dictionary) -> void:
 		notify("The map changed while it compiled: press F5 again", true)
 		return
 	_play_cache = {"key": job.get("key", ""), "r": r, "time": FileAccess.get_modified_time(String(r["bsp"]))}
-	var bots := play_bots if r["aas"] != "" else 0
+	var course := Q3MapRace.has_course(doc)
+	var bots := play_bots if r["aas"] != "" and not course else 0
 	# the 3D view's pose, also from a 2D view (where the player starts, and the view to come back to)
 	var pose := [camera.position, camera.yaw, camera.pitch]
 	if camera.ortho != "" and camera._pose_3d.size():
 		pose = camera._pose_3d.duplicate()
-	var start := camera_start(pose[0], pose[1], pose[2]) if play_from_camera else []
-	if play_from_camera and start.is_empty():
+	var start := camera_start(pose[0], pose[1], pose[2]) if play_from_camera and not course else []   # a course starts at its spawn: the timer is off with cheats
+	if play_from_camera and not course and start.is_empty():
 		notify("The camera is outside the map: the play-test starts at a spawn point")
 	var errs := Session.play_test({"doc": doc, "models": job["models"], "map": job["map"], "path": path,
 			"camera": pose, "view": view, "start": start, "selection": selected_ids(),
 			"tool": tools.find_key(tool), "leaked": r["leaked"], "isolated": _isolated.duplicate(),
-			"faces": faces.keys(), "verts": verts.keys()}, bots)
+			"faces": faces.keys(), "verts": verts.keys(), "race": course}, bots)
 	if errs.size():
 		notify("Can't play: " + "; ".join(errs), true)
 
@@ -2116,6 +2215,8 @@ func _finish_publish(job: Dictionary, r: Dictionary) -> void:
 			"types": job["types"], "special": "custom", "bots": [], "fraglimit": 20, "timelimit": 0,
 			"levelshot": Q3MapPublish.data_url(thumb_path(name)), "doc": frozen, "models": models,
 			"published": int(Time.get_unix_time_from_system())}
+	if job.has("race"):
+		entry["race"] = job["race"]
 	var err := Q3MapPublish.put(entry)
 	if err != OK:
 		notify("Couldn't list the published map (error %d)" % err, true)
@@ -2182,6 +2283,8 @@ func _write_pk3(dest: String, base: String, d: Q3MapDoc, r: Dictionary) -> Error
 	var title := String(d.worldspawn.get("message", "")).replace("\\n", " ").replace("\"", "'").strip_edges()
 	files["scripts/%s.arena" % base] = ("{\n\tmap \"%s\"\n\tlongname \"%s\"\n\ttype \"%s\"\n\tfraglimit \"20\"\n}\n" % [
 			base, title if title != "" else base, " ".join(Q3MapPublish.types_of(d))]).to_utf8_buffer()
+	if Q3MapRace.has_course(d):   # Defrag's own map file, so the game's menus (and Defrag's) list the course
+		files["scripts/%s.defi" % base] = Q3MapRace.defi(base, d).to_utf8_buffer()
 	var shot := thumb_path(String(d.info.get("name", "")))
 	if FileAccess.file_exists(shot):
 		var img := Image.load_from_file(ProjectSettings.globalize_path(shot))

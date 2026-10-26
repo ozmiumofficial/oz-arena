@@ -26,7 +26,7 @@ function clock(s: number) {
 }
 
 export default function DedicatedPage({ back }: PageProps) {
-  const modes = useMenu((s) => s.init?.modes ?? []);
+  const modes = useMenu((s) => s.init?.modes ?? []).filter((m) => m.id !== "race");
   const maps = useMenu((s) => s.init?.maps ?? []);
   const info = useMenu((s) => s.dedicated);
   const skills = useMenu((s) => s.init?.skills ?? []);

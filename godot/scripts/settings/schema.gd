@@ -11,22 +11,26 @@ const TABS := [["video", "Video"], ["graphics", "Graphics"], ["audio", "Audio"],
 	["mouse", "Mouse"], ["crosshair", "Crosshair"], ["hud", "HUD"], ["gameplay", "Gameplay"],
 	["network", "Network"], ["accessibility", "Accessibility"]]
 
-## Graphics presets: setting -> value at [low, medium, high, ultra].
+## Graphics presets: setting -> value at [low, medium, high, ultra, classic]. Classic is Quake 3's look: no screen-space effects, bloom, fog volumes or heat shimmer.
 const PRESETS := {
-	"graphics/shadows": ["low", "medium", "high", "ultra"],
-	"graphics/gi": ["off", "off", "off", "sdfgi"],
-	"graphics/reflections": [false, false, true, true],
-	"graphics/ao": ["off", "low", "medium", "high"],
-	"graphics/volumetric_fog": [false, true, true, true],
-	"graphics/bloom": [true, true, true, true],
-	"graphics/antialiasing": ["fxaa", "msaa2", "msaa4", "taa"],
-	"graphics/anisotropy": [2, 4, 16, 16],
-	"graphics/texture_quality": ["low", "medium", "high", "high"],
-	"graphics/particles": ["low", "medium", "high", "high"],
-	"graphics/heat_shimmer": [false, true, true, true],
-	"graphics/detail": ["low", "medium", "high", "high"],
+	"graphics/shadows": ["low", "medium", "high", "ultra", "medium"],
+	"graphics/gi": ["off", "off", "off", "sdfgi", "off"],
+	"graphics/reflections": [false, false, true, true, false],
+	"graphics/ao": ["off", "low", "medium", "high", "off"],
+	"graphics/volumetric_fog": [false, true, true, true, false],
+	"graphics/bloom": [true, true, true, true, false],
+	"graphics/antialiasing": ["fxaa", "msaa2", "msaa4", "taa", "msaa4"],
+	"graphics/anisotropy": [2, 4, 16, 16, 16],
+	"graphics/texture_quality": ["low", "medium", "high", "high", "high"],
+	"graphics/particles": ["low", "medium", "high", "high", "high"],
+	"graphics/heat_shimmer": [false, true, true, true, false],
+	"graphics/detail": ["low", "medium", "high", "high", "high"],
+	"graphics/rail_style": ["glow", "glow", "glow", "glow", "classic"],
+	"graphics/lightning_style": ["glow", "glow", "glow", "glow", "classic"],
+	"graphics/missile_trails": ["enhanced", "enhanced", "enhanced", "enhanced", "classic"],
+	"graphics/explosions": ["enhanced", "enhanced", "enhanced", "enhanced", "classic"],
 }
-const PRESET_NAMES := ["low", "medium", "high", "ultra"]
+const PRESET_NAMES := ["low", "medium", "high", "ultra", "classic"]
 
 ## Controls: action id, label, default binds [primary, secondary, controller]. Action names in
 ## the InputMap are "q3_" + id. Weapon numbers follow Quake 3 (1 gauntlet ... 9 BFG).
@@ -121,8 +125,8 @@ static func build() -> Array:
 
 	# ---- Graphics
 	g = "Quality"
-	L.append(_e("graphics/preset", "Preset", "enum", "high", "Sets every quality setting below. Changing one of them switches this to Custom.", g,
-		{"options": [["low", "Low"], ["medium", "Medium"], ["high", "High"], ["ultra", "Ultra"], ["custom", "Custom"]]}))
+	L.append(_e("graphics/preset", "Preset", "enum", "high", "Sets every quality setting below. Classic keeps Quake 3's look (no SSR, AO, bloom, fog or shimmer). Changing one of them switches this to Custom.", g,
+		{"options": [["classic", "Classic"], ["low", "Low"], ["medium", "Medium"], ["high", "High"], ["ultra", "Ultra"], ["custom", "Custom"]]}))
 	g = "Lighting"
 	L.append(_e("graphics/shadows", "Shadows", "enum", "high", "Shadow map resolution and filtering. Ultra also gives every map light a live shadow on players and the mist: barely visible, and several times slower.", g, {"options": off + [["ultra", "Ultra"]]}))
 	L.append(_e("graphics/gi", "Global illumination", "enum", "off", "Real-time bounce light (SDFGI). Maps are relit in-engine instead of using baked lightmaps.", g,

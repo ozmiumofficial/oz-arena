@@ -806,6 +806,78 @@
    "category": "hazard",
    "description": "Fires plasma",
    "models": []
+  },
+  {
+   "classname": "target_startTimer",
+   "category": "race",
+   "description": "Race: starts the player's run timer (fired again, it restarts it)",
+   "models": []
+  },
+  {
+   "classname": "target_stopTimer",
+   "category": "race",
+   "description": "Race: stops the run; its targets fire on a new personal best",
+   "models": []
+  },
+  {
+   "classname": "target_checkpoint",
+   "category": "race",
+   "description": "Race: a split time (each counts once a run)",
+   "models": []
+  },
+  {
+   "classname": "target_fragsFilter",
+   "category": "race",
+   "description": "Race: passes its trigger on only when the player has enough frags",
+   "models": []
+  },
+  {
+   "classname": "target_init",
+   "category": "race",
+   "description": "Race: takes away the player's pickups, then fires its targets",
+   "models": []
+  },
+  {
+   "classname": "target_smallprint",
+   "category": "race",
+   "description": "Race: prints a message to the player who triggered it",
+   "models": []
+  },
+  {
+   "classname": "target_speed",
+   "category": "race",
+   "description": "Race: sets or changes the player's speed",
+   "models": []
+  },
+  {
+   "classname": "target_multimanager",
+   "category": "race",
+   "description": "Race: fires up to 40 targets, each after its own delay",
+   "models": []
+  },
+  {
+   "classname": "trigger_push_velocity",
+   "category": "race",
+   "description": "Race: a launch ramp that can add to the player's speed",
+   "models": []
+  },
+  {
+   "classname": "shooter_rocket_targetplayer",
+   "category": "race",
+   "description": "Race: a rocket turret that aims at the player",
+   "models": []
+  },
+  {
+   "classname": "shooter_plasma_targetplayer",
+   "category": "race",
+   "description": "Race: a plasma turret that aims at the player",
+   "models": []
+  },
+  {
+   "classname": "shooter_grenade_targetplayer",
+   "category": "race",
+   "description": "Race: a grenade turret that aims at the player",
+   "models": []
   }
  ]
 }

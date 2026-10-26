@@ -67,12 +67,17 @@ static func problems(doc: Q3MapDoc) -> PackedStringArray:
 		out.append("The map has no spawn point (P places one).")
 	if doc.ids_of("brush").is_empty():
 		out.append("The map has no brushes.")
+	for p in Q3MapRace.problems(doc):   # a course needs its start and finish; the rest are notes the Race check shows
+		if p["error"] and not out.has(String(p["text"])):
+			out.append(String(p["text"]))
 	return out
 
 
 ## The game types a map suits, as arenas.txt names them: every map plays free-for-all, duel and team
 ## deathmatch; capture the flag needs both flags.
 static func types_of(doc: Q3MapDoc) -> Array:
+	if Q3MapRace.has_course(doc):   # a course is played as Race, nothing else
+		return ["race"]
 	var types := ["ffa", "tourney", "team"]
 	var flags := {}
 	for id in doc.ids_of("entity"):

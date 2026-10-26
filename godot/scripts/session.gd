@@ -9,7 +9,7 @@ const MAIN_MENU := "res://scenes/main_menu/main_menu.tscn"
 const GAMEPLAY := "res://scenes/gameplay/gameplay.tscn"
 const MAP_EDITOR := "res://scenes/map_editor/map_editor.tscn"
 const DEDICATED := "res://scenes/dedicated/dedicated.tscn"
-const MODES := ["ffa", "duel", "tdm", "ctf", "clan_arena", "freeze_tag", "instagib"]
+const MODES := ["ffa", "duel", "tdm", "ctf", "clan_arena", "freeze_tag", "instagib", "race"]
 const CINEMATIC := "res://scenes/cinematic/cinematic.tscn"
 const LAST_SETUP := "user://last_match.json"
 const INTRO_PLAYED := "user://intro_played"
@@ -290,12 +290,16 @@ func open_map_editor() -> void:
 ## F5 in the map editor: plays the compiled map (state["map"], in fs_homepath) in Gameplay as a
 ## free-for-all without limits, with `bots` of id's bots when the map has a bot area file.
 func play_test(state: Dictionary, bots: int) -> PackedStringArray:
-	var s := new_setup("ffa", String(state["map"]))
+	var race := bool(state.get("race", false))   # a course (a start and a finish line) is run, with the timer: no cheats, no bots
+	var s := new_setup("race" if race else "ffa", String(state["map"]))
 	s.source = "editor"
-	s.rules = {"fraglimit": 0, "timelimit": 0, "warmup": 0}
-	s.set_meta("devmap", true)   # cheats on: the start at the camera (edpos), and noclip / give for testing
+	if race:
+		s.rules = {}
+	else:
+		s.rules = {"fraglimit": 0, "timelimit": 0, "warmup": 0}
+		s.set_meta("devmap", true)   # cheats on: the start at the camera (edpos), and noclip / give for testing
 	var names := ["Sarge", "Visor", "Major", "Crash", "Xaero", "Anarki", "Keel", "Hunter"]
-	for i in clampi(bots, 0, names.size()):
+	for i in clampi(0 if race else bots, 0, names.size()):
 		s.bots.append({"name": names[i], "skill": 3, "team": ""})
 	playtest = state
 	var errs := start_match(s)

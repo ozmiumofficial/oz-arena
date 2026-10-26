@@ -187,6 +187,71 @@ int q3_host_server_time(void) { return q3_host_server_running() ? sv.time : 0; }
 
 const char *q3_host_cvar(const char *name) { return q3_ready ? Cvar_VariableString(name) : ""; }
 
+/* The console's lists: every command and cvar the engine has registered, one name a line. */
+static char name_list[96 * 1024];
+static int name_len;
+
+static void name_collect(const char *s) {
+	int n = (int)strlen(s);
+	if (name_len + n + 2 < (int)sizeof(name_list)) {
+		memcpy(name_list + name_len, s, n);
+		name_len += n;
+		name_list[name_len++] = '\n';
+		name_list[name_len] = 0;
+	}
+}
+
+const char *q3_host_command_names(void) {
+	name_len = 0;
+	name_list[0] = 0;
+	if (q3_ready)
+		Cmd_CommandCompletion(name_collect);
+	return name_list;
+}
+
+const char *q3_host_cvar_names(void) {
+	name_len = 0;
+	name_list[0] = 0;
+	if (q3_ready)
+		Cvar_CommandCompletion(name_collect);
+	return name_list;
+}
+
+int q3_host_cvar_flags(const char *name) {
+	return q3_ready ? Cvar_Flags(name) : (int)CVAR_NONEXISTENT;
+}
+
+/* A file through the engine's search path (fs_homepath, then the paks), as exec reads a .cfg. */
+static void *read_buffer;
+
+const unsigned char *q3_host_read_file(const char *path, int *len) {
+	*len = -1;
+	if (read_buffer) {
+		FS_FreeFile(read_buffer);
+		read_buffer = NULL;
+	}
+	if (!path || !path[0])
+		return NULL;
+	{
+		GUARD(NULL, NULL);
+		long n = FS_ReadFile(path, &read_buffer);
+		UNGUARD();
+		if (n < 0 || !read_buffer) {
+			read_buffer = NULL;
+			return NULL;
+		}
+		*len = (int)n;
+		return (const unsigned char *)read_buffer;
+	}
+}
+
+/* fs_openedList / fs_referencedList: the paks the engine has open, or the ones the game used. */
+const char *q3_host_pak_names(int referenced) {
+	if (!q3_ready)
+		return "";
+	return referenced ? FS_ReferencedPakNames() : FS_LoadedPakNames();
+}
+
 void q3_host_set_cvar(const char *name, const char *value) {
 	if (q3_ready)
 		Cvar_Set(name, value);

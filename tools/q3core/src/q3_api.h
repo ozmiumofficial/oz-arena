@@ -42,6 +42,15 @@ int q3_host_frame(int msec);
 int q3_host_server_running(void);
 int q3_host_server_time(void);
 const char *q3_host_cvar(const char *name);
+/* Every console command / cvar the engine registered, one name a line (valid until the next call). */
+const char *q3_host_command_names(void);
+const char *q3_host_cvar_names(void);
+/* Cvar_Flags (CVAR_ARCHIVE 1 ...); CVAR_NONEXISTENT if there's no such cvar. */
+int q3_host_cvar_flags(const char *name);
+/* A file through the engine's search path; NULL (len -1) if none. Valid until the next call. */
+const unsigned char *q3_host_read_file(const char *path, int *len);
+/* The pak files the engine has open (0) or the ones the game referenced (1), space separated. */
+const char *q3_host_pak_names(int referenced);
 void q3_host_set_cvar(const char *name, const char *value);
 const char *q3_host_configstring(int index);
 

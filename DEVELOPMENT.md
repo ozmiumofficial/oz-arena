@@ -133,6 +133,7 @@ godot --path godot res://tests/weapon_fx.tscn -- out=C:/temp/wfx [move=1 pitch=8
 godot --path godot res://tests/pause_menu.tscn   # pause menu, crosshair editor live, resume (6 checks)
 godot --headless --path godot res://tests/campaign_flow.tscn   # a campaign arena start to finish (7 checks)
 godot --headless --path godot res://tests/chat_test.tscn   # chat and color codes: T/Y, EF_TALK, G_Say round trip, Escape, held Enter (19 checks)
+godot --headless --path godot res://tests/console_test.tscn   # developer console: every id 1.32 command present, Cbuf (wait, exec, vstr, writeconfig), binds on Controls, client cvars, +left/+strafe, third person, the hosting lock (68 checks)
 godot --headless --path godot res://tests/settings_wiring_test.tscn   # every setting drives something: item timers, announcer, gun fov, toggle crouch, accel, skins, effects (29 checks)
 godot --path godot res://tests/chat_capture.tscn -- out=C:/temp/chat window=1600x900   # the chat open with a preview, and the talk balloon
 godot --headless --path godot res://tests/check_scripts.tscn   # every script parses (what the editor's Errors panel would list)

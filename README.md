@@ -92,6 +92,12 @@ Most remakes copy the original from memory. This one runs id Software's own game
   - A Replays page: rename, keep favorites forever, watch again from the results screen.
   - Save a clip of any moment as a video.
   - Plays Quake 3's own demo files too.
+- **Race:** Defrag-style timed courses, with Quake 3's own movement.
+  - Run from the start line to the finish through the checkpoints; the timer shows your split against your best at each one.
+  - Restart with R, or save a spot and come back to it to practice a jump. No health to lose, and rocket jumps cost nothing.
+  - Your best run is kept for every course and races beside you as a ghost.
+  - Plays Defrag courses you drop into the Maps folder.
+  - Build your own in the map editor: start and finish lines and checkpoints in a click each, a check that the course works, and a play-test with the timer.
 - **Spectating:** follow anyone in a live match, switch to a chase camera, or let an auto-director follow the action. The cinematic camera films the match like a broadcast by itself: slow orbits, tracking shots and wide shots of the fight, cutting to the frags.
 - **Death cam:** when you're fragged, the camera follows your body as it falls, then shows who got you with their player card.
 - **Match stats:** the Tab scoreboard shows your match: damage and accuracy with every weapon, distance traveled and your medals.

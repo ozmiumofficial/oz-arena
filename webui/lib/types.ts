@@ -57,6 +57,8 @@ export interface MapInfo {
   levelshot: string;
   /** "" Quake 3's arenas (or "training" / "final"), "pack" a Maps folder pk3, "custom" published from the editor */
   special?: string;
+  /** a Defrag race map (types ["race"]): its .defi style (training, run, accuracy, level) and author */
+  race?: { style: string; author: string };
 }
 
 export interface BotInfo {
@@ -104,6 +106,8 @@ export interface CinematicInfo {
 
 export interface InitPayload {
   version: string;
+  /** your best run on each race map, in ms */
+  race_records?: Record<string, number>;
   tabs: [string, string][];
   schema: SettingEntry[];
   values: Record<string, Value>;

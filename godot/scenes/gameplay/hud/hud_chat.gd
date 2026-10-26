@@ -21,6 +21,7 @@ const TEAM_COLOR := Color(0, 1, 1)    ## COLOR_CYAN for say_team
 var hud: Q3Hud
 var typing := false
 var team := false
+var tell_to := -1                 ## a client to tell instead (the console's messagemode3 / messagemode4)
 var names: Callable               ## -> the players' names, for Tab completion
 var _lines: Array[Dictionary] = []   ## {text, team, at (ms)}
 var _edit: LineEdit
@@ -79,6 +80,7 @@ func close() -> void:
 	if not typing:
 		return
 	typing = false
+	tell_to = -1
 	_edit.release_focus()
 	_edit.visible = false
 	queue_redraw()

@@ -6626,6 +6626,23 @@
     "warmup": 0
    },
    "team": false
+  },
+  {
+   "description": "Defrag's timed courses: run from the start line to the finish as fast as you can, through the checkpoints. Id 1.32 movement, no health to lose, instant restarts.",
+   "id": "race",
+   "map_types": [
+    "race"
+   ],
+   "modifiers": {},
+   "name": "Race",
+   "rounds": false,
+   "rules": {
+    "fraglimit": 0,
+    "max_players": 8,
+    "timelimit": 0,
+    "warmup": 0
+   },
+   "team": false
   }
  ],
  "modifiers": [
@@ -8721,6 +8738,7 @@
   "level": 1,
   "ranked_level": 30
  },
+ "race_records": {},
  "rules": {
   "capturelimit": {
    "label": "Capture limit",
@@ -8978,6 +8996,10 @@
    "label": "Preset",
    "options": [
     [
+     "classic",
+     "Classic"
+    ],
+    [
      "low",
      "Low"
     ],
@@ -9000,7 +9022,7 @@
    ],
    "restart": false,
    "tab": "graphics",
-   "tip": "Sets every quality setting below. Changing one of them switches this to Custom.",
+   "tip": "Sets every quality setting below. Classic keeps Quake 3's look (no SSR, AO, bloom, fog or shimmer). Changing one of them switches this to Custom.",
    "type": "enum",
    "wired": true
   },

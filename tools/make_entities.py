@@ -82,6 +82,19 @@ MAP_ENTITIES = {
     "misc_portal_surface": ("render", "Mirror or portal surface"), "misc_portal_camera": ("render", "Portal view camera"),
     "shooter_rocket": ("hazard", "Fires rockets"), "shooter_grenade": ("hazard", "Fires grenades"),
     "shooter_plasma": ("hazard", "Fires plasma"),
+    # Defrag's entities (RACE_PLAN.md D5; tools/q3core/thirdparty/ioq3/code/game/g_race.c)
+    "target_startTimer": ("race", "Race: starts the player's run timer (fired again, it restarts it)"),
+    "target_stopTimer": ("race", "Race: stops the run; its targets fire on a new personal best"),
+    "target_checkpoint": ("race", "Race: a split time (each counts once a run)"),
+    "target_fragsFilter": ("race", "Race: passes its trigger on only when the player has enough frags"),
+    "target_init": ("race", "Race: takes away the player's pickups, then fires its targets"),
+    "target_smallprint": ("race", "Race: prints a message to the player who triggered it"),
+    "target_speed": ("race", "Race: sets or changes the player's speed"),
+    "target_multimanager": ("race", "Race: fires up to 40 targets, each after its own delay"),
+    "trigger_push_velocity": ("race", "Race: a launch ramp that can add to the player's speed"),
+    "shooter_rocket_targetplayer": ("race", "Race: a rocket turret that aims at the player"),
+    "shooter_plasma_targetplayer": ("race", "Race: a plasma turret that aims at the player"),
+    "shooter_grenade_targetplayer": ("race", "Race: a grenade turret that aims at the player"),
 }
 
 items = []

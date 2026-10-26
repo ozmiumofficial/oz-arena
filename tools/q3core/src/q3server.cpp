@@ -1,5 +1,9 @@
 #include "q3server.h"
 
+#include <cstring>
+#include <mutex>
+#include <string>
+
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
@@ -9,9 +13,69 @@
 
 using namespace godot;
 
+static std::mutex console_mutex;
+static std::string console_buffer;
+static const size_t CONSOLE_MAX = 256 * 1024;
+
+void godot::q3_console_append(const char *text, int is_error) {
+	std::lock_guard<std::mutex> lock(console_mutex);
+	if (is_error) {
+		console_buffer += "^1";
+	}
+	console_buffer += text;
+	if (is_error && console_buffer.back() != '\n') {
+		console_buffer += '\n';
+	}
+	if (console_buffer.size() > CONSOLE_MAX) {
+		console_buffer.erase(0, console_buffer.size() - CONSOLE_MAX / 2); // nobody is reading: keep the newest half
+	}
+}
+
+String Q3Server::console_take() {
+	std::lock_guard<std::mutex> lock(console_mutex);
+	String out = String::utf8(console_buffer.c_str(), (int64_t)console_buffer.size());
+	console_buffer.clear();
+	return out;
+}
+
+PackedStringArray Q3Server::engine_commands() {
+	return String::utf8(q3_host_command_names()).split("\n", false);
+}
+
+PackedStringArray Q3Server::engine_cvars() {
+	return String::utf8(q3_host_cvar_names()).split("\n", false);
+}
+
+int Q3Server::cvar_flags(const String &name) {
+	return q3_host_cvar_flags(name.utf8().get_data());
+}
+
+PackedByteArray Q3Server::read_file(const String &path) {
+	PackedByteArray out;
+	int len = -1;
+	const unsigned char *data = q3_host_read_file(path.utf8().get_data(), &len);
+	if (data && len >= 0) {
+		out.resize(len);
+		if (len > 0) {
+			memcpy(out.ptrw(), data, len);
+		}
+	}
+	return out;
+}
+
+String Q3Server::pak_names(bool referenced) {
+	return String::utf8(q3_host_pak_names(referenced ? 1 : 0));
+}
+
 void Q3Server::_bind_methods() {
 	ClassDB::bind_static_method("Q3Server", D_METHOD("start", "command_line"), &Q3Server::start);
 	ClassDB::bind_static_method("Q3Server", D_METHOD("is_ready"), &Q3Server::is_ready);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("console_take"), &Q3Server::console_take);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("engine_commands"), &Q3Server::engine_commands);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("engine_cvars"), &Q3Server::engine_cvars);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("cvar_flags", "name"), &Q3Server::cvar_flags);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("read_file", "path"), &Q3Server::read_file);
+	ClassDB::bind_static_method("Q3Server", D_METHOD("pak_names", "referenced"), &Q3Server::pak_names);
 	ClassDB::bind_static_method("Q3Server", D_METHOD("error"), &Q3Server::error);
 	ClassDB::bind_static_method("Q3Server", D_METHOD("exec", "text"), &Q3Server::exec);
 	ClassDB::bind_static_method("Q3Server", D_METHOD("exec_now", "text"), &Q3Server::exec_now);

@@ -12,19 +12,21 @@ Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the r
 
 | | |
 |---|---|
-| ![Main menu](docs/screenshots/menu-main.jpg) | ![Single player campaign](docs/screenshots/menu-single-player.jpg) |
-| **Main menu:** a fighter or item turning in a smoky void, with Quake 3's own menu sounds and its soundtrack on shuffle | **Single player:** id's campaign, tier by tier, with skill levels and medals |
+| ![Main menu](docs/screenshots/menu-main.jpg) | ![Campaign](docs/screenshots/menu-single-player.jpg) |
+| **Main menu:** a fighter or item turning in a smoky void, with Quake 3's own menu sounds and its soundtrack on shuffle | **Campaign:** id's single player campaign, tier by tier, with skill levels and medals |
 | ![Create match](docs/screenshots/menu-create-match.jpg) | ![Profile](docs/screenshots/menu-profile.jpg) |
 | **Create match:** every mode, map and rule, with modifiers on top | **Profile:** your player card, with banners, emblems, frames and titles you earn by playing |
 
 ![Settings](docs/screenshots/menu-settings.jpg)
+
+**Settings:** search every option, with a description of each. The weapon effects can be Quake 3's classic look or glowing rail and lightning beams, missile trails with a burning core, and explosions with flying embers and smoke.
 
 ### In game
 
 | | |
 |---|---|
 | ![The Longest Yard, railgun](docs/screenshots/game-longest-yard-railgun.jpg) | ![The Longest Yard, lightning gun](docs/screenshots/game-longest-yard-lightning.jpg) |
-| **The Longest Yard** (q3dm17), railgun | **The Longest Yard**, lightning gun |
+| **The Longest Yard** (q3dm17), a glowing rail | **The Longest Yard**, the glowing lightning gun |
 | ![The Campgrounds](docs/screenshots/game-campgrounds.jpg) | ![Temple of Retribution](docs/screenshots/game-temple-of-retribution.jpg) |
 | **The Campgrounds** (q3dm6) | **Temple of Retribution** (q3dm7) |
 | ![Lost World](docs/screenshots/game-lost-world.jpg) | ![The Proving Grounds](docs/screenshots/game-proving-grounds.jpg) |
@@ -98,6 +100,11 @@ Most remakes copy the original from memory. This one runs id Software's own game
   - Your best run is kept for every course and races beside you as a ghost.
   - Plays Defrag courses you drop into the Maps folder.
   - Build your own in the map editor: start and finish lines and checkpoints in a click each, a check that the course works, and a play-test with the timer.
+
+  | | |
+  |---|---|
+  | ![Race: a run against your ghost](docs/screenshots/race-run.jpg) | ![Map editor: race tools](docs/screenshots/editor-race.jpg) |
+  | **A run:** the timer, your best time, and the ghost of your best run ahead of you | **Race tools in the map editor:** start line, checkpoint and finish line placed, and the course checked |
 - **Spectating:** follow anyone in a live match, switch to a chase camera, or let an auto-director follow the action. The cinematic camera films the match like a broadcast by itself: slow orbits, tracking shots and wide shots of the fight, cutting to the frags.
 - **Death cam:** when you're fragged, the camera follows your body as it falls, then shows who got you with their player card.
 - **Match stats:** the Tab scoreboard shows your match: damage and accuracy with every weapon, distance traveled and your medals.
@@ -109,6 +116,9 @@ Most remakes copy the original from memory. This one runs id Software's own game
   - Build your own card from about 380 Quake 3-themed banners, emblems, frames, titles, accent colors, rail colors and taunts.
   - Every match played to the end earns XP, bots included. Levels and 89 achievements unlock new parts, and the Profile shows what each locked part needs.
   - Your card appears on the scoreboard and the results screen. Progression is cosmetic only and never changes the game.
+- **Developer console:** Quake 3's drop-down console on the key under Esc, with the original commands, binds and config files.
+
+  ![Developer console](docs/screenshots/console.jpg)
 - **Controller support** in the menus and in matches, with a southpaw stick layout.
 - **Competitive options:** item respawn timers, bright enemy skins, one forced enemy model, gun position and field of view, hit sounds pitched by damage, mouse acceleration and a lagometer.
 - **Accessibility:** colorblind filters, subtitles for the announcer, and a reduced-flashing mode.

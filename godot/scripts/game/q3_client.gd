@@ -724,7 +724,9 @@ func _preload_models() -> void:
 		if ch.body:
 			for mi in ch.body.find_children("*", "MeshInstance3D", true, false):
 				(mi as MeshInstance3D).material_overlay = _armor_shell()
-		ch.free()
+		# at the frame's end: freed at once, the renderer's queued updates for it found its skin's
+		# materials gone ("Parameter "material" is null")
+		ch.queue_free()
 
 
 ## A new body for a player, in their model and skin (not yet in the tree).

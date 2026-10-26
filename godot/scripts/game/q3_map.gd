@@ -22,6 +22,15 @@ const FOG_LIGHT_SCALE := 0.6    ## the mist under full strength (Ozmium: "tone t
 ## sum of their far tails, so each lamp's share of it is raised to make that up.
 const LAMP_RANGE := 0.5
 const LAMP_FOG_GAIN := 2.5
+## Lamps weaker than this stay off at run time (they're in the bake). q3dm12 has 4,128, mostly q3map's
+## small surface-light emitters (energy ~0.06): once Godot drew them all (max_clustered_elements, so
+## the lighting stopped changing with the view), culling them cost ~2 ms of CPU a frame. Dropping
+## them changes the bodies and the mist by under 2/255 on average (tests/gpu_bench, 2026-10-25).
+const LAMP_MIN_ENERGY := 0.25
+## And lamps fade out past this far from the camera (meters, over LAMP_FADE_LENGTH): with every lamp
+## drawn, q3dm6 fell from 240 to 173 fps. A distance fade changes as you move, never as you turn.
+const LAMP_FADE := 24.0
+const LAMP_FADE_LENGTH := 8.0
 
 @export var map := ""
 var portals: Array[Q3Portal] = []   ## its mirrors and portal views
@@ -51,6 +60,12 @@ func _ready() -> void:
 			(light as SpotLight3D).spot_range *= LAMP_RANGE
 		if not light is DirectionalLight3D:
 			light.light_volumetric_fog_energy *= LAMP_FOG_GAIN
+			if light.light_energy < LAMP_MIN_ENERGY:
+				light.visible = false
+				continue
+			light.distance_fade_enabled = true
+			light.distance_fade_begin = LAMP_FADE
+			light.distance_fade_length = LAMP_FADE_LENGTH
 			_lamps.append(light)
 	_add_shaft_light()
 	Settings.environment_changed.connect(_apply_settings)

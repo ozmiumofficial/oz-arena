@@ -34,6 +34,7 @@ var _held: Dictionary = {}
 ## (hold_models): the menu shows them one at a time and shouldn't pile them up.
 var _held_models: Dictionary = {}
 var _model_holders := 0
+var _loading := {}   ## model paths on the loader thread (preload_character)
 
 
 func _init() -> void:
@@ -144,8 +145,47 @@ func character_texture(path: String) -> Texture2D:
 	return t
 
 
+## A material made for a body (Q3Character's bright skins), kept like the models while a match holds
+## them: a new StandardMaterial3D generates and compiles its shader again, about 95 ms at every
+## respawn (2026-10-25). `make` builds it on the first ask.
+func character_material(key: String, make: Callable) -> Material:
+	var m: Material = _held_models.get(key)
+	if m == null:
+		m = make.call()
+		if m and _model_holders > 0:
+			_held_models[key] = m
+	return m
+
+
+## Starts loading a player model on a loader thread while a match holds models (Q3Client, as players
+## join): the first body in a model otherwise read its glTF mid-fight, a 20-40 ms stall.
+func preload_character(model: String) -> void:
+	var path := LIB + "characters/%s.glb" % model
+	if _model_holders == 0 or _held_models.has(path) or _loading.has(path) or not ResourceLoader.exists(path):
+		return
+	if ResourceLoader.load_threaded_request(path) == OK:
+		_loading[path] = true
+
+
+## Whether a player model is loaded and kept (preload_character finished).
+func has_character(model: String) -> bool:
+	return _held_models.has(LIB + "characters/%s.glb" % model)
+
+
+## Keeps the models the loader thread has finished.
+func poll_preloads() -> void:
+	for path in _loading.keys():
+		if ResourceLoader.load_threaded_get_status(path) != ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			_model(path)
+
+
 func _model(path: String) -> PackedScene:
 	var s: PackedScene = _held_models.get(path)
+	if s == null and _loading.has(path):
+		_loading.erase(path)
+		s = ResourceLoader.load_threaded_get(path) as PackedScene   # waits if it's still loading
+		if s and _model_holders > 0:
+			_held_models[path] = s
 	if s == null:
 		s = load(path)
 		if s and _model_holders > 0:

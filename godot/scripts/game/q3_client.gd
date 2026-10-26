@@ -75,6 +75,8 @@ var _now := 0.0                    ## render time (ms), cg.time
 var _anim_time := -1.0             ## the match time the bodies have animated to (ms; -1: not yet)
 var _anim_step := 0.0              ## how far they animate this frame (ms)
 var _local_ps: Dictionary = {}
+var _preload_t := -1000000         ## server time of the last look through the players for models to preload
+var _warmed: Dictionary = {}       ## "model/skin/bright color" -> true: a body built once (_preload_models)
 var _smoke: Q3Puffs                ## smokePuff: rocket and grenade trails
 var _shotgun_smoke: Q3Puffs
 var _bubbles: Q3Puffs              ## CG_BubbleTrail: rockets, grenades, bullets and pellets under water
@@ -142,6 +144,9 @@ func apply_snapshot(snap: Dictionary, local_ps: Dictionary) -> void:
 		return
 	_time = int(snap["serverTime"])
 	_local_ps = local_ps   # cg.snap->ps: the events below see this snapshot's playerState, not last frame's
+	if absi(_time - _preload_t) >= 500:
+		_preload_t = _time
+		_preload_models()
 	var present := {}
 	for es in snap["entities"]:
 		var num := int(es["number"])
@@ -676,6 +681,32 @@ func _look(cl: int) -> PackedStringArray:
 	return PackedStringArray([m, s])
 
 
+## CG_LoadClientInfo's early load: every connected player's model starts loading on a loader thread
+## (twice a second), so the first sight of them doesn't read a glTF mid-fight. Once a model is
+## in, a body is built out of sight in the player's skin and bright color and freed:
+## its bright materials stay (Q3.character_material) with their shaders compiled, which the first
+## body of a model otherwise did mid-fight (about 100 ms, 2026-10-25).
+func _preload_models() -> void:
+	Q3.poll_preloads()
+	for cl in E.MAX_CLIENTS:
+		if feed.configstring(E.CS_PLAYERS + cl) == "" or cl == local_client:
+			continue
+		var look := _look(cl)
+		Q3.preload_character(look[0])
+		var key := "%s/%s/%s" % [look[0], look[1], _bright_color(cl).to_html()]
+		if _warmed.has(key) or not Q3.has_character(look[0]):
+			continue
+		_warmed[key] = true
+		var ch := _body_for(cl)
+		add_child(ch)
+		ch.global_position = Vector3(0.0, -1000.0, 0.0)   # far below any map
+		_bright(ch, cl)
+		if ch.body:
+			for mi in ch.body.find_children("*", "MeshInstance3D", true, false):
+				(mi as MeshInstance3D).material_overlay = _armor_shell()
+		ch.free()
+
+
 ## A new body for a player, in their model and skin (not yet in the tree).
 func _body_for(cl: int) -> Q3Character:
 	var look := _look(cl)
@@ -730,10 +761,14 @@ func _teammate(cl: int) -> bool:
 
 ## Gameplay > Bright skins: enemies in Enemy color, teammates in Team color.
 func _bright(ch: Q3Character, cl: int) -> void:
+	ch.bright_skin(_bright_color(cl))
+
+
+## A player's bright skin color; alpha 0 when bright skins are off.
+func _bright_color(cl: int) -> Color:
 	if Settings.get_value("gameplay/bright_skins"):
-		ch.bright_skin(Settings.get_value("gameplay/team_color" if _teammate(cl) else "gameplay/enemy_color"))
-	else:
-		ch.bright_skin(Color(0, 0, 0, 0))
+		return Settings.get_value("gameplay/team_color" if _teammate(cl) else "gameplay/enemy_color")
+	return Color(0, 0, 0, 0)
 
 
 ## Player look settings changed (from the pause menu): redo the bodies standing in the match.
@@ -1902,21 +1937,42 @@ func armor_hit(target: int, armor: int) -> void:
 		return
 	if int(e.get("es", {}).get("powerups", 0)) & (1 << E.PW_INVIS):
 		return   # an invisible body shows only the invisibility shader (CG_AddRefEntityWithPowerups)
-	var mat: ShaderMaterial = e.get("armor_mat")
-	if mat == null:
-		mat = ShaderMaterial.new()
-		mat.shader = ARMOR_SHELL
-		e["armor_mat"] = mat
+	var meshes: Array = e.get("armor_mat", [])
+	if meshes.is_empty():
 		# the body only: not a carried flag hanging off the character
 		for mi in ch.body.find_children("*", "MeshInstance3D", true, false):
 			if not String(mi.get_path()).contains("Attach_") and not Q3FX.is_shell(mi):
-				if (mi as MeshInstance3D).material_overlay and mat.next_pass == null:
-					mat.next_pass = (mi as MeshInstance3D).material_overlay   # a replay's outline stays, after the shell
-				(mi as MeshInstance3D).material_overlay = mat
-	mat.set_shader_parameter("color", ARMOR_LOW_COLOR if armor < ARMOR_LOW else ARMOR_COLOR)
-	mat.set_shader_parameter("flash", 1.0)
-	var tw := create_tween()
-	tw.tween_method(func(v: float): mat.set_shader_parameter("flash", v), 1.0, 0.0, 0.4)
+				var m := mi as MeshInstance3D
+				if m.material_overlay:   # a replay's outline stays, after the shell: a material of its own
+					var own := ShaderMaterial.new()
+					own.shader = ARMOR_SHELL
+					own.next_pass = m.material_overlay
+					m.material_overlay = own
+				else:
+					m.material_overlay = _armor_shell()
+				meshes.append(m)
+		e["armor_mat"] = meshes
+	var color := ARMOR_LOW_COLOR if armor < ARMOR_LOW else ARMOR_COLOR
+	var flash := func(v: float) -> void:
+		for m in meshes:
+			if is_instance_valid(m):
+				(m as MeshInstance3D).set_instance_shader_parameter("flash", v)
+	for m in meshes:
+		if is_instance_valid(m):
+			(m as MeshInstance3D).set_instance_shader_parameter("color", color)
+	flash.call(1.0)
+	create_tween().tween_method(flash, 1.0, 0.0, 0.4)
+
+
+static var _shell: ShaderMaterial
+
+
+## The armor shell every body shares (its color and flash are instance uniforms).
+static func _armor_shell() -> ShaderMaterial:
+	if _shell == null:
+		_shell = ShaderMaterial.new()
+		_shell.shader = ARMOR_SHELL
+	return _shell
 
 
 func _head_of(target: int) -> Vector3:

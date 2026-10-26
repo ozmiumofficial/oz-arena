@@ -15,6 +15,13 @@ const SHAFT_LIGHT := 0.01       ## the shaft light's own energy on surfaces: nex
 const SHAFT_GAIN := 1.5         ## shaft brightness against the baked sun's energy
 const FOG_LIGHT_CAP := 6.0      ## the most any one map light adds to the mist (typical lamps: 0.2 to 10)
 const FOG_LIGHT_SCALE := 0.6    ## the mist under full strength (Ozmium: "tone the fog down a little", twice: 0.8, then 0.6)
+## At run time the lamps light only bodies, items, guns and the mist (the world has them baked), yet
+## every world pixel walks every lamp whose range covers it: q3dm6's 596 lamps, reaching to where
+## they fade to 1/255, were half its GPU frame (5.8 ms at 1080p, 2026-10-25, tests/gpu_bench.tscn).
+## They reach half as far (4/255 at the edge; bodies look the same), 4.0 ms. The mist lost the faint
+## sum of their far tails, so each lamp's share of it is raised to make that up.
+const LAMP_RANGE := 0.5
+const LAMP_FOG_GAIN := 2.5
 
 @export var map := ""
 var portals: Array[Q3Portal] = []   ## its mirrors and portal views
@@ -38,7 +45,12 @@ func _ready() -> void:
 	for l in (lights.find_children("*", "Light3D", true, false) if lights else []):
 		var light := l as Light3D
 		light.light_volumetric_fog_energy = FOG_LIGHT_SCALE * minf(1.0, FOG_LIGHT_CAP / maxf(light.light_energy, 0.001))
+		if light is OmniLight3D:
+			(light as OmniLight3D).omni_range *= LAMP_RANGE
+		elif light is SpotLight3D:
+			(light as SpotLight3D).spot_range *= LAMP_RANGE
 		if not light is DirectionalLight3D:
+			light.light_volumetric_fog_energy *= LAMP_FOG_GAIN
 			_lamps.append(light)
 	_add_shaft_light()
 	Settings.environment_changed.connect(_apply_settings)

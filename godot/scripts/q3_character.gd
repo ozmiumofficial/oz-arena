@@ -536,6 +536,10 @@ func _surfaces() -> Array[MeshInstance3D]:
 	return out
 
 
+const BRIGHT_ALBEDO := 0.5   ## a bright skin's lit color, of the setting's
+const BRIGHT_GLOW := 0.15    ## and its steady glow, so it reads in dark corners
+
+
 ## Gameplay > Bright skins: every surface in one flat bright color, still lit so the shape reads
 ## (Quake Live's brightskins); a color with alpha 0 puts the model's own materials (in its skin)
 ## back. Cut-out surfaces keep their alpha; additive ones (Bones' x-ray) stay as they are.
@@ -553,20 +557,26 @@ func bright_skin(color: Color) -> void:
 			if src.blend_mode != BaseMaterial3D.BLEND_MODE_MIX or src.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA:
 				m.set_surface_override_material(i, own)
 				continue
-			var b := StandardMaterial3D.new()
-			b.albedo_color = color
-			if src.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR:
-				b.albedo_texture = src.albedo_texture
-				b.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-				b.alpha_scissor_threshold = src.alpha_scissor_threshold
-			b.normal_enabled = src.normal_enabled
-			b.normal_texture = src.normal_texture
-			b.roughness = 0.7
-			b.emission_enabled = true
-			b.emission = color
-			b.emission_energy_multiplier = 0.35
-			b.cull_mode = src.cull_mode
-			m.set_surface_override_material(i, b)
+			var key := "bright:%s/%s/%s/%d/%s" % [model, skin, m.name, i, color.to_html()]
+			m.set_surface_override_material(i, Q3.character_material(key, func() -> Material:
+				# a lit base at half the color with a dim steady glow: at full color the map's lights took it
+				# far past 1, and with 0.35 emission it tone-mapped to white and bloomed into a halo
+				# (Ozmium, 2026-10-25: "some angelic extreme glow")
+				var b := StandardMaterial3D.new()
+				b.albedo_color = Color(color.r * BRIGHT_ALBEDO, color.g * BRIGHT_ALBEDO, color.b * BRIGHT_ALBEDO)
+				if src.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR:
+					b.albedo_texture = src.albedo_texture
+					b.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+					b.alpha_scissor_threshold = src.alpha_scissor_threshold
+				b.normal_enabled = src.normal_enabled
+				b.normal_texture = src.normal_texture
+				b.roughness = 1.0
+				b.metallic_specular = 0.0   # no highlights to bloom
+				b.emission_enabled = true
+				b.emission = color
+				b.emission_energy_multiplier = BRIGHT_GLOW
+				b.cull_mode = src.cull_mode
+				return b))
 
 
 ## A corpse burning away (fragged bodies, when they're done lying there): every surface becomes

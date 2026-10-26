@@ -125,7 +125,7 @@ export default function SinglePlayerPage({ back }: PageProps) {
               </div>
             ))}
           </div>
-          <p className="mt-4 text-[0.85rem] text-faint">Wins and medals are recorded by the Gameplay scene, which is still coming.</p>
+          <p className="mt-4 text-[0.85rem] text-faint">Medals add up over every campaign match, won or lost. Each arena keeps the highest skill you beat it on.</p>
           <div className="mt-4">
             <Button small onClick={() => setResetting(true)}>Reset campaign</Button>
           </div>

@@ -501,8 +501,8 @@
    "assist": 0.0,
    "captures": 0.0,
    "defend": 0.0,
-   "excellent": 23.0,
-   "frags": 110.0,
+   "excellent": 25.0,
+   "frags": 130.0,
    "gauntlet": 0.0,
    "impressive": 7.0,
    "perfect": 2.0
@@ -795,7 +795,7 @@
       "levelshot": "levelshots/q3dm10.jpg",
       "map": "q3dm10",
       "name": "The Nameless Place",
-      "won": 0
+      "won": 3
      },
      {
       "bots": [
@@ -820,7 +820,7 @@
       "levelshot": "levelshots/q3dm11.jpg",
       "map": "q3dm11",
       "name": "Deva Station",
-      "won": 0
+      "won": 3
      },
      {
       "bots": [
@@ -9332,6 +9332,153 @@
    "wired": true
   },
   {
+   "default": "glow",
+   "group": "Weapon effects",
+   "key": "graphics/rail_style",
+   "label": "Rail trail",
+   "options": [
+    [
+     "classic",
+     "Classic spiral"
+    ],
+    [
+     "glow",
+     "Glow spiral"
+    ],
+    [
+     "ql",
+     "Quake Live beam"
+    ],
+    [
+     "core",
+     "Core only"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "How the railgun's shot is drawn. Classic is Quake 3's core and spiral; Glow adds a bright halo that lingers and spreads; Quake Live is one thick glowing beam; Core is the beam alone.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": 1.0,
+   "group": "Weapon effects",
+   "key": "graphics/rail_width",
+   "label": "Rail width",
+   "max": 3.0,
+   "min": 0.5,
+   "restart": false,
+   "step": 0.05,
+   "tab": "graphics",
+   "tip": "Thickness of the rail's core and halo.",
+   "type": "float",
+   "unit": "x",
+   "wired": true
+  },
+  {
+   "default": "glow",
+   "group": "Weapon effects",
+   "key": "graphics/lightning_style",
+   "label": "Lightning beam",
+   "options": [
+    [
+     "classic",
+     "Classic"
+    ],
+    [
+     "glow",
+     "Glow"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Classic is Quake 3's bolt. Glow wraps it in a soft halo and lights up where it hits.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": 1.0,
+   "group": "Weapon effects",
+   "key": "graphics/lightning_width",
+   "label": "Lightning width",
+   "max": 3.0,
+   "min": 0.25,
+   "restart": false,
+   "step": 0.05,
+   "tab": "graphics",
+   "tip": "Thickness of the lightning gun's beam.",
+   "type": "float",
+   "unit": "x",
+   "wired": true
+  },
+  {
+   "default": "enhanced",
+   "group": "Weapon effects",
+   "key": "graphics/missile_trails",
+   "label": "Missile trails",
+   "options": [
+    [
+     "classic",
+     "Classic"
+    ],
+    [
+     "enhanced",
+     "Enhanced"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Classic is Quake 3's smoke. Enhanced adds a burning core to rockets and grenades and glowing trails to plasma and the BFG.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "enhanced",
+   "group": "Weapon effects",
+   "key": "graphics/explosions",
+   "label": "Explosions",
+   "options": [
+    [
+     "classic",
+     "Classic"
+    ],
+    [
+     "enhanced",
+     "Enhanced"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Classic is Quake 3's flash and mark. Enhanced adds flying embers and lingering smoke to blasts, and a glow to energy hits.",
+   "type": "enum",
+   "wired": true
+  },
+  {
+   "default": "classic",
+   "group": "Weapon effects",
+   "key": "graphics/blood",
+   "label": "Blood",
+   "options": [
+    [
+     "off",
+     "Off"
+    ],
+    [
+     "classic",
+     "Classic"
+    ],
+    [
+     "heavy",
+     "Heavy"
+    ]
+   ],
+   "restart": false,
+   "tab": "graphics",
+   "tip": "Off removes blood puffs, trails and stains. Heavy adds sprays of droplets.",
+   "type": "enum",
+   "wired": true
+  },
+  {
    "default": 100,
    "group": "Volume",
    "key": "audio/vol_master",
@@ -12794,15 +12941,22 @@
   "graphics/anisotropy": 16,
   "graphics/antialiasing": "msaa4",
   "graphics/ao": "medium",
+  "graphics/blood": "classic",
   "graphics/bloom": true,
   "graphics/decals": true,
   "graphics/detail": "high",
   "graphics/effect_intensity": 1.0,
+  "graphics/explosions": "enhanced",
   "graphics/gi": "off",
   "graphics/gibs": true,
   "graphics/heat_shimmer": true,
+  "graphics/lightning_style": "glow",
+  "graphics/lightning_width": 1.0,
+  "graphics/missile_trails": "enhanced",
   "graphics/particles": "high",
   "graphics/preset": "high",
+  "graphics/rail_style": "glow",
+  "graphics/rail_width": 1.0,
   "graphics/reflections": true,
   "graphics/shadows": "high",
   "graphics/texture_quality": "high",

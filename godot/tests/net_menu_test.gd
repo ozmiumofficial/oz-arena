@@ -32,7 +32,7 @@ func _ready() -> void:
 		if a.begins_with("server="):
 			server = a.substr(7)
 	_was_server = String(Settings.get_value("network/online_server"))
-	Settings.set_value("network/online_server", server)
+	Settings.set_for_run("network/online_server", server)
 	Session.dry_run = true   # joining must not change the scene
 	Online.connect_now()
 	var err := Q3Host.start()

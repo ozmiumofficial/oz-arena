@@ -39,7 +39,7 @@ func _ready() -> void:
 					v = int(p[1])
 				elif cur is float:
 					v = float(p[1])
-				Settings.set_value(p[0], v, false)
+				Settings.set_for_run(p[0], v)   # never saved: a preset given here once overwrote the player's
 	var s := Session.new_setup("ffa", map)
 	s.bots = []
 	var names := ["Sarge", "Xaero", "Crash", "Visor", "Grunt", "Hunter", "Bones", "Orbb"]

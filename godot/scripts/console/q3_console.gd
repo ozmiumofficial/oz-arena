@@ -48,6 +48,7 @@ var _draft := ""
 var _full := false
 var _prev_mouse := Input.MOUSE_MODE_VISIBLE
 var _slide: Tween
+var _hid_pages: Array = []                ## the web layers open() hid, shown again by close()
 var _partial := ""                      ## engine output that hasn't had its newline yet
 var _partial_age := 0.0
 var _autoexec_done := false
@@ -178,6 +179,13 @@ func open(full := false) -> void:
 	_build()
 	_full = full
 	open_now = true
+	# the menus' web view is a native window over everything Godot draws: it steps aside while the
+	# console is open (the main menu's, or the pause menu when it's up), and takes the keyboard back after
+	_hid_pages.clear()
+	for layer in get_tree().get_nodes_in_group(Q3WebLayer.GROUP):
+		if (layer as Q3WebLayer).shown:
+			(layer as Q3WebLayer).set_shown(false)
+			_hid_pages.append(layer)
 	_prev_mouse = Input.mouse_mode
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	visible = true
@@ -200,6 +208,10 @@ func close() -> void:
 		return
 	open_now = false
 	_edit.release_focus()
+	for layer in _hid_pages:
+		if is_instance_valid(layer):
+			(layer as Q3WebLayer).set_shown(true)
+	_hid_pages.clear()
 	if Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
 		Input.mouse_mode = _prev_mouse
 	if _slide:
@@ -210,8 +222,24 @@ func close() -> void:
 	toggled.emit(false)
 
 
+## The console key, also as the menus' web view forwards it: key code only, no physical key, so the
+## bind (a physical key) never matched it and ` did nothing in the main menu (2026-10-25).
+func _console_key(event: InputEvent) -> bool:
+	if not InputMap.has_action("q3_console") or event is InputEventMouseMotion:
+		return false
+	if event.is_action_pressed("q3_console"):
+		return true
+	var k := event as InputEventKey
+	if k == null or not k.pressed or k.echo or k.physical_keycode != KEY_NONE or k.keycode == KEY_NONE:
+		return false
+	for b in InputMap.action_get_events("q3_console"):
+		if b is InputEventKey and k.keycode in [(b as InputEventKey).physical_keycode, (b as InputEventKey).keycode]:
+			return true
+	return false
+
+
 func _input(event: InputEvent) -> void:
-	if InputMap.has_action("q3_console") and not event is InputEventMouseMotion and event.is_action_pressed("q3_console"):
+	if _console_key(event):
 		toggle(Input.is_key_pressed(KEY_SHIFT))
 		get_viewport().set_input_as_handled()
 	elif open_now and event.is_action_pressed("ui_cancel") and not event is InputEventMouseButton:

@@ -34,7 +34,7 @@ func _ready() -> void:
 		if a.begins_with("seconds="):
 			seconds = float(a.substr(8))
 	was_server = String(Settings.get_value("network/online_server"))
-	Settings.set_value("network/online_server", server)
+	Settings.set_for_run("network/online_server", server)
 	Online.connect_now()
 	joiner_client = Q3OnlineClient.new("user://test_net/join2.key")
 	joiner_client.net.connect(func(m): if m.get("type") == "net_matches": matches = m["matches"])

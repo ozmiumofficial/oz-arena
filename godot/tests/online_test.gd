@@ -69,7 +69,7 @@ func _run() -> void:
 	_check(await _until(func(): return chats.size() == 1), "B hears party chat")
 
 	# the autoload and the menu bridge, against the same hub
-	Settings.set_value("network/online_server", server)
+	Settings.set_for_run("network/online_server", server)
 	_check(await _until(func(): return Online.client.status == "online" and not Online.client.state.is_empty()), "Online autoload connected (%s)" % Online.client.reason)
 	var bridge := Q3MenuBridge.new()
 	var posts: Array = []

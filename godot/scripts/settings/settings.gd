@@ -17,6 +17,8 @@ var _by_key: Dictionary = {}
 var _values: Dictionary = {}
 var _save_timer: Timer
 var _in_preset := false
+var _run_only: Dictionary = {}   ## key -> the value save() writes while set_for_run's value applies
+var _for_run := false            ## inside set_for_run
 var _headless := false
 var _colorblind: CanvasLayer
 
@@ -66,6 +68,8 @@ func set_value(key: String, value: Variant, save_soon := true) -> void:
 	if not _by_key.has(key):
 		push_warning("Settings: unknown key " + key)
 		return
+	if not _for_run:
+		_run_only.erase(key)
 	value = _coerce(_by_key[key], value)
 	if _same(_values[key], value):
 		return
@@ -76,6 +80,21 @@ func set_value(key: String, value: Variant, save_soon := true) -> void:
 	changed.emit(key, value)
 	if save_soon:
 		_save_timer.start()
+
+
+## A value for this run only (tests): it applies like any other, but save() keeps writing the value
+## from before, so a test that dies before restoring can't leave it behind. Tests pointed
+## network/online_server at a local hub and, cut off, left the player offline (2026-10-25).
+func set_for_run(key: String, value: Variant) -> void:
+	if not _by_key.has(key):
+		push_warning("Settings: unknown key " + key)
+		return
+	var saved: Variant = _run_only.get(key, _copy(_values[key]))
+	var outer := _for_run
+	_for_run = true   # a preset's own settings follow it for this run only
+	set_value(key, value, false)
+	_for_run = outer
+	_run_only[key] = saved
 
 
 func reset(key: String) -> void:
@@ -140,7 +159,7 @@ func options(key: String) -> Array:
 func save(to := "") -> void:
 	var cf := ConfigFile.new()
 	for k in _values:
-		cf.set_value(k.get_slice("/", 0), k.get_slice("/", 1), _values[k])
+		cf.set_value(k.get_slice("/", 0), k.get_slice("/", 1), _run_only.get(k, _values[k]))
 	cf.save(to if to != "" else path)
 
 
@@ -353,7 +372,10 @@ func _apply(key: String, v: Variant) -> void:
 				_in_preset = true
 				var i: int = Q3SettingsSchema.PRESET_NAMES.find(v)
 				for k in Q3SettingsSchema.PRESETS:
-					set_value(k, Q3SettingsSchema.PRESETS[k][i])
+					if _for_run:
+						set_for_run(k, Q3SettingsSchema.PRESETS[k][i])
+					else:
+						set_value(k, Q3SettingsSchema.PRESETS[k][i])
 				_in_preset = false
 		"graphics/shadows":
 			var size: int = {"off": 512, "low": 1024, "medium": 2048, "high": 4096, "ultra": 8192}[v]

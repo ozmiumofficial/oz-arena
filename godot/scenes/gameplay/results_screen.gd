@@ -372,6 +372,16 @@ func _label(text: String, size: int, color: Color) -> Label:
 	return l
 
 
+## Continue, from outside (Gameplay's Escape): the same way out as Enter, so a campaign tier's movie
+## still plays.
+func continue_now() -> void:
+	if _done:
+		return
+	_done = true
+	UiSound.play("move")
+	finished.emit()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _done or _root == null:
 		return
@@ -394,6 +404,4 @@ func _unhandled_input(event: InputEvent) -> void:
 			for t in get_tree().get_processed_tweens():
 				t.custom_step(10.0)
 			return
-		_done = true
-		UiSound.play("move")
-		finished.emit()
+		continue_now()

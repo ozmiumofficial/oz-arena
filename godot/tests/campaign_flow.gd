@@ -138,8 +138,15 @@ func _finish() -> void:
 		var won_recorded := Session.campaign.is_won(_map)
 		print("standings: ", rows.map(func(r): return "%s %d" % [r["name"], r["score"]]))
 		_check("result recorded (won %s, recorded %s)" % [me_first, won_recorded], won_recorded == me_first or not me_first)
-		_game._results.finished.emit()
+		# Escape, as a player leaves the results: it's Continue (it used to leave and skip the tier movie)
+		var esc := InputEventAction.new()
+		esc.action = &"ui_cancel"
+		esc.pressed = true
+		Input.parse_input_event(esc)
+		await get_tree().process_frame
 		_check("Continue leaves for %s" % Session.last_request.get_file(), Session.last_request in [Session.MAIN_MENU, Session.CINEMATIC])
+		_check("the menu opens on the campaign page (%s)" % Session.menu_page, Session.menu_page == "campaign")
+		Session.menu_page = ""
 		if me_first:
 			_check("winning Training opens tier 1 and plays its movie", Session.campaign.tier_open(1) and Session.last_request == Session.CINEMATIC)
 	for p in BACKUP:

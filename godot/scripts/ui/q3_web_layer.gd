@@ -11,6 +11,7 @@ extends Node
 ## Headless runs and builds without godot_wry get no web view (`web` stays null); tests drive the
 ## bridge directly.
 
+const GROUP := &"web_layers"   ## every live web layer (Q3Console hides the shown ones while it's open)
 const WEBUI := "res://webui/index.html"
 const WEB_ORIGIN := "http://res.webui/"
 ## The page's images, sounds and fonts as plain files, beside an exported game's exe: Godot ships
@@ -43,7 +44,7 @@ static func _mount_assets() -> void:
 ## The owner connects bridge.post to post() (or to its own handler that calls it).
 func _init(b: Q3MenuBridge) -> void:
 	bridge = b
-	add_to_group("web_layers")
+	add_to_group(GROUP)
 
 
 ## Creates the web view (call once the node is in the tree). Returns false when there is none.

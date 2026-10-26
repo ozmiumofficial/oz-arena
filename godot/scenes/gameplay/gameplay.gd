@@ -427,7 +427,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			pause_layer.post({"type": "nav", "dir": "back"})
 			pause_layer.set_shown(true)
 			return
-		if _error != "" or _ended:
+		if _ended and _error == "" and _results and is_instance_valid(_results):
+			# Escape on the results is Continue: leaving from here skipped a campaign tier's movie
+			_results.continue_now()
+		elif _error != "" or _ended:
 			_leave()
 		else:
 			_set_paused(not _paused)
@@ -1515,15 +1518,23 @@ func _end_match(ps: Dictionary) -> void:
 	_results.taunt_requested.connect(_send_taunt)
 	_results.watch_requested.connect(func():
 		_stop_server()
-		Session.watch_replay(replay_path, 0, ""))
+		Session.watch_replay(replay_path, 0, _menu_after()))
 	_results.finished.connect(func():
 		_stop_server()
+		Session.menu_page = _menu_after()
 		if movie != "" and Settings.get_value("gameplay/tier_movies"):
 			Session.play_cinematics(PackedStringArray([movie]), Session.MAIN_MENU)
 		elif setup.source == "editor":
 			Session.back_to_editor()
 		else:
 			Session.to_main_menu())
+
+
+## The menu page a finished match goes back to: a campaign arena to the campaign's tier screen, a
+## training session to Training (as q3_ui's postgame went back to the level select), anything
+## else to the main page.
+func _menu_after() -> String:
+	return {"campaign": "campaign", "training": "training"}.get(setup.source if setup else "", "")
 
 
 func _select_weapon(w: int) -> void:
@@ -1833,6 +1844,7 @@ func _leave() -> void:
 	elif replay_feed:
 		Session.leave_replay()
 	else:
+		Session.menu_page = _menu_after()   # a campaign arena left early goes back to the campaign too
 		Session.to_main_menu()
 
 
@@ -2498,9 +2510,10 @@ func _end_as_spectator(rows: Array) -> void:
 	_results.taunt_requested.connect(_send_taunt)
 	_results.watch_requested.connect(func():
 		_stop_server()
-		Session.watch_replay(replay_path, 0, ""))
+		Session.watch_replay(replay_path, 0, _menu_after()))
 	_results.finished.connect(func():
 		_stop_server()
+		Session.menu_page = _menu_after()
 		if setup.source == "editor":
 			Session.back_to_editor()
 		else:

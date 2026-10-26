@@ -51,7 +51,7 @@ func _ready() -> void:
 	Settings.set_value("network/direct_downloads", direct, false)
 	if role == "host":
 		was_server = String(Settings.get_value("network/online_server"))
-		Settings.set_value("network/online_server", server)
+		Settings.set_for_run("network/online_server", server)
 		Online.connect_now()
 	else:
 		Q3MapPacks.dir_override = maps_dir

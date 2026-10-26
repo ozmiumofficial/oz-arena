@@ -68,7 +68,7 @@ func _ready() -> void:
 			"snaps": snaps = int(kv[1])
 			"interp": interp = int(kv[1])
 	_was_server = String(Settings.get_value("network/online_server"))
-	Settings.set_value("network/online_server", server)
+	Settings.set_for_run("network/online_server", server)
 	if interp >= 0:
 		_was_interp = Settings.get_value("network/interp")
 		Settings.set_value("network/interp", interp)

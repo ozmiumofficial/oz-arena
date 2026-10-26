@@ -39,7 +39,7 @@ func _ready() -> void:
 		_finish("start: " + err)
 		return
 	_was_server = String(Settings.get_value("network/online_server"))
-	Settings.set_value("network/online_server", server)
+	Settings.set_for_run("network/online_server", server)
 	Settings.save()
 	DirAccess.make_dir_recursive_absolute(DIR)
 	for f in ["status.json", "stop", "commands.txt"]:

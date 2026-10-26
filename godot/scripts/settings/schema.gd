@@ -13,7 +13,9 @@ const TABS := [["video", "Video"], ["graphics", "Graphics"], ["audio", "Audio"],
 
 ## Graphics presets: setting -> value at [low, medium, high, ultra, classic]. Classic is Quake 3's look: no screen-space effects, bloom, fog volumes or heat shimmer.
 const PRESETS := {
-	"graphics/shadows": ["low", "medium", "high", "ultra", "medium"],
+	# the Ultra preset keeps High shadows: Ultra's live shadow for every map lamp took q3dm6 from 172 to 66 fps
+	# (2026-10-25); it stays a choice of its own
+	"graphics/shadows": ["low", "medium", "high", "high", "medium"],
 	"graphics/gi": ["off", "off", "off", "sdfgi", "off"],
 	"graphics/reflections": [false, false, true, true, false],
 	"graphics/ao": ["off", "low", "medium", "high", "off"],

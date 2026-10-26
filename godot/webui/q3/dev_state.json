@@ -12850,5 +12850,5 @@
   "video/upscaler": "bilinear",
   "video/vsync": "off"
  },
- "version": "0.4.7-beta"
+ "version": "0.4.8-beta"
 }

@@ -4,7 +4,13 @@
 
 **And (Ozmium, 2026-10-28): the hub for everything id Tech 3.** Oz Arena plays on CPMA, Defrag, OSP and every other mod's servers, and on servers running any of the engines (Quake3e, CNQ3, ioquake3, oDFe, id 1.32), with exactly the mechanics and features those communities have on their own clients. On top of that come one browser, friends, parties, matchmaking, stats and leaderboards for all of it. See "Compatibility" and "The hub".
 
-**Base engine (changed 2026-10-28, decision 10):** the plan was written for ioquake3. It now recommends **Quake3e** as the base, after a live survey of the community servers (see "Compatibility"). Where a phase below says ioquake3, it means the Oz fork of Quake3e unless decision 10 goes the other way. The game and cgame QVMs are built from the same patched game code either way, because QVMs are engine-independent.
+**Base engine (decided 2026-10-28, decision 10): the blend.** Quake3e's core with the best self-contained parts of the other engines plugged in:
+- From Quake3e: the core.
+- From ioquake3: rend2 for the Oz look, and OpenAL for 3D sound.
+- From oDFe: the Defrag tools.
+- From CNQ3: CPMA's extensions, reimplemented.
+
+The table is in "The blended engine" below. The plan was first written for ioquake3; where a phase still says ioquake3, it means this blended Oz engine. The game and cgame QVMs are built from the same patched game code, because QVMs are engine-independent.
 
 **Status:** plan only. Nothing is built yet. Decisions for Ozmium are at the end.
 
@@ -32,18 +38,43 @@ The technical criticism, once the "AI slop" noise is set aside:
 - American spelling. Estimates in hours of Claude working time.
 - Players must own the game: pak0.pk3 checked against id's retail checksum.
 
+## The blended engine (Ozmium, 2026-10-28)
+
+The blend runs one way for a reason:
+- Quake3e's strengths are spread through the core (the mod runtime, memory, file system, networking, frame timing, input, the extension system). Moving them into ioquake3 would mean rebuilding Quake3e.
+- ioquake3's strengths are self-contained modules (renderer, sound backend, packaging) that slot into Quake3e. Quake3e already loads renderers as modules, already carries a copy of rend2, and kept ioquake3's sound file layout.
+
+| Part | Taken from | Why |
+|---|---|---|
+| Core: QVM, frame timing (`com_maxfps`), raw input, networking (protocols 68 and 71), file system, server, DoS protection, raised limits, `video-pipe`, map auto-download, `trap_GetValue` extensions | **Quake3e** | What CPMA, Defrag and OSP players already run, so mechanics and feel match exactly |
+| Defrag tools: clip, trigger and slick surface views, `cl_tc_vis`, map pak folder, download sources, console additions, collision-model changes | **oDFe** | A Quake3e fork, so its commits merge in |
+| CPMA's features: new demo player with rewind, Nuklear menus, extended refEntity and input calls | **CNQ3**, reimplemented from its GPL source | CPMA turns them on when the engine offers them |
+| PBR renderer (`oz` module) | **ioquake3's rend2**, at ioquake3's latest, ported onto Quake3e's renderer interface | rend2 is maintained in ioquake3; Oz follows it instead of keeping Quake3e's old copy alone |
+| Fast and competitive renderers | **Quake3e's** Vulkan and OpenGL | Maximum fps, picmip, vertex light, old GPUs |
+| Sound | **ioquake3's OpenAL** backend (`snd_openal.c`, HRTF through OpenAL Soft) beside **Quake3e's** mixer (`s_useOpenAL`) | Quake3e removed OpenAL. The mixer stays the default for the classic sound, and OpenAL is the 3D option |
+| macOS and Linux | **Quake3e's** SDL backend, packaged the way **ioquake3** does (app bundle, distro-friendly installs) | Closer to ioquake3's Mac and Linux polish |
+| Game code (QVMs) | **id's code via ioquake3's tree, with the q3core patches** | Unchanged; runs on any of these engines |
+
+**Upstream tracking (the rule that keeps it the best):**
+- The Oz fork follows **Quake3e** as its main upstream and merges it regularly, on every Quake3e release and at least monthly.
+- It cherry-picks **ioquake3**'s `code/renderergl2` and `code/client/snd_openal.c` changes as they land, and **oDFe**'s Defrag changes the same way.
+- A script, `engine/tools/upstream_report.py`, lists new upstream commits in those paths since the last sync, so nothing is missed.
+- Oz's own fixes go back as pull requests to whichever project owns the code: renderer fixes to ioquake3, core fixes to Quake3e, Defrag fixes to oDFe.
+- Any other fork (Spearmint, OpenArena's engine, ET: Legacy's renderer work) can contribute a piece the same way, judged one feature at a time. Each piece needs a test in the parity harness or the look test before it's merged.
+
 ## Architecture
 
 ```
 OzArena.exe  (Quake3e fork: client + server, C; Quake3e's QVM, raw input, frame timing, video-pipe)
  ├─ renderers (cl_renderer, loaded as modules, which Quake3e already supports):
- │    oz        rend2 (Quake3e's in-tree opengl2), patched: PBR channel layout, AO, bloom,
+ │    oz        rend2 from ioquake3 (latest, on Quake3e's renderer API), patched: PBR channel layout, AO, bloom,
  │              colorblind filter, skeletal pose API, UI geometry API, external HDR lightmaps
  │    vulkan    Quake3e's, for competitive settings (picmip, vertex light, max fps)
  │    opengl    Quake3e's classic renderer, for old GPUs
  ├─ compat:   the extension sets mods look for through trap_GetValue: Quake3e's (_Q3E),
  │            CNQ3's (CPMA: new demo player, Nuklear UI, ...), oDFe's Defrag tools
- ├─ sound:    OpenAL Soft (HRTF), Ogg Vorbis music; cinematics: RoQ + Theora (added)
+ ├─ sound:    Quake3e's mixer (default) or ioquake3's OpenAL backend with OpenAL Soft HRTF (option);
+ │            Ogg Vorbis music; cinematics: RoQ + Theora (added)
  ├─ oz/ui     native UI: RmlUi 6 (MIT) + FreeType. Menus, pause menu, chat box, scoreboard cards,
  │            results, replay viewer controls, setup gate. Pages are .rml/.rcss in a pk3, logic in C++
  ├─ oz/online hub client (libcurl WebSocket + TLS), identity (RSA, imported from the Godot build),
@@ -76,9 +107,10 @@ OzAgent      optional, for community server operators: signs games.log results (
 ```
 Q3Remaster/
   engine/
-    thirdparty.json        pins: the engine fork, the game code tree (ioq3 + q3core patches, for the
-                           QVMs), RmlUi, FreeType, libjuice (ICE), libcurl (WebSocket, HTTPS),
-                           mbedTLS (identity signing), cJSON, libogg/libtheora
+    thirdparty.json        pins: the engine fork; the upstreams it tracks (Quake3e, ioquake3, oDFe,
+                           CNQ3); the game code tree (ioq3 + q3core patches, for the QVMs);
+                           RmlUi, FreeType, OpenAL Soft, libjuice (ICE), libcurl (WebSocket,
+                           HTTPS), mbedTLS (identity signing), cJSON, libogg/libtheora
     quake3e/               the fork (ozmiumofficial GitHub fork of ec-/Quake3e, branch "oz"),
                            fetched at a pinned commit like tools/q3core does today
     src/oz/                new engine code: ui/, online/, replay/, platform/, bridge/
@@ -245,15 +277,22 @@ What makes Oz Arena the place people go for all of it:
 
 Each phase ends with automated checks and, where you can see it, captures next to the Godot build's.
 
-### P0. Foundation (2 h)
+### P0. Foundation and the blend (3.5 h)
 
 1. Fork ec-/Quake3e on GitHub as `ozmiumofficial/quake3e` (branch `oz`), pinned to a current commit.
 2. **Game code:** the QVMs are built from the patched ioquake3 game tree q3core uses today (`87a99d18` with patches 0001-0005 and 0008-0012), using ioquake3's q3lcc and q3asm. The engine-only patches move into the fork:
    - 0004 (guarded errors) and 0011 (maps path) as engine patches;
    - 0006 and 0007 (Godot transports) are replaced by the engine's own UDP and P8's `NA_ICE`.
 3. `engine/build_engine.py`: fetch the pins, run Quake3e's CMake with `-G Ninja` under `vcvars64`, with `USE_SDL ON` (game controllers on every platform), `USE_VULKAN ON` and `USE_RENDERER_DLOPEN ON`. Stage `build/engine/` as `OzArena.exe`, the renderer modules (`oz`, `vulkan`, `opengl`), and `oz/` with `pak_oz_code.pk3` (the QVMs).
-4. Standalone identity: `com_basegame baseq3` reads the player's pak0 from their install; `fs_game oz` holds everything Oz. Window title, icon (`godot/icon.ico`), product name "Oz Arena". No "Quake" in the window title or console banner.
-5. Checks: boots to the console; `devmap q3dm17` with 3 bots runs; a 60-second headless bot match matches q3core's frag and item log on the same seed (proves the game code is identical). `\version` and serverinfo report "Oz Arena" plus the Quake3e base, so servers and players can tell what's connecting.
+4. **The blend's two ioquake3 pieces:**
+   - **rend2:** replace Quake3e's old `code/renderer2` with ioquake3's current `code/renderergl2`, adapted to Quake3e's renderer interface. Start from the adaptations Quake3e already made to its copy (refexport and refimport differences, the FBO and gamma hooks, merged lightmaps). Keep a short `RENDERER2_SYNC.md` listing each adaptation, so later ioquake3 changes cherry-pick cleanly.
+   - **OpenAL:** bring back ioquake3's `snd_openal.c` and its `qal` loader behind Quake3e's sound dispatch, with `s_useOpenAL 0|1`, OpenAL Soft as the bundled library, and HRTF selectable. Quake3e's mixer stays the default.
+   - Write `engine/tools/upstream_report.py` (the upstream-tracking rule) and run it once to record the sync points.
+5. Standalone identity: `com_basegame baseq3` reads the player's pak0 from their install; `fs_game oz` holds everything Oz. Window title, icon (`godot/icon.ico`), product name "Oz Arena". No "Quake" in the window title or console banner.
+6. Checks:
+   - All three renderers (`oz`, `vulkan`, `opengl`) load q3dm17 and match the vanilla screenshot's layout.
+   - Sound plays on both backends, and an HRTF test tone pans correctly.
+   - The engine boots to the console; `devmap q3dm17` with 3 bots runs; a 60-second headless bot match matches q3core's frag and item log on the same seed (proves the game code is identical). `\version` and serverinfo report "Oz Arena" plus the Quake3e base, so servers and players can tell what's connecting.
 
 ### PC. Compatibility layer (4.5 h)
 
@@ -279,7 +318,7 @@ Right after P0, because it shapes the engine every later phase builds on.
 
 The thread's loudest complaint, so it comes first and has a hard acceptance test.
 
-**Renderer base:** rend2 is already in Quake3e's tree as `renderer2`, where its README calls it unmaintained and slow on non-NVIDIA GPUs. It becomes the `oz` renderer module and Oz maintains it. Budget includes an AMD and Intel pass, measured on any GPU available or a CI GPU runner. Quake3e's Vulkan and OpenGL renderers stay selectable for players who want the competitive look or maximum fps.
+**Renderer base:** ioquake3's current rend2, brought in at P0 as the `oz` renderer module and kept in sync with ioquake3. Quake3e's README calls its own old copy slow on non-NVIDIA GPUs, so this phase includes an AMD and Intel pass, measured on any GPU available or a CI GPU runner. Speed fixes go upstream to ioquake3. Quake3e's Vulkan and OpenGL renderers stay selectable for players who want the competitive look or maximum fps.
 
 1. **Materials.** `tools/make_pk3s.py` writes the world library as rend2 shaders:
    - Base color as BC7 DDS (`tr_image_dds.c` loads it). Normal maps as `normalMap` (BC5).
@@ -320,7 +359,7 @@ The thread's loudest complaint, so it comes first and has a hard acceptance test
 ### P3. Effects, sound, cinematics (2.5 h)
 
 1. Port `fx.json` and the 30 effect textures to cgame. Rail rings and spiral, lightning beam, missile trails with a burning core, explosions with embers and smoke, impacts, blood. All on cgame's original timings (`cg_weapons.c`, `cg_effects.c`), with `cg_fxStyle 0|1` for classic or remade. Plasma keeps its own projectile sprite and light so it reads as a projectile.
-2. Sounds: OpenAL Soft with HRTF as an option. Hit sounds pitched by damage (cgame). Music: Ogg playlists for the menu and matches.
+2. Sounds: Quake3e's mixer by default, OpenAL Soft with HRTF as the option (brought back in P0). Hit sounds pitched by damage (cgame). Music: Ogg playlists for the menu and matches.
 3. Cinematics: add a Theora decoder (libtheora) behind `cl_cin.c`'s API so the 10 upscaled `.ogv` files play at launch, from the menu and after campaign tiers. RoQ stays for mods.
 4. Checks: an effects capture sheet per weapon in both styles; `cinematic intro.ogv` plays to the end at the right length.
 
@@ -605,18 +644,19 @@ Check: a scripted run on a test course gives the same time as the Godot build's 
 
 | Milestone | Phases | Hours | What you get |
 |---|---|---|---|
-| A. Looks right | P0, PC, P1-P3 | 17 | The engine base with every mod's mechanics matched; maps, fighters and effects; capture sheet vs the original and the Godot build |
+| A. Looks right | P0, PC, P1-P3 | 18.5 | The engine base with every mod's mechanics matched; maps, fighters and effects; capture sheet vs the original and the Godot build |
 | B. Offline parity | P4-P6, P10-P12 | 21 | Every menu, HUD, campaign, replays, race, progression, offline |
 | C. Online parity | P7-P9 (with P8b) | 12 | Friends, parties, direct peer-to-peer hosting, community server browser, matchmaking onto any server, stats and leaderboards from every match, ranked, dedicated, Linux/macOS |
 | D. Everything | P13-P15 | 11.5 | Map editor (companion, then native), platform, parity pass, release |
 | E. The hub | PH (PG later) | 5 (+2) | One browser, mod library, friends and parties on any server, per-mod stats, leaderboards and matchmaking, Defrag record links, operator tools |
-| **Total** | | **about 67 (69 with PG)** | |
+| **Total** | | **about 68.5 (70.5 with PG)** | |
 
 Order: P0 -> PC -> P1 -> P2 -> P3, then P4 -> P5 and P6 (either order), P10, P11, P12, then P7 -> P8 -> P8b -> PH -> P9, then P13 -> P14 -> P15, then PG. The companion editor (P13 step 1) can ship at any point after P0.
 
 ## Risks
 
-- **rend2's rough edges.** It's less used than the classic renderers; Quake3e's README calls its copy unmaintained and slow on non-NVIDIA GPUs. Budget fixes in P1 and send them upstream. Quake3e's Vulkan renderer is always there as the fast fallback.
+- **rend2's rough edges.** It's less used than the classic renderers, and least tested on old mods' custom shaders. Fixes are budgeted in P1 and go upstream to ioquake3. Each mod's profile can pick a renderer, and Quake3e's Vulkan renderer is always there as the fast fallback.
+- **Keeping the blend in sync.** Four upstreams (Quake3e, ioquake3, oDFe, CNQ3) move on their own. The upstream report, the adaptation list in `RENDERER2_SYNC.md`, and the parity and look tests on every merge keep each sync small and checked. Skipping syncs for months is how a fork goes stale.
 - **CPMA's CNQ3 features.** CPMA may check more than the extension lookups (for example the version string) before turning on its new demo player or Nuklear menus. PC tests this against a real CPMA install and asks the CPMA developers if anything is unclear.
 - **Mods' licenses.** CPMA, OSP, Defrag and most mods are closed-source freeware with their own terms. The library only links to official downloads, and the parity harness uses local installs.
 - **Partner sites.** The Defrag record integration needs q3df.org's and defrag.racing's agreement and APIs. Without them, Oz shows only Oz-verified runs.
@@ -642,8 +682,6 @@ Order: P0 -> PC -> P1 -> P2 -> P3, then P4 -> P5 and P6 (either order), P10, P11
 7. **Connections (decided 2026-10-28):** direct peer-to-peer first, with the relay as the fallback and a "Hide my IP" setting that forces it. Open question: should Hide my IP default to off (recommended, lowest ping and how every id Tech 3 game works) or on?
 8. **Matchmaking onto community servers:** Quick Play only, with ranked restricted to Oz servers, Verified community servers and peer-to-peer agreement (recommended), or ranked on any community server too.
 9. **Leaderboards from community matches:** Corroborated and Verified only (recommended), or self-reported as well.
-10. **Base engine:**
-    - **Quake3e** (recommended). It's what most community servers and all Defrag servers run, oDFe is a fork of it, and it already has rend2, IQM, the extension mechanism, map auto-download, precise timing and a Vulkan renderer.
-    - **Or ioquake3**, as the plan was first written. It has the better-maintained rend2 and stronger macOS support, but the oDFe and CNQ3 features would have to be ported further.
+10. **Base engine: decided 2026-10-28, the blend.** Quake3e's core, ioquake3's rend2 and OpenAL, oDFe's Defrag tools and CNQ3's CPMA extensions ("The blended engine"), following Quake3e as the main upstream.
 11. **Standalone games (PG):** include OpenArena, Urban Terror and the other ioquake3 games later (recommended), or stay on Quake III mods only.
 12. **Outreach first:** contact the CPMA developers, Defrag-racing, Quake3e's author and server admins before the hub's matchmaking and Defrag integration go live (recommended).

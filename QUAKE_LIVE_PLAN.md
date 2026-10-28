@@ -4,6 +4,8 @@
 
 This changes the project's old core rule ("the original game feel is sacred", meaning id 1.32 exactly). The new rule: **Quake Live's competitive feel is the standard; id 1.32 stays one setting away** (the Classic ruleset, see decision 2).
 
+**On hold (Ozmium, 2026-10-26): the movement stays id 1.32's.** Q4 Physics isn't being built for now, so under `g_ruleset ql` only Q3's rules (weapons, knockback, refire, respawn, items) differ from 1.32; jumping, stepping and air movement are 1.32's in both rulesets.
+
 The research behind this plan is [tools/ql/QL_CATALOG.md](tools/ql/QL_CATALOG.md): every value with its source and confidence, and the gaps.
 
 ## Sources
@@ -84,7 +86,7 @@ Quake 3's maps keep id's items and spawns. Quake Live remade 29 of our 35 maps (
 - **Without a cvar:** the 20-pellet fixed shotgun (`BG_QLShotgunPellet`, mirrored in `Q3Client.ql_shotgun_pellet`), the machinegun dropping on death, and QL's seven item amounts.
 
 The HUD's respawn line reads the ruleset's delays. **Left as 1.32:** the grappling hook, splash offsets (`g_splashdamageOffset`, `g_rocketsplashOffset`), max ammo 200, the unverified TDM machinegun/shotgun cuts, and knockback rounding (rounded, unverified). **Checked:** `tests/ruleset_test.tscn` passes for both rulesets, and the self-test is 64/64 under QL. So are the replay, spectator, campaign, pickup, chat, settings, script and cinematic camera tests (the last as documented, `--fixed-fps 60`). | 1 h |
-| **Q4 Physics** | `bg_pmove.c` / `bg_slidemove.c`: jump velocity, step height, step jump, chain jump, jump interval, autohop, air-step friction, water scales, weapon raise. The values travel in a struct that both the game and q3core's prediction (`Q3Server.predict`) fill from the same cvars, so prediction can't drift. They are marked `CVAR_SYSTEMINFO` so online clients get the server's. | 1 h |
+| **Q4 Physics** (on hold, Ozmium 2026-10-26) | `bg_pmove.c` / `bg_slidemove.c`: jump velocity, step height, step jump, chain jump, jump interval, autohop, air-step friction, water scales, weapon raise. The values travel in a struct that both the game and q3core's prediction (`Q3Server.predict`) fill from the same cvars, so prediction can't drift. They are marked `CVAR_SYSTEMINFO` so online clients get the server's. | 1 h |
 | **Q5 Modes** | `godot/game/modes/*.tres` take the factory limits. Warmup and ready-up go on by default. The match setup's Physics option becomes Ruleset (Quake Live / Classic). Item timers follow `g_itemTimers` (off in duel, as QL). | 0.5 h |
 | **Q6 Bots** | botlib: jump velocity 275 (`phys_jumpvel`) and bot weapon weights for the new damage. Bots also lead projectiles with the botfiles' 1.32 speeds (`BotAimAtEnemy` uses `wi.speed`: rockets 900, BFG 2000), so under QL they over-lead rockets and under-lead the BFG; override those speeds when the ruleset is QL. The maps' AAS was built for 18-unit steps, so bots simply don't use the extra 4. | 0.25 h |
 | **Q7 Tests and docs** | `tests/ruleset_test.tscn` (headless): every QL value reaches the game; jump, step-jump and chain-jump heights match the catalog's numbers; Classic matches id 1.32 frame for frame (the `replay_test` way of comparing). Docs: CLAUDE.md, PLAN.md, GAMEPLAY_PLAN.md, README (only once built). | 0.75 h |

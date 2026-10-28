@@ -1,4 +1,4 @@
-![Oz Arena](docs/promo/banner.jpg)
+![Oz Arena](docs/promo/banner-oz.jpg)
 
 # Oz Arena
 
@@ -14,12 +14,12 @@ Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the r
 
 | | |
 |---|---|
-| ![Main menu](docs/screenshots/menu-main.jpg) | ![Replays](docs/screenshots/menu-replays.jpg) |
+| ![Main menu](docs/screenshots/menu-main-oz.jpg) | ![Replays](docs/screenshots/menu-replays-oz.jpg) |
 | **Main menu:** a fighter or item turning in a smoky void, with the original menu sounds and soundtrack on shuffle | **Replays:** every match recorded automatically, ready to watch from anyone's eyes or a free camera |
-| ![Create match](docs/screenshots/menu-create-match.jpg) | ![Profile](docs/screenshots/menu-profile.jpg) |
+| ![Create match](docs/screenshots/menu-create-match-oz.jpg) | ![Profile](docs/screenshots/menu-profile-oz.jpg) |
 | **Create match:** every mode, map and rule, with modifiers on top | **Profile:** your player card, with banners, emblems, frames and titles you earn by playing |
 
-![Settings](docs/screenshots/menu-settings.jpg)
+![Settings](docs/screenshots/menu-settings-oz.jpg)
 
 **Settings:** search every option, with a description of each. The weapon effects can be the classic look or glowing rail and lightning beams, missile trails with a burning core, and explosions with flying embers and smoke.
 

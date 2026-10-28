@@ -46,12 +46,7 @@ export default function MenuApp() {
     });
     const offNav = on("nav", (m) => nav(m.dir as NavDir));
     // Godot's capture option page=<id> opens a page directly
-    const offOpen = on("open", (m) => {
-      const id = String(m.page);
-      if (id === "friends") return setSocialOpen(true);
-      const sub = Object.keys(SUBMENUS).find((k) => SUBMENUS[k].items.some((it) => it.page === id));
-      setStack(id === "main" ? ["main"] : sub ? ["main", sub, id] : ["main", id]);
-    });
+    const offOpen = on("open", (m) => goTo(String(m.page)));
     return () => {
       offNav();
       offOpen();
@@ -70,6 +65,12 @@ export default function MenuApp() {
     void send("page", { id: top, wide: !NOT_WIDE.has(top) });
   }, [top]);
 
+  // a page from anywhere (Godot's page=<id>, the top bar's card and rank): its submenu under it, if it has one
+  const goTo = useCallback((id: string) => {
+    if (id === "friends") return setSocialOpen(true);
+    const sub = Object.keys(SUBMENUS).find((k) => SUBMENUS[k].items.some((it) => it.page === id));
+    setStack(id === "main" ? ["main"] : sub ? ["main", sub, id] : ["main", id]);
+  }, []);
   const open = useCallback((id: string) => {
     setStack((s) => [...s, id]);
     sfx.in();
@@ -106,7 +107,7 @@ export default function MenuApp() {
       {dev && <DevBackdrop />}
       <Shade dim={wide ? 0.38 : top === "quit" ? 0.5 : 0} />
       <motion.div className="absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: shown ? 1 : 0 }} transition={{ duration: 0.6 }}>
-        <TopBar />
+        <TopBar go={(id) => { sfx.in(); goTo(id); }} />
         <MainColumn stack={stack} activate={activate} open={open} dev={dev} />
         <AnimatePresence>
           {stack[1] in SUBMENUS && <SubMenu key={stack[1]} id={stack[1]} stack={stack} activate={activate} back={back} />}

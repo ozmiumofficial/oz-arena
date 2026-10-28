@@ -114,7 +114,7 @@ export function QuickJoinPage({ back, open }: PageProps) {
         <SectionTitle>Game mode</SectionTitle>
         <div data-grid="4" className="grid grid-cols-4 gap-3">
           {modes.map((m) => (
-            <PlaylistCard key={m.id} name={m.name} text={m.description.split(".")[0] + "."} on={mode === m.id} toggle={() => !busy && setMode(m.id)} />
+            <PlaylistCard key={m.id} name={m.name} text={m.description.split(".")[0] + "."} on={mode === m.id} toggle={() => (busy ? refused("Cancel the search to change the mode.") : setMode(m.id))} />
           ))}
         </div>
         <p className="mt-3 text-[0.85rem] text-faint">
@@ -206,7 +206,7 @@ export function ServerBrowserPage({ back, open }: PageProps) {
   const regionName = (id: string) => regions.find((r) => r[0] === id)?.[1] ?? id;
   const joining = net.join && (net.join.status === "asking" || net.join.status === "connecting") ? net.join : null;
   const join = (m: NetMatch) => {
-    if (joining) return;
+    if (joining) return refused("Already joining a match. Cancel it first.");
     if (m.host === me) return toast("That's your own match: you're already hosting it.", "info");
     if (m.password && !asking) {
       setAsking(m);

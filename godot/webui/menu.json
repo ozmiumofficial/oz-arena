@@ -12,7 +12,7 @@
       "id": "profile",
       "label": "Profile",
       "hint": "Your player card, leaderboards and replays",
-      "submenu": "profile"
+      "submenu": "profile_menu"
     },
     {
       "id": "map_editor",
@@ -98,7 +98,7 @@
       "page": "race"
     }
   ],
-  "profile": [
+  "profile_menu": [
     {
       "id": "player_card",
       "label": "Player Card",

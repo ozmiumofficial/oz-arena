@@ -3,7 +3,7 @@
 // in its own window (never hidden), so it keeps going after the game closes; here you set it up, start and stop it, watch who is in it, and
 // send it console commands. It lists itself in everyone's Server Browser under its own identity.
 import { useEffect, useState } from "react";
-import { useMenu } from "@/lib/store";
+import { useMenu, toast } from "@/lib/store";
 import { send } from "@/lib/bridge";
 import type { DedicatedConfig } from "@/lib/types";
 import PagePanel, { SectionTitle } from "../PagePanel";
@@ -97,12 +97,12 @@ export default function DedicatedPage({ back }: PageProps) {
             <Button
               primary
               refuse={running ? "It is already running." : c.online && !online ? "The online service isn't connected: untick List online, or reconnect." : undefined}
-              onRefuse={() => undefined}
+              onRefuse={(why) => toast(why, "warn")}
               onClick={() => void send("dedicated_start", { config: c })}
             >
               Start
             </Button>
-            <Button refuse={!running ? "It isn't running." : undefined} onClick={() => void send("dedicated_stop", {})}>Stop</Button>
+            <Button refuse={!running ? "It isn't running." : undefined} onRefuse={(why) => toast(why, "warn")} onClick={() => void send("dedicated_stop", {})}>Stop</Button>
           </div>
           {running && (status?.players?.length ?? 0) > 0 && (
             <div className="min-h-0 overflow-y-auto rounded-sm border border-white/[0.07] bg-black/25 p-3 text-[0.9rem]">

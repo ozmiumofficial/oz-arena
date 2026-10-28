@@ -19,7 +19,8 @@ const NEWS = [
   ["Multiplayer", "Friends and parties are in. Player-hosted matches, a match browser and ranked duels come next."],
 ];
 
-export function TopBar() {
+/** The top bar. `go` opens a page as the main menu does (your card: Profile; your rank: Ranked). */
+export function TopBar({ go }: { go: (page: string) => void }) {
   const name = useMenu((s) => String(s.values["profile/name"] ?? "Player"));
   const model = useMenu((s) => String(s.values["profile/model"] ?? "sarge"));
   const color = useMenu((s) => String(s.values["profile/team_color"] ?? "#db2410"));
@@ -41,7 +42,11 @@ export function TopBar() {
       <DiscordButton />
       <OnlinePill />
       <PartyStrip />
-      <div className="flex items-center gap-2 font-q3 text-[0.7rem] tracking-[0.2em] text-dim">
+      <button
+        onClick={() => go("ranked")}
+        title="Ranked"
+        className="flex items-center gap-2 rounded-sm px-1 font-q3 text-[0.7rem] tracking-[0.2em] text-dim transition-colors hover:text-ink"
+      >
         <RankIcon tier={rank ? rank.id : undefined} division={rank?.division} className="h-7 w-6" />
         {rank ? (
           <span className="leading-tight">
@@ -51,12 +56,13 @@ export function TopBar() {
         ) : (
           "Unranked"
         )}
-      </div>
+      </button>
       <FriendsButton />
-      <div className="relative grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/45 text-dim" title="Notifications">
-        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4" /></svg>
-      </div>
-      <div className="relative flex items-center gap-3 overflow-hidden rounded-sm border border-white/10 bg-black/45 py-1 pl-1 pr-3">
+      <button
+        onClick={() => go("profile")}
+        title="Profile: your card, character and stats"
+        className="relative flex items-center gap-3 overflow-hidden rounded-sm border border-white/10 bg-black/45 py-1 pl-1 pr-3 text-left transition-colors hover:border-white/30"
+      >
         {card && cat && (
           <span className="pointer-events-none absolute inset-0 opacity-35">
             <Banner p={part(cat, "banners", card.banner)} cat={cat} ctx={profile?.banner_ctx} className="h-full w-full text-[0.4rem]" />
@@ -73,7 +79,7 @@ export function TopBar() {
             {profile.level}
           </div>
         )}
-      </div>
+      </button>
     </motion.div>
   );
 }

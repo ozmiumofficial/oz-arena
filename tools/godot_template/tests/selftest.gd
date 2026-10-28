@@ -134,6 +134,10 @@ func _menu_checks() -> void:
 				var in_build: bool = js.contains('"%s"' % it["page"]) or js.contains("%s:" % it["page"])
 				if not tree["pages"].has(it["page"]) or not in_build:
 					bad.append(it["page"])
+				# a page named like a submenu never opens (MenuApp takes a submenu's id as "no page"):
+				# Profile > Player Card did nothing in v0.6.0-beta
+				if it["page"] in groups:
+					bad.append(it["page"] + " (also a submenu)")
 			elif it.has("action"):
 				Session.last_request = ""
 				if it["action"] == "continue":
@@ -158,7 +162,7 @@ func _menu_checks() -> void:
 	bridge.handle({"type": "ready"})
 	var init: Dictionary = posts[0] if posts.size() else {}
 	check("menu: bridge sends the whole menu state", init.get("type") == "init" and init["schema"].size() == Settings.entries.size()
-			and init["maps"].size() >= 30 and init["modes"].size() == 7 and init["characters"].size() == Q3.characters.size()
+			and init["maps"].size() >= 30 and init["modes"].size() == 8 and init["characters"].size() == Q3.characters.size()
 			and init["banner"]["glyphs"].size() >= 26,
 			"%d settings, %d maps, %d modes, %d bots" % [init.get("schema", []).size(), init.get("maps", []).size(), init.get("modes", []).size(), init.get("bots", []).size()])
 
@@ -203,26 +207,37 @@ func _menu_checks() -> void:
 	check("settings: every setting round-trips to disk", loaded and diff.is_empty() and want.size() > 100,
 			"%d settings%s" % [want.size(), (", differ: " + ", ".join(diff.slice(0, 5))) if diff.size() else ""])
 
-	# binds: capture through the bridge, conflict detection, the InputMap
+	# binds: capture through the bridge (a key here, the page's bind_input), the moved key, conflict
+	# detection, the controller slot, the InputMap
 	for e in Settings.entries:
 		Settings.set_value(e["key"], Settings.default_of(e["key"]), false)
+	var had_w: bool = (Settings.get_value("controls/forward") as Array).has("key:W")
 	bridge.handle({"type": "capture_bind", "key": "controls/jump", "slot": 1})
 	var w := InputEventKey.new()
 	w.physical_keycode = KEY_W
 	w.pressed = true
 	var used := bridge.capture_input(w)
-	var conflicts := Settings.bind_conflicts("controls/jump")
+	var moved := had_w and not (Settings.get_value("controls/forward") as Array).has("key:W")
 	var mapped := false
 	for ev in InputMap.action_get_events("q3_jump"):
 		mapped = mapped or (ev is InputEventKey and ev.physical_keycode == KEY_W)
 	bridge.handle({"type": "capture_bind", "key": "controls/jump", "slot": 1})
+	bridge.handle({"type": "bind_input", "value": "key:NotAKey"})   # refused, the capture goes on
+	var still := bridge.capture_key == "controls/jump"
+	bridge.handle({"type": "bind_input", "value": "mouse:5"})
+	var wheel: bool = Settings.get_value("controls/jump")[1] == "mouse:5"
+	bridge.handle({"type": "capture_bind", "key": "controls/jump", "slot": 2})
+	bridge.handle({"type": "bind_input", "value": "key:F"})          # the controller slot takes pads only
+	var pad_only: bool = bridge.capture_key != "" and Settings.get_value("controls/jump")[2] != "key:F"
 	var esc := InputEventKey.new()
 	esc.physical_keycode = KEY_ESCAPE
 	esc.pressed = true
 	bridge.capture_input(esc)
-	check("settings: bind capture, conflicts, InputMap", used and Settings.get_value("controls/jump")[1] == "key:W"
-			and conflicts.has("controls/forward") and mapped and bridge.capture_key == "",
-			"jump = %s, conflicts %s" % [Settings.get_value("controls/jump"), conflicts])
+	Settings.set_bind("controls/forward", 0, "key:Space")            # set directly: no move, a conflict
+	var conflicts := Settings.bind_conflicts("controls/forward")
+	check("settings: bind capture, moved key, conflicts, InputMap", used and moved and mapped and still and wheel
+			and pad_only and bridge.capture_key == "" and conflicts.size() > 0,
+			"jump = %s, forward = %s, conflicts %s" % [Settings.get_value("controls/jump"), Settings.get_value("controls/forward"), conflicts])
 	for k in keep:
 		Settings.set_value(k, keep[k], false)
 	Settings.path = real_path
@@ -236,7 +251,7 @@ func _menu_checks() -> void:
 	var again := Q3MatchSetup.from_dict(JSON.parse_string(JSON.stringify(good.to_dict())))
 	Session.last_request = ""
 	Session.start_match(good)
-	check("match setup: modes load, validation, round trip, hand-off", Session.mode_ids().size() == 7 and good.validate().is_empty()
+	check("match setup: modes load, validation, round trip, hand-off", Session.mode_ids().size() == 8 and good.validate().is_empty()
 			and ctf_wrong.validate().size() > 0 and duel_full.validate().size() > 0 and again.to_dict() == good.to_dict()
 			and Session.last_request == Session.GAMEPLAY and Session.setup == good,
 			"%s; ctf on q3dm17: %s" % [", ".join(Session.mode_ids()), ctf_wrong.validate()[0] if ctf_wrong.validate().size() else "accepted"])
@@ -439,6 +454,11 @@ func _core_checks(q3: Node) -> void:
 	var match_test: Script = load("res://tests/q3core_match.gd")
 	var r: Dictionary = match_test.run_match("q3dm17", 20, 3, false) if match_test else {"ok": false, "report": "q3core_match.gd didn't load"}
 	check("q3core: q3dm17 with 3 of id's bots for 20 s: bots move and fight, snapshots arrive", r["ok"], String(r["report"]).replace("\n", "; "))
+	# online play's client and server over packets only, on a bad link (tests/net_loopback_test.gd, MULTIPLAYER_PLAN.md)
+	var net_test: Script = load("res://tests/net_loopback_test.gd")
+	var n: Dictionary = net_test.run("q3dm17", 8, 2, 40, 0.05) if net_test else {"ok": false, "report": "net_loopback_test.gd didn't load"}
+	check("net: client and server over an 80 ms, 5% loss link for 8 s: snapshots exact, prediction matches, rcon answers, the slot frees",
+			n["ok"], String(n["report"]).replace("\n", "; "))
 	# last: an ERR_DROP shuts the running server down, as it does in Quake 3
 	check("q3core: Com_Error returns to Godot", ClassDB.class_call_static("Q3Core", "error_recovers"),
 			"the 'HoldableItem not found' error above is this test")

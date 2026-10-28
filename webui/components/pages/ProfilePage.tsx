@@ -462,7 +462,20 @@ function CharacterTab({ init, values: v }: { init: InitPayload; values: Record<s
           <Q3Name name={String(v["profile/name"] ?? "")} className="font-q3 text-[1.1rem] tracking-wider text-ink-hot" />
           <span className="ml-auto flex items-center gap-1.5">
             {Q3_COLORS.map((c, i) => (
-              <span key={i} className="rounded-[2px] border border-white/10 bg-black/40 px-1 font-mono text-[0.75rem]" style={{ color: c }}>^{i}</span>
+              <button
+                key={i}
+                title={`Add ^${i}: the rest of the name in this color`}
+                onClick={() => {
+                  const name = String(v["profile/name"] ?? "");
+                  if (name.length + 2 > 32) return sfx.buzz();
+                  sfx.move();
+                  setValue("profile/name", name + "^" + i);
+                }}
+                className="rounded-[2px] border border-white/10 bg-black/40 px-1 font-mono text-[0.75rem] transition-colors hover:border-white/40"
+                style={{ color: c }}
+              >
+                ^{i}
+              </button>
             ))}
           </span>
         </div>

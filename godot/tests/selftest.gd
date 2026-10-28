@@ -134,6 +134,10 @@ func _menu_checks() -> void:
 				var in_build: bool = js.contains('"%s"' % it["page"]) or js.contains("%s:" % it["page"])
 				if not tree["pages"].has(it["page"]) or not in_build:
 					bad.append(it["page"])
+				# a page named like a submenu never opens (MenuApp takes a submenu's id as "no page"):
+				# Profile > Player Card did nothing in v0.6.0-beta
+				if it["page"] in groups:
+					bad.append(it["page"] + " (also a submenu)")
 			elif it.has("action"):
 				Session.last_request = ""
 				if it["action"] == "continue":

@@ -10,7 +10,7 @@
 |---|---|
 | Must be modern (PBR, skeletal animation, modern lighting) | Decided 2026-10-22 |
 | Engine: Unity or Godot | Recommended Godot (fully open source); Ozmium's call. Comparison below |
-| ioquake3 / Quake3e as the base | Rejected 2026-10-22 (renderer ceiling); reopened 2026-10-28 after the r/ArenaFPS launch thread: Ozmium wants everything moved onto a modified id Tech 3 engine (decided: a blend of Quake3e's core with ioquake3's rend2 and OpenAL, oDFe's Defrag tools and CNQ3's CPMA extensions, for mod compatibility and a hub for all of id Tech 3), no web view. Plan in [ENGINE_PLAN.md](ENGINE_PLAN.md) |
+| ioquake3 / Quake3e as the base | Rejected 2026-10-22 (renderer ceiling); reopened 2026-10-28 after the r/ArenaFPS launch thread: Ozmium wants everything moved onto a modified id Tech 3 engine (decided: a blend of Quake3e's core with ioquake3's rend2 and OpenAL, oDFe's Defrag tools and CNQ3's CPMA extensions, for a hub for competitive Quake III: baseq3, CPMA, Defrag and OpenArena), no web view. All its decisions settled 2026-10-28. Plan in [ENGINE_PLAN.md](ENGINE_PLAN.md) |
 | Start with tools, not game code | Decided 2026-10-22 |
 | Distribution model | Decided: free/open source, Quake 3 ownership required, ships the remastered asset library. Risk and mitigations in "Licensing" |
 | Online services | Decided 2026-10-22: no Steamworks, no paid hosting. Player-hosted matches over peer-to-peer WebRTC, always relayed through Cloudflare's TURN so IPs stay hidden (2026-10-23), closest region first with a region choice, optional dedicated servers, one match browser, and accounts, matchmaking and player data on Cloudflare's free tier. See "Multiplayer and online services" |

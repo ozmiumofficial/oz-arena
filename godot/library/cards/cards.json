@@ -150,7 +150,7 @@
   "matches_skin.<model>/<skin>": "matches played in each skin (red/blue for team skins)",
   "frags_weapon.<weapon>": "frags per weapon (gauntlet, machinegun, shotgun, grenade, rocket, lightning, railgun, plasma, bfg)",
   "frags_powerup.<powerup>": "frags while holding each powerup",
-  "medal.<award>": "Quake 3 awards: excellent, impressive, gauntlet, capture, assist, defend, perfect",
+  "medal.<award>": "Medals: excellent, impressive, gauntlet, capture, assist, defend, perfect",
   "pickups.<item>": "item pickups (quad, regen, haste, battlesuit, invis, flight, mega, armor_red, armor_yellow, medkit, teleporter)",
   "deaths_by.<cause>": "deaths by lava, slime, fall, drown, telefrag, crush",
   "telefrags": "telefrags",

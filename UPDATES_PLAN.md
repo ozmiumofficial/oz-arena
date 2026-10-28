@@ -14,7 +14,7 @@ Status: **U1-U5 built and tested (2026-10-27).** The game downloads updates from
 ## How it works
 
 1. **Check.** At launch (main menu only, never mid-match) the game asks
-   `api.github.com/repos/ozmiumofficial/quake-3-arena-remastered-fan-project/releases/latest` once. No login; the unauthenticated limit (60 an hour per IP) is plenty. It compares the tag with `application/config/version` (now `0.3.0-beta`). Failures are silent: offline players just see no prompt.
+   `api.github.com/repos/ozmiumofficial/oz-arena/releases/latest` once. No login; the unauthenticated limit (60 an hour per IP) is plenty. It compares the tag with `application/config/version` (now `0.3.0-beta`). Failures are silent: offline players just see no prompt.
 2. **Ask.** The menu shows "Update available: vX, N MB" with the release notes and three choices: Update now, Later, Skip this version. Settings > Game > Updates holds: Check for updates (on), Update automatically (off), Include betas.
 3. **Download.** Into `user://update/`, resumable (Range requests), with progress in the menu. The game stays playable while it downloads.
 4. **Verify.** `manifest.json` (attached to the release) lists every file with its SHA-256 and size, and `manifest.sig` signs its exact bytes with RSA-3072 (PKCS#1 v1.5, SHA-256). Godot has no Ed25519, but its `Crypto` verifies this, and `tests/update_manifest_test.tscn` proves a Python-signed manifest verifies in Godot. The public key ships as `godot/game/update_key.json`. Anything that doesn't verify is deleted and never run.

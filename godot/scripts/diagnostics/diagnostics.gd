@@ -21,6 +21,7 @@ const KEEP_REPORTS := 30
 const HEARTBEAT := 2.0
 const HANG_SECONDS := 15.0
 const BREADCRUMBS := 60
+const TITLE := "Oz Arena"
 
 var session_id := ""
 var started := 0.0
@@ -50,6 +51,8 @@ var _stalls := 0                        ## expect_stall() depth: the watchdog lo
 func _enter_tree() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_priority = -1000
+	# the window's name; config/name stays "Q3Remaster" because it names the user:// folder
+	DisplayServer.window_set_title(TITLE)
 	started = Time.get_unix_time_from_system()
 	var pid := OS.get_process_id()
 	session_id = "%d-%d" % [int(started), pid]
@@ -94,7 +97,7 @@ func _exit_tree() -> void:
 
 
 func version() -> String:
-	return "Q3Remaster %s (%s%s, Godot %s)" % [ProjectSettings.get_setting("application/config/version", "?"),
+	return "Oz Arena %s (%s%s, Godot %s)" % [ProjectSettings.get_setting("application/config/version", "?"),
 			"debug" if OS.is_debug_build() else "release", ", editor" if OS.has_feature("editor") else "",
 			Engine.get_version_info()["string"]]
 
@@ -275,7 +278,7 @@ func collect_crashes() -> PackedStringArray:
 		DirAccess.remove_absolute(path)
 		DirAccess.remove_absolute(errs_path)
 		if not s.get("test", false):
-			notice = "Quake III Arena Remastered closed unexpectedly last time. A crash report was saved to %s" % ProjectSettings.globalize_path(REPORTS)
+			notice = "Oz Arena closed unexpectedly last time. A crash report was saved to %s" % ProjectSettings.globalize_path(REPORTS)
 	new_reports.append_array(made)
 	_trim_reports()
 	return made
@@ -341,7 +344,7 @@ func _write_report(path: String, kind: String, s: Dictionary, errors: String, lo
 	var m: Dictionary = s.get("machine", {})
 	var pid := int(s.get("pid", 0))
 	var lines := PackedStringArray()
-	lines.append("# Quake III Arena Remastered %s report" % kind)
+	lines.append("# Oz Arena %s report" % kind)
 	lines.append("")
 	if kind == "freeze":
 		lines.append("**What happened:** the game stopped responding: no frame finished for %d s." % int(HANG_SECONDS))

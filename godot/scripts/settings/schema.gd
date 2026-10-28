@@ -89,8 +89,8 @@ const BINDS := [
 const WEAPONS := [["gauntlet", "Gauntlet"], ["machinegun", "Machine gun"], ["shotgun", "Shotgun"],
 	["grenadel", "Grenade launcher"], ["rocketl", "Rocket launcher"], ["lightning", "Lightning gun"],
 	["railgun", "Railgun"], ["plasma", "Plasma gun"], ["bfg", "BFG10K"]]
-const CROSSHAIRS := [["none", "None"], ["a", "Quake 3 A"], ["b", "Quake 3 B"], ["c", "Quake 3 C"], ["d", "Quake 3 D"],
-	["e", "Quake 3 E"], ["f", "Quake 3 F"], ["g", "Quake 3 G"], ["h", "Quake 3 H"], ["i", "Quake 3 I"], ["j", "Quake 3 J"],
+const CROSSHAIRS := [["none", "None"], ["a", "Classic A"], ["b", "Classic B"], ["c", "Classic C"], ["d", "Classic D"],
+	["e", "Classic E"], ["f", "Classic F"], ["g", "Classic G"], ["h", "Classic H"], ["i", "Classic I"], ["j", "Classic J"],
 	["cross", "Vector cross"], ["dot", "Vector dot"], ["circle", "Vector circle"], ["t", "Vector T"]]
 
 static var _list: Array = []
@@ -115,7 +115,7 @@ static func build() -> Array:
 	L.append(_e("video/max_fps", "Frame cap", "int", 0, "Maximum frames per second. 0 = uncapped. Physics runs at its own fixed rate, so the cap never changes movement (no 125 fps jump quirk).", g,
 		{"min": 0, "max": 1000, "step": 5, "unit": "fps"}))
 	g = "View"
-	L.append(_e("video/fov", "Field of view", "float", 90.0, "Horizontal degrees at 4:3, like Quake 3's cg_fov. Wider screens see more at the sides (Hor+), so it's correct at any aspect.", g,
+	L.append(_e("video/fov", "Field of view", "float", 90.0, "Horizontal degrees at 4:3, like cg_fov. Wider screens see more at the sides (Hor+), so it's correct at any aspect.", g,
 		{"min": 60.0, "max": 130.0, "step": 1.0, "unit": "deg"}))
 	g = "Rendering"
 	L.append(_e("video/render_scale", "Render scale", "float", 1.0, "3D resolution relative to the window. The menu and HUD always render at full resolution.", g,
@@ -127,7 +127,7 @@ static func build() -> Array:
 
 	# ---- Graphics
 	g = "Quality"
-	L.append(_e("graphics/preset", "Preset", "enum", "high", "Sets every quality setting below. Classic keeps Quake 3's look (no SSR, AO, bloom, fog or shimmer). Changing one of them switches this to Custom.", g,
+	L.append(_e("graphics/preset", "Preset", "enum", "high", "Sets every quality setting below. Classic keeps the original look (no SSR, AO, bloom, fog or shimmer). Changing one of them switches this to Custom.", g,
 		{"options": [["classic", "Classic"], ["low", "Low"], ["medium", "Medium"], ["high", "High"], ["ultra", "Ultra"], ["custom", "Custom"]]}))
 	g = "Lighting"
 	L.append(_e("graphics/shadows", "Shadows", "enum", "high", "Shadow map resolution and filtering. Ultra also gives every map light a live shadow on players and the mist: barely visible, and several times slower.", g, {"options": off + [["ultra", "Ultra"]]}))
@@ -151,15 +151,15 @@ static func build() -> Array:
 	L.append(_e("graphics/decals", "Marks and decals", "bool", true, "Bullet holes, burns and blood on walls.", g))
 	L.append(_e("graphics/gibs", "Gibs", "bool", true, "Bodies burst into gibs on big hits (cg_gibs). Off: they burn away instead.", g))
 	g = "Weapon effects"
-	L.append(_e("graphics/rail_style", "Rail trail", "enum", "glow", "How the railgun's shot is drawn. Classic is Quake 3's core and spiral; Glow adds a bright halo that lingers and spreads; Quake Live is one thick glowing beam; Core is the beam alone.", g,
-		{"options": [["classic", "Classic spiral"], ["glow", "Glow spiral"], ["ql", "Quake Live beam"], ["core", "Core only"]]}))
+	L.append(_e("graphics/rail_style", "Rail trail", "enum", "glow", "How the railgun's shot is drawn. Classic is the original core and spiral; Glow adds a bright halo that lingers and spreads; Beam is one thick glowing beam; Core is the beam alone.", g,
+		{"options": [["classic", "Classic spiral"], ["glow", "Glow spiral"], ["ql", "Beam"], ["core", "Core only"]]}))
 	L.append(_e("graphics/rail_width", "Rail width", "float", 1.0, "Thickness of the rail's core and halo.", g, {"min": 0.5, "max": 3.0, "step": 0.05, "unit": "x"}))
-	L.append(_e("graphics/lightning_style", "Lightning beam", "enum", "glow", "Classic is Quake 3's bolt. Glow wraps it in a soft halo and lights up where it hits.", g,
+	L.append(_e("graphics/lightning_style", "Lightning beam", "enum", "glow", "Classic is the original bolt. Glow wraps it in a soft halo and lights up where it hits.", g,
 		{"options": [["classic", "Classic"], ["glow", "Glow"]]}))
 	L.append(_e("graphics/lightning_width", "Lightning width", "float", 1.0, "Thickness of the lightning gun's beam.", g, {"min": 0.25, "max": 3.0, "step": 0.05, "unit": "x"}))
-	L.append(_e("graphics/missile_trails", "Missile trails", "enum", "enhanced", "Classic is Quake 3's smoke. Enhanced adds a burning core to rockets and grenades and glowing trails to plasma and the BFG.", g,
+	L.append(_e("graphics/missile_trails", "Missile trails", "enum", "enhanced", "Classic is the original smoke. Enhanced adds a burning core to rockets and grenades and glowing trails to plasma and the BFG.", g,
 		{"options": [["classic", "Classic"], ["enhanced", "Enhanced"]]}))
-	L.append(_e("graphics/explosions", "Explosions", "enum", "enhanced", "Classic is Quake 3's flash and mark. Enhanced adds flying embers and lingering smoke to blasts, and a glow to energy hits.", g,
+	L.append(_e("graphics/explosions", "Explosions", "enum", "enhanced", "Classic is the original flash and mark. Enhanced adds flying embers and lingering smoke to blasts, and a glow to energy hits.", g,
 		{"options": [["classic", "Classic"], ["enhanced", "Enhanced"]]}))
 	L.append(_e("graphics/blood", "Blood", "enum", "classic", "Off removes blood puffs, trails and stains. Heavy adds sprays of droplets.", g,
 		{"options": [["off", "Off"], ["classic", "Classic"], ["heavy", "Heavy"]]}))
@@ -168,16 +168,16 @@ static func build() -> Array:
 	g = "Volume"
 	for b in [["master", "Master"], ["music", "Music"], ["effects", "Effects"], ["voice", "Voice chat"], ["announcer", "Announcer"], ["ui", "Menu sounds"]]:
 		L.append(_e("audio/vol_" + b[0], b[1], "int", 80 if b[0] == "music" else 100, "%s volume." % b[1], g, {"min": 0, "max": 100, "step": 1, "unit": "%"}))
-	L.append(_e("audio/menu_music", "Menu music", "bool", true, "Quake 3's soundtrack, shuffled, in the main menu.", g))
-	L.append(_e("audio/menu_ambient", "Menu ambience", "bool", false, "A quiet ambient drone in the menu. Quake 3's menu had no music, so it's off by default.", g))
+	L.append(_e("audio/menu_music", "Menu music", "bool", true, "The original soundtrack, shuffled, in the main menu.", g))
+	L.append(_e("audio/menu_ambient", "Menu ambience", "bool", false, "A quiet ambient drone in the menu. The original menu had no music, so it's off by default.", g))
 	L.append(_e("audio/mute_unfocused", "Mute when in background", "bool", true, "Silence the game while its window isn't focused.", g))
 	g = "Devices"
 	L.append(_e("audio/output_device", "Output device", "enum", "Default", "Where sound plays.", g, {"options": [["Default", "Default"]], "dynamic": "output_devices"}))
 	L.append(_e("audio/input_device", "Voice chat device", "enum", "Default", "Microphone for voice chat.", g, {"options": [["Default", "Default"]], "dynamic": "input_devices"}))
 	g = "Game sounds"
 	L.append(_e("audio/hit_sound", "Hit sound", "enum", "classic", "The beep when you hit an enemy. Pitch by damage beeps higher for small hits and lower for big ones.", g,
-		{"options": [["off", "Off"], ["classic", "Quake 3 classic"], ["pitch", "Pitch by damage"]]}))
-	L.append(_e("audio/spatial", "Spatial audio", "bool", true, "Distant sounds are muffled and placed more sharply left and right. Off is Quake 3's plain stereo panning.", g))
+		{"options": [["off", "Off"], ["classic", "Classic"], ["pitch", "Pitch by damage"]]}))
+	L.append(_e("audio/spatial", "Spatial audio", "bool", true, "Distant sounds are muffled and placed more sharply left and right. Off is the classic plain stereo panning.", g))
 	L.append(_e("audio/announcer", "Announcer", "bool", true, "The voice: \"Excellent!\", \"Impressive!\", lead changes, warnings, the countdown and \"Fight!\".", g))
 
 	# ---- Controls
@@ -200,17 +200,17 @@ static func build() -> Array:
 
 	# ---- Mouse
 	g = "Sensitivity"
-	L.append(_e("mouse/sensitivity", "Sensitivity", "float", 5.0, "Quake 3 units: degrees per count = sensitivity x 0.022 (m_yaw). The cm/360 below is the distance for a full turn.", g,
+	L.append(_e("mouse/sensitivity", "Sensitivity", "float", 5.0, "Classic units: degrees per count = sensitivity x 0.022 (m_yaw). The cm/360 below is the distance for a full turn.", g,
 		{"min": 0.1, "max": 30.0, "step": 0.05}))
 	L.append(_e("mouse/dpi", "Mouse DPI", "int", 800, "Your mouse's DPI (counts per inch). Only used to show cm/360.", g, {"min": 100, "max": 32000, "step": 50}))
 	L.append(_e("mouse/zoom_sensitivity", "Zoom sensitivity", "float", 1.0, "Multiplier while zoomed.", g, {"min": 0.1, "max": 2.0, "step": 0.05, "unit": "x"}))
 	g = "Input"
-	L.append(_e("mouse/acceleration", "Acceleration", "float", 0.0, "Quake 3's cl_mouseAccel: faster swipes turn further. 0 = off. Mouse look always reads the mouse raw, without Windows' pointer speed.", g, {"min": 0.0, "max": 1.0, "step": 0.01}))
+	L.append(_e("mouse/acceleration", "Acceleration", "float", 0.0, "Like cl_mouseAccel: faster swipes turn further. 0 = off. Mouse look always reads the mouse raw, without Windows' pointer speed.", g, {"min": 0.0, "max": 1.0, "step": 0.01}))
 	L.append(_e("mouse/invert", "Invert vertical", "bool", false, "Mouse up looks down.", g, {}))
 
 	# ---- Crosshair
 	g = "Shape"
-	L.append(_e("crosshair/shape", "Crosshair", "enum", "c", "Quake 3's ten crosshairs or a vector shape.", g, {"options": CROSSHAIRS}))
+	L.append(_e("crosshair/shape", "Crosshair", "enum", "c", "The ten classic crosshairs or a vector shape.", g, {"options": CROSSHAIRS}))
 	L.append(_e("crosshair/size", "Size", "int", 24, "Size in pixels at 1080p (cg_crosshairSize).", g, {"min": 8, "max": 96, "step": 1, "unit": "px"}))
 	L.append(_e("crosshair/thickness", "Thickness", "int", 2, "Line thickness of vector shapes.", g, {"min": 1, "max": 8, "step": 1, "unit": "px"}))
 	L.append(_e("crosshair/gap", "Gap", "int", 4, "Space in the middle of vector shapes.", g, {"min": 0, "max": 32, "step": 1, "unit": "px"}))
@@ -219,7 +219,7 @@ static func build() -> Array:
 	L.append(_e("crosshair/color", "Color", "color", Color(1, 1, 1), "Crosshair color.", g, {}))
 	L.append(_e("crosshair/outline", "Outline", "bool", true, "Dark outline so it reads on bright walls.", g, {}))
 	L.append(_e("crosshair/hit_color", "Hit color", "color", Color(1, 0.2, 0.15), "Flashes this color when you hit an enemy.", g, {}))
-	L.append(_e("crosshair/health_color", "Color by health", "bool", false, "Quake 3's cg_crosshairHealth: tint by your health.", g, {}))
+	L.append(_e("crosshair/health_color", "Color by health", "bool", false, "Like cg_crosshairHealth: tint by your health.", g, {}))
 	g = "Per weapon"
 	L.append(_e("crosshair/per_weapon", "Per-weapon crosshairs", "bool", false, "Use a different crosshair for each weapon.", g, {}))
 	for w in WEAPONS:
@@ -228,19 +228,19 @@ static func build() -> Array:
 
 	# ---- HUD
 	g = "Layout"
-	L.append(_e("hud/preset", "HUD preset", "enum", "modern", "Layout of the HUD: Modern (glass panels and bars), Competitive (smaller, compact), Minimal (numbers only), or Quake 3 classic (ammo, health and armor in one row).", g,
-		{"options": [["classic", "Quake 3 classic"], ["modern", "Modern (Quake Live style)"], ["minimal", "Minimal"], ["competitive", "Competitive"]]}))
+	L.append(_e("hud/preset", "HUD preset", "enum", "modern", "Layout of the HUD: Modern (glass panels and bars), Competitive (smaller, compact), Minimal (numbers only), or Classic (ammo, health and armor in one row).", g,
+		{"options": [["classic", "Classic"], ["modern", "Modern"], ["minimal", "Minimal"], ["competitive", "Competitive"]]}))
 	L.append(_e("hud/scale", "HUD scale", "float", 1.0, "Size of the HUD.", g, {"min": 0.5, "max": 2.0, "step": 0.05, "unit": "x"}))
 	L.append(_e("hud/opacity", "HUD opacity", "float", 1.0, "Transparency of the HUD.", g, {"min": 0.2, "max": 1.0, "step": 0.05, "unit": "x"}))
 	g = "Elements"
 	L.append(_e("hud/show_speedometer", "Speedometer", "bool", true, "Your speed in units per second, with the strafe-jump readout (speed at each takeoff and the gain on the last).", g, {}))
-	L.append(_e("hud/speedometer", "Speedometer style", "enum", "arc", "Arc gauge or a compact bar. The Competitive and Quake 3 classic presets always use the compact bar.", g,
+	L.append(_e("hud/speedometer", "Speedometer style", "enum", "arc", "Arc gauge or a compact bar. The Competitive and Classic presets always use the compact bar.", g,
 		{"options": [["arc", "Arc gauge"], ["compact", "Compact"]]}))
 	L.append(_e("hud/item_timers", "Item timers", "bool", false, "Countdowns for the armors, Mega Health and powerups once they're taken, left of the screen.", g, {}))
 	L.append(_e("hud/damage_numbers", "Damage numbers", "bool", true, "Damage dealt floats over the target.", g, {}))
 	L.append(_e("hud/kill_feed", "Kill feed", "bool", true, "Who killed whom, top right.", g, {}))
 	L.append(_e("hud/ammo_bar", "Ammo bar", "bool", true, "Ammo for every weapon along the bottom.", g, {}))
-	L.append(_e("hud/net_graph", "Net graph", "bool", false, "Quake 3's lagometer, bottom right: frame timing above, snapshot ping below, with ping and frame time.", g, {}))
+	L.append(_e("hud/net_graph", "Net graph", "bool", false, "The classic lagometer, bottom right: frame timing above, snapshot ping below, with ping and frame time.", g, {}))
 	L.append(_e("hud/fps", "Show FPS", "bool", false, "Frame rate counter.", g, {}))
 	g = "Chat"
 	L.append(_e("hud/chat_time", "Chat time", "int", 10, "How long chat lines stay on screen. The chat key shows the recent history.", g,
@@ -254,11 +254,11 @@ static func build() -> Array:
 		{"options": [["never", "Never"], ["better", "If better"], ["always", "Always"]]}))
 	L.append(_e("gameplay/draw_gun", "Gun position", "enum", "right", "Where your gun is drawn (cg_drawGun).", g,
 		{"options": [["right", "Right"], ["center", "Center"], ["left", "Left"], ["hidden", "Hidden"]]}))
-	L.append(_e("gameplay/gun_fov", "Gun field of view", "float", 0.0, "Field of view the gun is drawn at. 0 draws it at your Field of view, as Quake 3 does.", g, {"min": 0.0, "max": 120.0, "step": 1.0, "unit": "deg"}))
-	L.append(_e("gameplay/gun_widescreen", "Widescreen gun placement", "bool", true, "Keep the gun as far toward the edge as Quake 3 drew it on a 4:3 screen. Off draws it where a wide screen puts it, nearer the middle.", g, {}))
+	L.append(_e("gameplay/gun_fov", "Gun field of view", "float", 0.0, "Field of view the gun is drawn at. 0 draws it at your Field of view, as the original does.", g, {"min": 0.0, "max": 120.0, "step": 1.0, "unit": "deg"}))
+	L.append(_e("gameplay/gun_widescreen", "Widescreen gun placement", "bool", true, "Keep the gun as far toward the edge as the original drew it on a 4:3 screen. Off draws it where a wide screen puts it, nearer the middle.", g, {}))
 	L.append(_e("gameplay/gun_offset", "Gun side offset", "float", 0.0, "Moves the gun sideways (cg_gunY): toward the edge its side is on, or back toward the middle.", g, {"min": -10.0, "max": 10.0, "step": 0.5, "unit": "units"}))
 	L.append(_e("gameplay/view_bob", "View bob", "bool", true, "The view bobs as you run (cg_bobup/cg_bobpitch).", g, {}))
-	L.append(_e("gameplay/damage_kick", "Damage view kick", "bool", false, "The view tilts when you are hit, as Quake 3's does. Your shots keep going where you aimed, so with this on a hit throws the lightning gun beam off the crosshair. The red flash and the direction marker stay either way.", g, {}))
+	L.append(_e("gameplay/damage_kick", "Damage view kick", "bool", false, "The view tilts when you are hit, as in the original. Your shots keep going where you aimed, so with this on a hit throws the lightning gun beam off the crosshair. The red flash and the direction marker stay either way.", g, {}))
 	g = "Players"
 	L.append(_e("gameplay/force_model", "Force enemy model", "enum", "off", "Show every enemy as one model (cg_forceModel).", g,
 		{"options": [["off", "Off"]], "dynamic": "characters"}))
@@ -266,16 +266,16 @@ static func build() -> Array:
 	L.append(_e("gameplay/enemy_color", "Enemy color", "color", Color(0.3, 1.0, 0.2), "Bright skin color for enemies.", g))
 	L.append(_e("gameplay/team_color", "Team color", "color", Color(0.2, 0.6, 1.0), "Bright skin color for teammates.", g))
 	L.append(_e("gameplay/spawn_effect", "Spawn effects", "bool", true, "Teleport flash when players spawn and teleport.", g))
-	L.append(_e("gameplay/pain_twitch", "Hit twitch", "bool", false, "Players' upper bodies jerk to the side when they're hit, as in Quake 3 (CG_AddPainTwitch). Off keeps them steady.", g))
+	L.append(_e("gameplay/pain_twitch", "Hit twitch", "bool", false, "Players' upper bodies jerk to the side when they're hit, as in the original. Off keeps them steady.", g))
 	g = "Cinematics"
-	L.append(_e("gameplay/intro", "Intro movie", "enum", "first", "Quake 3's id logo and intro when the game starts.", g,
+	L.append(_e("gameplay/intro", "Intro movie", "enum", "first", "The id logo and intro when the game starts.", g,
 		{"options": [["first", "First launch only"], ["always", "Every launch"], ["never", "Never"]]}))
-	L.append(_e("gameplay/tier_movies", "Tier movies", "bool", true, "Play Quake 3's tier movie when you finish a campaign tier.", g))
+	L.append(_e("gameplay/tier_movies", "Tier movies", "bool", true, "Play the tier movie when you finish a campaign tier.", g))
 	g = "Replays"
 	L.append(_e("gameplay/record_replays", "Record replays", "bool", true, "Record every match you play: the whole match, every player, watchable from any view (Play > Replays).", g))
 	L.append(_e("gameplay/replays_kept", "Replays kept", "int", 50, "How many recent replays stay. Older ones are deleted, except favorites, which stay forever.", g, {"min": 5, "max": 500, "step": 5}))
 	g = "Death cam"
-	L.append(_e("gameplay/death_cam", "Death cam", "bool", true, "While you're dead the camera follows your body, then shows who killed you with their player card. Respawning works as in Quake 3.", g))
+	L.append(_e("gameplay/death_cam", "Death cam", "bool", true, "While you're dead the camera follows your body, then shows who killed you with their player card. Respawning works as in the original.", g))
 	g = "Spectating"
 	L.append(_e("gameplay/spec_view", "Spectator camera", "enum", "first", "How you see the player you follow while spectating: through their eyes, the chase camera behind them, or the cinematic camera, which picks its own shots (slow orbits, tracking shots, wide shots of the fight) and cuts to the action, with the auto-director choosing who to watch. Use item switches between them.", g,
 		{"options": [["first", "First person"], ["chase", "Chase camera"], ["cinematic", "Cinematic"]]}))

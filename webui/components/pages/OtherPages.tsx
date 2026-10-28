@@ -17,7 +17,7 @@ const CREDITS: [string, string[]][] = [
   ["Director of Business Development", ["Marty Stratton"]],
   ["Biz Assist and id Mom", ["Donna Jackson"]],
   ["Development Assistance", ["Eric Webb"]],
-  ["Code", ["Game logic, movement and bots from the GPL Quake III Arena source (ioquake3)"]],
+  ["Code", ["Game logic, movement and bots from id Software's GPL source code (ioquake3)"]],
   ["Fan project", ["All models, textures, sounds and maps are derived from id Software's Quake III Arena and belong to id Software.", "Quake III Arena on Steam is required to play."]],
 ];
 

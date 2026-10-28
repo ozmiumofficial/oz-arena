@@ -26,7 +26,7 @@ function mmss(s: number) {
 export default function CinematicsPage({ back }: PageProps) {
   const movies = useMenu((s) => s.init?.cinematics ?? []);
   return (
-    <PagePanel title="Cinematics" subtitle="Quake III Arena's movies, remastered to 4:3 at 1280x960. Tier movies unlock as you win the campaign." back={back}>
+    <PagePanel title="Cinematics" subtitle="The original movies, remastered to 4:3 at 1280x960. Tier movies unlock as you win the campaign." back={back}>
       <div data-grid="4" className="grid grid-cols-4 gap-4 overflow-y-auto px-10 py-6">
         {movies.map((c, i) => (
           <motion.button

@@ -84,7 +84,7 @@ export default function RacePage({ back }: PageProps) {
   const inList = chosen ? have.includes(chosen.map) : false;
 
   return (
-    <PagePanel title="Race" subtitle="Timed courses with Quake 3's own movement: no health to lose, hold jump to keep hopping, R to restart." back={back}>
+    <PagePanel title="Race" subtitle="Timed courses with the classic movement: no health to lose, hold jump to keep hopping, R to restart." back={back}>
       {maps.length === 0 ? (
         <div className="flex h-full flex-col items-center justify-center gap-5 px-10">
           <EmptyState

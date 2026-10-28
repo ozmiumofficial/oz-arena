@@ -21,4 +21,4 @@ Nothing is copied; the game remembers where it is and checks it on every launch.
 
 Q3Remaster.console.exe is the same game with a console window showing its log, for bug reports.
 
-Source code and issues: https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project
+Source code and issues: https://github.com/ozmiumofficial/oz-arena

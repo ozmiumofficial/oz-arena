@@ -66,10 +66,10 @@ static func import_bsp(b: PackedByteArray, name: String, audit := true) -> Dicti
 	var report := {"brushes": 0, "detail": 0, "faces": 0, "fitted": 0, "tex": 0, "undrawn": 0, "patches": 0, "entities": 0,
 			"surfaces": 0, "covered": 0, "worst": 0.0, "dropped": 0, "errors": [], "uncovered": []}
 	if b.size() < 8 + LUMPS * 8 or b.slice(0, 4).get_string_from_ascii() != "IBSP":
-		report["errors"].append("not a Quake 3 .bsp")
+		report["errors"].append("not an id Tech 3 .bsp")
 		return {"doc": null, "report": report}
 	if b.decode_s32(4) != 46:
-		report["errors"].append("BSP version %d, not Quake 3's 46" % b.decode_s32(4))
+		report["errors"].append("BSP version %d, not id Tech 3's 46" % b.decode_s32(4))
 		return {"doc": null, "report": report}
 	var lump := func(i: int) -> PackedByteArray:
 		var off := b.decode_s32(8 + i * 8)

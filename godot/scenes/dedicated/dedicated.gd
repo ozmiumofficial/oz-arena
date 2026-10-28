@@ -359,7 +359,7 @@ func stop_now() -> void:
 
 func _build_window() -> void:
 	var w := get_window()
-	w.title = "Q3Remaster dedicated server: %s" % cfg["name"]
+	w.title = "Oz Arena dedicated server: %s" % cfg["name"]
 	w.mode = Window.MODE_WINDOWED
 	w.borderless = false
 	w.min_size = Vector2i(520, 380)

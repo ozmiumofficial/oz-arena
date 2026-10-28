@@ -8,7 +8,7 @@ const q3 = localFont({ src: "./fonts/q3_prop.ttf", variable: "--font-q3", displa
 // body text: Barlow (SIL Open Font License), condensed-industrial, reads well at small sizes
 const body = Barlow({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" });
 
-export const metadata: Metadata = { title: "Q3Remaster" };
+export const metadata: Metadata = { title: "Oz Arena" };
 
 // Nothing outside the bundled menu may load or run (Ozmium, 2026-10-22: no code injection through
 // the web UI). Everything is served from the game's own files (http://res.webui), so 'self' covers

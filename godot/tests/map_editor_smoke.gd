@@ -910,7 +910,7 @@ func _e6_checks() -> void:
 		esc.pressed = true
 		ed.ui._input(esc)
 		await pending
-		check("Import a Quake 3 map lists the paks' maps; the import runs behind a dialog whose Cancel drops it",
+		check("Import an original map lists the paks' maps; the import runs behind a dialog whose Cancel drops it",
 				listed and blocking and is_same(ed.doc, before) and ed.importing == "")
 		ed.doc.dirty = false
 		var t := Time.get_ticks_msec()

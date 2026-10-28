@@ -12,7 +12,7 @@ import { shotSrc } from "@/lib/shot";
 import type { MapInfo, ModeInfo } from "@/lib/types";
 
 type Source = "all" | "q3" | "pack" | "custom";
-const SOURCES: [Source, string][] = [["all", "All"], ["q3", "Quake 3"], ["pack", "Maps folder"], ["custom", "My maps"]];
+const SOURCES: [Source, string][] = [["all", "All"], ["q3", "Original"], ["pack", "Maps folder"], ["custom", "My maps"]];
 
 export function sourceOf(m: MapInfo): Source {
   return m.special === "pack" ? "pack" : m.special === "custom" ? "custom" : "q3";

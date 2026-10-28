@@ -189,7 +189,7 @@ function Detail({ r, shot, confirm, setConfirm, watch }: { r: ReplayInfo; shot: 
         </>
       )}
       {!r.complete && <p className="mt-4 text-[0.85rem] text-dim">The game closed during this match; it plays up to where the recording stopped.</p>}
-      {r.demo && <p className="mt-4 text-[0.85rem] text-dim">A Quake 3 demo{r.player ? <> recorded by <Q3Name name={r.player} /></> : null}: one player&apos;s view, so a free camera sees only what they saw.{r.where === "quake3" ? " It's in your Quake 3 folder's demos." : ""}</p>}
+      {r.demo && <p className="mt-4 text-[0.85rem] text-dim">A classic demo{r.player ? <> recorded by <Q3Name name={r.player} /></> : null}: one player&apos;s view, so a free camera sees only what they saw.{r.where === "quake3" ? " It's in the original game's demos folder." : ""}</p>}
     </motion.div>
   );
 }

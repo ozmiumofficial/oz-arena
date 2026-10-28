@@ -107,7 +107,7 @@ const SLOT_TIPS: Record<EditSlot, string> = {
   emblem: "The portrait on your card. Every default head is free; skins, weapons, items and medals are earned.",
   frame: "The border around your card. The level track pays one every 10 levels; powerup frames pulse.",
   title: "The line under your name.",
-  accent: "Your card's trim, glow and XP bar. Quake 3's seven colors are free.",
+  accent: "Your card's trim, glow and XP bar. The seven classic colors are free.",
   rail: "Your rail trail's color in matches. Forced rail colors and competitive settings override it for whoever turns them on.",
   taunt: "The voice line when your card appears on the duel versus screen. Selecting one plays it.",
   stats: "Three career stats shown on your card, in the order you pick them.",

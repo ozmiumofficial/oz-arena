@@ -1109,7 +1109,7 @@ func _unlock_campaign() -> void:
 
 func _cdkey() -> void:
 	var dir := Q3Ownership.verified()
-	_out("Quake 3 is verified from %s" % dir if dir != "" else "^1No verified Quake 3 install. The game asks for one at start-up.")
+	_out("The game files are verified from %s" % dir if dir != "" else "^1No verified game files. The game asks for one at start-up.")
 
 
 # ---------------------------------------------------------------- cgame

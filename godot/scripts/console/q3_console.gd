@@ -304,7 +304,7 @@ func _build() -> void:
 	_panel.add_child(_edit)
 	get_viewport().size_changed.connect(_layout)
 	_load_history()
-	_add_line("^3Q3Remaster console^7 · %s" % Diagnostics.version())
+	_add_line("^3Oz Arena console^7 · %s" % Diagnostics.version())
 	_add_line("Type ^3help^7 for what it does. Tab completes.")
 
 

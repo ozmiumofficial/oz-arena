@@ -8,10 +8,10 @@ extends Node
 ## Command-line options for captures and tests (after --): subject=char:sarge|item:weapon_railgun|
 ## prop:<path>, framing=0-3, swap=<seconds>, page=<menu page id, or "friends" for the Friends panel>.
 
-## Quake 3's main-menu logo (q3_ui ui_menu.c MAIN_BANNER_MODEL). It reads "QUAKE III ARENA",
-## which PLAN.md's licensing mitigation 3 says to drop: swap this one constant once the project
-## has its own name.
-const TITLE_PROP := "mapobjects/banner/banner5"
+## A 3D title model for the logo slot (q3_ui ui_menu.c drew MAIN_BANNER_MODEL, banner5, here).
+## Empty: banner5 reads "QUAKE III ARENA", so the web menu writes "OZ ARENA" in the slot instead
+## (PLAN.md licensing mitigation 3).
+const TITLE_PROP := ""
 
 var stage: Q3ShowcaseStage
 var bridge: Q3MenuBridge
@@ -104,7 +104,7 @@ func _build_logo() -> void:
 	fill.light_energy = 1.4
 	fill.light_color = Color(1.0, 0.9, 0.8)
 	_logo_vp.add_child(fill)
-	logo = Q3.instance_prop(TITLE_PROP)
+	logo = Q3.instance_prop(TITLE_PROP) if TITLE_PROP != "" else null
 	if logo:
 		var holder := Node3D.new()
 		holder.add_child(logo)

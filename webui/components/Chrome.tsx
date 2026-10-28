@@ -14,8 +14,8 @@ import RankIcon from "./RankIcon";
 
 const NEWS = [
   ["Remaster", "29 characters rebuilt with real skeletons, 60 fps animation and ragdolls."],
-  ["Library", "1,415 world materials converted to matte PBR, every Quake 3 shader kept."],
-  ["Coming next", "The map importer: Quake 3's .bsp and .map files into the built-in editor."],
+  ["Library", "1,415 world materials converted to matte PBR, every original shader kept."],
+  ["Coming next", "The map importer: classic .bsp and .map files into the built-in editor."],
   ["Multiplayer", "Friends and parties are in. Player-hosted matches, a match browser and ranked duels come next."],
 ];
 

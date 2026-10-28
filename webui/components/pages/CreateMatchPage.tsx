@@ -201,7 +201,7 @@ export function OfflineBotsPage({ back }: PageProps) {
     start({ ...setup, bots });
   };
   return (
-    <PagePanel title="Skirmish" subtitle="Pick a mode and an arena; the map's own bots come first, as in Quake 3's single-player tiers." back={back}>
+    <PagePanel title="Skirmish" subtitle="Pick a mode and an arena; the map's own bots come first, as in the original single-player tiers." back={back}>
       <div className="grid h-full grid-cols-[1fr_26rem] gap-10 px-10 py-6">
         <div className="flex min-h-0 flex-col">
           <MapBrowser maps={init.maps} mode={mode} modes={quick} value={setup.map} onPick={(m) => pickMap(m, quick)} cols={3} />

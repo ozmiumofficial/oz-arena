@@ -249,9 +249,9 @@ func _build_top(parent: Control) -> void:
 	# the commands live in four menus, so the bar stays one short row; the tools are down the view's edge
 	row.add_child(_menu("FILE", "New, open, save, import and export maps", [["New map", "file.new"], ["Open map", "file.open"],
 			["Save", "file.save"], ["Save as", "file.saveAs"], ["Publish (play it from Create Match)", "file.publish"], ["", ""],
-			["Import a Quake 3 map", "file.importQ3"], ["Import a .bsp or .pk3 file", "file.importBsp"],
+			["Import an original map", "file.importQ3"], ["Import a .bsp or .pk3 file", "file.importBsp"],
 			["Import .map", "file.importMap"], ["", ""], ["Export .map (Radiant)", "file.exportMap"], ["Export .map (TrenchBroom)", "file.exportValve"],
-			["Export compiled .bsp / .pk3 (plays in Quake 3)", "file.exportBsp"],
+			["Export compiled .bsp / .pk3 (plays in the original game)", "file.exportBsp"],
 			["", ""], ["Leave to the main menu", "session.leave"]]))
 	row.add_child(_menu("EDIT", "Copy, group, turn, mirror, hide and lock the selection", [["Undo", "edit.undo"], ["Redo", "edit.redo"], ["", ""],
 			["Copy", "edit.copy"], ["Paste at the cursor", "edit.paste"], ["Duplicate", "edit.duplicate"], ["Delete", "edit.delete"],
@@ -759,7 +759,7 @@ func close_progress() -> void:
 func import_q3_dialog() -> void:
 	var paks := Q3BspImport.maps_in_paks()
 	if paks.is_empty():
-		toast("No maps found in your Quake 3 paks", true)
+		toast("No maps found in your paks", true)
 		return
 	var names: Array = paks.keys()
 	names.sort()
@@ -776,7 +776,7 @@ func import_q3_dialog() -> void:
 	list.item_activated.connect(func(_i):
 		close_modal()
 		go.call())
-	_show_modal("IMPORT A QUAKE 3 MAP", "Its brushes, curves and entities become an editable map, aligned as q3map drew it. Save it under a name of your own.",
+	_show_modal("IMPORT AN ORIGINAL MAP", "Its brushes, curves and entities become an editable map, aligned as q3map drew it. Save it under a name of your own.",
 			[["IMPORT", go], ["CANCEL", func(): pass]], list)
 	list.grab_focus.call_deferred()
 

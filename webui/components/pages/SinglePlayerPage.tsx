@@ -49,7 +49,7 @@ export default function SinglePlayerPage({ back }: PageProps) {
   return (
     <PagePanel
       title="Campaign"
-      subtitle="Quake III Arena's campaign: fight through the tiers of arenas to reach the final duel. Win every arena of a tier to open the next."
+      subtitle="The campaign: fight through the tiers of arenas to reach the final duel. Win every arena of a tier to open the next."
       back={back}
       onTab={(d) => {
         const n = Math.min(camp.tiers.length - 1, Math.max(0, tier + d));

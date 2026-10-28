@@ -1,25 +1,25 @@
-![Quake 3 Arena Remastered: Fan Project](docs/promo/banner.jpg)
+![Oz Arena](docs/promo/banner.jpg)
 
-# Quake 3 Arena Remastered: Fan Project
+# Oz Arena
 
-**The 1999 arena shooter, rebuilt for today without touching what made it great.**
+**A free, open-source arena shooter: the 1999 classic rebuilt for today without touching what made it great.**
 
 Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the roster, now with modern characters, lighting, effects, menus and online features. It's an unofficial, non-commercial fan project. You need your own copy of Quake III Arena to play.
 
-> **Open beta, now online.** The [open beta for Windows](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) adds online multiplayer: host a match from your own PC or run a dedicated server, find matches in the server browser, join friends, queue for matchmaking and ranked duels. Every connection is relayed, so no one sees anyone's IP address. The campaign, offline matches against bots and the map editor are all still there.
+> **Open beta, now online.** The [open beta for Windows](https://github.com/ozmiumofficial/oz-arena/releases) adds online multiplayer: host a match from your own PC or run a dedicated server, find matches in the server browser, join friends, queue for matchmaking and ranked duels. Every connection is relayed, so no one sees anyone's IP address. The campaign, offline matches against bots and the map editor are all still there.
 
 ### Menus
 
 | | |
 |---|---|
 | ![Main menu](docs/screenshots/menu-main.jpg) | ![Campaign](docs/screenshots/menu-single-player.jpg) |
-| **Main menu:** a fighter or item turning in a smoky void, with Quake 3's own menu sounds and its soundtrack on shuffle | **Campaign:** id's single player campaign, tier by tier, with skill levels and medals |
+| **Main menu:** a fighter or item turning in a smoky void, with the original menu sounds and soundtrack on shuffle | **Campaign:** id's single player campaign, tier by tier, with skill levels and medals |
 | ![Create match](docs/screenshots/menu-create-match.jpg) | ![Profile](docs/screenshots/menu-profile.jpg) |
 | **Create match:** every mode, map and rule, with modifiers on top | **Profile:** your player card, with banners, emblems, frames and titles you earn by playing |
 
 ![Settings](docs/screenshots/menu-settings.jpg)
 
-**Settings:** search every option, with a description of each. The weapon effects can be Quake 3's classic look or glowing rail and lightning beams, missile trails with a burning core, and explosions with flying embers and smoke.
+**Settings:** search every option, with a description of each. The weapon effects can be the classic look or glowing rail and lightning beams, missile trails with a burning core, and explosions with flying embers and smoke.
 
 ### In game
 
@@ -46,7 +46,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 
 ## What's new
 
-| | Quake III Arena (1999) | Remastered |
+| | The original (1999) | Oz Arena |
 |---|---|---|
 | **Characters** | Low-poly models with stiff, frame-by-frame animation | All 29 fighters rebuilt with real skeletons, smooth 60 fps animation and much finer meshes |
 | **Deaths** | Canned death animations | Physics ragdolls that react to the hit that killed them, then burn away |
@@ -54,7 +54,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 | **Lighting** | 1999 lightmaps | All 35 original maps relit with modern global illumination |
 | **Effects** | Sprite explosions and beams | Remade explosions, smoke, rail trails, lightning, blood and impacts, using the original effect timings |
 | **Movies** | Low-resolution intro and tier movies | All 10 cinematics upscaled |
-| **Main menu** | Static menu screens | A cinematic menu: one fighter or weapon floating in a dark, smoky void while the camera drifts, with the original menu sounds and Quake 3's soundtrack on shuffle |
+| **Main menu** | Static menu screens | A cinematic menu: one fighter or weapon floating in a dark, smoky void while the camera drifts, with the original menu sounds and soundtrack on shuffle |
 | **HUD** | Fixed classic HUD | A Quake Live-style HUD with four presets, a speedometer that shows your strafe-jump gain, a kill feed, damage direction arcs and award medals |
 | **Chat** | A line of text at the top of the screen | A chat box with history, team chat, name completion and a live preview of colored text; colored names show everywhere, from the kill feed to the scoreboard |
 | **Crosshair** | Pick one of ten | A full crosshair editor with per-weapon crosshairs and shareable codes, previewed live in the match behind it |
@@ -70,7 +70,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
   - A server browser with search, region and mode filters. Join friends and party members from the Friends panel.
   - Quick Play matchmaking for Duel, Free For All, Team Deathmatch and Capture the Flag, and ranked queues for Duel, Team Deathmatch and Capture the Flag with an Elo ladder, seasons and tiers from Bronze to Godlike (from level 30).
   - Every connection goes through a relay, so no one sees another player's IP address, the host included. No ports to open.
-  - Vote-kick troublemakers in a match, Quake 3 style.
+  - Vote-kick troublemakers in a match, classic style.
 - **Single player:** the original campaign, from Training through six tiers to the final duel with Xaero, with medals, skill levels and the tier movies.
 - **Offline vs bots and training:** any original map, any mode, any bot lineup.
 - **All 35 original maps,** relit, from q3dm0 to the pro duel maps.
@@ -93,8 +93,8 @@ Most remakes copy the original from memory. This one runs id Software's own game
   - A replay viewer: pause, slow motion and fast forward, frame by frame, jump to the next or last frag, a timeline marked with your frags, deaths and medals, name tags and outlines.
   - A Replays page: rename, keep favorites forever, watch again from the results screen.
   - Save a clip of any moment as a video.
-  - Plays Quake 3's own demo files too.
-- **Race:** Defrag-style timed courses, with Quake 3's own movement.
+  - Plays the original game's demo files too.
+- **Race:** Defrag-style timed courses, with the classic movement.
   - Run from the start line to the finish through the checkpoints; the timer shows your split against your best at each one.
   - Restart with R, or save a spot and come back to it to practice a jump. No health to lose, and rocket jumps cost nothing.
   - Your best run is kept for every course and races beside you as a ghost.
@@ -113,10 +113,10 @@ Most remakes copy the original from memory. This one runs id Software's own game
   - Form a party of up to 8 and chat. No email, password or account needed.
 - **Leaderboards:** see where your level and your ranked rating stand against everyone or just your friends, and open any player's card.
 - **Player cards and levels:**
-  - Build your own card from about 380 Quake 3-themed banners, emblems, frames, titles, accent colors, rail colors and taunts.
+  - Build your own card from about 380 arena-themed banners, emblems, frames, titles, accent colors, rail colors and taunts.
   - Every match played to the end earns XP, bots included. Levels and 89 achievements unlock new parts, and the Profile shows what each locked part needs.
   - Your card appears on the scoreboard and the results screen. Progression is cosmetic only and never changes the game.
-- **Developer console:** Quake 3's drop-down console on the key under Esc, with the original commands, binds and config files.
+- **Developer console:** The classic drop-down console on the key under Esc, with the original commands, binds and config files.
 
   ![Developer console](docs/screenshots/console.jpg)
 - **Controller support** in the menus and in matches, with a southpaw stick layout.
@@ -152,7 +152,7 @@ Some things shouldn't change, so they don't:
 
 **Installing the open beta:**
 
-1. From the [Releases](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases) page, first download the three texture packs (`textures-1.pck`, `textures-2.pck` and `textures-3.pck`, about 4 GB) from the [Textures release](https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases/tag/textures), then the game's zip from the newest release.
+1. From the [Releases](https://github.com/ozmiumofficial/oz-arena/releases) page, first download the three texture packs (`textures-1.pck`, `textures-2.pck` and `textures-3.pck`, about 4 GB) from the [Textures release](https://github.com/ozmiumofficial/oz-arena/releases/tag/textures), then the game's zip from the newest release.
 2. Unzip the game anywhere, and put all three texture packs in the `Q3Remaster` folder, next to `Q3Remaster.exe`.
 3. Run `Q3Remaster.exe`.
 
@@ -160,10 +160,10 @@ You can also build the game yourself from this source code and the Quake III Are
 
 **First launch:** the game asks for your copy before it goes any further.
 
-1. Start the remaster. After the disclaimer you'll see **Quake III Arena required**.
+1. Start Oz Arena. After the disclaimer you'll see **Quake III Arena required**.
 2. Open your Quake III Arena folder (on Steam: `Steam\steamapps\common\Quake 3 Arena\baseq3`). If the game finds an install, **Open that folder** takes you there.
 3. Drag `pak0.pk3` onto the game window. You can also drag the `baseq3` folder or the whole game folder, or use **Browse**.
-4. The game checks the file against id's retail release, the same check Quake 3 itself runs. If it matches, the game starts. If it doesn't, the game won't launch.
+4. The game checks the file against id's retail release, the same check the original game runs. If it matches, the game starts. If it doesn't, the game won't launch.
 
 Nothing is copied or uploaded. The game remembers where the file is and checks it again every time it starts, so if you move or remove your Quake III Arena, it asks again.
 

@@ -194,7 +194,7 @@ func _build_material(face_keys: Array) -> void:
 	for a in [["Fit", "fit"], ["Left", "left"], ["Right", "right"], ["Top", "top"], ["Bottom", "bottom"], ["Center", "center"],
 			["Flip U", "flipU"], ["Flip V", "flipV"], ["Reset", ""]]:
 		var how: String = a[1]
-		_button(align, a[0], "Reset to Quake 3's world projection" if how == "" else "Align: " + a[0].to_lower(), func():
+		_button(align, a[0], "Reset to the classic world projection" if how == "" else "Align: " + a[0].to_lower(), func():
 			if how == "":
 				editor.edit_faces("reset")
 			else:
@@ -766,7 +766,7 @@ func _flight(e: Dictionary) -> String:
 	var g := Q3MapEntities.gravity(editor.doc)
 	var v := Q3MapEntities.push_velocity(from, to, g)
 	if v == Vector3.ZERO:
-		return "The target is below the pad, so Quake 3 removes this jump pad."
+		return "The target is below the pad, so the game removes this jump pad."
 	var flat := Vector2(to.x - from.x, to.y - from.y).length()
 	return "Launch %d u/s (%.1f m/s), %d units up, %.2f s to the top, %d units out" % [
 			int(v.length()), v.length() / 32.0, int(to.z - from.z), v.z / g, int(flat)]

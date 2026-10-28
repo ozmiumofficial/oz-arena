@@ -105,7 +105,9 @@ func _menu_checks() -> void:
 		stubs_ok = stubs_ok and s != null
 		if s:
 			s.free()
-	check("menu: main menu, showcase, logo and stub scenes build", menu.stage.subject != null and menu.logo != null and stubs_ok,
+	# the title is the web menu's "OZ ARENA" unless main_menu.gd's TITLE_PROP names a 3D model
+	var logo_ok: bool = menu.logo != null if menu.TITLE_PROP != "" else menu.logo_view != null
+	check("menu: main menu, showcase, logo and stub scenes build", menu.stage.subject != null and logo_ok and stubs_ok,
 			"subject %s" % menu.stage.info.get("name", "?"))
 
 	# the web menu's tree: every page has a component in the build, every action reaches Godot

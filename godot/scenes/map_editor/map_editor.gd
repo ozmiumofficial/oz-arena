@@ -1382,11 +1382,11 @@ func _execute(cmd: String) -> bool:
 		"file.importMap":
 			ui.ask_unsaved(func(): ui.map_file_dialog("", func(p): import_map("map", p)))
 		"file.importBsp":
-			ui.ask_unsaved(func(): ui.file_dialog("", PackedStringArray(["*.bsp, *.pk3 ; Quake 3 maps and packages"]), "Import a .bsp or .pk3",
+			ui.ask_unsaved(func(): ui.file_dialog("", PackedStringArray(["*.bsp, *.pk3 ; Maps and map packages"]), "Import a .bsp or .pk3",
 					func(p): import_bsp_file(p)))
 		"file.exportBsp":
 			ui.file_dialog(Q3EditorUi.clean_name(String(doc.info.get("name", "untitled"))) + ".pk3",
-					PackedStringArray(["*.pk3 ; Quake 3 package (map, bot file, arena, levelshot)", "*.bsp ; Compiled map"]), "Export the compiled map",
+					PackedStringArray(["*.pk3 ; Map package (map, bot file, arena, levelshot)", "*.bsp ; Compiled map"]), "Export the compiled map",
 					func(p): export_compiled(p))
 		"file.exportMap", "file.exportValve":
 			var format := "valve220" if cmd == "file.exportValve" else "brushdef"

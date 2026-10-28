@@ -9,7 +9,7 @@ extends Node
 
 signal available(info: Dictionary)
 
-const REPO := "ozmiumofficial/quake-3-arena-remastered-fan-project"
+const REPO := "ozmiumofficial/oz-arena"
 const FEED := "https://api.github.com/repos/" + REPO + "/releases?per_page=15"
 const RELEASES_URL := "https://github.com/" + REPO + "/releases"
 const STORE := "user://updates.cfg"

@@ -29,7 +29,7 @@ const WEAPONS: [number, string, string, string][] = [
   [7, "railgun", "railgun", "Railgun"], [8, "plasma", "plasma", "Plasma gun"], [9, "bfg", "bfg", "BFG10K"],
 ];
 const PRESETS: [string, Record<string, Value>][] = [
-  ["Quake 3", { "crosshair/shape": "c", "crosshair/size": 24, "crosshair/color": "#ffffff", "crosshair/outline": false, "crosshair/dot": false }],
+  ["Classic", { "crosshair/shape": "c", "crosshair/size": 24, "crosshair/color": "#ffffff", "crosshair/outline": false, "crosshair/dot": false }],
   ["Arena cross", { "crosshair/shape": "cross", "crosshair/size": 20, "crosshair/thickness": 2, "crosshair/gap": 4, "crosshair/color": "#ffffff", "crosshair/outline": true, "crosshair/dot": false }],
   ["Sharp dot", { "crosshair/shape": "dot", "crosshair/size": 10, "crosshair/thickness": 2, "crosshair/color": "#39ff6a", "crosshair/outline": true, "crosshair/dot": false }],
   ["Ring", { "crosshair/shape": "circle", "crosshair/size": 28, "crosshair/thickness": 2, "crosshair/color": "#ffad33", "crosshair/outline": true, "crosshair/dot": true }],
@@ -103,7 +103,7 @@ export default function CrosshairEditor({ back }: PageProps) {
             </ShapeTile>
           )}
           {SHAPES.map((s) => (
-            <ShapeTile key={s} label={isQ3Shape(s) ? `Quake 3 ${s.toUpperCase()}` : s === "t" ? "T" : s} active={(wkey ? weaponShape : values["crosshair/shape"]) === s} onClick={() => pickShape(s)}>
+            <ShapeTile key={s} label={isQ3Shape(s) ? `Classic ${s.toUpperCase()}` : s === "t" ? "T" : s} active={(wkey ? weaponShape : values["crosshair/shape"]) === s} onClick={() => pickShape(s)}>
               {s === "none" ? <span className="font-q3 text-[0.7rem] tracking-[0.12em] text-dim">None</span> : <CrosshairGlyph {...glyphFrom(values, s)} size={Math.min(Number(values["crosshair/size"] ?? 24), 34)} />}
             </ShapeTile>
           ))}
@@ -191,7 +191,7 @@ export default function CrosshairEditor({ back }: PageProps) {
           <div data-row className="flex w-full items-center gap-3">
             <Button small onClick={() => void send("export_code", { prefix: "crosshair/" })}>Copy crosshair code</Button>
             <Button small onClick={() => setImporting(true)}>Paste code</Button>
-            <Button small onClick={() => (send("reset_tab", { tab: "crosshair" }), toast("Crosshair reset to Quake 3's."))}>Reset</Button>
+            <Button small onClick={() => (send("reset_tab", { tab: "crosshair" }), toast("Crosshair reset to the default."))}>Reset</Button>
             <span className="ml-auto text-[0.85rem] text-faint">Saved as you go.</span>
           </div>
         }

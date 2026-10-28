@@ -156,13 +156,12 @@ function MainColumn({ stack, activate, open, dev }: { stack: string[]; activate:
   }, []);
   return (
     <div ref={ref} className="absolute bottom-24 left-[3.5rem] top-8 flex w-[30rem] flex-col">
-      {/* the banner5 logo: Godot renders it into this box (q3_ui's 640x120 strip, 60 degree fov) */}
-      <div ref={logo} className={cn("relative h-[7.5rem] w-[30rem] shrink-0", dev && "rounded-sm border border-dashed border-white/10")}>
-        {dev && <div className="absolute inset-0 grid place-items-center font-q3 text-[0.75rem] tracking-[0.3em] text-white/25">3D logo (Godot)</div>}
+      {/* the logo slot (q3_ui's 640x120 strip): the title, and Godot draws main_menu.gd's TITLE_PROP into it when one is set */}
+      <div ref={logo} className={cn("relative grid h-[7.5rem] w-[30rem] shrink-0 place-items-center", dev && "rounded-sm border border-dashed border-white/10")}>
+        <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15, duration: 0.9, ease: [0.2, 0.9, 0.1, 1] }}>
+          <BannerText text="Oz Arena" height={4.6} tracking={0.3} />
+        </motion.div>
       </div>
-      <motion.div className="mt-3 flex justify-center" initial={{ opacity: 0, letterSpacing: "0.6em" }} animate={{ opacity: 1, letterSpacing: "0em" }} transition={{ delay: 0.3, duration: 0.9 }}>
-        <BannerText text="Remastered" height={1.9} tracking={0.35} />
-      </motion.div>
       <nav className={cn("mt-auto mb-6 flex flex-col transition-opacity duration-300", deep && "opacity-55")}>
         {(menu.main as MenuItemDef[]).map((it, i) => (
           <motion.div key={it.id} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 + i * 0.05, duration: 0.45, ease: [0.2, 0.9, 0.1, 1] }}>

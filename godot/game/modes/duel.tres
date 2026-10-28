@@ -6,7 +6,7 @@
 script = ExtResource("1_mode")
 id = "duel"
 display_name = "Duel"
-description = "One on one (Quake 3's Tournament). The rest wait in the queue."
+description = "One on one (the classic Tournament). The rest wait in the queue."
 team_based = false
 rounds = false
 map_types = PackedStringArray("tourney")

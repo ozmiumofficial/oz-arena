@@ -49,7 +49,7 @@ var _info_cache: Dictionary = {}
 static func build(map_name: String) -> Q3ClassicMap:
 	var b := Q3MapPacks.read(map_name, "maps/%s.bsp" % map_name)
 	if b.size() < 8 + 17 * 8 or b.slice(0, 4).get_string_from_ascii() != "IBSP" or b.decode_s32(4) != 46:
-		push_error("Q3ClassicMap: maps/%s.bsp isn't a Quake 3 map" % map_name)
+		push_error("Q3ClassicMap: maps/%s.bsp isn't an id Tech 3 map" % map_name)
 		return null
 	var m := Q3ClassicMap.new()
 	m.name = "ClassicMap"

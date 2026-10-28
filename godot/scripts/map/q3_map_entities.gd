@@ -159,7 +159,7 @@ static func category(cn: String) -> String:
 static func description(cn: String) -> String:
 	if Q3.entities.has(cn):
 		return String(Q3.entities[cn].get("name", cn))
-	return String(Q3.map_entities.get(cn, {}).get("description", "Not one of Quake 3's classes"))
+	return String(Q3.map_entities.get(cn, {}).get("description", "Not a known entity class"))
 
 
 static func color(cn: String) -> Color:

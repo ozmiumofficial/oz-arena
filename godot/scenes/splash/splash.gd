@@ -7,7 +7,7 @@ const MIN_SECONDS := 5.0
 const SKIP_AFTER := 1.5
 ## The statements the self-test checks for.
 const LINES := [
-	"Q3Remaster is a non-commercial fan project. It is not made, endorsed or supported by id Software, Bethesda or Microsoft.",
+	"Oz Arena is a non-commercial fan project. It is not made, endorsed or supported by id Software, Bethesda or Microsoft.",
 	"All models, textures, sounds and maps are derived from id Software's Quake III Arena and belong to id Software.",
 	"Your own copy of Quake III Arena is required to play.",
 ]

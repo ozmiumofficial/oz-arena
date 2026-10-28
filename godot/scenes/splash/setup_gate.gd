@@ -44,7 +44,7 @@ func _build() -> void:
 	rule.color = Color(Q3Theme.RED, 0.7)
 	rule.custom_minimum_size = Vector2(0, 2)
 	box.add_child(rule)
-	box.add_child(_text("This remaster runs on your own copy of Quake III Arena. Drag pak0.pk3 from the game's baseq3 folder onto this window.", 24, Q3Theme.TEXT))
+	box.add_child(_text("Oz Arena runs on your own copy of Quake III Arena. Drag pak0.pk3 from the game's baseq3 folder onto this window.", 24, Q3Theme.TEXT))
 
 	_drop = PanelContainer.new()
 	_drop_style = StyleBoxFlat.new()

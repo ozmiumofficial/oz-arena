@@ -47,7 +47,7 @@ static func published_name(map_name: String) -> String:
 static func ensure_kit() -> String:
 	var paks := pak_dir()
 	if paks == "" or not DirAccess.dir_exists_absolute(paks):
-		return "Quake 3's files aren't set up (the game's setup screen points at them)."
+		return "The original game's files aren't set up (the game's setup screen points at them)."
 	var names := []
 	for f in DirAccess.get_files_at(paks):
 		# id's own paks only: the editor's materials are Quake 3's, and a downloaded map's shader script
@@ -81,7 +81,7 @@ static func ensure_kit() -> String:
 					shaders[entry.get_file().to_lower().get_basename()] = true
 		z.close()
 	if shaders.is_empty():
-		return "No shader scripts in Quake 3's paks at " + paks
+		return "No shader scripts in the paks at " + paks
 	var list := shaders.keys()
 	list.sort()
 	var lf := FileAccess.open(scripts.path_join("shaderlist.txt"), FileAccess.WRITE)

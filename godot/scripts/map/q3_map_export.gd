@@ -35,7 +35,7 @@ static func to_map(doc: Q3MapDoc, format := "brushdef") -> Dictionary:
 		if o["type"] == "entity" and String(o["classname"]) in MERGED:
 			merged[id] = true
 	var out := PackedStringArray()
-	out.append("// %s, written by the Quake III Arena Remastered map editor" % String(doc.info.get("name", "untitled")).replace("\n", " ").replace("\r", " "))
+	out.append("// %s, written by the Oz Arena map editor" % String(doc.info.get("name", "untitled")).replace("\n", " ").replace("\r", " "))
 	# worldspawn
 	var ws := doc.worldspawn.duplicate()
 	ws.erase("classname")

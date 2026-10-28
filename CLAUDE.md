@@ -63,6 +63,7 @@ python tools/build_cards.py extracted/baseq3 work/_cards [--no-render]   # playe
 python tools/make_music.py                          # Quake 3's soundtrack -> godot/library/music (Ogg)
 python tools/export_game.py                         # Windows build -> build/windows (Q3Remaster.exe map=q3dm17 bots=3 skips the menu)
 python tools/make_icon.py [--preview sheet.png]     # the game icon (Quake 3's emblem + R) -> godot/icon.png (window), icon.ico (exe)
+python tools/make_space_sky.py                      # 4096x2048 procedural space panorama -> library/world/skies/env_space1_rt_pano.png (skybox.tres: q3dm10, q3dm17, q3dm19, q3ctf4, q3tourney6, q3tourney6_ctf; a map rebuild puts their black sky back)
 python tools/ql/extract_ql.py                       # Quake Live's rules (DLL cvar + item tables, factories) -> tools/ql/ql_rules.json (needs Quake Live installed; it isn't any more, and ql_rules.json is the kept record)
 ```
 

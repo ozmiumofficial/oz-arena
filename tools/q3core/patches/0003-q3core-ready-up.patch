@@ -74,8 +74,8 @@ diff --git a/code/game/g_main.c b/code/game/g_main.c
  
  		// if we don't have two players, go back to "waiting for players"
 -		if ( level.numPlayingClients != 2 ) {
-+		// (q3core: or, with g_readyUp, until both are ready)
-+		if ( level.numPlayingClients != 2 || ( g_readyUp.integer && !G_EveryoneReady() ) ) {
++		// (q3core: or, with g_readyUp, until both are ready; not once the warmup is over, or the map_restart that ends it, which clears everyone's ready, sent the duel back to waiting)
++		if ( level.numPlayingClients != 2 || ( g_readyUp.integer && level.warmupTime != 0 && !G_EveryoneReady() ) ) {
  			if ( level.warmupTime != -1 ) {
  				level.warmupTime = -1;
  				trap_SetConfigstring( CS_WARMUP, va("%i", level.warmupTime) );

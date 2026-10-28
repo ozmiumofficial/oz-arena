@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cy2ycaac08o3p" path="res://scripts/game/q3_map.gd" id="1_lpgiv"]
 [ext_resource type="PackedScene" uid="uid://c4ag6k45f250g" path="res://library/maps/q3tourney6_ctf/q3tourney6_ctf.glb" id="2_2lssw"]
-[ext_resource type="Sky" uid="uid://cbxlhkcsum4jf" path="res://library/world/skies/skies/blacksky.tres" id="3_ci5rn"]
+[ext_resource type="Sky" uid="uid://32qhdthrsug3" path="res://library/world/skies/skies/skybox.tres" id="3_ci5rn"]
 [ext_resource type="LightmapGIData" uid="uid://8ty2llhsk5qv" path="res://library/maps/q3tourney6_ctf/q3tourney6_ctf.lmbake" id="4_2lssw"]
 
 [sub_resource type="Environment" id="Environment_xkyr7"]

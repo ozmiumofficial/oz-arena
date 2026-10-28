@@ -1000,7 +1000,8 @@ func _update_camera(ps: Dictionary) -> void:
 			var roll := fracsin * 0.002 * speed * (3.0 if ducked else 1.0)
 			a.z += -roll if (bob & 128) else roll
 			eye.z += minf(fracsin * xyspeed * 0.005, 6.0)   # cg_bobup
-		var kick: Vector2 = hud.view_kick() if hud else Vector2.ZERO
+		# the kick turns the picture only; the shot keeps the real angles, so it pulls the beam off the crosshair
+		var kick: Vector2 = hud.view_kick() if hud and Settings.get_value("gameplay/damage_kick") else Vector2.ZERO
 		a.x += kick.x
 		a.z += kick.y
 		eye.z += float(ps["viewheight"])

@@ -258,6 +258,7 @@ static func build() -> Array:
 	L.append(_e("gameplay/gun_widescreen", "Widescreen gun placement", "bool", true, "Keep the gun as far toward the edge as Quake 3 drew it on a 4:3 screen. Off draws it where a wide screen puts it, nearer the middle.", g, {}))
 	L.append(_e("gameplay/gun_offset", "Gun side offset", "float", 0.0, "Moves the gun sideways (cg_gunY): toward the edge its side is on, or back toward the middle.", g, {"min": -10.0, "max": 10.0, "step": 0.5, "unit": "units"}))
 	L.append(_e("gameplay/view_bob", "View bob", "bool", true, "The view bobs as you run (cg_bobup/cg_bobpitch).", g, {}))
+	L.append(_e("gameplay/damage_kick", "Damage view kick", "bool", false, "The view tilts when you are hit, as Quake 3's does. Your shots keep going where you aimed, so with this on a hit throws the lightning gun beam off the crosshair. The red flash and the direction marker stay either way.", g, {}))
 	g = "Players"
 	L.append(_e("gameplay/force_model", "Force enemy model", "enum", "off", "Show every enemy as one model (cg_forceModel).", g,
 		{"options": [["off", "Off"]], "dynamic": "characters"}))

@@ -1,0 +1,29 @@
+[remap]
+
+importer="2d_array_texture"
+type="CompressedTexture2DArray"
+uid="uid://ca6m2vk6u2hvs"
+path.bptc="res://.godot/imported/pukka3tourney2.exr-1ef9201893cef22d93656a2bd1f85549.bptc.ctexarray"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+
+[deps]
+
+source_file="res://library/maps/pukka3tourney2/pukka3tourney2.exr"
+dest_files=["res://.godot/imported/pukka3tourney2.exr-1ef9201893cef22d93656a2bd1f85549.bptc.ctexarray"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/channel_pack=1
+mipmaps/generate=false
+mipmaps/limit=-1
+slices/horizontal=1
+slices/vertical=16

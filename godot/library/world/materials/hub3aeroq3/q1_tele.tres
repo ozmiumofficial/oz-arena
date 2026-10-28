@@ -1,0 +1,28 @@
+[gd_resource type="ShaderMaterial" load_steps=6 format=3]
+
+[ext_resource type="Shader" path="res://shaders/world/world_opaque_2s.gdshader" id="1_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/hub3aeroq3__q1_tele_albedo.png" id="2_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/hub3aeroq3__q1_tele_normal.jpg" id="3_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/hub3aeroq3__q1_tele_orm.jpg" id="4_r"]
+[ext_resource type="Texture2D" path="res://library/world/textures/effects__envmap_albedo.jpg" id="5_r"]
+
+[resource]
+resource_name = "textures/hub3aeroq3/q1_tele"
+shader = ExtResource("1_r")
+shader_parameter/albedo_tex = ExtResource("2_r")
+shader_parameter/normal_tex = ExtResource("3_r")
+shader_parameter/orm_tex = ExtResource("4_r")
+shader_parameter/under_tex = ExtResource("5_r")
+shader_parameter/base_scale = Vector2(1.0, 1.0)
+shader_parameter/base_rotate = 0.0
+shader_parameter/base_scroll = Vector2(0.0, 0.0)
+shader_parameter/base_turb = Vector4(0.0, 0.3, 0.0, 0.2)
+shader_parameter/emission_energy = 0.3
+shader_parameter/alpha_cut = 0.0
+shader_parameter/stochastic = false
+shader_parameter/has_under = true
+shader_parameter/under_env = true
+shader_parameter/under_scale = Vector2(1.0, 1.0)
+shader_parameter/under_motion = Vector3(0.0, 0.0, 0.0)
+shader_parameter/under_turb = Vector4(0.0, 0.0, 0.0, 0.0)
+shader_parameter/self_illum = 1.0

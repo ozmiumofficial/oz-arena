@@ -146,6 +146,35 @@ check(a.state.party?.members.length === 3, 'party of 3');
 c.send('party_chat', { text: 'gl hf' });
 const chat = await wait(b.next('party_chat'));
 check(chat?.text === 'gl hf' && chat.from.name === 'Orbb', 'party chat reaches members');
+// the leader hosts: their match lists (for them too), and the party is told to follow them in, password and all
+a.send('net_host', { name: 'Party match', mode: 'ffa', map: 'q3dm17', players: 1, max: 8, password: true, version: 'smoke' });
+a.send('net_browse');
+const own = await wait(a.next('net_matches'));
+check(own?.matches.some((m) => m.host === a.state.me.id && m.name === 'Party match'), 'the host sees their own match listed');
+a.send('party_follow', { host: a.state.me.id, password: 'pw' });
+const [fb, fc] = await Promise.all([wait(b.next('net_follow')), wait(c.next('net_follow'))]);
+check(fb?.host === a.state.me.id && fb.password === 'pw' && fc?.host === a.state.me.id, 'the party is told to follow the leader in');
+b.send('party_follow', { host: a.state.me.id });
+check(!(await wait(c.next('net_follow', () => true, 800))), 'only the leader brings the party');
+a.send('net_unhost');
+// Quick Play: the open match in the mode, not the fuller one behind a password; another version finds none
+b.send('net_host', { name: 'Quick open', mode: 'smoke_q', map: 'q3dm17', players: 3, max: 8, version: 'smoke', rtt: 40 });
+c.send('net_host', { name: 'Quick locked', mode: 'smoke_q', map: 'q3dm17', players: 5, max: 8, password: true, version: 'smoke', rtt: 40 });
+// the two listings come over other sockets: wait until both are in the directory
+for (let i = 0; i < 20; i++) {
+  a.send('net_browse');
+  const d = await wait(a.next('net_matches'));
+  if (d?.matches.filter((m) => m.mode === 'smoke_q').length === 2) break;
+}
+a.send('net_quick', { mode: 'smoke_q', version: 'smoke', rtt: 60 });
+const qp = await wait(a.next('net_quick'));
+check(qp?.status === 'found' && qp.match?.host === b.state.me.id && qp.skipped === 1 && qp.est === 50,
+  `quick play picks the open match (${qp?.status}, ${qp?.match?.name}, skipped ${qp?.skipped}, ~${qp?.est} ms)`);
+a.send('net_quick', { mode: 'smoke_q', version: 'other', rtt: 60 });
+const qn = await wait(a.next('net_quick'));
+check(qn?.status === 'none' && !qn.match && qn.skipped === 2, 'quick play finds none on another version');
+b.send('net_unhost');
+c.send('net_unhost');
 b.send('party_kick', { id: c.state.me.id });
 const refusedKick = await wait(b.next('notice', (m) => m.tone === 'error'));
 check(!!refusedKick, 'only the leader can kick');

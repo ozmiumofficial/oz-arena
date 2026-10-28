@@ -79,7 +79,8 @@ func _publish() -> void:
 	_last_players = player_count()
 	client.send("net_host", {"name": listing.get("name", "Match"), "mode": listing.get("mode", "ffa"), "map": listing.get("map", ""),
 		"players": _last_players, "max": int(listing.get("max", 16)), "password": String(listing.get("password", "")) != "",
-		"ranked": bool(listing.get("ranked", false)), "version": String(listing.get("version", "")), "match": String(listing.get("match", "")), "dedicated": bool(listing.get("dedicated", false))})
+		"ranked": bool(listing.get("ranked", false)), "version": String(listing.get("version", "")), "match": String(listing.get("match", "")), "dedicated": bool(listing.get("dedicated", false)),
+		"rtt": client.rtt})   # the hub socket round trip: Quick Play's ping guess
 
 
 func _on_net(m: Dictionary) -> void:

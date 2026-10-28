@@ -182,7 +182,16 @@ if a.release:
     if why:
         # this release is the new base; its patch.pck is empty, so it replaces an older base's patch
         print("new base pack (%s)" % why)
-        export_patch(full)
+        # a base release's patch holds only game/version.txt (the base pack has it too): Godot's own
+        # --export-patch against this release's pack has no files, and a pack with no files hangs the
+        # game at startup when UpdateBoot mounts it
+        if os.path.isfile(patch):
+            os.remove(patch)
+        r = subprocess.run([godot, "--headless", "--path", project, "--quit-after", "3000", "--log-file", os.path.join(a.out, "patch.log"),
+                            "res://tests/pack_files.tscn", "--", "out=" + patch.replace("\\", "/"), "file=res://game/version.txt"],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if r.returncode != 0 or not os.path.isfile(patch):
+            sys.exit("export_game: the base release's patch.pck failed; see patch.log")
         os.makedirs(base_dir, exist_ok=True)
         shutil.copy2(full, base_pck)
         base = dict(boot, tag=a.release, sha256=release_manifest.sha256_file(base_pck))

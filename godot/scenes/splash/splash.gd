@@ -27,8 +27,9 @@ var _gate: Control   ## the setup screen, while no verified Quake III Arena is k
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	if Session.replay.has("clip"):
-		# a clip render (Q3ClipExport): every frame is a movie frame, so no disclaimer, loads or fades
+	if Session.replay.has("clip") or Session.dedicated_arg() != "":
+		# a clip render (Q3ClipExport): every frame is a movie frame, so no disclaimer, loads or fades;
+		# a dedicated server goes straight to its own window
 		set_process(false)
 		_leave.call_deferred()
 		return
@@ -205,9 +206,9 @@ func _input(ev: InputEvent) -> void:
 
 
 func _leave() -> void:
-	if Session.replay.has("clip"):
-		# no one is there to answer the setup screen: without a verified game the render just ends
-		if Q3Ownership.verified() == "" or Q3.missing_packs.size():
+	if Session.replay.has("clip") or Session.dedicated_arg() != "":
+		# no one is there to answer the setup screen: without a verified game the render (or server) just ends
+		if Q3Ownership.verified() == "" or (Q3.missing_packs.size() and Session.dedicated_arg() == ""):
 			get_tree().quit(1)
 		else:
 			Session.after_splash()

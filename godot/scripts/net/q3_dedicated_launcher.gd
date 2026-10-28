@@ -1,7 +1,7 @@
 class_name Q3DedicatedLauncher
 extends RefCounted
 ## Starts, watches and stops this PC's dedicated server (scenes/dedicated, MULTIPLAYER_PLAN.md M7) from the menu. The
-## server is the same executable run again headless, so it keeps running after the game closes; the menu and the
+## server is the same executable run again in its own small window, so it keeps running after the game closes; the menu and the
 ## server talk through files in user://dedicated (Q3Dedicated documents them): config.json to the server, status.json
 ## back, a `stop` file to end it, commands.txt for the local admin's console commands.
 
@@ -23,9 +23,11 @@ static func status() -> Dictionary:
 
 
 ## The command line that runs the server on `config_path` (an absolute path): the project in the editor, the exported
-## exe otherwise.
+## exe otherwise. Never headless: a server this PC runs has its own window (Q3Dedicated._build_window) on the taskbar,
+## so it can't run unseen, and closing that window stops it. Operators who want no window run it with --headless
+## themselves.
 static func command_line(config_path: String) -> PackedStringArray:
-	var args := PackedStringArray(["--headless"])
+	var args := PackedStringArray()
 	if OS.has_feature("editor"):
 		args.append_array(["--path", ProjectSettings.globalize_path("res://")])
 	args.append_array(["--log-file", ProjectSettings.globalize_path(Q3Dedicated.DIR.path_join("server.log")), "--", "dedicated=" + config_path])

@@ -4,7 +4,7 @@
 // Offline vs bots is the same thing cut down to four choices.
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { useMenu, toast } from "@/lib/store";
+import { useMenu, toast, takeCreatePreset } from "@/lib/store";
 import { send } from "@/lib/bridge";
 import { sfx } from "@/lib/sound";
 import { cn } from "@/lib/cn";
@@ -20,9 +20,12 @@ import type { PageProps } from "./index";
 
 const SERVER_TYPES: [Value, string][] = [["offline", "Offline"], ["listen", "Online (listed in the Server Browser)"]];
 
-function useSetup(initialMode: string) {
+function useSetup(initialMode: string, serverType = "offline") {
   const init = useMenu((s) => s.init);
-  const [setup, setSetup] = useState<MatchSetup>({ mode: initialMode, map: "", rules: {}, modifiers: {}, bots: [], server_type: "offline", source: "menu" });
+  const [setup, setSetup] = useState<MatchSetup>({
+    mode: initialMode, map: "", rules: {}, modifiers: {}, bots: [], server_type: serverType, source: "menu",
+    ...(serverType === "listen" ? { online: { name: "", password: "", ranked: false } } : {}),
+  });
   const mode = init?.modes.find((m) => m.id === setup.mode);
   const maps = useMemo(() => (init?.maps ?? []).filter((m) => mode && m.types.some((t) => mode.map_types.includes(t))), [init, mode]);
   // a map that suits the mode, and the map's own bots as a starting lineup
@@ -46,7 +49,12 @@ function start(setup: MatchSetup) {
 }
 
 export default function CreateMatchPage({ back }: PageProps) {
-  const { init, setup, patch, mode, pickMap } = useSetup("ffa");
+  // in a party, a match is hosted online by default: the party follows its leader in
+  const inParty = useMenu((s) => s.social.status === "online" && !!s.social.state?.party);
+  const leader = useMenu((s) => !!s.social.state?.party && s.social.state.party.leader === s.social.state.me.id);
+  // from Quick Play's "Host one": that mode, online
+  const [preset] = useState(takeCreatePreset);
+  const { init, setup, patch, mode, pickMap } = useSetup(preset?.mode ?? "ffa", preset || inParty ? "listen" : "offline");
   const errors = useMenu((s) => s.validation);
   useEffect(() => {
     if (setup.map) void send("validate", { setup });
@@ -150,6 +158,7 @@ export default function CreateMatchPage({ back }: PageProps) {
                 <TextField wide max={40} value={setup.online?.password ?? ""} placeholder="None" onCommit={(v) => patch({ online: { ...(setup.online ?? { name: "", password: "", ranked: false }), password: v } })} />
               </Field>
               <p className="text-[0.85rem] text-faint">You host from your PC; players connect through a relay and never see your IP. The match goes on while the menu is open.</p>
+              {inParty && <p className="text-[0.85rem] text-ink">{leader ? "Your party joins you as soon as the match starts." : "Only the party leader brings the party along; your party can join from Friends."}</p>}
             </>
           )}
           <SectionTitle>You</SectionTitle>

@@ -4,19 +4,20 @@ extends RefCounted
 ## Pure logic: main_menu.gd wires it to the WebView, the self-test drives it directly.
 ## Messages are JSON objects with a "type".
 ##   web -> Godot  ready, log, sound, cinematic, campaign_start, campaign_skill, campaign_reset, hover, page, layout, set, reset, reset_tab, capture_bind,
-##                 cancel_capture, clear_bind, export_code, import_code, validate, start, continue,
+##                 bind_input {value}, cancel_capture, clear_bind, export_code, import_code, validate, start, continue,
 ##                 map_editor, quit, profile_preview, open_url, social {op, ...}
 ##                 card_set {slot, id}, card_showcase {kind: stats|badges, ids}, card_seen {keys}, taunt {id}
 ##                 update_skip {tag}, update_start (download the offered release), update_apply (restart into it)
 ##                 race_queue {maps}: the courses a Race run continues with after the first
 ##                 net_browse {region?}, net_join {host, password?}, net_cancel (online matches, MULTIPLAYER_PLAN.md M5)
+##                 net_quick {mode} (Quick Play: the hub picks the best open match in a mode)
 ##                 queue_join {modes, ranked}, queue_leave (matchmaking, M6)
 ##                 dedicated_get, dedicated_start {config}, dedicated_stop, dedicated_command {line}, dedicated_autostart {on} (M7)
 ##                 pause menu: resume, leave_match, restart_match, ready_up, crosshair_preview {weapon, hit}
 ##   Godot -> web  init, campaign, changed, conflicts, capture_started, bind_captured, capture_cancelled,
 ##                 validation, start_failed, code, imported, subject, nav, input_mode,
 ##                 social {status, reason, state, chat}, social_notice, party_chat, profile {profile},
-##                 net_matches {matches, region}, net_join_state {status, reason, host}, queue {state, ratings, rtt}, dedicated {config, status, autostart},
+##                 net_matches {matches, region}, net_quick {status, mode, region, match?, est?, near, skipped}, net_join_state {status, reason, host}, queue {state, ratings, rtt}, dedicated {config, status, autostart},
 ##                 leaderboard {board} (asked for with social {op: "leaderboard", board, scope})
 ##                 update {info, can_install} (a newer release exists: tag, version, name, notes, url, size, published, beta)
 ##                 update_status {status} (the download: state, tag, version, done, total, file, error)
@@ -42,6 +43,7 @@ var match_info: Dictionary = {}              ## pause menu: the match on show (G
 
 var capture_key := ""
 var capture_slot := -1
+var _held_axes: Array = []                   ## [device, axis] past half way when the capture began
 var received: Array = []                     ## every message handled (the self-test reads it)
 
 
@@ -53,6 +55,8 @@ func _init() -> void:
 	Online.leaderboard.connect(func(b): post.emit({"type": "leaderboard", "board": b}))
 	Online.queue_changed.connect(func(): post.emit(queue_payload()))
 	Online.matches.connect(func(m): post.emit({"type": "net_matches", "matches": m.get("matches", []), "region": m.get("region", "")}))
+	Online.quick.connect(func(m): post.emit({"type": "net_quick", "status": m.get("status", "none"), "mode": m.get("mode", ""), "region": m.get("region", ""),
+		"match": m.get("match", {}), "est": m.get("est", 0), "near": m.get("near", 0), "skipped": m.get("skipped", 0)}))
 	Online.join_state.connect(func(s): post.emit({"type": "net_join_state", "status": s.get("status", ""), "reason": s.get("reason", ""), "host": s.get("host", "")}))
 	# the last run crashed: say so once (Diagnostics wrote the report at this launch)
 	if Diagnostics.notice != "":
@@ -102,13 +106,13 @@ func _on_update_status(s: Dictionary) -> void:
 ## anything oversized and anything that isn't a JSON object is dropped. main_menu.gd also only
 ## listens while the web view shows our own bundled page.
 const MAX_MESSAGE := 65536
-const TYPES := ["ready", "sound", "hover", "page", "layout", "set", "reset", "reset_tab", "capture_bind",
+const TYPES := ["ready", "sound", "hover", "page", "layout", "set", "reset", "reset_tab", "capture_bind", "bind_input",
 	"cancel_capture", "clear_bind", "export_code", "import_code", "validate", "start", "continue", "campaign_start",
 	"campaign_skill", "campaign_reset", "cinematic", "map_editor", "quit", "profile_preview", "log", "social",
 	"open_url", "modes", "bots", "banner", "crosshairs", "cinematics",
 	"resume", "leave_match", "restart_match", "ready_up", "crosshair_preview",
 	"card_set", "card_showcase", "card_seen", "taunt", "update_skip", "update_start", "update_apply",
-	"net_browse", "net_join", "net_cancel", "queue_join", "queue_leave", "dedicated_get", "dedicated_start", "dedicated_stop", "dedicated_command", "dedicated_autostart",
+	"net_browse", "net_quick", "net_join", "net_cancel", "queue_join", "queue_leave", "dedicated_get", "dedicated_start", "dedicated_stop", "dedicated_command", "dedicated_autostart",
 	"spectate", "replays", "replay_watch", "replay_rename", "replay_favorite", "replay_delete", "replay_folder", "maps_folder", "race_queue"]
 ## Hosts open_url may send the player's browser to; nothing else leaves the game.
 const URL_HOSTS := ["store.steampowered.com", "steamcommunity.com", "github.com", "discord.gg"]
@@ -158,13 +162,25 @@ func handle(m: Dictionary) -> void:
 		"reset_tab":
 			Settings.reset_tab(String(m["tab"]))
 		"capture_bind":
+			var slot := int(m.get("slot", 0))
+			if not _is_bind(m.get("key")) or slot < 0 or slot > 2:
+				return
 			capture_key = String(m["key"])
-			capture_slot = int(m.get("slot", 0))
+			capture_slot = slot
+			_held_axes = _axes_held()
 			post.emit({"type": "capture_started", "key": capture_key, "slot": capture_slot})
+		"bind_input":
+			# keyboard, mouse and wheel are captured by the page itself (bindCapture in BindKeys.tsx):
+			# the pause menu's web view forwards no input to Godot, and the main menu's forwarded keys
+			# arrive a frame late, so the Enter that opened a slot could bind itself
+			if capture_key != "":
+				_capture(String(m.get("value", "")))
 		"cancel_capture":
 			_end_capture(true)
 		"clear_bind":
-			Settings.set_bind(String(m["key"]), int(m["slot"]), "")
+			var slot := int(m.get("slot", -1))
+			if _is_bind(m.get("key")) and slot >= 0 and slot <= 2:
+				Settings.set_bind(String(m["key"]), slot, "")
 		"export_code":
 			var code := Settings.export_code(String(m.get("prefix", "")))
 			if DisplayServer.get_name() != "headless":
@@ -222,6 +238,11 @@ func handle(m: Dictionary) -> void:
 		"net_browse":
 			if not Online.net_browse(String(m.get("region", ""))):
 				post.emit({"type": "net_matches", "matches": [], "region": "", "offline": true})
+		"net_quick":
+			var mode := String(m.get("mode", ""))
+			if Online.client.status != "online" or not Online.net_quick(mode):
+				UiSound.buzz()
+				post.emit({"type": "net_quick", "status": "offline", "mode": mode, "region": "", "match": {}, "est": 0, "near": 0, "skipped": 0})
 		"net_join":
 			var host := String(m.get("host", ""))
 			if host.length() == 20 and Online.client.status == "online":   # a player id: 20 hex digits
@@ -347,13 +368,22 @@ func handle(m: Dictionary) -> void:
 				push_warning("menu bridge: refused to open " + url.left(80))
 
 
-## While a bind is being captured, main_menu.gd routes input here. Returns true when used.
+## While a bind is being captured, Q3WebLayer routes controller input here (keyboard and mouse
+## come from the page as bind_input; the self-test sends keys here too). Returns true when used.
 ## Escape cancels, Backspace/Delete clears the slot; any other key, mouse button (wheel
 ## included) or pad button/trigger becomes the bind.
 func capture_input(ev: InputEvent) -> bool:
-	if capture_key == "" or not ev.is_pressed() or ev.is_echo():
+	if capture_key == "" or ev.is_echo():
 		return false
-	if ev is InputEventMouseMotion:
+	if ev is InputEventJoypadMotion:
+		# a stick still held from moving the cursor to the slot binds nothing until it's let go
+		var held := [ev.device, ev.axis]
+		if absf(ev.axis_value) < 0.5:
+			_held_axes.erase(held)
+			return false
+		if _held_axes.has(held):
+			return false
+	if not ev.is_pressed() or ev is InputEventMouseMotion:
 		return false
 	if ev is InputEventKey:
 		var code: Key = ev.physical_keycode if ev.physical_keycode != KEY_NONE else ev.keycode
@@ -361,16 +391,29 @@ func capture_input(ev: InputEvent) -> bool:
 			_end_capture(true)
 			return true
 		if code == KEY_BACKSPACE or code == KEY_DELETE:
-			Settings.set_bind(capture_key, capture_slot, "")
-			# the page closes its "press a key" veil on this; without it the veil stayed up until its timeout
-			post.emit({"type": "bind_captured", "key": capture_key, "slot": capture_slot, "value": "", "label": Settings.bind_label("")})
-			_end_capture(false)
+			_capture("")
 			return true
 	var s := Settings.event_to_string(ev)
 	if s == "":
 		return false
-	Settings.set_bind(capture_key, capture_slot, s)
-	post.emit({"type": "bind_captured", "key": capture_key, "slot": capture_slot, "value": s, "label": Settings.bind_label(s)})
+	return _capture(s)
+
+
+## Binds the captured slot to s ("" clears it). The controller slot (2) takes only pad input and the
+## others anything. A key another action used moves here, as in Quake 3's controls menu
+## (Controls_SetKeyBinding unbinds it everywhere first); the page names what lost it.
+func _capture(s: String) -> bool:
+	if s != "":
+		if Settings.event_from_string(s) == null:
+			return false
+		if capture_slot == 2 and not s.begins_with("joy"):
+			return false
+	var moved := Settings.assign_bind(capture_key, capture_slot, s)
+	var from: Array = []
+	for k in moved:
+		from.append(String(Settings.entry(k).get("label", k)))
+	# the page closes its "press a key" veil on this; without it the veil stayed up until its timeout
+	post.emit({"type": "bind_captured", "key": capture_key, "slot": capture_slot, "value": s, "label": Settings.bind_label(s), "moved_from": from})
 	_end_capture(false)
 	return true
 
@@ -380,6 +423,20 @@ func _end_capture(cancelled: bool) -> void:
 		post.emit({"type": "capture_cancelled", "key": capture_key})
 	capture_key = ""
 	capture_slot = -1
+	_held_axes.clear()
+
+
+func _is_bind(key: Variant) -> bool:
+	return key is String and Settings.entry(key).get("type", "") == "bind"
+
+
+static func _axes_held() -> Array:
+	var out: Array = []
+	for d in Input.get_connected_joypads():
+		for a in JOY_AXIS_MAX:
+			if absf(Input.get_joy_axis(d, a)) >= 0.5:
+				out.append([d, a])
+	return out
 
 
 func _start(s: Q3MatchSetup) -> void:

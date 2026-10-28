@@ -12,6 +12,7 @@ signal leaderboard(board: Dictionary)           ## a board the menu asked for, c
 signal net(msg: Dictionary)                     ## a match message from the hub (net_matches, net_request, net_signal ...)
 signal matches(msg: Dictionary)                 ## the directory: {matches: [...], region}
 signal join_state(state: Dictionary)            ## joining a match: {status, reason, host}
+signal quick(msg: Dictionary)                   ## Quick Play's pick: {status: found|far|none, mode, region, match?, est?, near, skipped}
 signal queue_changed                            ## the matchmaking queue, a match found, a result or the ratings changed (read queue_state, ratings, last_result)
 
 ## The deployed Worker (online/, Ozmium's personal Cloudflare account). Settings
@@ -29,7 +30,8 @@ var joiner: Q3NetJoin                           ## the join in progress, if any
 var queue_state: Dictionary = {}                ## the hub's last queue_state ({status: queued|idle|locked|refused, ...})
 var ratings: Dictionary = {}                    ## the hub's last ratings message: {season, placements, queues: {duel: {rating, rated, wins, losses, peak}}}
 var last_result: Dictionary = {}                ## the last match_result (voided or not)
-var _found_join := {}                           ## a matchmade match to join: {host, until}
+var _found_join := {}                           ## a matchmade or party leader's match to join: {host, password?, until}
+var _join_password := ""                        ## the password the join in progress was sent with (the party follows with it)
 var _found_try := 0.0
 var _join_status := ""
 var _ice: Dictionary = {}                       ## the last relay credentials the hub minted for a join
@@ -53,10 +55,7 @@ func _ready() -> void:
 	client.party_chat.connect(_on_chat)
 	client.leaderboard.connect(_on_leaderboard)
 	client.queue.connect(_on_queue_message)
-	client.net.connect(func(m):
-		net.emit(m)
-		if String(m.get("type", "")) == "net_matches":
-			matches.emit(m))
+	client.net.connect(_on_net)
 	Settings.changed.connect(_on_setting)
 	connect_now()
 
@@ -187,7 +186,46 @@ func net_join(host: String, password := "") -> void:
 	joiner.ice_minted.connect(_on_ice)
 	var fresh := Time.get_unix_time_from_system() - _ice_at < 2700.0   # they last an hour
 	joiner.begin(client, host, password, game_version(), _ice if fresh else {})
+	_join_password = password
 	join_state.emit({"status": "asking", "reason": "", "host": host})
+
+
+## Quick Play: asks the hub for the best open match in `mode`; the answer arrives as `quick`. The menu joins it
+## (net_join) or offers to host or queue. Ping is the hub's guess from regions and both players' hub round trips.
+func net_quick(mode: String) -> bool:
+	return client.send("net_quick", {"mode": mode, "region": String(Settings.get_value("network/region")),
+		"version": game_version(), "rtt": client.rtt})
+
+
+func _on_net(m: Dictionary) -> void:
+	net.emit(m)
+	match String(m.get("type", "")):
+		"net_matches":
+			matches.emit(m)
+		"net_quick":
+			quick.emit(m)
+		"net_follow":
+			_on_follow(m)
+
+
+## The party leader hosted or joined `host`'s match: the hub tells the rest of the party (net_follow), and
+## they join it too. The hub ignores this from anyone but the leader. Matchmade matches are invite only.
+func party_follow(host: String, password := "") -> void:
+	if host != "" and Session.matchmade.is_empty() and client.state.get("party") is Dictionary:
+		client.send("party_follow", {"host": host, "password": password})
+
+
+## The leader's match: follow them in from the menu, retrying while it comes up. In a match or the map
+## editor, only say so; Friends' Join takes them there.
+func _on_follow(m: Dictionary) -> void:
+	var who := String(m.get("name", "Your party leader"))
+	if presence["status"] != "online" or joiner != null or not _found_join.is_empty() or Session.dedicated != "":
+		notice.emit("%s is in a match. Join it from Friends." % who, "info")
+		return
+	notice.emit("Joining %s's match..." % who, "info")
+	_found_join = {"host": String(m.get("host", "")), "password": String(m.get("password", "")),
+		"until": Time.get_unix_time_from_system() + 30.0}
+	_found_try = 0.0
 
 
 func _on_ice(ice: Dictionary) -> void:
@@ -208,6 +246,7 @@ func _on_join_finished(ok: bool, transport: Q3RtcTransport, why: String) -> void
 	if ok:
 		_found_join = {}
 		join_state.emit({"status": "open", "reason": "", "host": host})
+		party_follow(host, _join_password)
 		Session.join_match(transport)
 	elif not _found_join.is_empty() and why in ["That match is gone.", "The host didn't answer."]:
 		pass   # the host has not listed it yet: the loop tries again
@@ -256,7 +295,7 @@ func _process(delta: float) -> void:
 			join_state.emit({"status": "failed", "reason": "The match never came up.", "host": ""})
 		elif _found_try <= 0.0 and joiner == null:
 			_found_try = 2.0
-			net_join(String(_found_join["host"]))
+			net_join(String(_found_join["host"]), String(_found_join.get("password", "")))
 	if joiner != null and joiner.status != _join_status:
 		_join_status = joiner.status
 		if _join_status in ["connecting", "relay"]:

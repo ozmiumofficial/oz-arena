@@ -5,20 +5,23 @@
 // Protocol (JSON, one object per message, "type" says what it is):
 //   game -> hub  presence {status, detail, join?}   profile {name, model, color}   sync
 //                career {xp, card, stats}   leaderboard {board: level|ranked, scope: global|friends}
-//                net_host {name, mode, map, players, max, password, ranked, version}   net_unhost   net_browse {region?}
+//                net_host {name, mode, map, players, max, password, ranked, version, rtt}   net_unhost   net_browse {region?}
+//                net_quick {mode, region?, version, rtt} (Quick Play: the best open match in a mode)
 //                net_join {host, password?, version?}   net_accept {peer}   net_reject {peer, reason?}   net_ice
 //                net_signal {to, kind: offer|answer|candidate, sdp | candidate, mid, index}   net_leave {peer}   net_kick {peer}
 //                queue_join {modes, ranked, region, rtt}   queue_leave   match_joined {match}
 //                match_report {match, me, rows: [{client, score, team}], left, peers}
 //                friend_add {code}   friend_accept {id}   friend_decline {id}   friend_cancel {id}   friend_remove {id}
 //                party_invite {id}   party_accept {party}   party_decline {party}   party_leave
-//                party_kick {id}   party_promote {id}   party_chat {text}   ping (answered without waking the object)
+//                party_kick {id}   party_promote {id}   party_chat {text}   party_follow {host, password?}
+//                ping (answered without waking the object)
 //   hub -> game  social {me, friends, incoming, outgoing, party, invites}   (the whole picture, sent on every change)
 //                notice {text, tone}   party_chat {from, text, at}   pong
 //                leaderboard {board, scope, rows, me, total}
-//                net_matches {matches, region}   net_wait {host}   net_request {peer, name, password, version}
+//                net_matches {matches, region}   net_quick {status: found|far|none, mode, region, match?, est?, near, skipped}
+//                net_wait {host}   net_request {peer, name, password, version}
 //                net_accepted {host}   net_refused {host, reason}   net_ice {servers, relay_only, ttl | error}
-//                net_signal {from, kind, ...}   net_gone {pid}
+//                net_signal {from, kind, ...}   net_gone {pid}   net_follow {host, leader, name, password} (the party leader's match)
 //                queue_state {status: queued|idle|locked|refused, ...}   match_found {match, host, you_host, mode, map, ranked, team, players}
 //                match_result {match, voided, reason?, queue, before, after, delta, rated, wins, losses, won}   ratings {season, queues}
 import { DurableObject } from 'cloudflare:workers';
@@ -89,6 +92,22 @@ const BOARD_CACHE_MS = 60_000;
 
 /** Matchmaking regions (PLAN.md "Regions"), as the Worker names them. */
 const REGIONS = ['na_east', 'na_west', 'eu', 'sa', 'asia', 'oce', 'meaf'];
+
+/** Regions close enough to play across (one relay hop of tens of ms, not a continent). Quick Play joins a match in
+ *  the player's own region or a neighbor without asking; anything farther is offered, not joined. */
+const NEIGHBORS: Record<string, string[]> = {
+  na_east: ['na_west', 'sa', 'eu'], na_west: ['na_east'], eu: ['meaf', 'na_east'], sa: ['na_east'],
+  asia: ['oce'], oce: ['asia'], meaf: ['eu'],
+};
+
+/** Quick Play's ping guess for a listing, in ms (nothing is measured through the relay before joining). The hub socket
+ *  round trips of joiner and host stand in for each one's leg to its nearest relay, plus a fixed cost for the gap
+ *  between regions: 0 in the same region, 60 for a neighbor, 180 for anything farther. */
+function pingGuess(fromRegion: string, fromRtt: number, toRegion: string, toRtt: number): number {
+  const gap = fromRegion === toRegion ? 0 : (NEIGHBORS[fromRegion] ?? []).includes(toRegion) ? 60 : 180;
+  // the hub is in one place, so half of each round trip is the closest thing to a player's own last mile
+  return Math.round(fromRtt / 2 + toRtt / 2 + gap);
+}
 
 function regionHeader(v: string | null): string {
   return REGIONS.includes(v ?? '') ? (v as string) : 'na_east';
@@ -300,6 +319,8 @@ export class Hub extends DurableObject<Env> {
         return this.partyPromote(ws, me, id);
       case 'party_chat':
         return this.partyChat(ws, tag, String(m.text ?? ''));
+      case 'party_follow':
+        return this.partyFollow(me, m);
       case 'net_host':
         return this.netHost(ws, tag, m);
       case 'net_unhost':
@@ -309,6 +330,8 @@ export class Hub extends DurableObject<Env> {
         return this.netBrowse(ws, tag, m);
       case 'net_join':
         return this.netJoin(ws, tag, m);
+      case 'net_quick':
+        return this.netQuick(ws, tag, m);
       case 'net_accept':
         return this.netAccept(ws, me, id || String(m.peer ?? ''), m);
       case 'net_reject':
@@ -639,6 +662,17 @@ export class Hub extends DurableObject<Env> {
     if (this.memberIds(party).length <= 1 && !this.count('SELECT COUNT(*) AS n FROM invites WHERE party = ?', party)) this.dissolve(party);
   }
 
+  /** The leader hosted or joined a match: the rest of the party follow them into it (net_follow). The password
+   *  passes through to the members only; it is never stored. */
+  private partyFollow(me: string, m: Msg) {
+    const party = this.partyOf(me);
+    if (!party || this.leaderOf(party) !== me) return;
+    const host = String(m.host ?? '');
+    if (!host || !this.listings().some((l) => l.host === host)) return;
+    const msg = { type: 'net_follow', host, leader: me, name: this.player(me)?.name ?? 'Player', password: clean(m.password, 40) };
+    for (const p of this.memberIds(party)) if (p !== me && p !== host) this.sendTo(p, msg);
+  }
+
   private partyOf(pid: string): string | null {
     return this.one<{ party: string }>('SELECT party FROM members WHERE pid = ?', pid)?.party ?? null;
   }
@@ -744,6 +778,8 @@ export class Hub extends DurableObject<Env> {
     const listing = {
       name: clean(m.name, 40) || 'Match', mode: id(m.mode), map: id(m.map), players: num(m.players, 0, 64), max: num(m.max, 1, 64),
       password: m.password === true, ranked: m.ranked === true, version: clean(m.version, 24), dedicated: m.dedicated === true,
+      // the host's hub round trip (Quick Play's ping guess); 0 from games that don't send it
+      rtt: num(m.rtt, 0, 2000),
       // a matchmade match: invite only (the matchmaker's players), never in the browser
       match: this.ownMatch(tag.pid, String(m.match ?? '')),
     };
@@ -766,10 +802,41 @@ export class Hub extends DurableObject<Env> {
 
   private netBrowse(ws: WebSocket, tag: Tag, m: Msg) {
     const region = REGIONS.includes(String(m.region)) ? String(m.region) : tag.region;
-    const all = this.listings().filter((l) => l.host !== tag.pid && !l.match);
+    // your own match lists too (the menu marks it), so a host can see it went up
+    const all = this.listings().filter((l) => !l.match);
     // the asker's region first, fuller matches before emptier ones
     all.sort((a, b) => Number(b.region === region) - Number(a.region === region) || Number(b.players) - Number(a.players));
     this.send(ws, { type: 'net_matches', matches: all.slice(0, 100), region });
+  }
+
+  /**
+   * Quick Play: the open match in `mode` most worth joining. Only matches a join would succeed in count: listed in the
+   * browser (not matchmade), not your own, not full, no password, your version, and no ban from that host. Then, best
+   * first: the lowest ping guess in 40 ms steps (pingGuess), the fullest, then the fewest free slots.
+   * `found` is a match close enough to join at once; `far` is the best there is when that's another continent (the menu
+   * asks); `none` says how many matches in the mode were skipped (full, locked, another version), so the menu can say why.
+   */
+  private netQuick(ws: WebSocket, tag: Tag, m: Msg) {
+    const mode = /^[a-z0-9_]{1,32}$/.test(String(m.mode ?? '')) ? String(m.mode) : '';
+    const region = REGIONS.includes(String(m.region)) ? String(m.region) : tag.region;
+    const rtt = Math.max(0, Math.min(2000, Math.floor(Number(m.rtt) || 100)));
+    const version = clean(m.version, 24);
+    const now = Date.now();
+    this.sql.exec('DELETE FROM bans WHERE until < ?', now);
+    const banned = new Set(this.rows<{ host: string }>('SELECT host FROM bans WHERE pid = ?', tag.pid).map((r) => r.host));
+    const inMode = this.listings().filter((l) => !l.match && l.host !== tag.pid && (!mode || l.mode === mode));
+    const open = inMode.filter((l) => Number(l.players) < Number(l.max) && !l.password && !banned.has(l.host)
+      && (!version || !l.version || l.version === version));
+    const scored = open.map((l) => ({ l, est: pingGuess(region, rtt, l.region, Number(l.rtt) || 100) }));
+    scored.sort((a, b) => Math.floor(a.est / 40) - Math.floor(b.est / 40) || Number(b.l.players) - Number(a.l.players)
+      || Number(a.l.max) - Number(a.l.players) - (Number(b.l.max) - Number(b.l.players)) || a.est - b.est);
+    const best = scored[0];
+    const near = best && (best.l.region === region || (NEIGHBORS[region] ?? []).includes(best.l.region));
+    this.send(ws, {
+      type: 'net_quick', status: best ? (near ? 'found' : 'far') : 'none', mode, region,
+      ...(best ? { match: best.l, est: best.est } : {}),
+      near: scored.filter((x) => x.l.region === region).length, skipped: inMode.length - open.length,
+    });
   }
 
   private netJoin(ws: WebSocket, tag: Tag, m: Msg) {

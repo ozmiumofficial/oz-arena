@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import menu from "@/lib/menu.json";
-import { connect, useMenu, toast, getState, setSocialOpen } from "@/lib/store";
+import { connect, useMenu, getState, setSocialOpen } from "@/lib/store";
 import { inGodot, on, send } from "@/lib/bridge";
 import { installNav, nav, setSocialToggle, useLayer, type NavDir } from "@/lib/nav";
 import { sfx } from "@/lib/sound";
@@ -16,11 +16,14 @@ import { BottomBar, DevBackdrop, Shade, SubjectCaption, Toasts, TopBar } from ".
 import { SocialPanel } from "./Social";
 import { PAGES } from "./pages";
 import UpdatePrompt from "./UpdatePrompt";
+import CaptureVeil from "./controls/CaptureVeil";
 
-const SUBMENUS: Record<string, { title: string; items: MenuItemDef[] }> = {
-  single: { title: "Single Player", items: menu.single as MenuItemDef[] },
-  play: { title: "Play", items: menu.play as MenuItemDef[] },
-};
+// every main item with a submenu names its group in menu.json; the item's label is the title
+const SUBMENUS: Record<string, { title: string; items: MenuItemDef[] }> = Object.fromEntries(
+  (menu.main as MenuItemDef[])
+    .filter((it) => it.submenu)
+    .map((it) => [it.submenu!, { title: it.label, items: (menu as unknown as Record<string, MenuItemDef[]>)[it.submenu!] }]),
+);
 const NOT_WIDE = new Set(["main", "quit", ...Object.keys(SUBMENUS)]);
 
 export default function MenuApp() {
@@ -167,6 +170,7 @@ function MainColumn({ stack, activate, open, dev }: { stack: string[]; activate:
               label={it.label}
               hint={it.hint}
               index={i}
+              primary={it.primary}
               current={deep && stack[1] === (it.submenu ?? it.page)}
               onFocusItem={() => void send("hover", { id: it.id })}
               onActivate={() => {
@@ -198,7 +202,7 @@ function SubMenu({ id, stack, activate, back }: { id: string; stack: string[]; a
       animate={{ opacity: covered ? 0 : 1, x: covered ? "-1rem" : 0 }}
       exit={{ opacity: 0, x: "-2rem" }}
       transition={{ duration: 0.28, ease: [0.2, 0.9, 0.1, 1] }}
-      className={cn("absolute bottom-[8.5rem] left-[35rem] w-[30rem]", covered && "pointer-events-none")}
+      className={cn("absolute bottom-[8.5rem] left-[35rem] max-h-[calc(100%-13rem)] w-[30rem] overflow-y-auto overflow-x-hidden", covered && "pointer-events-none")}
     >
       <div className="mb-3 flex items-center gap-4 pl-6">
         <BannerText text={title} height={1.7} />
@@ -207,10 +211,18 @@ function SubMenu({ id, stack, activate, back }: { id: string; stack: string[]; a
       <div className="border-l border-white/10">
         {items.map((it, i) => (
           <motion.div key={it.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.04 * i, duration: 0.3 }}>
+            {it.section && (
+              <div className={cn("flex items-center gap-3 pb-1 pl-6 font-q3 text-[0.7rem] tracking-[0.3em] text-dim", i > 0 && "mt-3")}>
+                {it.section}
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+            )}
             <MenuItem
               size="md"
+              hintAlways
               label={it.label}
-              hint={it.id === "continue" ? cont.split("\n")[0] : it.id === "ranked" && rankedLocked ? `Locked: reach level ${progress!.ranked_level} (you're level ${progress!.level})` : it.hint}
+              hint={it.id === "continue" ? cont.split("\n")[0] : it.id === "ranked" && rankedLocked ? `Unlocks at level ${progress!.ranked_level}. You're level ${progress!.level}.` : it.hint}
+              lock={it.id === "ranked" && rankedLocked ? `Level ${progress!.ranked_level}` : undefined}
               dim={it.id === "ranked" && rankedLocked}
               current={stack.includes(it.page ?? "-")}
               onFocusItem={() => void send("hover", { id: it.id })}
@@ -265,30 +277,3 @@ function ConfirmButton({ label, onClick, autoFocus }: { label: string; onClick: 
   );
 }
 
-// While Godot captures a bind, the whole menu waits for the key.
-function CaptureVeil() {
-  const capture = useMenu((s) => s.capture);
-  const label = useMenu((s) => (s.capture ? s.init?.schema.find((e) => e.key === s.capture!.key)?.label : ""));
-  useEffect(() => {
-    if (!capture) return;
-    const t = setTimeout(() => {
-      toast("Bind capture timed out.", "warn");
-      void send("cancel_capture");
-    }, 8000);
-    return () => clearTimeout(t);
-  }, [capture]);
-  return (
-    <AnimatePresence>
-      {capture && (
-        <motion.div className="absolute inset-0 z-50 grid place-items-center bg-black/60" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="rounded-sm border border-glow/50 bg-glass px-14 py-10 text-center shadow-[0_0_4rem_rgb(219_36_16/0.35)]">
-            <div className="font-q3 text-[0.8rem] tracking-[0.3em] text-dim">{capture.slot === 2 ? "Controller bind" : "Bind"}</div>
-            <div className="mt-2 font-q3 text-[2rem] tracking-[0.06em] text-ink-hot">{label}</div>
-            <div className="mt-5 animate-pulse font-q3 text-[1rem] tracking-[0.2em] text-glow">Press a key, button or wheel</div>
-            <div className="mt-4 text-[0.9rem] text-dim">Esc cancels, Backspace clears</div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}

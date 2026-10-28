@@ -497,14 +497,14 @@
    "perfect"
   ],
   "awards": {
-   "accuracy": 2.0,
+   "accuracy": 4.0,
    "assist": 0.0,
    "captures": 0.0,
    "defend": 0.0,
-   "excellent": 29.0,
-   "frags": 140.0,
+   "excellent": 47.0,
+   "frags": 260.0,
    "gauntlet": 0.0,
-   "impressive": 9.0,
+   "impressive": 20.0,
    "perfect": 2.0
   },
   "skill": 3,
@@ -919,7 +919,7 @@
       "levelshot": "levelshots/q3dm14.jpg",
       "map": "q3dm14",
       "name": "Grim Dungeons",
-      "won": 0
+      "won": 3
      },
      {
       "bots": [
@@ -940,7 +940,7 @@
       "levelshot": "levelshots/q3dm15.jpg",
       "map": "q3dm15",
       "name": "Demon Keep",
-      "won": 0
+      "won": 3
      },
      {
       "bots": [
@@ -953,10 +953,10 @@
       "levelshot": "levelshots/q3tourney5.jpg",
       "map": "q3tourney5",
       "name": "Fatal Instinct",
-      "won": 0
+      "won": 3
      }
     ],
-    "complete": false,
+    "complete": true,
     "name": "Tier 5",
     "open": true
    },
@@ -981,7 +981,7 @@
       "levelshot": "levelshots/q3dm16.jpg",
       "map": "q3dm16",
       "name": "The Bouncy Map",
-      "won": 0
+      "won": 3
      },
      {
       "bots": [
@@ -1002,7 +1002,7 @@
       "levelshot": "levelshots/q3dm17.jpg",
       "map": "q3dm17",
       "name": "The Longest Yard",
-      "won": 0
+      "won": 3
      },
      {
       "bots": [
@@ -1031,7 +1031,7 @@
       "levelshot": "levelshots/q3dm18.jpg",
       "map": "q3dm18",
       "name": "Space Chamber",
-      "won": 0
+      "won": 3
      },
      {
       "bots": [
@@ -1052,12 +1052,12 @@
       "levelshot": "levelshots/q3dm19.jpg",
       "map": "q3dm19",
       "name": "Apocalypse Void",
-      "won": 0
+      "won": 3
      }
     ],
-    "complete": false,
+    "complete": true,
     "name": "Tier 6",
-    "open": false
+    "open": true
    },
    {
     "arenas": [
@@ -1072,12 +1072,12 @@
       "levelshot": "levelshots/q3tourney6.jpg",
       "map": "q3tourney6",
       "name": "The Very End Of You",
-      "won": 0
+      "won": 3
      }
     ],
-    "complete": false,
+    "complete": true,
     "name": "Final",
-    "open": false
+    "open": true
    }
   ]
  },
@@ -5740,7 +5740,7 @@
    "thumb": "thumbs/tier6.jpg",
    "title": "Tier 6",
    "unlock": "tier:6",
-   "unlocked": false
+   "unlocked": true
   },
   {
    "file": "tier7.ogv",
@@ -5749,7 +5749,7 @@
    "thumb": "thumbs/tier7.jpg",
    "title": "Tier 7",
    "unlock": "tier:7",
-   "unlocked": false
+   "unlocked": true
   },
   {
    "file": "end.ogv",
@@ -5758,7 +5758,7 @@
    "thumb": "thumbs/end.jpg",
    "title": "Ending",
    "unlock": "final",
-   "unlocked": false
+   "unlocked": true
   }
  ],
  "context": "menu",
@@ -9061,8 +9061,43 @@
   "level": 1,
   "ranked_level": 30
  },
- "race_board": {},
- "race_records": {},
+ "race_board": {
+  "bardok-strafe1": [
+   {
+    "ms": 22104,
+    "when": 1793060485
+   },
+   {
+    "ms": 23216,
+    "when": 1793060587
+   }
+  ],
+  "cityrocket": [
+   {
+    "ms": 107072,
+    "when": 1793060753
+   }
+  ],
+  "elco-arca": [
+   {
+    "ms": 24512,
+    "when": 1793060943
+   },
+   {
+    "ms": 27440,
+    "when": 1793060866
+   },
+   {
+    "ms": 28544,
+    "when": 1793060813
+   }
+  ]
+ },
+ "race_records": {
+  "bardok-strafe1": 22104,
+  "cityrocket": 107072,
+  "elco-arca": 24512
+ },
  "rules": {
   "capturelimit": {
    "label": "Capture limit",
@@ -12046,6 +12081,17 @@
    "wired": true
   },
   {
+   "default": false,
+   "group": "Weapons",
+   "key": "gameplay/damage_kick",
+   "label": "Damage view kick",
+   "restart": false,
+   "tab": "gameplay",
+   "tip": "The view tilts when you are hit, as Quake 3's does. Your shots keep going where you aimed, so with this on a hit throws the lightning gun beam off the crosshair. The red flash and the direction marker stay either way.",
+   "type": "bool",
+   "wired": true
+  },
+  {
    "default": "off",
    "group": "Players",
    "key": "gameplay/force_model",
@@ -12486,7 +12532,18 @@
    "label": "Check for updates",
    "restart": false,
    "tab": "network",
-   "tip": "Ask GitHub when the menu opens whether a newer version has been released, and offer it. The game never installs anything without asking.",
+   "tip": "Ask GitHub when the menu opens whether a newer version has been released, and offer it.",
+   "type": "bool",
+   "wired": true
+  },
+  {
+   "default": true,
+   "group": "Updates",
+   "key": "network/auto_update",
+   "label": "Update automatically",
+   "restart": false,
+   "tab": "network",
+   "tip": "Download a new version in the background as soon as it's released (usually only the few MB that changed) and install it when you quit or restart. Off, the update waits for you to press Update. Every update is checked against the game's signing key first.",
    "type": "bool",
    "wired": true
   },
@@ -13245,6 +13302,7 @@
   "crosshair/weapon_shotgun": "default",
   "gameplay/autoswitch": "better",
   "gameplay/bright_skins": false,
+  "gameplay/damage_kick": false,
   "gameplay/death_cam": true,
   "gameplay/draw_gun": "right",
   "gameplay/enemy_color": "#4dff33",
@@ -13304,6 +13362,7 @@
   "mouse/invert": false,
   "mouse/sensitivity": 5.0,
   "mouse/zoom_sensitivity": 1.0,
+  "network/auto_update": true,
   "network/check_updates": true,
   "network/direct_downloads": false,
   "network/interp": 16,
@@ -13328,5 +13387,5 @@
   "video/upscaler": "bilinear",
   "video/vsync": "off"
  },
- "version": "0.5.0-beta"
+ "version": "0.6.0-beta"
 }

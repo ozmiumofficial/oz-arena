@@ -56,6 +56,14 @@ var _backoff := 2.0
 var _end_wait := -1.0
 var _acc := 0.0
 var _fps_set := -1
+## The server's own window, when it has one (started from the menu): a server running on this PC is always on screen
+## and on the taskbar, never hidden in the background; closing the window stops it.
+var _ui: Control
+var _ui_state: Label
+var _ui_players: Label
+var _ui_log: RichTextLabel
+var _log_at := 0
+var _t_ui := 0.0
 
 
 ## The config a server starts with: DEFAULTS under whatever the file holds.
@@ -131,6 +139,8 @@ func _ready() -> void:
 	else:
 		host_net = Q3HostNet.new()   # not listed, but the same players path (a LAN or UDP server uses its own door)
 		add_child(host_net)
+	if DisplayServer.get_name() != "headless":
+		_build_window()
 
 
 func _listing() -> Dictionary:
@@ -242,6 +252,10 @@ func _process(delta: float) -> void:
 	if _t_status <= 0.0:
 		_t_status = 2.0
 		_write_status()
+	_t_ui -= delta
+	if _ui != null and _t_ui <= 0.0:
+		_t_ui = 0.5
+		_refresh_window()
 
 
 ## Players in the server who are not bots (a connected client whose userinfo has no skill).
@@ -333,6 +347,124 @@ func _write_status() -> void:
 	var f := FileAccess.open(dir.path_join("status.json"), FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(status()))
+
+
+## The window's Stop button and close box: the same clean shutdown as the menu's Stop.
+func stop_now() -> void:
+	if is_processing():
+		_shutdown()
+	else:
+		get_tree().quit()
+
+
+func _build_window() -> void:
+	var w := get_window()
+	w.title = "Q3Remaster dedicated server: %s" % cfg["name"]
+	w.mode = Window.MODE_WINDOWED
+	w.borderless = false
+	w.min_size = Vector2i(520, 380)
+	var screen := DisplayServer.window_get_current_screen()
+	var usable := DisplayServer.screen_get_usable_rect(screen)
+	w.size = Vector2i(720, 520).min(usable.size)
+	w.position = usable.position + (usable.size - w.size) / 2
+	w.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED   # a plain tool window, not the game's 1600x900 canvas
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)   # the server loop runs at 125 Hz, not the monitor's rate
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	_ui = Control.new()
+	_ui.theme = Q3Theme.build(Settings.get_value("accessibility/high_contrast"))
+	_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(_ui)
+	var bg := ColorRect.new()
+	bg.color = Color(0.03, 0.025, 0.025)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_ui.add_child(bg)
+	var box := VBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["left", "top", "right", "bottom"]:
+		box.set("offset_" + side, 16.0 if side in ["left", "top"] else -16.0)
+	box.add_theme_constant_override("separation", 10)
+	_ui.add_child(box)
+	var head := Label.new()
+	head.text = "DEDICATED SERVER RUNNING ON THIS PC"
+	head.add_theme_color_override("font_color", Q3Theme.GLOW)
+	box.add_child(head)
+	_ui_state = Label.new()
+	_ui_state.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_ui_state)
+	_ui_players = Label.new()
+	_ui_players.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_ui_players.add_theme_color_override("font_color", Q3Theme.DIM)
+	box.add_child(_ui_players)
+	_ui_log = RichTextLabel.new()
+	_ui_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_ui_log.scroll_following = true
+	_ui_log.selection_enabled = true
+	_ui_log.add_theme_font_size_override("normal_font_size", 13)
+	box.add_child(_ui_log)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+	var cmd := LineEdit.new()
+	cmd.placeholder_text = "Console command (map q3dm6, kick <name>, say hello ...)"
+	cmd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cmd.text_submitted.connect(func(t: String) -> void:
+		var l := t.strip_edges()
+		cmd.clear()
+		if l != "":
+			_run_line(l))
+	row.add_child(cmd)
+	var stop := Button.new()
+	stop.text = "Stop server"
+	stop.pressed.connect(stop_now)
+	row.add_child(stop)
+	var note := Label.new()
+	note.text = "Closing this window stops the server. Minimize it to keep the server running."
+	note.add_theme_color_override("font_color", Q3Theme.DIM)
+	note.add_theme_font_size_override("font_size", 12)
+	box.add_child(note)
+	_refresh_window()
+
+
+func _refresh_window() -> void:
+	var s := status()
+	var up := int(s["uptime"])
+	var bits := PackedStringArray([String(s["map"]), String(cfg["mode"]).to_upper(),
+		"%d / %d players" % [(s["players"] as Array).size(), int(s["max"])],
+		"idle (no one playing)" if sleeping else "running",
+		"listed in the Server Browser" if s["listed"] else ("not listed" if client == null else "connecting to the online service..."),
+		"up %d:%02d:%02d" % [up / 3600, up / 60 % 60, up % 60]])
+	if int(s["udp_port"]) > 0:
+		bits.append("UDP port %d" % int(s["udp_port"]))
+	_ui_state.text = "%s\n%s" % [cfg["name"], "  ·  ".join(bits)]
+	var names := PackedStringArray()
+	for p in s["players"]:
+		names.append(String(p["name"]) + (" (bot)" if p["bot"] else ""))
+	_ui_players.text = "Players: " + (", ".join(names) if names.size() else "none")
+	_tail_log()
+
+
+## New lines of the server's log (server.log beside its config when the menu started it).
+func _tail_log() -> void:
+	var f := FileAccess.open(dir.path_join("server.log"), FileAccess.READ)
+	if f == null:
+		return
+	if f.get_length() < _log_at:
+		_log_at = 0
+	f.seek(_log_at)
+	var text := f.get_buffer(f.get_length() - _log_at).get_string_from_utf8()
+	_log_at = f.get_length()
+	if text != "":
+		_ui_log.add_text(text)
+
+
+func _run_line(l: String) -> void:
+	print("dedicated server: > ", l)
+	if l.begins_with("map "):
+		var i := rotation.find(l.substr(4).strip_edges())
+		if i >= 0:
+			rotation_index = i
+	Q3Server.exec_now(l)
 
 
 func _shutdown() -> void:

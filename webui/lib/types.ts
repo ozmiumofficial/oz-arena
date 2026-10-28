@@ -281,6 +281,22 @@ export interface NetMatch {
   version: string;
   /** a dedicated server (always on) rather than a player's match */
   dedicated?: boolean;
+  /** the host's round trip to the online service in ms (0 from older games): Quick Play's ping guess */
+  rtt?: number;
+}
+
+/** Quick Play (the hub's net_quick): searching, then the hub's pick. found joins at once; far is the best match there is,
+ *  in a distant region (the page asks); none and offline offer hosting or matchmaking; joining follows net_join. */
+export interface QuickPlay {
+  status: "searching" | "found" | "far" | "none" | "offline" | "joining" | "failed";
+  mode: string;
+  match?: NetMatch;
+  /** the hub's ping guess for match, in ms */
+  est?: number;
+  /** open matches in the mode in your region, and matches in the mode a join would refuse (full, password, another version) */
+  near?: number;
+  skipped?: number;
+  reason?: string;
 }
 
 /** A dedicated server's config and what it reports (the dedicated message; Q3Dedicated / Q3DedicatedLauncher). */
@@ -345,6 +361,10 @@ export interface MenuItemDef {
   submenu?: string;
   action?: string;
   when?: string;
+  /** a submenu item that starts a labeled block ("Online", "Offline") */
+  section?: string;
+  /** the main menu's first choice, drawn brighter */
+  primary?: boolean;
 }
 
 /** A rating as the ladder shows it (Q3Cards.rank): division 3, 2, 1 (III, II, I), 0 for Godlike */

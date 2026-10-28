@@ -4,7 +4,7 @@
 
 import { useSyncExternalStore } from "react";
 import { on, send, type Msg } from "./bridge";
-import type { DedicatedConfig, DedicatedStatus, InitPayload, MatchInfo, NetJoin, NetMatch, QueueRating, QueueState, ReplayList, Value, SettingEntry } from "./types";
+import type { DedicatedConfig, DedicatedStatus, InitPayload, MatchInfo, NetJoin, NetMatch, QueueRating, QueueState, QuickPlay, ReplayList, Value, SettingEntry } from "./types";
 import type { Board, ChatLine, Social } from "./social";
 
 export interface Toast {
@@ -63,6 +63,8 @@ export interface MenuState {
   updateStatus: UpdateStatus | null;
   /** the Server Browser: the hub's directory (null until it answers), and the join in progress */
   net: { matches: NetMatch[] | null; region: string; offline: boolean; join: NetJoin | null };
+  /** Quick Play's search and its outcome (null before the first press) */
+  quick: QuickPlay | null;
   /** matchmaking: the queue, the ratings per ranked queue (duel, tdm, ctf), and the round trip to the hub */
   queue: { state: QueueState; ratings: Record<string, QueueRating>; season: string; rtt: number };
   /** this PC's dedicated server: its config, what it reports, and whether it starts with Windows (null until Godot answers) */
@@ -72,7 +74,7 @@ export interface MenuState {
 let state: MenuState = {
   init: null, values: {}, conflicts: {}, subject: null, capture: null, pad: false, toasts: [], validation: [], lastCode: "",
   social: { status: "connecting", reason: "", state: null, chat: [] }, socialOpen: false, pauseOpen: 0, match: null, boards: {},
-  replays: null, update: null, updateStatus: null, net: { matches: null, region: "", offline: false, join: null },
+  replays: null, update: null, updateStatus: null, net: { matches: null, region: "", offline: false, join: null }, quick: null,
   queue: { state: { status: "idle" }, ratings: {}, season: "", rtt: 0 }, dedicated: null,
 };
 const subs = new Set<() => void>();
@@ -113,8 +115,35 @@ export function netJoin(host: string, password = "") {
 }
 
 export function netCancel() {
-  update({ net: { ...state.net, join: null } });
+  update({ net: { ...state.net, join: null }, quick: state.quick?.status === "joining" ? null : state.quick });
   void send("net_cancel", {});
+}
+
+/** Quick Play: the hub picks the best open match in `mode` (net_quick); a close one is joined at once. */
+export function quickPlay(mode: string) {
+  update({ quick: { status: "searching", mode } });
+  void send("net_quick", { mode });
+}
+
+/** Quick Play's "join anyway" for a far match, or a retry of the pick. */
+export function quickJoin(m: NetMatch, est?: number) {
+  update({ quick: { status: "joining", mode: m.mode, match: m, est } });
+  netJoin(m.host);
+}
+
+export function quickClear() {
+  update({ quick: null });
+}
+
+/** Create Match opened from Quick Play's fallback starts on that mode, hosted online. Read once by the page. */
+let createPreset: { mode: string } | null = null;
+export function presetCreateMatch(mode: string) {
+  createPreset = { mode };
+}
+export function takeCreatePreset() {
+  const p = createPreset;
+  createPreset = null;
+  return p;
 }
 
 export function setSocialOpen(open: boolean) {
@@ -181,7 +210,12 @@ export function connect() {
   on("conflicts", (m) => update({ conflicts: m.map as Record<string, string[]> }));
   on("subject", (m) => update({ subject: { name: m.name as string, kind: m.kind as string } }));
   on("capture_started", (m) => update({ capture: { key: m.key as string, slot: m.slot as number } }));
-  on("bind_captured", () => update({ capture: null }));
+  on("bind_captured", (m) => {
+    update({ capture: null });
+    // the input left another action, as in Quake 3's controls menu
+    const from = (m.moved_from as string[] | undefined) ?? [];
+    if (from.length) toast(`${m.label} moved from ${from.join(", ")}.`, "info");
+  });
   on("capture_cancelled", () => update({ capture: null }));
   on("input_mode", (m) => update({ pad: !!m.pad }));
   on("validation", (m) => update({ validation: m.errors as string[] }));
@@ -223,8 +257,23 @@ export function connect() {
   on("net_matches", (m) =>
     update({ net: { ...state.net, matches: (m.matches as NetMatch[]) ?? [], region: String(m.region ?? ""), offline: !!m.offline } }),
   );
+  on("net_quick", (m) => {
+    const q = state.quick;
+    // a late answer for a search the player already left or changed
+    if (!q || q.status !== "searching" || q.mode !== String(m.mode ?? "")) return;
+    const r: QuickPlay = {
+      status: m.status as QuickPlay["status"], mode: q.mode, est: Number(m.est ?? 0), near: Number(m.near ?? 0), skipped: Number(m.skipped ?? 0),
+      match: m.match && (m.match as NetMatch).host ? (m.match as NetMatch) : undefined,
+    };
+    if (r.status === "found" && r.match) return quickJoin(r.match, r.est);
+    update({ quick: r });
+  });
   on("net_join_state", (m) => {
     const join = { status: m.status as NetJoin["status"], reason: String(m.reason ?? ""), host: String(m.host ?? "") };
+    const q = state.quick;
+    // Quick Play's join refused or failed: the page offers hosting or matchmaking instead
+    if (q?.status === "joining" && q.match?.host === join.host && join.status === "failed")
+      update({ quick: { ...q, status: "failed", reason: join.reason } });
     update({ net: { ...state.net, join: join.status === "failed" || join.status === "open" ? (join.status === "open" ? join : null) : join } });
     if (join.status === "failed") toast(join.reason || "Couldn't join that match.", "error");
   });

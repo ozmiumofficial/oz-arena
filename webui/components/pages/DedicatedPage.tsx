@@ -1,6 +1,6 @@
 "use client";
 // Dedicated Server (MULTIPLAYER_PLAN.md M7): run an always-on server from this PC. It is this same game run again,
-// headless, so it keeps going after the game closes; here you set it up, start and stop it, watch who is in it, and
+// in its own window (never hidden), so it keeps going after the game closes; here you set it up, start and stop it, watch who is in it, and
 // send it console commands. It lists itself in everyone's Server Browser under its own identity.
 import { useEffect, useState } from "react";
 import { useMenu } from "@/lib/store";
@@ -48,7 +48,7 @@ export default function DedicatedPage({ back }: PageProps) {
   const patch = (p: Partial<DedicatedConfig>) => setCfg({ ...c, ...p });
   const modeMaps = maps.filter((m) => modes.find((x) => x.id === c.mode)?.map_types.some((t) => m.types.includes(t)));
   return (
-    <PagePanel title="Dedicated Server" subtitle="An always-on server run from this PC. It keeps running after you close the game, and lists itself in the Server Browser." back={back}>
+    <PagePanel title="Dedicated Server" subtitle="An always-on server run from this PC, in its own window on your taskbar. It keeps running after you close the game; close its window to stop it." back={back}>
       <div className="grid h-full grid-cols-[1fr_24rem] gap-8 px-10 py-5">
         <div className="flex min-h-0 flex-col gap-2 overflow-y-auto pr-2">
           <SectionTitle>Server</SectionTitle>

@@ -1,23 +1,18 @@
 {
-  "_note": "The menu tree. Every page id has a component in components/pages; every action is handled by Godot's menu bridge (scenes/main_menu/menu_bridge.gd). The Godot self-test reads this file from res://webui/menu.json.",
+  "_note": "The menu tree. Every page id has a component in components/pages; every action is handled by Godot's menu bridge (scenes/main_menu/menu_bridge.gd). A main item's submenu names a group below; a group item's section starts a labeled block. The Godot self-test reads this file from res://webui/menu.json.",
   "main": [
-    {
-      "id": "single_player",
-      "label": "Single Player",
-      "hint": "Skirmish against bots, or the Quake III Arena campaign",
-      "submenu": "single"
-    },
     {
       "id": "play",
       "label": "Play",
-      "hint": "Matchmaking and ranked",
-      "submenu": "play"
+      "hint": "Online matches, ranked, bots, the campaign and training",
+      "submenu": "play",
+      "primary": true
     },
     {
-      "id": "multiplayer",
-      "label": "Multiplayer",
-      "hint": "Find a server: filters, favorites, history",
-      "page": "server_browser"
+      "id": "profile",
+      "label": "Profile",
+      "hint": "Your player card, leaderboards and replays",
+      "submenu": "profile"
     },
     {
       "id": "map_editor",
@@ -26,40 +21,16 @@
       "action": "map_editor"
     },
     {
-      "id": "profile",
-      "label": "Profile",
-      "hint": "Character, colors, stats",
-      "page": "profile"
-    },
-    {
-      "id": "leaderboards",
-      "label": "Leaderboards",
-      "hint": "The top players by level and by ranked MMR",
-      "page": "leaderboards"
-    },
-    {
-      "id": "replays",
-      "label": "Replays",
-      "hint": "Watch your recorded matches from any player's view",
-      "page": "replays"
-    },
-    {
-      "id": "cinematics",
-      "label": "Cinematics",
-      "hint": "Quake 3's movies: the intro, the tier movies, the ending",
-      "page": "cinematics"
-    },
-    {
       "id": "settings",
       "label": "Settings",
       "hint": "Video, audio, controls and more",
       "page": "settings"
     },
     {
-      "id": "credits",
-      "label": "Credits",
-      "hint": "The people behind it",
-      "page": "credits"
+      "id": "extras",
+      "label": "Extras",
+      "hint": "Quake 3's cinematics and the credits",
+      "submenu": "extras"
     },
     {
       "id": "quit",
@@ -77,16 +48,88 @@
       "when": "continue"
     },
     {
-      "id": "quick_play",
-      "label": "Matchmaking",
-      "hint": "Casual games: the closest match for the playlists you pick",
-      "page": "quick_play"
+      "id": "quick_join",
+      "label": "Quick Play",
+      "hint": "Pick a mode and jump straight into the best open match",
+      "page": "quick_join",
+      "section": "Online"
     },
     {
       "id": "ranked",
       "label": "Ranked",
       "hint": "Competitive queues with a ladder",
       "page": "ranked"
+    },
+    {
+      "id": "server_browser",
+      "label": "Server Browser",
+      "hint": "Every open match, with filters, favorites and history",
+      "page": "server_browser"
+    },
+    {
+      "id": "skirmish",
+      "label": "Skirmish",
+      "hint": "Bots on any arena: pick a mode, a map and go",
+      "page": "offline_bots",
+      "section": "Offline"
+    },
+    {
+      "id": "custom_match",
+      "label": "Custom Match",
+      "hint": "Full setup: rules, modifiers and every bot",
+      "page": "create_match"
+    },
+    {
+      "id": "campaign",
+      "label": "Campaign",
+      "hint": "Quake III Arena's tiers of arenas up to the final duel",
+      "page": "campaign"
+    },
+    {
+      "id": "training",
+      "label": "Training",
+      "hint": "Practice movement, aim and duels",
+      "page": "training"
+    },
+    {
+      "id": "race",
+      "label": "Race",
+      "hint": "Defrag's timed courses: your best run, checkpoints and a ghost",
+      "page": "race"
+    }
+  ],
+  "profile": [
+    {
+      "id": "player_card",
+      "label": "Player Card",
+      "hint": "Card, character, achievements and career stats",
+      "page": "profile"
+    },
+    {
+      "id": "leaderboards",
+      "label": "Leaderboards",
+      "hint": "The top players by level and by ranked MMR",
+      "page": "leaderboards"
+    },
+    {
+      "id": "replays",
+      "label": "Replays",
+      "hint": "Watch your recorded matches from any player's view",
+      "page": "replays"
+    }
+  ],
+  "extras": [
+    {
+      "id": "cinematics",
+      "label": "Cinematics",
+      "hint": "Quake 3's movies: the intro, the tier movies, the ending",
+      "page": "cinematics"
+    },
+    {
+      "id": "credits",
+      "label": "Credits",
+      "hint": "The people behind it",
+      "page": "credits"
     }
   ],
   "pages": [
@@ -94,6 +137,7 @@
     "campaign",
     "play",
     "quick_play",
+    "quick_join",
     "ranked",
     "race",
     "leaderboards",
@@ -116,31 +160,5 @@
     "quit",
     "campaign_start",
     "cinematic"
-  ],
-  "single": [
-    {
-      "id": "skirmish",
-      "label": "Skirmish",
-      "hint": "Offline with bots: pick the mode and the map",
-      "page": "offline_bots"
-    },
-    {
-      "id": "campaign",
-      "label": "Campaign",
-      "hint": "Quake III Arena's tiers of arenas up to the final duel",
-      "page": "campaign"
-    },
-    {
-      "id": "training",
-      "label": "Training",
-      "hint": "Practice movement, aim and duels",
-      "page": "training"
-    },
-    {
-      "id": "race",
-      "label": "Race",
-      "hint": "Defrag's timed courses: your best run, checkpoints and a ghost",
-      "page": "race"
-    }
   ]
 }

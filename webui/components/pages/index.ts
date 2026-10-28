@@ -5,7 +5,7 @@ import CrosshairEditor from "./CrosshairEditor";
 import SinglePlayerPage from "./SinglePlayerPage";
 import CinematicsPage from "./CinematicsPage";
 import CreateMatchPage, { OfflineBotsPage } from "./CreateMatchPage";
-import { QuickPlayPage, ServerBrowserPage, TrainingPage } from "./PlayPages";
+import { QuickJoinPage, QuickPlayPage, ServerBrowserPage, TrainingPage } from "./PlayPages";
 import RankedPage from "./RankedPage";
 import LeaderboardPage from "./LeaderboardPage";
 import ReplaysPage from "./ReplaysPage";
@@ -27,6 +27,7 @@ export const PAGES: Record<string, ComponentType<PageProps>> = {
   create_match: CreateMatchPage,
   offline_bots: OfflineBotsPage,
   quick_play: QuickPlayPage,
+  quick_join: QuickJoinPage,
   ranked: RankedPage,
   race: RacePage,
   leaderboards: LeaderboardPage,

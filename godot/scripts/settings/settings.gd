@@ -329,6 +329,28 @@ func set_bind(key: String, slot: int, ev_string: String) -> void:
 	set_value(key, v)
 
 
+## set_bind that first takes ev_string off every other bind setting, and off this one's other
+## slots, so one input does one thing. Returns the other settings that lost it.
+func assign_bind(key: String, slot: int, ev_string: String) -> PackedStringArray:
+	var moved: PackedStringArray = []
+	if ev_string != "":
+		for e in entries:
+			if e["type"] != "bind":
+				continue
+			var v: Array = (_values[e["key"]] as Array).duplicate()
+			var hit := false
+			for i in v.size():
+				if v[i] == ev_string and not (e["key"] == key and i == slot):
+					v[i] = ""
+					hit = true
+			if hit:
+				if e["key"] != key:
+					moved.append(e["key"])
+				set_value(e["key"], v)
+	set_bind(key, slot, ev_string)
+	return moved
+
+
 func _apply_bind(key: String, binds: Array) -> void:
 	var action := "q3_" + key.get_slice("/", 1)
 	if not InputMap.has_action(action):

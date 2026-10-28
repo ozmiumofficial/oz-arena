@@ -253,11 +253,10 @@ func after_splash() -> void:
 	if replay.has("clip"):
 		_go(GAMEPLAY)   # a clip render: straight to the replay
 		return
-	for a in OS.get_cmdline_args() + OS.get_cmdline_user_args():
-		if String(a).begins_with("dedicated="):
-			dedicated = String(a).get_slice("=", 1)
-			_go(DEDICATED)
-			return
+	if dedicated_arg() != "":
+		dedicated = dedicated_arg()
+		_go(DEDICATED)
+		return
 	var launch := {}
 	# after "--", or bare: an exported game's console wrapper passes them on without the "--"
 	for a in OS.get_cmdline_args() + OS.get_cmdline_user_args():
@@ -331,8 +330,21 @@ func quit_game() -> void:
 	get_tree().quit()
 
 
+## The config of `-- dedicated=<config.json>` on the command line, "" without: this process is a dedicated server.
+func dedicated_arg() -> String:
+	for a in OS.get_cmdline_args() + OS.get_cmdline_user_args():
+		if String(a).begins_with("dedicated="):
+			return String(a).get_slice("=", 1)
+	return ""
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		# a dedicated server's window: closing it stops the server cleanly (unlisted, status removed)
+		var top := get_tree().current_scene
+		if dedicated != "" and top is Q3Dedicated:
+			(top as Q3Dedicated).stop_now()
+			return
 		quit_game()
 
 

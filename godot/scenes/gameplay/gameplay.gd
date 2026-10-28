@@ -231,6 +231,7 @@ func _start_hosting() -> void:
 		Online.match_joined(String(setup.matchmade.get("match", "")))
 	if me_id != "":
 		Online.set_presence("match", "Hosting " + String(host_net.listing.get("name", "a match")), "match:" + me_id)
+		Online.party_follow(me_id, String(o.get("password", "")))   # the party leader's party joins too
 
 
 ## Gameplay > Record replays: the whole match from here on (Q3ReplayRecorder). Map editor

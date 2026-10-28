@@ -121,7 +121,13 @@ func _menu_checks() -> void:
 	var quit_asked := [false]
 	bridge.quit_requested.connect(func(): quit_asked[0] = true)
 	var n := 0
-	for group in ["main", "single", "play"]:
+	var groups := ["main"]
+	for it in tree.get("main", []):
+		if it.has("submenu"):
+			groups.append(it["submenu"])
+			if not tree.has(it["submenu"]):
+				bad.append(it["submenu"])
+	for group in groups:
 		for it in tree.get(group, []):
 			n += 1
 			if it.has("page"):
@@ -197,26 +203,37 @@ func _menu_checks() -> void:
 	check("settings: every setting round-trips to disk", loaded and diff.is_empty() and want.size() > 100,
 			"%d settings%s" % [want.size(), (", differ: " + ", ".join(diff.slice(0, 5))) if diff.size() else ""])
 
-	# binds: capture through the bridge, conflict detection, the InputMap
+	# binds: capture through the bridge (a key here, the page's bind_input), the moved key, conflict
+	# detection, the controller slot, the InputMap
 	for e in Settings.entries:
 		Settings.set_value(e["key"], Settings.default_of(e["key"]), false)
+	var had_w: bool = (Settings.get_value("controls/forward") as Array).has("key:W")
 	bridge.handle({"type": "capture_bind", "key": "controls/jump", "slot": 1})
 	var w := InputEventKey.new()
 	w.physical_keycode = KEY_W
 	w.pressed = true
 	var used := bridge.capture_input(w)
-	var conflicts := Settings.bind_conflicts("controls/jump")
+	var moved := had_w and not (Settings.get_value("controls/forward") as Array).has("key:W")
 	var mapped := false
 	for ev in InputMap.action_get_events("q3_jump"):
 		mapped = mapped or (ev is InputEventKey and ev.physical_keycode == KEY_W)
 	bridge.handle({"type": "capture_bind", "key": "controls/jump", "slot": 1})
+	bridge.handle({"type": "bind_input", "value": "key:NotAKey"})   # refused, the capture goes on
+	var still := bridge.capture_key == "controls/jump"
+	bridge.handle({"type": "bind_input", "value": "mouse:5"})
+	var wheel: bool = Settings.get_value("controls/jump")[1] == "mouse:5"
+	bridge.handle({"type": "capture_bind", "key": "controls/jump", "slot": 2})
+	bridge.handle({"type": "bind_input", "value": "key:F"})          # the controller slot takes pads only
+	var pad_only: bool = bridge.capture_key != "" and Settings.get_value("controls/jump")[2] != "key:F"
 	var esc := InputEventKey.new()
 	esc.physical_keycode = KEY_ESCAPE
 	esc.pressed = true
 	bridge.capture_input(esc)
-	check("settings: bind capture, conflicts, InputMap", used and Settings.get_value("controls/jump")[1] == "key:W"
-			and conflicts.has("controls/forward") and mapped and bridge.capture_key == "",
-			"jump = %s, conflicts %s" % [Settings.get_value("controls/jump"), conflicts])
+	Settings.set_bind("controls/forward", 0, "key:Space")            # set directly: no move, a conflict
+	var conflicts := Settings.bind_conflicts("controls/forward")
+	check("settings: bind capture, moved key, conflicts, InputMap", used and moved and mapped and still and wheel
+			and pad_only and bridge.capture_key == "" and conflicts.size() > 0,
+			"jump = %s, forward = %s, conflicts %s" % [Settings.get_value("controls/jump"), Settings.get_value("controls/forward"), conflicts])
 	for k in keep:
 		Settings.set_value(k, keep[k], false)
 	Settings.path = real_path

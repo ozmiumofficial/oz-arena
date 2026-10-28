@@ -144,7 +144,10 @@ func _input(ev: InputEvent) -> void:
 	if not shown:
 		return
 	if bridge.capture_key != "":
-		if bridge.capture_input(ev):
+		# only controllers: the page captures keys and the mouse itself (bind_input), and the copies
+		# godot_wry forwards here would arrive late (the Enter that opened the slot bound itself)
+		var pad_ev := ev is InputEventJoypadButton or ev is InputEventJoypadMotion
+		if pad_ev and bridge.capture_input(ev):
 			get_viewport().set_input_as_handled()
 		return
 	var pad := ev is InputEventJoypadButton or (ev is InputEventJoypadMotion and absf(ev.axis_value) > 0.5)

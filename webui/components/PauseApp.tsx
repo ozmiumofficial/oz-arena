@@ -16,6 +16,7 @@ import BannerText from "./BannerText";
 import { Toasts } from "./Chrome";
 import { Q3Name } from "./Social";
 import { PAGES } from "./pages";
+import CaptureVeil from "./controls/CaptureVeil";
 
 type Item = { id: string; label: string; hint: string; page?: string; act?: () => void };
 
@@ -97,6 +98,7 @@ export default function PauseApp() {
         ))}
       </div>
       <Toasts />
+      <CaptureVeil />
     </main>
   );
 }

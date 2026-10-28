@@ -3,7 +3,7 @@
 // plays the Quake 3 menu sounds through <audio>, and fakes the showcase captions.
 
 import { emit, type Msg } from "./bridge";
-import { codeToGodot, mouseToGodot, bindLabel } from "./binds";
+import { bindLabel } from "./binds";
 import type { InitPayload, PartKind, ProfileState, ReplayInfo, Value } from "./types";
 import type { Friend, Social, SocialState } from "./social";
 
@@ -52,39 +52,32 @@ function notice(text: string) {
   emit({ type: "dev_notice", text });
 }
 
-function capture(key: string, slot: number) {
-  emit({ type: "capture_started", key, slot });
-  const done = (value: string | null, cancelled = false) => {
-    window.removeEventListener("keydown", onKey, true);
-    window.removeEventListener("mousedown", onMouse, true);
-    window.removeEventListener("wheel", onWheel, true);
-    if (cancelled) return emit({ type: "capture_cancelled", key });
-    const v = [...(state!.values[key] as string[])];
-    v[slot] = value ?? "";
-    set(key, v);
-    emit({ type: "bind_captured", key, slot, value: value ?? "", label: bindLabel(value ?? "") });
-  };
-  const onKey = (e: KeyboardEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.code === "Escape") return done(null, true);
-    if (e.code === "Backspace" || e.code === "Delete") return done(null);
-    done("key:" + codeToGodot(e.code));
-  };
-  const onMouse = (e: MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    done("mouse:" + mouseToGodot(e.button));
-  };
-  const onWheel = (e: WheelEvent) => {
-    e.preventDefault();
-    done("mouse:" + (e.deltaY < 0 ? 4 : 5));
-  };
-  setTimeout(() => {
-    window.addEventListener("keydown", onKey, true);
-    window.addEventListener("mousedown", onMouse, true);
-    window.addEventListener("wheel", onWheel, { capture: true, passive: false });
-  }, 50);
+// The page captures the input itself (CaptureVeil) and sends bind_input; this applies it as
+// Q3MenuBridge._capture does, moving the input off any other action.
+let capturing: { key: string; slot: number } | null = null;
+function bindInput(value: string) {
+  if (!capturing || !state) return;
+  const { key, slot } = capturing;
+  if (slot === 2 && value && !value.startsWith("joy")) return;
+  capturing = null;
+  const from: string[] = [];
+  if (value) {
+    for (const e of state.schema.filter((s) => s.type === "bind")) {
+      const v = [...(state.values[e.key] as string[])];
+      let hit = false;
+      v.forEach((x, i) => {
+        if (x === value && !(e.key === key && i === slot)) (v[i] = ""), (hit = true);
+      });
+      if (hit) {
+        if (e.key !== key) from.push(e.label);
+        set(e.key, v);
+      }
+    }
+  }
+  const v = [...(state.values[key] as string[])];
+  v[slot] = value;
+  set(key, v);
+  emit({ type: "bind_captured", key, slot, value, label: bindLabel(value), moved_from: from });
 }
 
 async function ready() {
@@ -195,7 +188,15 @@ export function handle(m: Msg) {
       state?.schema.filter((s) => s.tab === m.tab).forEach((e) => set(e.key, structuredClone(e.default)));
       break;
     case "capture_bind":
-      capture(m.key as string, m.slot as number);
+      capturing = { key: m.key as string, slot: m.slot as number };
+      emit({ type: "capture_started", key: m.key, slot: m.slot });
+      break;
+    case "bind_input":
+      bindInput(String(m.value ?? ""));
+      break;
+    case "cancel_capture":
+      if (capturing) emit({ type: "capture_cancelled", key: capturing.key });
+      capturing = null;
       break;
     case "clear_bind": {
       const v = [...(state!.values[m.key as string] as string[])];
@@ -265,6 +266,16 @@ export function handle(m: Msg) {
         ],
       } as unknown as Msg);
       break;
+    // Quick Play: a found FFA match in your region, a far duel, nothing for the rest
+    case "net_quick": {
+      const mode = String(m.mode ?? "");
+      const match = mode === "ffa"
+        ? { host: "a".repeat(20), owner: "Ranger", region: "na_east", name: "Open FFA", mode: "ffa", map: "q3dm17", players: 3, max: 8, password: false, ranked: false, version: "0.3.0-beta", rtt: 40 }
+        : mode === "duel" ? { host: "b".repeat(20), owner: "Visor", region: "eu", name: "Duel night", mode: "duel", map: "q3tourney2", players: 1, max: 2, password: false, ranked: false, version: "0.3.0-beta", rtt: 30 } : null;
+      setTimeout(() => emit({ type: "net_quick", mode, region: "na_east", status: match ? (mode === "ffa" ? "found" : "far") : "none",
+        match: match ?? {}, est: match ? (mode === "ffa" ? 35 : 215) : 0, near: mode === "ffa" ? 1 : 0, skipped: mode === "tdm" ? 1 : 0 } as unknown as Msg), 600);
+      break;
+    }
     case "net_join":
       emit({ type: "net_join_state", status: "asking", reason: "", host: m.host });
       setTimeout(() => emit({ type: "net_join_state", status: "connecting", reason: "", host: m.host }), 700);

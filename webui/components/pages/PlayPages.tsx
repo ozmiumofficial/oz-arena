@@ -1,10 +1,9 @@
 "use client";
-// Quick play and the Server browser are the real pages, waiting on online matches (PLAN.md
-// "Multiplayer and online services"): their lists are empty and their search buttons buzz (menu4)
-// until the netcode and the hub's match directory are in. Training starts real setups.
+// Matchmaking (the hub's queue), Quick Play (the hub's pick of one open match), the Server Browser (the hub's
+// directory) and Training (real offline setups).
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { useMenu, toast, setValue, netBrowse, netJoin, netCancel, queueJoin } from "@/lib/store";
+import { useMenu, toast, setValue, netBrowse, netJoin, netCancel, queueJoin, quickPlay, quickJoin, quickClear, presetCreateMatch, getState } from "@/lib/store";
 import { send } from "@/lib/bridge";
 import { sfx } from "@/lib/sound";
 import { cn } from "@/lib/cn";
@@ -80,6 +79,98 @@ export function QuickPlayPage({ back }: PageProps) {
   );
 }
 
+// Quick Play: one mode, one button, straight into the open match with the best connection (the hub's net_quick).
+// Ping can't be measured through the relay before joining, so the hub guesses it: your region and the host's, and
+// both players' round trips to the online service. With nothing close, the page offers to host one in the mode or to
+// queue for it with matchmaking.
+export function QuickJoinPage({ back, open }: PageProps) {
+  const allModes = useMenu((s) => s.init?.modes);
+  const modes = (allModes ?? []).filter((m) => m.id !== "race");
+  const maps = useMenu((s) => s.init?.maps ?? []);
+  const regions = useMenu((s) => s.init?.schema.find((e) => e.key === "network/region")?.options ?? []);
+  const region = useMenu((s) => s.init?.schema.find((e) => e.key === "network/region")?.options?.find((o) => o[0] === s.values["network/region"])?.[1] ?? "Automatic");
+  const online = useMenu((s) => s.social.status === "online");
+  const quick = useMenu((s) => s.quick);
+  const join = useMenu((s) => s.net.join);
+  const queued = useMenu((s) => s.queue.state.status === "queued" || s.queue.state.status === "found");
+  const [mode, setMode] = useState(quick?.mode || "ffa");
+  // a finished search belongs to the page it was made on
+  useEffect(() => () => { if (getState().quick?.status !== "joining") quickClear(); }, []);
+  const busy = quick?.status === "searching" || quick?.status === "joining";
+  const name = (id: string) => modes.find((m) => m.id === id)?.name ?? id;
+  const regionName = (id: string) => regions.find((r) => r[0] === id)?.[1] ?? id;
+  const shown = quick && quick.mode === mode ? quick : null;
+  const fallback = shown && ["far", "none", "failed", "offline"].includes(shown.status);
+  const host = () => { presetCreateMatch(mode); open("create_match"); };
+  const canQueue = QUEUE_MODES.includes(mode);
+  const why = !shown ? "" :
+    shown.status === "far" ? `The closest open ${name(mode)} match is in ${regionName(shown.match?.region ?? "")}, about ${shown.est} ms away.` :
+    shown.status === "failed" ? `Couldn't join ${shown.match?.name ?? "that match"}: ${(shown.reason || "the host didn't answer").replace(/\.+$/, "")}.` :
+    shown.status === "offline" ? "The online service isn't connected." :
+    shown.status === "none" ? `No open ${name(mode)} match right now${shown.skipped ? ` (${shown.skipped} full, locked or on another version)` : ""}.` : "";
+  return (
+    <PagePanel title="Quick Play" subtitle="Pick a mode and go straight into the open match with the best connection." back={back}>
+      <div className="flex h-full flex-col px-10 py-6">
+        <SectionTitle>Game mode</SectionTitle>
+        <div data-grid="4" className="grid grid-cols-4 gap-3">
+          {modes.map((m) => (
+            <PlaylistCard key={m.id} name={m.name} text={m.description.split(".")[0] + "."} on={mode === m.id} toggle={() => !busy && setMode(m.id)} />
+          ))}
+        </div>
+        <p className="mt-3 text-[0.85rem] text-faint">
+          Quick Play joins open matches only: not full, no password, your game version. Your region comes first. Ping isn&apos;t measured through the relay
+          before you join, so it&apos;s estimated from both players&apos; regions and their connection to the online service; the real number shows in the match.
+        </p>
+        <div className="mt-auto flex flex-col gap-3">
+          {(busy || fallback) && (
+            <div className="rounded-sm border border-white/10 bg-black/40 px-5 py-4">
+              {busy ? (
+                <div data-row className="flex items-center gap-4">
+                  <span className="text-[1rem] text-ink-hot">
+                    {shown?.status === "joining" || quick?.status === "joining"
+                      ? `${join?.status === "connecting" ? "Connecting to" : "Asking"} ${quick?.match?.name ?? "the host"} (${maps.find((x) => x.map === quick?.match?.map)?.name ?? quick?.match?.map}, ${quick?.match?.players}/${quick?.match?.max}, about ${quick?.est} ms)...`
+                      : `Looking for the best ${name(quick?.mode ?? mode)} match...`}
+                  </span>
+                  <Button small onClick={() => (quick?.status === "joining" ? netCancel() : quickClear())}>Cancel</Button>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-3 text-[1rem] text-ink">{why}</div>
+                  <div data-row className="flex flex-wrap items-center gap-3">
+                    {shown?.status === "far" && shown.match && (
+                      <Button small primary onClick={() => quickJoin(shown.match!, shown.est)}>Join anyway</Button>
+                    )}
+                    <Button small primary={shown?.status !== "far"} onClick={host}>Host a {name(mode)} match</Button>
+                    {canQueue && (
+                      <Button small refuse={queued ? "Already searching." : !online ? "The online service isn't connected." : undefined} onRefuse={refused}
+                        onClick={() => { queueJoin([mode], false); open("quick_play"); }}>
+                        Queue with matchmaking
+                      </Button>
+                    )}
+                    <Button small onClick={() => open("server_browser")}>Server Browser</Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          <div className="flex items-end justify-between">
+            <div className="text-[0.95rem] text-dim">Region: <span className="text-ink">{region}</span> <span className="text-faint">(Settings, Network)</span></div>
+            <Button
+              primary
+              refuse={busy ? "Already looking." : !!join ? "Already joining a match." : !online ? "The online service isn't connected." : undefined}
+              onRefuse={refused}
+              onClick={() => quickPlay(mode)}
+              className="px-14 py-4 text-[1.4rem]"
+            >
+              Quick Play
+            </Button>
+          </div>
+        </div>
+      </div>
+    </PagePanel>
+  );
+}
+
 export function ServerBrowserPage({ back, open }: PageProps) {
   const modes = useMenu((s) => s.init?.modes ?? []);
   const maps = useMenu((s) => s.init?.maps ?? []);
@@ -104,8 +195,7 @@ export function ServerBrowserPage({ back, open }: PageProps) {
   const q = query.trim().toLowerCase();
   const shown = (net.matches ?? []).filter(
     (m) =>
-      m.host !== me &&
-      (region === "auto" || m.region === region) &&
+      (region === "auto" || m.region === region || m.host === me) &&
       (mode === "any" || m.mode === mode) &&
       !(full && m.players >= m.max) &&
       !(empty && m.players === 0) &&
@@ -117,6 +207,7 @@ export function ServerBrowserPage({ back, open }: PageProps) {
   const joining = net.join && (net.join.status === "asking" || net.join.status === "connecting") ? net.join : null;
   const join = (m: NetMatch) => {
     if (joining) return;
+    if (m.host === me) return toast("That's your own match: you're already hosting it.", "info");
     if (m.password && !asking) {
       setAsking(m);
       setPassword("");
@@ -139,8 +230,8 @@ export function ServerBrowserPage({ back, open }: PageProps) {
           <span className="text-[0.85rem] text-faint">Ping shows once you are in a match: it is not measured through the relay beforehand.</span>
         </div>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm border border-white/[0.07]">
-          <div className="grid grid-cols-[1fr_12rem_10rem_7rem_10rem] bg-white/[0.04] px-4 py-2 font-q3 text-[0.7rem] tracking-[0.2em] text-dim">
-            {["Match", "Map", "Mode", "Players", "Region"].map((c) => <span key={c}>{c}</span>)}
+          <div className="grid grid-cols-[1fr_12rem_10rem_7rem_10rem_7rem] bg-white/[0.04] px-4 py-2 font-q3 text-[0.7rem] tracking-[0.2em] text-dim">
+            {["Match", "Map", "Mode", "Players", "Region", ""].map((c, i) => <span key={i}>{c}</span>)}
           </div>
           <div data-list className="flex-1 overflow-y-auto">
             {!online ? (
@@ -155,13 +246,20 @@ export function ServerBrowserPage({ back, open }: PageProps) {
                   key={m.host}
                   data-nav
                   onClick={() => { sfx.move(); join(m); }}
-                  className="grid w-full grid-cols-[1fr_12rem_10rem_7rem_10rem] items-center border-b border-white/[0.05] px-4 py-2.5 text-left text-[0.95rem] focus:bg-red/15 focus:outline-none"
+                  className="group grid w-full grid-cols-[1fr_12rem_10rem_7rem_10rem_7rem] items-center border-b border-white/[0.05] px-4 py-2.5 text-left text-[0.95rem] hover:bg-white/[0.04] focus:bg-red/15 focus:outline-none"
                 >
                   <span className="truncate text-ink-hot">{m.name}{m.password ? " (password)" : ""}{m.ranked ? " (ranked)" : ""}{m.dedicated ? " (dedicated)" : ""} <span className="text-dim">by {m.owner}</span></span>
                   <span className="truncate text-ink">{mapName(m.map)}</span>
                   <span className="truncate text-ink">{modeName(m.mode)}</span>
                   <span className={m.players >= m.max ? "text-dim" : "text-ink"}>{m.players}/{m.max}</span>
                   <span className="truncate text-dim">{regionName(m.region)}</span>
+                  {m.host === me ? (
+                    <span className="justify-self-end font-q3 text-[0.7rem] tracking-[0.15em] text-dim">YOURS</span>
+                  ) : (
+                    <span className="justify-self-end rounded-sm border border-red/60 px-3 py-1 font-q3 text-[0.7rem] tracking-[0.15em] text-ink-hot group-hover:bg-red/30 group-focus:bg-red/40">
+                      JOIN
+                    </span>
+                  )}
                 </button>
               ))
             )}

@@ -27,22 +27,27 @@ export function isPadBind(s: string) {
   return s.startsWith("joy");
 }
 
-// Browser preview only: KeyboardEvent.code -> Godot key name.
+// Bind capture (CaptureVeil): KeyboardEvent.code (the physical key, whatever the layout) -> the
+// name OS.find_keycode_from_string reads back. Each name was checked against Godot 4.7.
 const CODES: Record<string, string> = {
   Space: "Space", Enter: "Enter", Tab: "Tab", Backquote: "QuoteLeft", Minus: "Minus", Equal: "Equal",
   BracketLeft: "BracketLeft", BracketRight: "BracketRight", Semicolon: "Semicolon", Quote: "Apostrophe",
-  Comma: "Comma", Period: "Period", Slash: "Slash", Backslash: "BackSlash", CapsLock: "CapsLock",
+  Comma: "Comma", Period: "Period", Slash: "Slash", Backslash: "BackSlash", IntlBackslash: "BackSlash", CapsLock: "CapsLock",
   ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right",
   ShiftLeft: "Shift", ShiftRight: "Shift", ControlLeft: "Ctrl", ControlRight: "Ctrl", AltLeft: "Alt", AltRight: "Alt",
   Insert: "Insert", Home: "Home", End: "End", PageUp: "PageUp", PageDown: "PageDown",
+  Pause: "Pause", ScrollLock: "ScrollLock", NumLock: "NumLock", PrintScreen: "Print", ContextMenu: "Menu",
+  NumpadMultiply: "Kp Multiply", NumpadDivide: "Kp Divide", NumpadSubtract: "Kp Subtract", NumpadAdd: "Kp Add",
+  NumpadEnter: "Kp Enter", NumpadDecimal: "Kp Period",
 };
 
+/** "" for a key Godot can't name (the capture refuses it). */
 export function codeToGodot(code: string): string {
-  if (code.startsWith("Key")) return code.slice(3);
-  if (code.startsWith("Digit")) return code.slice(5);
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit\d$/.test(code)) return code.slice(5);
   if (/^F\d+$/.test(code)) return code;
-  if (code.startsWith("Numpad")) return "Kp " + code.slice(6);
-  return CODES[code] ?? code;
+  if (/^Numpad\d$/.test(code)) return "Kp " + code.slice(6);
+  return CODES[code] ?? "";
 }
 
 export function mouseToGodot(button: number): number {

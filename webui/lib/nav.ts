@@ -175,6 +175,13 @@ function typing(t: EventTarget | null) {
   return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA") && (el as HTMLInputElement).type !== "range";
 }
 
+// Bind capture takes a right click as Mouse 2; the context menu that follows as the button comes
+// up must not go back a page as well.
+let backHeldUntil = 0;
+export function holdBack(ms: number) {
+  backHeldUntil = performance.now() + ms;
+}
+
 let installed = false;
 export function installNav() {
   if (installed) return;
@@ -198,7 +205,7 @@ export function installNav() {
   });
   window.addEventListener("contextmenu", (e) => {
     e.preventDefault();
-    if (!getState().capture) nav("back");
+    if (!getState().capture && performance.now() > backHeldUntil) nav("back");
   });
   // the mouse cursor is the menu cursor: hovering an item focuses it
   document.addEventListener("mouseover", (e) => {

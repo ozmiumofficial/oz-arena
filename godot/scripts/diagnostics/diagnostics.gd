@@ -51,8 +51,9 @@ var _stalls := 0                        ## expect_stall() depth: the watchdog lo
 func _enter_tree() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_priority = -1000
-	# the window's name; config/name stays "Q3Remaster" because it names the user:// folder
-	DisplayServer.window_set_title(TITLE)
+	# the window's name; config/name stays "Q3Remaster" because it names the user:// folder. Set on the
+	# Window node: DisplayServer.window_set_title alone is overwritten by the root window's own title.
+	get_tree().root.title = TITLE
 	started = Time.get_unix_time_from_system()
 	var pid := OS.get_process_id()
 	session_id = "%d-%d" % [int(started), pid]

@@ -320,6 +320,8 @@ func back_to_editor() -> void:
 ## leaving a frozen window, so every one is freed first; settings are saved and the match stopped.
 func quit_game() -> void:
 	Settings.save()
+	if Q3UpdateInstall.pending():   # a downloaded update installs once the game has exited
+		Q3UpdateInstall.instance().apply(false)
 	if ClassDB.class_exists("Q3Server") and Q3Server.running():
 		Q3Server.exec_now("killserver")
 	for w in get_tree().root.find_children("*", "WebView", true, false):

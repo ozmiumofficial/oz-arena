@@ -112,10 +112,11 @@ async function ready() {
     document.body.style.background = "url(/q3/levelshots/q3dm17.jpg) center / cover";
   }
   emit({ ...state, type: "init" } as unknown as Msg);
-  // ?update previews the "update available" offer
+  // ?update previews the "update available" offer (?update=old: a build that can't install it)
   if (location.search.includes("update")) {
     emit({
       type: "update",
+      can_install: !location.search.includes("update=old"),
       info: {
         tag: "v0.4.0-beta", version: "0.4.0-beta", name: "v0.4.0-beta: replays and the duel maps", published: "2026-10-25", beta: true,
         size: 1_240_000_000, url: "https://github.com/ozmiumofficial/quake-3-arena-remastered-fan-project/releases/tag/v0.4.0-beta",
@@ -297,6 +298,23 @@ export function handle(m: Msg) {
       break;
     case "open_url":
       window.open(String(m.url), "_blank", "noopener");
+      break;
+    case "update_start": {
+      // a pretend download of a 38 MB patch over about 4 s
+      const total = 38_000_000;
+      const st = (state: string, done: number, file = "patch.pck") =>
+        emit({ type: "update_status", status: { state, tag: "v0.4.0-beta", version: "0.4.0-beta", done, total, file, error: "" } } as unknown as Msg);
+      st("checking", 0, "");
+      let done = 0;
+      const t = setInterval(() => {
+        done = Math.min(total, done + 4_000_000);
+        st(done < total ? "downloading" : "ready", done);
+        if (done >= total) clearInterval(t);
+      }, 400);
+      break;
+    }
+    case "update_apply":
+      emit({ type: "update_status", status: { state: "applying", tag: "v0.4.0-beta", version: "0.4.0-beta", done: 0, total: 0, file: "", error: "" } } as unknown as Msg);
       break;
     case "social":
       socialOp(m);

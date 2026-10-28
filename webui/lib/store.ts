@@ -23,6 +23,19 @@ export interface UpdateInfo {
   size: number;
   published: string;
   beta: boolean;
+  /** this build can download and install it in the game (it ships Q3Updater.exe) */
+  can_install?: boolean;
+}
+
+/** Godot's Q3UpdateInstall: the download of the offered release. */
+export interface UpdateStatus {
+  state: "idle" | "checking" | "downloading" | "ready" | "applying" | "failed" | "current";
+  tag: string;
+  version: string;
+  done: number;
+  total: number;
+  file: string;
+  error: string;
 }
 
 export interface MenuState {
@@ -46,6 +59,8 @@ export interface MenuState {
   replays: ReplayList | null;
   /** a newer release to offer; null once the player says Later or Skip */
   update: UpdateInfo | null;
+  /** the download of it (stays when the offer is dismissed: it keeps going in the background) */
+  updateStatus: UpdateStatus | null;
   /** the Server Browser: the hub's directory (null until it answers), and the join in progress */
   net: { matches: NetMatch[] | null; region: string; offline: boolean; join: NetJoin | null };
   /** matchmaking: the queue, the ratings per ranked queue (duel, tdm, ctf), and the round trip to the hub */
@@ -57,7 +72,7 @@ export interface MenuState {
 let state: MenuState = {
   init: null, values: {}, conflicts: {}, subject: null, capture: null, pad: false, toasts: [], validation: [], lastCode: "",
   social: { status: "connecting", reason: "", state: null, chat: [] }, socialOpen: false, pauseOpen: 0, match: null, boards: {},
-  replays: null, update: null, net: { matches: null, region: "", offline: false, join: null },
+  replays: null, update: null, updateStatus: null, net: { matches: null, region: "", offline: false, join: null },
   queue: { state: { status: "idle" }, ratings: {}, season: "", rtt: 0 }, dedicated: null,
 };
 const subs = new Set<() => void>();
@@ -213,7 +228,14 @@ export function connect() {
     update({ net: { ...state.net, join: join.status === "failed" || join.status === "open" ? (join.status === "open" ? join : null) : join } });
     if (join.status === "failed") toast(join.reason || "Couldn't join that match.", "error");
   });
-  on("update", (m) => update({ update: m.info as UpdateInfo }));
+  on("update", (m) => update({ update: { ...(m.info as UpdateInfo), can_install: !!m.can_install } }));
+  on("update_status", (m) => {
+    const s = m.status as UpdateStatus;
+    const was = state.updateStatus?.state;
+    update({ updateStatus: s });
+    // the offer may be closed by now: say so once when the download finishes
+    if (s.state === "ready" && was !== "ready" && !state.update) toast(`Update ${s.version} is ready: it installs when you quit`, "info");
+  });
   on("replays", (m) => update({ replays: { list: m.list as ReplayList["list"], kept: m.kept as number } }));
   on("party_chat", (m) => update({ social: { ...state.social, chat: [...state.social.chat, m as unknown as ChatLine].slice(-50) } }));
   void send("ready");

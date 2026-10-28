@@ -19,7 +19,7 @@ const MAX_NOTES := 3000
 static var _instance: Q3UpdateCheck
 
 var info: Dictionary = {}            ## the newest newer release, once found ({} until then)
-var feed_url := FEED                 ## tests point this at a local server
+var feed_url := server_override() + "releases.json" if server_override() != "" else FEED   ## tests point this at a local server
 var force := false                   ## check even in the editor or headless
 var _started := false
 
@@ -31,6 +31,16 @@ static func instance() -> Q3UpdateCheck:
 		_instance.name = "Q3UpdateCheck"
 		(Engine.get_main_loop() as SceneTree).root.add_child.call_deferred(_instance)
 	return _instance
+
+
+## `-- update_server=http://127.0.0.1:8765/` (tests): the feed is <server>releases.json and downloads come
+## from <server>download/<tag>/<asset>. Safe to leave in: what comes from it must still be signed.
+static func server_override() -> String:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("update_server="):
+			var s := a.trim_prefix("update_server=")
+			return s if s.ends_with("/") else s + "/"
+	return ""
 
 
 static func current_version() -> String:
@@ -130,6 +140,8 @@ static func skip(tag: String) -> void:
 func _wanted() -> bool:
 	if force:
 		return true
+	if server_override() != "":
+		return true   # a test release server (an exported build checks even headless then)
 	return Settings.get_value("network/check_updates") and not OS.has_feature("editor") and DisplayServer.get_name() != "headless"
 
 

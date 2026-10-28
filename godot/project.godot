@@ -20,6 +20,7 @@ config/windows_native_icon="res://icon.ico"
 
 [autoload]
 
+UpdateBoot="*res://scripts/updates/update_boot.gd"
 Diagnostics="*uid://cu0aae7rbsfb1"
 Q3="*res://scripts/q3.gd"
 Settings="*res://scripts/settings/settings.gd"

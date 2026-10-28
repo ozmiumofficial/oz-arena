@@ -295,7 +295,8 @@ static func build() -> Array:
 	L.append(_e("network/online_server", "Online server", "string", "", "Leave empty for the default. A local test server is ws://127.0.0.1:8787.", g, {"max": 200}))
 	L.append(_e("network/direct_downloads", "Allow direct map downloads", "bool", false, "When a match is on a map one of you doesn't have, send or get it over a direct connection between the two PCs instead of through the relay. While it runs, the other player (or server) sees your IP address; the match itself always stays on the relay. Both sides need this on (dedicated servers always allow it).", g))
 	g = "Updates"
-	L.append(_e("network/check_updates", "Check for updates", "bool", true, "Ask GitHub when the menu opens whether a newer version has been released, and offer it. The game never installs anything without asking.", g))
+	L.append(_e("network/check_updates", "Check for updates", "bool", true, "Ask GitHub when the menu opens whether a newer version has been released, and offer it.", g))
+	L.append(_e("network/auto_update", "Update automatically", "bool", true, "Download a new version in the background as soon as it's released (usually only the few MB that changed) and install it when you quit or restart. Off, the update waits for you to press Update. Every update is checked against the game's signing key first.", g))
 	L.append(_e("network/update_betas", "Include beta releases", "bool", false, "Also offer pre-releases. A beta build is always offered newer betas.", g))
 
 	# ---- Accessibility

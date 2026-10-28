@@ -85,6 +85,9 @@ static func parse(data: PackedByteArray) -> Dictionary:
 			if a == "" or a.length() > MAX_PATH or a.contains("/") or a.contains("\\") or a.contains(":") or a.begins_with(".") or assets.has(a):
 				return _bad("bad asset name for " + p)
 			assets[a] = true
+			# the release holding the asset when it isn't this one (the base pack stays on its base release)
+			if e.has("tag") and Q3UpdateCheck.parse_version(String(e["tag"])).is_empty():
+				return _bad("bad tag for " + p)
 	return {"ok": true, "error": "", "manifest": d}
 
 
@@ -119,6 +122,14 @@ static func local_hashes(manifest: Dictionary, dir: String) -> Dictionary:
 	for e in manifest["files"]:
 		out[e["path"]] = FileAccess.get_sha256(dir.path_join(e["path"])) if FileAccess.file_exists(dir.path_join(e["path"])) else ""
 	return out
+
+
+## Where an entry downloads from, under `base` (".../releases/download/"): a release file from its own
+## release (or the one its "tag" names), a texture pack from the permanent "textures" release.
+static func download_url(base: String, manifest: Dictionary, e: Dictionary) -> String:
+	if e["source"] == "textures":
+		return base + "textures/" + String(e["path"]).uri_encode()
+	return base + String(e.get("tag", manifest["version"])).uri_encode() + "/" + String(e["asset"]).uri_encode()
 
 
 static func _bad(why: String) -> Dictionary:

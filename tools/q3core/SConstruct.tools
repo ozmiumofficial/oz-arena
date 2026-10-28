@@ -61,3 +61,11 @@ BSPC = [ID + "code/bspc/" + f for f in [
     "be_aas_sample.c", "l_libvar.c", "l_precomp.c", "l_script.c", "l_struct.c"]] + [ID + "code/qcommon/" + f for f in [
     "cm_load.c", "cm_patch.c", "cm_test.c", "cm_trace.c", "md4.c", "unzip.c"]]
 bs.Program(OUT + "bspc", objs(bs, BSPC, "bspc"))
+
+# Q3Updater: installs a downloaded update once the game has exited (UPDATES_PLAN.md U4); no window
+up = env.Clone()
+up["LINKFLAGS"] = ["/nologo", "/DEBUG", "/SUBSYSTEM:WINDOWS"]
+up.Append(LIBS=["shell32"])
+up.Program(OUT + "Q3Updater", objs(up, ["src/updater/q3_updater.c"], "updater"))
+# a stand-in game for test_updater.py (not shipped: build_q3core copies only bin/tools/*.exe)
+env.Program(OUT + "test/fake_game", objs(env, ["src/updater/fake_game.c"], "updater"))

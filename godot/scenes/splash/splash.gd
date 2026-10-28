@@ -15,6 +15,8 @@ const SETUP_GATE := preload("res://scenes/splash/setup_gate.gd")
 
 var _t := 0.0
 var _loaded := false
+var _fetching := false                       ## the texture packs are coming down from GitHub
+var _texture_error := ""                     ## why they couldn't (any key tries again)
 var _leaving := false
 var _status: Label
 var _bar: ColorRect
@@ -150,7 +152,7 @@ func _process(delta: float) -> void:
 		_loaded = true
 		ResourceLoader.load_threaded_get(Session.MAIN_MENU)   # keeps it cached for the scene change
 	if Q3.missing_packs.size():
-		_status.text = "MISSING %s: PUT IT NEXT TO Q3Remaster.exe" % ", ".join(Q3.missing_packs)
+		_show_texture_fetch()
 		return
 	if _loaded:
 		_status.text = "PRESS ANY KEY" if _t >= SKIP_AFTER else "LOADING"
@@ -159,8 +161,45 @@ func _process(delta: float) -> void:
 			_leave()
 
 
+## A first install from the zip alone: the world textures come down from GitHub's Textures release
+## (Q3UpdateInstall.fetch_missing, checked against this version's signed manifest), then get mounted
+## and the splash goes on. A build without the updater (or the editor) can only say what's missing.
+func _show_texture_fetch() -> void:
+	var installer := Q3UpdateInstall.instance()
+	if not installer.wanted():
+		_status.text = "MISSING %s: PUT IT NEXT TO Q3Remaster.exe" % ", ".join(Q3.missing_packs)
+		return
+	if _texture_error == "" and not _fetching:
+		_fetching = true
+		_fetch_textures(installer)
+	if _texture_error != "":
+		_status.text = "COULDN'T DOWNLOAD THE TEXTURES (%s). PRESS ANY KEY TO TRY AGAIN" % _texture_error.to_upper()
+		return
+	var s := installer.status()
+	_status.text = "DOWNLOADING THE TEXTURES FROM GITHUB  %.1f / %.1f GB" % [s["done"] / 1e9, s["total"] / 1e9] \
+		if s["state"] == "downloading" else "GETTING THE TEXTURES FROM GITHUB"
+	_bar.offset_right = -200.0 + 400.0 * (float(s["done"]) / maxf(float(s["total"]), 1.0))
+
+
+func _fetch_textures(installer: Q3UpdateInstall) -> void:
+	var why: String = await installer.fetch_missing(Q3.missing_packs)
+	_fetching = false
+	if why != "":
+		_texture_error = why
+		return
+	var dir := OS.get_executable_path().get_base_dir()
+	for pack in Q3.missing_packs:
+		if not ProjectSettings.load_resource_pack(dir.path_join(pack), false):
+			_texture_error = "couldn't open " + pack
+			return
+	Q3.missing_packs = PackedStringArray()
+
+
 func _input(ev: InputEvent) -> void:
 	var pressed := (ev is InputEventKey or ev is InputEventMouseButton or ev is InputEventJoypadButton) and ev.is_pressed()
+	if pressed and _texture_error != "":
+		_texture_error = ""   # try again
+		return
 	if pressed and _loaded and _t >= SKIP_AFTER:
 		_leave()
 

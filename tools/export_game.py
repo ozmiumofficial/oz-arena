@@ -37,6 +37,7 @@ ap.add_argument("--out", default=os.path.join(ROOT, "build", "windows"))
 ap.add_argument("--godot")
 ap.add_argument("--release")
 ap.add_argument("--debug", action="store_true", help="export Godot's debug template (q3core template_debug)")
+ap.add_argument("--new-base", action="store_true", help="with --release: make this release the base pack later patches build on")
 ap.add_argument("--paks", default=r"C:\Program Files (x86)\Steam\steamapps\common\Quake 3 Arena\baseq3",
                 help="a baseq3 folder with the 1.32 point release's pak1-8.pk3")
 a = ap.parse_args()
@@ -61,6 +62,15 @@ if free < 6 * 1024 ** 3:
     sys.exit("export_game: %.1f GB free; the export needs about 6 (a full disk cut a texture pack short "
              "without an error once)" % (free / 1024 ** 3))
 os.makedirs(a.out, exist_ok=True)
+# the build's version for UpdateBoot, as a file a patch can carry (project.godot can't be patched)
+version = next(l.split("=", 1)[1].strip().strip('"') for l in open(os.path.join(project, "project.godot"), encoding="utf-8")
+               if l.startswith("config/version="))
+version_txt = os.path.join(project, "game", "version.txt")
+if not os.path.isfile(version_txt) or open(version_txt, encoding="utf-8").read().strip() != version:
+    with open(version_txt, "w", encoding="utf-8", newline="\n") as f:
+        f.write(version + "\n")
+if a.release and a.release.lstrip("v") != version:
+    sys.exit("export_game: --release %s but project.godot's version is %s" % (a.release, version))
 exe = os.path.join(a.out, "Q3Remaster.exe")
 log = os.path.join(a.out, "export.log")
 print("exporting (%s) to" % ("debug" if a.debug else "release"), exe)
@@ -81,6 +91,11 @@ for f in ("q3map.exe", "bspc.exe"):
     if not os.path.isfile(os.path.join(tools, f)):
         sys.exit("export_game: %s is missing (python tools/build_q3core.py builds it)" % os.path.join(tools, f))
     shutil.copy2(os.path.join(tools, f), os.path.join(a.out, "q3core", "tools", f))
+# the updater the game hands over to once it quits (UPDATES_PLAN.md U4); beside the exe, which it replaces
+updater = os.path.join(tools, "Q3Updater.exe")
+if not os.path.isfile(updater):
+    sys.exit("export_game: %s is missing (python tools/build_q3core.py builds it)" % updater)
+shutil.copy2(updater, os.path.join(a.out, "Q3Updater.exe"))
 for i in range(1, 9):
     src = os.path.join(a.paks, "pak%d.pk3" % i)
     if not os.path.isfile(src):
@@ -108,6 +123,7 @@ got = sum(os.path.getsize(os.path.join(a.out, f)) for f in packs) / 1e6   # (the
 if mb < 0 or abs(got - mb) > max(4.0, mb * 0.002):
     sys.exit("export_game: the texture packs hold %.0f MB, but the packer wrote %.0f MB (a full disk?)" % (got, mb))
 LIMIT = 2 * 1024 ** 3 - 16 * 1024 ** 2   # GitHub release files must be under 2 GiB
+PATCH_LIMIT = 200 * 1024 ** 2             # a bigger patch.pck makes the release a new base instead
 for f in ["Q3Remaster.pck"] + packs:
     if os.path.getsize(os.path.join(a.out, f)) >= LIMIT:
         sys.exit("export_game: %s is over GitHub's 2 GiB release limit; raise Q3.TEXTURE_PACKS" % f)
@@ -128,6 +144,54 @@ size = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(a.out) fo
 print("exported: %s (%.1f GB)" % (a.out, size / 1e9))
 
 if a.release:
+    # Base pack and patch (UPDATES_PLAN.md U3): a release ships its base release's Q3Remaster.pck plus
+    # patch.pck, every file changed since that base, so an update downloads the patch, not 1.1 GB.
+    # UpdateBoot mounts the patch first thing; project.godot is read before that, so when it (or
+    # UpdateBoot) changes, or the patch has grown big, this release becomes the new base.
+    import hashlib, json
+    import release_manifest
+    base_dir = os.path.join(ROOT, "build", "release", "_base")
+    base_info_path = os.path.join(base_dir, "base.json")
+    base_pck = os.path.join(base_dir, "Q3Remaster.pck")
+
+    def text_sha(path):
+        # (the version line changes every release, and game/version.txt carries it in the patch)
+        lines = open(path, "rb").read().replace(b"\r\n", b"\n").split(b"\n")
+        return hashlib.sha256(b"\n".join(l for l in lines if not l.startswith(b"config/version="))).hexdigest()
+
+    boot = {"project": text_sha(os.path.join(project, "project.godot")),
+            "boot": text_sha(os.path.join(project, "scripts", "updates", "update_boot.gd"))}
+    base = json.load(open(base_info_path)) if os.path.isfile(base_info_path) and os.path.isfile(base_pck) else None
+    why = ("--new-base" if a.new_base else "no base yet" if base is None else
+           "project.godot changed" if base["project"] != boot["project"] else
+           "UpdateBoot changed" if base["boot"] != boot["boot"] else "")
+    full = os.path.join(a.out, "Q3Remaster.pck")
+    patch = os.path.join(a.out, "patch.pck")
+
+    def export_patch(against):
+        subprocess.run([godot, "--headless", "--path", project, "--export-patch", "Windows Desktop", patch, "--patches", against,
+                        "--log-file", os.path.join(a.out, "patch.log")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if not os.path.isfile(patch):
+            sys.exit("export_game: the patch export failed; see patch.log")
+
+    if not why:
+        export_patch(base_pck)
+        if os.path.getsize(patch) > PATCH_LIMIT:
+            why = "the patch is %d MB" % (os.path.getsize(patch) >> 20)
+            os.remove(patch)
+    if why:
+        # this release is the new base; its patch.pck is empty, so it replaces an older base's patch
+        print("new base pack (%s)" % why)
+        export_patch(full)
+        os.makedirs(base_dir, exist_ok=True)
+        shutil.copy2(full, base_pck)
+        base = dict(boot, tag=a.release, sha256=release_manifest.sha256_file(base_pck))
+        with open(base_info_path, "w") as f:
+            json.dump(base, f, indent=1)
+    else:
+        shutil.copy2(base_pck, full)
+        print("patch.pck against %s's base: %.1f MB" % (base["tag"], os.path.getsize(patch) / 1e6))
+
     rel = os.path.join(ROOT, "build", "release", a.release)
     shutil.rmtree(rel, ignore_errors=True)
     os.makedirs(rel)
@@ -147,15 +211,32 @@ if a.release:
         except OSError:
             shutil.copy2(os.path.join(a.out, f), os.path.join(rel, f))
     # the signed manifest the game's updater checks (UPDATES_PLAN.md U2): every file of the export with its
-    # SHA-256, signed with the release key (python release_manifest.py keygen makes it once)
-    import release_manifest
-    if release_manifest.write_release(a.out, a.release, rel):
+    # SHA-256, signed with the release key (python release_manifest.py keygen makes it once). The base
+    # pack's asset stays on its base release.
+    tags = {"Q3Remaster.pck": base["tag"]} if base["tag"] != a.release else {}
+    if release_manifest.write_release(a.out, a.release, rel, tags):
         print("manifest signed")
     else:
         print("export_game: warning: no release key at %s, so manifest.json is unsigned and the game's updater will refuse "
               "this release (python tools/release_manifest.py keygen)" % release_manifest.private_key_path())
+    # every file the updater fetches from this release, by its flat asset name ("q3core/x.dll" -> "q3core__x.dll")
+    assets = os.path.join(rel, "assets")
+    os.makedirs(assets)
+    for e in json.load(open(os.path.join(rel, "manifest.json")))["files"]:
+        if e["source"] == "release" and "tag" not in e:
+            try:
+                os.link(os.path.join(a.out, e["path"]), os.path.join(assets, e["asset"]))
+            except OSError:
+                shutil.copy2(os.path.join(a.out, e["path"]), os.path.join(assets, e["asset"]))
     for f in sorted(os.listdir(rel)):
-        print("  %-36s %7.1f MB" % (f, os.path.getsize(os.path.join(rel, f)) / 1e6))
-    if any(os.path.getsize(os.path.join(rel, f)) >= LIMIT for f in os.listdir(rel)):
+        if os.path.isfile(os.path.join(rel, f)):
+            print("  %-36s %7.1f MB" % (f, os.path.getsize(os.path.join(rel, f)) / 1e6))
+    print("  assets/: %d files, %.1f MB" % (len(os.listdir(assets)), sum(os.path.getsize(os.path.join(assets, f)) for f in os.listdir(assets)) / 1e6))
+    if any(os.path.getsize(os.path.join(d, f)) >= LIMIT for d, _, fs in os.walk(rel) for f in fs):
         sys.exit("export_game: a release file is over GitHub's 2 GiB limit")
     print("release files:", rel)
+    print("publish: gh release create %s %s %s %s --prerelease --title ... --notes-file NOTES.md, then gh release upload %s %s"
+          % (a.release, os.path.join(rel, "Q3Remaster-%s-windows.zip" % a.release), os.path.join(rel, "manifest.json"),
+             os.path.join(rel, "manifest.sig"), a.release, os.path.join(assets, "*")))
+    if base["tag"] != a.release:
+        print("keep the %s release: this one's base pack is attached there" % base["tag"])

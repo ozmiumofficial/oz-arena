@@ -20,7 +20,7 @@ FORMAT = 1
 KEY_BITS = 3072
 ALGORITHM = "RSA-3072 PKCS1v15 SHA-256"
 PUBLIC_KEY = os.path.join(ROOT, "godot", "game", "update_key.json")
-SKIP_DIRS = {"Maps"}            # made by running the game from the export folder (published maps), not part of it
+SKIP_DIRS = {"Maps", ".update"}  # made by running the game from the export folder (published maps, a staged update), not part of it
 TAG = re.compile(r"^v?\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$")
 
 
@@ -57,8 +57,9 @@ def list_files(folder):
     return sorted(out)
 
 
-def build(folder, tag, files=None):
-    """The manifest as bytes (indented JSON, sorted by path) for the files of `folder`."""
+def build(folder, tag, files=None, tags=None):
+    """The manifest as bytes (indented JSON, sorted by path) for the files of `folder`. `tags` maps a path
+    to the release that holds its asset when that isn't `tag` (the base pack stays on its base release)."""
     if not TAG.match(tag):
         sys.exit("release_manifest: %r isn't a version tag like v0.4.6-beta" % tag)
     entries, assets = [], set()
@@ -70,6 +71,10 @@ def build(folder, tag, files=None):
             if e["asset"] in assets:
                 sys.exit("release_manifest: two files make the asset name " + e["asset"])
             assets.add(e["asset"])
+            if tags and rel in tags:
+                if not TAG.match(tags[rel]):
+                    sys.exit("release_manifest: %r isn't a version tag" % tags[rel])
+                e["tag"] = tags[rel]
         entries.append(e)
     m = {"format": FORMAT, "game": "Q3Remaster", "version": tag,
          "created": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "files": entries}
@@ -119,9 +124,9 @@ def verify(data, sig, pub_pem):
         return False
 
 
-def write_release(folder, tag, outdir):
+def write_release(folder, tag, outdir, tags=None):
     """manifest.json (+ manifest.sig when the key exists) in `outdir`; returns whether it was signed."""
-    data = build(folder, tag)
+    data = build(folder, tag, tags=tags)
     os.makedirs(outdir, exist_ok=True)
     with open(os.path.join(outdir, "manifest.json"), "wb") as f:
         f.write(data)

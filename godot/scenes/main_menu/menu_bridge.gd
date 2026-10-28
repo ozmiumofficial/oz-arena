@@ -7,7 +7,7 @@ extends RefCounted
 ##                 cancel_capture, clear_bind, export_code, import_code, validate, start, continue,
 ##                 map_editor, quit, profile_preview, open_url, social {op, ...}
 ##                 card_set {slot, id}, card_showcase {kind: stats|badges, ids}, card_seen {keys}, taunt {id}
-##                 update_skip {tag}
+##                 update_skip {tag}, update_start (download the offered release), update_apply (restart into it)
 ##                 race_queue {maps}: the courses a Race run continues with after the first
 ##                 net_browse {region?}, net_join {host, password?}, net_cancel (online matches, MULTIPLAYER_PLAN.md M5)
 ##                 queue_join {modes, ranked}, queue_leave (matchmaking, M6)
@@ -18,7 +18,8 @@ extends RefCounted
 ##                 social {status, reason, state, chat}, social_notice, party_chat, profile {profile},
 ##                 net_matches {matches, region}, net_join_state {status, reason, host}, queue {state, ratings, rtt}, dedicated {config, status, autostart},
 ##                 leaderboard {board} (asked for with social {op: "leaderboard", board, scope})
-##                 update {info} (a newer release exists: tag, version, name, notes, url, size, published, beta)
+##                 update {info, can_install} (a newer release exists: tag, version, name, notes, url, size, published, beta)
+##                 update_status {status} (the download: state, tag, version, done, total, file, error)
 ##                 pause menu: pause {match}
 
 signal post(msg: Dictionary)                 ## to the web page
@@ -60,11 +61,25 @@ func _init() -> void:
 		received_ready.connect(func(): post.emit({"type": "social_notice", "text": text, "tone": "warn"}), CONNECT_ONE_SHOT)
 
 
+static var _started_confirmed := false
+
 ## Tells the page about a newer release: now if the check already found one, else when it does.
+## With Update automatically on, the download starts as soon as there is one (Q3UpdateInstall).
 func _offer_update() -> void:
+	if not _started_confirmed:
+		# the menu is up: a build Q3Updater.exe just installed has started (or an update was rolled back)
+		_started_confirmed = true
+		var failed := Q3UpdateInstall.confirm_started()
+		if failed != "":
+			post.emit({"type": "social_notice", "text": failed, "tone": "warn"})
+	var installer := Q3UpdateInstall.instance()
+	if not installer.status_changed.is_connected(_on_update_status):
+		installer.status_changed.connect(_on_update_status)
+	if installer.state != "idle":
+		_on_update_status(installer.status())
 	var u := Q3UpdateCheck.instance()
 	if not u.info.is_empty():
-		post.emit({"type": "update", "info": u.info})
+		_on_update_available(u.info)
 		return
 	if not u.available.is_connected(_on_update_available):
 		u.available.connect(_on_update_available)
@@ -72,7 +87,14 @@ func _offer_update() -> void:
 
 
 func _on_update_available(info: Dictionary) -> void:
-	post.emit({"type": "update", "info": info})
+	var installer := Q3UpdateInstall.instance()
+	post.emit({"type": "update", "info": info, "can_install": installer.wanted()})
+	if Settings.get_value("network/auto_update") and installer.state in ["idle", "failed"]:
+		installer.start(String(info["tag"]))
+
+
+func _on_update_status(s: Dictionary) -> void:
+	post.emit({"type": "update_status", "status": s})
 
 
 ## The page is treated as untrusted input (Ozmium, 2026-10-22: nobody injects code through the web
@@ -85,7 +107,7 @@ const TYPES := ["ready", "sound", "hover", "page", "layout", "set", "reset", "re
 	"campaign_skill", "campaign_reset", "cinematic", "map_editor", "quit", "profile_preview", "log", "social",
 	"open_url", "modes", "bots", "banner", "crosshairs", "cinematics",
 	"resume", "leave_match", "restart_match", "ready_up", "crosshair_preview",
-	"card_set", "card_showcase", "card_seen", "taunt", "update_skip",
+	"card_set", "card_showcase", "card_seen", "taunt", "update_skip", "update_start", "update_apply",
 	"net_browse", "net_join", "net_cancel", "queue_join", "queue_leave", "dedicated_get", "dedicated_start", "dedicated_stop", "dedicated_command", "dedicated_autostart",
 	"spectate", "replays", "replay_watch", "replay_rename", "replay_favorite", "replay_delete", "replay_folder", "maps_folder", "race_queue"]
 ## Hosts open_url may send the player's browser to; nothing else leaves the game.
@@ -310,6 +332,12 @@ func handle(m: Dictionary) -> void:
 			OS.shell_open(dir)
 		"update_skip":
 			Q3UpdateCheck.skip(String(m.get("tag", "")))
+		"update_start":   # only the release the check found, never a tag the page names
+			var found := Q3UpdateCheck.instance().info
+			if not found.is_empty():
+				Q3UpdateInstall.instance().start(String(found["tag"]))
+		"update_apply":
+			Q3UpdateInstall.instance().apply(true)
 		"open_url":
 			var url := String(m.get("url", ""))
 			var host := url.trim_prefix("https://").get_slice("/", 0).to_lower()

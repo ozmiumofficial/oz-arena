@@ -1,6 +1,10 @@
-# Oz Arena on ioquake3: implementation plan (2026-10-28)
+# Oz Arena on a modified id Tech 3 engine: implementation plan (2026-10-28)
 
-**Goal:** every feature Oz Arena has today, rebuilt on a modified ioquake3 engine instead of Godot. No web view anywhere: the menus, the HUD and every overlay are native, made to look like the current ones.
+**Goal:** every feature Oz Arena has today, rebuilt on a modified id Tech 3 engine instead of Godot. No web view anywhere: the menus, the HUD and every overlay are native, made to look like the current ones.
+
+**And (Ozmium, 2026-10-28): the hub for everything id Tech 3.** Oz Arena plays on CPMA, Defrag, OSP and every other mod's servers, and on servers running any of the engines (Quake3e, CNQ3, ioquake3, oDFe, id 1.32), with exactly the mechanics and features those communities have on their own clients. On top of that come one browser, friends, parties, matchmaking, stats and leaderboards for all of it. See "Compatibility" and "The hub".
+
+**Base engine (changed 2026-10-28, decision 10):** the plan was written for ioquake3. It now recommends **Quake3e** as the base, after a live survey of the community servers (see "Compatibility"). Where a phase below says ioquake3, it means the Oz fork of Quake3e unless decision 10 goes the other way. The game and cgame QVMs are built from the same patched game code either way, because QVMs are engine-independent.
 
 **Status:** plan only. Nothing is built yet. Decisions for Ozmium are at the end.
 
@@ -31,9 +35,14 @@ The technical criticism, once the "AI slop" noise is set aside:
 ## Architecture
 
 ```
-OzArena.exe  (ioquake3 fork: client + server + rend2, C)
- ├─ renderer: rend2 (OpenGL 3.x), patched: PBR channel layout, AO, bloom, colorblind filter,
- │            skeletal pose API, UI geometry API, external HDR lightmaps (already supported)
+OzArena.exe  (Quake3e fork: client + server, C; Quake3e's QVM, raw input, frame timing, video-pipe)
+ ├─ renderers (cl_renderer, loaded as modules, which Quake3e already supports):
+ │    oz        rend2 (Quake3e's in-tree opengl2), patched: PBR channel layout, AO, bloom,
+ │              colorblind filter, skeletal pose API, UI geometry API, external HDR lightmaps
+ │    vulkan    Quake3e's, for competitive settings (picmip, vertex light, max fps)
+ │    opengl    Quake3e's classic renderer, for old GPUs
+ ├─ compat:   the extension sets mods look for through trap_GetValue: Quake3e's (_Q3E),
+ │            CNQ3's (CPMA: new demo player, Nuklear UI, ...), oDFe's Defrag tools
  ├─ sound:    OpenAL Soft (HRTF), Ogg Vorbis music; cinematics: RoQ + Theora (added)
  ├─ oz/ui     native UI: RmlUi 6 (MIT) + FreeType. Menus, pause menu, chat box, scoreboard cards,
  │            results, replay viewer controls, setup gate. Pages are .rml/.rcss in a pk3, logic in C++
@@ -58,18 +67,19 @@ OzAgent      optional, for community server operators: signs games.log results (
 **The engine-to-cgame bridge.** cgame and the native UI talk over a small, versioned channel, the C equivalent of today's Godot-to-web bridge:
 - cgame -> UI: `trap_Oz_Event(const char *json)` (scoreboard, results, kill events, medals, death cam card, race splits, replay markers).
 - UI -> cgame: console commands (`oz_*`) and cvars, which cgame already reads.
-- New syscalls use numbers from 400 up in both import tables, so mods that never call them are unaffected. They're listed in `engine/BRIDGE.md`.
+- New engine calls are found through `trap_GetValue` with keys ending `_OZ`, the extension mechanism Quake3e and CNQ3 already use. Mods that never ask are unaffected, and any mod can feature-detect them. They're listed in `engine/BRIDGE.md`.
 
-**Why QVMs for game and cgame (decision 4):** they work with `sv_pure`, stay sandboxed, keep mod compatibility, and ioquake3's x86-64 compiler turns them into native code at load, so they're not an interpreter at play time. If profiling ever shows cgame's new work (ragdolls, cinematic camera) is too slow as a QVM, cgame alone moves to a native DLL.
+**Why QVMs for game and cgame (decision 4):** they work with `sv_pure`, stay sandboxed, keep mod compatibility, and Quake3e's reworked QVM compiler turns them into native code at load, so they're not an interpreter at play time. If profiling ever shows cgame's new work (ragdolls, cinematic camera) is too slow as a QVM, cgame alone moves to a native DLL.
 
 ## Repository layout
 
 ```
 Q3Remaster/
   engine/
-    thirdparty.json        pins: ioq3 fork, RmlUi, FreeType, libjuice (ICE), libcurl (WebSocket,
-                           HTTPS), mbedTLS (identity signing), cJSON, libogg/libtheora
-    ioq3/                  the fork (ozmiumofficial GitHub fork of ioquake/ioq3, branch "oz"),
+    thirdparty.json        pins: the engine fork, the game code tree (ioq3 + q3core patches, for the
+                           QVMs), RmlUi, FreeType, libjuice (ICE), libcurl (WebSocket, HTTPS),
+                           mbedTLS (identity signing), cJSON, libogg/libtheora
+    quake3e/               the fork (ozmiumofficial GitHub fork of ec-/Quake3e, branch "oz"),
                            fetched at a pinned commit like tools/q3core does today
     src/oz/                new engine code: ui/, online/, replay/, platform/, bridge/
     ui/                    RML pages, RCSS styles, fonts, UI art -> oz/zz-oz-ui.pk3
@@ -144,21 +154,132 @@ Every feature in README.md "In the game now" and "What's new", where it lives af
 
 The README's "Planned features" (Quake Live movement, Clan Arena, Freeze Tag, Instagib, the Workshop, editing together) aren't part of this port. They're game-code or hub work that lands on whichever build is current.
 
+## Compatibility: every mod and every engine (Ozmium, 2026-10-28)
+
+**The rule that makes it work: the server's mod decides the mechanics.** On a CPMA server, CPMA's own game and cgame run, downloaded from the server or installed. On a Defrag server, Defrag's do. So movement, weapons, HUD, timers and menus are CPMA's or Defrag's by construction, exactly as on their usual clients. The engine's job is to behave like the engine each community already uses, because a few things the engine controls change feel and features:
+
+| Engine-side thing | Why it matters | How Oz matches it |
+|---|---|---|
+| Frame timing | Without `pmove_fixed`, VQ3 physics depend on client fps (125, 250, 333). Defrag and many CPMA and vanilla players rely on exact `com_maxfps` | Quake3e's precise frame limiter, unchanged |
+| Mouse input | Feel, and muscle memory | Quake3e's raw input, `cl_mouseAccel` options, the same usercmd angle quantization |
+| Network | Rates and timing players tune | Protocols 68 and 71, `cl_maxpackets` up to 125, `snaps`, `cl_timeNudge`, as in Quake3e |
+| QVM | Some mods depend on old VM quirks | Quake3e's VM, which exists to run all existing mods |
+| Extensions mods ask for (`trap_GetValue`) | Mods turn features on only when the engine offers them | Quake3e's `_Q3E` set (built in); CNQ3's set for CPMA; oDFe's Defrag tools (below) |
+| Map and mod download | Joining any server without setup | `cl_allowDownload`, `sv_dlURL`, and Quake3e's `cl_mapAutoDownload` (Defrag's map server, ws.q3df.org) |
+| Demos | Every community lives on demos | Any `.dm_68` with its own mod's cgame; CPMA's new demo player with rewind (CNQ3 extension) |
+
+**What the community servers run (live survey from this PC, 2026-10-28, `getstatus` to every server the four master servers list; 513 answered):**
+
+| Engine (from the `version` key) | Servers | Notably |
+|---|---|---|
+| Quake3e and oDFe ("Q3 1.32e") | 188 | baseq3 96, OSP 28, Defrag 20 (all of them), CPMA 15, Excessive Plus 7, Rocket Arena 6 |
+| ioquake3 (1.35 and 1.36 builds) | about 130 | baseq3, OpenArena, Urban Terror |
+| id 1.32c and 1.32b | about 30 | baseq3, Excessive Plus, Freeze Tag |
+| CNQ3 1.53/1.54 | 12 | CPMA |
+| Others (Urban Terror server builds, custom forks) | the rest | |
+
+That is why Quake3e is the recommended base:
+- It's what most servers run.
+- oDFe, Defrag's own engine, is a Quake3e fork, so its additions merge cleanly.
+- It already has rend2, IQM models, the extension mechanism, map auto-download, `video-pipe`, precise timing, raw input and a Vulkan renderer.
+
+**Engine extension sets to carry (all GPL-2.0 sources, read when building):**
+- **Quake3e** (`code/client/cl_cgame.c` `CL_GetValue`): `trap_R_AddLinearLightToScene_Q3E`, `trap_Cvar_SetDescription_Q3E`, `trap_Key_CapsLockOn_Q3E`, and the server's `SVF_SELF_PORTAL2_Q3E`. Already in the base.
+- **CNQ3** (bitbucket.org/CPMADevs/cnq3, `code/client/cl_cgame.cpp`), what CPMA uses when it finds CNQ3:
+  - The new demo player with seek and rewind (`trap_CNQ3_NDP_*`).
+  - Nuklear UI drawing for CPMA's own in-game menus (`trap_CNQ3_NK_*`).
+  - `trap_R_AddRefEntityToScene2`, `trap_R_ForceFixedDLights`, `trap_SetInputForwarding`, `trap_Cvar_SetRange` / `SetHelp`, `trap_Cmd_SetHelp`, `trap_MatchAlertEvent`, `trap_Error2`, `trap_IsRecordingDemo`, `trap_CNQ3_R_RenderScene`, `trap_CNQ3_SetCharEvents`, `trap_CNQ3_FS_GetFileList`, `trap_LocateInteropData`.
+  - The capabilities `cap_ExtraColorCodes` and `cap_DepthClamp`.
+- **oDFe** (github.com/Defrag-racing/oDFe), what the Defrag community relies on beyond Quake3e:
+  - Clip, trigger and slick brush visualization (`r_renderClipBrushes`, `r_renderTriggerBrushes`, `r_renderSlickSurfaces` with their shaders) and `cl_tc_vis`.
+  - The map pak folder (`fs_mapPakDir`), download sources (`dl_source`), console additions (`con_timestamp`, `con_filter`, ...) and its collision-model changes.
+  - The full list comes from the 74 files that differ from Quake3e.
+- **Oz's own extensions** use the same `trap_GetValue` mechanism (keys ending `_OZ`), instead of the fixed syscall numbers the bridge section mentioned. Any mod can then feature-detect them, and CPMA or Defrag could use the Oz HUD hooks or skeletal models if their authors wanted to.
+
+**What Oz adds on a mod's server** (the P8b table applies): menus, friends, parties, browser, matchmaking, stats, the engine overlay and the engine's look always. Remastered assets only where the server isn't pure. A mod's own HUD and menus stay the mod's.
+
+**Not reachable:** Quake Live (closed source, Steam authentication, protocol 91). Games on other branches of id Tech 3 with their own protocols (Wolfenstein: Enemy Territory, Return to Castle Wolfenstein, Jedi Academy) are out of scope for this plan.
+
+## The hub (Ozmium, 2026-10-28)
+
+What makes Oz Arena the place people go for all of it:
+
+1. **One browser for everything.**
+   - Every master server, for both protocols, including OpenArena's and Urban Terror's masters.
+   - Each server tagged with its mod and its engine (parsed from `version`: Quake3e, oDFe, CNQ3, ioquake3, id 1.32).
+   - Friends on each server, ping, humans versus bots, the full Oz look badge.
+   - Joining a server whose mod you don't have offers to install it first.
+2. **Mod library.**
+   - One-click install of CPMA, Defrag, OSP, Excessive Plus, Rocket Arena 3, Freeze Tag, Instagib mods and the rest, always from their official download locations. Oz never rehosts them: most are closed-source freeware with their own terms.
+   - Version tracking and update prompts.
+   - Each mod keeps its own settings and binds (its own `fs_game` folder, as id designed).
+   - Launch any mod offline. Defrag in particular is mostly played offline.
+3. **Friends and parties everywhere.**
+   - Presence shows the server and the mod.
+   - "Join" connects to any server, installing the mod if needed.
+   - When a party leader joins a server, the party follows. Party chat works across servers, and invite links point at any server (`ozarena://connect/<ip:port>`).
+4. **Stats for every mod.** The P8b recorder gains one parser per mod:
+   - baseq3 and OSP (`scores`), CPMA (its stats server commands), Defrag (run times and checkpoints), Excessive Plus, Rocket Arena and Freeze Tag.
+   - Careers and leaderboards are kept per mod and mode, with the same trust levels.
+   - The exact server commands per mod are worked out in phase PH, against each mod's real servers.
+5. **Matchmaking per mod.**
+   - CPMA duel, CA and TDM onto CPMA servers. baseq3 and OSP FFA, TDM and CTF. Freeze Tag. Instagib.
+   - Ranked per mod, on Verified servers (the agent) or on Oz players' own hosts running that mod with the peer-to-peer agreement check. Anyone can host any installed mod from the Dedicated page or Create Match.
+6. **Defrag records, together with the existing sites.** Defrag already has its record sites (q3df.org, defrag.racing; the Defrag-racing org also maintains oDFe). Oz doesn't compete with them:
+   - With their permission and through their APIs: link a player's account, show their records and rankings in Oz, and submit runs the way their tools already do.
+   - Oz's own race boards (P11) stay for Oz courses.
+7. **Demos for every mod.** The Replays page lists client demos for every mod and plays each with its own cgame, downloading the mod and map if needed. Share links.
+8. **For server operators.**
+   - The Oz Server Agent parses baseq3, OSP, CPMA and Defrag logs.
+   - An operator page on the hub: claim a server, see Oz traffic, set opt-out or matchmaking limits.
+   - The Dedicated page can host any installed mod.
+9. **Standalone games on ioquake3** (OpenArena, Urban Terror, World of Padman, Smokin' Guns): their own base games with free assets from their official sources, shown as separate games in the library. Each one's engine requirements are checked first; Urban Terror 4.3, for example, has its own player authentication. This is an optional later phase (PG).
+10. **Working with the community, not around it.** Before the hub features launch:
+    - Talk to the CPMA developers (CNQ3 extensions), Defrag-racing (oDFe, records), ec- (Quake3e) and server admins.
+    - Send engine fixes upstream.
+    - Never rehost mods or scrape sites without permission.
+
+    The launch thread showed this community decides quickly whether a project is welcome.
+
 ## Phases
 
 Each phase ends with automated checks and, where you can see it, captures next to the Godot build's.
 
 ### P0. Foundation (2 h)
 
-1. Fork ioquake/ioq3 on GitHub as `ozmiumofficial/ioq3` (branch `oz`), pinned to the commit q3core uses (`87a99d18`).
-2. Replay the q3core patch series as commits: 0001-0005 and 0008-0012 as they are. 0006 (Godot transport) and 0007 (UDP for Godot) are replaced by the engine's own UDP and P8's `NA_ICE`.
-3. `engine/build_engine.py`: fetch the pins, run CMake with `-G Ninja` under `vcvars64`, `USE_FREETYPE ON`, `BUILD_GAME_QVMS ON`, renderer gl2 as default (`cl_renderer opengl2`). Stage `build/engine/` as `OzArena.exe`, `renderer_opengl2_x86_64.dll`, and `oz/` with `pak_oz_code.pk3` (the QVMs).
+1. Fork ec-/Quake3e on GitHub as `ozmiumofficial/quake3e` (branch `oz`), pinned to a current commit.
+2. **Game code:** the QVMs are built from the patched ioquake3 game tree q3core uses today (`87a99d18` with patches 0001-0005 and 0008-0012), using ioquake3's q3lcc and q3asm. The engine-only patches move into the fork:
+   - 0004 (guarded errors) and 0011 (maps path) as engine patches;
+   - 0006 and 0007 (Godot transports) are replaced by the engine's own UDP and P8's `NA_ICE`.
+3. `engine/build_engine.py`: fetch the pins, run Quake3e's CMake with `-G Ninja` under `vcvars64`, with `USE_SDL ON` (game controllers on every platform), `USE_VULKAN ON` and `USE_RENDERER_DLOPEN ON`. Stage `build/engine/` as `OzArena.exe`, the renderer modules (`oz`, `vulkan`, `opengl`), and `oz/` with `pak_oz_code.pk3` (the QVMs).
 4. Standalone identity: `com_basegame baseq3` reads the player's pak0 from their install; `fs_game oz` holds everything Oz. Window title, icon (`godot/icon.ico`), product name "Oz Arena". No "Quake" in the window title or console banner.
-5. Checks: boots to the console; `devmap q3dm17` with 3 bots runs; a 60-second headless bot match matches q3core's frag and item log on the same seed (proves the game code is identical).
+5. Checks: boots to the console; `devmap q3dm17` with 3 bots runs; a 60-second headless bot match matches q3core's frag and item log on the same seed (proves the game code is identical). `\version` and serverinfo report "Oz Arena" plus the Quake3e base, so servers and players can tell what's connecting.
 
-### P1. World look (3 h)
+### PC. Compatibility layer (4.5 h)
+
+Right after P0, because it shapes the engine every later phase builds on.
+
+1. **Merge oDFe's additions** into the fork: the brush visualization, `cl_tc_vis`, the map pak folder, download sources, console additions and the collision-model changes. Take them commit by commit from Defrag-racing/oDFe, crediting it.
+2. **Implement CNQ3's cgame and UI extension set** (the list in "Compatibility"), following CNQ3's GPL source:
+   - The new demo player: snapshot index, seek, rewind, read-until, video start and stop.
+   - Nuklear UI upload and draw in all three renderers.
+   - Input forwarding, char events, cvar ranges and help, match alerts, fixed dynamic lights, the extended refEntity calls.
+
+   CPMA then turns on the same features it has on CNQ3.
+3. **Per-mod behavior.** Each `fs_game` keeps its own config, binds and renderer choice. The Oz HUD overlay and Oz look only appear where the mod and server allow them (the P8b table).
+4. **Demo compatibility:** play `.dm_68` from baseq3, CPMA, OSP, Defrag and Excessive Plus with their own cgames. Map auto-download for demos (Quake3e already does this for Defrag maps).
+5. **Parity harness (`engine/tests/compat/`).** For each mod (baseq3, CPMA, Defrag in VQ3 and CPM, OSP, Excessive Plus, Rocket Arena 3, Freeze Tag):
+   - Run its server locally on the engine its community uses (Quake3e, oDFe or CNQ3), with the mod from a local install, never redistributed.
+   - Connect the reference client and then Oz, each fed the same recorded input stream at `com_maxfps` 125, 250 and 333.
+   - Pass: every frame's player position and velocity match within float rounding.
+   - Then feature checks: CPMA's menus open and its demo rewind works; a Defrag run's timer and the clip brush view work; a map auto-downloads.
+6. Checks: the parity harness passes for every mod at all three frame rates.
+
+### P1. World look (4 h)
 
 The thread's loudest complaint, so it comes first and has a hard acceptance test.
+
+**Renderer base:** rend2 is already in Quake3e's tree as `renderer2`, where its README calls it unmaintained and slow on non-NVIDIA GPUs. It becomes the `oz` renderer module and Oz maintains it. Budget includes an AMD and Intel pass, measured on any GPU available or a CI GPU runner. Quake3e's Vulkan and OpenGL renderers stay selectable for players who want the competitive look or maximum fps.
 
 1. **Materials.** `tools/make_pk3s.py` writes the world library as rend2 shaders:
    - Base color as BC7 DDS (`tr_image_dds.c` loads it). Normal maps as `normalMap` (BC5).
@@ -377,11 +498,31 @@ The browser shows a badge for servers where the full Oz look is available.
    - A server with `oz_mm 0` is never picked.
    - A full server is never picked for a group that doesn't fit.
 
+### PH. The hub (5 h)
+
+Everything in "The hub" above, built on P7, P8 and P8b:
+
+1. **Browser:** both protocols, every master (including OpenArena's and Urban Terror's), with engine and mod tags parsed from `version` and `gamename`. Friends shown per server; "mod missing" leads to the install flow.
+2. **Mod library:**
+   - A catalog file (shipped with the updater, so it can change without a release) lists each mod's official download location, version, checksum, and the engine extensions it uses.
+   - Install, update and remove, each mod in its own `fs_game` folder.
+   - Offline launch.
+3. **Presence and parties on any server:** presence carries server, mod and map. Join friend, party follow-the-leader, invite links for any address.
+4. **Per-mod stats parsers** for baseq3, OSP, CPMA, Defrag, Excessive Plus, Rocket Arena 3 and Freeze Tag. Each parser has recorded test vectors taken from real servers of that mod. Careers and leaderboards per mod and mode in the Stats Durable Object.
+5. **Per-mod matchmaking queues** with each mod's modes, on that mod's servers or Oz-hosted servers running it. Ranked only where results are Verified or peer-to-peer agreed.
+6. **Defrag:** account linking and record display through q3df.org and defrag.racing APIs, only once they agree. Oz race boards for Oz courses.
+7. **Operators:** agent parsers for each mod's log, and the operator page on the hub (claim a server, traffic, opt-out, limits).
+8. Checks:
+   - The browser lists every mod's servers from the masters.
+   - Installing CPMA from its official link and joining a CPMA server works end to end, with stats recorded.
+   - A party of two follows its leader onto a Defrag server.
+   - Each mod's parser reproduces its test vectors.
+
 ### P9. Dedicated servers and other platforms (2 h)
 
 1. The Dedicated page starts `OzArena.exe +set dedicated 2 +exec <config>` detached, so it outlives the game. It shows rcon, the admin view and status from `oz/online`, and "start with Windows" is a scheduled task.
 2. LAN: ioquake3's own UDP and LAN broadcast, unchanged.
-3. Linux x86-64 dedicated server and client, and macOS (arm64 and x86-64), from ioquake3's CMake targets. libjuice, libcurl and RmlUi build on all three, and so does the Oz Server Agent.
+3. Linux x86-64 dedicated server and client, and macOS (arm64 and x86-64), from Quake3e's CMake and its macOS app scripts (`make-macosx-app.sh`). libjuice, libcurl and RmlUi build on all three, and so does the Oz Server Agent.
 4. Checks: a Linux dedicated server under WSL hosts a match a Windows client joins; a macOS build boots to the menu (needs a Mac or CI runner).
 
 ### P10. Replays, spectating, death cam (4 h)
@@ -451,21 +592,34 @@ Check: a scripted run on a test course gives the same time as the Godot build's 
 3. Developer docs (DEVELOPMENT.md, CLAUDE.md, this file's "As built"). The player-facing README is written by Ozmium.
 4. Release v0.7: the engine build replaces the Godot build on GitHub Releases, and the updater moves existing players over (decision 3).
 
+### PG. Standalone id Tech 3 games (2 h, optional, later)
+
+1. OpenArena, World of Padman, Smokin' Guns and Urban Terror as separate games in the library.
+   - Each game's assets come from its official download, installed under its own base folder.
+   - Its own master server in the browser.
+   - Its own protocol and engine requirements checked first: Urban Terror 4.3's player authentication; OpenArena's 1.36-era ioquake3 behavior.
+2. Friends, parties and the browser cover them. Stats only where a parser has been written and tested.
+3. Checks: join a public server of each game, and launch each offline.
+
 ## Totals and order
 
 | Milestone | Phases | Hours | What you get |
 |---|---|---|---|
-| A. Looks right | P0-P3 | 11.5 | Maps, fighters and effects in the engine; capture sheet vs the original and the Godot build |
+| A. Looks right | P0, PC, P1-P3 | 17 | The engine base with every mod's mechanics matched; maps, fighters and effects; capture sheet vs the original and the Godot build |
 | B. Offline parity | P4-P6, P10-P12 | 21 | Every menu, HUD, campaign, replays, race, progression, offline |
 | C. Online parity | P7-P9 (with P8b) | 12 | Friends, parties, direct peer-to-peer hosting, community server browser, matchmaking onto any server, stats and leaderboards from every match, ranked, dedicated, Linux/macOS |
 | D. Everything | P13-P15 | 11.5 | Map editor (companion, then native), platform, parity pass, release |
-| **Total** | | **about 56** | |
+| E. The hub | PH (PG later) | 5 (+2) | One browser, mod library, friends and parties on any server, per-mod stats, leaderboards and matchmaking, Defrag record links, operator tools |
+| **Total** | | **about 67 (69 with PG)** | |
 
-Order: P0 -> P1 -> P2 -> P3, then P4 -> P5 and P6 (either order), P10, P11, P12, then P7 -> P8 -> P8b -> P9, then P13 -> P14 -> P15. The companion editor (P13 step 1) can ship at any point after P0.
+Order: P0 -> PC -> P1 -> P2 -> P3, then P4 -> P5 and P6 (either order), P10, P11, P12, then P7 -> P8 -> P8b -> PH -> P9, then P13 -> P14 -> P15, then PG. The companion editor (P13 step 1) can ship at any point after P0.
 
 ## Risks
 
-- **rend2's rough edges.** It's less used than the gl1 renderer, and some shader features misbehave. Budget fixes in P1, and send them upstream.
+- **rend2's rough edges.** It's less used than the classic renderers; Quake3e's README calls its copy unmaintained and slow on non-NVIDIA GPUs. Budget fixes in P1 and send them upstream. Quake3e's Vulkan renderer is always there as the fast fallback.
+- **CPMA's CNQ3 features.** CPMA may check more than the extension lookups (for example the version string) before turning on its new demo player or Nuklear menus. PC tests this against a real CPMA install and asks the CPMA developers if anything is unclear.
+- **Mods' licenses.** CPMA, OSP, Defrag and most mods are closed-source freeware with their own terms. The library only links to official downloads, and the parity harness uses local installs.
+- **Partner sites.** The Defrag record integration needs q3df.org's and defrag.racing's agreement and APIs. Without them, Oz shows only Oz-verified runs.
 - **Matching the web menu's look in RCSS.** Blur and shadow need the filter layer from P4. If a React effect can't be matched, it gets a simpler native look rather than a web view.
 - **NAT traversal.** Direct UDP works for most home routers. Symmetric NAT and carrier-grade NAT need the TURN relay, which uses Cloudflare's free TURN allowance (1,000 GB a month). Direct-first keeps relay traffic, and so that allowance, far lower than the relay-everything design did.
 - **Library licenses.** libjuice is MPL-2.0, which combines with ioquake3's GPL-2.0-or-later through MPL's secondary-license clause. mbedTLS is dual-licensed Apache-2.0 or GPL-2.0-or-later, so it fits. libcurl, RmlUi and cJSON are permissive (MIT-style). Confirm each pinned version's license file before P7.
@@ -479,7 +633,7 @@ Order: P0 -> P1 -> P2 -> P3, then P4 -> P5 and P6 (either order), P10, P11, P12,
 
 ## Decisions for Ozmium
 
-1. **Where the engine lives:** a GitHub fork `ozmiumofficial/ioq3` (branch `oz`, easy upstream PRs), pinned from `engine/thirdparty.json` in this repo (recommended), or the engine source checked straight into `oz-arena/engine/`.
+1. **Where the engine lives:** a GitHub fork (`ozmiumofficial/quake3e`, branch `oz`, easy upstream PRs), pinned from `engine/thirdparty.json` in this repo (recommended), or the engine source checked straight into `oz-arena/engine/`.
 2. **Map editor:** the companion app first, then native (recommended), or native only, which delays the first release by about 6 h.
 3. **The Godot build:** frozen at v0.6.x with hub support kept until the engine build reaches online parity, then replaced through the updater (recommended), or replaced at milestone B with online off until C.
 4. **game and cgame as QVMs** (recommended: `sv_pure`, sandboxing, mods) **or native DLLs.**
@@ -488,3 +642,8 @@ Order: P0 -> P1 -> P2 -> P3, then P4 -> P5 and P6 (either order), P10, P11, P12,
 7. **Connections (decided 2026-10-28):** direct peer-to-peer first, with the relay as the fallback and a "Hide my IP" setting that forces it. Open question: should Hide my IP default to off (recommended, lowest ping and how every id Tech 3 game works) or on?
 8. **Matchmaking onto community servers:** Quick Play only, with ranked restricted to Oz servers, Verified community servers and peer-to-peer agreement (recommended), or ranked on any community server too.
 9. **Leaderboards from community matches:** Corroborated and Verified only (recommended), or self-reported as well.
+10. **Base engine:**
+    - **Quake3e** (recommended). It's what most community servers and all Defrag servers run, oDFe is a fork of it, and it already has rend2, IQM, the extension mechanism, map auto-download, precise timing and a Vulkan renderer.
+    - **Or ioquake3**, as the plan was first written. It has the better-maintained rend2 and stronger macOS support, but the oDFe and CNQ3 features would have to be ported further.
+11. **Standalone games (PG):** include OpenArena, Urban Terror and the other ioquake3 games later (recommended), or stay on Quake III mods only.
+12. **Outreach first:** contact the CPMA developers, Defrag-racing, Quake3e's author and server admins before the hub's matchmaking and Defrag integration go live (recommended).

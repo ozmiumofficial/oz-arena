@@ -22,7 +22,7 @@ The technical criticism, once the "AI slop" noise is set aside:
 
 - id's GPL game code decides play. The 12 patches in `tools/q3core/patches/` (id 1.32 reverts, Quake Live rules, ready-up, race, damage numbers, autohop, podium taunt, maps path, ...) carry over as they are.
 - 125 Hz Pmove (`pmove_fixed 1`, `pmove_msec 8`, `sv_fps 125`).
-- The online hub protocol (`online/src/hub.ts`) doesn't change, so friends, parties, ratings and leaderboards carry over, and players keep their identity.
+- The online hub (`online/src/hub.ts`) keeps every message it has, so friends, parties, ratings and leaderboards carry over, and players keep their identity. P8b adds a community-server registry, matchmaking onto community servers, and match stats.
 - No "Quake" in player-visible text (CLAUDE.md rules). Internal ids may keep "q3".
 - Matte materials: roughness floor 0.45.
 - American spelling. Estimates in hours of Claude working time.
@@ -37,8 +37,9 @@ OzArena.exe  (ioquake3 fork: client + server + rend2, C)
  ├─ sound:    OpenAL Soft (HRTF), Ogg Vorbis music; cinematics: RoQ + Theora (added)
  ├─ oz/ui     native UI: RmlUi 6 (MIT) + FreeType. Menus, pause menu, chat box, scoreboard cards,
  │            results, replay viewer controls, setup gate. Pages are .rml/.rcss in a pk3, logic in C++
- ├─ oz/online hub client (WebSocket + TLS), identity (RSA, imported from the Godot build),
- │            WebRTC transport NA_RTC (libdatachannel, relay-only ICE), direct map links
+ ├─ oz/online hub client (libcurl WebSocket + TLS), identity (RSA, imported from the Godot build),
+ │            ICE transport NA_ICE (libjuice: direct UDP first, Cloudflare TURN as the fallback),
+ │            community server browser (master servers + getinfo), match stats recorder
  ├─ oz/replay server-side all-player recorder, replay playback source, .dm_68 import, clip export
  ├─ oz/platform updater (q3core's q3_updater.c), crash reporter (q3_crash.cpp), ownership gate,
  │            data import from the Godot build
@@ -49,7 +50,9 @@ OzArena.exe  (ioquake3 fork: client + server + rend2, C)
       (q3_ui.qvm only when a mod brings its own UI)
 
 OzEditor     the map editor (phase P13: first the Godot editor as a companion app, then native)
-online/      the Cloudflare Worker + Hub Durable Object, unchanged except a build field
+online/      the Cloudflare Worker + Hub Durable Object (unchanged messages), plus a Stats Durable
+             Object (match records, careers, leaderboards) and the community-server registry
+OzAgent      optional, for community server operators: signs games.log results (P8b)
 ```
 
 **The engine-to-cgame bridge.** cgame and the native UI talk over a small, versioned channel, the C equivalent of today's Godot-to-web bridge:
@@ -64,8 +67,8 @@ online/      the Cloudflare Worker + Hub Durable Object, unchanged except a buil
 ```
 Q3Remaster/
   engine/
-    thirdparty.json        pins: ioq3 fork, RmlUi, FreeType, libdatachannel (+ libjuice, usrsctp),
-                           mbedTLS, cJSON, libogg/libtheora
+    thirdparty.json        pins: ioq3 fork, RmlUi, FreeType, libjuice (ICE), libcurl (WebSocket,
+                           HTTPS), mbedTLS (identity signing), cJSON, libogg/libtheora
     ioq3/                  the fork (ozmiumofficial GitHub fork of ioquake/ioq3, branch "oz"),
                            fetched at a pinned commit like tools/q3core does today
     src/oz/                new engine code: ui/, online/, replay/, platform/, bridge/
@@ -110,12 +113,14 @@ Every feature in README.md "In the game now" and "What's new", where it lives af
 | Controller support, southpaw | Godot input | SDL game controller in `sdl_input.c`; UI focus navigation | P4 |
 | Friends, parties, presence, party chat, invite links | `Online` autoload + React | `oz/online` + UI | P7 |
 | Leaderboards (level and ranked, global and friends) | React | UI page, same hub messages | P7 |
-| Host from your PC, listed with optional password | Godot + q3core | Listen server + `NA_RTC` + hub directory | P8 |
-| Server browser with search, region and mode filters | React | UI page | P8 |
-| Quick Play (Duel, FFA, TDM, CTF), regions with Auto widening | Godot + hub | `oz/online` + UI | P8 |
-| Ranked Duel/TDM/CTF, Elo, seasons, tiers, signed scoreboards | Godot + hub | `oz/online` signs; hub unchanged | P8 |
-| Every connection relayed, no IPs | WebRTC relay-only | libdatachannel, relay-only ICE | P8 |
-| Map download from host over an opt-in direct link | `Q3MapFetch` | `oz/online` file channel + direct link | P8 |
+| Host from your PC, listed with optional password | Godot + q3core | Listen server + `NA_ICE` + hub directory | P8 |
+| Server browser with search, region and mode filters | React | UI page: Oz matches and every community server from the master lists | P8, P8b |
+| Quick Play (Duel, FFA, TDM, CTF), regions with Auto widening | Godot + hub | Hub matchmaker; destination is an Oz server, a community server or a P2P host | P8b |
+| Ranked Duel/TDM/CTF, Elo, seasons, tiers, signed scoreboards | Godot + hub | `oz/online` signs; ranked only where results can be trusted (P8b "Trust") | P8, P8b |
+| Connections (changed 2026-10-28) | Always relayed, no IPs | Direct peer-to-peer UDP first, Cloudflare TURN relay when NAT blocks it; "Hide my IP" forces the relay | P8 |
+| Map download from the host | `Q3MapFetch` over an opt-in direct link | ioquake3's own download over the connection (`sv_allowDownload`, raised `sv_dlRate`), or HTTP (`sv_dlURL`) | P8 |
+| Join any existing community server (new) | | Master server browser (`getservers` 68/71, `getinfo`, `getstatus`) | P8b |
+| Match stats and leaderboards from any server (new) | Oz matches only | Engine-side stats recorder, signed upload to the Stats Durable Object | P8b |
 | Vote kick with a 30-minute lobby ban | game + hub | game code (callvote) + hub | P8 |
 | Dedicated server from the menu, keeps running after the game closes | Godot headless | `OzArena.exe +set dedicated 2` (or `OzArena-server.exe`) launched by the UI | P9 |
 | LAN with no internet | UDP patch 0007 | ioquake3's own UDP and LAN discovery | P9 |
@@ -146,7 +151,7 @@ Each phase ends with automated checks and, where you can see it, captures next t
 ### P0. Foundation (2 h)
 
 1. Fork ioquake/ioq3 on GitHub as `ozmiumofficial/ioq3` (branch `oz`), pinned to the commit q3core uses (`87a99d18`).
-2. Replay the q3core patch series as commits: 0001-0005 and 0008-0012 as they are. 0006 (Godot transport) and 0007 (UDP for Godot) are replaced by P8's `NA_RTC`.
+2. Replay the q3core patch series as commits: 0001-0005 and 0008-0012 as they are. 0006 (Godot transport) and 0007 (UDP for Godot) are replaced by the engine's own UDP and P8's `NA_ICE`.
 3. `engine/build_engine.py`: fetch the pins, run CMake with `-G Ninja` under `vcvars64`, `USE_FREETYPE ON`, `BUILD_GAME_QVMS ON`, renderer gl2 as default (`cl_renderer opengl2`). Stage `build/engine/` as `OzArena.exe`, `renderer_opengl2_x86_64.dll`, and `oz/` with `pak_oz_code.pk3` (the QVMs).
 4. Standalone identity: `com_basegame baseq3` reads the player's pak0 from their install; `fs_game oz` holds everything Oz. Window title, icon (`godot/icon.ico`), product name "Oz Arena". No "Quake" in the window title or console banner.
 5. Checks: boots to the console; `devmap q3dm17` with 3 bots runs; a 60-second headless bot match matches q3core's frag and item log on the same seed (proves the game code is identical).
@@ -250,7 +255,7 @@ Checks: each page captured headless next to the web view's capture (`webui/lib/s
 
 ### P7. Online services (2.5 h)
 
-1. **`src/oz/online/hub.cpp`.** A WebSocket over TLS to `wss://arena-online.fragnet.workers.dev`, using libdatachannel's WebSocket client and mbedTLS. Reconnect with backoff, presence, the same message set as `Q3OnlineClient` and `online.gd`.
+1. **`src/oz/online/hub.cpp`.** A WebSocket over TLS to `wss://arena-online.fragnet.workers.dev`, using libcurl's WebSocket API (stable since curl 8.11; Schannel TLS on Windows). Reconnect with backoff, presence, the same message set as `Q3OnlineClient` and `online.gd`.
 2. **Identity:**
    - On first run, `identity.key` is imported from the Godot build's user folder, so friends, level and rating carry over.
    - RSA-2048 signing with SHA-256 and PKCS#1 v1.5 through mbedTLS, the same signature as Godot's `Crypto.sign`.
@@ -258,23 +263,125 @@ Checks: each page captured headless next to the web view's capture (`webui/lib/s
 3. **UI:** Friends panel (friend codes, presence, join), parties of up to 8 with chat, invite links (`ozarena://` URL handler, registered at install), leaderboards.
 4. Checks: `npm run smoke` against a local hub plus a new `engine/tests/online_test.py`. Two engine clients add each other, form a party and chat. One Godot client and one engine client do the same (the hub is shared).
 
-### P8. Online play (3.5 h)
+### P8. Online play: direct peer-to-peer and hosting (3 h)
 
-1. **Transport `NA_RTC`.** A new address type in `net_ip.c`. Packets go over a libdatachannel data channel (unordered, unreliable), with ICE limited to relay candidates and Cloudflare TURN credentials minted by the hub. Signaling uses the hub messages the Godot build already uses (`net_request`, `net_signal`, ...). The rest of id's netcode (netchan, delta snapshots, prediction in cgame) is untouched, because it's the real client now.
-2. **Directory:** hosting from Create Match registers a listing (mode, map, players, region, password, version, ranked flag); the server browser and Quick Play read it. Region rules and Auto widening as in MULTIPLAYER_PLAN.md.
-3. **Ranked:**
+**Direct connections (Ozmium, 2026-10-28).** This reverses the 2026-10-23 "always relayed" rule. Players connect straight to each other where the network allows it, as id Tech 3 always did, and the relay is only the fallback.
+
+1. **Transport `NA_ICE`.** A new address type in `net_ip.c`, one libjuice ICE agent per remote peer. libjuice is plain UDP ICE: no DTLS or SCTP, so packets are exactly the Q3 packets.
+   - Candidates are tried in this order: host (LAN), server-reflexive (UDP hole punching, learned from Cloudflare's free STUN at `stun.cloudflare.com:3478`), then relay (Cloudflare TURN, with short-lived credentials the hub mints).
+   - Signaling (offers, answers, candidates) goes over the hub WebSocket, as today.
+   - The rest of id's netcode (netchan, delta snapshots, cgame prediction) is untouched, because it's the real client now.
+2. **"Hide my IP" (Settings > Network, off by default).**
+   - On: that player offers only relay candidates. The other side sees a Cloudflare address, and the player gets the relay's extra latency.
+   - Both the host and the joiner can set it.
+   - The connection screen and the browser show whether a link is direct or relayed.
+3. **Hosts with an open UDP port** (UPnP or port forwarding, detected at host time) are also listed as a normal server: plain `ip:port`, joinable by any client. They can optionally be registered with the master servers (`sv_master1..5`), so the wider community can find them.
+4. **Directory:** hosting from Create Match registers a listing (mode, map, players, region, password, version, ranked flag, direct or relay). Region rules and Auto widening as in MULTIPLAYER_PLAN.md.
+5. **Ranked on peer-to-peer:**
    - At match end, cgame sends the final scoreboard over the bridge. `oz/online` signs it and reports it.
    - The hub's agreement check and Elo are unchanged.
    - Listings carry `engine: "ioq3"`, so ranked never mixes the Godot and engine builds.
-4. **Map download:** a second reliable channel for requests; the pk3 travels only over an opt-in direct link, as today.
-5. **Vote kick:** id's `callvote kick` plus the hub's 30-minute lobby ban.
-6. Checks: two engine processes through the local hub with `test/lag` latency and loss; a full duel through the live relay between two PCs; a ranked duel recorded on the leaderboard; a joiner fetching a Maps-folder pk3.
+6. **Map download:** ioquake3's built-in download over the game connection, with `sv_dlRate` raised on Oz hosts, or HTTP when the server sets `sv_dlURL`. The custom file channel and the separate opt-in direct link go away, since the connection is now direct anyway.
+7. **Vote kick:** id's `callvote kick` plus the hub's 30-minute lobby ban.
+8. Checks:
+   - Two engine processes through the local hub with `test/lag` latency and loss.
+   - A duel between two PCs on different home networks: direct, then with Hide my IP on each side (relayed).
+   - A host behind symmetric NAT falls back to the relay by itself.
+   - A ranked duel recorded on the leaderboard; a joiner downloads a Maps-folder pk3.
+
+### P8b. Community servers, matchmaking and stats (4.5 h)
+
+**The idea (Ozmium, 2026-10-28):** because the new client speaks the real protocol, it can join the hundreds of existing community servers. Matchmaking can drop matched players onto any of them that fits. Every match's results are recorded and uploaded to Cloudflare, so stats and leaderboards cover community servers too, not just Oz-hosted matches.
+
+**What's out there (a live survey from this PC, 2026-10-28, `getservers` 68 and 71 on four master servers):**
+- About 1,680 servers listed and about 510 answered `getinfo`.
+- By mod: baseq3 198, Urban Terror (q3ut4) 86, OSP 61, CPMA 40, Excessive Plus 25, Defrag 21, Rat Arena 14, then a long tail.
+- By gametype: FFA 233, CTF 89, Duel 72, TDM 64.
+- 302 are pure and 214 aren't.
+- Most are empty or filled with bots. Of the 310 that report `g_humanplayers`, only about 40 had real players at the time, about 200 people in total.
+
+So the pool is large and mostly idle. For matchmaking that's useful: there are always empty, nearby servers to put a matched group on, and filling the few populated ones helps the community too.
+
+**What Oz looks like on a community server.** A pure server lets the client load only the server's own paks, and cgame comes from them. That's id's cheat protection, and the engine respects it.
+
+| | Oz server, peer-to-peer host, or a non-pure community server | Pure community server |
+|---|---|---|
+| Menus, friends, parties, matchmaking, browser, stats upload | Yes | Yes |
+| The engine's look (rend2 shading, tonemap, bloom, colorblind filter) | Yes | Yes, on the server's own textures |
+| Engine overlay: speedometer, kill feed, chat box (works over any cgame; can be turned off) | Yes | Yes |
+| Remastered textures, fighters, effects, Oz HUD, ragdolls | Yes | No |
+| Rules | Oz rulesets | The server's own (baseq3 is id 1.32) |
+| Replays | All players (Oz hosts) | Your own view (a client demo) |
+
+The browser shows a badge for servers where the full Oz look is available.
+
+1. **Community browser** (in `oz/online` and the P5 Server Browser page):
+   - Queries every configured master (`master.ioquake3.org`, `master.quake3arena.com`, `master.maverickservers.com`, `dpmaster.deathmask.net`, kept in a list the updater can change) with `getservers 68` and `71`, plus `getserversExt` for IPv6.
+   - Then `getinfo` and ping for each server, and `getstatus` for the one selected.
+   - Filters: mod, gametype, map, humans versus bots (`g_humanplayers`), pure, ping, has room, full Oz look, favorites.
+   - Joining is a plain `connect ip:port`. Mods download their pk3s as usual with `cl_allowDownload`.
+2. **Server registry in the hub.** Cloudflare Workers can't send UDP (only TCP sockets), so all probing is done by the clients.
+   - Clients send the hub a compact digest of what they saw: address, mod, gametype, map, slots, pure, human count, version, and their own ping bucket to each.
+   - The hub keeps a cache with a 5-minute time-to-live and places each server in a region from players' pings.
+3. **Matchmaker.** The existing queues (mode, region, party) stay as they are. When a group forms, the hub picks a destination in this order:
+   1. An Oz dedicated server or a Verified community server (see Trust).
+   2. A community server that passes every rule:
+      - the right mode, with the Classic ruleset pool for baseq3 servers;
+      - no password, and enough free public slots for the whole group (`sv_maxclients` minus `clients` minus `sv_privateClients`);
+      - not opted out or blocklisted.
+      - Among those passing, it prefers empty servers for Duel and populated ones for FFA, TDM and CTF.
+   3. A peer-to-peer host elected from the group (P8).
+
+   Then it picks a server:
+   - It sends the members a shortlist of up to 5 candidates. Each member pings them and answers within 2 s.
+   - The winner is the server with the lowest worst-member ping under 80 ms (the limit widens with Auto, as the regions do).
+   - The hub sends `mm_go {addr, match_id}`, and every member's client connects.
+   - Etiquette: no more than one matched group per community server per 10 minutes.
+4. **Server operators stay in charge:**
+   - Opt out by setting the serverinfo key `oz_mm 0`, or by asking (the hub's blocklist, through the admin endpoints).
+   - Oz players obey server rules and kicks like anyone else.
+   - The hub never sends players to passworded servers or into private slots.
+5. **Stats recorder (engine side, so it works on every server, pure or not, any mod).** It reads only what the client already receives:
+   - configstrings (map, gametype, mod, names, teams, warmup, intermission);
+   - `EV_OBITUARY` events (attacker, target, means of death);
+   - the `scores` server command (score, ping, time, accuracy, impressive, excellent, gauntlet, defend, assist, perfect, captures for every player);
+   - the player's own `playerState` (distance, hits from `PERS_HITS`, items).
+
+   Per match it writes the server, mod, mode, map, duration, the final scoreboard, and your frags and deaths by weapon. baseq3's formats come first; OSP's and CPMA's richer stats commands are parsers added later. Oz servers add the full per-weapon damage stats over the bridge, as today.
+6. **Upload and storage:**
+   - At intermission the client signs its report with the identity key and sends it to a new **Stats** Durable Object (its own SQLite, so match traffic never slows the social hub).
+   - The match is keyed by server address, map and start time, or by `match_id` when the matchmaker placed it.
+   - Stats keeps match records, careers (per mode, per weapon, per map) and leaderboards.
+   - The existing `career` and `leaderboard` messages read from it, and the Profile gets a match history.
+   - Only Oz players get profiles. Other players appear only as names on that match's scoreboard, which the server already shows publicly.
+   - Free-tier check: a thousand matches a day with ten Oz players each is about 11,000 rows a day, far inside Durable Object SQLite limits. Re-measure in P15.
+7. **Trust (what counts where):**
+
+   | Level | When | Counts for |
+   |---|---|---|
+   | Verified | An Oz dedicated server, or a community server running the Oz Server Agent | Ranked, leaderboards, career, XP |
+   | Corroborated | Two or more Oz players in the same match send signed reports whose scoreboards agree | Leaderboards, career, XP |
+   | Self-reported | One Oz player alone on a server | Their own career and XP only |
+
+   Peer-to-peer ranked keeps its existing agreement rule. Ranked queues never use community servers unless they're Verified, because their rules and settings vary.
+8. **Oz Server Agent (optional, for operators).**
+   - A small standalone C program (Windows and Linux) that tails `games.log` and builds each match's result (kills, scores, CTF events).
+   - It signs the result with the server's own key and posts it to Stats.
+   - It works with any server engine (ioquake3, Quake3e, CNQ3) and any mod that writes the standard log lines.
+   - An operator registers once from the Dedicated page or a command line, and the server shows as Verified in the browser.
+   - This is the route to ranked on community servers without trusting players' reports.
+9. Checks:
+   - The browser's list matches a reference query of the same masters.
+   - Two scripted Oz clients are matched onto a local plain ioquake3 dedicated server (pure, baseq3) and play to the end. Both send reports that agree, and the match shows Corroborated on the leaderboard.
+   - The same match with the agent running shows Verified.
+   - A server with `oz_mm 0` is never picked.
+   - A full server is never picked for a group that doesn't fit.
 
 ### P9. Dedicated servers and other platforms (2 h)
 
 1. The Dedicated page starts `OzArena.exe +set dedicated 2 +exec <config>` detached, so it outlives the game. It shows rcon, the admin view and status from `oz/online`, and "start with Windows" is a scheduled task.
 2. LAN: ioquake3's own UDP and LAN broadcast, unchanged.
-3. Linux x86-64 dedicated server and client, and macOS (arm64 and x86-64), from ioquake3's CMake targets. libdatachannel and RmlUi build on all three.
+3. Linux x86-64 dedicated server and client, and macOS (arm64 and x86-64), from ioquake3's CMake targets. libjuice, libcurl and RmlUi build on all three, and so does the Oz Server Agent.
 4. Checks: a Linux dedicated server under WSL hosts a match a Windows client joins; a macOS build boots to the menu (needs a Mac or CI runner).
 
 ### P10. Replays, spectating, death cam (4 h)
@@ -350,17 +457,22 @@ Check: a scripted run on a test course gives the same time as the Godot build's 
 |---|---|---|---|
 | A. Looks right | P0-P3 | 11.5 | Maps, fighters and effects in the engine; capture sheet vs the original and the Godot build |
 | B. Offline parity | P4-P6, P10-P12 | 21 | Every menu, HUD, campaign, replays, race, progression, offline |
-| C. Online parity | P7-P9 | 8 | Friends, parties, hosting, browser, Quick Play, ranked, dedicated, Linux/macOS |
+| C. Online parity | P7-P9 (with P8b) | 12 | Friends, parties, direct peer-to-peer hosting, community server browser, matchmaking onto any server, stats and leaderboards from every match, ranked, dedicated, Linux/macOS |
 | D. Everything | P13-P15 | 11.5 | Map editor (companion, then native), platform, parity pass, release |
-| **Total** | | **about 52** | |
+| **Total** | | **about 56** | |
 
-Order: P0 -> P1 -> P2 -> P3, then P4 -> P5 and P6 (either order), P10, P11, P12, then P7 -> P8 -> P9, then P13 -> P14 -> P15. The companion editor (P13 step 1) can ship at any point after P0.
+Order: P0 -> P1 -> P2 -> P3, then P4 -> P5 and P6 (either order), P10, P11, P12, then P7 -> P8 -> P8b -> P9, then P13 -> P14 -> P15. The companion editor (P13 step 1) can ship at any point after P0.
 
 ## Risks
 
 - **rend2's rough edges.** It's less used than the gl1 renderer, and some shader features misbehave. Budget fixes in P1, and send them upstream.
 - **Matching the web menu's look in RCSS.** Blur and shadow need the filter layer from P4. If a React effect can't be matched, it gets a simpler native look rather than a web view.
-- **libdatachannel on MSVC.** It pulls in libjuice, usrsctp and a TLS backend. Building it with mbedTLS keeps one crypto library for TLS, DTLS and identity signing.
+- **NAT traversal.** Direct UDP works for most home routers. Symmetric NAT and carrier-grade NAT need the TURN relay, which uses Cloudflare's free TURN allowance (1,000 GB a month). Direct-first keeps relay traffic, and so that allowance, far lower than the relay-everything design did.
+- **Library licenses.** libjuice is MPL-2.0, which combines with ioquake3's GPL-2.0-or-later through MPL's secondary-license clause. mbedTLS is dual-licensed Apache-2.0 or GPL-2.0-or-later, so it fits. libcurl, RmlUi and cJSON are permissive (MIT-style). Confirm each pinned version's license file before P7.
+- **How the community takes matchmaking onto their servers.** The launch thread showed this community is wary. Before matchmaking onto community servers goes live: tell server admins (forums, Discord), honor `oz_mm 0` and blocklist requests, keep the one-group-per-10-minutes cap, and never fill private slots.
+- **A small live population.** About 40 servers had real players in the 2026-10-28 survey. Matchmaking mostly lands groups on empty nearby servers, which works, but "filling" populated ones will be rare at first.
+- **Pure servers limit the Oz look.** On 58% of the servers that answered, only the engine-side features show (the table in P8b). The browser's full-look badge sets expectations.
+- **Spoofed reports.** A player can forge a self-reported match. That's why self-reported matches only touch their own career, and leaderboards need Corroborated or Verified.
 - **QVM limits.** cgame grows a lot (skeletons, ragdolls, cameras, HUD). If it hits QVM memory or speed limits, cgame becomes a native DLL; game stays a QVM.
 - **The native map editor** is the biggest single port, about 8,000 lines of GDScript. The companion app means it never blocks a release.
 - **Legal:** unchanged from PLAN.md "Licensing". The engine is GPL-2.0 like the game code already is.
@@ -373,3 +485,6 @@ Order: P0 -> P1 -> P2 -> P3, then P4 -> P5 and P6 (either order), P10, P11, P12,
 4. **game and cgame as QVMs** (recommended: `sv_pure`, sandboxing, mods) **or native DLLs.**
 5. **Lighting default:** id's original lightmaps (recommended, and what the thread asked for), with the q3map2 deluxe relight as a per-map option once each map passes the darkness check, or relit maps by default.
 6. **Executable and user folder:** `OzArena.exe` with a new `Oz Arena` user folder that imports the Godot build's data on first run (recommended), or keep the `Q3Remaster` names.
+7. **Connections (decided 2026-10-28):** direct peer-to-peer first, with the relay as the fallback and a "Hide my IP" setting that forces it. Open question: should Hide my IP default to off (recommended, lowest ping and how every id Tech 3 game works) or on?
+8. **Matchmaking onto community servers:** Quick Play only, with ranked restricted to Oz servers, Verified community servers and peer-to-peer agreement (recommended), or ranked on any community server too.
+9. **Leaderboards from community matches:** Corroborated and Verified only (recommended), or self-reported as well.

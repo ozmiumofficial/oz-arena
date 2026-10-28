@@ -4,7 +4,9 @@
 
 **A free, open-source arena shooter: the 1999 classic rebuilt for today without touching what made it great.**
 
-Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the roster, now with modern characters, lighting, effects, menus and online features. It's an unofficial, non-commercial fan project. You need your own copy of Quake III Arena to play.
+Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the roster, now with modern characters, lighting, effects, menus and online features. You need your own copy of Quake III Arena to play.
+
+> Oz Arena is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by or sponsored by id Software, Bethesda or ZeniMax. Quake and Quake III Arena are trademarks of ZeniMax Media; they're named here only to say which game you need.
 
 > **Open beta, now online.** The [open beta for Windows](https://github.com/ozmiumofficial/oz-arena/releases) adds online multiplayer: host a match from your own PC or run a dedicated server, find matches in the server browser, join friends, queue for matchmaking and ranked duels. Every connection is relayed, so no one sees anyone's IP address. The campaign, offline matches against bots and the map editor are all still there.
 
@@ -12,8 +14,8 @@ Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the r
 
 | | |
 |---|---|
-| ![Main menu](docs/screenshots/menu-main.jpg) | ![Campaign](docs/screenshots/menu-single-player.jpg) |
-| **Main menu:** a fighter or item turning in a smoky void, with the original menu sounds and soundtrack on shuffle | **Campaign:** id's single player campaign, tier by tier, with skill levels and medals |
+| ![Main menu](docs/screenshots/menu-main.jpg) | ![Replays](docs/screenshots/menu-replays.jpg) |
+| **Main menu:** a fighter or item turning in a smoky void, with the original menu sounds and soundtrack on shuffle | **Replays:** every match recorded automatically, ready to watch from anyone's eyes or a free camera |
 | ![Create match](docs/screenshots/menu-create-match.jpg) | ![Profile](docs/screenshots/menu-profile.jpg) |
 | **Create match:** every mode, map and rule, with modifiers on top | **Profile:** your player card, with banners, emblems, frames and titles you earn by playing |
 
@@ -34,13 +36,13 @@ Rocket jumps, strafe jumping, rail duels, and Sarge, Xaero and the rest of the r
 
 All screenshots are real matches against id's bots, captured in the engine at 1920x1080 (`godot/tests/screenshots.tscn`). Key art and a social preview card are in [docs/promo](docs/promo).
 
-## id's own game, Quake Live's rules
+## The original game code, competitive rules
 
-Most remakes copy the original from memory. This one runs id Software's own game code.
+Most remakes copy the original from memory. This one runs id Software's own game code, released under the GPL.
 
-- **The original engine code runs every match.** Movement, weapons, items and damage come straight from Quake III Arena's released source, so strafe jumps, rocket jumps and circle jumps behave exactly as they did.
-- **Quake Live's rules are the standard.** Matches use Quake Live's weapon balance: damage, splash and knockback, projectile speeds, refire times, its tight shotgun pattern, starting weapons and item amounts. Respawns work as in Quake Live too, with fire bringing you back after 2.1 seconds. Its movement is [coming next](#planned-features).
-- **The 1999 rules are kept, checked line by line.** The modern open-source port of Quake 3 changed a few things over the years. Every change that affected play was found and put back the way id shipped it, and id's original rules will be a Classic choice in match setup.
+- **The original engine code runs every match.** Movement, weapons, items and damage come straight from id's released source code, so strafe jumps, rocket jumps and circle jumps behave exactly as they did.
+- **Modern competitive rules are the standard.** Matches use the weapon balance of id's later competitive edition: damage, splash and knockback, projectile speeds, refire times, its tight shotgun pattern, starting weapons and item amounts. Respawns work that way too, with fire bringing you back after 2.1 seconds. Its movement is [coming next](#planned-features).
+- **The 1999 rules are kept, checked line by line.** ioquake3, the modern open-source port, changed a few things over the years. Every change that affected play was found and put back the way id shipped it, and id's original rules will be a Classic choice in match setup.
 - **The original bots, personalities and all.** Sarge, Xaero, Klesk, Doom and the rest find their way around the original maps the same way, pick fights the same way, and still talk trash in chat.
 - **The classic 125 Hz physics.** Movement runs at the fixed rate competitive players have always used, so jump heights and speeds match.
 
@@ -55,7 +57,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 | **Effects** | Sprite explosions and beams | Remade explosions, smoke, rail trails, lightning, blood and impacts, using the original effect timings |
 | **Movies** | Low-resolution intro and tier movies | All 10 cinematics upscaled |
 | **Main menu** | Static menu screens | A cinematic menu: one fighter or weapon floating in a dark, smoky void while the camera drifts, with the original menu sounds and soundtrack on shuffle |
-| **HUD** | Fixed classic HUD | A Quake Live-style HUD with four presets, a speedometer that shows your strafe-jump gain, a kill feed, damage direction arcs and award medals |
+| **HUD** | Fixed classic HUD | A modern HUD with four presets, a speedometer that shows your strafe-jump gain, a kill feed, damage direction arcs and award medals |
 | **Chat** | A line of text at the top of the screen | A chat box with history, team chat, name completion and a live preview of colored text; colored names show everywhere, from the kill feed to the scoreboard |
 | **Crosshair** | Pick one of ten | A full crosshair editor with per-weapon crosshairs and shareable codes, previewed live in the match behind it |
 | **Settings** | Basic options, console variables | A full settings menu with search, live preview and shareable config codes |
@@ -80,8 +82,8 @@ Most remakes copy the original from memory. This one runs id Software's own game
   - Build arenas inside the game with brushes, curves, every remastered texture, pickups, jump pads, teleporters and lights.
   - Shape brushes right where they are: grab a face's handle to push or pull it, or a corner to move it.
   - Work in the 3D view or in top, front and side views drawn as lines, Radiant style; resize or fold the side panels to give the view more room. Grid snapping can be turned off.
-  - Bring in any Quake 3 map from a .bsp or .pk3 file, and export yours as a .pk3 that plays in the original Quake 3.
-  - Open any original map from your own copy of Quake 3 and change it, or bring maps in and out of GtkRadiant, NetRadiant and TrenchBroom.
+  - Bring in any id Tech 3 map from a .bsp or .pk3 file, and export yours as a .pk3 that plays in the original game.
+  - Open any original map from your own copy of the game and change it, or bring maps in and out of GtkRadiant, NetRadiant and TrenchBroom.
   - Play-test instantly against bots, starting right where the editor's camera is, then publish a finished map to play it from Create Match.
 
   | | |
@@ -127,7 +129,7 @@ Most remakes copy the original from memory. This one runs id Software's own game
 
 None of these are in the open beta yet. They're listed roughly in the order they're coming.
 
-- **The rest of Quake Live's rules:** its movement (jumps, step jumps and chain jumps), bots tuned for the new weapons, and a Classic choice in match setup for id's original rules.
+- **The rest of the competitive rules:** their movement (jumps, step jumps and chain jumps), bots tuned for the new weapons, and a Classic choice in match setup for id's original rules.
 - **Dedicated servers on Linux,** for running a server on a rented machine.
 - **Player cards online:** your card in friends' lists and lobbies, both cards sliding in on the duel versus screen, and a card image to share.
 - **A Workshop:** share the maps you build and play other people's, straight from the menu.
@@ -177,4 +179,4 @@ The code in this repository is licensed under the GNU General Public License v2.
 
 The license covers code only. The repository also carries the remastered asset library (`godot/library` and `godot/webui`, stored with Git LFS): models, textures, lightmaps, sounds, music, cinematics and menu art remastered from id Software's originals. Those remain id Software's property and aren't covered by the GPL. id's original game files (the `pak` files) aren't included, and the game won't run without your own copy of Quake III Arena.
 
-This is an unofficial fan project, not affiliated with or endorsed by id Software, Bethesda or ZeniMax. Quake is a trademark of ZeniMax Media.
+Oz Arena is an unofficial fan project, not affiliated with, endorsed by or sponsored by id Software, Bethesda or ZeniMax. Quake and Quake III Arena are trademarks of ZeniMax Media, used here only to identify the game Oz Arena requires. No id Software or ZeniMax logos are used to brand this project.

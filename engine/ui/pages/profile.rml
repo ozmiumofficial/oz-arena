@@ -1,0 +1,697 @@
+<rml>
+<head>
+	<title>Profile</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<link type="text/rcss" href="../rcss/cards.rcss"/>
+	<style>
+		/* the tab bar under the header (ProfilePage.tsx), with the level and achievements on the right */
+		.pcol { position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; flex-direction: column; }
+		.ptop { display: flex; align-items: center; padding: 0.75rem 2.5rem 0 2.5rem; }
+		.ptabs .tab { margin-right: 0.25rem; padding: 0.5rem 0.75rem; font-size: 0.8rem; letter-spacing: 0.12em; }
+		.ptabs .tab .under { left: 0.5rem; right: 0.5rem; bottom: -1dp; background-color: #ff4a1c; }
+		.pmeta { display: flex; align-items: center; margin-left: auto; font-family: OzDisplay; font-size: 0.7rem; letter-spacing: 0.18em; color: #8d847c; }
+		.pmeta .sep { width: 1px; height: 0.75rem; margin: 0 0.75rem; background-color: #ffffff26; }
+		.pmeta kbd { min-width: 0; padding: 1dp 0.375rem; margin-left: 0.375rem; border-color: #ffffff26; background-color: transparent; font-family: OzDisplay; font-size: 0.6rem; color: #8d847c; }
+		.pmeta kbd.first { margin-left: 1.25rem; }
+		.hair { margin: 0 2.5rem; height: 1px; background-color: #ffffff0f; }
+		/* 1dp is under a pixel below 1080p and drops out where it straddles two rows */
+		.section span.rule { height: 1px; }
+		.tbody { position: relative; flex: 1; min-height: 0; }
+		.tpane { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+		.cols { display: flex; height: 100%; box-sizing: border-box; padding: 1.25rem 2.5rem; }
+		body.shown .tpane { animation: 0.18s cubic-out 1 tab-in; }
+		@keyframes tab-in { from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: translateY(0); } }
+
+		/* ---- Card: the card on the left, the slots and their parts on the right */
+		.cleft { display: flex; flex-direction: column; align-items: center; width: 30rem; margin-right: 2rem; }
+		.cright { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+		/* under 1020 dp tall the card's column scrolls (menu.rcss) */
+		@media (max-height: 1019dp) { .cleft { overflow-y: auto; padding-right: 0.5rem; } }
+		.tip { width: 100%; box-sizing: border-box; margin-top: 1rem; padding: 1rem; border: 1dp #ffffff0f; border-radius: 2dp; background-color: #00000040; }
+		.tip .tl { font-family: OzDisplay; font-size: 0.7rem; letter-spacing: 0.2em; color: #db2410; }
+		.tip p { margin-top: 0.25rem; font-size: 0.9rem; line-height: 1.375; color: #8d847c; }
+		.grow { flex: 1; }
+		.fine { padding-top: 0.75rem; font-size: 0.8rem; line-height: 1.375; color: #5d554f; text-align: center; }
+
+		/* the slots (a .tabs bar, so Q and E keep to the page's tabs and the focus walk opens each slot) */
+		.slots { display: flex; align-items: stretch; }
+		.slots .tab.slot {
+			display: block;
+			flex: 1;
+			min-width: 0;
+			margin: 0;
+			padding: 0.375rem 0.5rem;
+			border: 1dp #ffffff1a;
+			border-radius: 2dp;
+			background-color: #ffffff08;
+			text-align: left;
+			letter-spacing: 0.1em;
+			color: #8d847c;
+			transition: border-color color background-color 0.15s linear-in-out;
+		}
+		.slots .tab.slot + .tab.slot { margin-left: 0.375rem; }
+		.slots .tab.slot:focus, .slots .tab.slot:hover { border-color: #e6ddd266; color: #e6ddd2; }
+		.slots .tab.slot.active { border-color: #ff4a1cb3; background-color: #db241033; color: #fff3e6; }
+		.slot .sl { display: block; font-size: 0.7rem; letter-spacing: 0.08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.slot .sc { display: block; font-family: Barlow; font-size: 0.65rem; letter-spacing: 0.08em; color: #6b625b; }
+		.lockrow { display: flex; align-items: center; height: 2.25rem; margin-top: 0.75rem; }
+		/* Left and Right flip the switch; RmlUi's nav would also move the focus sideways */
+		#show_locked { nav-left: none; nav-right: none; }
+		.lockrow .ll { font-size: 0.7rem; letter-spacing: 0.18em; color: #8d847c; margin-right: 1rem; }
+		.hov { flex: 1; min-width: 0; margin-left: 1rem; font-size: 0.85rem; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #8d847c; }
+		.hov .slash { margin: 0 0.5rem; color: #5d554f; }
+		.pgrid { flex: 1; min-height: 0; margin-top: 0.75rem; padding-right: 0.5rem; overflow-y: auto; }
+		.pgrid .section { margin-top: 0.25rem; }
+		.pgrid .section.first { margin-top: 0; }
+		.section .cnt { margin-left: 0.5rem; font-family: Barlow; font-size: 0.65rem; letter-spacing: 0; color: #5d554f; }
+
+		/* a grid of parts: cells with gutters (no CSS grid), each a button */
+		.cells { display: flex; flex-wrap: wrap; margin: -0.25rem; }
+		.cell { box-sizing: border-box; padding: 0.25rem; }
+		.c2 .cell { width: 50%; }
+		.c3 .cell { width: 33.333%; }
+		.c5 .cell { width: 20%; }
+		.c7 .cell { width: 14.285%; }
+		.c4 .cell { width: 25%; }
+		.c8 .cell { width: 12.5%; }
+		button.part {
+			display: block;
+			position: relative;
+			width: 100%;
+			box-sizing: border-box;
+			overflow: hidden;
+			border: 2dp #ffffff0f;
+			border-radius: 2dp;
+			background-color: #00000066;
+			text-align: left;
+			transition: border-color 0.15s linear-in-out;
+		}
+		button.part:focus, button.part:hover { border-color: #e6ddd299; }
+		button.part.cur { border-color: #ff4a1c; box-shadow: #db24108c 0 0 1rem 0; }
+		.plabel { padding: 0.125rem 0.375rem; background-color: #000000b3; font-family: OzDisplay; font-size: 0.65rem; letter-spacing: 0.1em; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.plabel.sm { padding: 0.125rem 0.25rem; font-size: 0.5rem; letter-spacing: 0.08em; text-align: center; }
+		.lockov { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: #00000099; }
+		.padlock { position: absolute; left: 50%; top: 50%; width: 0.9rem; height: 1.05rem; margin-left: -0.45rem; margin-top: -0.55rem; }
+		.padlock .sh { position: absolute; left: 0.17rem; top: 0; width: 0.56rem; height: 0.55rem; box-sizing: border-box; border: 2dp #8d847c; border-bottom-width: 0; border-radius: 0.28rem 0.28rem 0 0; }
+		.padlock .bd { position: absolute; left: 0; bottom: 0; width: 0.9rem; height: 0.6rem; box-sizing: border-box; border: 2dp #8d847c; border-radius: 2dp; }
+		.ltag { position: absolute; right: 0.25rem; top: 0.25rem; padding: 0 0.25rem; border-radius: 2dp; background-color: #000000cc; font-size: 0.6rem; letter-spacing: 0.05em; color: #ffad33; }
+		.esw { position: relative; height: 0; padding-bottom: 100%; overflow: hidden; background-color: #0b0908; }
+		.esw img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+		.fsw { padding: 0.5rem; }
+		.fbox { position: relative; height: 0; padding-bottom: 66.667%; border-radius: 0.2rem; font-size: 1rem; }
+		.fbox .fin { position: absolute; left: 0.14em; top: 0.14em; right: 0.14em; bottom: 0.14em; border-radius: 0.1rem; background-color: #0b0908; }
+		.tsw { padding: 0.625rem 0.75rem; }
+		.tsw .tn { font-family: OzDisplay; font-size: 0.85rem; letter-spacing: 0.12em; color: #fff3e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.tsw .ts { font-size: 0.7rem; color: #5d554f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.asw { display: flex; align-items: center; padding: 0.5rem; }
+		.asw .dot { flex-shrink: 0; width: 1.5rem; height: 1.5rem; box-sizing: border-box; margin-right: 0.5rem; border: 1dp #ffffff33; border-radius: 0.75rem; }
+		.asw .an { min-width: 0; font-family: OzDisplay; font-size: 0.65rem; letter-spacing: 0.1em; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.rsw { padding: 0.625rem 0.75rem; }
+		.beam { position: relative; height: 0.75rem; border-radius: 0.375rem; background-color: #000000; overflow: hidden; }
+		.beam .core { position: absolute; left: 0; right: 0; top: 0.28rem; height: 3dp; }
+		.beam .spiral { position: absolute; left: 0; top: 0; right: 0; bottom: 0; opacity: 0.7; }
+		.rsw .rn { margin-top: 0.375rem; font-family: OzDisplay; font-size: 0.65rem; letter-spacing: 0.1em; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		button.part.srow { display: flex; align-items: center; padding: 0.5rem 0.75rem; }
+		button.part.srow.on { border-color: #ff4a1ccc; background-color: #db24101a; }
+		.srow .num { flex-shrink: 0; width: 1.5rem; height: 1.5rem; box-sizing: border-box; margin-right: 0.75rem; border: 1dp #ffffff26; border-radius: 0.75rem; font-family: OzDisplay; font-size: 0.7rem; line-height: 1.375rem; text-align: center; color: #5d554f; }
+		.srow .num.on { border-color: #ff4a1c; background-color: #db2410; color: #fff3e6; }
+		.srow .sl { flex: 1; min-width: 0; font-family: OzDisplay; font-size: 0.75rem; letter-spacing: 0.15em; color: #e6ddd2; white-space: nowrap; overflow: hidden; }
+		.srow .sv { font-family: OzDisplay; font-size: 1rem; color: #fff3e6; }
+		button.part.bsq.on { border-color: #ff4a1ccc; }
+		button.part.bsq.off { opacity: 0.4; }
+		.ring { position: absolute; left: 14%; top: 14%; width: 72%; height: 72%; box-sizing: border-box; border: 0.15rem #ffffff1a; border-radius: 2rem; background-color: #00000066; }
+		.ring img { position: absolute; left: 9%; top: 9%; width: 82%; height: 82%; }
+		.bnum { position: absolute; right: 0.25rem; top: 0.25rem; width: 1rem; height: 1rem; border-radius: 0.5rem; background-color: #db2410; font-family: OzDisplay; font-size: 0.55rem; line-height: 1rem; text-align: center; color: #fff3e6; }
+
+		/* ---- Character */
+		.chleft { display: flex; flex-direction: column; flex: 1; min-width: 0; margin-right: 2.5rem; }
+		.chright { width: 22rem; overflow-y: auto; }
+		.namerow { display: flex; align-items: center; margin-top: 0.5rem; }
+		.namerow .preview { font-family: OzDisplay; font-size: 1.1rem; letter-spacing: 0.05em; color: #fff3e6; }
+		.codes { display: flex; margin-left: auto; }
+		button.code { margin-left: 0.375rem; padding: 0 0.25rem; border: 1dp #ffffff1a; border-radius: 2dp; background-color: #00000066; font-size: 0.75rem; letter-spacing: 0.05em; }
+		button.code:focus, button.code:hover { border-color: #ffffff66; }
+		.chars { flex: 1; min-height: 0; padding-right: 0.5rem; overflow-y: auto; }
+		button.part.chr { border-color: #00000000; }
+		button.part.chr:focus { border-color: #e6ddd299; }
+		button.part.chr.cur { border-color: #ff4a1c; }
+		.clabel { position: absolute; left: 0; right: 0; bottom: 0; padding: 1dp 0; background-color: #000000b3; font-family: OzDisplay; font-size: 0.6rem; letter-spacing: 0.12em; text-align: center; color: #e6ddd2; }
+		.swatches { display: flex; flex-wrap: wrap; margin: -0.25rem; }
+		button.sw { width: 2.25rem; height: 2.25rem; margin: 0.25rem; box-sizing: border-box; border: 2dp #00000000; border-radius: 2dp; }
+		button.sw:focus, button.sw:hover { border-color: #ff4a1c; }
+		button.sw.cur { border-color: #fff3e6; }
+		.hexrow { display: flex; align-items: center; margin-top: 0.75rem; }
+		.hexrow .chip { width: 2.5rem; height: 1.5rem; margin-right: 0.75rem; border: 1dp #ffffff4d; border-radius: 2dp; }
+		.hexrow .hx { font-family: OzDisplay; font-size: 0.875rem; letter-spacing: 0.15em; color: #e6ddd2; }
+		.note { margin-top: 0.5rem; font-size: 0.85rem; line-height: 1.375; color: #8d847c; }
+
+		/* ---- Achievements */
+		.achpane { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; padding: 1.25rem 2.5rem; }
+		.achhead { display: flex; align-items: center; }
+		.achhead .big { margin-right: 1.5rem; }
+		.achhead .n { font-family: OzDisplay; font-size: 2rem; line-height: 1; color: #fff3e6; }
+		.achhead .of { font-family: OzDisplay; font-size: 1rem; color: #8d847c; }
+		.pbar { position: relative; width: 14rem; height: 0.375rem; margin-top: 0.25rem; border-radius: 0.1875rem; background-color: #ffffff12; }
+		.pbar .pf { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0.1875rem; decorator: linear-gradient( 90deg, #db2410 0%, #ffad33 100% ); }
+		.mtot { display: flex; align-items: center; margin-right: 1.5rem; }
+		.mtot .mr { width: 1rem; height: 1rem; box-sizing: border-box; margin-right: 0.5rem; border: 2dp #ffffff; border-radius: 0.5rem; }
+		.mtot .ml { font-family: OzDisplay; font-size: 0.75rem; letter-spacing: 0.15em; color: #8d847c; }
+		.achhead .spinner { width: 13rem; margin-left: auto; }
+		.chips { display: flex; flex-wrap: wrap; margin-top: 1rem; }
+		button.chip { margin: 0 0.375rem 0.375rem 0; padding: 0.25rem 0.625rem; border: 1dp #ffffff1a; border-radius: 2dp; font-family: OzDisplay; font-size: 0.65rem; letter-spacing: 0.14em; color: #8d847c; transition: border-color color 0.15s linear-in-out; }
+		button.chip:focus, button.chip:hover { border-color: #e6ddd266; color: #e6ddd2; }
+		button.chip.active { border-color: #ff4a1cb3; background-color: #db241033; color: #fff3e6; }
+		.achlist { flex: 1; min-height: 0; margin-top: 0.75rem; padding-right: 0.5rem; overflow-y: auto; }
+		.ach { display: flex; padding: 0.75rem; border: 1dp #ffffff0d; border-radius: 2dp; background-color: #0000004d; }
+		.ach.done { border-color: #ffffff1a; }
+		.ach:focus { border-color: #e6ddd266; }
+		.mbig { position: relative; flex-shrink: 0; width: 3.5rem; height: 3.5rem; box-sizing: border-box; margin-right: 0.75rem; border: 2dp #ffffff1a; border-radius: 1.75rem; background-color: #00000080; }
+		.mbig img { position: absolute; left: 0.3rem; top: 0.3rem; width: 2.65rem; height: 2.65rem; }
+		.mbig.todo img { opacity: 0.35; }
+		.mbig .qm { position: absolute; left: 0; right: 0; top: 0; line-height: 3.3rem; text-align: center; font-family: OzDisplay; font-size: 1.3rem; color: #5d554f; }
+		.ab { flex: 1; min-width: 0; }
+		.ah { display: flex; align-items: center; }
+		.ah .an { min-width: 0; margin-right: 0.5rem; font-family: OzDisplay; font-size: 0.85rem; letter-spacing: 0.1em; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.ach.done .ah .an { color: #fff3e6; }
+		.ah .am { margin-right: 0.5rem; font-family: OzDisplay; font-size: 0.55rem; letter-spacing: 0.2em; }
+		.ad { font-size: 0.8rem; color: #8d847c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.ap { display: flex; align-items: center; margin-top: 0.375rem; }
+		.ap .pb { position: relative; flex: 1; height: 0.25rem; margin-right: 0.5rem; border-radius: 0.125rem; background-color: #ffffff12; }
+		.ap .pf { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0.125rem; }
+		.ap .pt { font-size: 0.65rem; letter-spacing: 0.05em; color: #5d554f; }
+		.ms { margin-top: 0.25rem; font-size: 0.7rem; color: #5d554f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.py { margin-top: 0.25rem; font-size: 0.7rem; color: #ffad33cc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+		/* ---- Career */
+		.carpane { display: flex; height: 100%; box-sizing: border-box; padding: 1.25rem 2.5rem; overflow-y: auto; }
+		.carl { width: 24rem; margin-right: 2.5rem; }
+		.carr { flex: 1; min-width: 0; }
+		.lvlbig { display: flex; align-items: flex-end; }
+		.lvlbig .n { margin-right: 1rem; font-family: OzDisplay; font-size: 4rem; line-height: 1; color: #fff3e6; font-effect: glow( 0 14dp 0 0 #db241099 ); }
+		.lvlbig .of { padding-bottom: 0.5rem; font-size: 0.85rem; line-height: 1.375; color: #8d847c; }
+		.xpbig { position: relative; height: 0.5rem; margin-top: 0.75rem; border-radius: 0.25rem; background-color: #ffffff12; }
+		.xpbig .pf { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0.25rem; decorator: linear-gradient( 90deg, #db2410 0%, #ffad33 100% ); }
+		.xpline { display: flex; justify-content: space-between; margin-top: 0.25rem; font-size: 0.7rem; letter-spacing: 0.05em; color: #5d554f; }
+		.small { margin-top: 0.75rem; font-size: 0.8rem; line-height: 1.375; color: #5d554f; }
+		.dimp { font-size: 0.85rem; line-height: 1.375; color: #8d847c; }
+		.nrow { display: flex; align-items: center; margin-bottom: 0.375rem; padding: 0.375rem 0.5rem; border: 1dp #ffffff0f; border-radius: 2dp; background-color: #0000004d; }
+		.nrow .lv { flex-shrink: 0; width: 2.5rem; margin-right: 0.75rem; font-family: OzDisplay; font-size: 0.8rem; text-align: center; color: #ffad33; }
+		.nrow .swb { flex-shrink: 0; width: 6rem; height: 1.5rem; margin-right: 0.75rem; border-radius: 2dp; }
+		.nrow .swf { flex-shrink: 0; width: 1.5rem; height: 1.5rem; margin-right: 0.75rem; border-radius: 2dp; }
+		.nrow .swd { flex-shrink: 0; width: 1.25rem; height: 1.25rem; margin: 0 1rem 0 0.125rem; border-radius: 0.625rem; }
+		.nrow .swr { flex-shrink: 0; width: 1.5rem; height: 0.25rem; margin-right: 0.75rem; border-radius: 0.125rem; }
+		.nrow .swt { flex-shrink: 0; width: 1.5rem; margin-right: 0.75rem; font-family: OzDisplay; font-size: 0.7rem; text-align: center; color: #8d847c; }
+		.nrow .nn { flex: 1; min-width: 0; font-size: 0.85rem; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.nrow .nk { font-family: OzDisplay; font-size: 0.55rem; letter-spacing: 0.18em; color: #5d554f; }
+		.rbar { position: relative; height: 0.375rem; margin-top: 0.5rem; border-radius: 0.1875rem; background-color: #ffffff12; }
+		.rbar .pf { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0.1875rem; background-color: #8d847c; }
+		.kcell { width: 25%; }
+		.kv { padding: 0.625rem 0.75rem; border: 1dp #ffffff12; border-radius: 2dp; background-color: #0000004d; }
+		.kv .k { font-family: OzDisplay; font-size: 0.55rem; letter-spacing: 0.2em; color: #8d847c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.kv .v { font-family: OzDisplay; font-size: 1.3rem; color: #fff3e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.weps { display: flex; flex-wrap: wrap; margin-right: -1.5rem; }
+		.wep { display: flex; align-items: center; width: 33.333%; box-sizing: border-box; padding: 0 1.5rem 0.5rem 0; }
+		.wep img { flex-shrink: 0; width: 1.75rem; height: 1.75rem; margin-right: 0.5rem; }
+		.wep .wb { flex: 1; min-width: 0; }
+		.wep .wt { display: flex; justify-content: space-between; font-size: 0.75rem; }
+		.wep .wn { color: #8d847c; }
+		.wep .wc { letter-spacing: 0.05em; color: #e6ddd2; }
+		.wep .bar { position: relative; height: 0.25rem; margin-top: 0.125rem; border-radius: 0.125rem; background-color: #ffffff12; }
+		.wep .pf { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0.125rem; decorator: linear-gradient( 90deg, #b3170a 0%, #ff4a1c 100% ); }
+		.meds { display: flex; flex-wrap: wrap; }
+		.med { display: flex; align-items: center; margin: 0 1rem 0.75rem 0; }
+		.med img { width: 2.25rem; height: 2.25rem; margin-right: 0.5rem; }
+		.med.zero img { opacity: 0.3; }
+		.med .mn { font-family: OzDisplay; font-size: 1rem; line-height: 1.25; color: #fff3e6; }
+		.med .mk { font-family: OzDisplay; font-size: 0.5rem; letter-spacing: 0.18em; color: #8d847c; }
+		.modes { display: flex; flex-wrap: wrap; }
+		.mode { margin: 0 0.5rem 0.5rem 0; padding: 0.375rem 0.75rem; border: 1dp #ffffff12; border-radius: 2dp; background-color: #0000004d; font-size: 0.8rem; color: #8d847c; }
+		.mode .mv { margin-left: 0.25rem; font-family: OzDisplay; color: #fff3e6; }
+
+		/* ---- Matches (the stats recorder's reports, as the hub's Stats object has them) */
+		.mtl { flex: 1; min-width: 0; }
+		.mrow { display: flex; align-items: center; margin-bottom: 0.375rem; padding: 0.5rem 0.75rem; border: 1dp #ffffff0f; border-radius: 2dp; background-color: #0000004d; }
+		.mrow .mw { flex-shrink: 0; width: 7rem; margin-right: 0.75rem; font-size: 0.7rem; letter-spacing: 0.05em; color: #5d554f; }
+		.mrow .mm { flex: 1; min-width: 0; margin-right: 0.75rem; }
+		.mrow .mn { font-size: 0.85rem; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.mrow .msv { margin-top: 0.125rem; font-size: 0.7rem; color: #5d554f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.mrow .mp { flex-shrink: 0; width: 6rem; margin-right: 0.75rem; font-family: OzDisplay; font-size: 0.8rem; text-align: center; color: #fff3e6; }
+		.mrow .mk { flex-shrink: 0; width: 5rem; margin-right: 0.75rem; font-size: 0.8rem; text-align: center; color: #8d847c; }
+		.mrow .mx { flex-shrink: 0; width: 7rem; margin-right: 0.75rem; font-size: 0.7rem; text-align: right; color: #ffad33cc; }
+		.mrow .mt { flex-shrink: 0; width: 8.5rem; padding: 0.3rem 0; border: 1dp; border-radius: 2dp; font-family: OzDisplay; font-size: 0.6rem;
+			letter-spacing: 0.1em; text-align: center; }
+	</style>
+</head>
+<!--
+Profile (the web menu's ProfilePage.tsx), five tabs (Q/E): Card (the card editor: every slot, every
+part, locked ones with how to earn them), Character (name, character, skin, player color),
+Achievements, Career, Matches (the online history and career, from the hub's Stats object, P8b). The
+profile is the career's (oz_ui_profile.cpp fills profile from
+oz_progress.cpp, P12): picking an earned part puts it on the card (profileset), the showcase's stats
+and badges go on and off (showcase), locked parts say how to earn them. The name, the character, the
+skin and the player color are the Settings page's own (profile/name, profile/model, profile/skin,
+profile/team_color): the character and skin are the game's model and headmodel (profilemodel,
+profileskin), the color the menu's rim light and the rail trail (profileaccent).
+-->
+<body data-model="menu" onshow="set profile.tab card; set profile.slot banner; set profile.locked true; set profile.hover_on false; profilecharacter">
+	<div class="panel">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="phead">
+			<div><banner text="Profile"/></div>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
+		</div>
+		<div class="divider"/>
+		<div class="pbody">
+		<div class="pcol">
+			<div class="ptop">
+				<div class="tabs ptabs">
+					<button id="ptab_card" class="tab" data-class-active="profile.tab == 'card'" data-event-click="profile.tab = 'card'; profile.hover_on = false"><span>Card</span><span class="under"/></button>
+					<button id="ptab_character" class="tab" data-class-active="profile.tab == 'character'" data-event-click="profile.tab = 'character'"><span>Character</span><span class="under"/></button>
+					<button id="ptab_achievements" class="tab" data-class-active="profile.tab == 'achievements'" data-event-click="profile.tab = 'achievements'"><span>Achievements</span><span class="under"/></button>
+					<button id="ptab_career" class="tab" data-class-active="profile.tab == 'career'" data-event-click="profile.tab = 'career'"><span>Career</span><span class="under"/></button>
+					<button id="ptab_matches" class="tab" data-class-active="profile.tab == 'matches'" data-event-click="profile.tab = 'matches'" onclick="profilematches"><span>Matches</span><span class="under"/></button>
+				</div>
+				<div class="pmeta">
+					<span>Level <span class="hot">{{ profile.level }}</span></span>
+					<div class="sep"/>
+					<span><span class="hot">{{ profile.ach_done }}</span> / {{ profile.ach_total }} achievements</span>
+					<kbd class="first">Q</kbd><kbd>E</kbd>
+				</div>
+			</div>
+			<div class="hair"/>
+			<div class="tbody">
+
+			<!-- ================================================================ Card -->
+			<div class="tpane" data-if="profile.tab == 'card'">
+			<div class="cols">
+				<div class="cleft">
+					<div class="pcard" data-style-decorator="profile.card.frame" data-style-padding="profile.card.pad">
+						<div class="in">
+							<div class="bsw"><div class="bg" data-style-decorator="profile.card.banner_bg"/><div class="fg" data-style-decorator="profile.card.banner_fg"/><div class="shade"/></div>
+							<div class="trim" data-style-decorator="profile.card.trim"/>
+							<div class="emb" data-style-border-color="profile.card.accent"><img data-attr-src="profile.card.emblem"/></div>
+							<div class="head">
+								<div class="who">
+									<span class="nm" data-rml="player.name | q3name"/>
+									<span class="tt" data-style-color="profile.card.title_color">{{ profile.card.title }}</span>
+								</div>
+								<div class="lvl">
+									<div class="hx" data-style-border-color="profile.card.accent"/>
+									<div class="hx b" data-style-border-color="profile.card.accent"/>
+									<div class="hx c" data-style-border-color="profile.card.accent"/>
+									<div class="n">{{ profile.card.level }}</div>
+								</div>
+							</div>
+							<div class="xp">
+								<div class="bar"><div class="fill" data-style-width="profile.card.xp_pct" data-style-decorator="profile.card.xp_bar"/></div>
+								<span class="xt">{{ profile.card.xp_text }}</span>
+							</div>
+							<div class="sts">
+								<div class="st" data-for="s : profile.card.stats"><span class="v">{{ s.v }}</span><span class="l">{{ s.l }}</span></div>
+							</div>
+							<div class="foot">
+								<div class="medal" data-for="b : profile.card.badges" data-style-border-color="b.color"><img data-if="b.on" data-attr-src="b.icon"/></div>
+								<div class="gap"/>
+								<div class="rk" data-if="profile.card.ranked">
+									<span class="t" data-style-color="profile.card.rank_color">{{ profile.card.rank }}</span>
+									<span class="m">{{ profile.card.mmr }}</span>
+								</div>
+								<div class="shield" data-if="profile.card.ranked">
+									<div class="s" data-style-decorator="profile.card.rank_deco"/>
+									<div class="g" data-style-background-color="profile.card.rank_mark"/>
+									<div class="pips"><span class="pip" data-for="p : profile.card.pips" data-style-background-color="p.c"><span/></span></div>
+								</div>
+								<span class="ident" data-if="!profile.card.ranked">{{ profile.card.id }}</span>
+							</div>
+							<div style="height: 0.6em;"/>
+						</div>
+					</div>
+					<div class="tip">
+						<div data-for="s : profile.slots" data-if="s.id == profile.slot"><div class="tl">{{ s.label }}</div><p>{{ s.tip }}</p></div>
+					</div>
+					<div class="grow"/>
+					<p class="fine">Cards are cosmetic only. Everyone who sees yours checks it against your career, so parts you haven't earned show as the default.</p>
+				</div>
+
+				<div class="cright">
+					<div class="tabs slots">
+						<button id="slot_banner" class="tab slot" data-class-active="profile.slot == 'banner'" data-event-click="profile.tab = 'card'; profile.slot = 'banner'; profile.hover_on = false"><span class="sl">Banner</span><span class="sc">{{ profile.slots[0].count }}</span></button>
+						<button id="slot_emblem" class="tab slot" data-class-active="profile.slot == 'emblem'" data-event-click="profile.tab = 'card'; profile.slot = 'emblem'; profile.hover_on = false"><span class="sl">Emblem</span><span class="sc">{{ profile.slots[1].count }}</span></button>
+						<button id="slot_frame" class="tab slot" data-class-active="profile.slot == 'frame'" data-event-click="profile.tab = 'card'; profile.slot = 'frame'; profile.hover_on = false"><span class="sl">Frame</span><span class="sc">{{ profile.slots[2].count }}</span></button>
+						<button id="slot_title" class="tab slot" data-class-active="profile.slot == 'title'" data-event-click="profile.tab = 'card'; profile.slot = 'title'; profile.hover_on = false"><span class="sl">Title</span><span class="sc">{{ profile.slots[3].count }}</span></button>
+						<button id="slot_accent" class="tab slot" data-class-active="profile.slot == 'accent'" data-event-click="profile.tab = 'card'; profile.slot = 'accent'; profile.hover_on = false"><span class="sl">Accent</span><span class="sc">{{ profile.slots[4].count }}</span></button>
+						<button id="slot_rail" class="tab slot" data-class-active="profile.slot == 'rail'" data-event-click="profile.tab = 'card'; profile.slot = 'rail'; profile.hover_on = false"><span class="sl">Rail</span><span class="sc">{{ profile.slots[5].count }}</span></button>
+						<button id="slot_taunt" class="tab slot" data-class-active="profile.slot == 'taunt'" data-event-click="profile.tab = 'card'; profile.slot = 'taunt'; profile.hover_on = false"><span class="sl">Taunt</span><span class="sc">{{ profile.slots[6].count }}</span></button>
+						<button id="slot_stats" class="tab slot" data-class-active="profile.slot == 'stats'" data-event-click="profile.tab = 'card'; profile.slot = 'stats'; profile.hover_on = false"><span class="sl">Stats</span><span class="sc">{{ profile.slots[7].count }}</span></button>
+						<button id="slot_badges" class="tab slot" data-class-active="profile.slot == 'badges'" data-event-click="profile.tab = 'card'; profile.slot = 'badges'; profile.hover_on = false"><span class="sl">Badges</span><span class="sc">{{ profile.slots[8].count }}</span></button>
+					</div>
+					<div class="lockrow">
+						<span class="q3 ll" data-if="profile.slot != 'stats'">Show locked</span>
+						<div id="show_locked" class="toggle" data-if="profile.slot != 'stats'" data-class-on="profile.locked" data-event-click="profile.locked = !profile.locked"
+							data-event-keydown="profile.locked = (ev.key_identifier == 90 || ev.key_identifier == 92) ? !profile.locked : profile.locked"><span class="track"><span class="knob"/></span><span class="state">{{ profile.locked ? 'On' : 'Off' }}</span></div>
+						<span class="hov">
+							<span data-if="profile.hover_on"><span data-class-hot="!profile.hover_locked">{{ profile.hover_name }}</span><span class="slash">/</span><span data-class-amber="profile.hover_locked" data-class-faint="!profile.hover_locked">{{ profile.hover_info }}</span></span>
+							<span class="faint" data-if="!profile.hover_on">Locked parts say how to earn them.</span>
+						</span>
+					</div>
+
+					<div class="pgrid">
+						<!-- banners -->
+						<div data-if="profile.slot == 'banner'">
+							<div data-for="g, gi : profile.grid.banner" data-if="profile.locked || g.open > 0">
+								<div class="section" data-class-first="gi == 0"><span class="t">{{ g.name }}<span class="cnt">{{ g.open }}/{{ profile.locked ? g.total : g.open }}</span></span><span class="rule"/></div>
+								<div class="cells c3">
+									<div class="cell" data-for="p : g.items" data-if="profile.locked || p.open">
+										<button class="part" data-class-cur="p.id == profile.cur.banner" data-attr-onclick="p.open ? 'profileset banner ' + p.id : 'refuse ' + p.toast"
+											data-event-focus="profile.hover_on = true; profile.hover_name = p.name; profile.hover_info = p.info; profile.hover_locked = !p.open">
+											<div class="bsw"><div class="bg" data-style-decorator="p.bg"/><div class="fg" data-style-decorator="p.fg"/><div class="shade"/></div>
+											<div class="plabel">{{ p.name }}</div>
+											<div class="lockov" data-if="!p.open"><div class="padlock"><span class="sh"/><span class="bd"/></div></div>
+											<span class="ltag" data-if="p.level != ''">{{ p.level }}</span>
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- emblems -->
+						<div data-if="profile.slot == 'emblem'">
+							<div data-for="g, gi : profile.grid.emblem" data-if="profile.locked || g.open > 0">
+								<div class="section" data-class-first="gi == 0"><span class="t">{{ g.name }}<span class="cnt">{{ g.open }}/{{ profile.locked ? g.total : g.open }}</span></span><span class="rule"/></div>
+								<div class="cells c8">
+									<div class="cell" data-for="p : g.items" data-if="profile.locked || p.open">
+										<button class="part" data-class-cur="p.id == profile.cur.emblem" data-attr-onclick="p.open ? 'profileset emblem ' + p.id : 'refuse ' + p.toast"
+											data-event-focus="profile.hover_on = true; profile.hover_name = p.name; profile.hover_info = p.info; profile.hover_locked = !p.open">
+											<div class="esw"><img data-attr-src="p.art"/></div>
+											<div class="plabel sm">{{ p.name }}</div>
+											<div class="lockov" data-if="!p.open"><div class="padlock"><span class="sh"/><span class="bd"/></div></div>
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- frames -->
+						<div data-if="profile.slot == 'frame'">
+							<div data-for="g, gi : profile.grid.frame" data-if="profile.locked || g.open > 0">
+								<div class="section" data-class-first="gi == 0"><span class="t">{{ g.name }}<span class="cnt">{{ g.open }}/{{ profile.locked ? g.total : g.open }}</span></span><span class="rule"/></div>
+								<div class="cells c5">
+									<div class="cell" data-for="p : g.items" data-if="profile.locked || p.open">
+										<button class="part" data-class-cur="p.id == profile.cur.frame" data-attr-onclick="p.open ? 'profileset frame ' + p.id : 'refuse ' + p.toast"
+											data-event-focus="profile.hover_on = true; profile.hover_name = p.name; profile.hover_info = p.info; profile.hover_locked = !p.open">
+											<div class="fsw"><div class="fbox" data-style-decorator="p.deco"><div class="fin" data-style-left="p.pad" data-style-top="p.pad" data-style-right="p.pad" data-style-bottom="p.pad"/></div></div>
+											<div class="plabel">{{ p.name }}</div>
+											<div class="lockov" data-if="!p.open"><div class="padlock"><span class="sh"/><span class="bd"/></div></div>
+											<span class="ltag" data-if="p.level != ''">{{ p.level }}</span>
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- titles -->
+						<div data-if="profile.slot == 'title'">
+							<div data-for="g, gi : profile.grid.title" data-if="profile.locked || g.open > 0">
+								<div class="section" data-class-first="gi == 0"><span class="t">{{ g.name }}<span class="cnt">{{ g.open }}/{{ profile.locked ? g.total : g.open }}</span></span><span class="rule"/></div>
+								<div class="cells c3">
+									<div class="cell" data-for="p : g.items" data-if="profile.locked || p.open">
+										<button class="part" data-class-cur="p.id == profile.cur.title" data-attr-onclick="p.open ? 'profileset title ' + p.id : 'refuse ' + p.toast"
+											data-event-focus="profile.hover_on = true; profile.hover_name = p.name; profile.hover_info = p.info; profile.hover_locked = !p.open">
+											<div class="tsw"><div class="tn">{{ p.name }}</div><div class="ts">{{ p.sub }}</div></div>
+											<div class="lockov" data-if="!p.open"><div class="padlock"><span class="sh"/><span class="bd"/></div></div>
+											<span class="ltag" data-if="p.level != ''">{{ p.level }}</span>
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- accents -->
+						<div data-if="profile.slot == 'accent'">
+							<div data-for="g, gi : profile.grid.accent" data-if="profile.locked || g.open > 0">
+								<div class="section" data-class-first="gi == 0"><span class="t">{{ g.name }}<span class="cnt">{{ g.open }}/{{ profile.locked ? g.total : g.open }}</span></span><span class="rule"/></div>
+								<div class="cells c5">
+									<div class="cell" data-for="p : g.items" data-if="profile.locked || p.open">
+										<button class="part" data-class-cur="p.id == profile.cur.accent" data-attr-onclick="p.open ? 'profileset accent ' + p.id : 'refuse ' + p.toast"
+											data-event-focus="profile.hover_on = true; profile.hover_name = p.name; profile.hover_info = p.info; profile.hover_locked = !p.open">
+											<div class="asw"><span class="dot" data-style-background-color="p.value"/><span class="an">{{ p.name }}</span></div>
+											<div class="lockov" data-if="!p.open"><div class="padlock"><span class="sh"/><span class="bd"/></div></div>
+											<span class="ltag" data-if="p.level != ''">{{ p.level }}</span>
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- rails -->
+						<div data-if="profile.slot == 'rail'">
+							<div data-for="g, gi : profile.grid.rail" data-if="profile.locked || g.open > 0">
+								<div class="section" data-class-first="gi == 0"><span class="t">{{ g.name }}<span class="cnt">{{ g.open }}/{{ profile.locked ? g.total : g.open }}</span></span><span class="rule"/></div>
+								<div class="cells c3">
+									<div class="cell" data-for="p : g.items" data-if="profile.locked || p.open">
+										<button class="part" data-class-cur="p.id == profile.cur.rail" data-attr-onclick="p.open ? 'profileset rail ' + p.id : 'refuse ' + p.toast"
+											data-event-focus="profile.hover_on = true; profile.hover_name = p.name; profile.hover_info = p.info; profile.hover_locked = !p.open">
+											<div class="rsw"><div class="beam"><div class="core" data-style-decorator="p.beam"/><div class="spiral" data-style-decorator="p.spiral"/></div><div class="rn">{{ p.name }}</div></div>
+											<div class="lockov" data-if="!p.open"><div class="padlock"><span class="sh"/><span class="bd"/></div></div>
+											<span class="ltag" data-if="p.level != ''">{{ p.level }}</span>
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- taunts -->
+						<div data-if="profile.slot == 'taunt'">
+							<div data-for="g, gi : profile.grid.taunt" data-if="profile.locked || g.open > 0">
+								<div class="section" data-class-first="gi == 0"><span class="t">{{ g.name }}<span class="cnt">{{ g.open }}/{{ profile.locked ? g.total : g.open }}</span></span><span class="rule"/></div>
+								<div class="cells c7">
+									<div class="cell" data-for="p : g.items" data-if="profile.locked || p.open">
+										<button class="part" data-class-cur="p.id == profile.cur.taunt" data-attr-onclick="p.open ? 'profileset taunt ' + p.id : 'refuse ' + p.toast"
+											data-event-focus="profile.hover_on = true; profile.hover_name = p.name; profile.hover_info = p.info; profile.hover_locked = !p.open">
+											<div class="esw"><img data-attr-src="p.art"/></div>
+											<div class="plabel">{{ p.name }}</div>
+											<div class="lockov" data-if="!p.open"><div class="padlock"><span class="sh"/><span class="bd"/></div></div>
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- stats -->
+						<div data-if="profile.slot == 'stats'">
+							<div class="cells c2">
+								<div class="cell" data-for="s : profile.stats">
+									<button class="part srow" data-class-on="s.slot > 0" data-attr-onclick="'showcase stats ' + s.id"
+										data-event-focus="profile.hover_on = true; profile.hover_name = s.label; profile.hover_info = s.info; profile.hover_locked = false">
+										<span class="num" data-class-on="s.slot > 0">{{ s.slot > 0 ? s.slot : '' }}</span>
+										<span class="sl">{{ s.label }}</span>
+										<span class="sv">{{ s.value }}</span>
+									</button>
+								</div>
+							</div>
+						</div>
+						<!-- badges -->
+						<div data-if="profile.slot == 'badges'">
+							<div class="cells c8">
+								<div class="cell" data-for="b : profile.badges" data-if="profile.locked || b.open">
+									<button class="part bsq" data-class-on="b.slot > 0" data-class-off="!b.open" data-attr-onclick="b.open ? 'showcase badges ' + b.id : 'refuse ' + b.toast"
+										data-event-focus="profile.hover_on = true; profile.hover_name = b.name; profile.hover_info = b.info; profile.hover_locked = !b.open">
+										<div class="esw" style="background-color: transparent;"><div class="ring" data-style-border-color="b.color"><img data-attr-src="b.icon"/></div></div>
+										<span class="bnum" data-if="b.slot > 0">{{ b.slot }}</span>
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			</div>
+
+			<!-- ================================================================ Character -->
+			<div class="tpane" data-if="profile.tab == 'character'">
+			<div class="cols">
+				<div class="chleft">
+					<div class="section first"><span class="t">Name</span><span class="rule"/></div>
+					<input id="profile_name" class="text wide" type="text" maxlength="32" data-value="player.name"
+						data-event-change="profile.name_dirty = true"
+						data-attr-onkeyup="profile.name_dirty ? 'cmd ui_settings_set profile/name {player.name}; set profile.name_dirty false' : ''"/>
+					<div class="namerow">
+						<span class="preview" data-rml="player.name | q3name"/>
+						<div class="codes">
+							<button class="code" data-for="c : profile.codes" data-style-color="c.color"
+								data-attr-onclick="'set player.name ' + player.name + c.code + '; cmd ui_settings_set profile/name ' + player.name + c.code">{{ c.code }}</button>
+						</div>
+					</div>
+					<div class="section"><span class="t">Character</span><span class="rule"/></div>
+					<div class="chars">
+						<div class="cells c8">
+							<div class="cell" data-for="c : characters">
+								<button class="part chr" data-class-cur="c == player.model"
+									data-attr-onclick="'profilemodel ' + c">
+									<div class="esw"><img data-attr-src="'/models/players/' + c + '/icon_default'"/></div>
+									<span class="clabel">{{ c }}</span>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="chright">
+					<div class="section first"><span class="t">Skin</span><span class="rule"/></div>
+					<div class="cells c4">
+						<div class="cell" data-for="s : profile.skins">
+							<button class="part chr" data-class-cur="s.id == profile.skin" data-attr-onclick="'profileskin ' + s.id">
+								<div class="esw"><img data-attr-src="s.icon"/></div>
+								<span class="clabel">{{ s.name }}</span>
+							</button>
+						</div>
+					</div>
+					<p class="note">Team games paint you red or blue.</p>
+					<div class="section"><span class="t">Player color</span><span class="rule"/></div>
+					<div class="swatches">
+						<button class="sw" data-for="c : profile.colors" data-style-background-color="c" data-class-cur="c == player.accent"
+							data-attr-onclick="'profileaccent ' + c"><span/></button>
+					</div>
+					<div class="hexrow"><span class="chip" data-style-background-color="player.accent"/><span class="hx">{{ player.accent }}</span></div>
+					<p class="note">Lights the menu's showcase and colors your rail trail: your card's Rail takes the nearest of the original game's seven (an earned rail on your card stays). Your card's own trim is its Accent.</p>
+					<div class="section"><span class="t">Played as</span><span class="rule"/></div>
+					<p class="note" style="margin-top: 0;">25 matches as a character earns their banner, and 10 in an alternate skin earns that head for your emblem.</p>
+				</div>
+			</div>
+			</div>
+
+			<!-- ================================================================ Achievements -->
+			<div class="tpane" data-if="profile.tab == 'achievements'">
+			<div class="achpane">
+				<div class="achhead">
+					<div class="big">
+						<div><span class="n">{{ profile.ach.done }}</span><span class="of"> / {{ profile.ach.total }}</span></div>
+						<div class="pbar"><div class="pf" data-style-width="profile.ach.pct"/></div>
+					</div>
+					<div class="mtot" data-for="m : profile.ach.medals">
+						<span class="mr" data-style-border-color="m.color"/>
+						<span class="ml"><span class="hot">{{ m.n }}</span> / {{ m.of }} {{ m.name }}</span>
+					</div>
+					<div id="ach_show" class="spinner" spin="profile.ach.show" options="All|Earned|In progress|Not started"><span class="arrow prev">&lt;</span><span class="v">{{ profile.ach.show }}</span><span class="arrow next">&gt;</span></div>
+				</div>
+				<div class="chips">
+					<button class="chip" data-for="g : profile.ach.groups" data-class-active="g == profile.ach.group" data-event-click="profile.ach.group = g">{{ g }}</button>
+				</div>
+				<div class="achlist">
+					<div class="cells c2">
+						<div class="cell" data-for="a : profile.ach.list" data-if="(profile.ach.group == 'All' || a.group == profile.ach.group) &amp;&amp; (profile.ach.show == 'All' || a.state == profile.ach.show)">
+							<div class="ach nav" data-class-done="a.done">
+								<div class="mbig" data-class-todo="!a.done" data-style-border-color="a.done ? a.color : '#ffffff1a'">
+									<img data-if="a.has_icon" data-attr-src="a.icon"/>
+									<span class="qm" data-if="a.secret">?</span>
+								</div>
+								<div class="ab">
+									<div class="ah"><span class="an">{{ a.name }}</span><span class="am" data-style-color="a.color">{{ a.medal }}</span><span class="badge" data-if="a.done">Earned</span></div>
+									<div class="ad">{{ a.desc }}</div>
+									<div class="ap" data-if="a.bar"><div class="pb"><div class="pf" data-style-width="a.pct" data-style-background-color="a.color"/></div><span class="pt">{{ a.progress }}</span></div>
+									<div class="ms" data-if="a.missing != ''">{{ a.missing }}</div>
+									<div class="py" data-if="a.pays != ''">{{ a.pays }}</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			</div>
+
+			<!-- ================================================================ Career -->
+			<div class="tpane" data-if="profile.tab == 'career'">
+			<div class="carpane">
+				<div class="carl">
+					<div class="section first"><span class="t">Level</span><span class="rule"/></div>
+					<div class="lvlbig">
+						<span class="n">{{ profile.career.level }}</span>
+						<div class="of"><div>of {{ profile.career.max }}</div><div>{{ profile.career.total }} XP total</div></div>
+					</div>
+					<div class="xpbig"><div class="pf" data-style-width="profile.career.pct"/></div>
+					<div class="xpline"><span>{{ profile.career.xp }}</span><span>{{ profile.career.to_next }}</span></div>
+					<p class="small">Every match played to the end pays XP: 100 for finishing, 10 a frag, 150 a win, 25 a medal. Matches against bots count.</p>
+					<div class="section"><span class="t">Next unlocks</span><span class="rule"/></div>
+					<div class="nrow" data-for="n : profile.career.next">
+						<span class="lv">{{ n.level }}</span>
+						<span class="swb" data-if="n.swatch == 'banner'" data-style-decorator="n.deco"/>
+						<span class="swf" data-if="n.swatch == 'frame'" data-style-decorator="n.deco"/>
+						<span class="swd" data-if="n.swatch == 'dot'" data-style-background-color="n.color"/>
+						<span class="swr" data-if="n.swatch == 'rail'" data-style-decorator="n.deco"/>
+						<span class="swt" data-if="n.swatch == 'text'">T</span>
+						<span class="nn">{{ n.name }}</span>
+						<span class="nk">{{ n.kind }}</span>
+					</div>
+					<div class="section"><span class="t">Ranked</span><span class="rule"/></div>
+					<p class="dimp" data-if="profile.career.ranked_open">Ranked is open to you. Every ranked match you finish moves your rating.</p>
+					<div data-if="!profile.career.ranked_open">
+						<p class="dimp">Ranked opens at level {{ profile.career.ranked_level }}.</p>
+						<div class="rbar"><div class="pf" data-style-width="profile.career.ranked_pct"/></div>
+					</div>
+				</div>
+				<div class="carr">
+					<div class="section first"><span class="t">Career</span><span class="rule"/></div>
+					<div class="cells">
+						<div class="cell kcell" data-for="r : profile.career.rows"><div class="kv"><div class="k">{{ r.k }}</div><div class="v">{{ r.v }}</div></div></div>
+					</div>
+					<div class="section"><span class="t">Weapons</span><span class="rule"/></div>
+					<div class="weps">
+						<div class="wep" data-for="w : profile.career.weapons">
+							<img data-attr-src="w.icon"/>
+							<div class="wb">
+								<div class="wt"><span class="wn">{{ w.name }}</span><span class="wc">{{ w.n }}</span></div>
+								<div class="bar"><div class="pf" data-style-width="w.pct"/></div>
+							</div>
+						</div>
+					</div>
+					<div class="section"><span class="t">Medals</span><span class="rule"/></div>
+					<div class="meds">
+						<div class="med" data-for="m : profile.career.medals" data-class-zero="m.zero">
+							<img data-attr-src="m.icon"/>
+							<div><div class="mn">{{ m.n }}</div><div class="mk">{{ m.label }}</div></div>
+						</div>
+					</div>
+					<div class="section"><span class="t">Wins by mode</span><span class="rule"/></div>
+					<div class="modes">
+						<div class="mode" data-for="m : profile.career.modes"><span>{{ m.name }}</span><span class="mv">{{ m.n }}</span></div>
+					</div>
+					<p class="small" style="margin-top: 1rem;">Every match you finish counts here, offline and against bots too. The Matches tab shows what counts online.</p>
+				</div>
+			</div>
+			</div>
+
+			<!-- ================================================================ Matches -->
+			<div class="tpane" data-if="profile.tab == 'matches'">
+			<div class="carpane">
+				<div class="carl">
+					<div class="section first"><span class="t">Online career</span><span class="rule"/></div>
+					<div class="lvlbig">
+						<span class="n">{{ profile.shared.level }}</span>
+						<div class="of"><div>online level</div><div>{{ profile.shared.xp }} XP from counted matches</div></div>
+					</div>
+					<div class="cells" style="margin-top: 0.75rem;">
+						<div class="cell kcell" style="width: 50%;" data-for="r : profile.shared.rows"><div class="kv"><div class="k">{{ r.k }}</div><div class="v">{{ r.v }}</div></div></div>
+					</div>
+					<div class="section"><span class="t">By mode</span><span class="rule"/></div>
+					<div class="modes">
+						<div class="mode" data-for="m : profile.shared.modes"><span>{{ m.name }}</span><span class="mv">{{ m.n }}</span></div>
+					</div>
+					<p class="small">A match counts online when two or more Oz players in it report the same scoreboard (Corroborated). A match you played alone, or offline, stays in your history and your card's XP, never on a leaderboard.</p>
+				</div>
+				<div class="mtl">
+					<div class="section first"><span class="t">Recent matches</span><span class="rule"/></div>
+					<p class="dimp" data-if="profile.matches.size == 0">{{ profile.matches_note }}</p>
+					<div id="match_{{ i }}" class="mrow" data-for="m, i : profile.matches">
+						<span class="mw">{{ m.when }}</span>
+						<div class="mm">
+							<div class="mn">{{ m.map }}</div>
+							<div class="msv">{{ m.mode }} / {{ m.server }}</div>
+						</div>
+						<span class="mp">{{ m.place }}</span>
+						<span class="mk">{{ m.kd }}</span>
+						<span class="mx">{{ m.xp }}</span>
+						<span class="mt" data-style-color="m.color" data-style-border-color="m.color">{{ m.trust }}</span>
+					</div>
+				</div>
+			</div>
+			</div>
+
+			</div>
+		</div>
+		</div>
+	</div>
+</body>
+</rml>

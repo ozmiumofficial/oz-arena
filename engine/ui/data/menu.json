@@ -1,0 +1,60 @@
+{
+  "_note": "The menus' data model (oz_ui_menu.cpp): the web menu's lib/menu.json tree, the news line, and stand-in data for the systems not built yet (social is live from the online hub, P7). Each page's own data is ui/data/<name>.json, merged in by the names in include. maps, bots, characters, player and subject are filled by the engine.",
+  "include": ["play", "server_browser", "dedicated", "create_match", "campaign", "profile", "leaderboards", "replays", "cinematics", "pause", "connect"],
+  "main": [
+    { "id": "play", "label": "Play", "hint": "Online matches, ranked, bots, the campaign and training", "do": "sub play", "submenu": "play", "primary": true, "num": "01" },
+    { "id": "profile", "label": "Profile", "hint": "Your player card, leaderboards and replays", "do": "sub profile_menu", "submenu": "profile_menu", "primary": false, "num": "02" },
+    { "id": "map_editor", "label": "Map Editor", "hint": "Build arenas or import the original game's maps", "do": "append editor", "submenu": "", "primary": false, "num": "03" },
+    { "id": "settings", "label": "Settings", "hint": "Video, audio, controls and more", "do": "page settings", "submenu": "", "primary": false, "num": "04" },
+    { "id": "extras", "label": "Extras", "hint": "The original cinematics and the credits", "do": "sub extras", "submenu": "extras", "primary": false, "num": "05" },
+    { "id": "quit", "label": "Quit", "hint": "Back to the desktop", "do": "page quit", "submenu": "", "primary": false, "num": "06" }
+  ],
+  "subs": {
+    "play": { "title": "Play", "items": [
+      { "id": "quick_join", "label": "Quick Play", "hint": "Pick a mode and jump straight into the best open match", "do": "page quick_join", "section": "Online", "lock": "" },
+      { "id": "ranked", "label": "Ranked", "hint": "Unlocks at level 30. You're level 1.", "do": "page ranked", "section": "", "lock": "Level 30" },
+      { "id": "server_browser", "label": "Server Browser", "hint": "Every open match, with filters, favorites and history", "do": "page server_browser", "section": "", "lock": "" },
+      { "id": "skirmish", "label": "Skirmish", "hint": "Bots on any arena: pick a mode, a map and go", "do": "page offline_bots", "section": "Offline", "lock": "" },
+      { "id": "custom_match", "label": "Custom Match", "hint": "Full setup: rules, modifiers and every bot", "do": "page create_match", "section": "", "lock": "" },
+      { "id": "campaign", "label": "Campaign", "hint": "The original game's tiers of arenas up to the final duel", "do": "page campaign", "section": "", "lock": "" },
+      { "id": "training", "label": "Training", "hint": "Practice movement, aim and duels", "do": "page training", "section": "", "lock": "" }
+    ] },
+    "profile_menu": { "title": "Profile", "items": [
+      { "id": "player_card", "label": "Player Card", "hint": "Card, character, achievements and career stats", "do": "page profile" },
+      { "id": "leaderboards", "label": "Leaderboards", "hint": "The top players by level and by ranked MMR", "do": "page leaderboards" },
+      { "id": "replays", "label": "Replays", "hint": "Watch your recorded matches from any player's view", "do": "page replays" }
+    ] },
+    "extras": { "title": "Extras", "items": [
+      { "id": "cinematics", "label": "Cinematics", "hint": "The original movies: the intro, the tier movies, the ending", "do": "page cinematics" },
+      { "id": "credits", "label": "Credits", "hint": "The people behind it", "do": "page credits" }
+    ] }
+  },
+  "news": [
+    ["Engine", "Oz Arena now runs on its own engine, with new lighting, 3D sound and these native menus."],
+    ["Textures", "Every world, fighter and weapon texture remade at four times the detail, and 35 arenas relit."],
+    ["Fighters", "Rigged fighters with ragdolls, the remade effects and the Oz HUD, on every server you join."],
+    ["Servers", "The Server Browser lists every community server, vanilla, CPMA and Defrag, and joins in one click."],
+    ["Map editor", "Build your own arenas, for Oz, CPMA and Defrag, and play them from the editor."]
+  ],
+  "state": {
+    "sub": "",
+    "wide": false,
+    "quit": false,
+    "confirm": "",
+    "update": false,
+    "news_title": "",
+    "news_text": ""
+  },
+  "error": { "text": "" },
+  "display": { "seconds": 15 },
+  "picker": { "label": "", "r": 255, "g": 255, "b": 255, "hex": "#ffffff" },
+  "player": { "name": "Player", "model": "sarge", "icon": "", "version": "", "accent": "#db2410", "title": "Fresh Meat", "level": 1, "rank": "Unranked" },
+  "social": {"_note": "Filled live from the online hub (P7, oz_ui_social.cpp); offline and empty until it answers.", "status": "offline", "status_label": "Offline", "online": 0, "waiting": 0, "code": "", "invites": [], "incoming": [], "outgoing": [], "groups": [], "count": 0, "limit": 200, "party": {"on": false, "members": [], "max": 8, "lead": false, "size": 0, "chat": []}},
+  "update": {
+    "version": "0.7.0-beta",
+    "name": "v0.7.0-beta: the native engine",
+    "size": "1.2 GB",
+    "published": "2026-10-25",
+    "notes": ["Oz Arena on its own engine", "The native menus", "The world look: matte PBR, ambient occlusion and bloom"]
+  }
+}

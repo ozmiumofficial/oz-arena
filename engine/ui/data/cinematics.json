@@ -1,0 +1,110 @@
+{
+  "_note": "Cinematics (CinematicsPage.tsx): the Godot build's list (dev_state.json). Play runs cinematic <id>.RoQ, which plays the upscaled video/<id>.ogv (pak_oz_video.pk3, cl_cin_ogv.c, P3) and the original RoQ from the player's pak0 without it. unlocked comes from the campaign's progress with P12 (all open until then). back: what runs when the movie ends (the cvar nextmap, as q3_ui's cinematics menu does): this page again, on that movie. credits: the Credits page's state (Extras, as the cinematics).",
+  "cinematics": {
+    "list": [
+      {
+        "id": "idlogo",
+        "title": "id Software",
+        "length": "0:07",
+        "shot": "",
+        "unlocked": true,
+        "lock": "",
+        "do": "close; cmd set nextmap \"{cinematics.list.0.back}\"; cmd cinematic idlogo.RoQ",
+        "back": "ui_page menu; ui_run sub extras; ui_page cinematics; ui_focus cin_idlogo"
+      },
+      {
+        "id": "intro",
+        "title": "Intro",
+        "length": "1:30",
+        "shot": "/levelshots/q3dm0",
+        "unlocked": true,
+        "lock": "",
+        "do": "close; cmd set nextmap \"{cinematics.list.1.back}\"; cmd cinematic intro.RoQ",
+        "back": "ui_page menu; ui_run sub extras; ui_page cinematics; ui_focus cin_intro"
+      },
+      {
+        "id": "tier1",
+        "title": "Tier 1",
+        "length": "0:12",
+        "shot": "/levelshots/q3tourney1",
+        "unlocked": true,
+        "lock": "Finish Training",
+        "do": "close; cmd set nextmap \"{cinematics.list.2.back}\"; cmd cinematic tier1.RoQ",
+        "back": "ui_page menu; ui_run sub extras; ui_page cinematics; ui_focus cin_tier1"
+      },
+      {
+        "id": "tier2",
+        "title": "Tier 2",
+        "length": "0:12",
+        "shot": "/levelshots/q3tourney2",
+        "unlocked": true,
+        "lock": "Finish Tier 1",
+        "do": "close; cmd set nextmap \"{cinematics.list.3.back}\"; cmd cinematic tier2.RoQ",
+        "back": "ui_page menu; ui_run sub extras; ui_page cinematics; ui_focus cin_tier2"
+      },
+      {
+        "id": "tier3",
+        "title": "Tier 3",
+        "length": "0:12",
+        "shot": "/levelshots/q3tourney3",
+        "unlocked": true,
+        "lock": "Finish Tier 2",
+        "do": "close; cmd set nextmap \"{cinematics.list.4.back}\"; cmd cinematic tier3.RoQ",
+        "back": "ui_page menu; ui_run sub extras; ui_page cinematics; ui_focus cin_tier3"
+      },
+      {
+        "id": "tier4",
+        "title": "Tier 4",
+        "length": "0:12",
+        "shot": "/levelshots/q3tourney4",
+        "unlocked": true,
+        "lock": "Finish Tier 3",
+        "do": "close; cmd set nextmap \"{cinematics.list.5.back}\"; cmd cinematic tier4.RoQ",
+        "back": "ui_page menu; ui_run sub extras; ui_page cinematics; ui_focus cin_tier4"
+      },
+      {
+        "id": "tier5",
+        "title": "Tier 5",
+        "length": "0:12",
+        "shot": "/levelshots/q3tourney5",
+        "unlocked": true,
+        "lock": "Finish Tier 4",
+        "do": "close; cmd set nextmap \"{cinematics.list.6.back}\"; cmd cinematic tier5.RoQ",
+        "back": "ui_page menu; ui_run sub extras; ui_page cinematics; ui_focus cin_tier5"
+      },
+      {
+        "id": "tier6",
+        "title": "Tier 6",
+        "length": "0:12",
+        "shot": "/levelshots/q3dm19",
+        "unlocked": true,
+        "lock": "Finish Tier 5",
+        "do": "close; cmd set nextmap \"{cinematics.list.7.back}\"; cmd cinematic tier6.RoQ",
+        "back": "ui_page menu; ui_run sub extras; ui_page cinematics; ui_focus cin_tier6"
+      },
+      {
+        "id": "tier7",
+        "title": "Tier 7",
+        "length": "0:12",
+        "shot": "/levelshots/q3tourney6",
+        "unlocked": true,
+        "lock": "Finish Tier 6",
+        "do": "close; cmd set nextmap \"{cinematics.list.8.back}\"; cmd cinematic tier7.RoQ",
+        "back": "ui_page menu; ui_run sub extras; ui_page cinematics; ui_focus cin_tier7"
+      },
+      {
+        "id": "end",
+        "title": "Ending",
+        "length": "1:04",
+        "shot": "",
+        "unlocked": true,
+        "lock": "Win the final duel",
+        "do": "close; cmd set nextmap \"{cinematics.list.9.back}\"; cmd cinematic end.RoQ",
+        "back": "ui_page menu; ui_run sub extras; ui_page cinematics; ui_focus cin_end"
+      }
+    ]
+  },
+  "credits": {
+    "paused": false
+  }
+}

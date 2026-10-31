@@ -1,0 +1,67 @@
+diff --git a/code/cgame/cg_view.c b/code/cgame/cg_view.c
+--- a/code/cgame/cg_view.c
++++ b/code/cgame/cg_view.c
+@@ -307,6 +307,27 @@
+ 	}
+ }
+ 
++/*
++===============
++CG_OzViewCvars
++
++Oz: Gameplay > View bob and Damage view kick (engine/ui/settings.json). Oz's own cvars: cg_bobup is
++cheat-protected, and the damage kick has none.
++===============
++*/
++static vmCvar_t	oz_gameplay_view_bob, oz_gameplay_damage_kick;
++static qboolean	ozViewCvars;
++
++static void CG_OzViewCvars( void ) {
++	if ( !ozViewCvars ) {
++		trap_Cvar_Register( &oz_gameplay_view_bob, "oz_gameplay_view_bob", "1", CVAR_ARCHIVE );
++		trap_Cvar_Register( &oz_gameplay_damage_kick, "oz_gameplay_damage_kick", "0", CVAR_ARCHIVE );
++		ozViewCvars = qtrue;
++	}
++	trap_Cvar_Update( &oz_gameplay_view_bob );
++	trap_Cvar_Update( &oz_gameplay_damage_kick );
++}
++
+ /*
+ ===============
+ CG_OffsetFirstPersonView
+@@ -327,6 +348,7 @@
+ 	if ( cg.snap->ps.pm_type == PM_INTERMISSION ) {
+ 		return;
+ 	}
++	CG_OzViewCvars();
+ 
+ 	origin = cg.refdef.vieworg;
+ 	angles = cg.refdefViewAngles;
+@@ -341,7 +363,7 @@
+ 	}
+ 
+ 	// add angles based on damage kick
+-	if ( cg.damageTime ) {
++	if ( cg.damageTime && oz_gameplay_damage_kick.integer ) {	// Oz: Damage view kick
+ 		ratio = cg.time - cg.damageTime;
+ 		if ( ratio < DAMAGE_DEFLECT_TIME ) {
+ 			ratio /= DAMAGE_DEFLECT_TIME;
+@@ -377,6 +399,9 @@
+ 
+ 	// make sure the bob is visible even at low speeds
+ 	speed = cg.xyspeed > 200 ? cg.xyspeed : 200;
++	if ( !oz_gameplay_view_bob.integer ) {
++		speed = 0;	// Oz: View bob off
++	}
+ 
+ 	delta = cg.bobfracsin * cg_bobpitch.value * speed;
+ 	if (cg.predictedPlayerState.pm_flags & PMF_DUCKED)
+@@ -402,7 +427,7 @@
+ 	}
+ 
+ 	// add bob height
+-	bob = cg.bobfracsin * cg.xyspeed * cg_bobup.value;
++	bob = oz_gameplay_view_bob.integer ? cg.bobfracsin * cg.xyspeed * cg_bobup.value : 0;	// Oz: View bob
+ 	if (bob > 6) {
+ 		bob = 6;
+ 	}

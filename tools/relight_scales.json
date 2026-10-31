@@ -1,0 +1,360 @@
+{
+ "pro-q3dm13": {
+  "surface": 0.617,
+  "vertex": 1.843,
+  "grid": 1.186,
+  "gridambient": 2.434
+ },
+ "pro-q3dm6": {
+  "surface": 0.603,
+  "vertex": 0.777,
+  "grid": 1.18,
+  "gridambient": 3.925,
+  "target": 0.919
+ },
+ "pro-q3tourney2": {
+  "surface": 0.787,
+  "vertex": 1.691,
+  "grid": 1.288,
+  "gridambient": 2.988,
+  "target": 0.975,
+  "colors": {
+   "textures/sfx/kc_hellfog_1k": [
+    1.0,
+    0.1,
+    0.065
+   ],
+   "textures/skies/xtoxicsky_tourney": [
+    1.0,
+    0.975,
+    0.87
+   ]
+  }
+ },
+ "pro-q3tourney4": {
+  "surface": 0.903,
+  "vertex": 2.397,
+  "grid": 1.192,
+  "gridambient": 3.961,
+  "target": 1.062,
+  "bounce": 0
+ },
+ "q3ctf1": {
+  "surface": 0.701,
+  "vertex": 1.812,
+  "grid": 0.949,
+  "gridambient": 2.724,
+  "target": 0.966,
+  "bounce": 0
+ },
+ "q3ctf2": {
+  "surface": 0.791,
+  "vertex": 2.243,
+  "grid": 1.126,
+  "gridambient": 3.324,
+  "target": 1.152
+ },
+ "q3ctf3": {
+  "surface": 0.751,
+  "vertex": 1.741,
+  "grid": 1.181,
+  "gridambient": 4.0,
+  "target": 0.96,
+  "colors": {
+   "textures/sfx/xbluefog": [
+    0.378,
+    0.368,
+    1.0
+   ],
+   "textures/sfx/xredfog": [
+    1.0,
+    0.37,
+    0.353
+   ],
+   "textures/skies/xtoxicsky_q3ctf3": [
+    1.0,
+    0.755,
+    0.667
+   ]
+  }
+ },
+ "q3ctf4": {
+  "surface": 0.719,
+  "vertex": 0.996,
+  "grid": 1.007,
+  "gridambient": 1.663
+ },
+ "q3dm0": {
+  "surface": 0.614,
+  "vertex": 2.263,
+  "grid": 1.299,
+  "gridambient": 2.945,
+  "target": 1.046
+ },
+ "q3dm1": {
+  "surface": 0.83,
+  "vertex": 1.189,
+  "grid": 0.981,
+  "gridambient": 2.239,
+  "target": 0.97,
+  "bounce": 0,
+  "colors": {
+   "textures/skies/tim_hell": [
+    1.0,
+    0.599,
+    0.66
+   ]
+  }
+ },
+ "q3dm10": {
+  "surface": 0.824,
+  "vertex": 1.221,
+  "grid": 1.544,
+  "gridambient": 4.0
+ },
+ "q3dm11": {
+  "surface": 0.765,
+  "vertex": 2.037,
+  "grid": 1.291,
+  "gridambient": 3.418,
+  "target": 1.054,
+  "colors": {
+   "textures/sfx/q3dm9fog": [
+    1.0,
+    0.3,
+    0.283
+   ]
+  }
+ },
+ "q3dm12": {
+  "surface": 0.698,
+  "vertex": 2.18,
+  "grid": 1.411,
+  "gridambient": 3.21,
+  "target": 0.995,
+  "colors": {
+   "textures/sfx/hellfog_pj_dm10": [
+    1.0,
+    0.274,
+    0.246
+   ],
+   "textures/skies/pj_dm10sky": [
+    1.0,
+    0.642,
+    0.602
+   ]
+  }
+ },
+ "q3dm13": {
+  "surface": 0.597,
+  "vertex": 1.96,
+  "grid": 1.204,
+  "gridambient": 2.364
+ },
+ "q3dm14": {
+  "surface": 0.878,
+  "vertex": 1.323,
+  "grid": 0.989,
+  "gridambient": 3.04,
+  "bounce": 0,
+  "colors": {
+   "textures/sfx/q3dm14fog": [
+    1.0,
+    0.14,
+    0.08
+   ],
+   "textures/skies/toxicskytim_dm9": [
+    1.0,
+    0.944,
+    0.771
+   ]
+  }
+ },
+ "q3dm15": {
+  "surface": 0.842,
+  "vertex": 2.23,
+  "grid": 1.148,
+  "gridambient": 2.809,
+  "target": 1.045,
+  "colors": {
+   "textures/sfx/hellfog_tim_dm14": [
+    1.0,
+    0.163,
+    0.041
+   ],
+   "textures/skies/tim_dm14red": [
+    1.0,
+    0.577,
+    0.533
+   ]
+  }
+ },
+ "q3dm16": {
+  "surface": 0.515,
+  "vertex": 0.829,
+  "grid": 1.05,
+  "gridambient": 0.994
+ },
+ "q3dm17": {
+  "surface": 0.711,
+  "vertex": 0.956,
+  "grid": 1.064,
+  "gridambient": 1.797,
+  "target": 1.036
+ },
+ "q3dm18": {
+  "surface": 0.786,
+  "vertex": 0.626,
+  "grid": 1.224,
+  "gridambient": 4.0,
+  "target": 0.957
+ },
+ "q3dm19": {
+  "surface": 0.493,
+  "vertex": 1.942,
+  "grid": 1.307,
+  "gridambient": 1.252,
+  "target": 1.071
+ },
+ "q3dm2": {
+  "surface": 0.698,
+  "vertex": 1.996,
+  "grid": 1.133,
+  "gridambient": 2.818
+ },
+ "q3dm3": {
+  "surface": 0.713,
+  "vertex": 2.367,
+  "grid": 1.181,
+  "gridambient": 2.118,
+  "target": 0.92
+ },
+ "q3dm4": {
+  "surface": 0.823,
+  "vertex": 1.179,
+  "grid": 2.299,
+  "gridambient": 4.0,
+  "target": 1.046
+ },
+ "q3dm5": {
+  "surface": 0.7,
+  "vertex": 0.932,
+  "grid": 0.954,
+  "gridambient": 2.68
+ },
+ "q3dm6": {
+  "surface": 0.592,
+  "vertex": 0.774,
+  "grid": 1.355,
+  "gridambient": 4.0,
+  "target": 0.908
+ },
+ "q3dm7": {
+  "surface": 0.735,
+  "vertex": 1.553,
+  "grid": 1.725,
+  "gridambient": 4.0
+ },
+ "q3dm8": {
+  "surface": 0.649,
+  "vertex": 1.782,
+  "grid": 1.274,
+  "gridambient": 4.0
+ },
+ "q3dm9": {
+  "surface": 0.817,
+  "vertex": 1.651,
+  "grid": 1.059,
+  "gridambient": 1.938,
+  "bounce": 0,
+  "colors": {
+   "textures/sfx/hellfogdense": [
+    1.0,
+    0.091,
+    0.087
+   ],
+   "textures/sfx/q3dm9fog": [
+    1.0,
+    0.195,
+    0.155
+   ],
+   "textures/skies/toxicskytim_dm7": [
+    1.0,
+    0.793,
+    0.714
+   ]
+  }
+ },
+ "q3tourney1": {
+  "surface": 0.742,
+  "vertex": 1.938,
+  "grid": 1.115,
+  "gridambient": 4.0,
+  "target": 0.949
+ },
+ "q3tourney2": {
+  "surface": 0.72,
+  "vertex": 1.598,
+  "grid": 1.395,
+  "gridambient": 2.953,
+  "target": 0.909,
+  "colors": {
+   "textures/sfx/kc_hellfog_1k": [
+    1.0,
+    0.151,
+    0.114
+   ],
+   "textures/skies/xtoxicsky_tourney": [
+    1.0,
+    0.909,
+    0.807
+   ]
+  }
+ },
+ "q3tourney3": {
+  "surface": 0.679,
+  "vertex": 2.044,
+  "grid": 1.239,
+  "gridambient": 1.74,
+  "colors": {
+   "textures/sfx/q3tourney3fog": [
+    1.0,
+    0.216,
+    0.216
+   ],
+   "textures/skies/tim_km2": [
+    1.0,
+    0.594,
+    0.609
+   ]
+  }
+ },
+ "q3tourney4": {
+  "surface": 0.875,
+  "vertex": 2.499,
+  "grid": 1.228,
+  "gridambient": 4.0,
+  "target": 1.04,
+  "bounce": 0
+ },
+ "q3tourney5": {
+  "surface": 0.795,
+  "vertex": 1.402,
+  "grid": 1.117,
+  "gridambient": 2.721
+ },
+ "q3tourney6": {
+  "surface": 0.673,
+  "vertex": 0.631,
+  "grid": 1.009,
+  "gridambient": 2.329,
+  "target": 0.949
+ },
+ "q3tourney6_ctf": {
+  "surface": 0.844,
+  "vertex": 0.666,
+  "grid": 0.999,
+  "gridambient": 2.419,
+  "target": 0.948
+ }
+}

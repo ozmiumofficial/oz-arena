@@ -1,0 +1,91 @@
+<rml>
+<head>
+	<title>Paused</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		.shade.pause { decorator: linear-gradient( 90deg, #000000d9 0%, #00000099 28%, #00000026 50%, #00000000 62% ); }
+		.shade.dim { opacity: 0.18; }
+		body.covered .shade.dim { opacity: 0.35; }
+		.col {
+			position: absolute;
+			left: 3.5rem;
+			top: 3rem;
+			bottom: 6rem;
+			width: 30rem;
+			display: flex;
+			flex-direction: column;
+			transition: opacity 0.28s cubic-out;
+		}
+		body.covered .col { opacity: 0.45; }
+		body.clear .col, body.clear .hintsbar { opacity: 0; }
+		body.clear .shade.dim { opacity: 0; }
+		body.shown .col { animation: 0.28s cubic-out 1 col-in; }
+		@keyframes col-in { from { transform: translateX(-2rem); } to { transform: translateX(0); } }
+		.col banner { font-size: 3.2rem; }
+		.match { margin-top: 1rem; padding-left: 1rem; border-left: 2dp #db2410b3; }
+		.match .title { font-size: 1.05rem; letter-spacing: 0.08em; color: #fff3e6; }
+		.match .clockrow { display: flex; align-items: center; margin-top: 0.25rem; font-size: 0.95rem; color: #e6ddd2; }
+		.match .clockrow .badge { margin-left: 0.75rem; }
+		.standings { margin-top: 0.75rem; }
+		.standing { display: flex; justify-content: space-between; width: 18rem; font-size: 0.95rem; color: #e6ddd2cc; }
+		.standing.local { color: #ffad33; }
+		.standing .n { margin-right: 0.5rem; color: #5d554f; }
+		.items { margin-top: auto; }
+		.hintsbar { position: absolute; left: 4.5rem; bottom: 1.5rem; display: flex; align-items: center; }
+		.hintsbar .h { display: flex; align-items: center; margin-right: 1.25rem; font-size: 0.7rem; letter-spacing: 0.2em; color: #8d847c; }
+		.hintsbar kbd { margin-right: 0.5rem; background-color: transparent; border-color: #ffffff26; color: #8d847c; }
+		.confirm-veil { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background-color: #00000080; }
+		.dialog banner { font-size: 2.2rem; margin-bottom: 1.75rem; }
+		.row2 { display: flex; }
+		/* under 1700 dp across Settings' panel takes the column's place (menu.rcss) */
+		@media (max-width: 1699dp) { body.covered .col { opacity: 0; } }
+	</style>
+</head>
+<!--
+The in-match pause menu (the web menu's PauseApp.tsx), opened by Escape in a match of Oz's own game:
+the match shows through, darker under the menu on the left. Resume, Crosshair, Settings, Restart match
+(on a server this PC runs), Leave match and Quit game; the last two ask first. Escape on the menu
+resumes. The match line, the clock and the player's score are the engine's; the full standings come
+with P6's scoreboard.
+-->
+<body data-model="menu">
+	<div class="shade pause"/>
+	<div class="shade dim"/>
+	<div class="col">
+		<banner text="Paused"/>
+		<div class="match">
+			<div class="q3 title">{{ pause.title }}</div>
+			<div class="clockrow"><span>{{ pause.clock }}</span><span class="badge" data-if="pause.warmup">Warmup</span></div>
+			<div class="standings">
+				<div class="standing" data-for="s, i : pause.standings" data-class-local="s.local">
+					<span><span class="n">{{ i + 1 }}</span><span data-rml="s.name | q3name"/></span><span>{{ s.score }}</span>
+				</div>
+			</div>
+		</div>
+		<div class="items">
+			<div class="mitem md"><button id="pause_resume" autofocus="" onclick="close; sound out"><span class="bar"/><span class="wash"/><div class="row"><span class="label">Resume</span></div></button><div class="hint">Back to the match</div></div>
+			<div class="mitem md" data-if="pause.editor"><button id="pause_editor" onclick="close; cmd ed_back"><span class="bar"/><span class="wash"/><div class="row"><span class="label">Back to the map editor</span></div></button><div class="hint">The map as you left it, to go on editing</div></div>
+			<div class="mitem md"><button id="pause_crosshair" onclick="page crosshair"><span class="bar"/><span class="wash"/><div class="row"><span class="label">Crosshair</span></div></button><div class="hint">Edit it live over your match</div></div>
+			<div class="mitem md"><button id="pause_settings" onclick="page settings"><span class="bar"/><span class="wash"/><div class="row"><span class="label">Settings</span></div></button><div class="hint">Every setting, applied as you change it</div></div>
+			<div class="mitem md" data-if="pause.can_restart"><button id="pause_restart" onclick="close; cmd map_restart"><span class="bar"/><span class="wash"/><div class="row"><span class="label">Restart match</span></div></button><div class="hint">Start this match over</div></div>
+			<div class="mitem md"><button id="pause_leave" onclick="set state.confirm leave; sound in; focus pause_no"><span class="bar"/><span class="wash"/><div class="row"><span class="label">Leave match</span></div></button><div class="hint">Back to the main menu</div></div>
+			<div class="mitem md"><button id="pause_quit" onclick="set state.confirm quit; sound in; focus pause_no"><span class="bar"/><span class="wash"/><div class="row"><span class="label">Quit game</span></div></button><div class="hint">Close the game</div></div>
+		</div>
+	</div>
+	<div class="hintsbar">
+		<span class="q3 h"><kbd>Esc</kbd><span>Resume</span></span>
+		<span class="q3 h"><kbd>Enter</kbd><span>Select</span></span>
+	</div>
+	<div class="confirm-veil" data-if="state.confirm != ''">
+		<div class="dialog">
+			<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+			<banner data-attr-text="state.confirm == 'leave' ? 'Leave the match?' : 'Quit the game?'"/>
+			<div class="row2">
+				<button id="pause_yes" class="confirm" data-if="state.confirm == 'leave'" onclick="close; cmd disconnect">Yes</button>
+				<button id="pause_yes_quit" class="confirm" data-if="state.confirm == 'quit'" onclick="cmd quit">Yes</button>
+				<button id="pause_no" class="confirm" onclick="set state.confirm; sound out; focus pause_leave">No</button>
+			</div>
+		</div>
+	</div>
+</body>
+</rml>

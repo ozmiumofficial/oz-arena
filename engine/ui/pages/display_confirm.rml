@@ -1,0 +1,27 @@
+<rml>
+<head>
+	<title>Display</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		body { display: flex; align-items: center; justify-content: center; }
+		.dialog banner { font-size: 2.4rem; margin-bottom: 1.25rem; }
+		.dialog .why { display: block; max-width: 40rem; margin-bottom: 1.75rem; font-size: 1.1rem; line-height: 1.5;
+			text-align: center; color: #e6ddd2; }
+		.row { display: flex; }
+	</style>
+</head>
+<!-- After a change to Video's window settings (Display mode, Resolution, Monitor): the window has
+changed already, and goes back unless kept within 15 s (oz_ui_settings.cpp). Keep is focused first;
+Escape reverts. -->
+<body data-model="menu">
+	<div class="dialog">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<banner text="Keep display?"/>
+		<div class="why"><span>Going back to the last display settings in {{ display.seconds }} s.</span></div>
+		<div class="row">
+			<button id="display_keep" class="confirm" autofocus="" onclick="displaykeep; back">Keep</button>
+			<button id="display_revert" class="confirm" onclick="back">Revert</button>
+		</div>
+	</div>
+</body>
+</rml>

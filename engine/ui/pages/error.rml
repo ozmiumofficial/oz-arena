@@ -1,0 +1,25 @@
+<rml>
+<head>
+	<title>Error</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		body { display: flex; align-items: center; justify-content: center; }
+		.dialog banner { font-size: 2.4rem; margin-bottom: 1.25rem; }
+		.dialog .why { display: block; max-width: 40rem; margin-bottom: 1.75rem; font-size: 1.1rem; line-height: 1.5;
+			text-align: center; color: #e6ddd2; }
+		.row { display: flex; }
+	</style>
+</head>
+<!-- Why the last match or connection ended (com_errorMessage: a drop, a kick, a timeout), over the
+main menu, as the game code's menu showed it. Closing it clears the message (Menu_Back). -->
+<body data-model="menu">
+	<div class="dialog">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<banner text="Disconnected"/>
+		<div class="why"><span>{{ error.text }}</span></div>
+		<div class="row">
+			<button id="error_ok" class="confirm" autofocus="" onclick="back">OK</button>
+		</div>
+	</div>
+</body>
+</rml>

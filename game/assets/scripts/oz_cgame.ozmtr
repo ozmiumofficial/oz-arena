@@ -1,0 +1,279 @@
+// Oz Arena: the oz renderer's versions of the cgame's effect shaders (scripts/oz_cgame.shader has
+// the plain ones every renderer reads). The oz renderer reads .ozmtr scripts last, so these win.
+// ozGlow <scale> takes a stage's color above white, so bloom catches it; ozSoft <units> fades it
+// out where it comes within that distance of the scene behind it (no hard line through a wall).
+
+oz/fx/glow
+{
+	cull none
+	entityMergable
+	{
+		map gfx/misc/flare
+		blendFunc GL_ONE GL_ONE
+		rgbGen vertex
+		ozGlow 1.5
+		ozSoft 4
+	}
+}
+
+oz/fx/beam
+{
+	cull none
+	entityMergable
+	{
+		map gfx/misc/flare
+		blendFunc GL_ONE GL_ONE
+		rgbGen vertex
+		ozGlow 2
+		ozSoft 4
+	}
+}
+
+oz/fx/smoke
+{
+	cull none
+	entityMergable
+	{
+		map gfx/misc/smokepuff3
+		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		rgbGen vertex
+		alphaGen vertex
+		ozSoft 24
+	}
+}
+
+oz/fx/burn
+{
+	polygonOffset
+	{
+		clampmap gfx/oz/burn
+		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		rgbGen const ( 0.035 0.028 0.022 )
+		alphaGen vertex
+	}
+	{
+		clampmap gfx/oz/burn
+		blendFunc GL_ONE GL_ONE
+		rgbGen vertex
+		ozGlow 1.5
+	}
+}
+
+oz/fx/blood
+{
+	cull none
+	entityMergable
+	{
+		map gfx/damage/blood_stain
+		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		rgbGen vertex
+		alphaGen vertex
+		ozSoft 4
+	}
+}
+
+// Lightning beam "glow": id's bolt (lightningBoltNew) brighter than white, so the bloom catches it
+oz/fx/lightningBolt
+{
+	cull none
+	{
+		map gfx/misc/lightning3new
+		blendFunc GL_ONE GL_ONE
+		rgbgen wave sin 1 0.5 0 7.1
+		tcmod scale 2 1
+		tcMod scroll -5 0
+		ozGlow 1.4
+	}
+	{
+		map gfx/misc/lightning3new
+		blendFunc GL_ONE GL_ONE
+		rgbgen wave sin 1 0.8 0 8.1
+		tcmod scale -1.3 -1
+		tcMod scroll -7.2 0
+		ozGlow 1.4
+	}
+}
+
+// The same in another Graphics > Lightning color: the image grey, colored by the entity (cg_oz_fx.c
+// OzTintBytes), flickering in alpha as the stages above do in color
+oz/fx/lightningBoltTint
+{
+	cull none
+	{
+		map gfx/misc/lightning3new
+		blendFunc GL_SRC_ALPHA GL_ONE
+		rgbGen entity
+		alphaGen wave sin 1 0.5 0 7.1
+		tcmod scale 2 1
+		tcMod scroll -5 0
+		ozMono 1
+		ozGlow 1.4
+	}
+	{
+		map gfx/misc/lightning3new
+		blendFunc GL_SRC_ALPHA GL_ONE
+		rgbGen entity
+		alphaGen wave sin 1 0.8 0 8.1
+		tcmod scale -1.3 -1
+		tcMod scroll -7.2 0
+		ozMono 1
+		ozGlow 1.4
+	}
+}
+
+// id's plasma ball (sprites/plasma1), its ring where it hits (plasmaExplosion) and its scorch
+// (gfx/damage/plasma_mrk) in another Graphics > Plasma color: each image grey, colored by the entity
+// or the mark's vertices (cg_oz_fx.c OzTintBytes); the ring fades in alpha as id's does in color
+oz/fx/plasmaBallTint
+{
+	cull disable
+	{
+		clampmap sprites/plasmaa
+		blendfunc GL_ONE GL_ONE
+		rgbGen entity
+		tcMod rotate 931
+		ozMono 1
+	}
+}
+
+oz/fx/plasmaExplosionTint
+{
+	cull disable
+	{
+		clampmap models/weaphits/plasmaboom
+		blendFunc GL_SRC_ALPHA GL_ONE
+		tcMod stretch triangle .6 0.1 0 8
+		tcmod rotate 999
+		rgbGen entity
+		alphaGen wave inversesawtooth 0 1 0 1.5
+		ozMono 1
+	}
+}
+
+oz/fx/plasmaMarkTint
+{
+	polygonOffset
+	{
+		map gfx/damage/plasma_mrk
+		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		rgbGen vertex
+		alphaGen vertex
+		ozMono 1
+	}
+}
+
+// The remade blasts' fireballs: id's flipbooks, brighter than white and soft against the walls
+oz/fx/rocketExplosion
+{
+	cull none
+	{
+		animmap 8 models/weaphits/rlboom/rlboom_1 models/weaphits/rlboom/rlboom_2 models/weaphits/rlboom/rlboom_3 models/weaphits/rlboom/rlboom_4 models/weaphits/rlboom/rlboom_5 models/weaphits/rlboom/rlboom_6 models/weaphits/rlboom/rlboom_7 models/weaphits/rlboom/rlboom_8
+		rgbGen wave inversesawtooth 0 1 0 8
+		blendfunc add
+		ozGlow 1.3
+		ozSoft 12
+	}
+	{
+		animmap 8 models/weaphits/rlboom/rlboom_2 models/weaphits/rlboom/rlboom_3 models/weaphits/rlboom/rlboom_4 models/weaphits/rlboom/rlboom_5 models/weaphits/rlboom/rlboom_6 models/weaphits/rlboom/rlboom_7 models/weaphits/rlboom/rlboom_8 gfx/colors/black
+		rgbGen wave sawtooth 0 1 0 8
+		blendfunc add
+		ozGlow 1.3
+		ozSoft 12
+	}
+}
+
+oz/fx/grenadeExplosion
+{
+	cull none
+	{
+		animmap 5 models/weaphits/glboom/glboom_1 models/weaphits/glboom/glboom_2 models/weaphits/glboom/glboom_3
+		rgbGen wave inversesawtooth 0 1 0 5
+		blendfunc add
+		ozGlow 1.3
+		ozSoft 12
+	}
+	{
+		animmap 5 models/weaphits/glboom/glboom_2 models/weaphits/glboom/glboom_3 gfx/colors/black
+		rgbGen wave sawtooth 0 1 0 5
+		blendfunc add
+		ozGlow 1.3
+		ozSoft 12
+	}
+}
+
+oz/fx/bfgExplosion
+{
+	cull none
+	{
+		animmap 5 models/weaphits/bfgboom/bfgboom_1 models/weaphits/bfgboom/bfgboom_2 models/weaphits/bfgboom/bfgboom_3
+		rgbGen wave inversesawtooth 0 1 0 5
+		blendfunc add
+		ozGlow 1.3
+		ozSoft 12
+	}
+	{
+		animmap 5 models/weaphits/bfgboom/bfgboom_2 models/weaphits/bfgboom/bfgboom_3 gfx/colors/black
+		rgbGen wave sawtooth 0 1 0 5
+		blendfunc add
+		ozGlow 1.3
+		ozSoft 12
+	}
+}
+
+// Heat shimmer (Graphics > Heat shimmer, cg_oz_fx.c): bends the picture behind it (ozHeat, in screen
+// heights) inside a soft disc, its strength the vertex alpha. Sorted before every other effect, so
+// flames and smoke drawn over it aren't smeared into the bend.
+oz/fx/heat
+{
+	cull none
+	sort 8.5
+	entityMergable
+	{
+		map $whiteimage
+		blendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+		rgbGen vertex
+		alphaGen vertex
+		ozHeat 0.03
+		ozSoft 24
+	}
+}
+
+// The rail gun's glow: id's models.shader with its rgbGen entity stages (the player's rail color,
+// charging up after a shot, CG_OzRailTint) brighter than white, so the bloom catches them
+models/weapons2/railgun/railgun2
+{
+	sort additive
+	cull disable
+	{
+		map models/weapons2/railgun/railgun2.glow.tga
+		blendfunc GL_ONE GL_ONE
+		rgbGen entity
+		ozGlow 1.8
+	}
+}
+
+// (railgun3 named without an extension: pak_oz_props's remastered .dds and its _n and _s maps where
+// that pak is loaded, id's image elsewhere)
+models/weapons2/railgun/railgun3
+{
+	{
+		map models/weapons2/railgun/railgun3
+		rgbGen lightingDiffuse
+	}
+	{
+		map models/weapons2/railgun/railgun3.glow.tga
+		blendfunc GL_ONE GL_ONE
+		rgbGen entity
+		ozGlow 1.8
+	}
+}
+
+models/weapons2/railgun/railgun4
+{
+	{
+		map models/weapons2/railgun/railgun4.tga
+		tcMod scroll 0 1
+		rgbGen entity
+		ozGlow 1.8
+	}
+}

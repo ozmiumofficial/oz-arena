@@ -1,0 +1,6 @@
+# build output and fetched sources (engine/build_engine.py)
+/build/
+/thirdparty/
+# local test data
+/Maps/
+__pycache__/

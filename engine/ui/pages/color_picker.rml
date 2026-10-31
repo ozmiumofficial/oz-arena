@@ -1,0 +1,58 @@
+<rml>
+<head>
+	<title>Color</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		body { display: flex; align-items: center; justify-content: center; }
+		.dialog banner { font-size: 2.4rem; margin-bottom: 0.75rem; }
+		.dialog .why { display: block; margin-bottom: 1rem; font-size: 1.1rem; text-align: center; color: #e6ddd2; }
+		.swatches { display: flex; flex-wrap: wrap; width: 26rem; margin-bottom: 1rem; }
+		.swatches button { width: 2.75rem; height: 2.75rem; margin: 0.2rem; border-width: 2dp; border-color: #ffffff33;
+			border-radius: 0.3rem; }
+		.swatches button:focus, .swatches button:hover { border-color: #ffffff; }
+		.prow { display: flex; align-items: center; width: 26rem; margin: 0.3rem 0; }
+		.prow .ch { width: 1.5rem; font-size: 1.1rem; color: #e6ddd2; }
+		.prow .slider { flex: 1; }
+		.prow .n { width: 3rem; text-align: right; font-size: 1.1rem; color: #e6ddd2; }
+		.preview { display: flex; align-items: center; margin: 0.8rem 0 1.4rem; }
+		.preview .chip { width: 6rem; height: 2.5rem; border-radius: 0.3rem; border-width: 2dp; border-color: #ffffff55; }
+		.preview .hex { margin-left: 1rem; font-size: 1.3rem; color: #e6ddd2; }
+		.row { display: flex; }
+	</style>
+</head>
+<!-- A color setting's picker (Settings, oz_ui_settings.cpp Settings_PickColor): a swatch sets the
+sliders, the sliders set the color, OK sets the setting; Escape or Cancel leaves it. -->
+<body data-model="menu">
+	<div class="dialog">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<banner text="Color"/>
+		<div class="why"><span>{{ picker.label }}</span></div>
+		<div class="swatches">
+			<button id="pk_0" style="background-color: #ffffff;" onclick="pickerset #ffffff"/>
+			<button id="pk_1" style="background-color: #c0c0c0;" onclick="pickerset #c0c0c0"/>
+			<button id="pk_2" style="background-color: #808080;" onclick="pickerset #808080"/>
+			<button id="pk_3" style="background-color: #000000;" onclick="pickerset #000000"/>
+			<button id="pk_4" style="background-color: #ff0000;" onclick="pickerset #ff0000"/>
+			<button id="pk_5" style="background-color: #db2410;" onclick="pickerset #db2410"/>
+			<button id="pk_6" style="background-color: #ff8000;" onclick="pickerset #ff8000"/>
+			<button id="pk_7" style="background-color: #ffff00;" onclick="pickerset #ffff00"/>
+			<button id="pk_8" style="background-color: #80ff00;" onclick="pickerset #80ff00"/>
+			<button id="pk_9" style="background-color: #00ff00;" onclick="pickerset #00ff00"/>
+			<button id="pk_10" style="background-color: #00ffc0;" onclick="pickerset #00ffc0"/>
+			<button id="pk_11" style="background-color: #00ffff;" onclick="pickerset #00ffff"/>
+			<button id="pk_12" style="background-color: #0080ff;" onclick="pickerset #0080ff"/>
+			<button id="pk_13" style="background-color: #0000ff;" onclick="pickerset #0000ff"/>
+			<button id="pk_14" style="background-color: #8000ff;" onclick="pickerset #8000ff"/>
+			<button id="pk_15" style="background-color: #ff00ff;" onclick="pickerset #ff00ff"/>
+		</div>
+		<div class="prow"><span class="ch">R</span><input type="range" class="slider" id="pk_r" min="0" max="255" step="1" data-value="picker.r"/><span class="n">{{ picker.r }}</span></div>
+		<div class="prow"><span class="ch">G</span><input type="range" class="slider" id="pk_g" min="0" max="255" step="1" data-value="picker.g"/><span class="n">{{ picker.g }}</span></div>
+		<div class="prow"><span class="ch">B</span><input type="range" class="slider" id="pk_b" min="0" max="255" step="1" data-value="picker.b"/><span class="n">{{ picker.b }}</span></div>
+		<div class="preview"><div class="chip" data-style-background-color="picker.hex"/><span class="hex">{{ picker.hex }}</span></div>
+		<div class="row">
+			<button id="pk_ok" class="confirm" autofocus="" onclick="pickerset; back">OK</button>
+			<button id="pk_cancel" class="confirm" onclick="back">Cancel</button>
+		</div>
+	</div>
+</body>
+</rml>

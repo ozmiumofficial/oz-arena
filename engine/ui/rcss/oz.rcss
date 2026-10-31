@@ -1,0 +1,173 @@
+/*
+Oz Arena's native UI: the base style every page links. The web menu's palette (webui/app/globals.css
+in the Godot build): near-black glass, warm off-white ink, q3_ui's red and the hot glow of a focused
+item. 1dp is a pixel at 1080p (the engine sets the ratio from the window's height).
+*/
+
+body, div, p, h1, h2, h3, ul, li, form, header, footer, section {
+	display: block;
+}
+
+body {
+	font-family: Barlow;
+	font-weight: normal;
+	font-size: 18dp;
+	color: #e6ddd2;
+	width: 100%;
+	height: 100%;
+	nav: auto;
+}
+
+h1 {
+	font-size: 40dp;
+	font-weight: 600;
+	letter-spacing: 1dp;
+	color: #fff3e6;
+}
+
+h2 {
+	font-size: 26dp;
+	font-weight: 600;
+	color: #fff3e6;
+}
+
+em {
+	color: #ffad33;
+	font-style: normal;
+}
+
+/* every control takes the focus and moves it with the d-pad */
+button, input, select, .nav, .toggle, .spinner {
+	tab-index: auto;
+	nav: auto;
+}
+
+/* glass panels: blurred backdrop, dark tint, thin warm rim */
+.glass {
+	background-color: #0a0807d6;
+	border: 1dp #5a4f4980;
+	border-radius: 6dp;
+	backdrop-filter: blur(14dp);
+	box-shadow: #000000a0 0dp 12dp 40dp 0dp;
+}
+
+button {
+	display: inline-block;
+	padding: 8dp 18dp;
+	margin: 0 6dp;
+	background-color: #1a1513;
+	border: 1dp #5a4f49;
+	border-radius: 4dp;
+	color: #e6ddd2;
+	font-weight: 500;
+	text-align: center;
+	transition: background-color color 0.12s cubic-out;
+}
+
+button:hover, button:focus {
+	background-color: #3a1209;
+	border-color: #db2410;
+	color: #fff3e6;
+	font-effect: glow(1dp 4dp 0 0 #ff4a1cb0);
+}
+
+button:active {
+	background-color: #db2410;
+}
+
+/* sliders */
+input[type=range] {
+	display: inline-block;
+	width: 240dp;
+	height: 20dp;
+	vertical-align: middle;
+}
+
+input[type=range] slidertrack {
+	margin-top: 8dp;
+	height: 4dp;
+	background-color: #2a221e;
+	border-radius: 2dp;
+}
+
+input[type=range] sliderprogress {
+	margin-top: 8dp;
+	height: 4dp;
+	background-color: #b3170a;
+	border-radius: 2dp;
+}
+
+input[type=range] sliderbar {
+	width: 12dp;
+	height: 20dp;
+	background-color: #8d847c;
+	border-radius: 3dp;
+}
+
+input[type=range]:focus sliderbar, input[type=range]:hover sliderbar {
+	background-color: #fff3e6;
+}
+
+input[type=range]:focus sliderprogress {
+	background-color: #ff4a1c;
+}
+
+input[type=range] sliderarrowdec, input[type=range] sliderarrowinc {
+	width: 0;
+	height: 0;
+}
+
+/* text fields */
+input[type=text] {
+	display: inline-block;
+	width: 240dp;
+	padding: 5dp 8dp;
+	background-color: #120e0c;
+	border: 1dp #5a4f49;
+	border-radius: 3dp;
+	color: #fff3e6;
+	vertical-align: middle;
+}
+
+input[type=text]:focus {
+	border-color: #db2410;
+}
+
+input[type=checkbox] {
+	display: inline-block;
+	width: 20dp;
+	height: 20dp;
+	background-color: #120e0c;
+	border: 1dp #5a4f49;
+	border-radius: 3dp;
+	vertical-align: middle;
+}
+
+input[type=checkbox]:checked {
+	background-color: #db2410;
+}
+
+input[type=checkbox]:focus {
+	border-color: #ff4a1c;
+}
+
+/* thin dark scroll bars */
+scrollbarvertical {
+	width: 6dp;
+	margin-left: 4dp;
+}
+
+scrollbarvertical slidertrack {
+	background-color: #00000040;
+}
+
+scrollbarvertical sliderbar {
+	background-color: #5a4f49;
+	border-radius: 3dp;
+	min-height: 24dp;
+}
+
+scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc {
+	width: 0;
+	height: 0;
+}

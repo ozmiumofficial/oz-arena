@@ -1,0 +1,59 @@
+diff --git a/Source/Core/Context.cpp b/Source/Core/Context.cpp
+index 6af67fb..6b22fe5 100644
+--- a/Source/Core/Context.cpp
++++ b/Source/Core/Context.cpp
+@@ -23,6 +23,8 @@
+ 
+ namespace Rml {
+ 
++extern bool element_update_skips_hidden_documents;	// Oz: Element.cpp
++
+ static constexpr float DOUBLE_CLICK_TIME = 0.5f;    // [s]
+ static constexpr float DOUBLE_CLICK_MAX_DIST = 3.f; // [dp]
+ static constexpr float UNIT_SCROLL_LENGTH = 80.f;   // [dp]
+@@ -202,12 +204,18 @@ bool Context::Update()
+ 	root->dirty_definition = false;
+ 	root->dirty_child_definitions = false;
+ 
++	// Oz: hidden documents wait (Element::Update)
++	element_update_skips_hidden_documents = true;
+ 	root->Update(density_independent_pixel_ratio, Vector2f(dimensions));
++	element_update_skips_hidden_documents = false;
+ 
+ 	for (int i = 0; i < root->GetNumChildren(); ++i)
+ 	{
+ 		if (auto doc = root->GetChild(i)->GetOwnerDocument())
+ 		{
++			// Oz: nor is a hidden document laid out; Show() updates and lays it out
++			if (doc->GetComputedValues().visibility() == Style::Visibility::Hidden)
++				continue;
+ 			doc->UpdateLayout();
+ 			doc->UpdatePosition();
+ 		}
+diff --git a/Source/Core/Element.cpp b/Source/Core/Element.cpp
+index fa087f9..ac0d9d9 100644
+--- a/Source/Core/Element.cpp
++++ b/Source/Core/Element.cpp
+@@ -117,6 +117,9 @@ Element::~Element()
+ 	num_non_dom_children = 0;
+ }
+ 
++// Oz: set by Context::Update for its walk over the documents (not by a document's own UpdateDocument)
++bool element_update_skips_hidden_documents = false;
++
+ void Element::Update(float dp_ratio, Vector2f vp_dimensions)
+ {
+ #ifdef RMLUI_TRACY_PROFILING
+@@ -145,6 +148,12 @@ void Element::Update(float dp_ratio, Vector2f vp_dimensions)
+ 
+ 	meta->effects.InstanceEffects();
+ 
++	// Oz: in the context's update, a hidden document's elements wait until it shows (Show() updates it; their
++	// dirty state keeps): the menus load every page hidden, and walking all their elements each frame cost 2.5 ms.
++	if (element_update_skips_hidden_documents && owner_document == this && parent &&
++		GetComputedValues().visibility() == Style::Visibility::Hidden)
++		return;
++
+ 	for (size_t i = 0; i < children.size(); i++)
+ 		children[i]->Update(dp_ratio, vp_dimensions);
+ 

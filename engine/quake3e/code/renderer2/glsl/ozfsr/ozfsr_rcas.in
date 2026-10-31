@@ -1,0 +1,21 @@
+// Oz: AMD FSR 1's RCAS, the sharpening after the upscale (Video > Upscaler). Run through the C
+// preprocessor at build time (engine/build_engine.py, make_fsr_glsl) with AMD's ffx_a.h and ffx_fsr1.h
+// (MIT, engine/thirdparty.json "fidelityfx-fsr") as renderer2's ozfsrrcas_fp.glsl.
+uniform sampler2D u_DiffuseMap;
+uniform vec4      u_OzFsr0;	// FsrRcasCon's con, as float bits (RB_OzUpscale)
+
+#define A_GPU 1
+#define A_GLSL 1
+#define A_SKIP_EXT 1
+#include "ffx_a.h"
+AF4 FsrRcasLoadF(ASU2 p) { return texelFetch(u_DiffuseMap, ivec2(p), 0); }
+void FsrRcasInputF(inout AF1 r, inout AF1 g, inout AF1 b) {}
+#define FSR_RCAS_F 1
+#include "ffx_fsr1.h"
+
+void main()
+{
+	AF3 c;
+	FsrRcasF(c.r, c.g, c.b, AU2(gl_FragCoord.xy), floatBitsToUint(u_OzFsr0));
+	gl_FragColor = vec4(c, 1.0);
+}

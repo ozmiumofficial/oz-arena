@@ -1,0 +1,320 @@
+{
+ "_note": "Pins for the Oz engine (engine/build_engine.py). game_code is the ioquake3 tree the QVMs build from (game/patches on a pinned commit). upstream holds the last synced commit of each engine the blend takes from (engine/tools/upstream_report.py reads and updates it). libs are built from source by build_engine.py; later phases add theirs when their phase starts. A lib without \"cmake\" is only fetched. {src}, {build}, {thirdparty} and {d} (\"d\" in Debug builds) are filled in.",
+ "libs": {
+  "openal-soft": {
+   "url": "https://github.com/kcat/openal-soft.git",
+   "commit": "dc7d7054a5b4f3bec1dc23a42fd616a0847af948",
+   "release": "1.24.3",
+   "license": "LGPL-2.0-or-later (shipped as a separate DLL)",
+   "cmake": [
+    "ALSOFT_UTILS=OFF",
+    "ALSOFT_EXAMPLES=OFF",
+    "ALSOFT_TESTS=OFF",
+    "ALSOFT_INSTALL=OFF"
+   ],
+   "stage": {
+    "OpenAL32.dll": "OpenAL64.dll"
+   }
+  },
+  "sdl2": {
+   "url": "https://github.com/libsdl-org/SDL.git",
+   "commit": "98d1f3a45aae568ccd6ed5fec179330f47d4d356",
+   "release": "2.32.8",
+   "license": "zlib",
+   "cmake": [
+    "SDL_SHARED=ON",
+    "SDL_STATIC=OFF",
+    "SDL_TEST=OFF",
+    "SDL2_DISABLE_SDL2MAIN=ON",
+    "SDL_INSTALL_TESTS=OFF"
+   ],
+   "stage": {
+    "SDL2.dll": "SDL2.dll"
+   },
+   "engine_cmake": {
+    "SDL2_INCLUDE_DIRS": "{src}/include;{build}/include;{build}/include-config-release",
+    "SDL2_LIBRARY": "{build}/SDL2.lib"
+   }
+  },
+  "pcre2": {
+   "url": "https://github.com/PCRE2Project/pcre2.git",
+   "commit": "3864abdb713f78831dd12d898ab31bbb0fa630b6",
+   "release": "10.43 (oDFe's)",
+   "license": "BSD-3-Clause",
+   "_note": "oDFe's console filters (con_filter, con_filter0-9); linked statically into the client",
+   "cmake": [
+    "BUILD_SHARED_LIBS=OFF",
+    "BUILD_STATIC_LIBS=ON",
+    "PCRE2_BUILD_PCRE2_8=ON",
+    "PCRE2_BUILD_PCRE2_16=OFF",
+    "PCRE2_BUILD_PCRE2_32=OFF",
+    "PCRE2_SUPPORT_UNICODE=ON",
+    "PCRE2_BUILD_PCRE2GREP=OFF",
+    "PCRE2_BUILD_TESTS=OFF",
+    "PCRE2_STATIC_RUNTIME=OFF"
+   ],
+   "engine_cmake": {
+    "PCRE2_INCLUDE_DIR": "{build}",
+    "PCRE2_LIBRARY": "{build}/pcre2-8-static.lib"
+   }
+  },
+  "freetype": {
+   "url": "https://github.com/freetype/freetype.git",
+   "commit": "0a0221a1347e2f1e07c395263540026e9a0aa7c7",
+   "release": "2.14.3",
+   "license": "FreeType License (BSD-style, with credit) or GPL-2.0",
+   "_note": "RmlUi's font engine (P4); linked statically into the client, no optional codecs",
+   "cmake": [
+    "BUILD_SHARED_LIBS=OFF",
+    "FT_DISABLE_ZLIB=ON",
+    "FT_DISABLE_BZIP2=ON",
+    "FT_DISABLE_PNG=ON",
+    "FT_DISABLE_HARFBUZZ=ON",
+    "FT_DISABLE_BROTLI=ON"
+   ],
+   "engine_cmake": {
+    "FREETYPE_LIBRARY": "{build}/freetype{d}.lib"
+   }
+  },
+  "rmlui": {
+   "url": "https://github.com/mikke89/RmlUi.git",
+   "commit": "ba95ffe8bfb6370efb2cdcca927eaad4710c5413",
+   "release": "6.3",
+   "license": "MIT",
+   "_note": "The native UI (P4, engine/src/oz/ui); static, with its FreeType font engine and the visual debugger",
+   "patches": "engine/patches/rmlui",
+   "cmake": [
+    "BUILD_SHARED_LIBS=OFF",
+    "RMLUI_FONT_ENGINE=freetype",
+    "RMLUI_SAMPLES=OFF",
+    "BUILD_TESTING=OFF",
+    "RMLUI_PRECOMPILED_HEADERS=OFF",
+    "RMLUI_COMPILER_OPTIONS=OFF",
+    "FREETYPE_INCLUDE_DIR_ft2build={thirdparty}/freetype/include",
+    "FREETYPE_INCLUDE_DIR_freetype2={thirdparty}/freetype/include",
+    "FREETYPE_LIBRARY={thirdparty}/freetype-build/freetype{d}.lib"
+   ],
+   "engine_cmake": {
+    "RMLUI_INCLUDE_DIR": "{src}/Include",
+    "RMLUI_LIBRARY": "{build}/rmlui{d}.lib;{build}/rmlui_debugger{d}.lib"
+   }
+  },
+  "cjson": {
+   "url": "https://github.com/DaveGamble/cJSON.git",
+   "commit": "c859b25da02955fef659d658b8f324b5cde87be3",
+   "release": "1.7.19",
+   "license": "MIT",
+   "_note": "Reads ui/settings.json (P4); fetched only, its cJSON.c is compiled into the client",
+   "engine_cmake": {
+    "CJSON_DIR": "{src}"
+   }
+  },
+  "theora": {
+   "url": "https://github.com/xiph/theora.git",
+   "commit": "8e4808736e9c181b971306cc3f05df9e61354004",
+   "release": "1.2.0",
+   "license": "BSD-3-Clause",
+   "_note": "The cinematics' video (P3, cl_cin.c); fetched only, its decoder is compiled into the client with Quake3e's bundled libogg",
+   "sparse": [
+    "/lib/",
+    "/include/",
+    "/COPYING",
+    "/LICENSE"
+   ],
+   "engine_cmake": {
+    "THEORA_DIR": "{src}"
+   }
+  },
+  "barlow": {
+   "url": "https://github.com/google/fonts.git",
+   "commit": "9862abc066c9b83bf84c3e8ed1fc2d8d48f9bbf0",
+   "license": "SIL Open Font License 1.1 (OFL.txt goes into the pak beside the fonts)",
+   "_note": "The web menu's body font (Barlow 400-700), for the native UI; only these files are fetched (sparse), into oz/zz-oz-ui.pk3",
+   "sparse": [
+    "ofl/barlow/Barlow-Regular.ttf",
+    "ofl/barlow/Barlow-Medium.ttf",
+    "ofl/barlow/Barlow-SemiBold.ttf",
+    "ofl/barlow/Barlow-Bold.ttf",
+    "ofl/barlow/OFL.txt"
+   ],
+   "ui": {
+    "ofl/barlow/Barlow-Regular.ttf": "fonts/Barlow-Regular.ttf",
+    "ofl/barlow/Barlow-Medium.ttf": "fonts/Barlow-Medium.ttf",
+    "ofl/barlow/Barlow-SemiBold.ttf": "fonts/Barlow-SemiBold.ttf",
+    "ofl/barlow/Barlow-Bold.ttf": "fonts/Barlow-Bold.ttf",
+    "ofl/barlow/OFL.txt": "fonts/Barlow-OFL.txt"
+   }
+  },
+  "curl": {
+   "url": "https://github.com/curl/curl.git",
+   "commit": "8c908d2d0a6d32abdedda2c52e90bd56ec76c24d",
+   "release": "8.19.0",
+   "license": "curl (MIT-style)",
+   "_note": "The online hub's WebSocket (P7, oz/online) and the map auto-download; linked statically into the client with Schannel TLS, HTTP and WebSocket only (HTTP_ONLY would turn WebSockets off too)",
+   "cmake": [
+    "BUILD_SHARED_LIBS=OFF",
+    "BUILD_STATIC_LIBS=ON",
+    "BUILD_CURL_EXE=OFF",
+    "BUILD_TESTING=OFF",
+    "BUILD_LIBCURL_DOCS=OFF",
+    "BUILD_MISC_DOCS=OFF",
+    "ENABLE_CURL_MANUAL=OFF",
+    "CURL_USE_SCHANNEL=ON",
+    "CURL_USE_LIBPSL=OFF",
+    "CURL_USE_LIBSSH2=OFF",
+    "USE_LIBIDN2=OFF",
+    "USE_NGHTTP2=OFF",
+    "CURL_ZLIB=OFF",
+    "CURL_BROTLI=OFF",
+    "CURL_ZSTD=OFF",
+    "CURL_DISABLE_LDAP=ON",
+    "ENABLE_UNICODE=OFF",
+    "CURL_DISABLE_FTP=ON",
+    "CURL_DISABLE_FILE=ON",
+    "CURL_DISABLE_TELNET=ON",
+    "CURL_DISABLE_DICT=ON",
+    "CURL_DISABLE_TFTP=ON",
+    "CURL_DISABLE_RTSP=ON",
+    "CURL_DISABLE_POP3=ON",
+    "CURL_DISABLE_IMAP=ON",
+    "CURL_DISABLE_SMTP=ON",
+    "CURL_DISABLE_GOPHER=ON",
+    "CURL_DISABLE_MQTT=ON",
+    "CURL_DISABLE_SMB=ON",
+    "CURL_DISABLE_WEBSOCKETS=OFF"
+   ],
+   "engine_cmake": {
+    "OZ_CURL_INCLUDE_DIR": "{src}/include",
+    "OZ_CURL_LIBRARY": "{build}/lib/libcurl{d}.lib"
+   }
+  },
+  "mbedtls": {
+   "url": "https://github.com/Mbed-TLS/mbedtls.git",
+   "commit": "068ff080b369adfac81509f9b57b2afabaf82dc5",
+   "release": "3.6.7 (LTS)",
+   "license": "Apache-2.0 or GPL-2.0-or-later",
+   "_note": "The online identity's RSA-2048 key and SHA-256 PKCS#1 v1.5 signature (P7); linked statically into the client, the crypto library only",
+   "cmake": [
+    "ENABLE_PROGRAMS=OFF",
+    "ENABLE_TESTING=OFF",
+    "USE_SHARED_MBEDTLS_LIBRARY=OFF",
+    "USE_STATIC_MBEDTLS_LIBRARY=ON",
+    "MBEDTLS_FATAL_WARNINGS=OFF"
+   ],
+   "engine_cmake": {
+    "MBEDTLS_INCLUDE_DIR": "{src}/include",
+    "MBEDCRYPTO_LIBRARY": "{build}/library/mbedcrypto.lib"
+   },
+   "submodules": true
+  },
+  "jolt": {
+   "url": "https://github.com/jrouwe/JoltPhysics.git",
+   "commit": "23dadd0e603f1b321142d4c74df07fce85064989",
+   "release": "5.5.0",
+   "license": "MIT",
+   "_note": "The fighters' ragdolls (P2, renderer2/tr_oz_jolt.cpp), on the physics library the Godot build's ran on; fetched only, built by the engine's CMake into the oz renderer",
+   "sparse": [
+    "/Jolt/",
+    "/Build/",
+    "/LICENSE"
+   ],
+   "engine_cmake": {
+    "JOLT_DIR": "{src}"
+   }
+  },
+  "libjuice": {
+   "url": "https://github.com/paullouisageneau/libjuice.git",
+   "commit": "b89c792e3612faf2f12cf35bcc56857313a06be3",
+   "release": "1.7.4",
+   "license": "MPL-2.0 (LICENSE checked at this commit; combines with GPL-2.0-or-later through MPL's secondary-license clause)",
+   "_note": "P8's peer-to-peer transport (NA_ICE, engine/src/oz/online/oz_ice.c): plain UDP ICE with STUN and TURN, no DTLS or SCTP; linked statically into the client. Its TURN server stands in for the relay in the tests (oz_iceserver). Patched for relay-only agents (Hide my IP).",
+   "patches": "engine/patches/libjuice",
+   "cmake": [
+    "BUILD_SHARED_LIBS=OFF",
+    "NO_TESTS=ON",
+    "NO_SERVER=OFF",
+    "USE_NETTLE=OFF"
+   ],
+   "engine_cmake": {
+    "JUICE_INCLUDE_DIR": "{src}/include",
+    "JUICE_LIBRARY": "{build}/juice.lib"
+   }
+  },
+  "fidelityfx-fsr": {
+   "url": "https://github.com/GPUOpen-Effects/FidelityFX-FSR.git",
+   "commit": "a21ffb8f6c13233ba336352bdff293894c706575",
+   "release": "1.0.2",
+   "license": "MIT",
+   "_note": "AMD FSR 1 for the oz renderer's upscale (Video > Upscaler, P4): fetched only; build_engine.py's fsr_glsl runs its two shader headers with renderer2/glsl/ozfsr/*.in through MSVC's preprocessor into the renderer's GLSL.",
+   "sparse": [
+    "/ffx-fsr/ffx_a.h",
+    "/ffx-fsr/ffx_fsr1.h",
+    "/license.txt"
+   ]
+  }
+ },
+ "tools": {
+  "_note": "Build tools, fetched and built only when a build step needs one. Nothing of them ships.",
+  "glslang": {
+   "url": "https://github.com/KhronosGroup/glslang.git",
+   "commit": "e1b562a8bed273a02f30b59b66a5d499793cede5",
+   "release": "16.6.0 (Vulkan SDK 1.4.363.0's)",
+   "license": "BSD-3-Clause and others (a build tool)",
+   "_note": "The vulkan renderer's UI shaders to SPIR-V (renderervk/shaders/oz_ui -> shaders/spirv/oz_ui_shader_data.c, committed): there is no Vulkan SDK here. Built only when those shaders change",
+   "cmake": [
+    "ENABLE_OPT=OFF",
+    "ENABLE_HLSL=OFF",
+    "ENABLE_SPVREMAPPER=OFF",
+    "ENABLE_GLSLANG_BINARIES=ON",
+    "GLSLANG_TESTS=OFF",
+    "GLSLANG_ENABLE_INSTALL=OFF",
+    "BUILD_SHARED_LIBS=OFF",
+    "BUILD_EXTERNAL=OFF"
+   ],
+   "program": "StandAlone/glslang.exe"
+  }
+ },
+ "game_code": {
+  "url": "https://github.com/ioquake/ioq3.git",
+  "commit": "87a99d18206e878a20289f05ac3c16005dcae5c3",
+  "patches": "game/patches",
+  "_note": "The game code the QVMs build from: ioquake3 at this commit with game/patches applied, fetched into thirdparty/ioq3. The patches are the game-code half of the Godot build's tools/q3core/patches (same numbers; the engine-only 0004, 0006, 0007 and 0011 are left out) plus 0013 for ioquake3's CMake."
+ },
+ "upstream": {
+  "quake3e": {
+   "url": "https://github.com/ec-/Quake3e.git",
+   "remote": "quake3e",
+   "commit": "a5936825c2bd3e9e7b6402c0188cdbff7d283857",
+   "release": "2026-10-14",
+   "how": "git subtree at engine/quake3e",
+   "branch": "main"
+  },
+  "ioq3": {
+   "url": "https://github.com/ioquake/ioq3.git",
+   "remote": "ioq3",
+   "commit": "87a99d18206e878a20289f05ac3c16005dcae5c3",
+   "paths": [
+    "code/renderergl2",
+    "code/client/snd_openal.c",
+    "code/client/qal.c",
+    "code/client/qal.h"
+   ],
+   "how": "cherry-pick",
+   "branch": "main"
+  },
+  "odfe": {
+   "url": "https://github.com/Defrag-racing/oDFe.git",
+   "remote": "odfe",
+   "commit": "5c573f4e35d16e0b67450a3cbe100038f55f0653",
+   "how": "cherry-pick",
+   "branch": "main"
+  },
+  "cnq3": {
+   "url": "https://bitbucket.org/CPMADevs/cnq3.git",
+   "remote": "cnq3",
+   "commit": "ef32da8cf471cd25e246acc0e0528aaefa437e1d",
+   "how": "reimplement from GPL source (CPMA's extensions)",
+   "branch": "master"
+  }
+ }
+}

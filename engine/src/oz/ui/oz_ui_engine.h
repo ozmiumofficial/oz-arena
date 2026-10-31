@@ -1,0 +1,89 @@
+/*
+Oz: the engine's services for the native UI's C++ (oz_ui_engine.c, compiled with the client).
+Plain C types only, so the C++ never includes the engine's headers.
+*/
+#ifndef OZ_UI_ENGINE_H
+#define OZ_UI_ENGINE_H
+
+#include "../../../quake3e/code/renderercommon/tr_oz_ui.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void		OzE_Print( const char *text );
+void		OzE_DPrint( const char *text );		// with developer 1
+int			OzE_Milliseconds( void );
+long long	OzE_ProfStart( void );		// "frametime"'s parts: 0 when it isn't timing
+void		OzE_ProfEnd( int part, long long start );	// part: 0 ui update, 1 ui draw (comProf_t)
+void		OzE_ProfDetail( const char *name, long long start );	// a named piece of a slow frame (Com_ProfDetail)
+void		OzE_PumpEvents( void );		// takes the window's messages in a long command, so Windows doesn't call it hung
+int			OzE_SettingsRestart( void );	// a renderer setting waits for a vid_restart (taken: the next call says 0)
+int			OzE_Monitors( void );			// how many monitors
+void		OzE_AudioDevices( char *list, int size );	// the sound output devices' names, one a line
+
+int			OzE_ReadFile( const char *path, void **buffer );	// the length, -1 when missing
+void		OzE_FreeFile( void *buffer );
+void		OzE_WriteFile( const char *path, const void *data, int size );	// in the home path's game folder
+int			OzE_FileExists( const char *path );		// in the search path or the UI pak, without reading it
+int			OzE_IsPlayerHome( void );				// fs_homepath is the player's own user folder (not a test's)
+
+int			OzE_CvarExists( const char *name );
+const char	*OzE_CvarString( const char *name );
+void		OzE_CvarSet( const char *name, const char *value );
+void		OzE_CvarCreate( const char *name, const char *value, int latched, const char *description,
+				const char *min, const char *max, int integral );	// archived; min and max may be NULL
+
+void		OzE_AddCommand( const char *name, void (*function)( void ) );
+int			OzE_Argc( void );
+const char	*OzE_Argv( int arg );
+const char	*OzE_ArgsFrom( int arg );
+void		OzE_ExecuteNow( const char *text );
+void		OzE_AppendText( const char *text );		// queued, after what's queued already (waits count frames)
+void		OzE_InsertText( const char *text );		// queued, before what's queued already
+void		OzE_QueueKey( int key );				// a key press and release through the engine's event queue (tests)
+
+void		OzE_StartLocalSound( const char *name );
+
+const ozUiRender_t *OzE_Renderer( void );	// NULL while the renderer is down or has no UI calls
+void		OzE_ScreenSize( int *width, int *height );
+
+void		OzE_CatchKeys( int on );			// KEYCATCH_UI while a page is open
+int			OzE_ConsoleOpen( void );
+int			OzE_KeyDown( int key );
+const char	*OzE_KeyName( int key );
+int			OzE_KeyNum( const char *name );
+const char	*OzE_Binding( int key );
+void		OzE_SetBinding( int key, const char *command );
+char		*OzE_GetClipboard( void );			// free with OzE_Free
+void		OzE_Free( void *p );
+
+// P5, the menus
+char		**OzE_ListFiles( const char *dir, const char *ext, int *count );	// free with OzE_FreeFileList
+char		**OzE_ListTree( const char *dir, const char *ext, int *count );	// its subfolders' too (the map editor's pick lists)
+int			OzE_InIdPak( const char *path );	// one of id's paks (baseq3/pak0 to pak8) has the file
+void		OzE_FreeFileList( char **list );
+int			OzE_ClientState( void );			// 0 disconnected (the main menu), 1 connecting or loading, 2 in a match
+// the connection under way, for the connection screen (P8): 0 none (or loading, or a demo), 1 asking
+// for a challenge, 2 challenging, 3 connected (the gamestate, or a download: its ms so far); the
+// server as typed, the packets sent, what the server said
+int			OzE_Connection( char *server, int serverSize, int *tries, char *message, int messageSize, int *downloadMs );
+int			OzE_PlayingDemo( void );
+// the match the client is in, for the pause menu; 0 when not in one
+int			OzE_MatchInfo( char *map, int mapSize, int *gametype, int *seconds, int *warmup, int *score, int *localServer );
+const char	*OzE_GameDir( void );				// the running mod ("oz" is Oz's own game)
+int			OzE_IsOzGame( void );
+const char	*OzE_Version( void );
+void		OzE_RendererRestarted( void );		// the renderer's handles are gone (OzUI_RendererShutdown)
+int			OzE_RendererGeneration( void );
+
+// oz_ui_showcase.c: the main menu's 3D showcase, drawn before the page layer
+void		OzE_ShowcaseDraw( int width, int height, const float *accent );
+const char	*OzE_ShowcaseSubject( const char **kind );
+void		OzE_ShowcaseNext( void );
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

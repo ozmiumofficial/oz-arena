@@ -1,0 +1,42 @@
+Oz: an item picked up online plays its sound once. The prediction picks an item up once a prediction,
+which id's cgame told by cg.time; at 1000 fps the client's clock holds still for a frame now and then, and
+in the second frame of the same cg.time the item wasn't picked up, so the next frame's pickup was a new
+event and its sound played again on top of the first ("WARNING: double event"): red armor very loud, the
+events after it played twice too. A pickup stays predicted for a whole ping, so it showed online. The
+frame (cg.clientFrame, one prediction each) tells a prediction now.
+
+diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
+--- a/code/cgame/cg_local.h
++++ b/code/cgame/cg_local.h
+@@ -178,6 +178,7 @@
+ 	int				miscTime;
+ 
+ 	int				snapShotTime;	// last time this entity was found in a snapshot
++	int				ozPickupFrame;	// Oz: the frame whose prediction last picked it up (CG_TouchItem)
+ 
+ 	playerEntity_t	pe;
+ 
+diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
+--- a/code/cgame/cg_predict.c
++++ b/code/cgame/cg_predict.c
+@@ -269,7 +269,11 @@
+ 	}
+ 
+ 	// never pick an item up twice in a prediction
+-	if ( cent->miscTime == cg.time ) {
++	// Oz: one prediction is one frame's: two frames can share a cg.time (at 1000 fps the client's clock
++	// holds still for a frame now and then), and the second predicted no pickup, so the next frame's
++	// was a new event and its sound played again on top of the first (online, where a pickup stays
++	// predicted for a whole ping)
++	if ( cent->ozPickupFrame == cg.clientFrame ) {
+ 		return;
+ 	}
+ 
+@@ -305,6 +309,7 @@
+ 
+ 	// don't touch it again this prediction
+ 	cent->miscTime = cg.time;
++	cent->ozPickupFrame = cg.clientFrame;
+ 
+ 	// if it's a weapon, give them some predicted ammo so the autoswitch will work
+ 	if ( item->giType == IT_WEAPON ) {

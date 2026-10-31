@@ -1,0 +1,30 @@
+<rml>
+<head>
+	<title>Toasts</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		body { pointer-events: none; nav: none; }
+		.toasts { position: absolute; right: 4.5rem; top: 6rem; width: 26rem; }
+		.toast {
+			margin-bottom: 0.5rem;
+			padding: 0.75rem 1rem;
+			border-left: 3dp #ffffff66;
+			border-radius: 2dp;
+			background-color: #0d0a09f2;
+			box-shadow: #00000099 0 0.6rem 2rem 0;
+			font-size: 0.95rem;
+			color: #e6ddd2;
+			animation: 0.3s cubic-out 1 toast-in;
+		}
+		.toast.warn { border-left-color: #ffad33; }
+		.toast.error { border-left-color: #ff4a1c; color: #fff3e6; }
+		@keyframes toast-in { from { opacity: 0; transform: translateX(2.5rem); } to { opacity: 1; transform: translateX(0); } }
+	</style>
+</head>
+<!-- Chrome.tsx's Toasts: always on top while a page is open, never focused (oz_ui.cpp shows it) -->
+<body data-model="menu">
+	<div class="toasts">
+		<div class="toast" data-for="t : toasts" data-if="t.show" data-class-warn="t.tone == 'warn'" data-class-error="t.tone == 'error'">{{ t.text }}</div>
+	</div>
+</body>
+</rml>

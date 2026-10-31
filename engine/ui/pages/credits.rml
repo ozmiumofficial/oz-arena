@@ -1,0 +1,73 @@
+<rml>
+<head>
+	<title>Credits</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<link type="text/rcss" href="../rcss/media.rcss"/>
+	<style>
+		.roll { position: absolute; left: 0; right: 0; top: 0; bottom: 0; overflow: hidden; }
+		.roll.paused { overflow-y: auto; }
+		.scroller { padding: 30vh 2.5rem; text-align: center; }
+		body.shown .scroller { animation: 45s linear-in-out infinite credits-roll; }
+		body.shown .scroller.paused { animation: none; }
+		@keyframes credits-roll {
+			from { transform: translateY(0%); }
+			to { transform: translateY(-62%); }
+		}
+		.role { margin-bottom: 2.25rem; }
+		.role .r { font-family: OzDisplay; font-size: 0.85rem; letter-spacing: 0.3em; color: #db2410; }
+		.role .n { max-width: 46rem; margin: 0.375rem auto 0 auto; font-size: 1.35rem; line-height: 1.45; color: #fff3e6; }
+		.fadetop, .fadebot { position: absolute; left: 0; right: 0; height: 4rem; pointer-events: none; }
+		.fadetop { top: 0; decorator: linear-gradient( 180deg, #0a0807 0%, #0a080700 100% ); }
+		.fadebot { bottom: 0; decorator: linear-gradient( 0deg, #0a0807 0%, #0a080700 100% ); }
+		button.pause {
+			position: absolute;
+			right: 1.5rem; bottom: 1rem;
+			padding: 0.25rem 0.375rem;
+			font-family: OzDisplay;
+			font-size: 0.7rem;
+			letter-spacing: 0.2em;
+			color: #8d847c;
+			transition: color 0.15s linear-in-out;
+		}
+		button.pause:focus, button.pause:hover { color: #fff3e6; }
+	</style>
+</head>
+<!--
+Credits (OtherPages.tsx's CreditsPage): Oz Arena's, then id Software's from q3_ui's ui_credits.c, rolling
+slowly upward. Pause stops the roll and lets the list scroll by hand (RmlUi has no
+animation-play-state: Resume starts the roll again from the top).
+-->
+<body data-model="menu">
+	<div class="panel">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="phead">
+			<div><banner text="Credits"/></div>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
+		</div>
+		<div class="divider"/>
+		<div class="pbody">
+			<div class="roll" data-class-paused="credits.paused">
+				<div class="scroller" data-class-paused="credits.paused">
+					<div class="role"><div class="r">Oz Arena</div><div class="n">Ozmium: direction, tools and remaster</div><div class="n">Built on Quake3e, ioquake3's rend2 and OpenAL, RmlUi and FreeType</div></div>
+					<div class="role"><div class="r">Original game</div><div class="n">Quake III Arena, id Software, 1999</div></div>
+					<div class="role"><div class="r">id Software is</div></div>
+					<div class="role"><div class="r">Programming</div><div class="n">John Carmack</div><div class="n">Robert A. Duffy</div><div class="n">Jim Dose'</div></div>
+					<div class="role"><div class="r">Art</div><div class="n">Adrian Carmack</div><div class="n">Kevin Cloud</div><div class="n">Kenneth Scott</div><div class="n">Seneca Menard</div><div class="n">Fred Nilsson</div></div>
+					<div class="role"><div class="r">Game Designer</div><div class="n">Graeme Devine</div></div>
+					<div class="role"><div class="r">Level Design</div><div class="n">Tim Willits</div><div class="n">Christian Antkow</div><div class="n">Paul Jaquays</div></div>
+					<div class="role"><div class="r">CEO</div><div class="n">Todd Hollenshead</div></div>
+					<div class="role"><div class="r">Director of Business Development</div><div class="n">Marty Stratton</div></div>
+					<div class="role"><div class="r">Biz Assist and id Mom</div><div class="n">Donna Jackson</div></div>
+					<div class="role"><div class="r">Development Assistance</div><div class="n">Eric Webb</div></div>
+					<div class="role"><div class="r">Code</div><div class="n">Game logic, movement and bots from the GPL Quake III Arena source (ioquake3)</div></div>
+					<div class="role"><div class="r">Fan project</div><div class="n">All models, textures, sounds and maps are derived from id Software's Quake III Arena and belong to id Software.</div><div class="n">Quake III Arena on Steam is required to play.</div></div>
+				</div>
+			</div>
+			<div class="fadetop"/>
+			<div class="fadebot"/>
+			<button id="credits_pause" class="pause" autofocus="" data-event-click="credits.paused = !credits.paused"><span>{{ credits.paused ? 'Resume' : 'Pause' }}</span></button>
+		</div>
+	</div>
+</body>
+</rml>

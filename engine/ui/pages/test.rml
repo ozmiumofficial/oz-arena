@@ -1,0 +1,144 @@
+<rml>
+<head>
+	<title>UI test</title>
+	<link type="text/rcss" href="../rcss/oz.rcss"/>
+	<style>
+		/* the native UI's test page: every render path P4 brings, over a picture from the player's game */
+		body {
+			decorator: image( /levelshots/q3dm17 cover );
+		}
+		/* crisp stripes, so the glass panels' backdrop blur shows */
+		.shade {
+			position: absolute;
+			left: 0; top: 0; right: 0; bottom: 0;
+			decorator: repeating-linear-gradient( 45deg, #05040460 0dp, #05040460 14dp, #db241030 14dp, #db241030 16dp );
+		}
+		.panel {
+			position: absolute;
+			left: 90dp;
+			top: 110dp;
+			width: 760dp;
+			padding: 28dp 34dp;
+			background-color: #0a080790;
+		}
+		.panel p {
+			margin: 6dp 0 18dp 0;
+			color: #c9bfb5;
+		}
+		.line {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			height: 46dp;
+		}
+		.line .value {
+			width: 90dp;
+			text-align: right;
+			color: #ffad33;
+		}
+		.items {
+			margin: 14dp 0;
+		}
+		.items div {
+			padding: 4dp 0 4dp 14dp;
+			border-left: 2dp #db2410;
+			margin-bottom: 4dp;
+		}
+		.buttons {
+			display: flex;
+			margin-top: 16dp;
+		}
+		.buttons button {
+			margin: 0 12dp 0 0;
+		}
+		/* the effects column */
+		.cards {
+			position: absolute;
+			left: 930dp;
+			top: 110dp;
+			width: 440dp;
+		}
+		.card {
+			height: 104dp;
+			margin-bottom: 30dp;
+			padding: 16dp 18dp;
+			border-radius: 10dp;
+			font-weight: 600;
+			color: #fff3e6;
+		}
+		.gradient {
+			decorator: linear-gradient( 135deg, #db2410 0%, #ffad33 100% );
+			filter: drop-shadow( #ff4a1cb0 0 14dp 18dp );
+		}
+		.clipped {
+			overflow: hidden;
+			border-radius: 50dp 10dp;
+			transform: rotate(-4deg);
+		}
+		.clipped .picture {
+			position: absolute;
+			left: -40dp; top: -40dp; right: -40dp; bottom: -40dp;
+			decorator: image( /levelshots/q3dm6 cover );
+		}
+		.clipped .band {
+			position: absolute;
+			left: 0; right: 0; bottom: 0;
+			height: 38dp;
+			padding: 8dp 18dp;
+			background-color: #000000b0;
+		}
+		.glow {
+			background-color: #1a1513;
+			border: 1dp #5a4f49;
+			box-shadow: #ff4a1cd0 0dp 0dp 22dp 14dp;
+		}
+		.filtered {
+			decorator: image( /levelshots/q3dm7 cover );
+			filter: grayscale( 1 ) opacity( 0.75 ) blur( 2dp );
+		}
+		.spin {
+			display: block;
+			width: 80dp;
+			height: 80dp;
+			margin: 0 auto;
+			decorator: conic-gradient( #db2410, #ffad33, #fff3e6, #db2410 );
+			border-radius: 40dp;
+		}
+		/* endless animations only on a shown page: a hidden one's would keep RmlUi updating it */
+		body.shown .spin { animation: 6s linear infinite turn; }
+		@keyframes turn {
+			from { transform: rotate(0deg); }
+			to { transform: rotate(360deg); }
+		}
+	</style>
+</head>
+<body data-model="test">
+	<div class="shade"/>
+	<div class="panel glass">
+		<h1>Oz Arena native UI</h1>
+		<p>RmlUi on the engine's renderer: a test of every path. Arrows, the d-pad or the mouse move the focus.</p>
+
+		<div class="line"><span>Level</span><input type="range" id="level" min="0" max="100" step="5" data-value="level" autofocus/><span class="value">{{level}}</span></div>
+		<div class="line"><span>Enabled</span><input type="checkbox" id="enabled" data-checked="enabled"/><span class="value">{{enabled ? 'yes' : 'no'}}</span></div>
+		<div class="line"><span>Name</span><input type="text" id="name" maxlength="24" data-value="name"/><span class="value">{{name}}</span></div>
+
+		<div class="items">
+			<div data-for="item, i : items">{{i + 1}}. {{item}}</div>
+		</div>
+
+		<div class="buttons">
+			<button id="press" data-event-click="press">Pressed {{clicks}} times</button>
+			<button id="second">Second</button>
+			<button id="third">Third</button>
+		</div>
+	</div>
+
+	<div class="cards">
+		<div class="card gradient">Gradient, drop shadow</div>
+		<div class="card clipped"><div class="picture"/><div class="band">Rounded clip mask, turned</div></div>
+		<div class="card glow">Box shadow</div>
+		<div class="card filtered">Grayscale, opacity, blur</div>
+		<div class="spin"/>
+	</div>
+</body>
+</rml>

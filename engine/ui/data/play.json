@@ -1,0 +1,64 @@
+{
+  "_play": "The Play pages' data (ui/pages/quick_join.rml, ranked.rml, training.rml). Quick Play is live (P8, oz_ui_social.cpp): region is the Settings' region as the page opens, status the search (searching, joining, far, none, failed or nothing), asked and asked_name the mode an answer is for, text what the page says. Matchmaking and ranked come with P8b: the queues and ratings here are stand-ins (the web menu's mock), and their actions are refused. Training's drills start offline matches where the game can run them now.",
+  "quick_join": {
+    "mode": "ffa",
+    "region": "Automatic",
+    "status": "",
+    "asked": "",
+    "asked_name": "",
+    "text": "",
+    "modes": [
+      { "id": "ffa", "name": "Free For All", "text": "Every player for themselves." },
+      { "id": "duel", "name": "Duel", "text": "One on one (the original game's Tournament)." },
+      { "id": "tdm", "name": "Team Deathmatch", "text": "Red against blue." },
+      { "id": "ctf", "name": "Capture the Flag", "text": "Take the enemy flag to your own base while yours is home." },
+      { "id": "clan_arena", "name": "Clan Arena", "text": "Rounds, no pickups, everyone spawns with every weapon and full armor." },
+      { "id": "freeze_tag", "name": "Freeze Tag", "text": "Kills freeze instead of kill; teammates thaw you by standing next to you." },
+      { "id": "instagib", "name": "Instagib", "text": "Railguns only, one hit kills, no pickups." }
+    ]
+  },
+  "ranked": {
+    "need": 30,
+    "level": 1,
+    "locked": true,
+    "tier": "",
+    "progress": "3.33%",
+    "tiers": [
+      { "id": "bronze", "name": "Bronze", "range": "0-999" },
+      { "id": "silver", "name": "Silver", "range": "1,000-1,299" },
+      { "id": "gold", "name": "Gold", "range": "1,300-1,599" },
+      { "id": "platinum", "name": "Platinum", "range": "1,600-1,899" },
+      { "id": "diamond", "name": "Diamond", "range": "1,900-2,199" },
+      { "id": "godlike", "name": "Godlike", "range": "2,200+" }
+    ],
+    "queues": [
+      { "id": "duel", "name": "Duel", "text": "1v1 on the tournament maps. The headline ladder." },
+      { "id": "tdm", "name": "Team Deathmatch", "text": "Ranked against the other team's average rating." },
+      { "id": "ctf", "name": "Capture the Flag", "text": "Full teams; everyone on a team moves together." }
+    ],
+    "how": [
+      { "k": "10", "name": "Placement", "text": "Your first 10 ranked matches place you. Everyone starts at 1,000 MMR, and your rank shows once placement is done." },
+      { "k": "±", "name": "MMR", "text": "Your matchmaking rating moves after every match, like chess Elo: beat someone rated above you and you gain more, lose to someone below and you drop more. What one player gains, the other loses." },
+      { "k": "K", "name": "Settling in", "text": "Ratings swing fast at first (up to 40 points a match for your first 30 matches), then settle (24), and move slowest in Godlike (16)." },
+      { "k": "III", "name": "Divisions", "text": "Every tier has three divisions, III to II to I, each 100 MMR. Godlike has no ceiling." },
+      { "k": "Q", "name": "Seasons", "text": "A season lasts three months. When it ends, your rating eases a quarter of the way back toward 1,000, and you keep the frame and title of the highest tier you reached." },
+      { "k": "!", "name": "Fair play", "text": "Fixed rules and an official map pool, banned in turn. Matches start in your region, a result counts only when every player's game agrees on it, and leaving is a loss." }
+    ]
+  },
+  "training": {
+    "drills": [
+      { "id": "movement", "name": "Movement", "text": "Strafe jumping, circle jumps and rocket jumps on Introduction, alone.", "shot": "/levelshots/q3dm0",
+        "do": "startmatch training.drills.0.match",
+        "match": { "gametype": 0, "map": "q3dm0", "fraglimit": 0, "timelimit": 0, "maxplayers": 8, "skill": 1, "bots": [] } },
+      { "id": "aim", "name": "Railgun aim", "text": "Instagib against three moving bots on The Longest Yard.", "shot": "/levelshots/q3dm17",
+        "do": "sound buzz; toast Railgun aim needs Instagib, which isn't in the game code yet.",
+        "match": { "gametype": 0, "map": "q3dm17", "fraglimit": 0, "timelimit": 0, "maxplayers": 8, "skill": 2, "bots": ["Orbb", "Crash", "Klesk"] } },
+      { "id": "duel", "name": "Duel practice", "text": "Ten minutes against a Hardcore Sarge on Powerstation 0218.", "shot": "/levelshots/q3tourney1",
+        "do": "startmatch training.drills.2.match",
+        "match": { "gametype": 1, "map": "q3tourney1", "fraglimit": 0, "timelimit": 10, "maxplayers": 2, "skill": 4, "bots": ["Sarge"] } },
+      { "id": "items", "name": "Item timing", "text": "Learn the armor and mega health cycles on The Camping Grounds.", "shot": "/levelshots/q3dm6",
+        "do": "startmatch training.drills.3.match",
+        "match": { "gametype": 0, "map": "q3dm6", "fraglimit": 0, "timelimit": 0, "maxplayers": 8, "skill": 3, "bots": ["Doom"] } }
+    ]
+  }
+}

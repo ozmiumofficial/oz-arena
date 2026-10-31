@@ -1,0 +1,432 @@
+<rml>
+<head>
+	<title>Server Browser</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<link type="text/rcss" href="../rcss/play.rcss"/>
+	<style>
+		.col { padding: 1rem 2.5rem; }
+		.sbtabs .tab {
+			margin-right: 0.25rem;
+			padding: 0.5rem 0.75rem;
+			font-size: 0.8rem;
+			letter-spacing: 0.14em;
+		}
+		.sbtabs .tab .under {
+			left: 0.5rem; right: 0.5rem; bottom: -1dp;
+			background-color: #ff4a1c;
+		}
+		.sbtabs .clear { margin-left: auto; }
+		.filters { display: flex; align-items: flex-end; margin-top: 0.75rem; }
+		.filters input.text { flex: 1 1 auto; width: 10rem; }
+		.filters .spinner { flex: 0 0 auto; margin-left: 1rem; }
+		.filters .spinner.reg { width: 20rem; }
+		.filters .spinner.md { width: 14rem; }
+		.filters .spinner.pg { width: 12rem; }
+		.togs { display: flex; align-items: center; margin-top: 0.75rem; }
+		.togs .status { margin-left: auto; font-size: 0.85rem; color: #8d847c; }
+		.togs .ping { font-size: 0.85rem; color: #5d554f; }
+
+		/* flex: 1, a zero basis: RmlUi doesn't shrink an auto basis below the rows, and the list would push the foot away */
+		.tbl {
+			position: relative;
+			flex: 1;
+			min-height: 0;
+			display: flex;
+			flex-direction: column;
+			margin-top: 0.75rem;
+			border: 1dp #ffffff12;
+		}
+		.thd {
+			display: flex;
+			padding: 0.5rem 1rem;
+			background-color: #ffffff0a;
+			font-family: OzDisplay;
+			font-size: 0.7rem;
+			line-height: 1.5;
+			letter-spacing: 0.2em;
+			color: #8d847c;
+		}
+		/* the Internet tab's headers sort the rows: the same one again turns them around */
+		.thd button.c { text-align: left; color: #8d847c; }
+		.thd button.c:hover, .thd button.c:focus { color: #e6ddd2; }
+		.thd button.c.on { color: #ff4a1c; }
+		.thd .tri {
+			display: inline-block;
+			width: 0;
+			height: 0;
+			margin-left: 0.35rem;
+			margin-bottom: 0.1rem;
+			border-left: 0.25rem #ff4a1c00;
+			border-right: 0.25rem #ff4a1c00;
+			border-top: 0.3rem #ff4a1c;
+		}
+		.thd .tri.up { border-top: 0; border-bottom: 0.3rem #ff4a1c; }
+		/* a scrolling list: the menus' nav (oz_ui.cpp NavFallback) crosses its edges and scrolls the focus into view */
+		.list { position: relative; flex: 1; min-height: 0; overflow-y: auto; }
+		/* the server rows above and below the ones laid out (oz_ui_servers.cpp's window): their height alone */
+		.list .pad { display: block; }
+		.c { flex: 0 0 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.c.name { flex: 1 1 auto; width: 4rem; padding-right: 1rem; }
+		/* RmlUi drops a span's leading space: what follows the name keeps its gap this way */
+		.c.name .tag { margin-left: 0.35em; }
+		.c.game { width: 8rem; }
+		.c.map { width: 12rem; }
+		.c.mode { width: 9rem; }
+		.c.pl { width: 8rem; }
+		.c.where { width: 9rem; }
+		.c.png { width: 5rem; }
+		.c.lk { width: 6.5rem; }
+		.c.acts { width: 12rem; display: flex; align-items: center; justify-content: flex-end; overflow: visible; }
+		.badge.direct { border-color: #5ccf4a66; background-color: #5ccf4a1a; color: #5ccf4a; }
+		/* each game's badge: Oz's red, CPMA's blue, Defrag's green, vanilla amber, other mods grey */
+		.badge.k-oz { border-color: #ff4a1c80; background-color: #db241026; color: #ff4a1c; }
+		.badge.k-cpma { border-color: #4a7dff80; background-color: #4a7dff1a; color: #7d9fff; }
+		.badge.k-defrag { border-color: #5ccf4a66; background-color: #5ccf4a1a; color: #5ccf4a; }
+		.badge.k-other { border-color: #ffffff26; background-color: transparent; color: #8d847c; }
+		.acts .badge.look { margin-right: 0.5rem; }
+
+		.srow { position: relative; border-bottom: 1dp #ffffff0d; }
+		.srow .hit {
+			position: absolute;
+			left: 0; right: 0; top: 0; bottom: 0;
+			transition: background-color 0.1s linear-in-out;
+		}
+		.srow .hit:hover { background-color: #ffffff0a; }
+		.srow .hit:focus { background-color: #db241026; }
+		/* the window moved: the focus went to the element its row is in now, under the same row (oz_ui_servers.cpp Refocus) */
+		.list.moving .srow .hit { transition: none; }
+		.srow .cells {
+			position: relative;
+			z-index: 1;
+			display: flex;
+			align-items: center;
+			padding: 0.625rem 1rem;
+			font-size: 0.95rem;
+			line-height: 1.5;
+			color: #e6ddd2;
+			pointer-events: none;
+		}
+		.srow.down .cells, .srow .cells.down { opacity: 0.6; }
+		.srow .cells .dim { color: #8d847c; }
+
+		.acts button.fav {
+			pointer-events: auto;
+			position: relative;
+			width: 1.25rem;
+			height: 1.25rem;
+			margin-right: 0.5rem;
+			border-radius: 2dp;
+			font-size: 0.85rem;
+		}
+		.acts button.fav:focus { background-color: #ffffff1a; }
+		.acts .fav .star5 { position: absolute; left: 0.2rem; top: 0.42rem; }
+		.acts .fav .star5, .acts .fav .star5 .s1, .acts .fav .star5 .s2 { border-bottom-color: #5d554f; }
+		.acts .fav:hover .star5, .acts .fav:hover .star5 .s1, .acts .fav:hover .star5 .s2,
+		.acts .fav:focus .star5, .acts .fav:focus .star5 .s1, .acts .fav:focus .star5 .s2 { border-bottom-color: #e6ddd2; }
+		.acts .fav.on .star5, .acts .fav.on .star5 .s1, .acts .fav.on .star5 .s2 { border-bottom-color: #ff4a1c; }
+		.acts .link {
+			pointer-events: auto;
+			padding: 0 0.25rem;
+			margin-right: 0.5rem;
+			font-family: OzDisplay;
+			font-size: 0.62rem;
+			letter-spacing: 0.12em;
+			color: #5d554f;
+		}
+		.acts .link:hover { color: #e6ddd2; }
+		.acts .join {
+			padding: 0.25rem 0.75rem;
+			border: 1dp #db241099;
+			border-radius: 2dp;
+			font-family: OzDisplay;
+			font-size: 0.7rem;
+			line-height: 1.5;
+			letter-spacing: 0.15em;
+			color: #fff3e6;
+		}
+		.acts .yours { font-family: OzDisplay; font-size: 0.7rem; letter-spacing: 0.15em; color: #8d847c; }
+		.acts button.info {
+			pointer-events: auto;
+			padding: 0.15rem 0.4rem;
+			margin-right: 0.5rem;
+			border-radius: 2dp;
+			font-family: OzDisplay;
+			font-size: 0.62rem;
+			letter-spacing: 0.12em;
+			color: #8d847c;
+		}
+		.acts button.info:hover, .acts button.info:focus { color: #fff3e6; background-color: #ffffff1a; }
+		.badge.fr { border-color: #5ccf4a66; background-color: #5ccf4a1a; color: #5ccf4a; }
+
+		/* the server card, over the list (a modal: the d-pad stays in it); the list and its headers hide under it */
+		.list.under, .thd.under { visibility: hidden; }
+		.card {
+			position: absolute;
+			left: 0; right: 0; top: 0; bottom: 0;
+			z-index: 5;
+			display: flex;
+			flex-direction: column;
+			padding: 1rem 1.25rem;
+			border: 1dp #db241066;
+			background-color: #0a0807f7;
+		}
+		.card .cname { font-family: OzDisplay; font-size: 1.3rem; letter-spacing: 0.05em; color: #fff3e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.card .csub { display: flex; align-items: center; margin-top: 0.4rem; }
+		.card .csub .badge { margin-right: 0.5rem; }
+		.card .csub .addr { font-size: 0.85rem; color: #8d847c; }
+		.card .cfacts { display: flex; flex-wrap: wrap; margin-top: 0.75rem; }
+		.card .cfacts .f { margin-right: 2rem; margin-bottom: 0.3rem; }
+		.card .cfacts .k { margin-right: 0.5rem; font-family: OzDisplay; font-size: 0.62rem; letter-spacing: 0.15em; color: #5d554f; }
+		.card .cfacts .v { font-size: 0.95rem; color: #e6ddd2; }
+		.card .cfriends { margin-top: 0.3rem; font-size: 0.9rem; color: #5ccf4a; }
+		.card .cplayers { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 0.75rem; border: 1dp #ffffff12; }
+		.card .phd { display: flex; padding: 0.4rem 0.75rem; background-color: #ffffff0a; font-family: OzDisplay; font-size: 0.62rem; letter-spacing: 0.18em; color: #8d847c; }
+		.card .plist { flex: 1; min-height: 0; overflow-y: auto; }
+		.card .prow { display: flex; align-items: center; padding: 0.3rem 0.75rem; border-bottom: 1dp #ffffff0a; font-size: 0.9rem; color: #e6ddd2; }
+		.card .prow .bot { color: #8d847c; }
+		.card .prow .badge.fr { margin-left: 0.5rem; }
+		.card .pn { flex: 1; width: 4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.card .ps, .card .pp { width: 5rem; text-align: right; }
+		.card .pmsg { position: absolute; left: 0; right: 0; top: 2.5rem; text-align: center; font-size: 0.95rem; color: #8d847c; }
+		.card .cfoot { display: flex; margin-top: 0.75rem; }
+		.card .cfoot button { margin-right: 0.75rem; }
+		#sb_card_join, #sb_card_fav, #sb_card_link, #sb_card_close { nav-up: none; nav-down: none; }
+		/* the question about a mod the player doesn't have: smaller, in the middle */
+		.card.mod { top: 12%; bottom: auto; left: 8%; right: 8%; }
+		.card.mod .mtext { margin-top: 0.6rem; font-size: 0.95rem; line-height: 1.45; color: #e6ddd2; }
+		.card.mod .mtext.found { color: #8d847c; }
+		.card.mod .mtext.msg { color: #5ccf4a; }
+		.card.mod .mtext.msg.bad { color: #ff4a1c; }
+		.card.mod .cfoot { margin-top: 1rem; }
+		.card.mod button { nav-up: none; nav-down: none; }
+		#sb_card_join { nav-left: none; }
+		#sb_card_close { nav-right: none; }
+		.srow .hit:hover + .cells .join { background-color: #db24104d; }
+		.srow .hit:focus + .cells .join { background-color: #db241066; }
+
+		.emptywrap {
+			position: absolute;
+			left: 0; right: 0; top: 0; bottom: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 1.5rem;
+		}
+		.emptywrap .empty { border-color: #ffffff1a; background-color: #00000033; }
+
+		.foot { display: flex; align-items: center; margin-top: 0.75rem; }
+		.foot > * { margin-right: 0.75rem; }
+		/* a join under way, or the password a match or a server asks for: over the foot's row */
+		.joinbar {
+			display: flex;
+			align-items: center;
+			margin-top: 0.75rem;
+			padding: 0.5rem 0.75rem;
+			border: 1dp #db241066;
+			border-radius: 2dp;
+			background-color: #db24101a;
+		}
+		.joinbar .what { flex: 1 1 auto; font-size: 0.95rem; color: #fff3e6; }
+		body.shown .joinbar .what.busy { animation: 0.8s sine-in-out infinite alternate pulse; }
+		@keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
+		.joinbar input.text { width: 14rem; margin-right: 0.75rem; }
+		.joinbar button { margin-left: 0.5rem; }
+		/* the toggles take Left and Right, so the d-pad steps through their row with Down and Up */
+		#sb_full { nav-down: #sb_empty; }
+		#sb_empty { nav-up: #sb_full; }
+	</style>
+</head>
+<!--
+The Server Browser (PlayPages.tsx's ServerBrowserPage): the Internet, the LAN, favorites and history
+as the same rows. The Internet tab is live, one list of two kinds of row (ENGINE_PLAN.md P8b step 1):
+- every community server the master servers list, for both protocols (oz_servers.c asks each one,
+  oz_ui_servers.cpp folds, filters and sorts them into servers.rows): its game (Vanilla, CPMA,
+  Defrag, an Oz server, or another mod behind Game's Other mods), map, mode, players and bots, ping,
+  and the Oz look badge where the server isn't pure. Join connects; the game switches to the
+  server's mod by itself, and a server with a password asks for it in the join bar first.
+- the online service's open peer-to-peer matches (P8, oz_ui_social.cpp), under Oz Arena, asked for
+  as the page opens, every 15 s and with Refresh, each with its link (Relayed when the host or you
+  hide your IP, else Direct). A row joins (oz_join; a match with a password asks for it first), and
+  the join bar shows the join until the game connects and the connection screen takes over.
+The filters (Game, Mode, Ping, or Region with Oz Arena alone, the toggles and the search box) hold
+for both, in C++ (each hub row's shown flag); the column headers sort. Info opens a server's card
+(its players, version and physics; Star, Copy link). The LAN tab lists what answers Quake3e's
+broadcast (localservers) as it opens and with Refresh; Favorites (the stars) and History (every
+join, newest first) are saved in profile/servers.json, each place shown as it is now (asked again
+with every refresh) or as it was, when it doesn't answer. Every tab's rows are servers.rows.
+Connect runs the console's connect with the address typed.
+-->
+<body data-model="menu">
+	<div class="panel">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="phead">
+			<div>
+				<banner text="Server Browser"/>
+				<p class="subtitle" data-if="server_browser.tab == 'internet'">Every server the master servers list, vanilla, CPMA and Defrag, and the matches Oz players host. Join one and play: the game switches to the server's mod by itself.</p>
+				<p class="subtitle" data-if="server_browser.tab == 'lan'">Servers on your local network, found the way the original game did. LAN players connect directly and see each other's address.</p>
+				<p class="subtitle" data-if="server_browser.tab == 'favorites'">The servers and matches you starred, as they are now: each is asked again with every refresh.</p>
+				<p class="subtitle" data-if="server_browser.tab == 'history'">The servers and matches you joined, newest first.</p>
+			</div>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
+		</div>
+		<div class="divider"/>
+		<div class="pbody">
+			<div class="col">
+				<div class="tabs sbtabs">
+					<button id="sb_tab_internet" class="tab" autofocus="" data-class-active="server_browser.tab == 'internet'" data-event-click="server_browser.tab = 'internet'"><span>Internet</span><span class="under"/></button>
+					<button id="sb_tab_lan" class="tab" data-class-active="server_browser.tab == 'lan'" data-event-click="server_browser.tab = 'lan'"><span>LAN</span><span class="under"/></button>
+					<button id="sb_tab_favorites" class="tab" data-class-active="server_browser.tab == 'favorites'" data-event-click="server_browser.tab = 'favorites'"><span>Favorites</span><span class="under"/></button>
+					<button id="sb_tab_history" class="tab" data-class-active="server_browser.tab == 'history'" data-event-click="server_browser.tab = 'history'"><span>History</span><span class="under"/></button>
+					<button id="sb_clear" class="btn small clear" data-if="server_browser.tab == 'history' &amp;&amp; servers.shown > 0" onclick="historyclear">Clear history</button>
+				</div>
+
+				<div class="filters">
+					<input id="sb_search" class="text" type="text" maxlength="64" placeholder="Search servers, maps, modes and addresses" data-value="server_browser.query"/>
+					<div id="sb_game" class="spinner md" spin="server_browser.game" data-attr-options="server_browser.games"><span class="arrow prev">&lt;</span><span class="v">{{ server_browser.game }}</span><span class="arrow next">&gt;</span></div>
+					<div id="sb_mode" class="spinner md" spin="server_browser.mode" data-attr-options="server_browser.modes"><span class="arrow prev">&lt;</span><span class="v">{{ server_browser.mode }}</span><span class="arrow next">&gt;</span></div>
+					<div id="sb_ping" class="spinner pg" data-if="(server_browser.tab == 'internet' || server_browser.tab == 'lan') &amp;&amp; server_browser.game != 'Oz Arena'" spin="server_browser.ping" data-attr-options="server_browser.pings"><span class="arrow prev">&lt;</span><span class="v">{{ server_browser.ping }}</span><span class="arrow next">&gt;</span></div>
+					<div id="sb_region" class="spinner reg" data-if="server_browser.tab == 'internet' &amp;&amp; server_browser.game == 'Oz Arena'" spin="server_browser.region" data-attr-options="server_browser.regions"><span class="arrow prev">&lt;</span><span class="v">{{ server_browser.region }}</span><span class="arrow next">&gt;</span></div>
+				</div>
+
+				<div class="togs">
+					<div class="lbl" data-if="server_browser.tab == 'internet' || server_browser.tab == 'lan'"><span class="t">Hide full</span>
+						<div id="sb_full" class="toggle" data-class-on="server_browser.hide_full" data-event-click="server_browser.hide_full = !server_browser.hide_full"
+							data-event-keydown="server_browser.hide_full = (ev.key_identifier == 90 || ev.key_identifier == 92) ? !server_browser.hide_full : server_browser.hide_full"><span class="track"><span class="knob"/></span><span class="state">{{ server_browser.hide_full ? 'On' : 'Off' }}</span></div>
+					</div>
+					<div class="lbl" data-if="server_browser.tab == 'internet' || server_browser.tab == 'lan'"><span class="t">Hide empty</span>
+						<div id="sb_empty" class="toggle" data-class-on="server_browser.hide_empty" data-event-click="server_browser.hide_empty = !server_browser.hide_empty"
+							data-event-keydown="server_browser.hide_empty = (ev.key_identifier == 90 || ev.key_identifier == 92) ? !server_browser.hide_empty : server_browser.hide_empty"><span class="track"><span class="knob"/></span><span class="state">{{ server_browser.hide_empty ? 'On' : 'Off' }}</span></div>
+					</div>
+					<span class="ping" data-if="server_browser.tab == 'internet' &amp;&amp; server_browser.game == 'Oz Arena'">A player-hosted match's ping shows once you're in it.</span>
+					<span class="status">{{ servers.text }}</span>
+				</div>
+
+				<div class="tbl">
+					<div class="thd" data-class-under="servers.card.open || servers.mod.open">
+						<button id="sb_sort_name" class="c name" data-class-on="server_browser.sort == 'name'" onclick="sbsort name"><span>Name</span><span class="tri" data-if="server_browser.sort == 'name'" data-class-up="!server_browser.sort_rev"/></button>
+						<button id="sb_sort_game" class="c game" data-class-on="server_browser.sort == 'game'" onclick="sbsort game"><span>Game</span><span class="tri" data-if="server_browser.sort == 'game'" data-class-up="!server_browser.sort_rev"/></button>
+						<button id="sb_sort_map" class="c map" data-class-on="server_browser.sort == 'map'" onclick="sbsort map"><span>Map</span><span class="tri" data-if="server_browser.sort == 'map'" data-class-up="!server_browser.sort_rev"/></button>
+						<button id="sb_sort_mode" class="c mode" data-class-on="server_browser.sort == 'mode'" onclick="sbsort mode"><span>Mode</span><span class="tri" data-if="server_browser.sort == 'mode'" data-class-up="!server_browser.sort_rev"/></button>
+						<button id="sb_sort_players" class="c pl" data-class-on="server_browser.sort == 'players'" onclick="sbsort players"><span>Players</span><span class="tri" data-if="server_browser.sort == 'players'" data-class-up="server_browser.sort_rev"/></button>
+						<button id="sb_sort_ping" class="c png" data-class-on="server_browser.sort == 'ping'" onclick="sbsort ping"><span>Ping</span><span class="tri" data-if="server_browser.sort == 'ping'" data-class-up="!server_browser.sort_rev"/></button>
+						<span class="c acts"/>
+					</div>
+					<div id="sb_list" class="list" data-class-under="servers.card.open || servers.mod.open">
+						<!-- Internet: the online service's player-hosted matches (oz_ui_social.cpp), shown as the filters say (oz_ui_servers.cpp) -->
+						<div class="srow" data-for="r, i : server_browser.internet" data-if="server_browser.tab == 'internet' &amp;&amp; r.shown" data-class-down="!r.up">
+							<button class="hit" data-attr-id="'sb_in_' + i" data-style-nav-right="'#sb_in_star' + i" data-attr-onclick="r.mine ? 'refuse That is your own match.' : 'join ' + r.host + (r.password ? ' locked' : '')"/>
+							<div class="cells">
+								<div class="c name"><span class="hot">{{ r.name }}</span><span class="hot tag" data-if="r.password">(password)</span><span class="hot tag" data-if="r.ranked">(ranked)</span><span class="hot tag" data-if="r.dedicated">(dedicated)</span><span class="dim tag" data-if="r.owner != ''">by {{ r.owner }}</span><span class="dim tag">{{ r.where }}</span></div>
+								<div class="c game"><span class="badge k-oz">Oz Arena</span></div>
+								<div class="c map">{{ r.map }}</div>
+								<div class="c mode">{{ r.mode }}</div>
+								<div class="c pl" data-class-dim="r.full || !r.up">{{ r.players }}</div>
+								<div class="c png dim">-</div>
+								<div class="c acts">
+									<span class="badge" data-class-direct="!r.relayed">{{ r.badge }}</span>
+									<button class="fav" data-attr-id="'sb_in_star' + i" data-style-nav-left="'#sb_in_' + i" data-class-on="r.fav" data-attr-onclick="'favorite match ' + r.host"><span class="star5"><span class="s1"/><span class="s2"/></span></button>
+									<span class="link" data-if="!r.mine &amp;&amp; !r.ranked" data-attr-onclick="'copy ozarena://join/' + r.host + '; toast Join link copied.'">Link</span>
+									<span class="yours" data-if="r.mine">Yours</span>
+									<span class="join" data-if="!r.mine">Join</span>
+								</div>
+							</div>
+						</div>
+						<!-- the tab's rows (oz_ui_servers.cpp): the community servers, the LAN's, or the saved favorites and history (a
+						     peer-to-peer match among those joins by its host). Only those near the part in view (servers.view, the
+						     rows from servers.first to servers.last, each with its place n), the rest standing as the pads' height:
+						     RmlUi makes and draws every row a data-for lists, in view or not -->
+						<div id="sb_pad_top" class="pad" data-style-height="servers.top"/>
+						<!-- (the row's down class is on its cells: on the repeated element itself, RmlUi read it for rows already
+						     gone when the list got shorter, with a warning each) -->
+						<div class="srow" data-for="r : servers.view">
+							<button class="hit" data-attr-id="'sb_sv_' + r.n" data-style-nav-right="r.host != '' ? '#sb_sv_star' + r.n : '#sb_sv_info' + r.n"
+								data-attr-onclick="r.host != '' ? 'join ' + r.host + (r.password ? ' locked' : '') : 'serverjoin ' + r.address"/>
+							<div class="cells" data-class-down="r.full || !r.up">
+								<div class="c name"><span class="hot" data-rml="r.rich"/><span class="hot tag" data-if="r.password">(password)</span><span class="badge fr tag" data-if="r.friends != ''">{{ r.friends }}</span><span class="dim tag" data-if="!r.up">{{ r.status }}</span><span class="dim tag" data-if="r.when != ''">{{ r.when }}</span></div>
+								<div class="c game"><span data-attr-class="'badge k-' + r.kind">{{ r.game }}</span></div>
+								<div class="c map">{{ r.map }}</div>
+								<div class="c mode">{{ r.mode }}</div>
+								<div class="c pl" data-class-dim="r.full || !r.up"><span>{{ r.up ? r.players : '-' }}</span><span class="dim" data-if="r.up &amp;&amp; r.bots != ''">, {{ r.bots }}</span></div>
+								<div class="c png" data-class-dim="!r.up">{{ r.up &amp;&amp; r.host == '' ? r.ping : '-' }}</div>
+								<div class="c acts">
+									<span class="badge look" data-if="r.look">Oz look</span>
+									<button class="info" data-if="r.host == ''" data-attr-id="'sb_sv_info' + r.n" data-style-nav-left="'#sb_sv_' + r.n" data-style-nav-right="'#sb_sv_star' + r.n" data-attr-onclick="'serverinfo ' + r.address">Info</button>
+									<button class="fav" data-attr-id="'sb_sv_star' + r.n" data-style-nav-left="r.host != '' ? '#sb_sv_' + r.n : '#sb_sv_info' + r.n" data-class-on="r.fav"
+										data-attr-onclick="r.host != '' ? 'favorite match ' + r.host : 'favorite server ' + r.address"><span class="star5"><span class="s1"/><span class="s2"/></span></button>
+									<span class="join">Join</span>
+								</div>
+							</div>
+						</div>
+						<div class="pad" data-style-height="servers.bottom"/>
+						<div class="emptywrap" data-if="servers.shown == 0">
+							<div class="empty"><div class="t">{{ servers.empty_title }}</div><p>{{ servers.empty_text }}</p></div>
+						</div>
+					</div>
+					<!-- the server card (Info on a row, oz_ui_servers.cpp): over the list; Escape or Close closes it -->
+					<div class="card modal" data-if="servers.card.open">
+						<div class="cname" data-rml="servers.card.rich"/>
+						<div class="csub"><span data-attr-class="'badge k-' + servers.card.kind">{{ servers.card.game }}</span><span class="badge look" data-if="servers.card.look">Oz look</span><span class="badge dimb" data-if="servers.card.password">Password</span><span class="addr">{{ servers.card.address }}</span></div>
+						<div class="cfacts">
+							<div class="f"><span class="k">Map</span><span class="v">{{ servers.card.map }}</span></div>
+							<div class="f"><span class="k">Mode</span><span class="v">{{ servers.card.mode }}</span></div>
+							<div class="f" data-if="servers.card.physics != ''"><span class="k">Physics</span><span class="v">{{ servers.card.physics }}</span></div>
+							<div class="f"><span class="k">Ping</span><span class="v">{{ servers.card.ping }}</span></div>
+							<div class="f" data-if="servers.card.version != ''"><span class="k">Version</span><span class="v">{{ servers.card.version }}</span></div>
+						</div>
+						<div class="cfriends" data-if="servers.card.friends != ''"><span>Friends here: {{ servers.card.friends }}</span></div>
+						<div class="cplayers">
+							<div class="phd"><span class="pn">{{ servers.card.who == '' ? 'Players' : servers.card.who }}</span><span class="ps">Score</span><span class="pp">Ping</span></div>
+							<div class="plist">
+								<div class="prow" data-for="p : servers.card.list"><span class="pn" data-class-bot="p.bot" data-rml="p.rich"/><span class="badge fr" data-if="p.friend">Friend</span><span class="ps" data-class-bot="p.bot">{{ p.score }}</span><span class="pp" data-class-bot="p.bot">{{ p.ping }}</span></div>
+							</div>
+							<div class="pmsg" data-if="servers.card.status != 'ok'"><span>{{ servers.card.status == 'asking' ? 'Asking the server' : 'No answer from the server' }}</span></div>
+						</div>
+						<div class="cfoot">
+							<button id="sb_card_join" class="btn small primary" data-attr-onclick="'serverjoin ' + servers.card.address">Join</button>
+							<button id="sb_card_fav" class="btn small" data-attr-onclick="'favorite server ' + servers.card.address">{{ servers.card.fav ? 'Unstar' : 'Star' }}</button>
+							<button id="sb_card_link" class="btn small" data-attr-onclick="'copy ozarena://connect/' + servers.card.address + '; toast Server link copied.'">Copy link</button>
+							<button id="sb_card_close" class="btn small" onclick="cardclose">Close</button>
+						</div>
+					</div>
+					<!-- a mod the player doesn't have (oz_ui_servers.cpp, oz_mods.c; decision 24: players bring their own) -->
+					<div class="card modal mod" data-if="servers.mod.open">
+						<div class="cname">{{ servers.mod.game }} isn't in your game folder</div>
+						<p class="mtext">{{ servers.mod.name }} runs {{ servers.mod.game }}. Oz doesn't include {{ servers.mod.game }}: you bring your own. Import the zip or the folder you got from its makers, or join anyway: some servers hand their files over as you join.</p>
+						<p class="mtext found" data-if="servers.mod.found != '' &amp;&amp; servers.mod.status != 'done'">There's a copy in your Quake III folder the game doesn't find on its own: {{ servers.mod.found }}</p>
+						<p class="mtext msg" data-if="servers.mod.message != ''" data-class-bad="servers.mod.status == 'failed'">{{ servers.mod.message }}</p>
+						<div class="cfoot">
+							<button id="sb_mod_install" class="btn small primary" data-if="servers.mod.found != '' &amp;&amp; servers.mod.status != 'done'" onclick="modimport install">Use that copy</button>
+							<button id="sb_mod_zip" class="btn small" data-if="servers.mod.status != 'done'" onclick="modimport zip">Import a zip</button>
+							<button id="sb_mod_folder" class="btn small" data-if="servers.mod.status != 'done'" onclick="modimport folder">Import a folder</button>
+							<button id="sb_mod_join" class="btn small" data-class-primary="servers.mod.status == 'done'" onclick="modjoin">{{ servers.mod.status == 'done' ? 'Join' : 'Join anyway' }}</button>
+							<button id="sb_mod_close" class="btn small" onclick="modclose">Cancel</button>
+						</div>
+					</div>
+				</div>
+
+				<!-- a join under way (oz_ice.c's progress), or the password a locked match or server asks for -->
+				<div class="joinbar" data-if="server_browser.join.status == 'asking' || server_browser.join.status == 'connecting'">
+					<span class="what busy">{{ server_browser.join.status == 'asking' ? 'Asking ' + server_browser.join.name + ' to let you in' : 'Connecting to ' + server_browser.join.name }}</span>
+					<button id="sb_unjoin" class="btn small" onclick="unjoin">Cancel</button>
+				</div>
+				<div class="joinbar" data-if="(server_browser.ask.host != '' || server_browser.ask.address != '') &amp;&amp; server_browser.join.status != 'asking' &amp;&amp; server_browser.join.status != 'connecting'">
+					<span class="what">{{ server_browser.ask.name }} takes a password</span>
+					<input id="sb_password" class="text" type="password" maxlength="40" placeholder="Password"/>
+					<button id="sb_ask_join" class="btn small primary" onclick="joinask">Join</button>
+					<button id="sb_ask_cancel" class="btn small" onclick="askcancel">Cancel</button>
+				</div>
+
+				<div class="foot">
+					<input id="sb_address" class="text" type="text" maxlength="256" placeholder="Address, match id or link" data-value="server_browser.address"/>
+					<button id="sb_connect" class="btn small" data-if="server_browser.address == ''" onclick="refuse Type a server's address first.">Connect</button>
+					<button id="sb_connect_go" class="btn small" data-if="server_browser.address != ''" onclick="close; append connect {server_browser.address}">Connect</button>
+					<button id="sb_refresh" class="btn small" onclick="browse; servers">Refresh</button>
+					<button id="sb_host" class="btn small" onclick="page create_match">Host a match</button>
+					<button id="sb_dedicated" class="btn small" onclick="page dedicated">Dedicated server</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</rml>

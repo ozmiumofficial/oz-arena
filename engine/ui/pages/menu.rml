@@ -1,0 +1,140 @@
+<rml>
+<head>
+	<title>Main menu</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<link type="text/rcss" href="../rcss/shell.rcss"/>
+</head>
+<!--
+The main menu (the web menu's MenuApp.tsx with Chrome.tsx and Social.tsx's top bar pieces): the
+showcase shows through from below (the engine draws it first), shaded dark behind the menu column.
+The main column on the left; a submenu opens beside it (Right, or Enter); the pages open over it
+(they dim the showcase and the column). Escape closes a submenu; on the main column it stays.
+-->
+<body data-model="menu" class="shell">
+	<div class="shade left"/>
+	<div class="shade vignette"/>
+	<div class="shade dim" data-class-wide="state.wide" data-class-quit="state.quit"/>
+
+	<!-- top bar -->
+	<div class="topbar">
+		<button class="pill discord" onclick="soon online"><span>Join us on Discord</span></button>
+		<button class="pill online" onclick="social"><span class="dot"/><span class="q3 t">{{ social.status_label }}</span></button>
+		<button class="rankbtn" onclick="page ranked">
+			<span class="rankicon q3">?</span>
+			<span class="q3 t">{{ player.rank }}</span>
+		</button>
+		<button class="pill friendsbtn" onclick="social">
+			<span class="q3 t">Friends</span>
+			<span class="q3 n">{{ social.online }}</span>
+			<span class="q3 badgecount" data-if="social.waiting > 0">{{ social.waiting }}</span>
+		</button>
+		<button class="cardbtn" onclick="page profile">
+			<img class="icon" data-attr-src="player.icon" data-style-border-bottom-color="player.accent"/>
+			<div class="who">
+				<div class="q3 name">{{ player.name | plain }}</div>
+				<div class="q3 title" data-style-color="player.accent">{{ player.title }}</div>
+			</div>
+			<div class="q3 level" data-style-border-color="player.accent">{{ player.level }}</div>
+		</button>
+	</div>
+
+	<!-- the main column -->
+	<div class="column" data-class-deep="state.sub != '' || state.wide" data-class-wide="state.wide">
+		<div class="logo">
+			<div class="mark"/>
+			<div class="arena"><span class="rule"/><span class="q3 word">Arena</span><span class="rule end"/></div>
+		</div>
+		<div class="mainnav">
+			<div class="mitem" data-for="it : main" data-class-primary="it.primary">
+				<button data-attr-id="'main_' + it.id" data-attr-submenu="it.submenu" data-attr-onclick="it.do"
+					data-class-current="it.submenu != '' &amp;&amp; state.sub == it.submenu">
+					<span class="bar"/><span class="wash"/>
+					<div class="row"><span class="num">{{ it.num }}</span><span class="label">{{ it.label }}</span></div>
+				</button>
+				<div class="hint">{{ it.hint }}</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- submenus (MenuApp.tsx's SubMenu) -->
+	<div id="sub_play" class="sub" data-if="state.sub == 'play'" data-class-covered="state.wide">
+		<div class="subhead"><banner data-attr-text="subs.play.title"/><span class="rule"/></div>
+		<div class="sublist">
+			<div data-for="it : subs.play.items">
+				<div class="secthead" data-if="it.section != ''"><span class="q3">{{ it.section }}</span><span class="rule"/></div>
+				<div class="mitem md" data-class-dimmed="it.lock != ''">
+					<button data-attr-id="'sub_' + it.id" data-attr-onclick="it.do">
+						<span class="bar"/><span class="wash"/>
+						<div class="row"><span class="label">{{ it.label }}</span><span class="lock" data-if="it.lock != ''">{{ it.lock }}</span></div>
+					</button>
+					<div class="hint">{{ it.hint }}</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="sub_profile_menu" class="sub" data-if="state.sub == 'profile_menu'" data-class-covered="state.wide">
+		<div class="subhead"><banner data-attr-text="subs.profile_menu.title"/><span class="rule"/></div>
+		<div class="sublist">
+			<div class="mitem md" data-for="it : subs.profile_menu.items">
+				<button data-attr-id="'sub_' + it.id" data-attr-onclick="it.do">
+					<span class="bar"/><span class="wash"/>
+					<div class="row"><span class="label">{{ it.label }}</span></div>
+				</button>
+				<div class="hint">{{ it.hint }}</div>
+			</div>
+		</div>
+	</div>
+	<div id="sub_extras" class="sub" data-if="state.sub == 'extras'" data-class-covered="state.wide">
+		<div class="subhead"><banner data-attr-text="subs.extras.title"/><span class="rule"/></div>
+		<div class="sublist">
+			<div class="mitem md" data-for="it : subs.extras.items">
+				<button data-attr-id="'sub_' + it.id" data-attr-onclick="it.do">
+					<span class="bar"/><span class="wash"/>
+					<div class="row"><span class="label">{{ it.label }}</span></div>
+				</button>
+				<div class="hint">{{ it.hint }}</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- the showcase's caption, lower right -->
+	<div class="caption" data-class-hidden="state.wide || state.social" data-class-subopen="state.sub != ''">
+		<div class="q3 kind">{{ subject.kind }}</div>
+		<div class="q3 name">{{ subject.name }}</div>
+		<div class="line"/>
+	</div>
+
+	<!-- a newer release (UpdatePrompt.tsx): the updater comes with P14 -->
+	<div class="update" data-if="state.update &amp;&amp; state.sub == '' &amp;&amp; !state.wide">
+		<div class="dialog">
+			<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+			<banner text="Update available"/>
+			<div class="q3 version">{{ update.version }}</div>
+			<div class="when">Beta · {{ update.published }}</div>
+			<div class="notes">
+				<div class="q3 nh">What's new</div>
+				<div class="note" data-for="n : update.notes"><span class="b">•</span>{{ n }}</div>
+			</div>
+			<div class="buttons">
+				<button class="btn primary" onclick="soon update">Update now</button>
+				<button class="btn" onclick="set state.update false; sound out">Later</button>
+				<button class="btn" onclick="set state.update false; sound out">Skip this version</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- bottom bar -->
+	<div class="bottombar">
+		<div class="news">
+			<span class="q3 tag">News</span>
+			<span class="text"><span class="semi ink">{{ state.news_title }}</span> {{ state.news_text }}</span>
+		</div>
+		<div class="hints">
+			<span class="q3 h"><kbd>Enter</kbd><span>Select</span></span>
+			<span class="q3 h"><kbd>Esc</kbd><span>Back</span></span>
+			<span class="q3 h"><kbd>F</kbd><span>Friends</span></span>
+			<span class="q3 version">{{ player.version }}</span>
+		</div>
+	</div>
+</body>
+</rml>

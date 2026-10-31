@@ -1,0 +1,649 @@
+/*
+The offline Play pages (ENGINE_PLAN.md P5): Skirmish (offline_bots.rml), Custom Match
+(create_match.rml) and the Campaign (campaign.rml), from the web menu's CreateMatchPage.tsx,
+MapBrowser.tsx and SinglePlayerPage.tsx. Linked after menu.rcss.
+*/
+
+/* ---------------------------------------------------------------- the panel's two columns */
+
+.cols {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+	display: flex;
+	padding: 1.5rem 2.5rem;
+}
+
+.cols.tight { padding: 1.25rem 2.5rem; }
+
+.cols .main {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.cols .side {
+	width: 26rem;
+	margin-left: 2.5rem;
+	display: flex;
+	flex-direction: column;
+}
+
+.cols .side.wide { width: 27rem; margin-left: 2rem; }
+.cols .side.narrow { width: 22rem; margin-left: 2rem; }
+
+/* a side column that scrolls (Custom Match's rules, modifiers and bots) */
+.cols .side.scroll {
+	display: block;
+	overflow-y: auto;
+	padding-right: 0.5rem;
+}
+
+.grow { flex: 1; }
+
+/* ---------------------------------------------------------------- the map browser (MapBrowser.tsx) */
+
+.browser {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.mbar {
+	display: flex;
+	align-items: center;
+	margin-bottom: 0.75rem;
+}
+
+.chip {
+	height: 2.5rem;
+	line-height: 2.4rem;
+	box-sizing: border-box;
+	padding: 0 0.75rem;
+	margin-right: 0.5rem;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #00000066;
+	font-family: OzDisplay;
+	font-size: 0.8rem;
+	letter-spacing: 0.12em;
+	color: #8d847c;
+}
+
+.chip.on { border-color: #ff4a1ccc; background-color: #db241033; color: #fff3e6; }
+.chip .n { margin-left: 0.4rem; color: #5d554f; }
+
+.mbar .hint {
+	margin-left: 0.5rem;
+	font-size: 0.9rem;
+	color: #5d554f;
+}
+
+.cards {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding-right: 0.5rem;
+}
+
+.grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.othersh {
+	margin: 1.25rem 0 0.5rem 0;
+	font-family: OzDisplay;
+	font-size: 0.75rem;
+	letter-spacing: 0.25em;
+	color: #8d847c;
+}
+
+/* a level shot card, about 4:3 in a 16:9 window */
+button.card {
+	position: relative;
+	display: block;
+	width: 31.5%;
+	height: 10.75rem;
+	box-sizing: border-box;
+	border: 2dp #00000000;
+	border-radius: 2dp;
+	overflow: hidden;
+	background-color: #1a0d0b;
+	text-align: left;
+	transition: border-color 0.15s linear-in-out;
+}
+
+button.card:focus, button.card:hover { border-color: #e6ddd299; }
+button.card.sel { border-color: #ff4a1c; box-shadow: #db241080 0 0 1.4rem 0; }
+
+/* a card's shot and its shade are one element's decorators (the first is drawn on top): the cards
+are many, and every layout lays them all out */
+.card .img, .preview .fade {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+}
+
+/* the original game's level shots are square and were shown stretched to 4:3: the preview shows that
+4:3 picture cut to 16:9, as the web menu's cover does */
+.preview .img {
+	position: absolute;
+	left: 0; right: 0;
+	top: -2.4375rem;
+	height: 19.5rem;
+}
+
+.card .img { transition: transform 0.5s cubic-out; }
+button.card:focus .img { transform: scale(1.1); }
+
+.card .cap {
+	position: absolute;
+	left: 0.75rem; right: 0.75rem; bottom: 0.5rem;
+}
+
+.card .cap .n {
+	font-family: OzDisplay;
+	font-size: 0.9rem;
+	line-height: 1.25;
+	letter-spacing: 0.04em;
+	color: #fff3e6;
+}
+
+.card .cap .id {
+	white-space: nowrap;
+	font-family: OzDisplay;
+	font-size: 0.6rem;
+	letter-spacing: 0.2em;
+	color: #8d847c;
+}
+
+/* the modes an arena of the second list is made for */
+.card .fits {
+	position: absolute;
+	right: 0.5rem; top: 0.5rem;
+	text-align: right;
+}
+
+.card .fits span {
+	display: inline-block;
+	margin-left: 0.25rem;
+	padding: 0.125rem 0.375rem;
+	border-radius: 2dp;
+	background-color: #000000b3;
+	font-family: OzDisplay;
+	font-size: 0.55rem;
+	letter-spacing: 0.18em;
+	color: #e6ddd2;
+}
+
+/* the mode spinners run their own arrows and value (they also keep the arena fitting the mode):
+no padding, so a click always lands on one of them */
+.spinner.modespin { padding: 0; }
+.spinner.modespin .arrow { width: 2.75rem; }
+
+/* ---------------------------------------------------------------- Skirmish's side column */
+
+.preview {
+	position: relative;
+	height: 14.625rem;
+	flex-shrink: 0;
+	overflow: hidden;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #1a0d0b;
+}
+
+body.shown .preview .img { animation: 0.6s cubic-out 1 shot-in; }
+
+@keyframes shot-in {
+	from { opacity: 0; transform: scale(1.08); }
+	to { opacity: 1; transform: scale(1); }
+}
+
+.preview .fade { decorator: linear-gradient( 0deg, #000000e6 0%, #00000000 50%, #00000000 100% ); }
+
+.preview .cap {
+	position: absolute;
+	left: 1rem; right: 1rem; bottom: 0.75rem;
+}
+
+.preview .cap .n {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-family: OzDisplay;
+	font-size: 1.6rem;
+	line-height: 1;
+	letter-spacing: 0.04em;
+	color: #fff3e6;
+}
+
+.preview .cap .id {
+	margin-top: 0.25rem;
+	font-family: OzDisplay;
+	font-size: 0.7rem;
+	letter-spacing: 0.3em;
+	color: #8d847c;
+}
+
+button.btn.fight {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 1rem 0;
+}
+
+.fightwrap { margin-top: 1.5rem; }
+
+.warn {
+	margin-top: 1rem;
+	font-size: 0.95rem;
+	color: #ffad33;
+}
+
+/* a slider with its value (Slider.tsx) */
+.slrow {
+	display: flex;
+	align-items: center;
+	padding: 0.375rem 0.25rem;
+	border-radius: 2dp;
+}
+
+.slrow input.slider {
+	flex: 1;
+	width: 10rem;
+}
+
+.slrow .val {
+	width: 5rem;
+	margin-left: 1rem;
+	text-align: right;
+	font-family: OzDisplay;
+	font-size: 0.875rem;
+	letter-spacing: 0.05em;
+	color: #e6ddd2;
+}
+
+/* ---------------------------------------------------------------- Custom Match */
+
+.desc {
+	min-height: 2.8rem;
+	margin-top: 0.5rem;
+	font-size: 0.95rem;
+	color: #8d847c;
+}
+
+.desc .badge { margin-left: 0.5rem; }
+
+.field { margin-bottom: 0.5rem; }
+
+.field .lbl {
+	display: flex;
+	align-items: center;
+	margin-bottom: 0.25rem;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: #e6ddd2cc;
+}
+
+.field .lbl .badge { margin-left: 0.5rem; }
+
+/* a modifier the game code can't play yet: its default, not a control */
+.spinner.off {
+	tab-index: none;
+	focus: none;
+	nav: none;
+	opacity: 0.45;
+}
+
+.bslot {
+	margin-bottom: 0.5rem;
+	padding: 0.5rem;
+	border: 1dp #ffffff0f;
+	border-radius: 2dp;
+	background-color: #00000040;
+}
+
+.bslot .brow {
+	display: flex;
+	align-items: center;
+}
+
+.bslot .brow.top { margin-bottom: 0.5rem; }
+
+.bslot .bicon {
+	width: 2.25rem;
+	height: 2.25rem;
+	margin-right: 0.5rem;
+	border-radius: 2dp;
+}
+
+.bslot .spinner { flex: 1; width: auto; }
+.bslot .spinner.team { flex: 0 0 8.5rem; width: 8.5rem; margin-left: 0.5rem; }
+
+button.bx {
+	width: 2.5rem;
+	height: 2.5rem;
+	margin-left: 0.5rem;
+	box-sizing: border-box;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	font-family: OzDisplay;
+	font-size: 0.8rem;
+	line-height: 2.4rem;
+	text-align: center;
+	color: #8d847c;
+}
+
+button.bx:focus, button.bx:hover { border-color: #ff4a1cb3; color: #ff4a1c; }
+
+button.btn.addbot { display: block; width: 100%; box-sizing: border-box; }
+
+.note {
+	margin-top: 0.5rem;
+	font-size: 0.85rem;
+	color: #5d554f;
+}
+
+/* RmlUi's d-pad search skips what is inside another scroll container, so a Fight in the footer
+would be the only control below the mode and take the focus from it: clipped (a scroll container
+to RmlUi), the engine's fallback moves to the nearest control instead (the arena cards). The
+padding keeps its glow. */
+.pfoot > .fightw {
+	overflow: hidden;
+	margin: -2rem -2rem -2rem 0;
+	padding: 2rem;
+}
+
+.pfoot .err {
+	flex: 1;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 0.95rem;
+	color: #ffad33;
+}
+
+/* ---------------------------------------------------------------- the Campaign (SinglePlayerPage.tsx) */
+
+.ctop {
+	display: flex;
+	align-items: center;
+	margin-bottom: 1rem;
+}
+
+.ctop .spinner { width: 20rem; }
+
+/* a tier won: a check mark (the display face has none) */
+.ctop .tick {
+	display: inline-block;
+	width: 0.3rem;
+	height: 0.6rem;
+	margin: 0 0.2rem 0.15rem 0.7rem;
+	border-right: 2dp #e6ddd2;
+	border-bottom: 2dp #e6ddd2;
+	transform: rotate(45deg);
+}
+
+.ctop .spinner:focus .tick { border-color: #fff3e6; }
+
+.ctop .won {
+	margin-left: 1.25rem;
+	font-size: 0.95rem;
+	color: #8d847c;
+}
+
+.ctop .won .big {
+	margin-right: 0.25rem;
+	font-family: OzDisplay;
+	font-size: 1.2rem;
+	color: #fff3e6;
+}
+
+.ctop .bar {
+	position: relative;
+	margin-left: auto;
+	width: 14rem;
+	height: 0.375rem;
+	border-radius: 0.1875rem;
+	background-color: #ffffff1a;
+}
+
+.ctop .bar .fill {
+	position: absolute;
+	left: 0; top: 0; bottom: 0;
+	border-radius: 0.1875rem;
+	decorator: linear-gradient( 90deg, #b3170a 0%, #ff4a1c 100% );
+}
+
+body.shown .ctop .bar .fill { animation: 0.8s cubic-out 1 grow-in; }
+
+@keyframes grow-in {
+	from { transform: scaleX(0); }
+	to { transform: scaleX(1); }
+}
+
+.tiers {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+}
+
+.arenas {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+	display: flex;
+	gap: 1rem;
+}
+
+.arenas.single { padding: 0 20%; }
+
+body.shown .arenas { animation: 0.22s cubic-out 1 tier-in; }
+
+@keyframes tier-in {
+	from { opacity: 0; transform: translateX(1.25rem); }
+	to { opacity: 1; transform: translateX(0); }
+}
+
+button.acard {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 2dp #00000000;
+	border-radius: 2dp;
+	text-align: left;
+	transition: border-color 0.15s linear-in-out;
+}
+
+button.acard:focus, button.acard:hover { border-color: #ff4a1ccc; box-shadow: #db241073 0 0 1.6rem 0; }
+button.acard.locked:focus, button.acard.locked:hover { border-color: #00000000; box-shadow: none; }
+
+.acard .shotbox {
+	position: relative;
+	flex: 1;
+	min-height: 10rem;
+	overflow: hidden;
+	background-color: #1a0d0b;
+}
+
+.acard .img, .acard .fade, .acard .lockv {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+}
+
+.acard .img { transition: transform 0.5s cubic-out; }
+button.acard:focus .img { transform: scale(1.1); }
+.acard.locked .img { filter: grayscale(1) brightness(0.3); }
+
+.acard .fade { decorator: linear-gradient( 0deg, #000000 0%, #0000004d 50%, #00000000 100% ); }
+
+.acard .wonimg {
+	position: absolute;
+	right: 0.5rem; top: 0.5rem;
+	width: 3rem;
+	height: 3rem;
+	filter: drop-shadow( #000000 0 0 0.6rem );
+}
+
+.acard .lockv {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-family: OzDisplay;
+	font-size: 0.8rem;
+	letter-spacing: 0.25em;
+	color: #8d847c;
+}
+
+.acard .cap {
+	position: absolute;
+	left: 0.75rem; right: 0.75rem; bottom: 0.5rem;
+}
+
+.acard .cap .n {
+	font-family: OzDisplay;
+	font-size: 1.05rem;
+	line-height: 1.25;
+	letter-spacing: 0.04em;
+	color: #fff3e6;
+}
+
+.acard .cap .id {
+	white-space: nowrap;
+	overflow: hidden;
+	font-family: OzDisplay;
+	font-size: 0.6rem;
+	letter-spacing: 0.2em;
+	color: #8d847c;
+}
+
+.acard .vs {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	height: 2.75rem;
+	padding: 0 0.75rem;
+	overflow: hidden;
+	white-space: nowrap;
+	background-color: #00000080;
+}
+
+.acard .vs .l {
+	flex-shrink: 0;
+	margin-right: 0.5rem;
+	font-family: OzDisplay;
+	font-size: 0.6rem;
+	letter-spacing: 0.2em;
+	color: #5d554f;
+}
+
+.acard .vs .bot {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	margin-right: 0.5rem;
+}
+
+.acard .vs .bot img {
+	width: 1.75rem;
+	height: 1.75rem;
+	margin-right: 0.375rem;
+	border-radius: 2dp;
+}
+
+.acard .vs .bot span {
+	font-size: 0.85rem;
+	color: #e6ddd2;
+}
+
+.skills {
+	display: flex;
+	gap: 0.5rem;
+}
+
+button.skb {
+	flex: 1;
+	display: flex;
+	justify-content: center;
+	padding: 0.375rem 0;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #0000004d;
+	transition: border-color background-color 0.15s linear-in-out;
+}
+
+button.skb:focus, button.skb:hover { border-color: #ffffff66; }
+button.skb.sel { border-color: #ff4a1ccc; background-color: #db241033; box-shadow: #db241066 0 0 1rem 0; }
+
+button.skb img { width: 2.5rem; height: 2.5rem; }
+
+.skname {
+	margin-top: 0.5rem;
+	text-align: center;
+	font-family: OzDisplay;
+	font-size: 1rem;
+	letter-spacing: 0.08em;
+	color: #fff3e6;
+}
+
+.medals {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.medal {
+	width: 31%;
+	flex-grow: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 0.5rem 0;
+	border: 1dp #ffffff12;
+	border-radius: 2dp;
+	background-color: #0000004d;
+}
+
+.medal img { width: 2.75rem; height: 2.75rem; }
+.medal.none img { opacity: 0.3; filter: grayscale(1); }
+
+.medal .l {
+	margin-top: 0.25rem;
+	font-family: OzDisplay;
+	font-size: 0.6rem;
+	letter-spacing: 0.15em;
+	color: #8d847c;
+}
+
+.medal .c {
+	font-family: OzDisplay;
+	font-size: 1rem;
+	color: #fff3e6;
+}
+
+.cnote {
+	margin-top: 1rem;
+	font-size: 0.85rem;
+	color: #5d554f;
+}
+
+.creset { margin-top: 1rem; }
+
+/* ---------------------------------------------------------------- short windows (menu.rcss)
+
+Under 1020 dp tall the side columns scroll (the focus scrolls them as it moves), and Skirmish's
+level shot gives up height first. */
+
+@media (max-height: 1019dp) {
+	.preview { height: 9rem; }
+	.cols .side { overflow-y: auto; padding-right: 0.5rem; }
+}
+
+@media (max-height: 899dp) {
+	.preview { height: 6.5rem; }
+}

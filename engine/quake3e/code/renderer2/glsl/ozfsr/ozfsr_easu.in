@@ -1,0 +1,27 @@
+// Oz: AMD FSR 1's EASU, the upscale (Video > Upscaler). Run through the C preprocessor at build time
+// (engine/build_engine.py, make_fsr_glsl) with AMD's ffx_a.h and ffx_fsr1.h (MIT, engine/thirdparty.json
+// "fidelityfx-fsr"), which leaves the GLSL path alone, as renderer2/glsl/ozfsreasu_fp.glsl.
+uniform sampler2D u_DiffuseMap;
+uniform vec4      u_OzFsr0;	// FsrEasuCon's con0-con3, as float bits (RB_OzUpscale)
+uniform vec4      u_OzFsr1;
+uniform vec4      u_OzFsr2;
+uniform vec4      u_OzFsr3;
+uniform vec4      u_Color;	// xy: the output's corner in the target, in pixels
+
+#define A_GPU 1
+#define A_GLSL 1
+#define A_SKIP_EXT 1
+#include "ffx_a.h"
+AF4 FsrEasuRF(AF2 p) { return textureGather(u_DiffuseMap, p, 0); }
+AF4 FsrEasuGF(AF2 p) { return textureGather(u_DiffuseMap, p, 1); }
+AF4 FsrEasuBF(AF2 p) { return textureGather(u_DiffuseMap, p, 2); }
+#define FSR_EASU_F 1
+#include "ffx_fsr1.h"
+
+void main()
+{
+	AF3 c;
+	AU2 ip = AU2(gl_FragCoord.xy - u_Color.xy);
+	FsrEasuF(c, ip, floatBitsToUint(u_OzFsr0), floatBitsToUint(u_OzFsr1), floatBitsToUint(u_OzFsr2), floatBitsToUint(u_OzFsr3));
+	gl_FragColor = vec4(c, 1.0);
+}

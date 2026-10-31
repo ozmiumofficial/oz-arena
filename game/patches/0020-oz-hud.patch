@@ -1,0 +1,41 @@
+diff --git a/code/game/g_combat.c b/code/game/g_combat.c
+index 1fffc62..ac82b92 100644
+--- a/code/game/g_combat.c
++++ b/code/game/g_combat.c
+@@ -1058,6 +1058,13 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
+ 		Team_CheckHurtCarrier(targ, attacker);
+ 	}
+ 
++	// Oz: every hit a human lands, in the server's log with g_logDamage 1 (engine/tests/hud_test.py checks
++	// the HUD's scoreboard against it); kept apart from q3core's "dmg" lines
++	if ( attacker && attacker->client && targ->client && attacker != targ && ( take + asave ) > 0
++		&& !( attacker->r.svFlags & SVF_BOT ) && trap_Cvar_VariableIntegerValue( "g_logDamage" ) ) {
++		G_LogPrintf( "Damage: %i %i %i %i %i\n", attacker->s.number, targ->s.number, take + asave, mod, level.time );
++	}
++
+ 	if (targ->client) {
+ 		// set the last client who damaged the target
+ 		targ->client->lasthurt_client = attacker->s.number;
+diff --git a/code/game/g_items.c b/code/game/g_items.c
+index bf2167a..288046d 100644
+--- a/code/game/g_items.c
++++ b/code/game/g_items.c
+@@ -554,6 +554,18 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
+ 	} else {
+ 		ent->nextthink = level.time + respawn * 1000;
+ 		ent->think = RespawnItem;
++		// Oz: the HUD's item timers (ENGINE_PLAN.md P6): the armors, the Mega Health and the powerups,
++		// when they're back. Spectators only: a player told when items come back would have an edge
++		if ( !( ent->flags & FL_DROPPED_ITEM ) && ( ent->item->giType == IT_POWERUP
++			|| ( ent->item->giType == IT_ARMOR && ent->item->quantity >= 50 )
++			|| ( ent->item->giType == IT_HEALTH && ent->item->quantity >= 100 ) ) ) {
++			int i;
++			for ( i = 0; i < level.maxclients; i++ ) {
++				if ( level.clients[i].pers.connected == CON_CONNECTED && level.clients[i].sess.sessionTeam == TEAM_SPECTATOR ) {
++					trap_SendServerCommand( i, va( "itemtimer %i %i %i", ent->s.number, ent->s.modelindex, ent->nextthink ) );
++				}
++			}
++		}
+ 	}
+ 	trap_LinkEntity( ent );
+ }

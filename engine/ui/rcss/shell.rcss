@@ -1,0 +1,482 @@
+/*
+The main menu's own pieces (MenuApp.tsx, Chrome.tsx, Social.tsx's top bar, UpdatePrompt.tsx), on top
+of menu.rcss.
+*/
+
+/* ---------------------------------------------------------------- top bar */
+
+.topbar {
+	position: absolute;
+	right: 4.5rem;
+	top: 1.75rem;
+	display: flex;
+	align-items: center;
+}
+
+body.shown .topbar { animation: 0.5s cubic-out 1 topbar-in; }
+
+@keyframes topbar-in {
+	from { opacity: 0; transform: translateY(-0.75rem); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.topbar > button { margin-left: 1.25rem; }
+
+.pill {
+	display: flex;
+	align-items: center;
+	height: 2.25rem;
+	box-sizing: border-box;
+	padding: 0 0.875rem;
+	border: 1dp #ffffff1a;
+	border-radius: 1.125rem;
+	background-color: #00000073;
+	color: #8d847c;
+	transition: border-color background-color color 0.15s linear-in-out;
+}
+
+.pill:hover, .pill:focus { border-color: #ffffff40; }
+
+.pill.discord {
+	border-color: #5865f280;
+	background-color: #5865f226;
+	font-family: OzDisplay;
+	font-size: 0.7rem;
+	letter-spacing: 0.15em;
+	color: #e6ddd2;
+}
+
+.pill.discord:hover, .pill.discord:focus {
+	border-color: #5865f2;
+	background-color: #5865f259;
+	color: #fff3e6;
+}
+
+.pill.online {
+	height: auto;
+	padding: 0.25rem 0.75rem;
+}
+
+.pill .dot {
+	width: 0.5rem;
+	height: 0.5rem;
+	margin-right: 0.5rem;
+	border-radius: 0.25rem;
+	background-color: #5ccf4a;
+	box-shadow: #5ccf4a 0 0 0.5rem 0;
+}
+
+.pill .t {
+	font-size: 0.65rem;
+	letter-spacing: 0.2em;
+}
+
+.friendsbtn {
+	position: relative;
+	padding: 0 1rem;
+}
+
+.friendsbtn .t {
+	font-size: 0.75rem;
+	letter-spacing: 0.2em;
+	margin-right: 0.5rem;
+}
+
+.friendsbtn .n {
+	font-size: 0.7rem;
+	letter-spacing: 0.15em;
+	color: #8d847c;
+}
+
+.badgecount {
+	position: absolute;
+	right: -0.25rem;
+	top: -0.25rem;
+	min-width: 1rem;
+	height: 1rem;
+	padding: 0 0.25rem;
+	box-sizing: border-box;
+	border-radius: 0.5rem;
+	background-color: #db2410;
+	box-shadow: #db2410cc 0 0 0.6rem 0;
+	font-size: 0.55rem;
+	line-height: 1rem;
+	text-align: center;
+	color: #fff3e6;
+}
+
+.rankbtn {
+	display: flex;
+	align-items: center;
+	padding: 0 0.25rem;
+	color: #8d847c;
+	transition: color 0.15s linear-in-out;
+}
+
+.rankbtn:hover, .rankbtn:focus { color: #e6ddd2; }
+
+.rankicon {
+	width: 1.5rem;
+	height: 1.75rem;
+	margin-right: 0.5rem;
+	box-sizing: border-box;
+	border: 1dp #5a4f49;
+	border-radius: 0.2rem 0.2rem 0.75rem 0.75rem;
+	background-color: #1a1412;
+	font-size: 0.6rem;
+	line-height: 1.75rem;
+	text-align: center;
+	color: #8d847c;
+}
+
+.rankbtn .t {
+	font-size: 0.7rem;
+	letter-spacing: 0.2em;
+}
+
+.cardbtn {
+	position: relative;
+	display: flex;
+	align-items: center;
+	padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #00000073;
+	text-align: left;
+	transition: border-color 0.15s linear-in-out;
+}
+
+.cardbtn:hover, .cardbtn:focus { border-color: #ffffff4d; }
+
+.cardbtn .icon {
+	width: 2.5rem;
+	height: 2.5rem;
+	margin-right: 0.75rem;
+	border-radius: 2dp;
+	border-bottom: 2dp #db2410;
+}
+
+.cardbtn .who { line-height: 1.25; }
+
+.cardbtn .name {
+	font-size: 1rem;
+	letter-spacing: 0.05em;
+	color: #fff3e6;
+}
+
+.cardbtn .title {
+	font-size: 0.6rem;
+	letter-spacing: 0.18em;
+	color: #db2410;
+}
+
+.cardbtn .level {
+	width: 2rem;
+	height: 2rem;
+	margin-left: 0.25rem;
+	box-sizing: border-box;
+	border: 1dp #db2410;
+	border-radius: 2dp;
+	background-color: #00000099;
+	font-size: 0.85rem;
+	line-height: 2rem;
+	text-align: center;
+	color: #fff3e6;
+}
+
+/* ---------------------------------------------------------------- the main column */
+
+.column {
+	position: absolute;
+	left: 3.5rem;
+	top: 2rem;
+	bottom: 6rem;
+	width: 30rem;
+	display: flex;
+	flex-direction: column;
+}
+
+/* Ozmium's logo (engine/tools/menu/make_logo.py) over ARENA between two red rules */
+.logo {
+	height: 9.5rem;
+	width: 30rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	filter: drop-shadow( #000000cc 0 0.15rem 0.35rem );
+}
+
+.logo .mark {
+	width: 26rem;
+	height: 6.45rem;
+	decorator: image( /ui/art/ozmium_logo fill );
+}
+
+/* the 1080p image drawn larger: the full-size one (the UI's images have no mipmaps) */
+@media (min-resolution: 1.25x) {
+	.logo .mark { decorator: image( /ui/art/ozmium_logo_hi fill ); }
+}
+
+.logo .arena {
+	display: flex;
+	align-items: center;
+	width: 26rem;
+	margin-top: 0.5rem;
+}
+
+.logo .rule {
+	flex: 1;
+	height: 2px;
+	decorator: linear-gradient( 90deg, #db241000 0%, #db2410 100% );
+}
+
+.logo .rule.end { decorator: linear-gradient( 90deg, #db2410 0%, #db241000 100% ); }
+
+.logo .word {
+	margin-left: 1.2rem;	/* on the right, the letter spacing trailing the last letter */
+	font-size: 1.5rem;
+	line-height: 1;
+	letter-spacing: 0.6em;
+	color: #db2410;
+}
+
+body.shown .logo { animation: 0.9s cubic-out 1 logo-in; }
+
+@keyframes logo-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+.mainnav {
+	margin-top: auto;
+	margin-bottom: 1.5rem;
+	transition: opacity 0.3s linear-in-out;
+}
+
+.column.deep .mainnav { opacity: 0.55; }
+
+body.shown .mainnav .mitem { animation: 0.45s cubic-out 1 item-in; }
+
+@keyframes item-in {
+	from { opacity: 0; transform: translateX(-1.875rem); }
+	to { opacity: 1; transform: translateX(0); }
+}
+
+/* ---------------------------------------------------------------- submenus */
+
+.sub {
+	position: absolute;
+	left: 35rem;
+	bottom: 8.5rem;
+	width: 30rem;
+	max-height: 76%;
+	overflow-y: auto;
+	transition: opacity transform 0.28s cubic-out;
+	animation: 0.28s cubic-out 1 sub-in;
+}
+
+@keyframes sub-in {
+	from { transform: translateX(-2rem); }
+	to { transform: translateX(0); }
+}
+
+.sub.covered {
+	opacity: 0;
+	transform: translateX(-1rem);
+	pointer-events: none;
+}
+
+.subhead {
+	display: flex;
+	align-items: center;
+	margin-bottom: 0.75rem;
+	padding-left: 1.5rem;
+}
+
+.subhead banner { font-size: 1.7rem; margin-right: 1rem; }
+
+.subhead .rule {
+	flex: 1;
+	height: 1px;	/* 1dp falls between pixel rows below 1080p */
+	decorator: linear-gradient( 90deg, #db241099 0%, #db241000 100% );
+}
+
+.sublist { border-left: 1dp #ffffff1a; }
+
+.secthead {
+	display: flex;
+	align-items: center;
+	margin-top: 0.75rem;
+	padding: 0 0 0.25rem 1.5rem;
+	font-size: 0.7rem;
+	letter-spacing: 0.3em;
+	color: #8d847c;
+}
+
+.sublist > div:first-child .secthead { margin-top: 0; }
+
+.secthead .q3 { margin-right: 0.75rem; }
+
+.secthead .rule {
+	flex: 1;
+	height: 1px;	/* 1dp falls between pixel rows below 1080p */
+	background-color: #ffffff1a;
+}
+
+/* ---------------------------------------------------------------- the showcase's caption */
+
+.caption {
+	position: absolute;
+	right: 4.5rem;
+	bottom: 5.5rem;
+	text-align: right;
+	transition: opacity 0.5s linear-in-out;
+}
+
+.caption.hidden { opacity: 0; }
+
+.caption .kind {
+	font-size: 0.7rem;
+	letter-spacing: 0.35em;
+	color: #8d847c;
+}
+
+.caption .name {
+	font-size: 2.6rem;
+	line-height: 1;
+	letter-spacing: 0.08em;
+	color: #fff3e6;
+	font-effect: shadow(0 3dp #000000e6);
+}
+
+.caption .line {
+	margin-top: 0.5rem;
+	margin-left: auto;
+	width: 12rem;
+	height: 2dp;
+	decorator: linear-gradient( 270deg, #ff4a1c 0%, #ff4a1c00 100% );
+}
+
+/* ---------------------------------------------------------------- the update offer */
+
+.update {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.update banner { font-size: 2.2rem; }
+
+.update .version {
+	margin-top: 1.5rem;
+	font-size: 1.2rem;
+	letter-spacing: 0.12em;
+	color: #fff3e6;
+}
+
+.update .when { font-size: 0.8rem; color: #8d847c; }
+
+.update .notes { width: 100%; margin-top: 1.5rem; }
+
+.update .nh {
+	font-size: 0.85rem;
+	letter-spacing: 0.12em;
+	color: #fff3e6;
+	margin-bottom: 0.25rem;
+}
+
+.update .note { font-size: 0.85rem; color: #e6ddd2; }
+.update .note .b { color: #db2410; margin-right: 0.5rem; }
+
+.update .buttons { display: flex; margin-top: 1.5rem; }
+.update .buttons button { margin-right: 0.6rem; }
+
+/* ---------------------------------------------------------------- bottom bar */
+
+.bottombar {
+	position: absolute;
+	left: 5rem;
+	right: 4.5rem;
+	bottom: 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.news {
+	display: flex;
+	align-items: center;
+	margin-right: 1.5rem;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.news .tag {
+	padding: 0.125rem 0.5rem;
+	margin-right: 0.75rem;
+	border-radius: 2dp;
+	background-color: #db2410;
+	font-size: 0.65rem;
+	letter-spacing: 0.2em;
+	color: #fff3e6;
+}
+
+.news .text {
+	font-size: 0.95rem;
+	color: #8d847c;
+}
+
+.news .text .semi { margin-right: 0.5rem; }
+
+.hints {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	white-space: nowrap;
+}
+
+.hints .h {
+	display: flex;
+	align-items: center;
+	margin-left: 1.25rem;
+	font-size: 0.65rem;
+	letter-spacing: 0.18em;
+	color: #8d847c;
+}
+
+.hints .h kbd { margin-right: 0.5rem; }
+
+.hints .version {
+	margin-left: 1.25rem;
+	font-size: 0.6rem;
+	letter-spacing: 0.2em;
+	color: #5d554f;
+}
+
+/* ---------------------------------------------------------------- narrow and short windows (menu.rcss) */
+
+.column { transition: opacity 0.3s linear-in-out; }
+
+@media (max-width: 1699dp) {
+	/* a page's panel takes the column's place (opacity is inherited in RmlUi, and the nav sets its own) */
+	.column.wide, .column.wide .mainnav { opacity: 0; }
+	/* the update offer centers right of the column */
+	.update { padding-left: 31rem; }
+	.cardbtn .name { max-width: 10rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+@media (max-width: 1399dp) {
+	/* the top bar clears the logo: no Discord pill (a "soon" for now), closer buttons */
+	.pill.discord { display: none; }
+	.topbar > button { margin-left: 0.75rem; }
+	/* a submenu reaches under the showcase's caption */
+	.caption.subopen { opacity: 0; }
+}
+
+@media (max-height: 899dp) {
+	/* a submenu stays clear of the top bar */
+	.sub { max-height: 64%; }
+}

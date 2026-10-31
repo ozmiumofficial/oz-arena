@@ -1,0 +1,24 @@
+<rml>
+<head>
+	<title>Quit</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		body { display: flex; align-items: center; justify-content: center; }
+		.dialog banner { font-size: 2.4rem; margin-bottom: 1.75rem; }
+		.row { display: flex; }
+		/* under 1700 dp across it centers right of the main column (menu.rcss) */
+		@media (max-width: 1699dp) { body { padding-left: 31rem; box-sizing: border-box; } }
+	</style>
+</head>
+<!-- The original's "EXIT GAME?" (MenuApp.tsx's QuitConfirm), over the main menu. No is focused first. -->
+<body data-model="menu">
+	<div class="dialog">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<banner text="Exit game?"/>
+		<div class="row">
+			<button id="quit_yes" class="confirm" onclick="cmd quit">Yes</button>
+			<button id="quit_no" class="confirm" autofocus="" onclick="back">No</button>
+		</div>
+	</div>
+</body>
+</rml>

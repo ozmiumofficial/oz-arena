@@ -1,0 +1,75 @@
+diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
+index 1ede0bc..a8effee 100644
+--- a/code/game/bg_pmove.c
++++ b/code/game/bg_pmove.c
+@@ -350,6 +350,9 @@ static void PM_SetMovementDir( void ) {
+ }
+ 
+ 
++// q3core: Quake Live's pmove_AutoHop: holding jump jumps again as you land (id 1.32 waits for a release)
++int		bg_autoHop;
++
+ /*
+ =============
+ PM_CheckJump
+@@ -365,8 +368,8 @@ static qboolean PM_CheckJump( void ) {
+ 		return qfalse;
+ 	}
+ 
+-	// must wait for jump to be released
+-	if ( pm->ps->pm_flags & PMF_JUMP_HELD ) {
++	// must wait for jump to be released (unless Quake Live's auto hop)
++	if ( ( pm->ps->pm_flags & PMF_JUMP_HELD ) && !bg_autoHop ) {
+ 		// clear upmove so cmdscale doesn't lower running speed
+ 		pm->cmd.upmove = 0;
+ 		return qfalse;
+diff --git a/code/game/bg_public.h b/code/game/bg_public.h
+index 820a29e..2811ddf 100644
+--- a/code/game/bg_public.h
++++ b/code/game/bg_public.h
+@@ -767,3 +767,6 @@ qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTim
+ #define KAMI_BOOMSPHERE_MAXRADIUS		720
+ #define KAMI_SHOCKWAVE2_MAXRADIUS		704
+ 
++// q3core: Quake Live's pmove_AutoHop (holding jump jumps again on landing); set by whoever runs Pmove
++extern int	bg_autoHop;
++
+diff --git a/code/game/g_active.c b/code/game/g_active.c
+index 89de65c..fbcccdb 100644
+--- a/code/game/g_active.c
++++ b/code/game/g_active.c
+@@ -750,6 +750,26 @@ void SendPendingPredictableEvents( playerState_t *ps ) {
+ 	}
+ }
+ 
++/*
++==============
++G_AutoHop
++
++q3core: Quake Live's pmove_AutoHop (on by default; off under Classic rules). In systeminfo, so clients
++predict it as the server runs it.
++==============
++*/
++static int G_AutoHop( void ) {
++	static vmCvar_t	autoHop;
++	static int		registered;
++
++	if ( !registered ) {
++		trap_Cvar_Register( &autoHop, "pmove_AutoHop", "1", CVAR_SYSTEMINFO );
++		registered = 1;
++	}
++	trap_Cvar_Update( &autoHop );
++	return G_QL() && autoHop.integer;
++}
++
+ /*
+ ==============
+ ClientThink
+@@ -949,6 +969,7 @@ void ClientThink_real( gentity_t *ent ) {
+ 		}
+ 		Pmove (&pm);
+ #else
++		bg_autoHop = G_AutoHop();
+ 		Pmove (&pm);
+ #endif
+ 

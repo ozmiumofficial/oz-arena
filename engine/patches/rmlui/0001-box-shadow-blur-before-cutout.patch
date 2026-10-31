@@ -1,0 +1,33 @@
+diff --git a/Source/Core/GeometryBoxShadow.cpp b/Source/Core/GeometryBoxShadow.cpp
+index 872e64f..1774878 100644
+--- a/Source/Core/GeometryBoxShadow.cpp
++++ b/Source/Core/GeometryBoxShadow.cpp
+@@ -214,16 +214,25 @@ void GeometryBoxShadow::GenerateTexture(CallbackTexture& out_shadow_texture, Geo
+ 
+ 				render_manager.SetClipMask(ClipMaskOperation::Set, &geometry_padding, info.element_offset_in_texture);
+ 			}
+-			else
++			Geometry geometry_padding_border;
++			if (!inset)
+ 			{
+ 				Mesh mesh = mesh_padding_border;
+-				Geometry geometry_padding_border = render_manager.MakeGeometry(std::move(mesh));
+-				render_manager.SetClipMask(ClipMaskOperation::SetInverse, &geometry_padding_border, info.element_offset_in_texture);
++				geometry_padding_border = render_manager.MakeGeometry(std::move(mesh));
++				// Oz: a blurred outer shadow is drawn whole and blurred, and the element's box is cut out when the
++				// blurred layer is composited, as CSS draws it. Cut out before the blur, only the part beyond the box
++				// was blurred: a hard band, and nothing at all for a shadow without offset or spread.
++				if (blur)
++					render_manager.DisableClipMask();
++				else
++					render_manager.SetClipMask(ClipMaskOperation::SetInverse, &geometry_padding_border, info.element_offset_in_texture);
+ 				geometry_shadow.Render(shadow_offset + info.element_offset_in_texture);
+ 			}
+ 
+ 			if (blur)
+ 			{
++				if (!inset)
++					render_manager.SetClipMask(ClipMaskOperation::SetInverse, &geometry_padding_border, info.element_offset_in_texture);
+ 				FilterHandleList filters;
+ 				blur.AddHandleTo(filters);
+ 				render_manager.CompositeLayers(render_manager.GetTopLayer(), render_manager.GetNextLayer(), BlendMode::Blend, filters);

@@ -1,0 +1,103 @@
+/*
+The menus' media pages (P5): Replays, Cinematics and Credits, after the web menu's ReplaysPage.tsx,
+CinematicsPage.tsx and OtherPages.tsx. Linked after menu.rcss.
+*/
+
+/* the panel's body as a row of columns (px-10 py-6 gap-6) */
+.cols {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+	display: flex;
+	padding: 1.5rem 2.5rem;
+}
+
+.cols .main {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.cols .side {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+}
+
+.vscroll {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding-right: 0.5rem;
+}
+
+/* art in a card: an image or a dark plate, a fade to black at the bottom, a caption over it */
+.plate {
+	display: block;
+	position: relative;
+	overflow: hidden;
+	box-sizing: border-box;
+	border: 2dp #00000000;
+	border-radius: 2dp;
+	background-color: #0d0a09;
+	text-align: left;
+	transition: border-color 0.2s cubic-out;
+}
+
+.plate .art {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+	transform: scale(1);
+	transition: transform 0.5s cubic-out;
+}
+
+/* no art: bg-gradient-to-br from-white/5 to-black/60 on the glass */
+.plate .art.none {
+	background-color: #15100e;
+	decorator: linear-gradient( 135deg, #ffffff12 0%, #00000099 100% );
+}
+
+.plate:focus .art { transform: scale(1.1); }
+
+.plate .fade {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+	decorator: linear-gradient( 180deg, #00000000 0%, #00000033 50%, #000000e6 100% );
+}
+
+.plate .fade.low {
+	top: auto;
+	height: 4.5rem;
+	decorator: linear-gradient( 180deg, #00000000 0%, #000000e6 100% );
+}
+
+/* a small dark label on art (bg-black/70) */
+.tag {
+	position: absolute;
+	top: 0.5rem;
+	padding: 0.125rem 0.375rem;
+	border-radius: 2dp;
+	background-color: #000000b3;
+	font-family: OzDisplay;
+	font-size: 0.55rem;
+	letter-spacing: 0.18em;
+	line-height: 1.5;
+	color: #ffad33;
+}
+
+/* a dark box (border-white/10 bg-black/30) */
+.box {
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #0000004d;
+}
+
+/* a small caps label (font-q3 tracking-[0.2em]) */
+.lbl {
+	font-family: OzDisplay;
+	font-size: 0.7rem;
+	letter-spacing: 0.2em;
+	color: #8d847c;
+}

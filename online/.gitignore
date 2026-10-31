@@ -1,0 +1,4 @@
+# the hub (online/, from the Godot build): npm and wrangler
+node_modules/
+.wrangler/
+.dev.vars*

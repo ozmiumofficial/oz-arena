@@ -1,0 +1,65 @@
+{
+  "dedicated": {
+    "_note": "Dedicated Server (ui/pages/dedicated.rml): an always-on server run from this PC. Running one from the menu comes with P9: the settings here are the web menu's defaults, and Start, Stop and the console are refused. Each mode keeps its own map choice (modes[].rotation, its spinner's options in modes[].maps).",
+    "name": "Dedicated server",
+    "password": "",
+    "motd": "",
+    "rcon": "",
+    "console": "",
+    "mode": "Free For All",
+    "mode_options": "Free For All|Duel|Team Deathmatch|Capture the Flag|Clan Arena|Freeze Tag|Instagib",
+    "modes": [
+      {
+        "name": "Free For All",
+        "maps": "Every Free For All map in turn|Arena Gate only|House Of Pain only|Arena Of Death only|Powerstation 0218 only|The Place Of Many Deaths only|The Forgotten Place only|The Camping Grounds only|The Proving Grounds only|Temple of Retribution only|Brimstone Abbey only|Hero's Keep only|Hell's Gate only|The Nameless Place only|Deva Station only|The Dredwerkz only|Vertical Vengeance only|Lost World only|Grim Dungeons only|Demon Keep only|Fatal Instinct only|The Bouncy Map only|The Longest Yard only|Space Chamber only|Apocalypse Void only|The Very End Of You only",
+        "rotation": "Every Free For All map in turn",
+        "path": "dedicated.modes.0.rotation"
+      },
+      {
+        "name": "Duel",
+        "maps": "Every Duel map in turn|Arena Gate only|House Of Pain only|Powerstation 0218 only|The Proving Grounds only|Hell's Gate only|Vertical Vengeance only|Fatal Instinct only|The Very End Of You only",
+        "rotation": "Every Duel map in turn",
+        "path": "dedicated.modes.1.rotation"
+      },
+      {
+        "name": "Team Deathmatch",
+        "maps": "Every Team Deathmatch map in turn|The Camping Grounds only|Temple of Retribution only|Brimstone Abbey only|Hero's Keep only|The Dredwerkz only|Vertical Vengeance only|Grim Dungeons only|Demon Keep only",
+        "rotation": "Every Team Deathmatch map in turn",
+        "path": "dedicated.modes.2.rotation"
+      },
+      {
+        "name": "Capture the Flag",
+        "maps": "Every Capture the Flag map in turn|Dueling Keeps only|Troubled Waters only|The Stronghold only|Space CTF only",
+        "rotation": "Every Capture the Flag map in turn",
+        "path": "dedicated.modes.3.rotation"
+      },
+      {
+        "name": "Clan Arena",
+        "maps": "Every Clan Arena map in turn|Arena Gate only|House Of Pain only|Arena Of Death only|Powerstation 0218 only|The Place Of Many Deaths only|The Forgotten Place only|The Camping Grounds only|The Proving Grounds only|Temple of Retribution only|Brimstone Abbey only|Hero's Keep only|Hell's Gate only|The Nameless Place only|Deva Station only|The Dredwerkz only|Vertical Vengeance only|Lost World only|Grim Dungeons only|Demon Keep only|Fatal Instinct only|The Bouncy Map only|The Longest Yard only|Space Chamber only|Apocalypse Void only|The Very End Of You only",
+        "rotation": "Every Clan Arena map in turn",
+        "path": "dedicated.modes.4.rotation"
+      },
+      {
+        "name": "Freeze Tag",
+        "maps": "Every Freeze Tag map in turn|Arena Gate only|House Of Pain only|Arena Of Death only|Powerstation 0218 only|The Place Of Many Deaths only|The Forgotten Place only|The Camping Grounds only|The Proving Grounds only|Temple of Retribution only|Brimstone Abbey only|Hero's Keep only|Hell's Gate only|The Nameless Place only|Deva Station only|The Dredwerkz only|Vertical Vengeance only|Lost World only|Grim Dungeons only|Demon Keep only|Fatal Instinct only|The Bouncy Map only|The Longest Yard only|Space Chamber only|Apocalypse Void only|The Very End Of You only",
+        "rotation": "Every Freeze Tag map in turn",
+        "path": "dedicated.modes.5.rotation"
+      },
+      {
+        "name": "Instagib",
+        "maps": "Every Instagib map in turn|Arena Gate only|House Of Pain only|Arena Of Death only|Powerstation 0218 only|The Place Of Many Deaths only|The Forgotten Place only|The Camping Grounds only|The Proving Grounds only|Temple of Retribution only|Brimstone Abbey only|Hero's Keep only|Hell's Gate only|The Nameless Place only|Deva Station only|The Dredwerkz only|Vertical Vengeance only|Lost World only|Grim Dungeons only|Demon Keep only|Fatal Instinct only|The Bouncy Map only|The Longest Yard only|Space Chamber only|Apocalypse Void only|The Very End Of You only",
+        "rotation": "Every Instagib map in turn",
+        "path": "dedicated.modes.6.rotation"
+      }
+    ],
+    "max_players": 16,
+    "bots": 2,
+    "bot_skill": "3 Hurt Me Plenty",
+    "skills": "1 I Can Win|2 Bring It On|3 Hurt Me Plenty|4 Hardcore|5 Nightmare!",
+    "idle_sleep": true,
+    "online": true,
+    "autostart": false,
+    "running": false,
+    "status": "Stopped"
+  }
+}

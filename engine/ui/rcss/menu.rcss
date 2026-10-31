@@ -1,0 +1,764 @@
+/*
+The menus (ENGINE_PLAN.md P5): the Godot build's web menu (webui/app/globals.css and the components'
+Tailwind classes) in RCSS. Every page of the menus links this file alone.
+
+Sizes are in rem as the web menu's: the root font is 16dp, and 1dp is a pixel at 1080p (narrower
+windows scale by width, as the web's min(h / 1080, w / 1700)). Colors with alpha are #rrggbbaa.
+
+Palette: ink #e6ddd2, ink-hot #fff3e6, dim #8d847c, faint #5d554f, metal #5a4f49, blood #b3170a,
+red #db2410, glow #ff4a1c, amber #ffad33, glass #0a0807d6. Faces: OzDisplay, id's menu font traced
+from the player's pak0 (the web's font-q3), and Barlow (font-body).
+*/
+
+body, div, p, h1, h2, h3, ul, li, form, header, footer, section, aside, nav, main {
+	display: block;
+}
+
+body {
+	font-family: Barlow;
+	font-weight: normal;
+	font-size: 16dp;
+	line-height: 1.5;
+	color: #e6ddd2;
+	width: 100%;
+	height: 100%;
+	nav: auto;
+}
+
+/* ---------------------------------------------------------------- type */
+
+.q3 { font-family: OzDisplay; font-weight: normal; }
+.ink { color: #e6ddd2; }
+.hot { color: #fff3e6; }
+.dim { color: #8d847c; }
+.faint { color: #5d554f; }
+.red { color: #db2410; }
+.glowc { color: #ff4a1c; }
+.amber { color: #ffad33; }
+.semi { font-weight: 600; }
+.mono { font-family: Barlow; letter-spacing: 0.05em; }
+.trunc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.right { text-align: right; }
+.center { text-align: center; }
+
+/* every control takes the focus and moves it with the d-pad */
+button, input, select, .nav, .spinner, .toggle {
+	tab-index: auto;
+	nav: auto;
+	focus: auto;
+}
+
+kbd {
+	display: inline-block;
+	min-width: 1.6rem;
+	padding: 0.125rem 0.375rem;
+	border: 1dp #ffffff33;
+	border-radius: 2dp;
+	background-color: #ffffff0d;
+	font-family: Barlow;
+	font-weight: 600;
+	font-size: 0.65rem;
+	line-height: 1.5;
+	text-align: center;
+	color: #e6ddd2;
+}
+
+/* ---------------------------------------------------------------- the banner font (id's font2_prop, <banner text>) */
+
+banner {
+	display: inline-block;
+	white-space: nowrap;
+	height: 1em;
+	line-height: 1em;
+	filter: drop-shadow( #000000cc 0 0.15rem 0.35rem );
+}
+
+banner img {
+	display: inline-block;
+	vertical-align: top;
+}
+
+/* ---------------------------------------------------------------- the main menu's shading (Chrome.tsx's Shade) */
+
+.shade {
+	position: absolute;
+	left: 0; top: 0; right: 0; bottom: 0;
+	pointer-events: none;
+}
+
+.shade.left {
+	decorator: linear-gradient( 90deg, #000000e0 0%, #0000009e 22%, #0000002e 42%, #00000000 58% );
+}
+
+.shade.vignette {
+	decorator: radial-gradient( ellipse at 62% 50%, #00000000 45%, #000000a6 100% );
+}
+
+.shade.dim {
+	background-color: #000000;
+	opacity: 0;
+	transition: opacity 0.5s cubic-out;
+}
+
+.shade.dim.wide { opacity: 0.38; }
+.shade.dim.quit { opacity: 0.5; }
+
+/* ---------------------------------------------------------------- menu items (MenuItem.tsx) */
+
+.mitem {
+	position: relative;
+}
+
+.mitem button {
+	position: relative;
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.45rem 0 0.45rem 1.75rem;
+	text-align: left;
+}
+
+.mitem.md button {
+	padding: 0.4rem 0 0.4rem 1.5rem;
+}
+
+/* the accent bar and the red wash behind a focused item */
+.mitem .bar {
+	display: block;
+	position: absolute;
+	left: 0;
+	top: 15%;
+	height: 70%;
+	width: 3dp;
+	background-color: #ff4a1c;
+	box-shadow: #ff4a1c 0 0 0.8rem 0;
+	transform: scaleY(0);
+	opacity: 0;
+	transition: transform opacity 0.18s cubic-out;
+}
+
+.mitem .wash {
+	display: block;
+	position: absolute;
+	left: 0; right: 0; top: 0.125rem; bottom: 0.125rem;
+	decorator: linear-gradient( 90deg, #db241066 0%, #db24101a 50%, #db241000 100% );
+	transform-origin: left center;
+	transform: scaleX(0);
+	opacity: 0;
+	transition: transform opacity 0.28s cubic-out;
+}
+
+.mitem .row {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.mitem .num {
+	position: relative;
+	width: 1.5rem;
+	margin-right: 1rem;
+	font-family: OzDisplay;
+	font-size: 0.7rem;
+	letter-spacing: 0.1em;
+	color: #5d554f;
+	transition: color 0.2s linear-in-out;
+}
+
+.mitem .label {
+	position: relative;
+	font-family: OzDisplay;
+	font-size: 2.55rem;
+	line-height: 1;
+	letter-spacing: 0.06em;
+	color: #e6ddd2d9;
+	transition: color transform 0.2s cubic-out;
+}
+
+.mitem.md .label { font-size: 1.75rem; }
+.mitem.primary .label { color: #fff3e6; font-effect: glow(0 10dp 0 0 #db24108c); }
+.mitem.dimmed .label { color: #e6ddd266; }
+
+.mitem button:focus .bar, .mitem button.current .bar { transform: scaleY(1); opacity: 1; }
+.mitem button.current .bar { transform: scaleY(0.5); opacity: 0.6; }
+.mitem button:focus .bar { transform: scaleY(1); opacity: 1; }
+.mitem button:focus .wash { transform: scaleX(1); opacity: 1; }
+.mitem button:focus .num { color: #ff4a1c; }
+.mitem button:focus .label {
+	color: #fff3e6;
+	transform: translateX(0.25rem);
+	font-effect: glow(0 6dp 0 0 #ff4a1cf2);
+	animation: 1.6s sine-in-out infinite alternate pulse;
+}
+
+@keyframes pulse {
+	from { opacity: 1; }
+	to { opacity: 0.86; }
+}
+
+.mitem .hint {
+	display: none;
+	padding: 0 0 0.25rem 4.25rem;
+	font-size: 0.95rem;
+	color: #8d847c;
+}
+
+.mitem.md .hint {
+	display: block;
+	margin-top: -0.125rem;
+	padding: 0 0 0.375rem 1.5rem;
+	font-size: 0.85rem;
+}
+
+.mitem button:focus + .hint { display: block; }
+.mitem.md button:focus + .hint { color: #e6ddd2cc; }
+
+.lock {
+	position: relative;
+	margin-left: 1rem;
+	padding: 0.125rem 0.5rem;
+	border: 1dp #ffad3380;
+	border-radius: 2dp;
+	background-color: #00000080;
+	font-family: OzDisplay;
+	font-size: 0.7rem;
+	letter-spacing: 0.15em;
+	color: #ffad33;
+}
+
+/* ---------------------------------------------------------------- panels (PagePanel.tsx) */
+
+.panel {
+	position: absolute;
+	left: 35rem; right: 4.5rem; top: 7.5rem; bottom: 6.5rem;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1dp #ffffff12;
+	background-color: #0a0807d6;
+}
+
+body.shown .panel, body.shown .enter {
+	animation: 0.32s cubic-out 1 panel-in;
+}
+
+@keyframes panel-in {
+	from { opacity: 0; transform: translateX(3rem); }
+	to { opacity: 1; transform: translateX(0); }
+}
+
+.topline {
+	position: absolute;
+	left: 0; right: 0; top: 0;
+	height: 2dp;
+	decorator: linear-gradient( 90deg, #ff4a1c 0%, #db2410 50%, #db241000 100% );
+	transform-origin: left center;
+}
+
+body.shown .topline {
+	animation: 0.6s cubic-out 1 topline-in;
+}
+
+@keyframes topline-in {
+	from { transform: scaleX(0); }
+	to { transform: scaleX(1); }
+}
+
+/* gothic corner brackets */
+.corners {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+	pointer-events: none;
+}
+
+.corners div {
+	position: absolute;
+	width: 1.5rem;
+	height: 1.5rem;
+	border-color: #db2410d9;
+}
+
+.corners .tl { left: 0; top: 0; border-left-width: 2dp; border-top-width: 2dp; }
+.corners .tr { right: 0; top: 0; border-right-width: 2dp; border-top-width: 2dp; }
+.corners .bl { left: 0; bottom: 0; border-left-width: 2dp; border-bottom-width: 2dp; }
+.corners .br { right: 0; bottom: 0; border-right-width: 2dp; border-bottom-width: 2dp; }
+
+.phead {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	padding: 2rem 2.5rem 1rem 2.5rem;
+}
+
+.phead banner { font-size: 2.6rem; }
+
+.subtitle {
+	margin-top: 1rem;
+	max-width: 48rem;
+	font-size: 1rem;
+	color: #8d847c;
+}
+
+.backbtn {
+	display: flex;
+	align-items: center;
+	margin-bottom: 0.25rem;
+	font-family: OzDisplay;
+	font-size: 0.75rem;
+	letter-spacing: 0.2em;
+	color: #8d847c;
+	tab-index: none;
+	transition: color 0.15s linear-in-out;
+}
+
+.backbtn:hover { color: #fff3e6; }
+
+.backbtn kbd {
+	font-family: OzDisplay;
+	font-weight: normal;
+	min-width: 0;
+	margin-right: 0.5rem;
+	border-color: #ffffff26;
+	background-color: transparent;
+	color: #8d847c;
+}
+
+.divider {
+	margin: 0 2.5rem;
+	height: 1px;	/* 1dp falls between pixel rows below 1080p */
+	decorator: linear-gradient( 90deg, #ffffff26 0%, #ffffff0d 50%, #ffffff00 100% );
+}
+
+.pbody {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+}
+
+.pfoot {
+	display: flex;
+	align-items: center;
+	padding: 1rem 2.5rem;
+	border-top: 1dp #ffffff0f;
+	background-color: #0000004d;
+}
+
+.pfoot > * { margin-right: 0.75rem; }
+
+.scroll {
+	overflow-y: auto;
+}
+
+/* the panel's padded scrolling body */
+.inner {
+	position: absolute;
+	left: 0; right: 0; top: 0; bottom: 0;
+	padding: 1.5rem 2.5rem;
+	overflow-y: auto;
+}
+
+/* a section title: red caps and a fading rule (SectionTitle) */
+.section {
+	display: flex;
+	align-items: center;
+	margin: 1.5rem 0 0.75rem 0;
+}
+
+.section.first { margin-top: 0; }
+
+.section span.t {
+	font-family: OzDisplay;
+	font-size: 0.85rem;
+	letter-spacing: 0.22em;
+	color: #db2410;
+	margin-right: 0.75rem;
+}
+
+.section span.rule {
+	flex: 1;
+	height: 1px;	/* 1dp falls between pixel rows below 1080p */
+	decorator: linear-gradient( 90deg, #db241066 0%, #db241000 100% );
+}
+
+.badge {
+	display: inline-block;
+	padding: 1dp 0.375rem;
+	border: 1dp #ffad3366;
+	border-radius: 2dp;
+	background-color: #ffad331a;
+	font-family: OzDisplay;
+	font-size: 0.6rem;
+	letter-spacing: 0.15em;
+	color: #ffad33;
+}
+
+.badge.red { border-color: #ff4a1c80; background-color: #db241026; color: #ff4a1c; }
+.badge.dimb { border-color: #ffffff26; background-color: transparent; color: #8d847c; }
+
+.empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 3.5rem 2.5rem;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #00000033;
+	text-align: center;
+}
+
+.empty .t {
+	font-family: OzDisplay;
+	font-size: 1.3rem;
+	letter-spacing: 0.1em;
+	color: #e6ddd2;
+	margin-bottom: 0.75rem;
+}
+
+.empty p {
+	max-width: 34rem;
+	font-size: 1rem;
+	color: #8d847c;
+}
+
+/* ---------------------------------------------------------------- controls (controls/*.tsx) */
+
+button.btn {
+	display: inline-block;
+	position: relative;
+	padding: 0.625rem 1.5rem;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #ffffff0a;
+	font-family: OzDisplay;
+	font-size: 1rem;
+	letter-spacing: 0.12em;
+	color: #e6ddd2;
+	text-align: center;
+	transition: background-color border-color color 0.15s linear-in-out;
+}
+
+button.btn.small {
+	padding: 0.375rem 1rem;
+	font-size: 0.8rem;
+}
+
+button.btn:focus, button.btn:hover {
+	border-color: #ff4a1cb3;
+	background-color: #db241026;
+	color: #fff3e6;
+}
+
+button.btn.primary {
+	border-color: #ff4a1cb3;
+	decorator: linear-gradient( 180deg, #db2410e6 0%, #b3170ae6 100% );
+	color: #fff3e6;
+	box-shadow: #db241059 0 0 1.5rem 0;
+}
+
+button.btn.primary:focus, button.btn.primary:hover {
+	box-shadow: #ff4a1cb3 0 0 2.2rem 0;
+	filter: brightness( 1.25 );
+}
+
+button.btn.refused { opacity: 0.6; }
+
+/* on/off (Toggle.tsx) */
+.toggle {
+	display: flex;
+	align-items: center;
+	padding: 0.25rem;
+	border-radius: 2dp;
+	nav-left: none;		/* Left and Right flip it */
+	nav-right: none;
+}
+
+.toggle:focus { background-color: #ffffff0d; }
+
+.toggle .track {
+	position: relative;
+	width: 3rem;
+	height: 1.5rem;
+	box-sizing: border-box;
+	border: 1dp #5a4f49;
+	border-radius: 0.75rem;
+	background-color: #00000099;
+	transition: background-color border-color 0.2s linear-in-out;
+}
+
+.toggle .knob {
+	position: absolute;
+	left: 0.125rem;
+	top: 0.125rem;
+	width: 1.125rem;
+	height: 1.125rem;
+	border-radius: 0.5625rem;
+	background-color: #8d847c;
+	transition: left 0.2s cubic-out;
+}
+
+.toggle .state {
+	margin-left: 0.75rem;
+	font-family: OzDisplay;
+	font-size: 0.875rem;
+	letter-spacing: 0.05em;
+	color: #8d847c;
+}
+
+.toggle.on .track { border-color: #ff4a1ccc; background-color: #db2410b3; }
+.toggle.on .knob { left: 1.625rem; background-color: #fff3e6; }
+.toggle.on .state { color: #fff3e6; }
+
+/* a choice with arrows (Spinner.tsx) */
+.spinner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 22rem;
+	height: 2.5rem;
+	box-sizing: border-box;
+	padding: 0 0.5rem;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #00000066;
+	transition: background-color border-color 0.15s linear-in-out;
+}
+
+.spinner.wide { width: 100%; }
+
+.spinner:focus {
+	border-color: #ff4a1cb3;
+	background-color: #db24101a;
+}
+
+.spinner .arrow {
+	width: 1.75rem;
+	height: 1.75rem;
+	line-height: 1.75rem;
+	text-align: center;
+	font-size: 0.7rem;
+	color: #8d847c;
+}
+
+.spinner:focus .arrow { color: #db2410; }
+
+.spinner .v {
+	flex: 1;
+	padding: 0 0.5rem;
+	font-family: OzDisplay;
+	font-size: 0.95rem;
+	letter-spacing: 0.05em;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: #e6ddd2;
+}
+
+.spinner:focus .v { color: #fff3e6; }
+
+/* text fields (TextField.tsx) */
+input.text {
+	display: inline-block;
+	width: 22rem;
+	height: 2.5rem;
+	box-sizing: border-box;
+	padding: 0.5rem 0.75rem;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #00000080;
+	font-size: 1rem;
+	color: #fff3e6;
+}
+
+input.text.wide { width: 100%; }
+
+input.text:focus {
+	border-color: #ff4a1cb3;
+	background-color: #000000b3;
+}
+
+input.text:placeholder-shown { color: #5d554f; }
+
+/* sliders (Slider.tsx) */
+input.slider {
+	display: inline-block;
+	width: 16rem;
+	height: 1rem;
+	vertical-align: middle;
+}
+
+input.slider slidertrack {
+	margin-top: 0.3125rem;
+	height: 0.375rem;
+	border-radius: 0.1875rem;
+	background-color: #ffffff1a;
+}
+
+input.slider sliderprogress {
+	margin-top: 0.3125rem;
+	height: 0.375rem;
+	border-radius: 0.1875rem;
+	decorator: linear-gradient( 90deg, #b3170a 0%, #db2410 100% );
+}
+
+input.slider sliderbar {
+	width: 1rem;
+	height: 1rem;
+	box-sizing: border-box;
+	border: 2dp #e6ddd2;
+	border-radius: 0.5rem;
+	background-color: #1a1412;
+}
+
+input.slider:focus sliderbar {
+	border-color: #fff3e6;
+	box-shadow: #ff4a1ce6 0 0 0.8rem 0;
+}
+
+input.slider sliderarrowdec, input.slider sliderarrowinc { width: 0; height: 0; }
+
+/* tabs: Q and E (the shoulder buttons) step through a .tabs bar */
+.tabs {
+	display: flex;
+	align-items: center;
+}
+
+.tabs .tab {
+	position: relative;
+	margin-right: 1.5rem;
+	padding: 0.5rem 0.125rem 0.6rem 0.125rem;
+	font-family: OzDisplay;
+	font-size: 0.75rem;
+	letter-spacing: 0.2em;
+	color: #8d847c;
+	transition: color 0.15s linear-in-out;
+}
+
+.tabs .tab:focus, .tabs .tab:hover { color: #e6ddd2; }
+.tabs .tab.active { color: #fff3e6; }
+
+.tabs .tab .under {
+	position: absolute;
+	left: 0; right: 0; bottom: 0;
+	height: 2dp;
+	background-color: #db2410;
+	opacity: 0;
+	transition: opacity 0.2s linear-in-out;
+}
+
+.tabs .tab.active .under { opacity: 1; box-shadow: #ff4a1c99 0 0 0.6rem 0; }
+
+/* tables (the server browser, the boards, the replays) */
+.table {
+	border: 1dp #ffffff12;
+	border-radius: 2dp;
+	background-color: #00000033;
+}
+
+.thead {
+	display: flex;
+	padding: 0.5rem 0.75rem;
+	border-bottom: 1dp #ffffff12;
+	background-color: #ffffff08;
+	font-family: OzDisplay;
+	font-size: 0.6rem;
+	letter-spacing: 0.25em;
+	color: #8d847c;
+}
+
+.trow {
+	display: flex;
+	align-items: center;
+	padding: 0.55rem 0.75rem;
+	border-bottom: 1dp #ffffff0a;
+	font-size: 0.95rem;
+	color: #e6ddd2;
+}
+
+.trow:hover, .trow:focus { background-color: #ffffff0a; }
+.trow.selected { background-color: #db24101f; }
+
+/* glass dialogs (the quit and leave confirmations) */
+.dialog {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 34rem;
+	box-sizing: border-box;
+	padding: 2.5rem 3rem;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #0a0807d6;
+}
+
+body.shown .dialog { animation: 0.3s back-out 1 dialog-in; }
+
+@keyframes dialog-in {
+	from { transform: scale(0.92) translateY(0.625rem); opacity: 0; }
+	to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+button.confirm {
+	min-width: 9rem;
+	margin: 0 0.5rem;
+	padding: 0.75rem 2rem;
+	border: 1dp #ffffff1a;
+	border-radius: 2dp;
+	background-color: #ffffff0a;
+	font-family: OzDisplay;
+	font-size: 1.6rem;
+	letter-spacing: 0.1em;
+	color: #e6ddd2;
+	text-align: center;
+	transition: background-color border-color color 0.15s linear-in-out;
+}
+
+button.confirm:focus, button.confirm:hover {
+	border-color: #ff4a1cb3;
+	background-color: #db241033;
+	color: #fff3e6;
+	font-effect: glow(0 10dp 0 0 #ff4a1c);
+}
+
+/* a level shot or other art filling its box */
+.shot {
+	decorator: image( /levelshots/q3dm17 cover );
+	background-color: #1a0d0b;
+}
+
+/* thin dark scroll bars */
+scrollbarvertical {
+	width: 0.375rem;
+	margin-left: 0.25rem;
+}
+
+scrollbarvertical slidertrack { background-color: #00000040; }
+
+scrollbarvertical sliderbar {
+	background-color: #5a4f49;
+	border-radius: 0.1875rem;
+	min-height: 1.5rem;
+}
+
+scrollbarvertical sliderarrowdec, scrollbarvertical sliderarrowinc { width: 0; height: 0; }
+
+scrollbarhorizontal { height: 0; }
+
+/* ---------------------------------------------------------------- narrow and short windows
+
+The engine lays the menus out in as little as 1280x720 dp (a 4:3 window, a bigger menu size; the web
+menu always had 1700x1080). Under 1700 dp across, a page's panel takes the main column's place
+(shell.rcss hides the column behind it), so it is never narrower than at 1700. Under 900 dp tall
+the panel and its head and foot give up some margin; the bodies scroll. */
+
+@media (max-width: 1699dp) {
+	.panel { left: 3.5rem; }
+}
+
+@media (max-height: 899dp) {
+	.panel { top: 6rem; bottom: 4.5rem; }
+	.phead { padding: 1.25rem 2.5rem 0.75rem 2.5rem; }
+	.pfoot { padding: 0.75rem 2.5rem; }
+}

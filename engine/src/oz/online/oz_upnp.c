@@ -1,0 +1,202 @@
+/*
+===========================================================================
+Oz Arena: an open UDP port for a host (ENGINE_PLAN.md P8 step 3). GPL-2.0.
+
+When the player hosts (oz_host) with oz_host_upnp 1, the router is asked through UPnP (Windows' own
+NATUPnP, no library) to forward the game's UDP port (net_port) to this PC. If it does, the listing
+carries the router's public ip:port, so any client can join it as a normal server, and with
+oz_host_masters 1 the listen server heartbeats to the master servers (sv_master1..5) as a dedicated
+one would. The forward is taken down when hosting ends. Everything runs on a thread of its own:
+UPnP discovery takes seconds.
+
+  oz_host_upnp		1: ask the router for the port when hosting (0 in tests: it changes the router)
+  oz_host_masters	1: an open host also registers with the master servers
+  oz_upnp			prints what the router said
+===========================================================================
+*/
+#ifdef _WIN32
+#define COBJMACROS
+#include "../../../quake3e/code/client/client.h"
+#include <winsock2.h>
+
+#include <windows.h>
+#include <natupnp.h>
+#include <oleauto.h>
+
+static cvar_t	*oz_host_upnp, *oz_host_masters;
+static HANDLE	thread;
+static volatile LONG	state;		// 0 idle, 1 asking, 2 open, 3 refused
+static char		address[64];		// "ip:port" once open
+static char		why[128];
+static int		mappedPort;
+
+
+// the LAN address this PC reaches the internet from (no packet is sent)
+static qboolean LocalAddress( char *out, int size ) {
+	SOCKET s = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+	struct sockaddr_in to, me;
+	int len = sizeof( me );
+	qboolean ok = qfalse;
+
+	if ( s == INVALID_SOCKET ) {
+		return qfalse;
+	}
+	memset( &to, 0, sizeof( to ) );
+	to.sin_family = AF_INET;
+	to.sin_port = htons( 53 );
+	to.sin_addr.s_addr = htonl( 0xc0000201 );	// 192.0.2.1 (TEST-NET-1): only picks the route
+	if ( connect( s, (struct sockaddr *)&to, sizeof( to ) ) == 0 && getsockname( s, (struct sockaddr *)&me, &len ) == 0 ) {
+		const byte *b = (const byte *)&me.sin_addr.s_addr;
+		Com_sprintf( out, size, "%i.%i.%i.%i", b[0], b[1], b[2], b[3] );
+		ok = qtrue;
+	}
+	closesocket( s );
+	return ok;
+}
+
+
+static IStaticPortMappingCollection *Mappings( IUPnPNAT **nat ) {
+	IStaticPortMappingCollection *coll = NULL;
+	if ( FAILED( CoCreateInstance( &CLSID_UPnPNAT, NULL, CLSCTX_ALL, &IID_IUPnPNAT, (void **)nat ) ) ) {
+		return NULL;
+	}
+	if ( FAILED( IUPnPNAT_get_StaticPortMappingCollection( *nat, &coll ) ) ) {
+		coll = NULL;
+	}
+	return coll;
+}
+
+
+static DWORD WINAPI Open( LPVOID arg ) {
+	IUPnPNAT *nat = NULL;
+	IStaticPortMappingCollection *coll;
+	IStaticPortMapping *map = NULL;
+	char lan[64];
+	WCHAR wlan[64];
+	BSTR proto, client, desc, ext = NULL;
+	int port = (int)(intptr_t)arg;
+
+	CoInitializeEx( NULL, COINIT_MULTITHREADED );
+	coll = Mappings( &nat );
+	if ( !coll ) {
+		Q_strncpyz( why, "no UPnP router answered", sizeof( why ) );
+		InterlockedExchange( &state, 3 );
+	} else if ( !LocalAddress( lan, sizeof( lan ) ) ) {
+		Q_strncpyz( why, "no LAN address", sizeof( why ) );
+		InterlockedExchange( &state, 3 );
+	} else {
+		MultiByteToWideChar( CP_ACP, 0, lan, -1, wlan, ARRAY_LEN( wlan ) );
+		proto = SysAllocString( L"UDP" );
+		client = SysAllocString( wlan );
+		desc = SysAllocString( L"Oz Arena" );
+		if ( SUCCEEDED( IStaticPortMappingCollection_Add( coll, port, proto, port, client, VARIANT_TRUE, desc, &map ) ) && map
+			&& SUCCEEDED( IStaticPortMapping_get_ExternalIPAddress( map, &ext ) ) && ext && ext[0] ) {
+			char ip[48];
+			WideCharToMultiByte( CP_ACP, 0, ext, -1, ip, sizeof( ip ), NULL, NULL );
+			Com_sprintf( address, sizeof( address ), "%s:%i", ip, port );
+			mappedPort = port;
+			InterlockedExchange( &state, 2 );
+		} else {
+			Q_strncpyz( why, "the router refused the port", sizeof( why ) );
+			InterlockedExchange( &state, 3 );
+		}
+		if ( ext ) {
+			SysFreeString( ext );
+		}
+		if ( map ) {
+			IStaticPortMapping_Release( map );
+		}
+		SysFreeString( proto );
+		SysFreeString( client );
+		SysFreeString( desc );
+	}
+	if ( coll ) {
+		IStaticPortMappingCollection_Release( coll );
+	}
+	if ( nat ) {
+		IUPnPNAT_Release( nat );
+	}
+	CoUninitialize();
+	return 0;
+}
+
+
+static DWORD WINAPI Close( LPVOID arg ) {
+	IUPnPNAT *nat = NULL;
+	IStaticPortMappingCollection *coll;
+	CoInitializeEx( NULL, COINIT_MULTITHREADED );
+	coll = Mappings( &nat );
+	if ( coll ) {
+		BSTR proto = SysAllocString( L"UDP" );
+		IStaticPortMappingCollection_Remove( coll, (long)(intptr_t)arg, proto );
+		SysFreeString( proto );
+		IStaticPortMappingCollection_Release( coll );
+	}
+	if ( nat ) {
+		IUPnPNAT_Release( nat );
+	}
+	CoUninitialize();
+	return 0;
+}
+
+
+/*
+==================
+OzUpnp_Address
+
+The host's public ip:port while the router forwards it, else "". Called each second while hosting
+(oz_ice.c's listing): the first call asks the router, and a listen server that's gone closes it.
+==================
+*/
+const char *OzUpnp_Address( void ) {
+	if ( !oz_host_upnp ) {
+		oz_host_upnp = Cvar_Get( "oz_host_upnp", "1", CVAR_ARCHIVE );
+		Cvar_SetDescription( oz_host_upnp, "1: a host asks the router (UPnP) to open its UDP port, so any game can join it at ip:port." );
+		oz_host_masters = Cvar_Get( "oz_host_masters", "0", CVAR_ARCHIVE );
+		Cvar_SetDescription( oz_host_masters, "1: a host whose port is open also registers with the master servers (sv_master1..5)." );
+	}
+	if ( !oz_host_upnp->integer ) {
+		return "";
+	}
+	if ( state == 0 && !thread ) {
+		InterlockedExchange( &state, 1 );
+		thread = CreateThread( NULL, 0, Open, (LPVOID)(intptr_t)Cvar_VariableIntegerValue( "net_port" ), 0, NULL );
+	}
+	if ( thread && WaitForSingleObject( thread, 0 ) == WAIT_OBJECT_0 ) {
+		CloseHandle( thread );
+		thread = NULL;
+		if ( state == 2 ) {
+			Com_Printf( "upnp: the router forwards %s to this PC\n", address );
+			if ( oz_host_masters->integer ) {
+				Cvar_Set( "sv_ozMasters", "1" );
+			}
+		} else {
+			Com_Printf( "upnp: %s; peer-to-peer only\n", why );
+		}
+	}
+	return state == 2 ? address : "";
+}
+
+
+// hosting ended: the forward comes down (on a thread: it can take a while)
+void OzUpnp_Close( void ) {
+	if ( state == 2 && mappedPort ) {
+		HANDLE t = CreateThread( NULL, 0, Close, (LPVOID)(intptr_t)mappedPort, 0, NULL );
+		if ( t ) {
+			CloseHandle( t );
+		}
+	}
+	if ( state != 1 ) {
+		InterlockedExchange( &state, 0 );
+	}
+	mappedPort = 0;
+	address[0] = '\0';
+	Cvar_Set( "sv_ozMasters", "0" );
+}
+
+
+void OzUpnp_Print( void ) {
+	static const char *names[] = { "not asked", "asking the router", "open", "refused" };
+	Com_Printf( "upnp: %s%s%s\n", names[state & 3], state == 2 ? " at " : state == 3 ? ": " : "", state == 2 ? address : state == 3 ? why : "" );
+}
+#endif

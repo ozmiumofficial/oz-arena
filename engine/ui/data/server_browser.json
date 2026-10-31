@@ -1,0 +1,40 @@
+{
+  "server_browser": {
+    "_note": "The Server Browser (ui/pages/server_browser.rml). Its sources: the Internet (the community servers and the online service's player-hosted matches), the LAN, favorites and history. The Internet tab is live: internet is the hub's open peer-to-peer matches (P8, oz_ui_social.cpp: net_matches, asked for as the page opens and every 15 s, each with its link badge, Relayed when the host or you hide your IP, else Direct; answered: the hub has answered once), each with the shown flag the filters give it (oz_ui_servers.cpp); the community servers are the servers key's. game, mode, ping (or region, for Oz Arena alone), hide_full, hide_empty and query filter both; sort and sort_rev are the column headers' order. join is a peer-to-peer join under way (oz_ice.c: asking, connecting, joined or failed); ask is what the password prompt is for: a match's host, or a server's address. Every tab's rows are the servers key's (oz_ui_servers.cpp): the community servers, the LAN broadcast's answers, or the saved favorites and history (profile/servers.json). Connect takes an address and runs the console's connect.",
+    "tab": "internet",
+    "query": "",
+    "address": "",
+    "game": "All supported",
+    "games": "All supported|Oz Arena|Vanilla|CPMA|Defrag|Other mods",
+    "region": "All regions",
+    "regions": "All regions|North America East|North America West|Europe|South America|Asia|Oceania|Middle East and Africa",
+    "mode": "Any mode",
+    "modes": "Any mode|Free For All|Duel|Team Deathmatch|Capture the Flag|Clan Arena|Freeze Tag|2v2|Run|Fast caps|Instagib",
+    "ping": "Any ping",
+    "pings": "Any ping|Under 50 ms|Under 100 ms|Under 150 ms|Under 250 ms",
+    "sort": "players",
+    "sort_rev": false,
+    "hide_full": true,
+    "hide_empty": false,
+    "answered": false,
+    "join": { "status": "", "host": "", "name": "", "link": "" },
+    "ask": { "host": "", "address": "", "name": "" },
+    "internet": []
+  },
+  "servers": {
+    "_note": "The Server Browser's rows (oz_ui_servers.cpp over oz_servers.c): the tab's own. Internet: every server the master servers list that answered, the same game under several addresses once; LAN: what answered the broadcast; Favorites and History: the saved places as they are now, or as they were (up false, status why) when they don't answer, a peer-to-peer match by its host. Filtered and sorted by server_browser's filters (History newest first), the best 400. A row: address, name (no color codes), game (Vanilla, CPMA, Defrag, Oz Arena or the mod's name) and kind (vanilla, cpma, defrag, oz or other), map (the arena's name where the game knows it), mode, players (everyone, bots too, of the public slots), bots (\"3 bots\" where the server says), ping, full, password, look (the full Oz look: not pure, or an Oz server), have (the mod is in the player's game folder) and friends (\"2 friends\": friends on it, from presence). card is the server card Info opens: the row's facts, then its status (asking, ok or none): version (the engine's, the mod's), physics (CPMA's and Defrag's), who (players and bots), friends (their names) and list (each player: rich, score, ping, bot, friend). mod is the question a join asks about a CPMA or Defrag the player doesn't have (oz_mods.c): dir (its folder), game, name (the server's), found (a copy in the install the file system doesn't find), status (done or failed once imported) and message. Only the rows from first to last (those in view and some either side) are laid out, as view (each with its place in rows, n, that its controls' ids carry): top and bottom are the height of the rows above and below them (RmlUi makes and draws every row a data-for lists, in view or not). text is the status line; shown counts every row the list shows (the hub's too), and empty_title and empty_text are what it says when that's none.",
+    "rows": [],
+    "view": [],
+    "first": 0,
+    "last": 40,
+    "top": "0px",
+    "bottom": "0px",
+    "text": "",
+    "shown": 0,
+    "empty_title": "",
+    "empty_text": "",
+    "card": { "open": false, "address": "", "rich": "", "name": "", "game": "", "kind": "", "map": "", "mode": "", "ping": "", "password": false, "look": false, "fav": false,
+      "status": "", "version": "", "physics": "", "who": "", "friends": "", "list": [] },
+    "mod": { "open": false, "address": "", "dir": "", "game": "", "name": "", "found": "", "status": "", "message": "" }
+  }
+}

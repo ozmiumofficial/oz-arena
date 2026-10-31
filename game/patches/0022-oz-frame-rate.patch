@@ -1,0 +1,191 @@
+diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
+--- a/code/cgame/cg_local.h
++++ b/code/cgame/cg_local.h
+@@ -507,6 +507,10 @@
+ 	int			predictedErrorTime;
+ 	vec3_t		predictedError;
+ 
++	qboolean	ozStepShift;			// Oz: predictedPlayerState.origin is drawn between two fixed steps,
++	vec3_t		ozStepTrue;				// and this is where the prediction has it (CG_PredictPlayerState)
++	playerState_t	ozStepFrom, ozStepTo;	// the last fixed step the prediction ran: its start and end
++
+ 	int			eventSequence;
+ 	int			predictableEvents[MAX_PREDICTED_EVENTS];
+ 
+diff --git a/code/cgame/cg_main.c b/code/cgame/cg_main.c
+--- a/code/cgame/cg_main.c
++++ b/code/cgame/cg_main.c
+@@ -309,7 +309,7 @@
+ 	{ &cg_smoothClients, "cg_smoothClients", "0", CVAR_USERINFO | CVAR_ARCHIVE},
+ 	{ &cg_cameraMode, "com_cameraMode", "0", CVAR_CHEAT},
+ 
+-	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO},
++	{ &pmove_fixed, "pmove_fixed", "1", CVAR_SYSTEMINFO},	// Oz: the server's (g_main.c)
+ 	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO},
+ #ifdef MISSIONPACK
+ 	{ &cg_smallFont, "ui_smallFont", "0.25", CVAR_ARCHIVE},
+diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
+--- a/code/cgame/cg_predict.c
++++ b/code/cgame/cg_predict.c
+@@ -415,9 +415,17 @@
+ 	qboolean	moved;
+ 	usercmd_t	oldestCmd;
+ 	usercmd_t	latestCmd;
++	playerState_t	stepFrom;
++	vec3_t		stepBack;
+ 
+ 	cg.hyperspace = qfalse;	// will be set if touching a trigger_teleport
+ 
++	// Oz: the last frame drew the player between two fixed steps: predict from where it really was
++	if ( cg.ozStepShift ) {
++		VectorCopy( cg.ozStepTrue, cg.predictedPlayerState.origin );
++		cg.ozStepShift = qfalse;
++	}
++
+ 	// if this is the first frame we must guarantee
+ 	// predictedPlayerState is valid even if there is some
+ 	// other error condition
+@@ -498,6 +506,8 @@
+ 
+ 	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
+ 	cg_pmove.pmove_msec = pmove_msec.integer;
++	stepFrom = cg.predictedPlayerState;
++	cg_pmove.stepFrom = &stepFrom;
+ 
+ 	// run cmds
+ 	moved = qfalse;
+@@ -592,14 +602,47 @@
+ 		//CG_CheckChangedPredictableEvents(&cg.predictedPlayerState);
+ 	}
+ 
++	cg_pmove.stepFrom = NULL;
++
+ 	if ( cg_showmiss.integer > 1 ) {
+ 		CG_Printf( "[%i : %i] ", cg_pmove.cmd.serverTime, cg.time );
+ 	}
+ 
++	// Oz: under pmove_fixed the player moves in whole steps of pmove_msec, the last one up to a step
++	// ahead of the latest command; it's drawn where it is at that command's time, between the last
++	// step's start and end, so the view moves every frame as it did without fixed steps. The step is
++	// kept: a snapshot that already reached its end runs no step here, and is drawn between the same
++	// two. On the ground the height isn't eased (a stair step eases on its own, EV_STEP), nor across
++	// a teleport.
++	if ( moved && stepFrom.commandTime < cg.predictedPlayerState.commandTime ) {
++		cg.ozStepFrom = stepFrom;
++		cg.ozStepTo = cg.predictedPlayerState;
++	}
++	VectorClear( stepBack );
++	if ( cg_pmove.pmove_fixed && cg.ozStepTo.commandTime == cg.predictedPlayerState.commandTime
++			&& cg.ozStepFrom.commandTime < cg.ozStepTo.commandTime && latestCmd.serverTime < cg.ozStepTo.commandTime
++			&& cg.ozStepFrom.pm_type == cg.predictedPlayerState.pm_type
++			&& !( ( cg.ozStepFrom.eFlags ^ cg.predictedPlayerState.eFlags ) & EF_TELEPORT_BIT ) ) {
++		float	f = (float)( cg.ozStepTo.commandTime - latestCmd.serverTime ) / ( cg.ozStepTo.commandTime - cg.ozStepFrom.commandTime );
++		VectorSubtract( cg.ozStepFrom.origin, cg.ozStepTo.origin, stepBack );
++		if ( cg.ozStepFrom.groundEntityNum != ENTITYNUM_NONE && cg.predictedPlayerState.groundEntityNum != ENTITYNUM_NONE ) {
++			stepBack[2] = 0;
++		}
++		if ( VectorLength( stepBack ) > 64 ) {
++			VectorClear( stepBack );
++		}
++		VectorScale( stepBack, f > 1 ? 1 : f, stepBack );
++	}
++
+ 	if ( !moved ) {
+ 		if ( cg_showmiss.integer ) {
+ 			CG_Printf( "not moved\n" );
+ 		}
++		if ( !VectorCompare( stepBack, vec3_origin ) ) {
++			VectorCopy( cg.predictedPlayerState.origin, cg.ozStepTrue );
++			VectorAdd( cg.predictedPlayerState.origin, stepBack, cg.predictedPlayerState.origin );
++			cg.ozStepShift = qtrue;
++		}
+ 		return;
+ 	}
+ 
+@@ -623,6 +666,12 @@
+ 			cg.eventSequence = cg.predictedPlayerState.eventSequence;
+ 		}
+ 	}
++
++	if ( !VectorCompare( stepBack, vec3_origin ) ) {
++		VectorCopy( cg.predictedPlayerState.origin, cg.ozStepTrue );
++		VectorAdd( cg.predictedPlayerState.origin, stepBack, cg.predictedPlayerState.origin );
++		cg.ozStepShift = qtrue;
++	}
+ }
+ 
+ 
+diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
+--- a/code/game/bg_pmove.c
++++ b/code/game/bg_pmove.c
+@@ -2032,6 +2032,7 @@
+ */
+ void Pmove (pmove_t *pmove) {
+ 	int			finalTime;
++	usercmd_t	cmd;
+ 
+ 	finalTime = pmove->cmd.serverTime;
+ 
+@@ -2047,14 +2048,17 @@
+ 
+ 	// chop the move up if it is too long, to prevent framerate
+ 	// dependent behavior
++	cmd = pmove->cmd;
+ 	while ( pmove->ps->commandTime != finalTime ) {
+ 		int		msec;
+ 
+ 		msec = finalTime - pmove->ps->commandTime;
+ 
+ 		if ( pmove->pmove_fixed ) {
+-			if ( msec > pmove->pmove_msec ) {
+-				msec = pmove->pmove_msec;
++			// Oz: each step ends on pmove_msec's grid (a spawn starts off it, at level.time - 100), so the
++			// short one is first and the same steps run at every frame rate
++			if ( msec > pmove->pmove_msec - pmove->ps->commandTime % pmove->pmove_msec ) {
++				msec = pmove->pmove_msec - pmove->ps->commandTime % pmove->pmove_msec;
+ 			}
+ 		}
+ 		else {
+@@ -2063,9 +2067,17 @@
+ 			}
+ 		}
+ 		pmove->cmd.serverTime = pmove->ps->commandTime + msec;
++		if ( pmove->stepFrom ) {
++			*pmove->stepFrom = *pmove->ps;	// Oz: where this step starts (the cgame draws between steps)
++		}
+ 		PmoveSingle( pmove );
+ 
+-		if ( pmove->ps->pm_flags & PMF_JUMP_HELD ) {
++		if ( pmove->pmove_fixed ) {
++			// Oz: each fixed step runs the command as it was sent, as one frame at 1000 / pmove_msec fps
++			// would (a step changes upmove: a held jump read again as a new press, or 20 below)
++			cmd.serverTime = pmove->cmd.serverTime;
++			pmove->cmd = cmd;
++		} else if ( pmove->ps->pm_flags & PMF_JUMP_HELD ) {
+ 			pmove->cmd.upmove = 20;
+ 		}
+ 	}
+diff --git a/code/game/bg_public.h b/code/game/bg_public.h
+--- a/code/game/bg_public.h
++++ b/code/game/bg_public.h
+@@ -220,6 +220,8 @@
+ 	// these will be different functions during game and cgame
+ 	void		(*trace)( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask );
+ 	int			(*pointcontents)( const vec3_t point, int passEntityNum );
++
++	playerState_t	*stepFrom;		// Oz: if set, the state as Pmove's last step started
+ } pmove_t;
+ 
+ // if a full pmove isn't done on the client, you can just update the angles
+diff --git a/code/game/g_main.c b/code/game/g_main.c
+--- a/code/game/g_main.c
++++ b/code/game/g_main.c
+@@ -177,7 +177,7 @@
+ 	{ &g_proxMineTimeout, "g_proxMineTimeout", "20000", 0, 0, qfalse },
+ #endif
+ 	{ &g_smoothClients, "g_smoothClients", "1", 0, 0, qfalse},
+-	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO, 0, qfalse},
++	{ &pmove_fixed, "pmove_fixed", "1", CVAR_SYSTEMINFO, 0, qfalse},	// Oz: movement the same at every frame rate
+ 	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, 0, qfalse},
+ 
+ 	{ &g_rankings, "g_rankings", "0", 0, 0, qfalse},

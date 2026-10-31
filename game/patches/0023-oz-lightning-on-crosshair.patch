@@ -1,0 +1,52 @@
+Oz: in first person the lightning beam ends where the middle of the view meets something, on the
+crosshair. id's cgame traced it from the player's entity as the snapshots last had it (a snapshot or more
+behind the view) at its eye height before the view eases up a stair, along the snapshots' aim: a step, a
+hit's knockback, a jump pad or a turn swung its end off the crosshair. Damage view kick's tilt stays out
+of it (cg.ozKickPitch): the shots keep going where you aimed. cg_trueLightning still sets a beam seen in
+third person.
+
+diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
+--- a/code/cgame/cg_local.h
++++ b/code/cgame/cg_local.h
+@@ -641,6 +641,7 @@ typedef struct {
+ 	float		v_dmg_time;
+ 	float		v_dmg_pitch;
+ 	float		v_dmg_roll;
++	float		ozKickPitch;			// Oz: Damage view kick's share of refdefViewAngles' pitch
+ 
+ 	// temp working variables for player view
+ 	float		bobfracsin;
+diff --git a/code/cgame/cg_view.c b/code/cgame/cg_view.c
+--- a/code/cgame/cg_view.c
++++ b/code/cgame/cg_view.c
+@@ -377,6 +377,7 @@ static void CG_OffsetFirstPersonView( void ) {
+ 			}
+ 		}
+ 	}
++	cg.ozKickPitch = angles[PITCH] - cg.predictedPlayerState.viewangles[PITCH];	// Oz: the lightning beam leaves it out
+ 
+ 	// add pitch based on fall kick
+ #if 0
+diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
+--- a/code/cgame/cg_weapons.c
++++ b/code/cgame/cg_weapons.c
+@@ -1031,6 +1031,19 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
+ 		muzzlePoint[2] += DEFAULT_VIEWHEIGHT;
+ 	}
+ 
++	// Oz: in first person the beam ends where the middle of the view meets something, on the crosshair.
++	// The cent is a snapshot or more behind the view, at its eye height before the view eases up a stair,
++	// so a step, a hit's knockback, a jump pad or a turn swung the end off. Damage view kick's tilt stays
++	// out: the shots keep going where you aimed. cg_trueLightning still sets a beam seen in third person.
++	if ( cent->currentState.number == cg.predictedPlayerState.clientNum && !cg.renderingThirdPerson ) {
++		vec3_t	angles;
++
++		VectorCopy( cg.refdefViewAngles, angles );
++		angles[PITCH] -= cg.ozKickPitch;
++		AngleVectors( angles, forward, NULL, NULL );
++		VectorCopy( cg.refdef.vieworg, muzzlePoint );
++	}
++
+ 	VectorMA( muzzlePoint, 14, forward, muzzlePoint );
+ 
+ 	// project forward by the lightning range

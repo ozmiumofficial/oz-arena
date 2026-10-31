@@ -1,0 +1,64 @@
+{
+  "_note": "The pause menu's match (filled by the engine while the menu is open: mode and arena, clock, warmup, the local player's score) and the crosshair editor's values (the crosshair settings, followed every frame it's open, oz_ui_crosshair.cpp; its controls write them).",
+  "pause": {
+    "title": "",
+    "clock": "0:00",
+    "warmup": false,
+    "can_restart": false,
+    "editor": false,
+    "standings": [
+      { "name": "Player", "score": 0, "local": true }
+    ]
+  },
+  "crosshair": {
+    "weapon": "all",
+    "weapon_name": "",
+    "live": false,
+    "pick": "c",
+    "vector": false,
+    "lines": false,
+    "shape": "c",
+    "size": 24,
+    "thickness": 2,
+    "gap": 4,
+    "dot": false,
+    "color": "#ffffff",
+    "opacity": 100,
+    "health_color": false,
+    "outline": true,
+    "outline_width": 1,
+    "outline_opacity": 60,
+    "hit_flash": true,
+    "hit_color": "#ff3326",
+    "hit_time": 220,
+    "per_weapon": false,
+    "shapes": [
+      { "id": "none", "label": "None" },
+      { "id": "a", "label": "Classic A" },
+      { "id": "b", "label": "Classic B" },
+      { "id": "c", "label": "Classic C" },
+      { "id": "d", "label": "Classic D" },
+      { "id": "e", "label": "Classic E" },
+      { "id": "f", "label": "Classic F" },
+      { "id": "g", "label": "Classic G" },
+      { "id": "h", "label": "Classic H" },
+      { "id": "i", "label": "Classic I" },
+      { "id": "j", "label": "Classic J" },
+      { "id": "cross", "label": "Cross" },
+      { "id": "dot", "label": "Dot" },
+      { "id": "circle", "label": "Circle" },
+      { "id": "t", "label": "T" }
+    ],
+    "weapons": [
+      { "id": "gauntlet", "icon": "/icons/iconw_gauntlet", "name": "Gauntlet", "own": false },
+      { "id": "machinegun", "icon": "/icons/iconw_machinegun", "name": "Machine gun", "own": false },
+      { "id": "shotgun", "icon": "/icons/iconw_shotgun", "name": "Shotgun", "own": false },
+      { "id": "grenadel", "icon": "/icons/iconw_grenade", "name": "Grenade launcher", "own": false },
+      { "id": "rocketl", "icon": "/icons/iconw_rocket", "name": "Rocket launcher", "own": false },
+      { "id": "lightning", "icon": "/icons/iconw_lightning", "name": "Lightning gun", "own": false },
+      { "id": "railgun", "icon": "/icons/iconw_railgun", "name": "Railgun", "own": false },
+      { "id": "plasma", "icon": "/icons/iconw_plasma", "name": "Plasma gun", "own": false },
+      { "id": "bfg", "icon": "/icons/iconw_bfg", "name": "BFG10K", "own": false }
+    ]
+  }
+}

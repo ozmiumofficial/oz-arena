@@ -1,0 +1,17 @@
+{
+ "_note": "tools/make_textures.py: images that take the halo-free Lanczos alone, where Real-ESRGAN restyles id's paint (Ozmium's choice, 2026-10-30: the hybrid with a fallback). Keys are id's image paths without extension; notes say what the model did. Sources of 32 px or less take Lanczos without an entry.",
+ "images": {
+  "textures/base_floor/diamond2c": {
+   "method": "lanczos",
+   "note": "the rounded diamond-plate scales become thin highlight arcs (pilot)"
+  },
+  "textures/base_wall/metaltech12final": {
+   "method": "lanczos",
+   "note": "the scratched metal reads as rock (pilot)"
+  },
+  "textures/base_floor/diamond2": {
+   "method": "lanczos",
+   "note": "as diamond2c: the scales become thin highlight arcs, the detail cap or not"
+  }
+ }
+}

@@ -1,0 +1,72 @@
+<rml>
+<head>
+	<title>Splash</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		body {
+			background-color: #030303;
+			decorator: radial-gradient( circle closest-side at 50% 50%, #5a0a0559 0%, #00000000 100% );
+		}
+		.box {
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			width: 61.25rem;
+			margin-left: -30.625rem;
+			margin-top: -12.5rem;
+			text-align: center;
+		}
+		body.shown .box { animation: 0.6s linear-in-out 1 fade-in; }
+		@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+		.box banner { font-size: 3.25rem; }
+		.rule { height: 2dp; margin: 1.375rem 0; background-color: #db2410b3; }
+		.line { margin-bottom: 1.375rem; font-size: 1.625rem; line-height: 1.35; color: #e6ddd2; }
+		.line.own {
+			font-family: OzDisplay;
+			font-size: 1.875rem;
+			color: #fff3e6;
+			font-effect: outline(3dp #800d05);
+		}
+		.bar {
+			position: absolute;
+			left: 50%;
+			bottom: 5.625rem;
+			width: 25rem;
+			margin-left: -12.5rem;
+			height: 2dp;
+			background-color: #db2410;
+		}
+		body.shown .bar { transform-origin: left center; animation: 1.2s cubic-out 1 load; }
+		@keyframes load { from { transform: scaleX( 0 ); } to { transform: scaleX( 1 ); } }
+		.status {
+			position: absolute;
+			left: 0;
+			right: 0;
+			bottom: 3.125rem;
+			font-family: OzDisplay;
+			font-size: 1.125rem;
+			letter-spacing: 0.1em;
+			text-align: center;
+			color: #8d847c;
+		}
+		/* endless animations only on a shown page: a hidden one's would keep RmlUi updating it */
+		body.shown .status { animation: 0.8s sine-in-out infinite alternate blink; }
+		@keyframes blink { from { opacity: 1; } to { opacity: 0.55; } }
+	</style>
+</head>
+<!--
+The launch splash (the Godot build's scenes/splash/splash.gd): the fan-project disclaimer while the
+menu loads. It goes on by itself after 5 s, or with any key, click or pad button after 1.5 s.
+-->
+<body data-model="menu">
+	<div class="box">
+		<banner text="Fan project"/>
+		<div class="rule"/>
+		<div class="line">Oz Arena is a non-commercial fan project. It is not made, endorsed or supported by id Software, Bethesda or Microsoft.</div>
+		<div class="line">All models, textures, sounds and maps are derived from id Software's Quake III Arena and belong to id Software.</div>
+		<div class="line own">Your own copy of Quake III Arena is required to play.</div>
+	</div>
+	<div class="bar"/>
+	<div class="status">Press any key</div>
+</body>
+</rml>

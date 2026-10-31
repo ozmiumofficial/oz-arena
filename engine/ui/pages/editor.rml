@@ -1,0 +1,862 @@
+<rml>
+<head>
+	<title>Map Editor</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		/* The map editor (ENGINE_PLAN.md P13, engine/src/oz/ui/oz_ui_editor.cpp): the menu bar, the action bar,
+		   the tool strip down the left and the panel down the right, around #viewport, where the 3D view draws
+		   under the page. A control's data-action names the editor's action: its tip (and the status line) shows
+		   its keys and what it does while the pointer is on it (data-hint: its own text). The menus and the
+		   panel's lists are made by oz_ui_editor.cpp from the one table of actions. */
+		body { font-size: 15dp; }
+		.bar {
+			position: absolute;
+			left: 0;
+			right: 0;
+			background-color: #0a0807f5;
+		}
+
+		/* the menu bar: the title, the menus, the map's name, the way back to the main menu */
+		.top {
+			top: 0;
+			height: 2.6rem;
+			border-bottom: 1dp #ffffff14;
+			display: flex;
+			align-items: center;
+			padding: 0 0.6rem 0 1rem;
+		}
+		.top .title { font-family: OzDisplay; font-size: 1.45rem; color: #db2410; letter-spacing: 0.08em; margin-right: 1.1rem; white-space: nowrap; }
+		#ed-menubar { display: flex; align-items: center; height: 2.6rem; }
+		.mt {
+			display: block;
+			height: 2.6rem;
+			line-height: 2.6rem;
+			padding: 0 0.7rem;
+			font-size: 0.9rem;
+			font-weight: 600;
+			letter-spacing: 0.04em;
+			color: #c9bfb4;
+		}
+		.mt:hover, .mt:focus { color: #fff3e6; background-color: #ffffff12; }
+		.mt.on { color: #fff3e6; background-color: #db241040; }
+		.top .name { margin-left: auto; padding: 0 1rem; color: #8d847c; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.exit {
+			display: block;
+			flex-shrink: 0;
+			padding: 0.32rem 0.85rem;
+			font-size: 0.8rem;
+			font-weight: 600;
+			letter-spacing: 0.1em;
+			color: #e6ddd2;
+			border: 1dp #ffffff40;
+			border-radius: 2dp;
+			background-color: #ffffff0d;
+		}
+		.exit:hover, .exit:focus { color: #fff3e6; border-color: #ff4a1c; background-color: #db241040; }
+
+		/* the action bar: the commands used most, each also in a menu */
+		.tools {
+			top: 2.6rem;
+			height: 2.8rem;
+			border-bottom: 1dp #db241066;
+			display: flex;
+			align-items: center;
+			padding: 0 0.6rem;
+			background-color: #0a0807ee;
+		}
+		.sep { width: 1dp; height: 1.5rem; background-color: #ffffff1f; margin: 0 0.5rem; flex-shrink: 0; }
+		.tb {
+			display: block;
+			padding: 0.35rem 0.8rem;
+			margin-right: 0.25rem;
+			font-weight: 600;
+			font-size: 0.85rem;
+			letter-spacing: 0.12em;
+			color: #e6ddd2;
+			border: 1dp transparent;
+			border-radius: 2dp;
+			white-space: nowrap;
+		}
+		.tools .tb { font-size: 0.74rem; letter-spacing: 0.08em; padding: 0.34rem 0.6rem; margin-right: 0.2rem; flex-shrink: 0; }
+		.tb:hover, .tb:focus { background-color: #db241033; border-color: #db241099; color: #fff3e6; }
+		.tb:active { background-color: #db241066; }
+		.tb.on { background-color: #db24104d; border-color: #ff4a1c; color: #fff3e6; }
+		.tb.quiet { color: #8d847c; }
+		.tb.play { color: #0a0807; background-color: #6ee68c; border-color: #6ee68c; }
+		.tb.play:hover, .tb.play:focus { background-color: #9cf5b0; border-color: #ffffff; color: #0a0807; }
+		.tb.leak { color: #ff6a4a; border-color: #ff3c2899; }
+		.tb.warn { color: #ffd28a; border-color: #ffa53c66; }
+		.tools .spacer { flex: 1; }
+
+		/* the tool strip: the tools the pointer works with in the view, each with its key */
+		.strip {
+			position: absolute;
+			top: 5.4rem;
+			left: 0;
+			bottom: 2.25rem;
+			width: 6.2rem;
+			padding: 0.45rem 0.4rem;
+			background-color: #0a0807f0;
+			border-right: 1dp #ffffff14;
+			overflow-y: auto;
+		}
+		.strip .group { display: block; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.14em; color: #8d847c; margin: 0.35rem 0 0.25rem 0.15rem; }
+		.st {
+			display: flex;
+			align-items: center;
+			height: 2.3rem;
+			margin-bottom: 0.25rem;
+			padding: 0 0.3rem 0 0.5rem;
+			border: 1dp #ffffff1a;
+			border-radius: 2dp;
+			background-color: #ffffff08;
+		}
+		.st .tn { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; color: #e6ddd2; white-space: nowrap; }
+		.st kbd { margin-left: auto; min-width: 1.1rem; font-size: 0.6rem; padding: 0 0.25rem; color: #ffd28a; border-color: #ffd28a40; }
+		.st:hover, .st:focus { border-color: #db241099; background-color: #db241026; }
+		.st.on { border-color: #ff4a1c; background-color: #db24104d; }
+		.st.on .tn { color: #fff3e6; }
+
+		/* the panel: its tabs, then the open one's body, which scrolls */
+		.side {
+			position: absolute;
+			top: 5.4rem;
+			right: 0;
+			bottom: 2.25rem;
+			width: 22rem;
+			background-color: #0a0807f0;
+			border-left: 1dp #ffffff14;
+			display: flex;
+			flex-direction: column;
+		}
+		.ptabs { display: flex; height: 2.5rem; border-bottom: 1dp #ffffff14; padding: 0 0.35rem; flex-shrink: 0; }
+		.ptab {
+			display: block;
+			flex: 1;
+			text-align: center;
+			padding-top: 0.72rem;
+			font-size: 0.72rem;
+			font-weight: 600;
+			letter-spacing: 0.05em;
+			color: #a59a90;
+			border-bottom: 2dp transparent;
+		}
+		.ptab:hover, .ptab:focus { color: #fff3e6; background-color: #ffffff0a; }
+		.ptab.on { color: #fff3e6; border-bottom-color: #ff4a1c; }
+		.pbody { flex: 1; overflow-y: auto; padding: 0.4rem 1.1rem 0.75rem 1.1rem; }
+		.hidden { display: none; }
+		.side h2 { font-family: OzDisplay; font-size: 1.1rem; color: #ff4a1c; letter-spacing: 0.08em; margin: 0.75rem 0 0.4rem 0; }
+		.side .row { display: flex; align-items: center; flex-wrap: wrap; font-size: 0.85rem; color: #8d847c; margin: 0.25rem 0; }
+		.side .row .lbl { width: 3.4rem; color: #a59a90; }
+		.side .row .k { color: #e6ddd2; }
+		.side input.text { width: 4.1rem; height: 1.9rem; padding: 0.2rem 0.45rem; margin-right: 0.3rem; font-size: 0.88rem; }
+		.side input.text.wide { width: 100%; margin-right: 0; }
+		.side input.text.half { width: 8.2rem; }
+		/* the panel's buttons look like buttons: a frame and a fill, the text large enough to read */
+		.side .tb {
+			font-size: 0.7rem;
+			padding: 0.3rem 0.5rem;
+			margin: 0 0.25rem 0.3rem 0;
+			letter-spacing: 0.06em;
+			border-color: #ffffff2e;
+			background-color: #ffffff0a;
+		}
+		.side .tb:hover, .side .tb:focus { border-color: #db241099; background-color: #db241033; }
+		.side .tb.play { color: #0a0807; background-color: #6ee68c; border-color: #6ee68c; }
+		.side .keys .row { margin: 0.18rem 0; flex-wrap: nowrap; }
+		.side kbd { margin-right: 0.6rem; min-width: 3.4rem; flex-shrink: 0; }
+		.side p { font-size: 0.85rem; color: #8d847c; margin: 0.35rem 0; }
+		.side .what { color: #e6ddd2; font-size: 0.9rem; margin-top: 0.6rem; }
+		.side .sub { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.12em; color: #8d847c; margin: 0.5rem 0 0.25rem 0; }
+		.steps .row { align-items: flex-start; flex-wrap: nowrap; margin: 0.35rem 0; }
+		.steps .n { width: 1.3rem; flex-shrink: 0; color: #ff4a1c; font-weight: 600; }
+		.steps .k { flex: 1; }
+		.side .steps kbd { min-width: 0; margin: 0 0.2rem; padding: 0 0.3rem; }
+
+		/* a material: its picture fit into a square */
+		.sw { width: 4rem; height: 4rem; display: flex; align-items: center; justify-content: center; background-color: #00000080; border: 1dp #ffffff1a; margin-right: 0.6rem; flex-shrink: 0; }
+		.sw.tool span { font-size: 0.6rem; letter-spacing: 0.1em; color: #00000099; font-weight: 600; }
+		.sw.none span { color: #5d554f; }
+		.matname { color: #e6ddd2; font-size: 0.85rem; }
+
+		/* the materials browser */
+		.chips { display: flex; flex-wrap: wrap; margin: 0.4rem 0 0.3rem 0; }
+		.chip { display: block; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; color: #a59a90; padding: 0.24rem 0.48rem; margin: 0 0.25rem 0.25rem 0; border: 1dp #ffffff26; border-radius: 2dp; }
+		.chip:hover, .chip:focus { color: #e6ddd2; border-color: #db241099; }
+		.chip.on { color: #fff3e6; border-color: #ff4a1c; background-color: #db241033; }
+		.mats { display: flex; flex-wrap: wrap; }
+		.mat { display: block; width: 5.95rem; margin: 0 0.15rem 0.45rem 0; }
+		.mat .sw { width: 5.65rem; height: 5.65rem; margin: 0; }
+		.mat:hover .sw { border-color: #db2410; }
+		.mat.on .sw { border: 2dp #ff4a1c; }
+		.mat .mn { display: block; font-size: 0.66rem; color: #8d847c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 5.65rem; margin-top: 0.12rem; }
+		.mat.on .mn { color: #fff3e6; }
+		.mat .badge { position: absolute; top: 0.2rem; right: 0.45rem; font-size: 0.55rem; font-weight: 600; letter-spacing: 0.08em; color: #0a0807; background-color: #ffa53ccc; padding: 0 0.2rem; }
+		.mat { position: relative; }
+		.esec { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; color: #a59a90; margin: 0.7rem 0 0.3rem 0; }
+		.chip.flag.on { color: #fff3e6; border-color: #6ee68c; background-color: #6ee68c33; }
+		.folder { display: block; width: 9rem; font-size: 0.78rem; color: #e6ddd2; padding: 0.25rem 0.3rem; }
+		.folder:hover { background-color: #db241033; }
+		.folder .n { color: #5d554f; margin-left: 0.3rem; }
+		.pager { justify-content: center; }
+		.pager span { margin: 0 0.6rem; }
+
+		/* the outliner and the history */
+		.orow { display: flex; align-items: center; font-size: 0.8rem; color: #e6ddd2; padding: 0.16rem 0.3rem; white-space: nowrap; }
+		.orow:hover { background-color: #ffffff0d; }
+		.orow.on { background-color: #db241040; }
+		.orow .tog { width: 1rem; color: #8d847c; }
+		.orow .in { width: 1rem; }
+		.orow .sub { color: #8d847c; margin-left: 0.4rem; overflow: hidden; text-overflow: ellipsis; }
+		.orow .cnt { color: #5d554f; margin-left: auto; padding-left: 0.5rem; }
+		.orow.redo { color: #5d554f; }
+		.orow.cur { color: #fff3e6; background-color: #db241033; }
+		.orow .mark { width: 1rem; color: #ff4a1c; }
+		.orow.hid { color: #5d554f; }
+		.orow .ostate { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; color: #ffd28a; margin-left: 0.4rem; }
+
+		/* entity keys */
+		.kv input.text.key { width: 6.4rem; color: #c9bfb4; }
+		.kv input.text.val { width: 9.8rem; }
+		.kv .x { margin: 0 0.3rem 0 0; padding: 0.25rem 0; width: 1.4rem; text-align: center; }
+		.kv .nox { width: 1.4rem; margin-right: 0.3rem; }
+		/* a typed key's controls under its row: a color's swatch and palette, an angle's compass, ... */
+		.kt { margin-top: 0; }
+		.kt .nox { width: 1.4rem; margin-right: 0.3rem; }
+		.side .kt .tb { font-size: 0.62rem; padding: 0.18rem 0.3rem; margin: 0 0.12rem 0.15rem 0; letter-spacing: 0.04em; }
+		#ed-pick-rows { max-height: 30rem; overflow-y: auto; }
+		.csw { width: 1.5rem; height: 1.2rem; border: 1dp #ffffff40; margin-right: 0.4rem; }
+		.cchip { width: 1.1rem; height: 1.1rem; margin: 0 0.12rem 0.15rem 0; border: 1dp #00000080; }
+		.cchip:hover, .cchip:focus { border-color: #ffffffcc; }
+		.cchip.on { border: 2dp #ffffff; }
+
+		/* the autosave's offer, along the view's top; the questions and cards over everything */
+		.recover { position: absolute; top: 6rem; left: 7rem; right: 23rem; display: flex; align-items: center; padding: 0.5rem 0.9rem;
+			background-color: #1a1210f2; border: 1dp #ffa53c99; font-size: 0.85rem; color: #ffd28a; }
+		.recover .msg { flex: 1; }
+		.ask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #00000099; display: flex; align-items: center; justify-content: center; }
+		.ask .box { width: 26rem; padding: 1rem 1.4rem; background-color: #0a0807fa; border: 1dp #db241099; }
+		.ask h2 { font-family: OzDisplay; font-size: 1.2rem; color: #ff4a1c; letter-spacing: 0.08em; margin: 0 0 0.5rem 0; }
+		.ask p { font-size: 0.9rem; color: #e6ddd2; margin: 0 0 0.9rem 0; }
+		.ask p.dim { color: #8d847c; font-size: 0.82rem; }
+		.ask .row { display: flex; }
+		.ask .tb { border-color: #ffffff2e; background-color: #ffffff0a; }
+		.ask input.text { width: 100%; height: 2.3rem; margin-bottom: 0.5rem; }
+		.recover.hidden, .ask.hidden { display: none; }
+		/* the getting started card */
+		.ask .box.guide { width: 40rem; }
+		.guide .steps .row { display: flex; align-items: flex-start; margin: 0 0 0.6rem 0; }
+		.guide .steps .n { width: 1.6rem; font-family: OzDisplay; font-size: 1.1rem; color: #ff4a1c; flex-shrink: 0; }
+		.guide .steps .t { flex: 1; font-size: 0.92rem; color: #e6ddd2; }
+		.guide .steps .t span.d { color: #8d847c; }
+		.guide kbd { min-width: 0; font-size: 0.72rem; margin: 0 0.12rem; padding: 0 0.35rem; color: #ffd28a; border-color: #ffd28a40; }
+
+		/* the search (F3): what to do, typed; its rows the actions it names, Enter does the highlighted */
+		.search { position: absolute; top: 6.5rem; left: 6.2rem; right: 22rem; display: flex; justify-content: center; pointer-events: none; }
+		.search .box { width: 44rem; padding: 0.6rem; background-color: #0a0807fa; border: 1dp #db241099; pointer-events: auto; }
+		.search input.text { width: 100%; height: 2.3rem; padding: 0.3rem 0.7rem; font-size: 1rem; margin-bottom: 0.35rem; }
+		.srow { display: flex; align-items: center; padding: 0.32rem 0.5rem; font-size: 0.85rem; border: 1dp transparent; }
+		.srow:hover, .srow:focus { background-color: #ffffff0d; }
+		.srow.on { background-color: #db241040; border-color: #db241099; }
+		.srow .sl { width: 12rem; flex-shrink: 0; color: #e6ddd2; }
+		.srow .sk { width: 9rem; flex-shrink: 0; color: #ffd28a; }
+		.srow .sh { flex: 1; color: #8d847c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.search p { font-size: 0.85rem; color: #8d847c; margin: 0.4rem 0.5rem; }
+		.search.hidden { display: none; }
+		/* the UV editor: the face's outline over its texture's tiles, a repeat uvScale dp across */
+		.uvbox { justify-content: flex-start; padding-left: 1rem; }
+		.uvbox .box { width: auto; }
+		.uvbox .row { display: flex; flex-wrap: wrap; width: 440dp; margin-top: 0.4rem; }
+		.uvbox p { width: 440dp; }
+		.uvbox .tb, .search .row .tb { font-size: 0.7rem; padding: 0.3rem 0.5rem; letter-spacing: 0.06em; border-color: #ffffff2e; background-color: #ffffff0a; margin: 0 0.25rem 0.3rem 0; }
+		#ed-uv-view { position: relative; width: 440dp; height: 440dp; overflow: hidden; clip: always; background-color: #000000; drag: drag; cursor: move; }
+		#ed-uv-tex, #ed-uv-lines { position: absolute; left: 0; top: 0; width: 440dp; height: 440dp; pointer-events: none; }
+		.uvt { position: absolute; opacity: 0.85; }
+		.uvt.home { opacity: 1; border: 1dp #ffd28a; }
+		.uvl { position: absolute; height: 2dp; background-color: #ff4a1c; transform-origin: 0 0; }
+		.uvp { position: absolute; width: 6dp; height: 6dp; background-color: #fff3e6; }
+		.search h2 { font-family: OzDisplay; font-size: 1.1rem; color: #ff4a1c; letter-spacing: 0.08em; margin: 0.2rem 0.5rem 0.4rem 0.5rem; }
+		.wrow .sl { width: auto; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.wrow .sk { width: 7rem; text-align: right; }
+
+		/* the Keys dialog: every action's keys, SET to press new ones */
+		.ask .box.keymap { width: 44rem; height: 40rem; display: flex; flex-direction: column; }
+		.keymap input.text { width: 100%; height: 2rem; padding: 0.25rem 0.6rem; margin-bottom: 0.4rem; flex-shrink: 0; }
+		.keymap p { flex-shrink: 0; }
+		.keymap p.wait { color: #ffd28a; }
+		.klist { flex: 1; overflow-y: auto; margin-bottom: 0.7rem; }
+		.krow { display: flex; align-items: center; padding: 0.12rem 0.4rem; font-size: 0.85rem; }
+		.krow:hover { background-color: #ffffff0d; }
+		.krow.on { background-color: #db241040; }
+		.krow .kl { width: 15rem; flex-shrink: 0; color: #e6ddd2; }
+		.krow .kk { flex: 1; color: #ffd28a; }
+		.krow .kk .none { color: #5d554f; }
+		.krow .tb { font-size: 0.68rem; padding: 0.22rem 0.6rem; margin: 0; letter-spacing: 0.1em; }
+
+		/* a menu: its actions, their keys, a mark on what's on; greyed where it needs a selection */
+		.menu {
+			position: absolute;
+			top: 2.6rem;
+			left: 0;
+			width: 19rem;
+			padding: 0.3rem 0;
+			background-color: #0d0a09fc;
+			border: 1dp #ffffff26;
+			border-top: 2dp #ff4a1c;
+			box-shadow: #000000b3 0 6dp 18dp 0;
+			z-index: 10;
+		}
+		.menu.hidden { display: none; }
+		.mi { display: flex; align-items: center; height: 1.85rem; padding: 0 0.8rem 0 0.4rem; font-size: 0.86rem; color: #e6ddd2; }
+		.mi .mc { width: 1.1rem; flex-shrink: 0; }
+		.mi .mc.chk { width: 0.5rem; height: 0.5rem; margin: 0 0.6rem 0 0.1rem; background-color: #ff4a1c; }
+		.mi .ml { flex: 1; white-space: nowrap; }
+		.mi .mk { color: #ffd28a; font-size: 0.78rem; margin-left: 1rem; white-space: nowrap; }
+		.mi:hover, .mi.on { background-color: #db241059; color: #fff3e6; }
+		.mi.off { color: #6d655f; }
+		.mi.off .mk { color: #6d655f; }
+		.mi.off:hover, .mi.off.on { background-color: #ffffff12; }
+		.msep { height: 1dp; margin: 0.3rem 0.6rem; background-color: #ffffff1a; }
+		.mhead { padding: 0.3rem 0.8rem 0.1rem 1.5rem; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.14em; color: #8d847c; }
+
+		/* a control's tip: its name and keys, what it does */
+		.tip {
+			position: absolute;
+			max-width: 22rem;
+			padding: 0.45rem 0.7rem;
+			background-color: #141010fa;
+			border: 1dp #ffffff33;
+			border-radius: 2dp;
+			box-shadow: #000000b3 0 4dp 12dp 0;
+			pointer-events: none;
+			z-index: 20;
+		}
+		.tip.hidden { display: none; }
+		.tip .tt { font-size: 0.86rem; font-weight: 600; color: #fff3e6; }
+		.tip .tt span { color: #ffd28a; font-weight: normal; margin-left: 0.5rem; }
+		.tip .th { font-size: 0.8rem; color: #a59a90; margin-top: 0.15rem; }
+		.tip .th.none { display: none; }
+
+		#viewport {
+			position: absolute;
+			top: 5.4rem;
+			left: 6.2rem;
+			right: 22rem;
+			bottom: 2.25rem;
+		}
+		/* the panes' names: the 2D views, and all four in the four-view layout (the active one brighter) */
+		.pl { position: absolute; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; color: #c9bfb4; background-color: #0a0807d9;
+			padding: 0.12rem 0.45rem; pointer-events: none; }
+		.pl.on { color: #ff4a1c; }
+		.pl.solo, .pl.q0 { left: 0.7rem; top: 0.45rem; }
+		.pl.q1 { left: 50%; margin-left: 0.7rem; top: 0.45rem; }
+		.pl.q2 { left: 0.7rem; top: 50%; margin-top: 0.45rem; }
+		.pl.q3 { left: 50%; margin-left: 0.7rem; top: 50%; margin-top: 0.45rem; }
+		.pl.hidden { display: none; }
+		.status {
+			bottom: 0;
+			height: 2.25rem;
+			border-top: 1dp #ffffff14;
+			display: flex;
+			align-items: center;
+			padding: 0 1rem;
+			font-size: 0.88rem;
+		}
+		.status #ed-hint { color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.status #ed-hint.note { color: #ffd28a; }
+		.status #ed-hint.err { color: #ff6a4a; }
+		.status #ed-status { margin-left: auto; padding-left: 1.5rem; color: #8d847c; letter-spacing: 0.04em; white-space: nowrap; }
+
+		/* the d-pad: the menus down to the tool strip and the panel's tabs, then the open panel top to bottom
+		   (a text field takes left and right) */
+		.mt { nav-down: #tool-select; }
+		.ptab { nav-up: #mt-file; }
+
+		/* narrower windows: the action bar keeps what the menus and keys don't already make one step away */
+		@media (max-width: 1560dp) {
+			.tools .wide { display: none; }
+		}
+		@media (max-width: 1400dp) {
+			.top .name { display: none; }
+			.mt { padding-left: 0.5rem; padding-right: 0.5rem; }
+		}
+	</style>
+</head>
+<body>
+	<div id="viewport">
+		<span class="pl hidden" id="pl-0">3D</span>
+		<span class="pl hidden" id="pl-1">TOP  X Y</span>
+		<span class="pl hidden" id="pl-2">FRONT  X Z</span>
+		<span class="pl hidden" id="pl-3">SIDE  Y Z</span>
+	</div>
+
+	<div class="bar top">
+		<span class="title">MAP EDITOR</span>
+		<div id="ed-menubar">
+			<button class="mt" id="mt-file" data-hint="New, open, save, and back to the main menu" onclick="append ed panel menu file">File</button>
+			<button class="mt" id="mt-edit" data-hint="Undo, copy and paste, the grid, your keys" onclick="append ed panel menu edit">Edit</button>
+			<button class="mt" id="mt-select" data-hint="Selecting, hiding, locking, groups" onclick="append ed panel menu select">Select</button>
+			<button class="mt" id="mt-view" data-hint="The views, the camera, what shows" onclick="append ed panel menu view">View</button>
+			<button class="mt" id="mt-brush" data-hint="Making, cutting, carving, turning and mirroring brushes" onclick="append ed panel menu brush">Brush</button>
+			<button class="mt" id="mt-curve" data-hint="Curves made from brushes, reshaped and capped" onclick="append ed panel menu curve">Curve</button>
+			<button class="mt" id="mt-texture" data-hint="Materials and how their textures lie on faces" onclick="append ed panel menu texture">Texture</button>
+			<button class="mt" id="mt-entity" data-hint="Pickups, spawns, lights, jump pads, teleporters, Defrag's lines" onclick="append ed panel menu entity">Entity</button>
+			<button class="mt" id="mt-build" data-hint="Play the map, compile it, see it lit" onclick="append ed panel menu build">Build</button>
+			<button class="mt" id="mt-help" data-hint="Getting started, every key, the search" onclick="append ed panel menu help">Help</button>
+		</div>
+		<span class="name" id="ed-name">untitled</span>
+		<button class="exit" id="ed-exit" data-action="leave" onclick="append ed leave">MAIN MENU</button>
+	</div>
+
+	<div class="bar tools">
+		<button class="tb wide" data-action="new" onclick="append ed new">NEW</button>
+		<button class="tb wide" data-action="open" onclick="append ed open">OPEN</button>
+		<button class="tb" data-action="save" onclick="append ed save">SAVE</button>
+		<div class="sep wide"></div>
+		<button class="tb" data-action="undo" onclick="append ed undo">UNDO</button>
+		<button class="tb" data-action="redo" onclick="append ed redo">REDO</button>
+		<div class="sep"></div>
+		<button class="tb" data-action="duplicate" onclick="append ed duplicate">DUPLICATE</button>
+		<button class="tb" data-action="delete" onclick="append ed delete">DELETE</button>
+		<button class="tb" data-action="rotate_left" onclick="append ed rotate_left">TURN</button>
+		<button class="tb" data-action="flip_x" onclick="append ed flip_x">MIRROR</button>
+		<div class="sep"></div>
+		<button class="tb" data-action="hollow" onclick="append ed hollow">HOLLOW</button>
+		<button class="tb" data-action="subtract" onclick="append ed subtract">SUBTRACT</button>
+		<button class="tb" data-action="merge" onclick="append ed merge">MERGE</button>
+		<div class="sep"></div>
+		<button class="tb" data-action="pick_material" onclick="append ed pick_material">EYEDROPPER</button>
+		<button class="tb" data-action="paint" onclick="append ed paint">PAINT</button>
+		<button class="tb on" id="tool-lock" data-action="texture_lock" onclick="append ed texture_lock">TEXTURE LOCK ON</button>
+		<div class="sep wide"></div>
+		<button class="tb wide" id="ed-views" data-action="views" onclick="append ed views">4 VIEWS</button>
+		<button class="tb wide" data-action="frame_selection" onclick="append ed frame_selection">FRAME</button>
+		<div class="spacer"></div>
+		<button class="tb leak hidden" id="ed-leak" data-action="frame_leak" onclick="append ed frame_leak">SHOW THE LEAK</button>
+		<button class="tb warn hidden" id="ed-warnings" data-action="warnings" onclick="append ed warnings">WARNINGS</button>
+		<button class="tb wide" id="ed-search-btn" data-action="search" onclick="append ed search">SEARCH</button>
+		<button class="tb" id="ed-preview" data-action="preview" onclick="append ed preview">LIT PREVIEW</button>
+		<button class="tb" id="ed-compile" data-action="compile" onclick="append ed compile">COMPILE</button>
+		<button class="tb hidden" id="ed-stop" data-action="compile_stop" onclick="append ed compile_stop">STOP</button>
+		<button class="tb play" id="ed-play" data-action="play" onclick="append ed play">PLAY</button>
+	</div>
+
+	<div class="strip" id="ed-strip">
+		<span class="group">BUILD</span>
+		<button class="st on" id="tool-select" data-action="select" onclick="append ed select"><span class="tn">SELECT</span><kbd data-keys="select">Esc</kbd></button>
+		<button class="st" id="tool-create" data-action="create" onclick="append ed create"><span class="tn">BRUSH</span><kbd data-keys="create">B</kbd></button>
+		<button class="st" id="tool-clip" data-action="clip" onclick="append ed clip"><span class="tn">CLIP</span><kbd data-keys="clip">C</kbd></button>
+		<button class="st" id="tool-faces" data-action="faces" onclick="append ed faces"><span class="tn">FACES</span><kbd data-keys="faces">T</kbd></button>
+		<span class="group">PLACE</span>
+		<button class="st" id="tool-place" data-hint="Entity: pick one in the Entities panel (pickups, spawns, triggers ...), then click where it goes" onclick="append ed panel entities"><span class="tn">ENTITY</span></button>
+		<button class="st" id="tool-light" data-action="light" onclick="append ed light"><span class="tn">LIGHT</span><kbd data-keys="light">L</kbd></button>
+		<button class="st" id="tool-jump" data-action="jump_pad" onclick="append ed jump_pad"><span class="tn">JUMP PAD</span><kbd data-keys="jump_pad">J</kbd></button>
+		<button class="st" id="tool-tele" data-action="teleporter" onclick="append ed teleporter"><span class="tn">TELEPORT</span><kbd data-keys="teleporter">K</kbd></button>
+	</div>
+
+	<div class="side">
+		<div class="ptabs">
+			<button class="ptab on" id="tab-inspect" data-hint="What's selected: its material, texture mapping, place and keys" onclick="append ed panel inspect">INSPECT</button>
+			<button class="ptab" id="tab-materials" data-hint="Every material in your game's files: click one to paint the selection with it" onclick="append ed panel materials">MATERIALS</button>
+			<button class="ptab" id="tab-entities" data-hint="Pickups, spawns, lights, triggers and the rest: click one, then where it goes" onclick="append ed panel entities">ENTITIES</button>
+			<button class="ptab" id="tab-objects" data-hint="Everything in the map, by entity: click selects, double-click frames" onclick="append ed panel objects">OBJECTS</button>
+			<button class="ptab" id="tab-history" data-hint="Every change: click one to go back (or forward) to it" onclick="append ed panel history">HISTORY</button>
+		</div>
+
+		<div class="pbody" id="panel-inspect">
+			<p class="what" id="ed-what">Nothing is selected</p>
+
+			<div id="sec-help">
+				<h2>GETTING STARTED</h2>
+				<div class="steps">
+					<div class="row"><span class="n">1</span><span class="k">Hold the right mouse button to look; W A S D fly, Q and E go down and up</span></div>
+					<div class="row"><span class="n">2</span><span class="k">Brush <kbd data-keys="create">B</kbd>: drag a footprint, move up for the height, click</span></div>
+					<div class="row"><span class="n">3</span><span class="k">Click to select, drag to move; Shift+drag a face pushes or pulls it</span></div>
+					<div class="row"><span class="n">4</span><span class="k">Materials tab: click one to paint what's selected</span></div>
+					<div class="row"><span class="n">5</span><span class="k">Entities tab: click a pickup or spawn, then where it goes</span></div>
+					<div class="row"><span class="n">6</span><span class="k">Play <kbd data-keys="play">F5</kbd> runs around in it; Esc there comes back</span></div>
+				</div>
+				<div class="row">
+					<button class="tb" data-action="guide" onclick="append ed guide">THE GUIDE</button>
+					<button class="tb" data-action="keymap" onclick="append ed keymap">ALL KEYS</button>
+					<button class="tb" data-action="search" onclick="append ed search">SEARCH ACTIONS</button>
+				</div>
+			</div>
+
+			<div id="sec-material">
+				<h2>MATERIAL</h2>
+				<div class="row">
+					<div class="sw" id="ed-face-sw"></div>
+					<div>
+						<span class="matname" id="ed-face-mat"></span>
+						<p id="ed-current"></p>
+					</div>
+				</div>
+				<div class="row">
+					<button class="tb" data-action="paint" onclick="append ed paint">PAINT CURRENT</button>
+					<button class="tb" data-action="show_materials" onclick="append ed panel materials">BROWSE</button>
+				</div>
+			</div>
+
+			<div id="sec-mapping">
+				<h2>TEXTURE</h2>
+				<div class="row">
+					<span class="lbl">Shift</span>
+					<input type="text" class="text" id="ed-tex-ss" data-apply="tex_typed" data-field="shift_s" data-action="tex_set"/>
+					<input type="text" class="text" id="ed-tex-st" data-apply="tex_typed" data-field="shift_t" data-action="tex_set"/>
+				</div>
+				<div class="row">
+					<span class="lbl">Scale</span>
+					<input type="text" class="text" id="ed-tex-sc" data-apply="tex_typed" data-field="scale_s" data-action="tex_set"/>
+					<input type="text" class="text" id="ed-tex-tc" data-apply="tex_typed" data-field="scale_t" data-action="tex_set"/>
+				</div>
+				<div class="row">
+					<span class="lbl">Turn</span>
+					<input type="text" class="text" id="ed-tex-rot" data-apply="tex_typed" data-field="rotate" data-action="tex_set"/>
+				</div>
+				<div class="row">
+					<span class="lbl">Steps</span>
+					<button class="tb" data-action="tex_rotate_left" onclick="append ed tex_rotate_left">LEFT 15</button>
+					<button class="tb" data-action="tex_rotate_right" onclick="append ed tex_rotate_right">RIGHT 15</button>
+					<button class="tb" data-action="tex_scale_up" onclick="append ed tex_scale_up">X2</button>
+					<button class="tb" data-action="tex_scale_down" onclick="append ed tex_scale_down">/2</button>
+				</div>
+				<div class="row">
+					<span class="lbl">Fit</span>
+					<input type="text" class="text" id="ed-fit-s" value="1" data-apply="fit_typed" data-action="tex_fit"/>
+					<input type="text" class="text" id="ed-fit-t" value="1" data-apply="fit_typed" data-action="tex_fit"/>
+					<button class="tb" data-action="tex_fit" onclick="append ed panel fit">FIT</button>
+				</div>
+				<div class="row">
+					<span class="lbl">Align</span>
+					<button class="tb" data-action="tex_left" onclick="append ed tex_left">LEFT</button>
+					<button class="tb" data-action="tex_right" onclick="append ed tex_right">RIGHT</button>
+					<button class="tb" data-action="tex_top" onclick="append ed tex_top">TOP</button>
+					<button class="tb" data-action="tex_bottom" onclick="append ed tex_bottom">BOTTOM</button>
+				</div>
+				<div class="row">
+					<span class="lbl"></span>
+					<button class="tb" data-action="tex_center" onclick="append ed tex_center">CENTER</button>
+					<button class="tb" data-action="tex_flip_s" onclick="append ed tex_flip_s">FLIP ACROSS</button>
+					<button class="tb" data-action="tex_flip_t" onclick="append ed tex_flip_t">FLIP DOWN</button>
+				</div>
+				<div class="row">
+					<span class="lbl"></span>
+					<button class="tb" data-action="tex_reset" onclick="append ed tex_reset">RESET</button>
+					<button class="tb" data-action="uv" onclick="append ed uv">UV EDITOR</button>
+				</div>
+				<p id="ed-tex-note"></p>
+			</div>
+
+			<div id="sec-transform">
+				<h2>TRANSFORM</h2>
+				<div class="row">
+					<span class="lbl">Move</span>
+					<input type="text" class="text" id="ed-mx" value="0" data-apply="move_typed" data-action="move"/>
+					<input type="text" class="text" id="ed-my" value="0" data-apply="move_typed" data-action="move"/>
+					<input type="text" class="text" id="ed-mz" value="0" data-apply="move_typed" data-action="move"/>
+				</div>
+				<div class="row">
+					<span class="lbl"></span>
+					<button class="tb" id="ed-move" data-action="move" onclick="append ed move_typed">MOVE BY X Y Z</button>
+				</div>
+				<div class="row">
+					<span class="lbl">Turn</span>
+					<input type="text" class="text" id="ed-deg" value="90" data-apply="rotate_typed" data-action="rotate"/>
+					<button class="tb" id="ed-onz" data-action="rotate" onclick="append ed rotate_typed z">ON Z</button>
+					<button class="tb" data-action="rotate" onclick="append ed rotate_typed x">ON X</button>
+					<button class="tb" data-action="rotate" onclick="append ed rotate_typed y">ON Y</button>
+				</div>
+				<div class="row">
+					<span class="lbl">Size</span>
+					<input type="text" class="text" id="ed-sw" value="0" data-apply="size_typed" data-action="size"/>
+					<input type="text" class="text" id="ed-sd" value="0" data-apply="size_typed" data-action="size"/>
+					<input type="text" class="text" id="ed-sh" value="0" data-apply="size_typed" data-action="size"/>
+				</div>
+				<div class="row">
+					<span class="lbl"></span>
+					<button class="tb" id="ed-resize" data-action="size" onclick="append ed size_typed">RESIZE</button>
+				</div>
+			</div>
+
+			<div id="sec-shape">
+				<h2>SHAPE</h2>
+				<div class="row">
+					<button class="tb" data-action="hollow" onclick="append ed hollow">HOLLOW</button>
+					<button class="tb" data-action="subtract" onclick="append ed subtract">SUBTRACT</button>
+					<button class="tb" data-action="merge" onclick="append ed merge">MERGE</button>
+				</div>
+				<div class="sub">MAKE A CURVE OF EACH BRUSH</div>
+				<div class="row">
+					<button class="tb" data-action="curve_cylinder" onclick="append ed curve_cylinder">CYLINDER</button>
+					<button class="tb" data-action="curve_cone" onclick="append ed curve_cone">CONE</button>
+					<button class="tb" data-action="curve_arch" onclick="append ed curve_arch">ARCH</button>
+					<button class="tb" data-action="curve_bevel" onclick="append ed curve_bevel">BEVEL</button>
+					<button class="tb" data-action="curve_plane" onclick="append ed curve_plane">FLAT</button>
+				</div>
+			</div>
+
+			<div id="sec-curve">
+				<h2>CURVE</h2>
+				<div class="row">
+					<button class="tb" data-action="curve_more_columns" onclick="append ed curve_more_columns">+ COLUMNS</button>
+					<button class="tb" data-action="curve_fewer_columns" onclick="append ed curve_fewer_columns">- COLUMNS</button>
+					<button class="tb" data-action="curve_more_rows" onclick="append ed curve_more_rows">+ ROWS</button>
+					<button class="tb" data-action="curve_fewer_rows" onclick="append ed curve_fewer_rows">- ROWS</button>
+				</div>
+				<div class="row">
+					<button class="tb" data-action="curve_invert" onclick="append ed curve_invert">INVERT</button>
+					<button class="tb" data-action="curve_caps" onclick="append ed curve_caps">CAPS</button>
+					<button class="tb" data-action="curve_thicken" onclick="append ed curve_thicken">THICKEN</button>
+				</div>
+			</div>
+
+			<div id="sec-entity">
+				<h2 id="ed-ent-title">MAP KEYS</h2>
+				<p id="ed-ent-help"></p>
+				<div class="hidden" id="ed-push">
+					<p class="what" id="ed-push-text"></p>
+					<div class="row">
+						<button class="tb" data-action="push_height" onclick="append ed push_height 32">HIGHER</button>
+						<button class="tb" data-action="push_height" onclick="append ed push_height -32">LOWER</button>
+					</div>
+				</div>
+				<div class="chips" id="ed-flags"></div>
+				<div id="ed-keys"></div>
+				<div class="row kv">
+					<span class="nox"></span>
+					<input type="text" class="text key" id="ed-newkey" placeholder="key" data-apply="key_add" data-action="key_set"/>
+					<input type="text" class="text val" id="ed-newval" placeholder="value" data-apply="key_add" data-action="key_set"/>
+				</div>
+				<div class="row">
+					<span class="nox"></span>
+					<button class="tb" id="ed-addkey" data-action="key_set" onclick="append ed panel key_add">ADD KEY</button>
+					<button class="tb" id="ed-toworld" data-action="to_world" onclick="append ed to_world">BACK TO THE WORLD</button>
+				</div>
+				<div class="chips" id="ed-addkeys"></div>
+			</div>
+
+			<div id="sec-keyhelp">
+				<h2>KEYS</h2>
+				<div class="keys">
+					<div class="row"><kbd>RMB</kbd><span class="k">hold to look, W A S D Q E fly</span></div>
+					<div class="row"><kbd>MMB</kbd><span class="k">drag to pan; the wheel moves forward</span></div>
+					<div class="row"><kbd>LMB</kbd><span class="k">select; drag to move or box select</span></div>
+					<div class="row"><kbd data-keys="frame_selection">F</kbd><span class="k">frame the selection</span></div>
+					<div class="row"><kbd data-keys="frame_all">Home</kbd><span class="k">frame the whole map</span></div>
+					<div class="row"><kbd data-keys="duplicate">Ctrl+D</kbd><span class="k">duplicate</span></div>
+					<div class="row"><kbd data-keys="rotate_left">R</kbd><span class="k">turn 90 degrees</span></div>
+					<div class="row"><kbd>Arrows</kbd><span class="k">nudge; PgUp PgDn up and down</span></div>
+					<div class="row"><kbd>1 - 9</kbd><span class="k">grid 1 to 256; [ ] halve, double</span></div>
+					<div class="row"><kbd data-keys="pick_material">I</kbd><span class="k">take the material under the pointer</span></div>
+					<div class="row"><kbd data-keys="paint">P</kbd><span class="k">paint the current material</span></div>
+					<div class="row"><kbd data-keys="views">V</kbd><span class="k">four views: 3D, top, front, side</span></div>
+					<div class="row"><kbd data-keys="undo">Ctrl+Z</kbd><span class="k">undo</span></div>
+					<div class="row"><kbd data-keys="search">F3</kbd><span class="k">search every action by name</span></div>
+					<div class="row"><kbd>Esc</kbd><span class="k">cancel; with nothing to cancel, the File menu</span></div>
+				</div>
+			</div>
+		</div>
+
+		<div class="pbody hidden" id="panel-materials">
+			<div class="row">
+				<div class="sw" id="ed-cur-sw"></div>
+				<div>
+					<span class="matname" id="ed-cur-name"></span>
+					<p>New brushes and Paint (P) use it. Click one below to paint the selection with it.</p>
+				</div>
+			</div>
+			<div class="row">
+				<button class="tb" id="ed-fav" data-hint="The current material in your Favorites, or out of them" onclick="append ed panel fav">ADD TO FAVORITES</button>
+			</div>
+			<input type="text" class="text wide" id="ed-msearch" placeholder="Search materials" data-hint="Type part of a name: concrete, gothic, sky ..."/>
+			<div class="chips" id="ed-chips"></div>
+			<div class="mats" id="ed-mats"></div>
+			<div class="row pager" id="ed-mpager"></div>
+		</div>
+
+		<div class="pbody hidden" id="panel-entities">
+			<input type="text" class="text wide" id="ed-esearch" placeholder="Search: spawn, rocket, door, Defrag ..." data-hint="Type part of a class or what it is"/>
+			<div class="row" style="margin-top: 0.45rem;">
+				<button class="tb" data-action="jump_pad" onclick="append ed jump_pad">JUMP PAD</button>
+				<button class="tb" data-action="teleporter" onclick="append ed teleporter">TELEPORTER</button>
+				<button class="tb" data-action="light" onclick="append ed light">LIGHT</button>
+			</div>
+			<div class="esec">DEFRAG</div>
+			<div class="row">
+				<button class="tb" data-action="defrag_start" onclick="append ed defrag_start">START LINE</button>
+				<button class="tb" data-action="defrag_checkpoint" onclick="append ed defrag_checkpoint">CHECKPOINT</button>
+				<button class="tb" data-action="defrag_finish" onclick="append ed defrag_finish">FINISH LINE</button>
+			</div>
+			<div class="row">
+				<button class="tb" data-action="defrag_speed" onclick="append ed defrag_speed">SPEED PAD</button>
+				<button class="tb" data-action="defrag_shooter" onclick="append ed defrag_shooter">SHOOTER</button>
+			</div>
+			<div class="row">
+				<button class="tb" data-action="defrag_check" onclick="append ed defrag_check">CHECK THE COURSE</button>
+				<button class="tb play" data-action="play_defrag" onclick="append ed play_defrag">PLAY IN DEFRAG</button>
+			</div>
+			<div class="esec">PREFABS</div>
+			<div class="chips" id="ed-prefabs"></div>
+			<div class="row">
+				<input type="text" class="text half" id="ed-prefab-name" placeholder="prefab name" data-apply="prefab_typed" data-action="prefab_save"/>
+				<button class="tb" id="ed-prefab-save" data-action="prefab_save" onclick="append ed panel prefab_save">SAVE SELECTION</button>
+			</div>
+			<div id="ed-ents"></div>
+		</div>
+
+		<div class="pbody hidden" id="panel-objects">
+			<div class="esec">SHOW</div>
+			<div class="chips">
+				<button class="chip on" id="ed-f-tools" data-action="filter_tools" onclick="append ed filter_tools">TOOL BRUSHES</button>
+				<button class="chip on" id="ed-f-triggers" data-action="filter_triggers" onclick="append ed filter_triggers">TRIGGERS</button>
+				<button class="chip on" id="ed-f-sky" data-action="filter_sky" onclick="append ed filter_sky">SKY</button>
+				<button class="chip on" id="ed-f-entities" data-action="filter_entities" onclick="append ed filter_entities">ENTITIES</button>
+				<button class="chip on" id="ed-f-curves" data-action="filter_curves" onclick="append ed filter_curves">CURVES</button>
+			</div>
+			<div class="row">
+				<button class="tb" id="ed-hide" data-action="hide" onclick="append ed hide">HIDE</button>
+				<button class="tb" data-action="hide_others" onclick="append ed hide_others">HIDE THE REST</button>
+				<button class="tb" id="ed-showall" data-action="show_all" onclick="append ed show_all">SHOW ALL</button>
+			</div>
+			<div class="row">
+				<button class="tb" data-action="lock" onclick="append ed lock">LOCK</button>
+				<button class="tb" data-action="unlock_all" onclick="append ed unlock_all">UNLOCK ALL</button>
+				<button class="tb" data-action="group" onclick="append ed group">GROUP</button>
+				<button class="tb" data-action="ungroup" onclick="append ed ungroup">UNGROUP</button>
+			</div>
+			<input type="text" class="text wide" id="ed-ofilter" placeholder="Filter: class, name, material" data-hint="Type part of a class, a name or a material"/>
+			<div id="ed-objects" style="margin-top: 0.4rem;"></div>
+			<div class="row pager" id="ed-opager"></div>
+		</div>
+
+		<div class="pbody hidden" id="panel-history">
+			<p>Every change, the newest last. Click one to go back to it; later ones stay to redo until the next change.</p>
+			<div id="ed-history"></div>
+		</div>
+	</div>
+
+	<div class="recover hidden" id="ed-recover">
+		<div class="msg" id="ed-recover-text"></div>
+		<button class="tb" id="ed-recover-yes" data-action="recover" onclick="append ed recover">RECOVER</button>
+		<button class="tb quiet" data-action="discard_recovery" onclick="append ed discard_recovery">THROW AWAY</button>
+	</div>
+
+	<div class="ask hidden" id="ed-ask">
+		<div class="box">
+			<h2>UNSAVED CHANGES</h2>
+			<p id="ed-ask-text">The map has changes you haven't saved.</p>
+			<div class="row">
+				<button class="tb" id="ed-ask-save" onclick="append ed answer save">SAVE</button>
+				<button class="tb" id="ed-ask-discard" onclick="append ed answer discard">DISCARD</button>
+				<button class="tb quiet" id="ed-ask-cancel" onclick="append ed answer cancel">CANCEL</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="ask hidden" id="ed-saveas">
+		<div class="box">
+			<h2>SAVE AS</h2>
+			<p class="dim" id="ed-saveas-note">The map's name: letters, digits, - and _.</p>
+			<input type="text" class="text" id="ed-saveas-name" data-apply="saveas_run" data-hint="Type the map's name: Enter saves, Esc cancels"/>
+			<div class="row">
+				<button class="tb" id="ed-saveas-ok" onclick="append ed panel saveas_run">SAVE</button>
+				<button class="tb quiet" id="ed-saveas-cancel" onclick="append ed panel saveas_close">CANCEL</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="ask hidden" id="ed-guide">
+		<div class="box guide">
+			<h2>THE MAP EDITOR</h2>
+			<p class="dim">Six steps to a map you can play. Every action is in the menus along the top, with its keys; F1 shows this again.</p>
+			<div class="steps">
+				<div class="row"><span class="n">1</span><span class="t">Look around: hold the right mouse button and move the mouse; <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly, <kbd>Q</kbd> <kbd>E</kbd> go down and up. <span class="d">The wheel moves forward, the middle button drags.</span></span></div>
+				<div class="row"><span class="n">2</span><span class="t">Build: pick Brush <kbd data-keys="create">B</kbd> on the left, drag a footprint on the floor, move up for its height, click. <span class="d">Clip <kbd data-keys="clip">C</kbd> cuts brushes; Hollow makes a room of one.</span></span></div>
+				<div class="row"><span class="n">3</span><span class="t">Shape: click a brush to select it and drag it to move it; Shift+drag a face to push or pull it. <span class="d">The corners and edges drag too.</span></span></div>
+				<div class="row"><span class="n">4</span><span class="t">Paint: the Materials tab on the right; click a material to put it on what's selected.</span></div>
+				<div class="row"><span class="n">5</span><span class="t">Fill it: the Entities tab, or Light, Jump pad and Teleport on the left; click one, then where it goes.</span></div>
+				<div class="row"><span class="n">6</span><span class="t">Play <kbd data-keys="play">F5</kbd> runs around in it at once; Esc there, then Back to the map editor. <span class="d">File saves it; Main Menu leaves, the map waits here.</span></span></div>
+			</div>
+			<div class="row">
+				<button class="tb" id="ed-guide-ok" onclick="append ed panel guide_close">GOT IT</button>
+				<button class="tb quiet" data-action="keymap" onclick="append ed panel guide_keys">ALL KEYS</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="search hidden" id="ed-search">
+		<div class="box">
+			<input type="text" class="text" id="ed-search-text" placeholder="What to do: clip, hollow, light, play ..." data-apply="search_run"
+				data-hint="Type what you want to do: Up and Down pick, Enter does it, Esc closes"/>
+			<div id="ed-search-rows"></div>
+		</div>
+	</div>
+
+	<div class="search uvbox hidden" id="ed-uv">
+		<div class="box">
+			<h2>UV EDITOR</h2>
+			<p id="ed-uv-note"></p>
+			<div id="ed-uv-view">
+				<div id="ed-uv-tex"></div>
+				<div id="ed-uv-lines"></div>
+			</div>
+			<div class="row">
+				<button class="tb" data-action="tex_rotate_left" onclick="append ed tex_rotate_left">LEFT 15</button>
+				<button class="tb" data-action="tex_rotate_right" onclick="append ed tex_rotate_right">RIGHT 15</button>
+				<button class="tb" data-action="tex_scale_up" onclick="append ed tex_scale_up">X2</button>
+				<button class="tb" data-action="tex_scale_down" onclick="append ed tex_scale_down">/2</button>
+				<button class="tb" data-action="tex_fit" onclick="append ed tex_fit">FIT</button>
+				<button class="tb" data-action="tex_flip_s" onclick="append ed tex_flip_s">FLIP</button>
+				<button class="tb" data-action="tex_reset" onclick="append ed tex_reset">RESET</button>
+				<button class="tb" data-hint="The face's outline back in the middle, zoomed to fit" onclick="append ed panel uv_fit">FRAME</button>
+				<button class="tb quiet" data-hint="Close the UV editor (U opens it again)" onclick="append ed panel uv_close">CLOSE</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="search hidden" id="ed-pick">
+		<div class="box">
+			<h2 id="ed-pick-title">PICK</h2>
+			<p id="ed-pick-note" class="hidden"></p>
+			<input type="text" class="text" id="ed-pick-text" placeholder="Part of the name ..." data-apply="pick_run"
+				data-hint="Type part of the name: Up and Down pick, Enter takes it, Esc closes"/>
+			<div id="ed-pick-rows"></div>
+		</div>
+	</div>
+
+	<div class="search hidden" id="ed-warns">
+		<div class="box">
+			<h2>WARNINGS</h2>
+			<div id="ed-warns-rows"></div>
+		</div>
+	</div>
+
+	<div class="ask hidden" id="ed-keymap">
+		<div class="box keymap">
+			<h2>KEYS</h2>
+			<p id="ed-keymap-note"></p>
+			<input type="text" class="text" id="ed-keymap-filter" placeholder="Filter: clip, texture, Ctrl+ ..." data-hint="Type part of an action's name or its keys"/>
+			<div class="klist" id="ed-keymap-rows"></div>
+			<div class="row">
+				<button class="tb" id="ed-keymap-oz" data-hint="Oz's keys: every action's keys back to the editor's own" onclick="append ed keymap_preset oz">OZ KEYS</button>
+				<button class="tb" id="ed-keymap-radiant" data-hint="Radiant's keys where the editor has the same action (Space copies, X clips, Shift+U subtracts, Shift+arrows move textures); Oz's for the rest"
+					onclick="append ed keymap_preset radiant">RADIANT KEYS</button>
+				<button class="tb quiet" id="ed-keymap-done" data-hint="Close (Esc)" onclick="append ed panel keymap_close">DONE</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="menu hidden" id="ed-menu"></div>
+
+	<div class="bar status">
+		<span id="ed-hint"></span>
+		<span id="ed-status"></span>
+	</div>
+
+	<div class="tip hidden" id="ed-tip">
+		<div class="tt" id="ed-tip-title"></div>
+		<div class="th" id="ed-tip-help"></div>
+	</div>
+</body>
+</rml>

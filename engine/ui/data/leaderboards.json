@@ -1,0 +1,19 @@
+{
+	"leaderboards": {
+		"_note": "The Leaderboards page (pages/leaderboards.rml): the Level and Ranked boards come from the online hub (P7, oz_ui_social.cpp) when the page opens, a tab or scope changes, or Refresh; empty until then.",
+		"tab": "level",
+		"scope": "global",
+		"pick": "me",
+		"rows": [],
+		"count": { "global": "Offline", "friends": "Offline" },
+		"you": { "global": "", "friends": "" },
+		"tiers": [
+			{"id": "bronze", "name": "Bronze", "color": "#c27a45", "deco": "linear-gradient(165deg, #ddb598 0%, #c27a45 45%, #57361f 100%)", "mark": "#e9d0bd"},
+			{"id": "silver", "name": "Silver", "color": "#c3ccd6", "deco": "linear-gradient(165deg, #dee2e8 0%, #c3ccd6 45%, #575b60 100%)", "mark": "#eaedf0"},
+			{"id": "gold", "name": "Gold", "color": "#ffc93c", "deco": "linear-gradient(165deg, #ffe193 0%, #ffc93c 45%, #725a1a 100%)", "mark": "#ffecba"},
+			{"id": "platinum", "name": "Platinum", "color": "#4fe0c8", "deco": "linear-gradient(165deg, #9eede0 0%, #4fe0c8 45%, #236459 100%)", "mark": "#c1f4eb"},
+			{"id": "diamond", "name": "Diamond", "color": "#6ab8ff", "deco": "linear-gradient(165deg, #add7ff 0%, #6ab8ff 45%, #2f5272 100%)", "mark": "#cae6ff"},
+			{"id": "godlike", "name": "Godlike", "color": "#ff3d22", "deco": "linear-gradient(165deg, #ff9485 0%, #ff3d22 45%, #721b0f 100%)", "mark": "#ffbbb1"}
+		]
+	}
+}

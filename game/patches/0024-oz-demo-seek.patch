@@ -1,0 +1,87 @@
+Oz: demos and replays seek (ENGINE_PLAN.md P10). Oz's engine runs the playback clock for this
+cgame and, after a seek, calls vmMain CG_OZ_DEMO_SEEK, which CG_Init offers in the cvar cl_ozDemoSeek
+(only ioquake3's traps are called, so other engines run the code as before).
+
+diff --git a/code/cgame/cg_main.c b/code/cgame/cg_main.c
+--- a/code/cgame/cg_main.c
++++ b/code/cgame/cg_main.c
+@@ -34,6 +34,11 @@ int forceModelModificationCount = -1;
+ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum );
+ void CG_Shutdown( void );
+ 
++// Oz: the vmMain command Oz's engine calls after it seeks a demo or replay (ENGINE_PLAN.md P10), past
++// cgameExport_t; CG_Init offers it in the cvar cl_ozDemoSeek, which other engines don't read
++#define CG_OZ_DEMO_SEEK		100
++void CG_OzDemoSeek( int serverTime, int snapshotNumber );
++
+ 
+ /*
+ ================
+@@ -74,6 +79,9 @@ Q_EXPORT intptr_t vmMain( int command, int arg0, int arg1, int arg2, int arg3, i
+ 	case CG_EVENT_HANDLING:
+ 		CG_EventHandling(arg0);
+ 		return 0;
++	case CG_OZ_DEMO_SEEK:	// Oz: only Oz's engine calls it, after CG_Init offered it (cl_ozDemoSeek)
++		CG_OzDemoSeek( arg0, arg1 );
++		return 0;
+ 	default:
+ 		CG_Error( "vmMain: unknown command %i", command );
+ 		break;
+@@ -1950,6 +1958,8 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum ) {
+ 	CG_ShaderStateChanged();
+ 
+ 	trap_S_ClearLoopingSounds( qtrue );
++
++	trap_Cvar_Set( "cl_ozDemoSeek", va( "%i", CG_OZ_DEMO_SEEK ) );	// Oz: demos and replays seek (P10)
+ }
+ 
+ /*
+diff --git a/code/cgame/cg_snapshot.c b/code/cgame/cg_snapshot.c
+--- a/code/cgame/cg_snapshot.c
++++ b/code/cgame/cg_snapshot.c
+@@ -398,3 +398,45 @@ void CG_ProcessSnapshots( void ) {
+ 
+ }
+ 
++
++/*
++============
++CG_OzDemoSeek
++
++Oz: Oz's engine sought a demo or replay (ENGINE_PLAN.md P10): playback goes on at serverTime, maybe
++earlier than now, from snapshot snapshotNumber, which comes as an initial one (CG_SetInitialSnapshot).
++Everything tied to the old time goes: the frame's state, the entities, the local entities, marks and
++particles. What the map loaded stays (cgs, the media, the players' models), and the configstrings
++come back through the snapshots as commands.
++============
++*/
++void CG_OzDemoSeek( int serverTime, int snapshotNumber ) {
++	const int clientFrame = cg.clientFrame, clientNum = cg.clientNum, weaponSelect = cg.weaponSelect;
++	const qboolean demoPlayback = cg.demoPlayback, levelShot = cg.levelShot, testGun = cg.testGun;
++	static refEntity_t testModelEntity;
++	static char testModelName[MAX_QPATH];
++
++	testModelEntity = cg.testModelEntity;
++	Q_strncpyz( testModelName, cg.testModelName, sizeof( testModelName ) );
++	memset( &cg, 0, sizeof( cg ) );
++	cg.clientFrame = clientFrame;
++	cg.clientNum = clientNum;
++	cg.weaponSelect = weaponSelect;
++	cg.demoPlayback = demoPlayback;
++	cg.levelShot = levelShot;
++	cg.testGun = testGun;
++	cg.testModelEntity = testModelEntity;
++	Q_strncpyz( cg.testModelName, testModelName, sizeof( cg.testModelName ) );
++
++	memset( cg_entities, 0, sizeof( cg_entities ) );
++	cg.time = cg.oldTime = serverTime;
++	cg.latestSnapshotNum = snapshotNumber - 1;
++	cgs.processedSnapshotNum = snapshotNumber - 1;
++
++	CG_InitLocalEntities();
++	CG_InitMarkPolys();		// and the lightning gun's burn lines
++	CG_ClearParticles();
++	CG_SetConfigValues();
++	trap_S_ClearLoopingSounds( qtrue );
++}
++

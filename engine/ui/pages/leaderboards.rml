@@ -1,0 +1,212 @@
+<rml>
+<head>
+	<title>Leaderboards</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<link type="text/rcss" href="../rcss/cards.rcss"/>
+	<style>
+		.pcol { position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; flex-direction: column; }
+		.ptop { display: flex; align-items: center; padding: 0.75rem 2.5rem 0 2.5rem; }
+		.btabs .tab { margin-right: 0.25rem; padding: 0.5rem 0.75rem; font-size: 0.8rem; letter-spacing: 0.12em; }
+		.btabs .tab .under { left: 0.5rem; right: 0.5rem; bottom: -1dp; background-color: #ff4a1c; }
+		.tools { display: flex; align-items: center; margin-left: auto; }
+		button.scope { margin-right: 0.375rem; padding: 0.25rem 0.75rem; border: 1dp #ffffff1a; border-radius: 2dp; font-family: OzDisplay; font-size: 0.65rem; letter-spacing: 0.14em; color: #8d847c; transition: border-color color 0.15s linear-in-out; }
+		button.scope:focus, button.scope:hover { border-color: #e6ddd266; color: #e6ddd2; }
+		button.scope.active { border-color: #ff4a1cb3; background-color: #db241033; color: #fff3e6; }
+		.tools kbd { min-width: 0; padding: 1dp 0.375rem; margin-left: 0.375rem; border-color: #ffffff26; background-color: transparent; font-family: OzDisplay; font-size: 0.6rem; color: #8d847c; }
+		.tools kbd.first { margin-left: 0.875rem; }
+		.hair { margin: 0 2.5rem; height: 1px; background-color: #ffffff0f; }
+		/* 1dp is under a pixel below 1080p and drops out where it straddles two rows */
+		.section span.rule { height: 1px; }
+		.tbody { position: relative; flex: 1; min-height: 0; }
+		.tpane { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+		.cols { display: flex; height: 100%; box-sizing: border-box; padding: 1rem 2.5rem; }
+		.lcol { display: flex; flex-direction: column; flex: 1; min-width: 0; margin-right: 2rem; }
+		.rcol { display: flex; flex-direction: column; align-items: center; width: 30rem; overflow-y: auto; }
+
+		/* the board (LeaderboardPage.tsx's Row): rank, the player with a strip of their banner, level and XP */
+		.lhead { display: flex; padding: 0 0.75rem 0.5rem 0.75rem; font-family: OzDisplay; font-size: 0.6rem; letter-spacing: 0.2em; color: #5d554f; }
+		.lhead .a { width: 3.2rem; margin-right: 0.75rem; }
+		.lhead .b { flex: 1; }
+		.lhead .c { width: 11rem; text-align: right; }
+		.list { flex: 1; min-height: 0; padding-right: 0.5rem; overflow-y: auto; }
+		button.lrow {
+			display: block;
+			position: relative;
+			width: 100%;
+			box-sizing: border-box;
+			margin-bottom: 0.375rem;
+			overflow: hidden;
+			border: 1dp #ffffff0f;
+			border-radius: 2dp;
+			background-color: #0000004d;
+			text-align: left;
+			transition: border-color background-color 0.15s linear-in-out;
+		}
+		button.lrow:focus, button.lrow:hover { border-color: #e6ddd266; }
+		button.lrow.mine { border-color: #ffad3366; background-color: #ffad330d; }
+		button.lrow.active { border-color: #ff4a1cb3; background-color: #db24101a; }
+		.lban { position: absolute; left: 3.95rem; right: 0; top: 0; bottom: 0; opacity: 0.3; }
+		/* the banner fades out by 75% (the web's mask-image; masks don't draw here yet) */
+		.lfade { position: absolute; left: 3.95rem; right: 0; top: 0; bottom: 0; decorator: linear-gradient( 90deg, #0a080700 0%, #0a0807 75% ); opacity: 0.85; }
+		.lin { position: relative; display: flex; align-items: center; padding: 0.375rem 0.75rem; }
+		.lin .rk { width: 3.2rem; margin-right: 0.75rem; font-family: OzDisplay; font-size: 1.25rem; }
+		.lin .pl { display: flex; align-items: center; flex: 1; min-width: 0; }
+		.lin .em { position: relative; flex-shrink: 0; width: 2.75rem; height: 2.75rem; box-sizing: border-box; margin-right: 0.75rem; border: 2dp #db2410; border-radius: 3dp; background-color: #00000099; }
+		.lin .em img { width: 100%; height: 100%; }
+		.lin .em .on { position: absolute; right: 0.125rem; bottom: 0.125rem; width: 0.5rem; height: 0.5rem; border-radius: 0.25rem; background-color: #5ccf4a; }
+		.lin .who { min-width: 0; line-height: 1.25; }
+		.lin .nm { display: block; font-family: OzDisplay; font-size: 1rem; letter-spacing: 0.05em; color: #fff3e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.lin .tt { display: block; font-family: OzDisplay; font-size: 0.58rem; letter-spacing: 0.18em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.lin .lv { width: 11rem; text-align: right; line-height: 1.25; }
+		.lin .lv .n { display: block; font-family: OzDisplay; font-size: 1.25rem; color: #fff3e6; }
+		.lin .lv .x { display: block; font-size: 0.65rem; letter-spacing: 0.06em; color: #5d554f; }
+		.lfoot { display: flex; justify-content: space-between; margin-top: 0.5rem; padding-right: 0.5rem; font-size: 0.7rem; letter-spacing: 0.06em; color: #5d554f; }
+
+		/* the picked player's card */
+		.pick { align-self: stretch; margin-bottom: 0.75rem; font-family: OzDisplay; font-size: 0.7rem; letter-spacing: 0.2em; color: #8d847c; }
+		.pick .on { margin-left: 0.75rem; color: #5ccf4a; }
+		.kvs { display: flex; flex-wrap: wrap; width: 100%; margin: 0.75rem -0.25rem 0 -0.25rem; }
+		.kvs .cell { width: 50%; box-sizing: border-box; padding: 0.25rem; }
+		.kv { padding: 0.5rem 0.75rem; border: 1dp #ffffff12; border-radius: 2dp; background-color: #0000004d; }
+		.kv .k { font-family: OzDisplay; font-size: 0.55rem; letter-spacing: 0.2em; color: #8d847c; }
+		.kv .v { font-family: OzDisplay; font-size: 1.1rem; color: #fff3e6; }
+		.fine { margin-top: 0.75rem; font-size: 0.75rem; line-height: 1.375; color: #5d554f; text-align: center; }
+
+		/* ranked: empty until online matches run (RankedEmpty) */
+		.rempty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; }
+		.tiers { display: flex; align-items: flex-end; margin-bottom: 1.5rem; }
+		.tiers .shield { margin: 0 0.5rem; opacity: 0.8; }
+		.rempty .t { font-family: OzDisplay; font-size: 1.3rem; letter-spacing: 0.1em; color: #e6ddd2; }
+		.rempty p { max-width: 34rem; margin-top: 0.5rem; font-size: 0.95rem; color: #8d847c; }
+
+	</style>
+</head>
+<!--
+Leaderboards (the web menu's LeaderboardPage.tsx): the level board and the ranked board, everyone or
+just you and your friends; Q/E switch boards, any row shows that player's card. The boards come with
+the online services (P7): the rows are stand-in data (data/leaderboards.json, the web's mock board)
+and Refresh is refused.
+-->
+<body data-model="menu" onshow="set leaderboards.tab level; set leaderboards.scope global; set leaderboards.pick me">
+	<div class="panel">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="phead">
+			<div>
+				<banner text="Leaderboards"/>
+				<p class="subtitle" data-if="leaderboards.tab == 'level'">Every player's level, from the XP their matches earn. Self-reported, like any offline career, and cosmetic only.</p>
+				<p class="subtitle" data-if="leaderboards.tab == 'ranked'">Ranked MMR from matches whose players all agreed on the result, highest first.</p>
+			</div>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
+		</div>
+		<div class="divider"/>
+		<div class="pbody">
+		<div class="pcol">
+			<div class="ptop">
+				<div class="tabs btabs">
+					<button id="lb_tab_level" class="tab" data-class-active="leaderboards.tab == 'level'" data-event-click="leaderboards.tab = 'level'" onclick="cmd hub leaderboard board level scope {leaderboards.scope}"><span>Level</span><span class="under"/></button>
+					<button id="lb_tab_ranked" class="tab" data-class-active="leaderboards.tab == 'ranked'" data-event-click="leaderboards.tab = 'ranked'" onclick="cmd hub leaderboard board ranked scope {leaderboards.scope}"><span>Ranked MMR</span><span class="under"/></button>
+				</div>
+				<div class="tools">
+					<button class="scope" data-class-active="leaderboards.scope == 'global'" data-event-click="leaderboards.scope = 'global'; leaderboards.pick = 'me'" onclick="cmd hub leaderboard board {leaderboards.tab} scope global">Everyone</button>
+					<button class="scope" data-class-active="leaderboards.scope == 'friends'" data-event-click="leaderboards.scope = 'friends'; leaderboards.pick = 'me'" onclick="cmd hub leaderboard board {leaderboards.tab} scope friends">Friends</button>
+					<button class="btn small" onclick="cmd hub leaderboard board {leaderboards.tab} scope {leaderboards.scope}">Refresh</button>
+					<kbd class="first">Q</kbd><kbd>E</kbd>
+				</div>
+			</div>
+			<div class="hair"/>
+			<div class="tbody">
+
+			<!-- ================================================================ Level -->
+			<div class="tpane" data-if="leaderboards.tab == 'level'">
+			<div class="cols">
+				<div class="lcol">
+					<div class="lhead"><span class="a">Rank</span><span class="b">Player</span><span class="c">Level</span></div>
+					<div class="list">
+						<button class="lrow" data-for="r : leaderboards.rows" data-if="r.scope == leaderboards.scope"
+							data-class-active="r.id == leaderboards.pick" data-class-mine="r.mine"
+							data-event-focus="leaderboards.pick = r.id" data-event-click="leaderboards.pick = r.id">
+							<div class="lban" data-style-decorator="r.banner"/>
+							<div class="lfade"/>
+														<div class="lin">
+								<span class="rk" data-style-color="r.rank_color">{{ r.rank }}</span>
+								<div class="pl">
+									<div class="em" data-style-border-color="r.accent"><img data-attr-src="r.emblem"/><span class="on" data-if="r.online"/></div>
+									<div class="who">
+										<span class="nm" data-rml="r.name | q3name"/>
+										<span class="tt" data-style-color="r.accent">{{ r.title }}{{ r.mine ? '  -  you' : '' }}</span>
+									</div>
+								</div>
+								<div class="lv"><span class="n">{{ r.level }}</span><span class="x">{{ r.xp }} XP</span></div>
+							</div>
+						</button>
+					</div>
+					<div class="lfoot">
+						<span>{{ leaderboards.scope == 'global' ? leaderboards.count.global : leaderboards.count.friends }}</span>
+						<span>{{ leaderboards.scope == 'global' ? leaderboards.you.global : leaderboards.you.friends }}</span>
+					</div>
+				</div>
+
+				<div class="rcol">
+					<div data-for="r : leaderboards.rows" data-if="r.scope == leaderboards.scope &amp;&amp; r.id == leaderboards.pick" style="width: 100%;">
+						<div class="pick"><span>#{{ r.rank }} </span><span class="faint">by level</span><span class="on" data-if="r.online">online</span></div>
+						<div class="pcard" style="margin: 0 auto;" data-style-decorator="r.card.frame" data-style-padding="r.card.pad">
+							<div class="in">
+								<div class="bsw"><div class="bg" data-style-decorator="r.card.banner_bg"/><div class="fg" data-style-decorator="r.card.banner_fg"/><div class="shade"/></div>
+								<div class="trim" data-style-decorator="r.card.trim"/>
+								<div class="emb" data-style-border-color="r.card.accent"><img data-attr-src="r.card.emblem"/></div>
+								<div class="head">
+									<div class="who">
+										<span class="nm" data-rml="r.name | q3name"/>
+										<span class="tt" data-style-color="r.card.title_color">{{ r.card.title }}</span>
+									</div>
+									<div class="lvl">
+										<div class="hx" data-style-border-color="r.card.accent"/>
+										<div class="hx b" data-style-border-color="r.card.accent"/>
+										<div class="hx c" data-style-border-color="r.card.accent"/>
+										<div class="n">{{ r.card.level }}</div>
+									</div>
+								</div>
+								<div class="sts">
+									<div class="st" data-for="s : r.card.stats"><span class="v">{{ s.v }}</span><span class="l">{{ s.l }}</span></div>
+								</div>
+								<div class="foot">
+									<div class="medal" data-for="b : r.card.badges" data-style-border-color="b.color"><img data-if="b.on" data-attr-src="b.icon"/></div>
+									<div class="gap"/>
+									<span class="ident">{{ r.card.id }}</span>
+								</div>
+								<div style="height: 0.6em;"/>
+							</div>
+						</div>
+						<div class="kvs">
+							<div class="cell"><div class="kv"><div class="k">Total XP</div><div class="v">{{ r.xp }}</div></div></div>
+							<div class="cell"><div class="kv"><div class="k">Level</div><div class="v">{{ r.level }}</div></div></div>
+							<div class="cell"><div class="kv"><div class="k">Ranked MMR</div><div class="v">-</div></div></div>
+							<div class="cell"><div class="kv"><div class="k">Ranked matches</div><div class="v">0</div></div></div>
+						</div>
+						<p class="fine">LOCAL means the career was recorded by the player's own game. Parts this game doesn't have show as the default.</p>
+					</div>
+				</div>
+			</div>
+			</div>
+
+			<!-- ================================================================ Ranked -->
+			<div class="tpane" data-if="leaderboards.tab == 'ranked'">
+				<div class="rempty">
+					<div class="tiers">
+						<div class="shield big" data-for="t : leaderboards.tiers">
+							<div class="s" data-style-decorator="t.deco"/>
+							<div class="g" data-style-background-color="t.mark"/>
+						</div>
+					</div>
+					<div class="t">No ranked players yet</div>
+					<p>Ranked needs online matches, which aren't built yet. Once they are, every ranked match whose players agree on the result moves ratings, and the ladder from Bronze to Godlike fills in here, highest MMR first.</p>
+				</div>
+			</div>
+
+			</div>
+		</div>
+		</div>
+	</div>
+</body>
+</rml>

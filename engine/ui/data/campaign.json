@@ -1,0 +1,5 @@
+{
+  "_note": "The Campaign page's data (pages/campaign.rml): filled by the engine from the career's campaign (oz_ui_profile.cpp, P12). campaign holds the page's choices (tier, skill), the arenas won and the medals; campaign_tiers the tiers and their arenas, a key of its own so a choice doesn't make every arena be checked again. An arena's mi is its index in the engine's maps (arenas.txt order), which gives its name, level shot and bots.",
+  "campaign": {"tier": 0, "skill": 3, "won": 0, "total": 1, "tier_options": "0", "medals": []},
+  "campaign_tiers": []
+}

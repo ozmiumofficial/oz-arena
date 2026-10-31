@@ -1,0 +1,82 @@
+<rml>
+<head>
+	<title>Campaign</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<link type="text/rcss" href="../rcss/match.rcss"/>
+</head>
+<!--
+The campaign (SinglePlayerPage.tsx): the original game's tiers of arenas, its five skills, the marks
+of the arenas won and the medal case. Its data is campaign and campaign_tiers, filled from the
+career's campaign (oz_ui_profile.cpp, P12): the tiers and their arenas (each by its index in the
+engine's maps, which gives its name, level shot and bots), the open tiers, the best skill each arena
+was won at, the medals.
+
+An arena starts as the game's single player (g_gametype 2) on the chosen skill: the game spawns the
+arena's bots and sets its limits, and its postgame gives the campaign its awards. The results go back
+here, through the tier's movie when a tier is finished.
+-->
+<body data-model="menu">
+	<div class="panel">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="phead">
+			<div><banner text="Campaign"/><p class="subtitle">The original game's campaign: fight through the tiers of arenas to reach the final duel. Win every arena of a tier to open the next.</p></div>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
+		</div>
+		<div class="divider"/>
+		<div class="pbody">
+			<div class="cols tight">
+				<div class="main">
+					<div class="ctop">
+						<div id="cp_tier" class="spinner" autofocus="" spin="campaign.tier" data-attr-options="campaign.tier_options">
+							<span class="arrow prev">&lt;</span>
+							<span class="v">{{ campaign_tiers[campaign.tier].name }}<span class="tick" data-if="campaign_tiers[campaign.tier].complete"/></span>
+							<span class="arrow next">&gt;</span>
+						</div>
+						<div class="won"><span class="big">{{ campaign.won }}</span><span>/ {{ campaign.total }} arenas won</span></div>
+						<div class="bar"><div class="fill" data-style-width="(campaign.won * 100 / campaign.total) + '%'"/></div>
+					</div>
+					<div class="tiers">
+						<div class="arenas" data-for="t, k : campaign_tiers" data-if="k == campaign.tier" data-class-single="t.arenas.size == 1">
+							<button class="acard" data-for="a : t.arenas" data-if="maps.size &gt; a.mi" data-class-locked="!t.open" data-attr-onclick="t.open ? 'campaign ' + maps[a.mi].map : 'sound buzz'">
+								<div class="shotbox">
+									<div class="img" data-style-decorator="maps[a.mi].shot != '' ? 'image(' + maps[a.mi].shot + ' cover)' : 'none'"/>
+									<div class="fade"/>
+									<img class="wonimg" data-if="a.won &gt; 0" data-attr-src="'/menu/art/level_complete' + a.won"/>
+									<div class="lockv" data-if="!t.open"><span>Locked</span></div>
+									<div class="cap">
+										<div class="n">{{ maps[a.mi].name | plain }}</div>
+										<div class="id">{{ maps[a.mi].map }} &#xb7; {{ maps[a.mi].fraglimit &gt; 0 ? maps[a.mi].fraglimit : 20 }} frags</div>
+									</div>
+								</div>
+								<div class="vs">
+									<span class="l">Vs</span>
+									<span class="bot" data-for="b : bots" data-if="(maps[a.mi].bots.size &gt; 0 ? to_lower(b.name) == to_lower(maps[a.mi].bots[0]) : false) || (maps[a.mi].bots.size &gt; 1 ? to_lower(b.name) == to_lower(maps[a.mi].bots[1]) : false) || (maps[a.mi].bots.size &gt; 2 ? to_lower(b.name) == to_lower(maps[a.mi].bots[2]) : false) || (maps[a.mi].bots.size &gt; 3 ? to_lower(b.name) == to_lower(maps[a.mi].bots[3]) : false) || (maps[a.mi].bots.size &gt; 4 ? to_lower(b.name) == to_lower(maps[a.mi].bots[4]) : false) || (maps[a.mi].bots.size &gt; 5 ? to_lower(b.name) == to_lower(maps[a.mi].bots[5]) : false) || (maps[a.mi].bots.size &gt; 6 ? to_lower(b.name) == to_lower(maps[a.mi].bots[6]) : false)"><img data-attr-src="b.icon"/><span>{{ b.name }}</span></span>
+								</div>
+							</button>
+						</div>
+					</div>
+					<p class="warn" data-if="!campaign_tiers[campaign.tier].open">Locked: win every arena of the tier before it to open {{ campaign_tiers[campaign.tier].name }}.</p>
+				</div>
+				<div class="side narrow">
+					<div class="section first"><span class="t">Skill</span><span class="rule"/></div>
+					<div class="skills">
+						<button class="skb" data-for="s, i : create_match.skills" data-class-sel="campaign.skill == i + 1" onclick="sound move" data-event-click="campaign.skill = i + 1"><img data-attr-src="'/menu/art/skill' + (i + 1)"/></button>
+					</div>
+					<div class="skname">{{ create_match.skills[campaign.skill - 1] }}</div>
+					<div class="section"><span class="t">Medals</span><span class="rule"/></div>
+					<div class="medals">
+						<div class="medal" data-for="md : campaign.medals" data-class-none="md.count == 0">
+							<img data-attr-src="md.img"/>
+							<div class="l">{{ md.label }}</div>
+							<div class="c">{{ md.count }}</div>
+						</div>
+					</div>
+					<p class="cnote">Medals add up over every campaign match, won or lost. Each arena keeps the highest skill you beat it on.</p>
+					<div class="creset"><button class="btn small" onclick="campaignreset"><span>Reset campaign</span></button></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</rml>

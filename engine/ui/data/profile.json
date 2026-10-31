@@ -1,0 +1,4 @@
+{
+  "_note": "The Profile page's data (pages/profile.rml): filled by the engine from the career (oz_ui_profile.cpp, P12), with the card, every part and whether it's earned, the showcase, the achievements and the career. Nothing is kept here.",
+  "profile": {}
+}

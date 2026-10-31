@@ -1,0 +1,58 @@
+diff --git a/code/game/g_cmds.c b/code/game/g_cmds.c
+index 679fe07..7b2d2f5 100644
+--- a/code/game/g_cmds.c
++++ b/code/game/g_cmds.c
+@@ -1685,6 +1685,44 @@ void Cmd_SetViewpos_f( gentity_t *ent ) {
+ }
+ 
+ 
++/*
++=================
++Cmd_EditorPos_f
++
++q3core: the map editor's play-test start, "edpos x y z pitch yaw": the player there, looking that
++way, standing still. setviewpos's teleport shoves 400 units forward and flashes; this doesn't.
++Cheats only (play-tests are devmaps).
++=================
++*/
++void Cmd_EditorPos_f( gentity_t *ent ) {
++	vec3_t		origin, angles;
++	char		buffer[MAX_TOKEN_CHARS];
++	int			i;
++
++	if ( !g_cheats.integer || !ent->client || trap_Argc() != 6 ) {
++		return;
++	}
++	VectorClear( angles );
++	for ( i = 0 ; i < 3 ; i++ ) {
++		trap_Argv( i + 1, buffer, sizeof( buffer ) );
++		origin[i] = atof( buffer );
++	}
++	trap_Argv( 4, buffer, sizeof( buffer ) );
++	angles[PITCH] = atof( buffer );
++	trap_Argv( 5, buffer, sizeof( buffer ) );
++	angles[YAW] = atof( buffer );
++
++	trap_UnlinkEntity( ent );
++	VectorCopy( origin, ent->client->ps.origin );
++	VectorClear( ent->client->ps.velocity );
++	ent->client->ps.eFlags ^= EF_TELEPORT_BIT;	// no lerp from the spawn point
++	SetClientViewAngle( ent, angles );
++	BG_PlayerStateToEntityState( &ent->client->ps, &ent->s, qtrue );
++	VectorCopy( ent->client->ps.origin, ent->r.currentOrigin );
++	trap_LinkEntity( ent );
++}
++
++
+ 
+ /*
+ =================
+@@ -1870,6 +1908,8 @@ void ClientCommand( int clientNum ) {
+ 		Cmd_GameCommand_f( ent );
+ 	else if (Q_stricmp (cmd, "setviewpos") == 0)
+ 		Cmd_SetViewpos_f( ent );
++	else if (Q_stricmp (cmd, "edpos") == 0)
++		Cmd_EditorPos_f( ent );	// q3core: the editor's play-test start
+ 	else if (Q_stricmp (cmd, "stats") == 0)
+ 		Cmd_Stats_f( ent );
+ 	else

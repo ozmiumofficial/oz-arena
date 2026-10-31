@@ -1,0 +1,15 @@
+{
+  "connect": {
+    "_note": "The connection screen (ui/pages/connect.rml, P8 and decision 21): filled each frame while a connection is under way (oz_ui_social.cpp ConnectFrame), from connecting to the map's loading. server and sub name it (a peer-to-peer match by its listing's name), state is where it is, message what the server said, link a peer-to-peer match's link line (oz_net_link). The values here are a stand-in for captures.",
+    "server": "Menu Match",
+    "sub": "Peer-to-peer",
+    "state": "Downloading",
+    "message": "",
+    "link": "Direct link to the host",
+    "download": {
+      "name": "ztn3tourney1.pk3",
+      "text": "412 of 867 KB, 98 KB/s",
+      "pct": "47%"
+    }
+  }
+}

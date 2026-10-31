@@ -1,0 +1,12 @@
+diff --git a/cmake/basegame.cmake b/cmake/basegame.cmake
+index 8a45bfc..8701c12 100644
+--- a/cmake/basegame.cmake
++++ b/cmake/basegame.cmake
+@@ -66,6 +66,7 @@ set(GAME_SOURCES
+     ${SOURCE_DIR}/game/g_trigger.c
+     ${SOURCE_DIR}/game/g_utils.c
+     ${SOURCE_DIR}/game/g_weapon.c
++    ${SOURCE_DIR}/game/g_ql.c
+ )
+ 
+ set(GAME_BINARY_SOURCES ${SOURCE_DIR}/game/g_syscalls.c)

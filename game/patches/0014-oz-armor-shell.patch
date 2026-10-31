@@ -1,0 +1,127 @@
+diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
+--- a/code/cgame/cg_local.h
++++ b/code/cgame/cg_local.h
+@@ -640,6 +640,10 @@
+ 	char			testModelName[MAX_QPATH];
+ 	qboolean		testGun;
+ 
++	// Oz: when armor last took part of a hit on each client, and the armor left (the "armorhit" command)
++	int				ozArmorHitTime[MAX_CLIENTS];
++	int				ozArmorLeft[MAX_CLIENTS];
++
+ } cg_t;
+ 
+ 
+@@ -759,6 +763,7 @@
+ 
+ 	// powerup shaders
+ 	qhandle_t	quadShader;
++	qhandle_t	ozArmorShellShader;	// Oz
+ 	qhandle_t	redQuadShader;
+ 	qhandle_t	quadWeaponShader;
+ 	qhandle_t	invisShader;
+diff --git a/code/cgame/cg_main.c b/code/cgame/cg_main.c
+--- a/code/cgame/cg_main.c
++++ b/code/cgame/cg_main.c
+@@ -874,6 +874,7 @@
+ 
+ 	// powerup shaders
+ 	cgs.media.quadShader = trap_R_RegisterShader("powerups/quad" );
++	cgs.media.ozArmorShellShader = trap_R_RegisterShader( "oz/armorShell" );	// Oz: scripts/oz_cgame.shader
+ 	cgs.media.quadWeaponShader = trap_R_RegisterShader("powerups/quadWeapon" );
+ 	cgs.media.battleSuitShader = trap_R_RegisterShader("powerups/battleSuit" );
+ 	cgs.media.battleWeaponShader = trap_R_RegisterShader("powerups/battleWeapon" );
+diff --git a/code/cgame/cg_players.c b/code/cgame/cg_players.c
+--- a/code/cgame/cg_players.c
++++ b/code/cgame/cg_players.c
+@@ -2141,6 +2141,41 @@
+ 
+ /*
+ ===============
++CG_OzArmorShell
++
++Oz: for 0.4 s after armor took part of a hit ("armorhit"), a glow over the body in the armor color, red
++under 50 armor, fading out (the Godot build's armor shell). Not on an invisible body.
++===============
++*/
++#define OZ_ARMOR_SHELL_MS	400
++static void CG_OzArmorShell( const refEntity_t *ent, const centity_t *cent ) {
++	int clientNum = cent->currentState.clientNum;
++	int dt;
++	float f;
++	qboolean low;
++	refEntity_t shell;
++
++	if ( clientNum < 0 || clientNum >= MAX_CLIENTS || !cgs.media.ozArmorShellShader || !cg.ozArmorHitTime[clientNum] ||
++		 cg.ozArmorLeft[clientNum] <= 0 || ( cent->currentState.powerups & ( 1 << PW_INVIS ) ) ) {
++		return;
++	}
++	dt = cg.time - cg.ozArmorHitTime[clientNum];
++	if ( dt < 0 || dt >= OZ_ARMOR_SHELL_MS ) {
++		return;
++	}
++	f = 1.0f - (float)dt / OZ_ARMOR_SHELL_MS;
++	low = cg.ozArmorLeft[clientNum] < 50;
++	shell = *ent;
++	shell.customShader = cgs.media.ozArmorShellShader;
++	shell.shaderRGBA[0] = 255 * f;
++	shell.shaderRGBA[1] = ( low ? 64 : 199 ) * f;
++	shell.shaderRGBA[2] = ( low ? 38 : 71 ) * f;
++	shell.shaderRGBA[3] = 255;
++	trap_R_AddRefEntityToScene( &shell );
++}
++
++/*
++===============
+ CG_AddRefEntityWithPowerups
+ 
+ Adds a piece with modifications or duplications for powerups
+@@ -2327,6 +2362,7 @@
+ 	VectorCopy (legs.origin, legs.oldorigin);	// don't positionally lerp at all
+ 
+ 	CG_AddRefEntityWithPowerups( &legs, &cent->currentState, ci->team );
++	CG_OzArmorShell( &legs, cent );	// Oz
+ 
+ 	// if the model failed, allow the default nullmodel to be displayed
+ 	if (!legs.hModel) {
+@@ -2351,6 +2387,7 @@
+ 	torso.renderfx = renderfx;
+ 
+ 	CG_AddRefEntityWithPowerups( &torso, &cent->currentState, ci->team );
++	CG_OzArmorShell( &torso, cent );	// Oz
+ 
+ #ifdef MISSIONPACK
+ 	if ( cent->currentState.eFlags & EF_KAMIKAZE ) {
+@@ -2577,6 +2614,7 @@
+ 	head.renderfx = renderfx;
+ 
+ 	CG_AddRefEntityWithPowerups( &head, &cent->currentState, ci->team );
++	CG_OzArmorShell( &head, cent );	// Oz
+ 
+ #ifdef MISSIONPACK
+ 	CG_BreathPuffs(cent, &head);
+diff --git a/code/cgame/cg_servercmds.c b/code/cgame/cg_servercmds.c
+--- a/code/cgame/cg_servercmds.c
++++ b/code/cgame/cg_servercmds.c
+@@ -1008,6 +1008,21 @@
+ 		return;
+ 	}
+ 
++	// Oz: armor took part of a hit (q3core patch 0002): the armor shell flashes (CG_OzArmorShell)
++	if ( !strcmp( cmd, "armorhit" ) ) {
++		int target = atoi( CG_Argv( 1 ) );
++		if ( target >= 0 && target < MAX_CLIENTS ) {
++			cg.ozArmorHitTime[target] = cg.time;
++			cg.ozArmorLeft[target] = atoi( CG_Argv( 2 ) );
++		}
++		return;
++	}
++
++	// Oz: what a hit of yours did (q3core patch 0002), for damage numbers: the HUD's, in P6
++	if ( !strcmp( cmd, "dmg" ) ) {
++		return;
++	}
++
+ 	if ( !strcmp( cmd, "cs" ) ) {
+ 		CG_ConfigStringModified();
+ 		return;

@@ -1,0 +1,302 @@
+/*
+The player card (the web menu's PlayerCard.tsx and RankIcon.tsx), for the Profile and Leaderboards
+pages: the banner across the top, the emblem overlapping it, the frame around everything, name,
+title, level, the XP bar, three stats, three medal badges and the rank or the ID strip. Sizes are in
+em, so a card scales with its font-size (1rem draws it 28rem wide, as the web's text-[1rem]).
+
+Pages link it after menu.rcss. The frame, the banner and the accent come from the data as decorator
+strings and colors (data-style-decorator, data-style-color); the markup is in each page.
+*/
+
+.pcard {
+	position: relative;
+	width: 28em;
+	box-sizing: border-box;
+	padding: 0.14em;
+	font-size: 1rem;
+	line-height: 1.5;
+	text-align: left;
+}
+
+.pcard .in {
+	position: relative;
+	overflow: hidden;
+	background-color: #0b0908;
+}
+
+/* banners: a 4:1 box (Banner in PlayerCard.tsx); bg is the art, fg lies over it, shade darkens its foot */
+.bsw {
+	position: relative;
+	height: 0;
+	padding-bottom: 25%;
+	overflow: hidden;
+	background-color: #070605;
+}
+
+.bsw .bg, .bsw .fg, .bsw .shade {
+	position: absolute;
+	left: 0; top: 0; right: 0; bottom: 0;
+}
+
+.bsw .shade {
+	decorator: linear-gradient( 180deg, #00000000 45%, #0000008c 100% );
+}
+
+.pcard .trim { height: 0.14em; }
+
+.pcard .emb {
+	position: absolute;
+	left: 1em;
+	top: 4.1em;
+	width: 5.4em;
+	height: 5.4em;
+	box-sizing: border-box;
+	border-width: 0.14em;
+	border-color: #db2410;
+	border-radius: 0.2em;
+	decorator: radial-gradient( circle at 50% 35%, #2a211d 0%, #060504 100% );
+}
+
+.pcard .emb img {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.pcard .head {
+	display: flex;
+	align-items: flex-start;
+	min-height: 3.3em;
+	padding: 0.45em 1em 0 7.2em;
+}
+
+.pcard .who {
+	flex: 1;
+	min-width: 0;
+	line-height: 1.25;
+}
+
+.pcard .nm {
+	display: block;
+	font-family: OzDisplay;
+	font-size: 1.4em;
+	letter-spacing: 0.06em;
+	color: #fff3e6;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-effect: shadow( 0 2dp #000000e6 );
+}
+
+.pcard .tt {
+	display: block;
+	font-family: OzDisplay;
+	font-size: 0.7em;
+	letter-spacing: 0.22em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* the level hexagon (LevelBadge): three bands rotated 60 degrees apart, their long sides the six edges */
+.lvl {
+	position: relative;
+	flex-shrink: 0;
+	width: 2.7em;
+	height: 2.7em;
+	margin-left: 0.6em;
+}
+
+.lvl .hx {
+	position: absolute;
+	left: 0.2em;
+	top: 0.685em;
+	width: 2.3em;
+	height: 1.33em;
+	box-sizing: border-box;
+	border-left-width: 0.12em;
+	border-right-width: 0.12em;
+	border-color: #db2410;
+}
+
+.lvl .hx.b { transform: rotate(60deg); }
+.lvl .hx.c { transform: rotate(-60deg); }
+
+/* the box's 2.7em in the number's own em (1.05) */
+.lvl .n {
+	position: absolute;
+	left: 0; right: 0; top: 0;
+	height: 2.571em;
+	line-height: 2.571em;
+	text-align: center;
+	font-family: OzDisplay;
+	font-size: 1.05em;
+	color: #fff3e6;
+}
+
+.pcard .xp {
+	display: flex;
+	align-items: center;
+	margin: 0.55em 1em 0 1em;
+}
+
+.pcard .bar {
+	position: relative;
+	flex: 1;
+	height: 0.42em;
+	border-radius: 0.21em;
+	background-color: #ffffff12;
+}
+
+.pcard .fill {
+	position: absolute;
+	left: 0; top: 0; bottom: 0;
+	border-radius: 0.21em;
+}
+
+.pcard .xt {
+	margin-left: 0.6em;
+	font-size: 0.62em;
+	letter-spacing: 0.06em;
+	color: #8d847c;
+}
+
+.pcard .sts {
+	display: flex;
+	margin: 0.7em 1em 0 1em;
+}
+
+.pcard .st {
+	flex: 1;
+	min-width: 0;
+	padding: 0.35em 0.5em;
+	border: 1dp #ffffff0f;
+	border-radius: 0.15em;
+	background-color: #00000059;
+	text-align: center;
+}
+
+.pcard .st + .st { margin-left: 0.4em; }
+
+.pcard .st .v {
+	display: block;
+	height: 1.44em;
+	font-family: OzDisplay;
+	font-size: 1.15em;
+	line-height: 1.25;
+	color: #fff3e6;
+}
+
+.pcard .st .l {
+	display: block;
+	height: 1.5em;
+	font-family: OzDisplay;
+	font-size: 0.5em;
+	letter-spacing: 0.18em;
+	color: #8d847c;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.pcard .foot {
+	display: flex;
+	align-items: center;
+	margin: 0.55em 1em 0.2em 1em;
+	height: 2.4em;
+}
+
+/* a medal badge (Badge): a ring in the medal's color with the medal inside */
+.medal {
+	position: relative;
+	flex-shrink: 0;
+	width: 2.1em;
+	height: 2.1em;
+	box-sizing: border-box;
+	border-width: 0.12em;
+	border-color: #ffffff14;
+	border-radius: 1.05em;
+	background-color: #00000066;
+}
+
+.medal + .medal { margin-left: 0.5em; }
+
+.medal img {
+	position: absolute;
+	left: 9%; top: 9%;
+	width: 82%;
+	height: 82%;
+}
+
+.pcard .gap { flex: 1; }
+
+.pcard .ident {
+	font-family: OzDisplay;
+	font-size: 0.5em;
+	letter-spacing: 0.25em;
+	color: #5d554f;
+}
+
+.pcard .rk {
+	text-align: right;
+	line-height: 1.25;
+	margin-right: 0.45em;
+}
+
+.pcard .rk .t {
+	display: block;
+	font-family: OzDisplay;
+	font-size: 0.62em;
+	letter-spacing: 0.14em;
+}
+
+.pcard .rk .m {
+	display: block;
+	font-size: 0.55em;
+	letter-spacing: 0.06em;
+	color: #8d847c;
+}
+
+/* a tier's shield (RankIcon): its color in a bevel, a gem in the middle and a pip per division climbed */
+.shield {
+	position: relative;
+	flex-shrink: 0;
+	width: 1.9em;
+	height: 2.4em;
+}
+
+.shield .s {
+	position: absolute;
+	left: 0.2em; top: 0.1em;
+	width: 1.5em;
+	height: 1.75em;
+	box-sizing: border-box;
+	border: 0.08em #0a0807;
+	border-radius: 0.15em 0.15em 0.75em 0.75em;
+}
+
+.shield .g {
+	position: absolute;
+	left: 0.72em; top: 0.6em;
+	width: 0.46em;
+	height: 0.46em;
+	transform: rotate(45deg);
+	border: 1dp #0a0807;
+}
+
+.shield .pips {
+	position: absolute;
+	left: 0; right: 0; bottom: 0;
+	height: 0.4em;
+	text-align: center;
+}
+
+.shield .pip {
+	display: inline-block;
+	width: 0.26em;
+	height: 0.26em;
+	margin: 0 0.06em;
+	transform: rotate(45deg);
+}
+
+/* the bigger shields of the ranked board's empty state */
+.shield.big { font-size: 2.6rem; }

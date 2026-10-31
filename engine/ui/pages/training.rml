@@ -1,0 +1,110 @@
+<rml>
+<head>
+	<title>Training</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<link type="text/rcss" href="../rcss/play.rcss"/>
+	<style>
+		.grid {
+			position: absolute;
+			left: 0; right: 0; top: 0; bottom: 0;
+			display: flex;
+			flex-wrap: wrap;
+			align-content: stretch;
+			padding: 1rem 2rem;
+			overflow-y: auto;
+		}
+		.grid .cell {
+			display: flex;
+			flex-direction: column;
+			width: 50%;
+			height: 50%;
+			min-height: 12rem;
+			box-sizing: border-box;
+			padding: 0.5rem;
+		}
+		button.drill {
+			display: block;
+			position: relative;
+			flex: 1 1 auto;
+			overflow: hidden;
+			border: 2dp #00000000;
+			border-radius: 2dp;
+			background-color: #120d0b;
+			text-align: left;
+			transition: border-color 0.15s linear-in-out;
+		}
+		button.drill:focus, button.drill:hover { border-color: #ff4a1cb3; }
+		button.drill .art {
+			position: absolute;
+			left: 0; right: 0; top: 0; bottom: 0;
+			opacity: 0.6;
+			transition: opacity transform 0.5s cubic-out;
+		}
+		button.drill:focus .art, button.drill:hover .art { opacity: 0.9; transform: scale(1.05); }
+		button.drill .fade {
+			position: absolute;
+			left: 0; right: 0; top: 0; bottom: 0;
+			decorator: linear-gradient( 90deg, #000000e6 0%, #00000099 50%, #00000000 100% );
+		}
+		button.drill .txt {
+			position: absolute;
+			left: 0; right: 0; top: 0; bottom: 0;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			padding: 1.5rem;
+		}
+		button.drill .n {
+			font-size: 1.6rem;
+			line-height: 1.3;
+			letter-spacing: 0.05em;
+			color: #fff3e6;
+		}
+		button.drill .t {
+			margin-top: 0.5rem;
+			max-width: 22rem;
+			font-size: 0.95rem;
+			line-height: 1.5;
+			color: #e6ddd2cc;
+		}
+		body.shown .grid .cell { animation: 0.4s cubic-out 1 drill-in; }
+		body.shown .grid .cell:nth-child(2) { animation: 0.46s cubic-out 1 drill-in2; }
+		body.shown .grid .cell:nth-child(3) { animation: 0.52s cubic-out 1 drill-in3; }
+		body.shown .grid .cell:nth-child(4) { animation: 0.58s cubic-out 1 drill-in4; }
+		@keyframes drill-in { from { opacity: 0; transform: translateY(0.75rem); } to { opacity: 1; transform: translateY(0); } }
+		@keyframes drill-in2 { 0% { opacity: 0; transform: translateY(0.75rem); } 13% { opacity: 0; transform: translateY(0.75rem); } 100% { opacity: 1; transform: translateY(0); } }
+		@keyframes drill-in3 { 0% { opacity: 0; transform: translateY(0.75rem); } 23% { opacity: 0; transform: translateY(0.75rem); } 100% { opacity: 1; transform: translateY(0); } }
+		@keyframes drill-in4 { 0% { opacity: 0; transform: translateY(0.75rem); } 31% { opacity: 0; transform: translateY(0.75rem); } 100% { opacity: 1; transform: translateY(0); } }
+	</style>
+</head>
+<!--
+Training (PlayPages.tsx's TrainingPage): practice sessions built from the same match setup as every
+other game. Movement, Duel practice and Item timing start offline matches now (startmatch);
+Railgun aim needs Instagib, which the game code doesn't have yet, so it is refused.
+-->
+<body data-model="menu">
+	<div class="panel">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="phead">
+			<div><banner text="Training"/><p class="subtitle">Practice sessions built from the same match setup as every other game.</p></div>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
+		</div>
+		<div class="divider"/>
+		<div class="pbody">
+			<div class="grid">
+				<div class="cell" data-for="t : training.drills">
+					<button class="drill" autofocus="" data-attr-id="'tr_' + t.id" data-attr-onclick="t.do">
+						<div class="art" data-style-decorator="'image(' + t.shot + ' cover)'"/>
+						<div class="fade"/>
+						<div class="txt">
+							<div class="q3 n">{{ t.name }}</div>
+							<p class="t">{{ t.text }}</p>
+						</div>
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</rml>

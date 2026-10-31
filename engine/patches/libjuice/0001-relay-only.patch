@@ -1,0 +1,60 @@
+diff --git a/include/juice/juice.h b/include/juice/juice.h
+index e43db6c..b09f219 100644
+--- a/include/juice/juice.h
++++ b/include/juice/juice.h
+@@ -137,6 +137,7 @@ JUICE_EXPORT int juice_get_selected_addresses(juice_agent_t *agent, char *local,
+ JUICE_EXPORT int juice_set_local_ice_attributes(juice_agent_t *agent, const char *ufrag, const char *pwd);
+ JUICE_EXPORT const char *juice_state_to_string(juice_state_t state);
+ JUICE_EXPORT int juice_mux_listen(const char *bind_address, int local_port, juice_cb_mux_incoming_t cb, void *user_ptr);
++JUICE_EXPORT int juice_set_relay_only(juice_agent_t *agent, bool relay_only); // Oz Arena
+ JUICE_EXPORT int juice_set_ice_tcp_mode(juice_agent_t *agent, juice_ice_tcp_mode_t ice_tcp_mode);
+ 
+ // ICE server
+diff --git a/src/agent.c b/src/agent.c
+index 6d1dcf2..8c3fc74 100644
+--- a/src/agent.c
++++ b/src/agent.c
+@@ -2492,7 +2492,8 @@ int agent_add_candidate_pair(juice_agent_t *agent, ice_candidate_t *local, // lo
+ int agent_add_candidate_pairs_for_remote(juice_agent_t *agent, ice_candidate_t *remote) {
+ 	// Here is the trick: local non-relayed candidates are undifferentiated for sending.
+ 	// Therefore, we don't need to match remote candidates with local ones.
+-	if (agent_add_candidate_pair(agent, NULL, remote))
++	// Oz Arena: a relay-only agent never sends from its own address.
++	if (!agent->relay_only && agent_add_candidate_pair(agent, NULL, remote))
+ 		return -1;
+ 
+ 	// However, we need still to differenciate local relayed candidates
+diff --git a/src/agent.h b/src/agent.h
+index bccdde3..6e97048 100644
+--- a/src/agent.h
++++ b/src/agent.h
+@@ -130,6 +130,7 @@ struct juice_agent {
+ 	juice_state_t state;
+ 	agent_mode_t mode;
+ 	juice_ice_tcp_mode_t ice_tcp_mode;
++	bool relay_only; // Oz Arena: only pairs whose local side is a relayed candidate
+ 
+ 	ice_description_t local;
+ 	ice_description_t remote;
+diff --git a/src/juice.c b/src/juice.c
+index 074823c..618ca2e 100644
+--- a/src/juice.c
++++ b/src/juice.c
+@@ -217,6 +217,17 @@ JUICE_EXPORT int juice_server_add_credentials(juice_server_t *server,
+ #endif
+ }
+ 
++// Oz Arena: no host or server-reflexive pair is tried, so the remote side only ever sees the relay's
++// address (WebRTC's iceTransportPolicy "relay"). Set it before juice_gather_candidates.
++int juice_set_relay_only(juice_agent_t *agent, bool relay_only)
++{
++	if (!agent)
++		return JUICE_ERR_INVALID;
++
++	agent->relay_only = relay_only;
++	return JUICE_ERR_SUCCESS;
++}
++
+ int juice_set_ice_tcp_mode(juice_agent_t *agent, juice_ice_tcp_mode_t ice_tcp_mode)
+ {
+ 	if (!agent)

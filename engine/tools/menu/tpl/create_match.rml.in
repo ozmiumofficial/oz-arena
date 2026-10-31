@@ -1,0 +1,176 @@
+<rml>
+<head>
+	<title>Create Match</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<link type="text/rcss" href="../rcss/match.rcss"/>
+</head>
+<!--
+Custom Match (CreateMatchPage.tsx with MapBrowser.tsx): a mode, an arena, the mode's rules, the
+modifiers, the bots one by one, the server and whether you play. Its state is create_match.custom,
+create_match.modes[].rules (each mode keeps its own rules) and the map browser's
+create_match_pick.custom, in ui/data/create_match.json. The map browser and the mode spinner work
+as Skirmish's (offline_bots.rml).
+
+The bots are eleven slots (slots[], on or off): + Add bot turns the first free one on, unless the
+mode's max players is reached; a slot's bot is an index in the engine's bots (ranges[n] lists 0..n-1
+for its spinner).
+
+Modes and modifiers the game code can't play yet are shown and marked: a soon mode's Fight is
+refused, a soon modifier shows its default. The others set their cvars (g_quadfactor,
+g_weaponrespawn, g_friendlyFire, g_warmup and g_doWarmup before the map; g_gravity once it has
+loaded, as its worldspawn sets it). Spectate sends "team spectator" once you're in; playing a team
+mode, "team auto" (q3_ui's "team").
+
+Server: Offline starts the match on your PC alone; Online (P8) hosts it as a listen server and lists
+it in the online service's directory with its name and password (create_match.custom.name and
+password: host runs startmatch's match, then oz_host); LAN hosting comes with the LAN browser (P9).
+In a party the page opens on Online, and the leader's party follows them into the match (the hub's
+party_follow; the note under the server says so).
+
+Fight: the button's click copies the match into create_match.custom (map, gametype, the mode's
+rules, bots.b0..b10 with each slot's name, skill and team, skill: the first bot's), the fight
+wrapper's click (after it, as the click bubbles) checks and runs startmatch create_match.custom,
+or host create_match.custom when the server is Online.
+-->
+<body data-model="menu">
+	<div class="panel">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="phead">
+			<div><banner text="Create Match"/><p class="subtitle">Every mode is a rules file; modifiers stack on top. The same setup starts offline games, listen servers and editor play-tests.</p></div>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
+		</div>
+		<div class="divider"/>
+		<div class="pbody">
+			<div class="cols tight">
+				<div class="main">
+					<div class="section first"><span class="t">Game mode</span><span class="rule"/></div>
+					<div id="cm_mode" class="spinner wide modespin" autofocus="" spin="create_match.custom.mi" options="@@MODE_OPTIONS@@" data-event-keyup="@@FIX@@">
+						<span class="arrow" onclick="sound move" data-event-click="@@MODE_PREV@@">&lt;</span>
+						<span class="v" onclick="sound move" data-event-click="@@MODE_NEXT@@">{{ create_match.modes[create_match.custom.mi].name }}</span>
+						<span class="arrow" onclick="sound move" data-event-click="@@MODE_NEXT@@">&gt;</span>
+					</div>
+					<p class="desc"><span>{{ create_match.modes[create_match.custom.mi].description }}</span><span class="badge" data-if="create_match.modes[create_match.custom.mi].soon">Soon</span></p>
+					<div class="section"><span class="t">Map</span><span class="rule"/></div>
+					<div class="browser">
+						<div class="mbar">
+							<span class="chip on">All<span class="n">{{ maps.size }}</span></span>
+							<span class="hint">Arenas made for {{ create_match.modes[create_match.custom.mi].name }} come first</span>
+						</div>
+						<div class="cards">
+							<div class="grid">
+								<button class="card" data-for="m, i : maps" data-if="@@MINE@@" data-class-sel="i == create_match_pick.custom.mapi" data-event-click="create_match_pick.custom.mapi = i">
+									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (m.shot != '' ? ', image(' + m.shot + ' fill)' : '')"/>
+									<div class="cap"><div class="n">{{ m.name | plain }}</div><div class="id">{{ m.map }}</div></div>
+								</button>
+							</div>
+							<div class="othersh">Made for other modes than {{ create_match.modes[create_match.custom.mi].name }}: picking one switches the mode</div>
+							<div class="grid">
+								<button class="card" data-for="m, i : maps" data-if="@@OTHER@@" data-class-sel="i == create_match_pick.custom.mapi" data-event-click="@@PICK_OTHER@@">
+									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (m.shot != '' ? ', image(' + m.shot + ' fill)' : '')"/>
+									<div class="fits"><span data-for="t : m.types" data-if="t == 'ffa' || t == 'tourney' || t == 'team' || t == 'ctf'">{{ t == 'ffa' ? 'Free For All' : t == 'tourney' ? 'Duel' : t == 'team' ? 'Team Deathmatch' : 'Capture the Flag' }}</span></div>
+									<div class="cap"><div class="n">{{ m.name | plain }}</div><div class="id">{{ m.map }}</div></div>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="side wide scroll">
+					<div class="section first"><span class="t">Rules</span><span class="rule"/></div>
+					<div data-for="md, k : create_match.modes" data-if="k == create_match.custom.mi">
+						<div class="field" data-if="md.show.capturelimit">
+							<div class="lbl"><span>{{ create_match.rules.capturelimit.label }}</span></div>
+							<div class="slrow"><input type="range" class="slider" min="0" max="99" step="1" data-value="md.rules.capturelimit"/><span class="val">{{ md.rules.capturelimit == 0 ? 'None' : md.rules.capturelimit }}</span></div>
+						</div>
+						<div class="field" data-if="md.show.fraglimit">
+							<div class="lbl"><span>{{ create_match.rules.fraglimit.label }}</span></div>
+							<div class="slrow"><input type="range" class="slider" min="0" max="999" step="1" data-value="md.rules.fraglimit"/><span class="val">{{ md.rules.fraglimit == 0 ? 'None' : md.rules.fraglimit }}</span></div>
+						</div>
+						<div class="field" data-if="md.show.max_players">
+							<div class="lbl"><span>{{ create_match.rules.max_players.label }}</span></div>
+							<div class="slrow"><input type="range" class="slider" min="2" max="64" step="1" data-value="md.rules.max_players"/><span class="val">{{ md.rules.max_players }}</span></div>
+						</div>
+						<div class="field" data-if="md.show.roundlimit">
+							<div class="lbl"><span>{{ create_match.rules.roundlimit.label }}</span></div>
+							<div class="slrow"><input type="range" class="slider" min="1" max="99" step="1" data-value="md.rules.roundlimit"/><span class="val">{{ md.rules.roundlimit }}</span></div>
+						</div>
+						<div class="field" data-if="md.show.timelimit">
+							<div class="lbl"><span>{{ create_match.rules.timelimit.label }}</span></div>
+							<div class="slrow"><input type="range" class="slider" min="0" max="999" step="1" data-value="md.rules.timelimit"/><span class="val">{{ md.rules.timelimit == 0 ? 'None' : md.rules.timelimit + ' min' }}</span></div>
+						</div>
+						<div class="field" data-if="md.show.warmup">
+							<div class="lbl"><span>{{ create_match.rules.warmup.label }}</span></div>
+							<div class="slrow"><input type="range" class="slider" min="0" max="120" step="1" data-value="md.rules.warmup"/><span class="val">{{ md.rules.warmup == 0 ? 'None' : md.rules.warmup + ' s' }}</span></div>
+						</div>
+					</div>
+
+					<div class="section"><span class="t">Modifiers</span><span class="rule"/></div>
+					<div class="field" data-for="mo, k : create_match.modifiers">
+						<div class="lbl"><span>{{ mo.label }}</span><span class="badge dimb" data-if="mo.soon">Soon</span></div>
+						<div class="spinner wide" data-if="!mo.soon" data-attr-spin="'create_match.modifiers.' + k + '.v'" data-attr-options="mo.idx">
+							<span class="arrow prev">&lt;</span><span class="v">{{ mo.options[mo.v] }}</span><span class="arrow next">&gt;</span>
+						</div>
+						<div class="spinner wide off" data-if="mo.soon">
+							<span class="arrow">&lt;</span><span class="v">{{ mo.options[mo.v] }}</span><span class="arrow">&gt;</span>
+						</div>
+					</div>
+
+					<div class="section"><span class="t">Bots</span><span class="rule"/></div>
+					<div class="bslot" data-for="sl, k : create_match.custom.slots" data-if="sl.on &amp;&amp; bots.size &gt; sl.i">
+						<div class="brow top">
+							<img class="bicon" data-attr-src="bots[sl.i].icon"/>
+							<div class="spinner" data-attr-id="'cm_bot' + k" data-attr-spin="'create_match.custom.slots.' + k + '.i'" data-attr-options="create_match.ranges[bots.size &gt; 64 ? 64 : bots.size]">
+								<span class="arrow prev">&lt;</span><span class="v">{{ bots[sl.i].name }}</span><span class="arrow next">&gt;</span>
+							</div>
+							<button class="bx" data-attr-id="'cm_bx' + k" onclick="sound move" data-event-click="sl.on = false"><span>X</span></button>
+						</div>
+						<div class="brow">
+							<div class="spinner" data-attr-spin="'create_match.custom.slots.' + k + '.skill'" options="1|2|3|4|5" data-style-nav-up="'#cm_bx' + k">
+								<span class="arrow prev">&lt;</span><span class="v">{{ sl.skill }} {{ create_match.skills[sl.skill - 1] }}</span><span class="arrow next">&gt;</span>
+							</div>
+							<div class="spinner team" data-if="create_match.modes[create_match.custom.mi].team" data-attr-spin="'create_match.custom.slots.' + k + '.team'" options="Red|Blue" data-style-nav-up="'#cm_bx' + k">
+								<span class="arrow prev">&lt;</span><span class="v">{{ sl.team }}</span><span class="arrow next">&gt;</span>
+							</div>
+						</div>
+					</div>
+					<button id="cm_addbot" class="btn small addbot" data-attr-onclick="@@ADD_BOT@@"><span>+ Add bot</span></button>
+
+					<div class="section"><span class="t">Server</span><span class="rule"/></div>
+					<div class="spinner wide" spin="create_match.custom.server" options="Offline|Online (listed in the Server Browser)|LAN (your local network)">
+						<span class="arrow prev">&lt;</span><span class="v">{{ create_match.custom.server }}</span><span class="arrow next">&gt;</span>
+					</div>
+					<div data-if="create_match.custom.server == 'Online (listed in the Server Browser)'">
+						<div class="field">
+							<div class="lbl"><span>Match name</span></div>
+							<input id="cm_name" class="text wide" type="text" maxlength="40" placeholder="Your name's match" data-value="create_match.custom.name"/>
+						</div>
+						<div class="field">
+							<div class="lbl"><span>Password</span></div>
+							<input id="cm_password" class="text wide" type="text" maxlength="40" placeholder="None: open to everyone" data-value="create_match.custom.password"/>
+						</div>
+						<p class="note">You host from your PC, and the match is listed in the Server Browser for everyone. Players connect straight to you where their networks allow it, through a relay where they don't; with Hide my IP (Settings, Network) always through the relay, so no one sees your IP. The match goes on while the menu is open.</p>
+						<p class="note" data-if="social.status == 'online' &amp;&amp; social.party.on"><span class="ink">{{ social.party.lead ? 'Your party joins you as soon as the match starts.' : 'Only the party leader brings the party along; your party can join from Friends.' }}</span></p>
+					</div>
+					<p class="note" data-if="create_match.custom.server == 'LAN (your local network)'">You host from your PC on UDP port 27960. Players on your network find it under Server Browser, LAN, and connect directly, with no online service needed. LAN hosting comes with the LAN browser.</p>
+
+					<div class="section"><span class="t">You</span><span class="rule"/></div>
+					<div class="spinner wide" spin="create_match.custom.you" options="Play|Spectate: watch the bots">
+						<span class="arrow prev">&lt;</span><span class="v">{{ create_match.custom.you }}</span><span class="arrow next">&gt;</span>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="pfoot">
+			<div class="err">
+				<span data-if="create_match.modes[create_match.custom.mi].soon">{{ create_match.modes[create_match.custom.mi].name }} is not in the game code yet.</span>
+				<span data-if="!create_match.modes[create_match.custom.mi].soon &amp;&amp; create_match.custom.server == 'LAN (your local network)'">LAN hosting comes with the LAN browser.</span>
+				<span data-if="!create_match.modes[create_match.custom.mi].soon &amp;&amp; create_match.custom.server == 'Online (listed in the Server Browser)' &amp;&amp; social.status != 'online'">Hosting online needs the online service, and it isn't connected.</span>
+				<span data-if="!create_match.modes[create_match.custom.mi].soon &amp;&amp; create_match.custom.server != 'LAN (your local network)' &amp;&amp; @@NOT_FITS_SEL@@">{{ create_match.modes[create_match.custom.mi].name }} needs an arena made for it: pick one of the first ones.</span>
+			</div>
+			<div class="fightw" data-attr-onclick="@@START@@">
+				<button id="cm_fight" class="btn primary" data-event-click="@@PROGRAM@@"><span>Fight</span></button>
+			</div>
+		</div>
+	</div>
+</body>
+</rml>

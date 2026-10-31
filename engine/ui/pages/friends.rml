@@ -1,0 +1,181 @@
+<rml>
+<head>
+	<title>Friends</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		.social {
+			position: absolute;
+			right: 4.5rem;
+			top: 6.5rem;
+			bottom: 6.5rem;
+			width: 31rem;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+			border: 1dp #ffffff14;
+			background-color: #0a0807d6;
+		}
+		body.shown .social { animation: 0.3s cubic-out 1 panel-in; }
+		.shead { display: flex; align-items: flex-end; justify-content: space-between; padding: 1.5rem 1.75rem 0.75rem 1.75rem; }
+		.shead banner { font-size: 2.1rem; }
+		.code { display: flex; align-items: center; padding: 0 1.75rem 1rem 1.75rem; }
+		.code .l { font-size: 0.65rem; letter-spacing: 0.2em; color: #8d847c; margin-right: 0.75rem; }
+		.code .c {
+			padding: 0.25rem 0.625rem;
+			margin-right: 0.75rem;
+			border: 1dp #ffffff1a;
+			border-radius: 2dp;
+			background-color: #00000080;
+			font-size: 1rem;
+			letter-spacing: 0.18em;
+			color: #fff3e6;
+		}
+		.list { flex: 1; min-height: 0; overflow-y: auto; padding: 1rem 1.75rem 1.5rem 1.75rem; }
+		.add { display: flex; margin-bottom: 0.5rem; }
+		.add input { flex: 1; width: auto; margin-right: 0.5rem; }
+		.frow {
+			display: flex;
+			align-items: center;
+			margin-bottom: 0.375rem;
+			padding: 0.5rem 0.625rem;
+			border: 1dp #00000000;
+			border-radius: 2dp;
+			background-color: #ffffff06;
+		}
+		.frow:hover { background-color: #ffffff0d; }
+		.frow.off { opacity: 0.6; }
+		.head { position: relative; width: 2.75rem; height: 2.75rem; margin-right: 0.75rem; }
+		.head img { width: 2.75rem; height: 2.75rem; border-radius: 2dp; border-bottom: 2dp #db2410; }
+		.head .p {
+			position: absolute;
+			right: -0.125rem;
+			bottom: -0.125rem;
+			width: 0.75rem;
+			height: 0.75rem;
+			box-sizing: border-box;
+			border: 2dp #0d0a09;
+			border-radius: 0.375rem;
+			background-color: #5d554f;
+		}
+		.head .p.match { background-color: #ff4a1c; }
+		.head .p.editor { background-color: #ffad33; }
+		.head .p.online { background-color: #5ccf4a; }
+		.who { flex: 1; line-height: 1.25; }
+		.who .n { font-size: 1rem; color: #fff3e6; }
+		.who .s { font-size: 0.82rem; color: #8d847c; }
+		.acts { display: flex; }
+		.acts button { margin-left: 0.375rem; }
+		.count { margin-top: 1.5rem; text-align: center; font-size: 0.8rem; color: #5d554f; }
+		.offline { padding: 2.5rem 1.75rem; text-align: center; color: #8d847c; }
+		.offline .t { font-size: 1.1rem; color: #fff3e6; margin-bottom: 0.5rem; }
+		.party { margin-bottom: 0.75rem; padding: 0.625rem; border: 1dp #ffffff14; border-radius: 2dp; background-color: #ffffff05; }
+		.party .phead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.375rem; }
+		.party .phead .t { font-size: 0.65rem; letter-spacing: 0.2em; color: #8d847c; }
+		.lead { font-size: 0.65rem; letter-spacing: 0.15em; color: #ffad33; margin-left: 0.375rem; }
+		.chat { max-height: 9rem; overflow-y: auto; margin: 0.375rem 0; font-size: 0.85rem; line-height: 1.35; }
+		.chat .line { color: #d8cfc5; }
+		.chat .line .from { color: #fff3e6; margin-right: 0.375rem; }
+		.chat .none { color: #5d554f; }
+		.say { display: flex; }
+		.say input { flex: 1; width: auto; margin-right: 0.5rem; }
+	</style>
+</head>
+<!--
+The friends panel (Social.tsx's Panel), over the main menu and its pages: Y, F or the top bar's
+button. Live from the online hub (P7, engine/src/oz/online and oz_ui_social.cpp): the buttons send the
+hub messages through the console's "hub" command, and the hub's answer redraws the panel. A friend
+in a peer-to-peer match (hosting it or joined, P8) has Join: oz_join to that match's host, its
+password asked first in the Server Browser when it has one.
+-->
+<body data-model="menu">
+	<div class="social">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="shead">
+			<banner text="Friends"/>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd>Close</div>
+		</div>
+		<div class="offline" data-if="social.status != 'online'">
+			<div class="t">{{ social.status == 'connecting' ? 'Connecting to the online service' : 'Offline' }}</div>
+			<div>Friends, parties and leaderboards need the online service.</div>
+		</div>
+		<div class="code" data-if="social.status == 'online'">
+			<span class="q3 l">Your friend code</span>
+			<span class="c">{{ social.code }}</span>
+			<button class="btn small" onclick="copy {social.code}; toast Friend code copied.">Copy</button><button class="btn small" style="margin-left: 0.375rem;" onclick="copy ozarena://friend/{social.code}; toast Friend link copied.">Link</button>
+		</div>
+		<div class="divider" style="margin: 0 1.75rem;" data-if="social.status == 'online'"/>
+		<div class="list" data-if="social.status == 'online'">
+			<div class="add">
+				<input id="friend_code" class="text" type="text" maxlength="12" placeholder="Add a friend: ABCD-1234"/>
+				<button class="btn small" onclick="hubinput friend_add code friend_code">Add</button>
+			</div>
+
+			<div class="party" data-if="social.party.on">
+				<div class="phead">
+					<span class="t">PARTY {{ social.party.size }}/{{ social.party.max }}</span>
+					<button class="btn small" onclick="cmd hub party_leave">Leave</button>
+				</div>
+				<div class="frow" data-for="p : social.party.members" data-class-off="p.pending">
+					<div class="head"><img data-attr-src="'/models/players/' + p.model + '/icon_default'" data-style-border-bottom-color="p.color"/></div>
+					<div class="who"><div class="n"><span data-rml="p.name | q3name"/><span class="lead" data-if="p.leader">LEADER</span></div><div class="s">{{ p.sub }}</div></div>
+					<div class="acts" data-if="social.party.lead &amp;&amp; !p.me &amp;&amp; !p.pending">
+						<button class="btn small" data-attr-onclick="'cmd hub party_promote id ' + p.id">Lead</button>
+						<button class="btn small" data-attr-onclick="'cmd hub party_kick id ' + p.id">Kick</button>
+					</div>
+				</div>
+				<div class="chat">
+					<div class="line" data-for="l : social.party.chat"><span class="from" data-rml="l.name | q3name"/>{{ l.text }}</div>
+					<div class="none" data-if="social.party.chat.size == 0">Party chat: say hello.</div>
+				</div>
+				<div class="say">
+					<input id="party_say" class="text" type="text" maxlength="200" placeholder="Message the party"/>
+					<button class="btn small" onclick="hubinput party_chat text party_say">Send</button>
+				</div>
+			</div>
+
+			<div class="section" data-if="social.invites.size + social.incoming.size &gt; 0"><span class="t">Waiting on you</span><span class="rule"/></div>
+			<div class="frow" data-for="r : social.invites">
+				<div class="head"><img data-attr-src="'/models/players/' + r.model + '/icon_default'" data-style-border-bottom-color="r.color"/></div>
+				<div class="who"><div class="n" data-rml="r.name | q3name"/><div class="s">{{ r.sub }}</div></div>
+				<div class="acts">
+					<button class="btn small primary" data-attr-onclick="'cmd hub party_accept party ' + r.party">Join</button>
+					<button class="btn small" data-attr-onclick="'cmd hub party_decline party ' + r.party">Decline</button>
+				</div>
+			</div>
+			<div class="frow" data-for="r : social.incoming">
+				<div class="head"><img data-attr-src="'/models/players/' + r.model + '/icon_default'" data-style-border-bottom-color="r.color"/></div>
+				<div class="who"><div class="n" data-rml="r.name | q3name"/><div class="s">{{ r.sub }}</div></div>
+				<div class="acts">
+					<button class="btn small primary" data-attr-onclick="'cmd hub friend_accept id ' + r.id">Accept</button>
+					<button class="btn small" data-attr-onclick="'cmd hub friend_decline id ' + r.id">Decline</button>
+				</div>
+			</div>
+
+			<div data-for="g : social.groups">
+				<div class="section"><span class="t">{{ g.label }} <span class="dim">{{ g.friends.size }}</span></span><span class="rule"/></div>
+				<div class="frow" data-for="f : g.friends" data-class-off="!f.online">
+					<div class="head">
+						<img data-attr-src="'/models/players/' + f.model + '/icon_default'" data-style-border-bottom-color="f.color"/>
+						<span class="p" data-class-match="f.status == 'match'" data-class-editor="f.status == 'editor'" data-class-online="f.status == 'online'"/>
+					</div>
+					<div class="who"><div class="n" data-rml="f.name | q3name"/><div class="s">{{ f.sub }}</div></div>
+					<div class="acts">
+						<button class="btn small primary" data-if="f.join" data-attr-id="'fr_join_' + f.id" data-attr-onclick="(f.server != '' ? 'serverjoin ' + f.server : 'join ' + f.host) + (f.locked ? ' locked' : '')">Join</button>
+						<button class="btn small" data-if="f.online" data-attr-onclick="'cmd hub party_invite id ' + f.id">Invite</button>
+						<button class="btn small" data-attr-onclick="'cmd hub friend_remove id ' + f.id">Remove</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="section" data-if="social.outgoing.size &gt; 0"><span class="t">Sent <span class="dim">{{ social.outgoing.size }}</span></span><span class="rule"/></div>
+			<div class="frow" data-for="r : social.outgoing">
+				<div class="head"><img data-attr-src="'/models/players/' + r.model + '/icon_default'" data-style-border-bottom-color="r.color"/></div>
+				<div class="who"><div class="n" data-rml="r.name | q3name"/><div class="s">{{ r.sub }}</div></div>
+				<div class="acts"><button class="btn small" data-attr-onclick="'cmd hub friend_cancel id ' + r.id">Cancel</button></div>
+			</div>
+			<p class="count">{{ social.count }}/{{ social.limit }} friends</p>
+		</div>
+	</div>
+</body>
+</rml>

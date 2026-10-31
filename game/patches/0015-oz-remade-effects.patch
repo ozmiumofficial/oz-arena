@@ -1,0 +1,2163 @@
+Oz: the remade effects (ENGINE_PLAN.md P3), cg_fxStyle 0|1, in cg_oz_fx.c: sparks off impacts; with
+the Graphics settings (the oz_graphics_* cvars) layered blasts (a flash that lights the room, a brighter
+fireball, lingering flames, embers, smoke lit by the fire) and a glow on energy hits, the rail's glow,
+Quake Live and core styles, the lightning beam's glow, glowing missile trails and heavy blood; the
+lightning gun's burn lines (marks that cool from white-hot to a scorch) in place of its bullet holes;
+Audio > Hit sound pitched by the damage the server's "dmg" commands report. Local entities up to 4096.
+
+diff --git a/cmake/basegame.cmake b/cmake/basegame.cmake
+--- a/cmake/basegame.cmake
++++ b/cmake/basegame.cmake
+@@ -20,6 +20,7 @@ set(CGAME_SOURCES
+     ${SOURCE_DIR}/cgame/cg_info.c
+     ${SOURCE_DIR}/cgame/cg_localents.c
+     ${SOURCE_DIR}/cgame/cg_marks.c
++    ${SOURCE_DIR}/cgame/cg_oz_fx.c
+     ${SOURCE_DIR}/cgame/cg_particles.c
+     ${SOURCE_DIR}/cgame/cg_players.c
+     ${SOURCE_DIR}/cgame/cg_playerstate.c
+diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
+--- a/code/cgame/cg_local.h
++++ b/code/cgame/cg_local.h
+@@ -172,6 +172,8 @@ typedef struct centity_s {
+ 	int				teleportFlag;
+ 
+ 	int				trailTime;		// so missile trails can handle dropped initial packets
++	int				ozTrailTime;	// Oz: the remade glowing trail's (cg_oz_fx.c)
++	int				ozMuzzleTime;	// Oz: the shot the remade muzzle flash last threw sparks for
+ 	int				dustTrailTime;
+ 	int				miscTime;
+ 
+@@ -221,6 +223,8 @@ typedef enum {
+ 	LE_FADE_RGB,
+ 	LE_SCALE_FADE,
+ 	LE_SCOREPLUM,
++	LE_OZ_PARTICLE,		// Oz: the remade effects (cg_oz_fx.c)
++	LE_OZ_BEAM,
+ #ifdef MISSIONPACK
+ 	LE_KAMIKAZE,
+ 	LE_INVULIMPACT,
+@@ -275,6 +279,14 @@ typedef struct localEntity_s {
+ 	leBounceSoundType_t	leBounceSoundType;
+ 
+ 	refEntity_t		refEntity;		
++
++	// Oz: LE_OZ_PARTICLE and LE_OZ_BEAM (cg_oz_fx.c)
++	int				ozFlags;
++	float			ozColor[2][4];	// the color halfway and at the end (color at the start)
++	float			ozRadius;		// the radius or width at the end (radius at the start)
++	float			ozGravity;		// units/s^2 down (up when negative)
++	float			ozDrag;			// units/s lost each second
++	float			ozFade;			// beams: above 1, they fade faster
+ } localEntity_t;
+ 
+ //======================================================================
+@@ -1396,8 +1408,47 @@ void	CG_ImpactMark( qhandle_t markShader,
+ //
+ void	CG_InitLocalEntities( void );
+ localEntity_t	*CG_AllocLocalEntity( void );
++void	CG_FreeLocalEntity( localEntity_t *le );
+ void	CG_AddLocalEntities( void );
+ 
++//
++// cg_oz_fx.c (Oz: the remade effects, cg_fxStyle 1)
++//
++enum { OZ_RAIL_CLASSIC, OZ_RAIL_GLOW, OZ_RAIL_QL, OZ_RAIL_CORE };
++enum { OZ_LG_CLASSIC, OZ_LG_GLOW, OZ_LG_STRAIGHT };
++extern	vmCvar_t	cg_fxStyle;
++void	CG_OzFxRegisterCvars( void );
++void	CG_OzFxUpdateCvars( void );
++void	CG_OzFxRegisterMedia( void );
++int		CG_OzRailStyle( void );
++int		CG_OzBlood( void );
++qhandle_t	CG_OzExplosionShader( int weapon, qhandle_t shader );
++void	CG_OzRailTrail( clientInfo_t *ci, vec3_t start, vec3_t end );
++void	CG_OzRailCore( localEntity_t *le );
++qboolean	CG_OzLightningBeam( refEntity_t *beam, qboolean hit );
++void	CG_OzLightningBurn( int clientNum, const trace_t *tr );
++qboolean	CG_OzBurns( void );
++void	CG_OzClearBurns( void );
++void	CG_OzAddBurns( void );
++void	CG_OzImpact( int weapon, vec3_t origin, vec3_t dir, const vec3_t color );
++void	CG_OzBleed( vec3_t origin );
++void	CG_OzMissileTrail( centity_t *cent );
++void	CG_OzHitDamage( int damage );
++void	CG_OzHitSound( void );
++void	CG_OzMuzzleFlash( centity_t *cent, int weapon, const refEntity_t *flash, const vec3_t color );
++float	CG_OzFlashLight( float radius );
++const float	*CG_OzFlashColor( int weapon, const float *color );
++void	CG_OzPlasmaBall( refEntity_t *ent );
++void	CG_OzPlasmaRing( int weapon, refEntity_t *ent );
++qboolean	CG_OzPlasmaMark( vec3_t origin, vec3_t dir, float radius );
++qboolean	CG_OzEnergyMark( qhandle_t shader );
++void	CG_OzRailTint( centity_t *cent, const clientInfo_t *ci, byte *rgba );
++qboolean	CG_OzSpawnEffect( void );
++qboolean	CG_OzPainTwitch( void );
++qboolean	CG_OzCalm( void );
++void	CG_AddOzParticle( localEntity_t *le );
++void	CG_AddOzBeam( localEntity_t *le );
++
+ //
+ // cg_effects.c
+ //
+diff --git a/code/cgame/cg_main.c b/code/cgame/cg_main.c
+--- a/code/cgame/cg_main.c
++++ b/code/cgame/cg_main.c
+@@ -351,6 +351,8 @@ void CG_RegisterCvars( void ) {
+ 	trap_Cvar_Register(NULL, "headmodel", DEFAULT_MODEL, CVAR_USERINFO | CVAR_ARCHIVE );
+ 	trap_Cvar_Register(NULL, "team_model", DEFAULT_TEAM_MODEL, CVAR_USERINFO | CVAR_ARCHIVE );
+ 	trap_Cvar_Register(NULL, "team_headmodel", DEFAULT_TEAM_HEAD, CVAR_USERINFO | CVAR_ARCHIVE );
++
++	CG_OzFxRegisterCvars();	// Oz
+ }
+ 
+ /*																																			
+@@ -384,6 +386,7 @@ void CG_UpdateCvars( void ) {
+ 	for ( i = 0, cv = cvarTable ; i < cvarTableSize ; i++, cv++ ) {
+ 		trap_Cvar_Update( cv->vmCvar );
+ 	}
++	CG_OzFxUpdateCvars();	// Oz
+ 
+ 	// check for modications here
+ 
+@@ -1913,6 +1916,7 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum ) {
+ 	CG_LoadingString( "graphics" );
+ 
+ 	CG_RegisterGraphics();
++	CG_OzFxRegisterMedia();	// Oz: the remade effects (cg_oz_fx.c)
+ 
+ 	CG_LoadingString( "clients" );
+ 
+diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
+--- a/code/cgame/cg_weapons.c
++++ b/code/cgame/cg_weapons.c
+@@ -226,6 +226,13 @@ void CG_RailTrail (clientInfo_t *ci, vec3_t start, vec3_t end) {
+  
+ 	start[2] -= 4;
+  
++	// Oz: Graphics > Rail trail (cg_oz_fx.c): "glow" adds a halo beside id's core and spiral,
++	// "ql" is one glowing beam instead of them, "core" leaves the spiral out
++	CG_OzRailTrail( ci, start, end );
++	if ( CG_OzRailStyle() == OZ_RAIL_QL ) {
++		return;
++	}
++
+ 	le = CG_AllocLocalEntity();
+ 	re = &le->refEntity;
+  
+@@ -252,14 +259,22 @@ void CG_RailTrail (clientInfo_t *ci, vec3_t start, vec3_t end) {
+ 	le->color[3] = 1.0f;
+ 
+ 	AxisClear( re->axis );
+- 
++	CG_OzRailCore( le );	// Oz: under the glow, a beam coming up from the gun (cg_oz_fx.c)
++
+ 	if (cg_oldRail.integer)
+ 	{
+ 		// nudge down a bit so it isn't exactly in center
+-		re->origin[2] -= 8;
+-		re->oldorigin[2] -= 8;
++		// Oz: not under the glow, which runs on the shot's own line: two lines 8 units apart, the
++		// core passing under the gun
++		if ( CG_OzRailStyle() != OZ_RAIL_GLOW ) {
++			re->origin[2] -= 8;
++			re->oldorigin[2] -= 8;
++		}
+ 		return;
+ 	}
++	if ( CG_OzRailStyle() == OZ_RAIL_CORE ) {
++		return;	// Oz
++	}
+ 
+ 	VectorCopy (start, move);
+ 	VectorSubtract (end, start, vec);
+@@ -1034,7 +1049,11 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
+ 
+ 	beam.reType = RT_LIGHTNING;
+ 	beam.customShader = cgs.media.lightningShader;
+-	trap_R_AddRefEntityToScene( &beam );
++	// Oz: Lightning beam "glow" brightens id's bolt in a halo, "straight" draws a steady line in its place (cg_oz_fx.c)
++	if ( CG_OzLightningBeam( &beam, trace.fraction < 1.0 ) ) {
++		trap_R_AddRefEntityToScene( &beam );
++	}
++	CG_OzLightningBurn( cent->currentState.number, &trace );	// Oz: the burn line where it touches the map
+ 
+ 	// add the impact flare if it hit something
+ 	if ( trace.fraction < 1.0 ) {
+@@ -1229,6 +1248,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
+ 		else {
+ 			Byte4Copy( ci->c1RGBA, gun.shaderRGBA );
+ 		}
++		CG_OzRailTint( cent, ci, gun.shaderRGBA );	// Oz: the remade style's charge (cg_oz_fx.c)
+ 	}
+ 
+ 	gun.hModel = weapon->weaponModel;
+@@ -1333,6 +1353,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
+ 
+ 	CG_PositionRotatedEntityOnTag( &flash, &gun, weapon->weaponModel, "tag_flash");
+ 	trap_R_AddRefEntityToScene( &flash );
++	CG_OzMuzzleFlash( cent, weaponNum, &flash, CG_OzFlashColor( weaponNum, weapon->flashDlightColor ) );	// Oz: the remade flare
+ 
+ 	if ( ps || cg.renderingThirdPerson ||
+ 		cent->currentState.number != cg.predictedPlayerState.clientNum ) {
+@@ -1340,8 +1361,8 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
+ 		CG_LightningBolt( nonPredictedCent, flash.origin );
+ 
+ 		if ( weapon->flashDlightColor[0] || weapon->flashDlightColor[1] || weapon->flashDlightColor[2] ) {
+-			trap_R_AddLightToScene( flash.origin, 300 + (rand()&31), weapon->flashDlightColor[0],
+-				weapon->flashDlightColor[1], weapon->flashDlightColor[2] );
++			const float *c = CG_OzFlashColor( weaponNum, weapon->flashDlightColor );	// Oz: Lightning color, Plasma color
++			trap_R_AddLightToScene( flash.origin, CG_OzFlashLight( 300 + (rand()&31) ), c[0], c[1], c[2] );	// Oz
+ 		}
+ 	}
+ }
+@@ -1906,11 +1927,13 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
+ 	// create the explosion
+ 	//
+ 	if ( mod ) {
++		shader = CG_OzExplosionShader( weapon, shader );	// Oz: the remade fireball
+ 		le = CG_MakeExplosion( origin, dir, 
+ 							   mod,	shader,
+ 							   duration, isSprite );
+ 		le->light = light;
+ 		VectorCopy( lightColor, le->lightColor );
++		CG_OzPlasmaRing( weapon, &le->refEntity );	// Oz: in Plasma color (cg_oz_fx.c)
+ 		if ( weapon == WP_RAILGUN ) {
+ 			// colorize with client color
+ 			VectorCopy( cgs.clientinfo[clientNum].color1, le->color );
+@@ -1931,9 +1954,15 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
+ 		// colorize with client color
+ 		color = cgs.clientinfo[clientNum].color1;
+ 		CG_ImpactMark( mark, origin, dir, random()*360, color[0],color[1], color[2],1, alphaFade, radius, qfalse );
+-	} else {
++	} else if ( weapon == WP_PLASMAGUN && CG_OzPlasmaMark( origin, dir, radius ) ) {
++		// Oz: the plasma's scorch drawn in Plasma color (cg_oz_fx.c)
++	} else if ( mark != cgs.media.holeMarkShader || !CG_OzBurns() ) {	// Oz: the lightning gun burns a line instead
+ 		CG_ImpactMark( mark, origin, dir, random()*360, 1,1,1,1, alphaFade, radius, qfalse );
+ 	}
++
++	// Oz: the remade impact's sparks, embers, smoke and glow (cg_oz_fx.c); the lightning gun's wall
++	// hits come with weapon 0 (g_weapon.c Weapon_LightningFire), its switch's default
++	CG_OzImpact( weapon == WP_NONE ? WP_LIGHTNING : weapon, origin, dir, cgs.clientinfo[clientNum].color1 );
+ }
+ 
+ 
+diff --git a/code/cgame/cg_effects.c b/code/cgame/cg_effects.c
+--- a/code/cgame/cg_effects.c
++++ b/code/cgame/cg_effects.c
+@@ -496,7 +496,7 @@ This is the spurt of blood when a character gets hit
+ void CG_Bleed( vec3_t origin, int entityNum ) {
+ 	localEntity_t	*ex;
+ 
+-	if ( !cg_blood.integer ) {
++	if ( !cg_blood.integer || !CG_OzBlood() ) {	// Oz: Graphics > Blood "off"
+ 		return;
+ 	}
+ 
+@@ -517,6 +517,9 @@ void CG_Bleed( vec3_t origin, int entityNum ) {
+ 	if ( entityNum == cg.snap->ps.clientNum ) {
+ 		ex->refEntity.renderfx |= RF_THIRD_PERSON;
+ 	}
++	if ( entityNum != cg.snap->ps.clientNum || cg.renderingThirdPerson ) {
++		CG_OzBleed( origin );	// Oz: Blood "heavy"
++	}
+ }
+ 
+ 
+diff --git a/code/cgame/cg_localents.c b/code/cgame/cg_localents.c
+--- a/code/cgame/cg_localents.c
++++ b/code/cgame/cg_localents.c
+@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ 
+ #include "cg_local.h"
+ 
+-#define	MAX_LOCAL_ENTITIES	512
++#define	MAX_LOCAL_ENTITIES	4096	// Oz: 512; the remade effects' sparks, embers and trails
+ localEntity_t	cg_localEntities[MAX_LOCAL_ENTITIES];
+ localEntity_t	cg_activeLocalEntities;		// double linked list
+ localEntity_t	*cg_freeLocalEntities;		// single linked list
+@@ -860,6 +860,14 @@ void CG_AddLocalEntities( void ) {
+ 			CG_AddScorePlum( le );
+ 			break;
+ 
++		case LE_OZ_PARTICLE:	// Oz: the remade effects (cg_oz_fx.c)
++			CG_AddOzParticle( le );
++			break;
++
++		case LE_OZ_BEAM:
++			CG_AddOzBeam( le );
++			break;
++
+ #ifdef MISSIONPACK
+ 		case LE_KAMIKAZE:
+ 			CG_AddKamikaze( le );
+diff --git a/code/cgame/cg_marks.c b/code/cgame/cg_marks.c
+--- a/code/cgame/cg_marks.c
++++ b/code/cgame/cg_marks.c
+@@ -56,6 +56,7 @@ void	CG_InitMarkPolys( void ) {
+ 	for ( i = 0 ; i < MAX_MARK_POLYS - 1 ; i++ ) {
+ 		cg_markPolys[i].nextMark = &cg_markPolys[i+1];
+ 	}
++	CG_OzClearBurns();	// Oz: the lightning gun's burn lines (cg_oz_fx.c)
+ }
+ 
+ 
+@@ -239,6 +240,7 @@ void CG_AddMarks( void ) {
+ 	if ( !cg_addMarks.integer ) {
+ 		return;
+ 	}
++	CG_OzAddBurns();	// Oz: the lightning gun's burn lines (cg_oz_fx.c)
+ 
+ 	mp = cg_activeMarkPolys.nextMark;
+ 	for ( ; mp != &cg_activeMarkPolys ; mp = next ) {
+@@ -253,7 +255,7 @@ void CG_AddMarks( void ) {
+ 		}
+ 
+ 		// fade out the energy bursts
+-		if ( mp->markShader == cgs.media.energyMarkShader ) {
++		if ( mp->markShader == cgs.media.energyMarkShader || CG_OzEnergyMark( mp->markShader ) ) {	// Oz: Plasma color's too
+ 
+ 			fade = 450 - 450 * ( (cg.time - mp->time ) / 3000.0 );
+ 			if ( fade < 255 ) {
+diff --git a/code/cgame/cg_ents.c b/code/cgame/cg_ents.c
+--- a/code/cgame/cg_ents.c
++++ b/code/cgame/cg_ents.c
+@@ -431,6 +431,7 @@ static void CG_Missile( centity_t *cent ) {
+ 	{
+ 		weapon->missileTrailFunc( cent, weapon );
+ 	}
++	CG_OzMissileTrail( cent );	// Oz: the remade glowing trails
+ /*
+ 	if ( cent->currentState.modelindex == TEAM_RED ) {
+ 		col = 1;
+@@ -473,6 +474,7 @@ static void CG_Missile( centity_t *cent ) {
+ 		ent.radius = 16;
+ 		ent.rotation = 0;
+ 		ent.customShader = cgs.media.plasmaBallShader;
++		CG_OzPlasmaBall( &ent );	// Oz: in Plasma color (cg_oz_fx.c)
+ 		trap_R_AddRefEntityToScene( &ent );
+ 		return;
+ 	}
+diff --git a/code/cgame/cg_playerstate.c b/code/cgame/cg_playerstate.c
+--- a/code/cgame/cg_playerstate.c
++++ b/code/cgame/cg_playerstate.c
+@@ -322,7 +322,7 @@ void CG_CheckLocalSounds( playerState_t *ps, playerState_t *ops ) {
+ 			trap_S_StartLocalSound( cgs.media.hitSound, CHAN_LOCAL_SOUND );
+ 		}
+ #else
+-		trap_S_StartLocalSound( cgs.media.hitSound, CHAN_LOCAL_SOUND );
++		CG_OzHitSound();	// Oz: Audio > Hit sound: off, id's beep, or pitched by the damage (cg_oz_fx.c)
+ #endif
+ 	} else if ( ps->persistant[PERS_HITS] < ops->persistant[PERS_HITS] ) {
+ 		trap_S_StartLocalSound( cgs.media.hitTeamSound, CHAN_LOCAL_SOUND );
+diff --git a/code/cgame/cg_servercmds.c b/code/cgame/cg_servercmds.c
+--- a/code/cgame/cg_servercmds.c
++++ b/code/cgame/cg_servercmds.c
+@@ -998,6 +998,15 @@ static void CG_ServerCommand( void ) {
+ 
+ 	cmd = CG_Argv(0);
+ 
++	// Oz: "dmg <target> <damage> ..." (q3core patch 0002) pitches the hit beep (cg_oz_fx.c). CG_Argv
++	// has one buffer, so reading the arguments overwrites cmd: the command ends here
++	if ( !strcmp( cmd, "dmg" ) ) {
++		if ( atoi( CG_Argv( 1 ) ) != cg.clientNum ) {
++			CG_OzHitDamage( atoi( CG_Argv( 2 ) ) );
++		}
++		return;
++	}
++
+ 	if ( !cmd[0] ) {
+ 		// server claimed the command
+ 		return;
+diff --git a/code/cgame/cg_oz_fx.c b/code/cgame/cg_oz_fx.c
+new file mode 100644
+--- /dev/null
++++ b/code/cgame/cg_oz_fx.c
+@@ -0,0 +1,1740 @@
++/*
++===========================================================================
++Oz Arena: the remade effects (ENGINE_PLAN.md P3), after the Godot build's (scripts/fx/q3_fx.gd,
++fx_sparks.gd, fx_lightning_beam.gd and the client's trail tables). GPL-2.0, as the rest of cgame.
++
++cg_fxStyle 0 is id's effects as they were; 1 (the default) adds the remaster's on cgame's own
++timings, each with its Graphics setting (the oz_graphics_* cvars the engine makes from
++engine/ui/settings.json):
++  - impacts by surface: on metal hot sparks that bounce off the map, on stone a puff of dust and
++    grit with fewer sparks; with Explosions "enhanced", embers and rising smoke after rocket,
++    grenade and BFG blasts and a glow where energy shots hit
++  - muzzle flashes: a hot flare at the muzzle while id's flash shows, sparks and a wisp of smoke
++    from the machine gun and shotgun
++  - Heat shimmer: the air behind a rocket and over a blast bends the picture (oz renderer only:
++    scripts/oz_cgame.ozmtr's oz/fx/heat)
++  - Rail trail: classic, glow (a halo outlasting the core), ql (one thick glowing beam), core (no spiral)
++  - Lightning beam: classic, glow (id's bolt brighter in a flickering halo, a flare and a light
++    where it hits) or straight (a steady glowing line in place of the bolt); in any of them, a
++    burn line where the beam touches the map, in place of id's bullet holes
++  - Missile trails: classic, or enhanced (a burning core behind rockets and grenades, glowing
++    trails behind plasma and the BFG)
++  - Lightning color and Plasma color: the two guns' remade parts, made in blue, turn to the
++    color's hue (OzTint), for every player's shots, and id's bolt, plasma ball, ring and scorch
++    with them (OzTintBytes, the oz renderer's); Classic lightning keeps id's colors
++  - Blood: off, classic, heavy (a spray of droplets)
++  - Particles (low, medium, high) scales how many each effect throws; Effect intensity scales
++    the glowing ones and their lights.
++The plasma ball keeps id's sprite, so it still reads as a projectile. Gameplay > Spawn effects and
++Hit twitch, and Accessibility > Reduced flashing (no flares at the muzzle, dimmer flashes and their
++lights, no red blob on the screen when hit) are read here for cgame's code too, in any style.
++===========================================================================
++*/
++#include "cg_local.h"
++
++vmCvar_t	cg_fxStyle;
++static vmCvar_t	oz_railStyle, oz_railWidth, oz_lightningStyle, oz_lightningWidth;
++static vmCvar_t	oz_missileTrails, oz_explosions, oz_blood, oz_particles, oz_intensity, oz_hitSound;
++static vmCvar_t	oz_heatShimmer, oz_spawnEffect, oz_painTwitch, oz_reducedFlashing;
++static vmCvar_t	oz_lightningColor, oz_plasmaColor;
++
++static const struct {
++	vmCvar_t	*vmCvar;
++	char		*cvarName;
++	char		*defaultString;
++	int			cvarFlags;
++} ozCvars[] = {
++	{ &cg_fxStyle, "cg_fxStyle", "1", CVAR_ARCHIVE },
++	{ &oz_railStyle, "oz_graphics_rail_style", "glow", CVAR_ARCHIVE },
++	{ &oz_railWidth, "oz_graphics_rail_width", "1.0", CVAR_ARCHIVE },
++	{ &oz_lightningStyle, "oz_graphics_lightning_style", "glow", CVAR_ARCHIVE },
++	{ &oz_lightningWidth, "oz_graphics_lightning_width", "1.0", CVAR_ARCHIVE },
++	{ &oz_missileTrails, "oz_graphics_missile_trails", "enhanced", CVAR_ARCHIVE },
++	{ &oz_explosions, "oz_graphics_explosions", "enhanced", CVAR_ARCHIVE },
++	{ &oz_blood, "oz_graphics_blood", "classic", CVAR_ARCHIVE },
++	{ &oz_particles, "oz_graphics_particles", "high", CVAR_ARCHIVE },
++	{ &oz_intensity, "oz_graphics_effect_intensity", "1.0", CVAR_ARCHIVE },
++	{ &oz_hitSound, "oz_audio_hit_sound", "classic", CVAR_ARCHIVE },
++	{ &oz_heatShimmer, "oz_graphics_heat_shimmer", "1", CVAR_ARCHIVE },
++	{ &oz_spawnEffect, "oz_gameplay_spawn_effect", "1", CVAR_ARCHIVE },
++	{ &oz_painTwitch, "oz_gameplay_pain_twitch", "0", CVAR_ARCHIVE },
++	{ &oz_reducedFlashing, "oz_accessibility_reduced_flashing", "0", CVAR_ARCHIVE },
++	{ &oz_lightningColor, "oz_graphics_lightning_color", "#2e66ff", CVAR_ARCHIVE },
++	{ &oz_plasmaColor, "oz_graphics_plasma_color", "#5980ff", CVAR_ARCHIVE },
++};
++
++// Graphics > Lightning color and Plasma color: the guns' remade parts in the blues they were made in
++// (each setting's default is its first). The lightning gun's glow beam's halo and white-hot core, glow
++// where it hits, muzzle light (id's flashDlightColor), straight beam's deep glow and pale core, and dim
++// muzzle flare; the plasma gun's trail, glow where it hits, embers (hot, then fading), and muzzle flare
++// and light (id's flashDlightColor).
++enum { LG_GLOW, LG_HOT, LG_HIT, LG_FLASH, LG_DEEP, LG_ICE, LG_MUZZLE, LG_PARTS };
++enum { PG_TRAIL, PG_GLOW, PG_EMBER, PG_EMBER_OUT, PG_FLASH, PG_PARTS };
++static const vec3_t lgBlue[LG_PARTS] = { { 0.18f, 0.4f, 1.0f }, { 0.8f, 0.9f, 1.0f }, { 0.6f, 0.75f, 1.0f }, { 0.6f, 0.6f, 1.0f },
++	{ 0.1f, 0.28f, 1.0f }, { 0.3f, 0.55f, 1.0f }, { 0.08f, 0.22f, 0.6f } };
++static const vec3_t pgBlue[PG_PARTS] = { { 0.35f, 0.5f, 1.0f }, { 0.45f, 0.6f, 1.0f }, { 0.9f, 0.95f, 1.0f }, { 0.1f, 0.15f, 0.6f },
++	{ 0.6f, 0.6f, 1.0f } };
++
++// the settings as numbers, read again when a cvar changes
++static struct {
++	int		remade;
++	int		railStyle;			// OZ_RAIL_*
++	float	railWidth;
++	int		lightningStyle;		// OZ_LG_*
++	float	lightningWidth;
++	int		trails;				// enhanced
++	int		explosions;			// enhanced
++	int		blood;				// 0 off, 1 classic, 2 heavy
++	float	amount;				// share of the particles thrown
++	float	gain;				// glowing effects and their lights
++	int		hitSound;			// 0 off, 1 classic, 2 pitch
++	int		heat;				// Heat shimmer
++	int		spawnEffect;		// Gameplay > Spawn effects
++	int		painTwitch;			// Gameplay > Hit twitch
++	int		calm;				// Accessibility > Reduced flashing
++	int		lgTint;				// Lightning color isn't the default: id's bolt is drawn in it too
++	int		pgTint;				// Plasma color isn't: id's ball, ring and scorch too
++	vec3_t	lg[LG_PARTS];		// lgBlue in Lightning color's hue
++	vec3_t	pg[PG_PARTS];		// pgBlue in Plasma color's
++	int		modCount;
++} oz;
++
++static struct {
++	qhandle_t	glow;			// gfx/misc/flare, added, colored by vertex
++	qhandle_t	beam;			// the glow brighter, for beams' hot cores (more bloom on the oz renderer)
++	qhandle_t	lightningBolt;	// id's bolt brighter (scripts/oz_cgame.ozmtr; 0 elsewhere)
++	qhandle_t	lightningTint;	// the same in the entity's color, for Lightning color (0 elsewhere)
++	qhandle_t	plasmaBall;		// id's plasma ball, ring and scorch in the entity's color, for Plasma color (0 elsewhere)
++	qhandle_t	plasmaRing;
++	qhandle_t	plasmaMark;
++	qhandle_t	smoke;			// gfx/misc/smokepuff3, blended, colored by vertex
++	qhandle_t	blood;			// gfx/damage/blood_stain, blended, colored by vertex
++	qhandle_t	blast[3];		// id's rocket, grenade and BFG fireballs brighter (scripts/oz_cgame.ozmtr; 0 elsewhere)
++	qhandle_t	burn;			// the lightning gun's burn line, 0 without gfx/oz/burn (pak_oz_fx.pk3)
++	qhandle_t	heat;			// heat shimmer (scripts/oz_cgame.ozmtr; 0 elsewhere)
++	sfxHandle_t	hit[4];			// sound/feedback/oz_hit_1..4.wav (tools/make_fx_pk3.py), 0 when missing
++	int			hitDamage;		// damage reported by "dmg" since the last beep
++} ozMedia;
++
++#define OZP_ADD			1		// added (glowing); else blended
++#define OZP_STREAK		2		// drawn as a streak along its motion; else a sprite
++#define OZP_BOUNCE		4		// bounces off the map
++#define OZP_STICK		8		// dies where it hits the map (droplets)
++
++#define OZB_TILE		1		// the texture repeats along the beam every 256 units (rail core); else its middle column
++
++#define GRAVITY			800.0f	// g_gravity, units/s^2
++#define SPARK_BOUNCE	0.45f	// share of the speed into a surface kept on a bounce
++#define SPARK_FRICTION	0.7f	// share of the speed along it kept
++#define SPARK_MIN_SPEED	40.0f	// slower after a bounce and it dies
++#define STREAK_TIME		0.025f	// seconds of travel a streak shows
++#define SPARK_WIDTH		0.9f
++
++#define OzLerp3( f, a, b, out ) ( (out)[0] = (a)[0] + (f) * ( (b)[0] - (a)[0] ), (out)[1] = (a)[1] + (f) * ( (b)[1] - (a)[1] ), 	(out)[2] = (a)[2] + (f) * ( (b)[2] - (a)[2] ) )
++#define OzLerp4( f, a, b, out ) ( OzLerp3( f, a, b, out ), (out)[3] = (a)[3] + (f) * ( (b)[3] - (a)[3] ) )
++
++/*
++=================
++CG_OzFxUpdateCvars
++=================
++*/
++static int OzPick( const char *s, const char **names, int count, int fallback ) {
++	int i;
++	for ( i = 0; i < count; i++ ) {
++		if ( !Q_stricmp( s, names[i] ) ) {
++			return i;
++		}
++	}
++	return fallback;
++}
++
++// hue in sixths of a turn (0 red, 2 green, 4 blue), saturation, value
++static void OzRgbToHsv( const vec3_t c, vec3_t hsv ) {
++	float hi = MAX( c[0], MAX( c[1], c[2] ) ), lo = MIN( c[0], MIN( c[1], c[2] ) ), d = hi - lo, h = 0.0f;
++
++	if ( d > 0.0f ) {
++		if ( hi == c[0] ) {
++			h = ( c[1] - c[2] ) / d;
++		} else if ( hi == c[1] ) {
++			h = 2.0f + ( c[2] - c[0] ) / d;
++		} else {
++			h = 4.0f + ( c[0] - c[1] ) / d;
++		}
++	}
++	hsv[0] = h < 0.0f ? h + 6.0f : h;
++	hsv[1] = hi > 0.0f ? d / hi : 0.0f;
++	hsv[2] = hi;
++}
++
++static void OzHsvToRgb( const vec3_t hsv, vec3_t c ) {
++	float h = hsv[0], s = hsv[1], v = hsv[2], f;
++	int i;
++
++	while ( h < 0.0f ) {
++		h += 6.0f;
++	}
++	while ( h >= 6.0f ) {
++		h -= 6.0f;
++	}
++	i = (int)h;
++	f = h - i;
++	switch ( i ) {
++	case 0: VectorSet( c, v, v * ( 1 - s * ( 1 - f ) ), v * ( 1 - s ) ); break;
++	case 1: VectorSet( c, v * ( 1 - s * f ), v, v * ( 1 - s ) ); break;
++	case 2: VectorSet( c, v * ( 1 - s ), v, v * ( 1 - s * ( 1 - f ) ) ); break;
++	case 3: VectorSet( c, v * ( 1 - s ), v * ( 1 - s * f ), v ); break;
++	case 4: VectorSet( c, v * ( 1 - s * ( 1 - f ) ), v * ( 1 - s ), v ); break;
++	default: VectorSet( c, v, v * ( 1 - s ), v * ( 1 - s * f ) ); break;
++	}
++}
++
++#define OzLuma( c )		( 0.2126f * (c)[0] + 0.7152f * (c)[1] + 0.0722f * (c)[2] )
++
++/*
++A part of an effect made in the color `made`, in the color `pick` (Lightning color, Plasma color): its
++hue turns as far as made's turns to pick's, its saturation scales by pick's over made's, its value
++stays. So made gives every part back as it was, white or grey makes them white, and a dark color
++gives its hue at the part's brightness. A hue brighter to the eye than the part's (yellow, green for
++a blue) is dimmed halfway (in the square root) back to the part's luma, or the beams burn out to white.
++*/
++static void OzTint( const vec3_t pick, const vec3_t made, const vec3_t part, vec3_t out ) {
++	vec3_t p, m, h;
++	float y;
++
++	OzRgbToHsv( pick, p );
++	OzRgbToHsv( made, m );
++	OzRgbToHsv( part, h );
++	h[0] += p[0] - m[0];
++	h[1] = m[1] > 0.0f ? Com_Clamp( 0.0f, 1.0f, h[1] * p[1] / m[1] ) : 0.0f;
++	OzHsvToRgb( h, out );
++	y = OzLuma( out );
++	if ( y > OzLuma( part ) ) {
++		VectorScale( out, sqrt( OzLuma( part ) / y ), out );
++	}
++}
++
++// a color setting ("#rrggbb") on the parts made in parts[0], which is the setting's default `made`:
++// that, anything unreadable or `on` false leaves them as made; whether they changed
++static qboolean OzColorSetting( const char *s, int made, const vec3_t *parts, int count, qboolean on, vec3_t *out ) {
++	vec3_t pick;
++	int i, d, n = 0;
++
++	for ( i = 0; i < count; i++ ) {
++		VectorCopy( parts[i], out[i] );
++	}
++	if ( *s == '#' ) {
++		s++;
++	}
++	for ( i = 0; i < 6; i++ ) {
++		d = s[i] >= '0' && s[i] <= '9' ? s[i] - '0' : s[i] >= 'a' && s[i] <= 'f' ? s[i] - 'a' + 10 :
++			s[i] >= 'A' && s[i] <= 'F' ? s[i] - 'A' + 10 : -1;
++		if ( d < 0 ) {
++			return qfalse;
++		}
++		n = n * 16 + d;
++	}
++	if ( !on || s[6] || n == made ) {
++		return qfalse;
++	}
++	VectorSet( pick, ( n >> 16 & 255 ) / 255.0f, ( n >> 8 & 255 ) / 255.0f, ( n & 255 ) / 255.0f );
++	for ( i = 0; i < count; i++ ) {
++		OzTint( pick, parts[0], parts[i], out[i] );
++	}
++	return qtrue;
++}
++
++void CG_OzFxRegisterCvars( void ) {
++	int i;
++	for ( i = 0; i < ARRAY_LEN( ozCvars ); i++ ) {
++		trap_Cvar_Register( ozCvars[i].vmCvar, ozCvars[i].cvarName, ozCvars[i].defaultString, ozCvars[i].cvarFlags );
++	}
++	oz.modCount = -1;
++	CG_OzFxUpdateCvars();
++}
++
++void CG_OzFxUpdateCvars( void ) {
++	static const char *rails[] = { "classic", "glow", "ql", "core" };
++	static const char *lightnings[] = { "classic", "glow", "straight" };
++	static const char *bloods[] = { "off", "classic", "heavy" };
++	static const char *amounts[] = { "low", "medium", "high" };
++	static const char *hits[] = { "off", "classic", "pitch" };
++	static const float amountShare[] = { 0.35f, 0.65f, 1.0f };
++	int i, sum = 0;
++
++	for ( i = 0; i < ARRAY_LEN( ozCvars ); i++ ) {
++		trap_Cvar_Update( ozCvars[i].vmCvar );
++		sum += ozCvars[i].vmCvar->modificationCount;
++	}
++	if ( sum == oz.modCount ) {
++		return;
++	}
++	oz.modCount = sum;
++	oz.remade = cg_fxStyle.integer != 0;
++	oz.railStyle = oz.remade ? OzPick( oz_railStyle.string, rails, 4, OZ_RAIL_GLOW ) : OZ_RAIL_CLASSIC;
++	oz.railWidth = Com_Clamp( 0.25f, 4.0f, oz_railWidth.value );
++	oz.lightningStyle = oz.remade ? OzPick( oz_lightningStyle.string, lightnings, 3, OZ_LG_GLOW ) : OZ_LG_CLASSIC;
++	oz.lightningWidth = Com_Clamp( 0.25f, 4.0f, oz_lightningWidth.value );
++	oz.trails = oz.remade && !Q_stricmp( oz_missileTrails.string, "enhanced" );
++	oz.explosions = oz.remade && !Q_stricmp( oz_explosions.string, "enhanced" );
++	oz.blood = OzPick( oz_blood.string, bloods, 3, 1 );
++	if ( !oz.remade && oz.blood == 2 ) {
++		oz.blood = 1;
++	}
++	oz.amount = amountShare[OzPick( oz_particles.string, amounts, 3, 2 )];
++	oz.gain = Com_Clamp( 0.0f, 2.0f, oz_intensity.value );
++	oz.hitSound = OzPick( oz_hitSound.string, hits, 3, 1 );
++	oz.heat = oz.remade && oz_heatShimmer.integer;
++	oz.spawnEffect = oz_spawnEffect.integer;
++	oz.painTwitch = oz_painTwitch.integer;
++	oz.calm = oz_reducedFlashing.integer;
++	oz.lgTint = OzColorSetting( oz_lightningColor.string, 0x2e66ff, lgBlue, LG_PARTS, oz.lightningStyle != OZ_LG_CLASSIC, oz.lg );
++	oz.pgTint = OzColorSetting( oz_plasmaColor.string, 0x5980ff, pgBlue, PG_PARTS, oz.remade, oz.pg );
++}
++
++// a muzzle flash's light color (CG_AddPlayerWeapon): id's, or the lightning and plasma guns' in their color
++const float *CG_OzFlashColor( int weapon, const float *color ) {
++	return weapon == WP_LIGHTNING ? oz.lg[LG_FLASH] : weapon == WP_PLASMAGUN ? oz.pg[PG_FLASH] : color;
++}
++
++/*
++id's images in another Lightning or Plasma color: the bolt, the plasma ball, its ring and its scorch
++are cyan or blue, with next to no red in them, so a color multiplied in lost them. Their tint shaders
++(scripts/oz_cgame.ozmtr, the oz renderer's) draw the image grey first (ozMono, its brightest
++channel), and the entity or vertex color colors it: the part's hue at full brightness, `white` of
++the way to white (their cores are near white), dimmed as OzTint dims where it's brighter to the eye
++than the part made in blue would be.
++*/
++static void OzTintColor( const vec3_t c, float white, vec3_t out ) {
++	float hi = MAX( c[0], MAX( c[1], c[2] ) );
++	int i;
++
++	for ( i = 0; i < 3; i++ ) {
++		float v = hi > 0.0f ? c[i] / hi : 1.0f;
++		out[i] = v + white * ( 1.0f - v );
++	}
++}
++
++static void OzTintBytes( const vec3_t c, const vec3_t made, float white, byte *rgba ) {
++	vec3_t t, m;
++	float k = 1.0f;
++	int i;
++
++	OzTintColor( c, white, t );
++	OzTintColor( made, white, m );
++	if ( OzLuma( t ) > OzLuma( m ) ) {
++		k = sqrt( OzLuma( m ) / OzLuma( t ) );
++	}
++	for ( i = 0; i < 3; i++ ) {
++		rgba[i] = (byte)( 255 * Com_Clamp( 0.0f, 1.0f, t[i] * k ) );
++	}
++	rgba[3] = 255;
++}
++
++#define PLASMA_WHITE	0.25f		// share of white in id's plasma ball and ring drawn in Plasma color
++
++// the plasma ball (CG_Missile): id's sprite, in Plasma color
++void CG_OzPlasmaBall( refEntity_t *ent ) {
++	if ( oz.pgTint && ozMedia.plasmaBall ) {
++		ent->customShader = ozMedia.plasmaBall;
++		OzTintBytes( oz.pg[PG_GLOW], pgBlue[PG_GLOW], PLASMA_WHITE, ent->shaderRGBA );
++	}
++}
++
++// the ring where a plasma ball hits (CG_MissileHitWall's explosion), in Plasma color
++void CG_OzPlasmaRing( int weapon, refEntity_t *ent ) {
++	if ( weapon == WP_PLASMAGUN && oz.pgTint && ozMedia.plasmaRing ) {
++		ent->customShader = ozMedia.plasmaRing;
++		OzTintBytes( oz.pg[PG_GLOW], pgBlue[PG_GLOW], PLASMA_WHITE, ent->shaderRGBA );
++	}
++}
++
++// the plasma's scorch (CG_MissileHitWall) in Plasma color; qfalse leaves id's to it
++qboolean CG_OzPlasmaMark( vec3_t origin, vec3_t dir, float radius ) {
++	byte c[4];
++
++	if ( !oz.pgTint || !ozMedia.plasmaMark ) {
++		return qfalse;
++	}
++	OzTintBytes( oz.pg[PG_GLOW], pgBlue[PG_GLOW], 0.0f, c );
++	CG_ImpactMark( ozMedia.plasmaMark, origin, dir, random() * 360, c[0] / 255.0f, c[1] / 255.0f, c[2] / 255.0f, 1,
++		qtrue, radius, qfalse );
++	return qtrue;
++}
++
++// whether a mark is an energy burst that fades out early (CG_AddMarks), as id's energyMarkShader
++qboolean CG_OzEnergyMark( qhandle_t shader ) {
++	return shader && shader == ozMedia.plasmaMark;
++}
++
++int CG_OzRailStyle( void ) {
++	return oz.railStyle;
++}
++
++int CG_OzBlood( void ) {
++	return oz.blood;
++}
++
++// EV_PLAYER_TELEPORT_IN/OUT's flash (CG_SpawnEffect); its sound plays either way
++qboolean CG_OzSpawnEffect( void ) {
++	return oz.spawnEffect != 0;
++}
++
++// CG_AddPainTwitch: the upper body jerking to the side when hit
++qboolean CG_OzPainTwitch( void ) {
++	return oz.painTwitch != 0;
++}
++
++// Reduced flashing: no red blob on the screen when hit (CG_DamageBlendBlob), dimmer flashes
++qboolean CG_OzCalm( void ) {
++	return oz.calm != 0;
++}
++
++// a muzzle flash's light (CG_AddPlayerWeapon): half as big with Reduced flashing
++float CG_OzFlashLight( float radius ) {
++	return oz.calm ? radius * 0.5f : radius;
++}
++
++// The rail gun's glow (id's rgbGen entity stages; brighter than white on the oz renderer,
++// scripts/oz_cgame.ozmtr) in the remade style, as the Godot build's q3_weapon_fx.gd: the player's
++// rail color almost dark after a shot, filling up with a flicker through the 1.5 s reload, a flash
++// when it's ready, then a slow breathing glow. With Reduced flashing, no flicker and no flash.
++// The classic style keeps id's ramp (CG_AddPlayerWeapon).
++void CG_OzRailTint( centity_t *cent, const clientInfo_t *ci, byte *rgba ) {
++	int since = cg.time - cent->pe.railFireTime;
++	float f, pop = 0.0f;
++	int i;
++
++	if ( !oz.remade ) {
++		return;
++	}
++	if ( since >= 0 && since < 1500 ) {
++		float c = since / 1500.0f;
++		f = 0.06f + 0.94f * c * c;
++		if ( !oz.calm ) {
++			f *= 0.85f + 0.15f * sin( cg.time * 0.001f * 2.0f * M_PI * 9.0f );
++		}
++	} else {
++		f = 0.72f + 0.28f * sin( cg.time * 0.001f * 2.0f * M_PI * 0.55f );
++		if ( since >= 1500 && since < 1750 && !oz.calm ) {
++			pop = 1.2f * ( 1.0f - ( since - 1500 ) / 250.0f );
++		}
++	}
++	for ( i = 0; i < 3; i++ ) {
++		rgba[i] = (byte)Com_Clamp( 0.0f, 255.0f, ci->c1RGBA[i] * f + 255.0f * pop );
++	}
++	rgba[3] = 255;
++}
++
++// CG_MissileHitWall's fireball: id's, or in the remade style its brighter copy where the renderer has one
++qhandle_t CG_OzExplosionShader( int weapon, qhandle_t shader ) {
++	int i = weapon == WP_ROCKET_LAUNCHER ? 0 : weapon == WP_GRENADE_LAUNCHER ? 1 : weapon == WP_BFG ? 2 : -1;
++
++	if ( !oz.remade || i < 0 || !ozMedia.blast[i] ) {
++		return shader;
++	}
++	return ozMedia.blast[i];
++}
++
++/*
++=================
++CG_OzFxRegisterMedia
++=================
++*/
++void CG_OzFxRegisterMedia( void ) {
++	int i;
++	fileHandle_t f;
++
++	ozMedia.glow = trap_R_RegisterShader( "oz/fx/glow" );		// scripts/oz_cgame.shader
++	ozMedia.beam = trap_R_RegisterShader( "oz/fx/beam" );
++	ozMedia.smoke = trap_R_RegisterShader( "oz/fx/smoke" );
++	ozMedia.blood = trap_R_RegisterShader( "oz/fx/blood" );
++	// only the oz renderer has these (0 from the others, which keep id's)
++	ozMedia.blast[0] = trap_R_RegisterShader( "oz/fx/rocketExplosion" );
++	ozMedia.blast[1] = trap_R_RegisterShader( "oz/fx/grenadeExplosion" );
++	ozMedia.blast[2] = trap_R_RegisterShader( "oz/fx/bfgExplosion" );
++	ozMedia.lightningBolt = trap_R_RegisterShader( "oz/fx/lightningBolt" );
++	ozMedia.lightningTint = trap_R_RegisterShader( "oz/fx/lightningBoltTint" );
++	ozMedia.plasmaBall = trap_R_RegisterShader( "oz/fx/plasmaBallTint" );
++	ozMedia.plasmaRing = trap_R_RegisterShader( "oz/fx/plasmaExplosionTint" );
++	ozMedia.plasmaMark = trap_R_RegisterShader( "oz/fx/plasmaMarkTint" );
++	ozMedia.heat = trap_R_RegisterShader( "oz/fx/heat" );
++	ozMedia.burn = 0;
++	if ( trap_FS_FOpenFile( "gfx/oz/burn.png", &f, FS_READ ) > 0 ) {	// tools/make_fx_pk3.py
++		trap_FS_FCloseFile( f );
++		ozMedia.burn = trap_R_RegisterShader( "oz/fx/burn" );
++	}
++	for ( i = 0; i < 4; i++ ) {
++		const char *name = va( "sound/feedback/oz_hit_%d.wav", i + 1 );
++		ozMedia.hit[i] = 0;
++		if ( trap_FS_FOpenFile( name, &f, FS_READ ) > 0 ) {
++			trap_FS_FCloseFile( f );
++			ozMedia.hit[i] = trap_S_RegisterSound( name, qfalse );
++		}
++	}
++	ozMedia.hitDamage = 0;
++}
++
++/*
++=================
++Hit sounds: id's beep, or with oz_audio_hit_sound "pitch" one of four pitched by the damage the
++server's "dmg" commands reported since the last beep (higher for small hits, lower for big ones).
++Played here: id's beep is sound handle 0 (the mixer registers it first, as its default sound), so
++a handle can't stand for "no sound".
++=================
++*/
++void CG_OzHitDamage( int damage ) {
++	ozMedia.hitDamage += damage;
++}
++
++void CG_OzHitSound( void ) {
++	int d = ozMedia.hitDamage, step;
++	sfxHandle_t sfx = cgs.media.hitSound;
++
++	ozMedia.hitDamage = 0;
++	if ( oz.hitSound == 0 ) {
++		return;
++	}
++	if ( oz.hitSound == 2 && d > 0 ) {
++		step = d < 25 ? 0 : d < 50 ? 1 : d < 75 ? 2 : 3;	// tools/make_fx_pk3.py HIT_STEPS
++		if ( ozMedia.hit[step] ) {
++			sfx = ozMedia.hit[step];
++		}
++	}
++	trap_S_StartLocalSound( sfx, CHAN_LOCAL_SOUND );
++}
++
++/*
++=================
++Particles (LE_OZ_PARTICLE): a sprite or a streak that flies under gravity, optionally bouncing,
++its color going start -> middle -> end over its life (le->color, le->ozColor[0], le->ozColor[1])
++and its radius from le->radius to le->ozRadius.
++=================
++*/
++static int OzCount( int n ) {
++	return (int)( n * oz.amount + 0.5f );
++}
++
++static float OzRand( float lo, float hi ) {
++	return lo + ( hi - lo ) * random();
++}
++
++// a flicker's 0..1 for `salt`, the same through each 25 ms: 40 changes a second at any frame rate
++static float OzFlicker( int salt ) {
++	unsigned h = (unsigned)( cg.time / 25 ) * 2654435761u ^ (unsigned)salt * 40503u;
++
++	h ^= h >> 15;
++	h *= 2246822519u;
++	h ^= h >> 13;
++	return ( h & 0xffff ) / 65535.0f;
++}
++
++// a direction off a surface with normal n: within `spread` (0 straight out .. 1 any way off it)
++static void OzSprayDir( const vec3_t n, float spread, vec3_t out ) {
++	vec3_t r;
++	float d;
++
++	r[0] = crandom(); r[1] = crandom(); r[2] = crandom();
++	VectorNormalize( r );
++	VectorMA( n, spread * random(), r, out );
++	VectorNormalize( out );
++	d = DotProduct( out, n );
++	if ( d < 0.05f ) {
++		VectorMA( out, 0.05f - d, n, out );
++		VectorNormalize( out );
++	}
++}
++
++// a direction within `degrees` of n (a cone, as Godot's particle spread)
++static void OzConeDir( const vec3_t n, float degrees, vec3_t out ) {
++	vec3_t right, up;
++	float a = DEG2RAD( degrees ) * random(), b = 2.0f * M_PI * random();
++
++	PerpendicularVector( right, n );
++	CrossProduct( n, right, up );
++	VectorScale( n, cos( a ), out );
++	VectorMA( out, sin( a ) * cos( b ), right, out );
++	VectorMA( out, sin( a ) * sin( b ), up, out );
++}
++
++static localEntity_t *OzParticle( const vec3_t at, const vec3_t vel, int lifeMs, float radius, float endRadius,
++		const vec4_t c0, const vec4_t c1, const vec4_t c2, qhandle_t shader, int flags ) {
++	localEntity_t *le = CG_AllocLocalEntity();
++
++	le->leType = LE_OZ_PARTICLE;
++	le->ozFlags = flags;
++	le->startTime = cg.time;
++	le->endTime = cg.time + lifeMs;
++	le->lifeRate = 1.0f / lifeMs;
++	le->pos.trType = TR_LINEAR;
++	le->pos.trTime = cg.time;
++	VectorCopy( at, le->pos.trBase );
++	VectorCopy( vel, le->pos.trDelta );
++	le->radius = radius;
++	le->ozRadius = endRadius;
++	Vector4Copy( c0, le->color );
++	Vector4Copy( c1, le->ozColor[0] );
++	Vector4Copy( c2, le->ozColor[1] );
++	le->ozGravity = GRAVITY;
++	le->refEntity.customShader = shader;
++	le->refEntity.rotation = random() * 360.0f;
++	return le;
++}
++
++// a quad from a to b turned to the view, s from s0 at a to s1 at b (the same: one column of the
++// image), colored rgbaA at a and rgbaB at b; right is half its width across
++static void OzQuad( const vec3_t a, const vec3_t b, const vec3_t right, float s0, float s1, qhandle_t shader,
++		const byte *rgbaA, const byte *rgbaB ) {
++	polyVert_t v[4];
++	int i;
++
++	VectorAdd( a, right, v[0].xyz ); v[0].st[0] = s0; v[0].st[1] = 0;
++	VectorSubtract( a, right, v[1].xyz ); v[1].st[0] = s0; v[1].st[1] = 1;
++	VectorSubtract( b, right, v[2].xyz ); v[2].st[0] = s1; v[2].st[1] = 1;
++	VectorAdd( b, right, v[3].xyz ); v[3].st[0] = s1; v[3].st[1] = 0;
++	for ( i = 0; i < 4; i++ ) {
++		const byte *rgba = i < 2 ? rgbaA : rgbaB;
++		v[i].modulate[0] = rgba[0]; v[i].modulate[1] = rgba[1];
++		v[i].modulate[2] = rgba[2]; v[i].modulate[3] = rgba[3];
++	}
++	trap_R_AddPolyToScene( shader, 4, v );
++}
++
++// the side vector of a quad from a along dir turned to the view, `width` across; qfalse seen end-on
++static qboolean OzBeamSide( const vec3_t a, const vec3_t dir, float width, vec3_t right ) {
++	vec3_t view;
++
++	VectorSubtract( a, cg.refdef.vieworg, view );
++	CrossProduct( dir, view, right );
++	if ( VectorNormalize( right ) == 0.0f ) {
++		return qfalse;
++	}
++	VectorScale( right, width * 0.5f, right );
++	return qtrue;
++}
++
++// a particle's streak: a flat quad from a to b turned to the view, the whole image along it
++static void OzStreakPoly( const vec3_t a, const vec3_t b, float width, qhandle_t shader, const byte *rgba ) {
++	vec3_t dir, right;
++
++	VectorSubtract( b, a, dir );
++	VectorNormalize( dir );
++	if ( OzBeamSide( a, dir, width, right ) ) {
++		OzQuad( a, b, right, 0.0f, 1.0f, shader, rgba, rgba );
++	}
++}
++
++#define BEAM_FADE_IN	32.0f		// units a lightning layer takes to come up from the gun (no hard edge at its start)
++#define BEAM_NEAR		0.23f		// view depth, in the layer's widths, where a beam layer is gone, and full from
++#define BEAM_NEAR_FULL	2.75f		// BEAM_NEAR_FULL on: the Godot build's near_fade (0.1 to 1.2 m) on the rail's halo
++#define BEAM_PIECES		4			// pieces the near fade is drawn in
++
++/*
++A glowing beam layer from a to b, `width` wide in rgba, added: a flat quad turned to the view, the
++image's middle column across it (its falloff), or with OZB_TILE the image repeating along it every
++256 units. It comes up from `a` over `fadeIn` units and fades out close to the eye, drawn in pieces
++with the fades in their corners' colors. A shooter's own rail runs about 6 units beside the eye, so
++its quad lies almost flat to the view: unfaded, the halo (14 units wide, spreading to 49) stood across
++the screen as a wedge, cut off in a hard line at the gun. The near fade scales with the width, as
++that wedge does: the halo comes up a meter or more out, the narrow white-hot core from the gun.
++*/
++static void OzBeamStrip( const vec3_t a, const vec3_t b, float width, qhandle_t shader, const byte *rgba, int flags,
++		float fadeIn ) {
++	float at[BEAM_PIECES + 4], fade[2], st[2], len, in, depth, slope, near0, near1, s, x;
++	vec3_t dir, view, right, p[2];
++	byte c[2][4];
++	int i, j, k, n = 0;
++
++	VectorSubtract( b, a, dir );
++	len = VectorNormalize( dir );
++	if ( len == 0.0f || width <= 0.0f || !OzBeamSide( a, dir, width, right ) ) {
++		return;
++	}
++	// where the fades bend, in order along the beam: the fade-in's end and the near fade's steps (the
++	// view depth runs straight along it)
++	in = MAX( 0.01f, MIN( fadeIn, len * 0.5f ) );
++	VectorSubtract( a, cg.refdef.vieworg, view );
++	depth = DotProduct( view, cg.refdef.viewaxis[0] );
++	slope = DotProduct( dir, cg.refdef.viewaxis[0] );
++	near0 = BEAM_NEAR * width;
++	near1 = BEAM_NEAR_FULL * width;
++	at[n++] = 0.0f;
++	at[n++] = in;
++	at[n++] = len;
++	for ( i = 0; i <= BEAM_PIECES && slope != 0.0f; i++ ) {
++		s = ( near0 + ( near1 - near0 ) * i / BEAM_PIECES - depth ) / slope;
++		if ( s > 0.0f && s < len ) {
++			at[n++] = s;
++		}
++	}
++	for ( i = 1; i < n; i++ ) {
++		for ( j = i; j > 0 && at[j - 1] > at[j]; j-- ) {
++			s = at[j]; at[j] = at[j - 1]; at[j - 1] = s;
++		}
++	}
++
++	for ( i = 0; i + 1 < n; i++ ) {
++		if ( at[i + 1] <= at[i] ) {
++			continue;
++		}
++		for ( j = 0; j < 2; j++ ) {
++			s = at[i + j];
++			x = Com_Clamp( 0.0f, 1.0f, ( depth + slope * s - near0 ) / ( near1 - near0 ) );
++			fade[j] = MIN( 1.0f, s / in ) * x * x * ( 3.0f - 2.0f * x );
++			for ( k = 0; k < 3; k++ ) {
++				c[j][k] = (byte)( rgba[k] * fade[j] );
++			}
++			c[j][3] = rgba[3];
++			st[j] = flags & OZB_TILE ? s / 256.0f : 0.5f;
++			VectorMA( a, s, dir, p[j] );
++		}
++		if ( fade[0] > 0.0f || fade[1] > 0.0f ) {
++			OzQuad( p[0], p[1], right, st[0], st[1], shader, c[0], c[1] );
++		}
++	}
++}
++
++static void OzColorBytes( const vec4_t c, qboolean add, float gain, byte *out ) {
++	float a = Com_Clamp( 0, 1, c[3] );
++	float k = add ? a * gain : 1.0f;
++	out[0] = (byte)( Com_Clamp( 0, 1, c[0] * k ) * 255 );
++	out[1] = (byte)( Com_Clamp( 0, 1, c[1] * k ) * 255 );
++	out[2] = (byte)( Com_Clamp( 0, 1, c[2] * k ) * 255 );
++	out[3] = add ? 255 : (byte)( a * 255 );
++}
++
++void CG_AddOzParticle( localEntity_t *le ) {
++	refEntity_t *re = &le->refEntity;
++	float dt = ( cg.time - le->pos.trTime ) * 0.001f, t, speed;
++	vec3_t from, to, tail;
++	vec4_t c;
++	byte rgba[4];
++	trace_t tr;
++
++	if ( dt > 0.0f ) {
++		// gravity, then the move, through the map when it bounces or sticks
++		VectorCopy( le->pos.trBase, from );
++		le->pos.trDelta[2] -= le->ozGravity * dt;
++		if ( le->ozDrag > 0.0f ) {
++			speed = VectorLength( le->pos.trDelta );
++			if ( speed > 0.0f ) {
++				VectorScale( le->pos.trDelta, MAX( 0.0f, speed - le->ozDrag * dt ) / speed, le->pos.trDelta );
++			}
++		}
++		VectorMA( from, dt, le->pos.trDelta, to );
++		if ( le->ozFlags & ( OZP_BOUNCE | OZP_STICK ) ) {
++			trap_CM_BoxTrace( &tr, from, to, vec3_origin, vec3_origin, 0, CONTENTS_SOLID );	// the world alone
++			if ( tr.startsolid ) {
++				CG_FreeLocalEntity( le );
++				return;
++			}
++			if ( tr.fraction < 1.0f ) {
++				float into;
++				if ( le->ozFlags & OZP_STICK ) {
++					CG_FreeLocalEntity( le );
++					return;
++				}
++				into = DotProduct( le->pos.trDelta, tr.plane.normal );
++				VectorMA( le->pos.trDelta, -into, tr.plane.normal, le->pos.trDelta );
++				VectorScale( le->pos.trDelta, SPARK_FRICTION, le->pos.trDelta );
++				VectorMA( le->pos.trDelta, -into * SPARK_BOUNCE, tr.plane.normal, le->pos.trDelta );
++				VectorMA( tr.endpos, 0.25f, tr.plane.normal, to );
++				if ( VectorLength( le->pos.trDelta ) < SPARK_MIN_SPEED ) {
++					CG_FreeLocalEntity( le );
++					return;
++				}
++			}
++		}
++		VectorCopy( to, le->pos.trBase );
++		le->pos.trTime = cg.time;
++	}
++
++	t = ( cg.time - le->startTime ) * le->lifeRate;
++	if ( t < 0.5f ) {
++		OzLerp4( t * 2.0f, le->color, le->ozColor[0], c );
++	} else {
++		OzLerp4( t * 2.0f - 1.0f, le->ozColor[0], le->ozColor[1], c );
++	}
++	OzColorBytes( c, ( le->ozFlags & OZP_ADD ) != 0, oz.gain, rgba );
++	if ( le->light > 0.0f && t < 1.0f ) {
++		// a flash's light, shrinking fast (by the square of the life left)
++		trap_R_AddLightToScene( le->pos.trBase, le->light * ( 1.0f - t ) * ( 1.0f - t ) * MAX( oz.gain, 0.1f ),
++			le->lightColor[0], le->lightColor[1], le->lightColor[2] );
++	}
++
++	if ( le->ozFlags & OZP_STREAK ) {
++		vec3_t along;
++		VectorScale( le->pos.trDelta, STREAK_TIME, along );
++		if ( VectorLength( along ) < le->radius ) {
++			if ( VectorNormalize( along ) == 0.0f ) {
++				VectorSet( along, 0, 0, 1 );
++			}
++			VectorScale( along, le->radius, along );
++		}
++		VectorSubtract( le->pos.trBase, along, tail );
++		OzStreakPoly( tail, le->pos.trBase, le->radius, re->customShader, rgba );
++		return;
++	}
++
++	re->reType = RT_SPRITE;
++	VectorCopy( le->pos.trBase, re->origin );
++	re->radius = le->radius + ( le->ozRadius - le->radius ) * t;
++	if ( !( le->ozFlags & OZP_ADD ) ) {
++		// a puff fades as the view comes within its width, and the view inside it leaves it out (as
++		// CG_AddScaleFade does): a blast's smoke rising through the eye never stands in front of it
++		float off = Distance( re->origin, cg.refdef.vieworg ) / re->radius - 1.0f;
++		if ( off <= 0.0f ) {
++			return;
++		}
++		if ( off < 1.0f ) {
++			rgba[3] = (byte)( rgba[3] * off );
++		}
++	}
++	re->shaderRGBA[0] = rgba[0]; re->shaderRGBA[1] = rgba[1];
++	re->shaderRGBA[2] = rgba[2]; re->shaderRGBA[3] = rgba[3];
++	re->shaderTime = le->startTime / 1000.0f;
++	trap_R_AddRefEntityToScene( re );
++}
++
++/*
++=================
++Glowing beams (LE_OZ_BEAM): a beam layer (OzBeamStrip) from re->origin to re->oldorigin,
++le->radius wide at the start and le->ozRadius at the end of its life, coming up from the gun over
++its width, its color fading as (1 - t), or (1 - t) ^ 1.5 when le->ozFade is above 1.
++=================
++*/
++void CG_AddOzBeam( localEntity_t *le ) {
++	refEntity_t *re = &le->refEntity;
++	float t = ( cg.time - le->startTime ) * le->lifeRate;
++	float fade = Com_Clamp( 0, 1, 1.0f - t );
++	float width = le->radius + ( le->ozRadius - le->radius ) * t;
++	vec4_t c;
++	byte rgba[4];
++
++	if ( le->ozFade > 1.0f ) {
++		fade *= sqrt( fade );		// (1 - t) ^ 1.5, for the glow beams' 1.3 and 1.6
++	}
++	VectorScale( le->color, fade, c );
++	c[3] = 1.0f;
++	OzColorBytes( c, qtrue, oz.gain, rgba );
++	OzBeamStrip( re->origin, re->oldorigin, width, re->customShader, rgba, le->ozFlags & OZB_TILE, width );
++}
++
++static void OzBeam( const vec3_t from, const vec3_t to, int lifeMs, float width, float endWidth, const vec3_t color,
++		float fadePow, qhandle_t shader, int flags ) {
++	localEntity_t *le = CG_AllocLocalEntity();
++
++	le->leType = LE_OZ_BEAM;
++	le->ozFlags = flags;
++	le->startTime = cg.time;
++	le->endTime = cg.time + lifeMs;
++	le->lifeRate = 1.0f / lifeMs;
++	VectorCopy( from, le->refEntity.origin );
++	VectorCopy( to, le->refEntity.oldorigin );
++	le->radius = width;
++	le->ozRadius = endWidth;
++	VectorCopy( color, le->color );
++	le->color[3] = 1.0f;
++	le->ozFade = fadePow;
++	le->refEntity.customShader = shader;
++}
++
++/*
++The remaster's glowing beam (fx_glow_beam.gdshader): a soft halo `width` wide in `color`, which
++widens by `spread` times over its life, and a white-hot core `core` of the width.
++*/
++static void OzGlowBeam( const vec3_t from, const vec3_t to, int lifeMs, float width, const vec3_t color,
++		float core, float coreGain, float haloGain, float spread, float fadePow ) {
++	vec3_t c, hot;
++
++	VectorScale( color, haloGain, c );
++	OzBeam( from, to, lifeMs, width, width * ( 1.0f + spread ), c, fadePow, ozMedia.glow, 0 );
++	VectorSet( hot, 1, 1, 1 );
++	OzLerp3( 0.65f, color, hot, hot );
++	VectorScale( hot, coreGain, hot );
++	OzBeam( from, to, lifeMs, width * core * 1.6f, width * core * 1.6f, hot, fadePow, ozMedia.glow, 0 );
++}
++
++/*
++=================
++CG_OzRailTrail
++
++The remaster's rail: CG_RailTrail draws id's core and spiral for the classic, glow and core
++styles (core leaves the spiral out) and calls this after; "glow" adds a halo in color1 that
++outlasts the core, "ql" is Quake Live's single thick beam instead of id's.
++=================
++*/
++void CG_OzRailTrail( clientInfo_t *ci, vec3_t start, vec3_t end ) {
++	float w = oz.railWidth;
++
++	if ( oz.railStyle == OZ_RAIL_GLOW ) {
++		OzGlowBeam( start, end, 1000, 14.0f * w, ci->color1, 0.22f, 1.0f, 0.55f, 2.5f, 1.3f );
++	} else if ( oz.railStyle == OZ_RAIL_QL ) {
++		OzGlowBeam( start, end, 700, 12.0f * w, ci->color1, 0.3f, 1.6f, 0.8f, 0.6f, 1.6f );
++	}
++}
++
++/*
++Rail trail "glow": id's core (CG_RailTrail's, fading as LE_FADE_RGB) drawn as a glowing beam layer
++in its own image (OZB_TILE), as wide as the renderer draws it (r_railCoreWidth each side). The
++renderer's core ends in a hard line at the gun, which shows as the gun kicks back from it.
++*/
++void CG_OzRailCore( localEntity_t *le ) {
++	char width[16];
++
++	if ( oz.railStyle != OZ_RAIL_GLOW ) {
++		return;
++	}
++	trap_Cvar_VariableStringBuffer( "r_railCoreWidth", width, sizeof( width ) );
++	le->leType = LE_OZ_BEAM;
++	le->ozFlags = OZB_TILE;
++	le->radius = le->ozRadius = 2.0f * ( width[0] ? atoi( width ) : 6 );
++	le->ozFade = 1.0f;
++}
++
++// one layer of a glowing beam, `width` wide in `color` times k, added
++static void OzBeamLayer( const vec3_t from, const vec3_t to, float width, qhandle_t shader, const vec3_t color, float k ) {
++	vec4_t c;
++	byte rgba[4];
++
++	VectorScale( color, k, c );
++	c[3] = 1.0f;
++	OzColorBytes( c, qtrue, oz.gain, rgba );
++	OzBeamStrip( from, to, width, shader, rgba, 0, BEAM_FADE_IN );
++}
++
++#define BOLT_WHITE		0.4f		// share of white in id's bolt drawn in Lightning color (its core is near white)
++
++// Lightning beam "glow" in another Lightning color: id's bolt as oz/fx/lightningBoltTint (OzTintBytes)
++static void OzBoltTint( refEntity_t *beam ) {
++	OzTintBytes( oz.lg[LG_GLOW], lgBlue[LG_GLOW], BOLT_WHITE, beam->shaderRGBA );
++	beam->customShader = ozMedia.lightningTint;
++}
++
++/*
++=================
++CG_OzLightningBeam
++
++Lightning beam, every frame the bolt draws (CG_LightningBolt): "classic" is id's bolt; "glow" is
++id's bolt brighter (oz/fx/lightningBolt, the oz renderer's) in a flickering blue halo three bolts
++wide around a white-hot core; "straight" (after Quake Live's straight beams) is a steady line in
++place of the bolt, a pale blue core in a deep blue glow, with no zigzag and no flicker. Where a glowing
++beam hits something, a flare and a light. Returns whether id's bolt draws.
++=================
++*/
++qboolean CG_OzLightningBeam( refEntity_t *beam, qboolean hit ) {
++	const float *blue = oz.lg[LG_GLOW], *hot = oz.lg[LG_HOT];	// in Lightning color's hue
++	const float *deep = oz.lg[LG_DEEP], *ice = oz.lg[LG_ICE];		// "straight"
++	const float *halo = blue;
++	float w = 8.0f * oz.lightningWidth, f = 1.0f;
++	vec3_t dir, at;
++	vec4_t c;
++	refEntity_t flare;
++
++	if ( oz.lightningStyle == OZ_LG_CLASSIC ) {
++		return qtrue;
++	}
++	if ( oz.lightningStyle == OZ_LG_GLOW ) {
++		f = 0.7f + 0.3f * OzFlicker( 1 );		// it flickers with the bolt
++		if ( oz.lgTint && ozMedia.lightningTint ) {
++			OzBoltTint( beam );
++		} else if ( ozMedia.lightningBolt ) {
++			beam->customShader = ozMedia.lightningBolt;
++		}
++		OzBeamLayer( beam->origin, beam->oldorigin, w * 3.0f, ozMedia.glow, blue, 0.8f * f );
++		OzBeamLayer( beam->origin, beam->oldorigin, w * 0.9f, ozMedia.beam, hot, 0.75f * f );
++	} else {
++		// blue through to the core: with a white-hot core the layers added up past white in every
++		// channel, a white line blooming into a white blob near the gun
++		halo = deep;
++		OzBeamLayer( beam->origin, beam->oldorigin, w * 1.8f, ozMedia.glow, deep, 0.4f );
++		OzBeamLayer( beam->origin, beam->oldorigin, w * 0.6f, ozMedia.beam, deep, 0.5f );
++		OzBeamLayer( beam->origin, beam->oldorigin, w * 0.22f, ozMedia.beam, ice, 0.5f );
++	}
++	if ( hit ) {
++		VectorSubtract( beam->oldorigin, beam->origin, dir );
++		VectorNormalize( dir );
++		VectorMA( beam->oldorigin, -4.0f, dir, at );
++		memset( &flare, 0, sizeof( flare ) );
++		flare.reType = RT_SPRITE;
++		flare.customShader = ozMedia.glow;
++		VectorCopy( at, flare.origin );
++		flare.radius = 22.0f * oz.lightningWidth * ( oz.lightningStyle == OZ_LG_GLOW ? 0.85f + 0.3f * OzFlicker( 2 ) : 1.0f );
++		flare.rotation = cg.time * 0.35f;
++		VectorScale( halo, 1.6f * f, c );
++		c[3] = 1.0f;
++		OzColorBytes( c, qtrue, oz.gain, flare.shaderRGBA );
++		trap_R_AddRefEntityToScene( &flare );
++		trap_R_AddLightToScene( at, 160.0f * f * MAX( oz.gain, 0.1f ), halo[0], halo[1], halo[2] );
++	}
++	return oz.lightningStyle != OZ_LG_STRAIGHT;
++}
++
++/*
++=================
++The lightning gun's burn lines (the Godot build's fx_burns.gd; id's beam left bullet holes): where
++the beam touches the map it melts a line that follows the beam as it sweeps, white-hot, cooling
++through orange and dull red to a dark scorch that fades away. Each shooter's beam draws one stroke:
++hits on the same surface stretch its last segment, and a turn or a jump starts the next segment
++where that one ends, so a sweep is one smooth line. A segment is projected onto the map as marks
++are (trap_CM_MarkFragments), so it wraps over steps and curves and goes with cg_marks 0; the next
++one keeps its projection until the surface has bent BURN_BEND from it, so their ends meet without
++a seam even where the beam hits a clip brush in front of the wall it draws on. Each vertex keeps
++when the beam was there, so the line cools from its far end. A stroke's two ends are round
++(gfx/oz/burn's half discs: its middle half is the line, the rest the ends).
++=================
++*/
++#define BURN_WIDTH			7.0f		// units
++#define BURN_SEGMENT		40.0f		// units before a stroke starts a new segment
++#define BURN_TURN			0.99f		// cosine: a sharper turn starts a new segment
++#define BURN_BEND			0.82f		// cosine: bent more from a segment's projection, the next is projected its way
++#define BURN_CURVE			0.9f		// cosine: bent more from one hit to the next (a corner), the stroke ends
++#define BURN_JUMP			96.0f		// units between hits that still join into one stroke
++#define BURN_PLANE			8.0f		// units off a segment's plane that still join it (a clip brush in front of the wall)
++#define BURN_GAP			150			// ms without a hit that ends a stroke
++#define BURN_LIFE			4000		// ms until it has faded out
++#define BURN_FADE			2400		// ms when the scorch starts to fade
++#define MAX_BURNS			96			// segments, the oldest go first
++#define MAX_BURN_POLYS		192			// fragments all of them keep, as MAX_MARK_POLYS
++#define BURN_POLYS			12			// fragments a segment keeps
++#define BURN_VERTS			96
++
++#define BURN_CAP_START		1			// a round end before a
++#define BURN_CAP_END		2			// and after b
++
++typedef struct {
++	int			id;						// 0 free; new each time it's used, so a stroke can tell it was taken
++	vec3_t		a, b, normal;
++	int			ta, tb;					// when the beam was at a and at b
++	int			caps;
++	int			numPolys, numVerts;
++	int			polyVerts[BURN_POLYS];
++	polyVert_t	verts[BURN_VERTS];
++	float		along[BURN_VERTS];		// 0 at a .. 1 at b: the vertex's time between ta and tb
++} ozBurn_t;
++
++static ozBurn_t	ozBurns[MAX_BURNS];
++static struct {
++	int			burn, id;				// the stroke's last segment (an id that changed: the stroke ended)
++	int			time;					// its last hit
++	vec3_t		normal;					// the surface's there
++} ozStrokes[MAX_CLIENTS];
++static int		ozBurnIds, ozBurnPolys, ozBurnTime;
++
++void CG_OzClearBurns( void ) {
++	memset( ozBurns, 0, sizeof( ozBurns ) );
++	memset( ozStrokes, 0, sizeof( ozStrokes ) );
++	ozBurnPolys = 0;
++	ozBurnTime = cg.time;
++}
++
++// whether the lightning gun burns lines, in place of id's bullet holes (CG_MissileHitWall)
++qboolean CG_OzBurns( void ) {
++	return oz.remade && ozMedia.burn && cg_addMarks.integer;
++}
++
++static void OzBurnFree( ozBurn_t *bn ) {
++	ozBurnPolys -= bn->numPolys;
++	bn->id = bn->numPolys = bn->numVerts = 0;
++}
++
++// a free segment, or the oldest but `keep`
++static ozBurn_t *OzBurnAlloc( const ozBurn_t *keep ) {
++	ozBurn_t *bn, *pick = NULL;
++	int i;
++
++	for ( i = 0, bn = ozBurns; i < MAX_BURNS; i++, bn++ ) {
++		if ( !bn->id ) {
++			pick = bn;
++			break;
++		}
++		if ( bn != keep && ( !pick || bn->tb < pick->tb ) ) {
++			pick = bn;
++		}
++	}
++	OzBurnFree( pick );
++	if ( ++ozBurnIds <= 0 ) {
++		ozBurnIds = 1;
++	}
++	pick->id = ozBurnIds;
++	return pick;
++}
++
++// one part of a segment onto the map, the strip from `from` to `to` (along dir) BURN_WIDTH wide:
++// the texture's s runs s0 .. s1 along it
++static void OzBurnProject( ozBurn_t *bn, const vec3_t from, const vec3_t to, const vec3_t dir, const vec3_t across,
++		float len, float s0, float s1 ) {
++	vec3_t corners[4], projection, points[BURN_VERTS], d;
++	markFragment_t frags[BURN_POLYS], *mf;
++	float hw = BURN_WIDTH * 0.5f, part = Distance( from, to );
++	int i, j, n;
++
++	// CG_ImpactMark's winding, seen from the surface: the fragments come back on the map
++	VectorMA( from, -hw, across, corners[0] );
++	VectorMA( from, hw, across, corners[1] );
++	VectorMA( to, hw, across, corners[2] );
++	VectorMA( to, -hw, across, corners[3] );
++	if ( bn->numPolys >= BURN_POLYS || bn->numVerts >= BURN_VERTS - 3 ) {
++		return;
++	}
++	VectorScale( bn->normal, -20, projection );
++	n = trap_CM_MarkFragments( 4, (void *)corners, projection, BURN_VERTS - bn->numVerts, points[0],
++		BURN_POLYS - bn->numPolys, frags );
++	for ( i = 0, mf = frags; i < n; i++, mf++ ) {
++		for ( j = 0; j < mf->numPoints; j++ ) {
++			polyVert_t *v = &bn->verts[bn->numVerts + j];
++			float u;
++
++			VectorCopy( points[mf->firstPoint + j], v->xyz );
++			VectorSubtract( v->xyz, from, d );
++			v->st[0] = part > 0.0f ? s0 + ( s1 - s0 ) * Com_Clamp( 0, 1, DotProduct( d, dir ) / part ) : s0;
++			v->st[1] = 0.5f + DotProduct( d, across ) / BURN_WIDTH;
++			VectorSubtract( v->xyz, bn->a, d );
++			u = DotProduct( d, dir );
++			bn->along[bn->numVerts + j] = len > 0.0f ? Com_Clamp( 0, 1, u / len ) : 1.0f;
++		}
++		bn->polyVerts[bn->numPolys++] = mf->numPoints;
++		bn->numVerts += mf->numPoints;
++		ozBurnPolys++;
++	}
++}
++
++// the segment's fragments again, after a, b or its ends changed
++static void OzBurnPlace( ozBurn_t *bn ) {
++	vec3_t dir, across, at;
++	float len, hw = BURN_WIDTH * 0.5f;
++
++	ozBurnPolys -= bn->numPolys;
++	bn->numPolys = bn->numVerts = 0;
++	VectorSubtract( bn->b, bn->a, dir );
++	VectorMA( dir, -DotProduct( dir, bn->normal ), bn->normal, dir );	// in the surface's plane
++	len = VectorNormalize( dir );
++	if ( len < 0.5f ) {
++		PerpendicularVector( dir, bn->normal );		// a spot: its two ends make a disc
++		len = 0.0f;
++	}
++	CrossProduct( bn->normal, dir, across );
++	if ( bn->caps & BURN_CAP_START ) {
++		VectorMA( bn->a, -hw, dir, at );
++		OzBurnProject( bn, at, bn->a, dir, across, len, 0.0f, 0.25f );
++	}
++	if ( len > 0.0f ) {
++		OzBurnProject( bn, bn->a, bn->b, dir, across, len, 0.5f, 0.5f );
++	}
++	if ( bn->caps & BURN_CAP_END ) {
++		VectorMA( bn->b, hw, dir, at );
++		OzBurnProject( bn, bn->b, at, dir, across, len, 0.75f, 1.0f );
++	}
++}
++
++/*
++=================
++CG_OzLightningBurn
++
++Every frame a lightning beam draws (CG_LightningBolt), where its trace stopped: the world takes
++the burn, anything else (a player, a mover, the sky) ends the shooter's stroke. A nomarks hit goes
++on: the projection leaves out the nomarks surfaces it draws on, and a clip brush (nodraw, nomarks)
++in front of a curved wall passes the line to the wall behind, as id's marks do.
++=================
++*/
++// the shooter's stroke ends at `bn` now; over MAX_BURN_POLYS the oldest segments go
++static void OzBurnStroke( int clientNum, ozBurn_t *bn ) {
++	ozBurn_t *oldest, *other;
++	int i;
++
++	ozStrokes[clientNum].burn = bn - ozBurns;
++	ozStrokes[clientNum].id = bn->id;
++	while ( ozBurnPolys > MAX_BURN_POLYS ) {
++		oldest = NULL;
++		for ( i = 0, other = ozBurns; i < MAX_BURNS; i++, other++ ) {
++			if ( other->id && other != bn && ( !oldest || other->tb < oldest->tb ) ) {
++				oldest = other;
++			}
++		}
++		if ( !oldest ) {
++			break;
++		}
++		OzBurnFree( oldest );
++	}
++}
++
++void CG_OzLightningBurn( int clientNum, const trace_t *tr ) {
++	ozBurn_t *bn = NULL, *next;
++	vec3_t d0, d1;
++	float jump, bend;
++
++	if ( clientNum < 0 || clientNum >= MAX_CLIENTS || !CG_OzBurns() ) {
++		return;
++	}
++	if ( tr->fraction >= 1.0f || tr->entityNum != ENTITYNUM_WORLD || ( tr->surfaceFlags & SURF_NOIMPACT ) ) {
++		ozStrokes[clientNum].id = 0;
++		return;
++	}
++	if ( ozStrokes[clientNum].id && ozBurns[ozStrokes[clientNum].burn].id == ozStrokes[clientNum].id &&
++			cg.time >= ozStrokes[clientNum].time && cg.time - ozStrokes[clientNum].time <= BURN_GAP ) {
++		bn = &ozBurns[ozStrokes[clientNum].burn];
++	}
++	ozStrokes[clientNum].time = cg.time;
++
++	// the stroke goes on along the surface it was on, bent at most 25 degrees since the last hit
++	// (a curve), and up or down a step only as far as BURN_PLANE and a curve would take it
++	if ( bn ) {
++		VectorSubtract( tr->endpos, bn->b, d1 );
++		jump = VectorLength( d1 );
++		bend = DotProduct( bn->normal, tr->plane.normal );
++		if ( DotProduct( ozStrokes[clientNum].normal, tr->plane.normal ) < BURN_CURVE || jump > BURN_JUMP ||
++				fabs( DotProduct( d1, bn->normal ) ) > BURN_PLANE + 0.25f * jump ) {
++			bn = NULL;
++		}
++	}
++	VectorCopy( tr->plane.normal, ozStrokes[clientNum].normal );
++	if ( !bn ) {
++		// a new stroke: a round spot where the beam landed
++		bn = OzBurnAlloc( NULL );
++		VectorCopy( tr->endpos, bn->a );
++		VectorCopy( tr->endpos, bn->b );
++		VectorCopy( tr->plane.normal, bn->normal );
++		bn->ta = bn->tb = cg.time;
++		bn->caps = BURN_CAP_START | BURN_CAP_END;
++		OzBurnPlace( bn );
++		OzBurnStroke( clientNum, bn );
++		return;
++	}
++	if ( jump < 0.5f ) {
++		// held still: it stays hot
++		if ( Distance( bn->a, bn->b ) < 0.5f ) {
++			bn->ta = cg.time;
++		}
++		bn->tb = cg.time;
++		return;
++	}
++	VectorSubtract( bn->b, bn->a, d0 );
++	VectorSubtract( tr->endpos, bn->a, d1 );
++	if ( VectorNormalize( d0 ) < 0.5f || ( VectorLength( d1 ) <= BURN_SEGMENT &&
++			DotProduct( d0, d1 ) >= BURN_TURN * VectorLength( d1 ) && bend >= BURN_BEND ) ) {
++		VectorCopy( tr->endpos, bn->b );		// the segment (or the spot) stretches to the hit
++		bn->tb = cg.time;
++		OzBurnPlace( bn );
++		OzBurnStroke( clientNum, bn );
++		return;
++	}
++	// the next segment, from where this one ends, projected as this one unless the surface bent
++	next = OzBurnAlloc( bn );
++	VectorCopy( bn->b, next->a );
++	next->ta = bn->tb;
++	VectorCopy( tr->endpos, next->b );
++	next->tb = cg.time;
++	if ( bend >= BURN_BEND ) {
++		VectorCopy( bn->normal, next->normal );
++	} else {
++		VectorCopy( tr->plane.normal, next->normal );
++	}
++	next->caps = BURN_CAP_END;
++	bn->caps &= ~BURN_CAP_END;
++	OzBurnPlace( bn );
++	OzBurnPlace( next );
++	OzBurnStroke( clientNum, next );
++}
++
++/*
++The line's color `age` ms after the beam was there: the glow (rgb, added, ozGlow on the oz renderer)
++from white-hot through orange and red to dull red and out, and under it the scorch (alpha) that
++darkens the wall, fading at the end.
++*/
++static void OzBurnColor( int age, byte *out ) {
++	static const struct { int ms; float c[3]; } heat[] = {
++		{ 0, { 1.0f, 0.95f, 0.82f } },		// white-hot
++		{ 150, { 1.0f, 0.86f, 0.5f } },	// yellow
++		{ 450, { 1.0f, 0.52f, 0.14f } },	// orange
++		{ 950, { 0.72f, 0.15f, 0.03f } },	// red
++		{ 1600, { 0.3f, 0.035f, 0.01f } },	// dull red
++		{ 2300, { 0.0f, 0.0f, 0.0f } },
++	};
++	float f, scorch;
++	vec3_t c;
++	int i;
++
++	i = 1;
++	while ( i < ARRAY_LEN( heat ) - 1 && age > heat[i].ms ) {
++		i++;
++	}
++	f = Com_Clamp( 0, 1, (float)( age - heat[i - 1].ms ) / ( heat[i].ms - heat[i - 1].ms ) );
++	OzLerp3( f, heat[i - 1].c, heat[i].c, c );
++	VectorScale( c, oz.gain, c );
++	out[0] = (byte)( Com_Clamp( 0, 1, c[0] ) * 255 );
++	out[1] = (byte)( Com_Clamp( 0, 1, c[1] ) * 255 );
++	out[2] = (byte)( Com_Clamp( 0, 1, c[2] ) * 255 );
++	f = Com_Clamp( 0, 1, (float)( age - BURN_FADE ) / ( BURN_LIFE - BURN_FADE ) );
++	scorch = 0.85f * ( 1.0f - f * f * ( 3.0f - 2.0f * f ) );
++	out[3] = (byte)( scorch * 255 );
++}
++
++/*
++=================
++CG_OzAddBurns
++
++Every frame, from CG_AddMarks (so not with cg_marks 0): the burn lines as they cool.
++=================
++*/
++void CG_OzAddBurns( void ) {
++	ozBurn_t *bn;
++	int i, j, k;
++
++	if ( cg.time < ozBurnTime ) {
++		CG_OzClearBurns();		// time went back: a demo seek, a restart
++	}
++	ozBurnTime = cg.time;
++	for ( i = 0, bn = ozBurns; i < MAX_BURNS; i++, bn++ ) {
++		if ( !bn->id ) {
++			continue;
++		}
++		if ( cg.time - bn->tb >= BURN_LIFE ) {
++			OzBurnFree( bn );
++			continue;
++		}
++		for ( j = 0; j < bn->numVerts; j++ ) {
++			OzBurnColor( cg.time - ( bn->ta + (int)( bn->along[j] * ( bn->tb - bn->ta ) ) ), bn->verts[j].modulate );
++		}
++		for ( j = k = 0; j < bn->numPolys; k += bn->polyVerts[j++] ) {
++			trap_R_AddPolyToScene( ozMedia.burn, bn->polyVerts[j], &bn->verts[k] );
++		}
++	}
++}
++
++/*
++=================
++Impacts
++=================
++*/
++#define OZS_STONE	0	// stone, concrete and the rest: dust and grit, fewer sparks
++#define OZS_METAL	1	// surfaceparm metalsteps: sparks
++#define OZS_NONE	2	// sky and no-impact surfaces: nothing
++
++// the surface under an impact, by the cgame's own trace a little into it
++static int OzSurface( const vec3_t origin, const vec3_t dir ) {
++	vec3_t from, to;
++	trace_t tr;
++
++	VectorMA( origin, 4.0f, dir, from );
++	VectorMA( origin, -8.0f, dir, to );
++	CG_Trace( &tr, from, NULL, NULL, to, ENTITYNUM_NONE, MASK_SOLID );
++	if ( tr.fraction == 1.0f ) {
++		return OZS_STONE;
++	}
++	if ( tr.surfaceFlags & ( SURF_SKY | SURF_NOIMPACT ) ) {
++		return OZS_NONE;
++	}
++	return ( tr.surfaceFlags & SURF_METALSTEPS ) ? OZS_METAL : OZS_STONE;
++}
++
++static void OzSparks( const vec3_t origin, const vec3_t dir, int count, float speed, float life, float spread ) {
++	static const vec4_t hot = { 1.0f, 0.85f, 0.55f, 1.0f }, mid = { 1.0f, 0.45f, 0.12f, 0.5f }, cold = { 0.6f, 0.1f, 0.03f, 0.0f };
++	vec3_t at, d, vel;
++	int i;
++
++	count = OzCount( count );
++	VectorMA( origin, 2.0f, dir, at );
++	for ( i = 0; i < count; i++ ) {
++		OzSprayDir( dir, spread, d );
++		VectorScale( d, speed * OzRand( 0.5f, 1.2f ), vel );
++		OzParticle( at, vel, (int)( life * OzRand( 0.6f, 1.4f ) * 1000 ), SPARK_WIDTH, SPARK_WIDTH, hot, mid, cold,
++			ozMedia.glow, OZP_ADD | OZP_STREAK | OZP_BOUNCE );
++	}
++}
++
++// glowing embers thrown off the surface and falling (Godot's _embers): speed in units/s
++static void OzEmbers( const vec3_t origin, const vec3_t dir, int count, float speedLo, float speedHi, float life,
++		const vec4_t c0, const vec4_t c1, const vec4_t c2 ) {
++	vec3_t d, vel;
++	localEntity_t *le;
++	int i;
++
++	count = OzCount( count );
++	for ( i = 0; i < count; i++ ) {
++		float r = OzRand( 0.8f, 1.9f );
++		OzConeDir( dir, 75.0f, d );
++		VectorScale( d, OzRand( speedLo, speedHi ), vel );
++		// streaks: their motion reads at speed, where a dot of the same size vanishes
++		le = OzParticle( origin, vel, (int)( life * OzRand( 0.7f, 1.0f ) * 1000 ), r, r * 0.5f, c0, c1, c2,
++			ozMedia.glow, OZP_ADD | OZP_BOUNCE | OZP_STREAK );
++		le->ozGravity = 288.0f;
++		le->ozDrag = OzRand( 16.0f, 64.0f );
++	}
++}
++
++/*
++A puff of dust off stone and grit thrown out of the hit: pale puffs swelling and settling, dark
++chips that bounce. `size` is the puffs' radius as they end.
++*/
++static void OzDust( const vec3_t origin, const vec3_t dir, int count, float size ) {
++	static const vec4_t d0 = { 0.62f, 0.57f, 0.5f, 0.0f }, d1 = { 0.55f, 0.51f, 0.45f, 0.55f }, d2 = { 0.5f, 0.47f, 0.42f, 0.0f };
++	static const vec4_t g0 = { 0.2f, 0.18f, 0.16f, 0.9f }, g1 = { 0.18f, 0.16f, 0.14f, 0.8f }, g2 = { 0.16f, 0.14f, 0.12f, 0.0f };
++	vec3_t d, vel, at;
++	localEntity_t *le;
++	int i, n;
++
++	VectorMA( origin, 2.0f, dir, at );
++	n = OzCount( count );
++	for ( i = 0; i < n; i++ ) {
++		OzConeDir( dir, 50.0f, d );
++		VectorScale( d, OzRand( 18.0f, 70.0f ), vel );
++		le = OzParticle( at, vel, (int)OzRand( 650.0f, 1100.0f ), size * 0.3f, size * OzRand( 0.8f, 1.2f ), d0, d1, d2, ozMedia.smoke, 0 );
++		le->ozGravity = 40.0f;		// dust settles
++		le->ozDrag = 60.0f;
++	}
++	n = OzCount( count * 2 );
++	for ( i = 0; i < n; i++ ) {
++		OzSprayDir( dir, 0.8f, d );
++		VectorScale( d, OzRand( 140.0f, 320.0f ), vel );
++		OzParticle( at, vel, (int)OzRand( 450.0f, 900.0f ), 0.7f, 0.7f, g0, g1, g2, ozMedia.smoke, OZP_STREAK | OZP_BOUNCE );
++	}
++}
++
++/*
++Heat shimmer over a blast: a disc bending the picture behind it, swelling in fast and fading as
++it rises (Godot's 110 units across, 24 off the wall).
++*/
++static void OzHeatBlast( const vec3_t origin, const vec3_t dir ) {
++	static const vec4_t c0 = { 1, 1, 1, 0 }, c1 = { 1, 1, 1, 1 }, c2 = { 1, 1, 1, 0 };
++	vec3_t at;
++	localEntity_t *le;
++
++	if ( !oz.heat || !ozMedia.heat ) {
++		return;
++	}
++	VectorMA( origin, 24.0f, dir, at );
++	le = OzParticle( at, vec3_origin, 900, 70.0f, 110.0f, c0, c1, c2, ozMedia.heat, 0 );
++	le->ozGravity = -30.0f;
++	le->refEntity.rotation = 0.0f;
++}
++
++/*
++Smoke rising from a blast and spreading: lit by the fire at first (`lit`, its color while it
++fades in), then the smoke's own `color` paling as it rises and thins out. A thin haze at most
++(a third opaque): it never hides a fight behind it.
++*/
++static void OzSmoke( const vec3_t origin, const vec3_t dir, int count, float life, const vec3_t lit, const vec3_t color ) {
++	vec4_t c0, c1, c2;
++	vec3_t d, vel, at;
++	localEntity_t *le;
++	int i;
++
++	count = OzCount( count );
++	VectorCopy( lit, c0 ); c0[3] = 0.0f;
++	VectorCopy( color, c1 ); c1[3] = 0.32f;
++	VectorScale( color, 1.3f, c2 ); c2[3] = 0.0f;
++	for ( i = 0; i < count; i++ ) {
++		float r = OzRand( 14.0f, 26.0f );
++		OzConeDir( dir, 60.0f, d );
++		VectorScale( d, OzRand( 12.0f, 56.0f ), vel );
++		VectorSet( at, crandom(), crandom(), crandom() );
++		VectorMA( origin, 16.0f * random(), at, at );
++		VectorMA( at, 10.0f, dir, at );
++		le = OzParticle( at, vel, (int)( life * OzRand( 0.75f, 1.0f ) * 1000 ), r * 0.5f, r * 2.6f, c0, c1, c2, ozMedia.smoke, 0 );
++		le->ozGravity = -14.0f;
++		le->ozDrag = 8.0f;
++	}
++}
++
++// flames that linger after a blast: glowing puffs swelling and rising as they cool from yellow to red
++static void OzFlames( const vec3_t origin, const vec3_t dir, int count ) {
++	static const vec4_t c0 = { 1.0f, 0.78f, 0.4f, 1 }, c1 = { 1.0f, 0.42f, 0.1f, 0.75f }, c2 = { 0.45f, 0.1f, 0.03f, 0 };
++	vec3_t d, vel, at;
++	localEntity_t *le;
++	int i;
++
++	count = OzCount( count );
++	for ( i = 0; i < count; i++ ) {
++		float r = OzRand( 10.0f, 20.0f );
++		OzConeDir( dir, 70.0f, d );
++		VectorMA( origin, OzRand( 4.0f, 18.0f ), d, at );
++		VectorScale( d, OzRand( 20.0f, 70.0f ), vel );
++		le = OzParticle( at, vel, (int)OzRand( 420.0f, 800.0f ), r, r * 1.8f, c0, c1, c2, ozMedia.glow, OZP_ADD );
++		le->ozGravity = -60.0f;		// heat rises
++		le->ozDrag = 40.0f;
++	}
++}
++
++/*
++A flare swelling from a third of `radius` and fading over `ms`, off the surface, and with `light`
++a light of that radius in its color fading with it (it lights the room for a moment).
++*/
++static void OzFlash( const vec3_t origin, const vec3_t dir, const vec3_t color, float radius, int ms, float light ) {
++	vec4_t c0, c2;
++	vec3_t at;
++	localEntity_t *le;
++
++	if ( oz.calm ) {
++		radius *= 0.6f;
++		light *= 0.4f;
++	}
++	VectorMA( origin, radius * 0.25f, dir, at );
++	VectorScale( color, oz.calm ? 0.6f : 1.2f, c0 ); c0[3] = 1.0f;
++	VectorCopy( c0, c2 ); c2[3] = 0.0f;
++	le = OzParticle( at, vec3_origin, ms, radius * 0.35f, radius, c0, c0, c2, ozMedia.glow, OZP_ADD );
++	le->ozGravity = 0.0f;
++	le->light = light;
++	VectorCopy( color, le->lightColor );
++}
++
++/*
++=================
++CG_OzImpact
++
++The remaster's part of CG_MissileHitWall: sparks off bullet, rail, lightning and explosion hits
++(cg_fxStyle 1), and with Explosions "enhanced" embers and smoke after blasts and a glow where
++energy shots hit. `color` is the rail's color2.
++=================
++*/
++void CG_OzImpact( int weapon, vec3_t origin, vec3_t dir, const vec3_t color ) {
++	static const vec4_t fire0 = { 1, 0.9f, 0.6f, 1 }, fire1 = { 1, 0.45f, 0.1f, 1 }, fire2 = { 0.5f, 0.08f, 0.02f, 0 };
++	static const vec4_t bfg0 = { 0.8f, 1, 0.8f, 1 }, bfg1 = { 0.35f, 1, 0.35f, 1 }, bfg2 = { 0.1f, 0.4f, 0.1f, 0 };
++	// the puff image is id's tan (0.66 0.52 0.47): the smoke a light neutral grey, orange where the fire lights it
++	static const vec3_t smoke = { 0.75f, 0.9f, 1.0f }, lit = { 1.0f, 0.7f, 0.45f };
++	static const vec3_t hot = { 1, 0.85f, 0.6f }, green = { 0.4f, 1, 0.4f };
++	vec4_t pl0, pl1, pl2;		// the plasma's embers, in Plasma color
++
++	int surface, metal;
++
++	if ( !oz.remade ) {
++		return;
++	}
++	surface = OzSurface( origin, dir );
++	if ( surface == OZS_NONE ) {
++		return;
++	}
++	metal = surface == OZS_METAL;
++	// sparks off metal; off stone a puff of dust and grit, with a few sparks
++	switch ( weapon ) {
++	case WP_MACHINEGUN:
++		OzSparks( origin, dir, metal ? 8 : 2, 340, 0.45f, 0.8f );
++		if ( !metal ) {
++			OzDust( origin, dir, 3, 7.0f );
++		}
++		break;
++	case WP_SHOTGUN:
++		OzSparks( origin, dir, metal ? 3 : 1, 300, 0.4f, 0.8f );
++		if ( !metal ) {
++			OzDust( origin, dir, 1, 6.0f );
++		}
++		break;
++	case WP_RAILGUN:
++		OzSparks( origin, dir, metal ? 18 : 6, 420, 0.6f, 0.9f );
++		if ( !metal ) {
++			OzDust( origin, dir, 6, 12.0f );
++		}
++		break;
++	case WP_LIGHTNING: OzSparks( origin, dir, metal ? 2 : 1, 260, 0.3f, 0.9f ); break;
++	case WP_ROCKET_LAUNCHER:
++	case WP_GRENADE_LAUNCHER:
++		OzSparks( origin, dir, metal ? 30 : 14, 560, 0.9f, 1.0f );
++		if ( !metal ) {
++			OzDust( origin, dir, 8, 26.0f );
++		}
++		break;
++	default: break;
++	}
++	if ( weapon == WP_ROCKET_LAUNCHER || weapon == WP_GRENADE_LAUNCHER ) {
++		OzHeatBlast( origin, dir );
++	}
++	if ( !oz.explosions ) {
++		return;
++	}
++	switch ( weapon ) {
++	case WP_ROCKET_LAUNCHER:
++	case WP_GRENADE_LAUNCHER:
++		// a white-hot flash that lights the room, id's fireball (brighter, CG_OzExplosionShader),
++		// flames lingering and rising, embers thrown off, and smoke lit by the fire from below
++		OzFlash( origin, dir, hot, 70, 140, 520 );
++		OzFlames( origin, dir, 10 );
++		OzEmbers( origin, dir, 54, 110, 380, 1.2f, fire0, fire1, fire2 );
++		OzSmoke( origin, dir, 10, 2.2f, lit, smoke );
++		break;
++	case WP_BFG:
++		OzFlash( origin, dir, green, 60, 200, 400 );
++		OzEmbers( origin, dir, 36, 96, 320, 0.9f, bfg0, bfg1, bfg2 );
++		break;
++	case WP_PLASMAGUN:
++		VectorCopy( oz.pg[PG_EMBER], pl0 );
++		VectorCopy( oz.pg[PG_GLOW], pl1 );
++		VectorCopy( oz.pg[PG_EMBER_OUT], pl2 );
++		pl0[3] = pl1[3] = 1.0f;
++		pl2[3] = 0.0f;
++		OzFlash( origin, dir, oz.pg[PG_GLOW], 30, 180, 160 );
++		OzEmbers( origin, dir, 10, 48, 140, 0.45f, pl0, pl1, pl2 );
++		break;
++	case WP_RAILGUN:
++		OzFlash( origin, dir, color, 32, 260, 200 );
++		break;
++	case WP_LIGHTNING:
++		OzFlash( origin, dir, oz.lg[LG_HIT], 14, 100, 0 );
++		break;
++	default:
++		break;
++	}
++}
++
++/*
++=================
++CG_OzBleed
++
++Blood "heavy": a spray of droplets falling away from the hit, with CG_Bleed's puff.
++=================
++*/
++void CG_OzBleed( vec3_t origin ) {
++	static const vec4_t c0 = { 0.55f, 0, 0, 0.95f }, c2 = { 0.35f, 0, 0, 0 };
++	static const vec3_t up = { 0, 0, 1 };
++	vec4_t c1;
++	vec3_t d, vel;
++	int i, n;
++
++	if ( oz.blood != 2 ) {
++		return;
++	}
++	OzLerp4( 0.5f, c0, c2, c1 );
++	n = OzCount( 18 );
++	for ( i = 0; i < n; i++ ) {
++		float r = OzRand( 0.8f, 1.8f );
++		OzConeDir( up, 90.0f, d );
++		VectorScale( d, OzRand( 32.0f, 128.0f ), vel );
++		OzParticle( origin, vel, 800, r, r * 0.6f, c0, c1, c2, ozMedia.blood, OZP_STICK )->ozGravity = 314.0f;
++	}
++}
++
++/*
++=================
++CG_OzMissileTrail
++
++Missile trails "enhanced": glowing puffs left along the flight (Godot's GLOW_TRAILS: step,
++radius, life, color), a burning core behind rockets and grenades and energy trails behind
++plasma and the BFG, beside id's smoke.
++=================
++*/
++void CG_OzMissileTrail( centity_t *cent ) {
++	entityState_t *es = &cent->currentState;
++	int step, life, t;
++	float radius, endRadius;
++	vec4_t c0, c1, c2;
++	vec3_t at;
++
++	if ( es->weapon == WP_ROCKET_LAUNCHER && oz.heat && ozMedia.heat && es->pos.trType != TR_STATIONARY ) {
++		// heat shimmer in the exhaust: a small disc 20 units behind, half the blast's bend
++		refEntity_t re;
++		vec3_t back;
++		memset( &re, 0, sizeof( re ) );
++		BG_EvaluateTrajectory( &es->pos, cg.time, re.origin );
++		VectorCopy( es->pos.trDelta, back );
++		if ( VectorNormalize( back ) > 0.0f && !( CG_PointContents( re.origin, -1 ) & CONTENTS_WATER ) ) {
++			VectorMA( re.origin, -20.0f, back, re.origin );
++			re.reType = RT_SPRITE;
++			re.radius = 18.0f;
++			re.customShader = ozMedia.heat;
++			re.shaderRGBA[0] = re.shaderRGBA[1] = re.shaderRGBA[2] = 255;
++			re.shaderRGBA[3] = 128;
++			trap_R_AddRefEntityToScene( &re );
++		}
++	}
++	if ( !oz.trails || es->pos.trType == TR_STATIONARY ) {
++		cent->ozTrailTime = cg.time;
++		return;
++	}
++	switch ( es->weapon ) {
++	case WP_ROCKET_LAUNCHER: step = 10; radius = 9; life = 170; VectorSet( c0, 1.0f, 0.55f, 0.2f ); break;
++	case WP_GRENADE_LAUNCHER: step = 16; radius = 5; life = 220; VectorSet( c0, 1.0f, 0.4f, 0.12f ); break;
++	case WP_PLASMAGUN: step = 6; radius = 6; life = 160; VectorCopy( oz.pg[PG_TRAIL], c0 ); break;
++	case WP_BFG: step = 10; radius = 16; life = 320; VectorSet( c0, 0.3f, 1.0f, 0.3f ); break;
++	default: return;
++	}
++	VectorCopy( c0, c1 );
++	endRadius = radius;
++	if ( es->weapon == WP_ROCKET_LAUNCHER ) {
++		// the rocket's flame: hot behind the rocket, cooling to a dim red as it shrinks (at full
++		// strength all along its puffs added up to a white blur, far brighter than id's rocket)
++		VectorSet( c0, 0.5f, 0.24f, 0.07f );
++		VectorSet( c1, 0.22f, 0.07f, 0.02f );
++		endRadius = 3.0f;
++	}
++	BG_EvaluateTrajectory( &es->pos, cg.time, at );
++	if ( CG_PointContents( at, -1 ) & ( CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA ) ) {
++		cent->ozTrailTime = cg.time;
++		return;
++	}
++	if ( cent->ozTrailTime < cg.time - 500 || cent->ozTrailTime > cg.time ) {
++		cent->ozTrailTime = cg.time - step;		// a missile just seen: start here, not at its launch
++	}
++	c0[3] = c1[3] = 1.0f;
++	VectorCopy( c1, c2 );
++	c2[3] = 0.0f;
++	for ( t = step * ( ( cent->ozTrailTime + step ) / step ); t <= cg.time; t += step ) {
++		localEntity_t *le;
++		BG_EvaluateTrajectory( &es->pos, t, at );
++		le = OzParticle( at, vec3_origin, life, radius, endRadius, c0, c1, c2, ozMedia.glow, OZP_ADD );
++		le->ozGravity = 0.0f;
++		le->startTime = t;
++		le->endTime = t + life;
++	}
++	cent->ozTrailTime = cg.time;
++}
++
++/*
++=================
++CG_OzMuzzleFlash
++
++The remade muzzle flash, with id's flash model (CG_AddPlayerWeapon): a hot flare in the flash's
++color while it shows, and once a shot sparks thrown forward and a wisp of smoke from the machine
++gun and shotgun. None with Reduced flashing.
++=================
++*/
++void CG_OzMuzzleFlash( centity_t *cent, int weapon, const refEntity_t *flash, const vec3_t color ) {
++	static const vec4_t s0 = { 0.5f, 0.48f, 0.45f, 0.0f }, s1 = { 0.45f, 0.43f, 0.4f, 0.3f }, s2 = { 0.4f, 0.38f, 0.36f, 0.0f };
++	refEntity_t re;
++	vec3_t vel, d, c;
++	float size;
++	int i, sparks;
++	localEntity_t *le;
++
++	if ( !oz.remade || oz.calm || weapon == WP_GAUNTLET || weapon == WP_GRAPPLING_HOOK ) {
++		return;
++	}
++	switch ( weapon ) {
++	case WP_MACHINEGUN: size = 10.0f; sparks = 2; break;
++	case WP_SHOTGUN: size = 16.0f; sparks = 5; break;
++	case WP_LIGHTNING: size = 7.0f; sparks = 0; break;
++	case WP_ROCKET_LAUNCHER: case WP_GRENADE_LAUNCHER: size = 13.0f; sparks = 0; break;
++	default: size = 9.0f; sparks = 0; break;
++	}
++	memset( &re, 0, sizeof( re ) );
++	re.reType = RT_SPRITE;
++	VectorCopy( flash->origin, re.origin );
++	re.radius = size * ( 0.85f + 0.3f * OzFlicker( 16 + cent->currentState.number ) );	// the lightning gun's shows on
++	re.rotation = OzFlicker( 1040 + cent->currentState.number ) * 360.0f;					// while it fires
++	re.customShader = ozMedia.glow;
++	if ( weapon == WP_LIGHTNING ) {
++		// the beam's blue, dim (in Lightning color's hue): a near-white flare, held all the time the
++		// beam fires, bloomed into a white blob in front of the view
++		VectorCopy( oz.lg[LG_MUZZLE], c );
++	} else {
++		VectorSet( c, 0.5f + 0.5f * color[0], 0.4f + 0.5f * color[1], 0.3f + 0.5f * color[2] );
++	}
++	re.shaderRGBA[0] = (byte)( 255 * Com_Clamp( 0, 1, c[0] ) * Com_Clamp( 0, 1, oz.gain ) );
++	re.shaderRGBA[1] = (byte)( 255 * Com_Clamp( 0, 1, c[1] ) * Com_Clamp( 0, 1, oz.gain ) );
++	re.shaderRGBA[2] = (byte)( 255 * Com_Clamp( 0, 1, c[2] ) * Com_Clamp( 0, 1, oz.gain ) );
++	re.shaderRGBA[3] = 255;
++	re.renderfx = flash->renderfx & ( RF_DEPTHHACK | RF_FIRST_PERSON | RF_THIRD_PERSON );
++	trap_R_AddRefEntityToScene( &re );
++
++	if ( cent->ozMuzzleTime == cent->muzzleFlashTime || !sparks ) {
++		return;
++	}
++	cent->ozMuzzleTime = cent->muzzleFlashTime;
++	if ( flash->renderfx & RF_DEPTHHACK ) {
++		return;		// the view's own gun: its sparks would fly in another depth range
++	}
++	OzSparks( flash->origin, flash->axis[0], sparks, 420, 0.18f, 0.35f );
++	for ( i = 0; i < OzCount( 2 ); i++ ) {
++		OzConeDir( flash->axis[0], 25.0f, d );
++		VectorScale( d, OzRand( 20.0f, 50.0f ), vel );
++		le = OzParticle( flash->origin, vel, (int)OzRand( 500.0f, 800.0f ), 2.0f, 9.0f, s0, s1, s2, ozMedia.smoke, 0 );
++		le->ozGravity = -20.0f;
++		le->ozDrag = 30.0f;
++	}
++}
+diff --git a/code/cgame/cg_event.c b/code/cgame/cg_event.c
+--- a/code/cgame/cg_event.c
++++ b/code/cgame/cg_event.c
+@@ -885,13 +885,17 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
+ 	case EV_PLAYER_TELEPORT_IN:
+ 		DEBUGNAME("EV_PLAYER_TELEPORT_IN");
+ 		trap_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.teleInSound );
+-		CG_SpawnEffect( position);
++		if ( CG_OzSpawnEffect() ) {	// Oz: Gameplay > Spawn effects
++			CG_SpawnEffect( position);
++		}
+ 		break;
+ 
+ 	case EV_PLAYER_TELEPORT_OUT:
+ 		DEBUGNAME("EV_PLAYER_TELEPORT_OUT");
+ 		trap_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.teleOutSound );
+-		CG_SpawnEffect(  position);
++		if ( CG_OzSpawnEffect() ) {	// Oz: Gameplay > Spawn effects
++			CG_SpawnEffect(  position);
++		}
+ 		break;
+ 
+ 	case EV_ITEM_POP:
+diff --git a/code/cgame/cg_players.c b/code/cgame/cg_players.c
+--- a/code/cgame/cg_players.c
++++ b/code/cgame/cg_players.c
+@@ -1353,7 +1353,7 @@ static void CG_AddPainTwitch( centity_t *cent, vec3_t torsoAngles ) {
+ 	float	f;
+ 
+ 	t = cg.time - cent->pe.painTime;
+-	if ( t >= PAIN_TWITCH_TIME ) {
++	if ( t >= PAIN_TWITCH_TIME || !CG_OzPainTwitch() ) {	// Oz: Gameplay > Hit twitch
+ 		return;
+ 	}
+ 
+diff --git a/code/cgame/cg_view.c b/code/cgame/cg_view.c
+--- a/code/cgame/cg_view.c
++++ b/code/cgame/cg_view.c
+@@ -561,7 +561,7 @@ static void CG_DamageBlendBlob( void ) {
+ 	int			maxTime;
+ 	refEntity_t		ent;
+ 
+-	if (!cg_blood.integer) {
++	if ( !cg_blood.integer || CG_OzCalm() ) {	// Oz: Reduced flashing
+ 		return;
+ 	}
+ 

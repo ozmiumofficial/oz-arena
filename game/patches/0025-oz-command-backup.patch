@@ -1,0 +1,122 @@
+Oz: the prediction keeps up at any frame rate behind lag. Oz's engine keeps 512 commands (CMD_BACKUP), not
+64: at 1000 fps behind 80 ms of round trip and a 20 Hz server's frame, the snapshot's command was older than
+all 64, and CG_PredictPlayerState stopped predicting (the view stood still). CG_OldestCmd asks for the
+oldest the engine has, down to 64 on Quake3e and ioquake3, which Oz's own servers send this code to. The
+prediction starts at the first command past the snapshot's, found looking back from the latest, so the
+512 aren't all read each frame.
+
+diff --git a/code/cgame/cg_public.h b/code/cgame/cg_public.h
+--- a/code/cgame/cg_public.h
++++ b/code/cgame/cg_public.h
+@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ //
+ 
+ 
+-#define	CMD_BACKUP			64	
++#define	CMD_BACKUP			512		// Oz: was 64, 64 ms of commands at 1000 fps (cg_predict.c CG_OldestCmd)
+ #define	CMD_MASK			(CMD_BACKUP - 1)
+ // allow a lot of command backups for very fast systems
+ // multiple commands may be combined into a single packet, so this
+diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
+--- a/code/cgame/cg_local.h
++++ b/code/cgame/cg_local.h
+@@ -1343,6 +1343,7 @@ void CG_BuildSolidList( void );
+ int	CG_PointContents( const vec3_t point, int passEntityNum );
+ void CG_Trace( trace_t *result, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, 
+ 					 int skipNumber, int mask );
++int CG_OldestCmd( int current, usercmd_t *cmd );
+ void CG_PredictPlayerState( void );
+ void CG_LoadDeferredPlayers( void );
+ 
+diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
+--- a/code/cgame/cg_predict.c
++++ b/code/cgame/cg_predict.c
+@@ -381,6 +381,28 @@ static void CG_TouchTriggerPrediction( void ) {
+ 	}
+ }
+ 
++/*
++=================
++CG_OldestCmd
++
++Oz: the oldest command the engine still has, and its number. The prediction needs every command since the
++snapshot's; with only 64 kept, at 1000 fps behind 80 ms of round trip and a 20 Hz server's frame the
++snapshot's was older than all of them, and the view stood still ("exceeded PACKET_BACKUP on commands").
++Oz's engine keeps CMD_BACKUP (512); Quake3e and ioquake3 (Oz's own servers send them this code) keep 64,
++and don't fill in a command they no longer have.
++=================
++*/
++int CG_OldestCmd( int current, usercmd_t *cmd ) {
++	int		keep;
++
++	for ( keep = CMD_BACKUP; keep > 64; keep /= 2 ) {
++		if ( trap_GetUserCmd( current - keep + 1, cmd ) ) {
++			return current - keep + 1;
++		}
++	}
++	trap_GetUserCmd( current - 63, cmd );
++	return current - 63;
++}
+ 
+ 
+ /*
+@@ -410,7 +432,7 @@ to ease the jerk.
+ =================
+ */
+ void CG_PredictPlayerState( void ) {
+-	int			cmdNum, current;
++	int			cmdNum, current, first;
+ 	playerState_t	oldPlayerState;
+ 	qboolean	moved;
+ 	usercmd_t	oldestCmd;
+@@ -470,8 +492,7 @@ void CG_PredictPlayerState( void ) {
+ 	// if we don't have the commands right after the snapshot, we
+ 	// can't accurately predict a current position, so just freeze at
+ 	// the last good position we had
+-	cmdNum = current - CMD_BACKUP + 1;
+-	trap_GetUserCmd( cmdNum, &oldestCmd );
++	first = CG_OldestCmd( current, &oldestCmd );
+ 	if ( oldestCmd.serverTime > cg.snap->ps.commandTime 
+ 		&& oldestCmd.serverTime < cg.time ) {	// special check for map_restart
+ 		if ( cg_showmiss.integer ) {
+@@ -495,6 +516,18 @@ void CG_PredictPlayerState( void ) {
+ 		cg.physicsTime = cg.snap->serverTime;
+ 	}
+ 
++	// Oz: the commands up to the snapshot's are skipped below: start at the first one past it, looking
++	// back from the latest (reading and turning through all 512 kept took 0.05 ms a frame at 1000 fps)
++	for ( cmdNum = current; cmdNum > first; cmdNum-- ) {
++		usercmd_t	cmd;
++
++		trap_GetUserCmd( cmdNum - 1, &cmd );
++		if ( cmd.serverTime <= cg.predictedPlayerState.commandTime ) {
++			break;
++		}
++	}
++	first = cmdNum;
++
+ 	if ( pmove_msec.integer < 8 ) {
+ 		trap_Cvar_Set("pmove_msec", "8");
+ 		trap_Cvar_Update(&pmove_msec);
+@@ -511,7 +544,7 @@ void CG_PredictPlayerState( void ) {
+ 
+ 	// run cmds
+ 	moved = qfalse;
+-	for ( cmdNum = current - CMD_BACKUP + 1 ; cmdNum <= current ; cmdNum++ ) {
++	for ( cmdNum = first ; cmdNum <= current ; cmdNum++ ) {
+ 		// get the command
+ 		trap_GetUserCmd( cmdNum, &cg_pmove.cmd );
+ 
+diff --git a/code/cgame/cg_draw.c b/code/cgame/cg_draw.c
+--- a/code/cgame/cg_draw.c
++++ b/code/cgame/cg_draw.c
+@@ -1594,8 +1594,7 @@ static void CG_DrawDisconnect( void ) {
+ 	int			w;
+ 
+ 	// draw the phone jack if we are completely past our buffers
+-	cmdNum = trap_GetCurrentCmdNumber() - CMD_BACKUP + 1;
+-	trap_GetUserCmd( cmdNum, &cmd );
++	cmdNum = CG_OldestCmd( trap_GetCurrentCmdNumber(), &cmd );	// Oz: what the engine keeps
+ 	if ( cmd.serverTime <= cg.snap->ps.commandTime
+ 		|| cmd.serverTime > cg.time ) {	// special check for map_restart
+ 		return;

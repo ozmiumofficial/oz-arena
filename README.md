@@ -6,8 +6,6 @@
 
 **[Download the latest release](https://github.com/ozmiumofficial/oz-arena/releases/latest)** · Windows 10 or 11, 64-bit · You need your own copy of Quake III Arena.
 
-> Oz Arena began as a proof of concept in Godot (v0.6.x, kept on the [`godot-poc`](https://github.com/ozmiumofficial/oz-arena/tree/godot-poc) branch). This is the real game: a native engine that plays the original's maps, mods and servers as they are, with everything Oz adds on top.
-
 ---
 
 ## Contents

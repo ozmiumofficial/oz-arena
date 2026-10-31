@@ -1,3 +1,5 @@
+![Ozmium Arena](docs/screenshots/banner.jpg)
+
 # Oz Arena
 
 **A free, open-source arena shooter on its own id Tech 3 engine.** Oz Arena takes the game you already own, Quake III Arena, and remakes how it looks, sounds and plays on a PC today: remastered textures and relit arenas, rigged fighters with ragdolls, remade effects, new menus and HUD, a map editor, and a browser that joins any community server: vanilla, CPMA or Defrag.
@@ -54,9 +56,15 @@ Settings, saved matches and your career live in `%APPDATA%\Oz Arena`. To play CP
 | ![q3ctf3](docs/screenshots/world_q3ctf3.jpg) | ![q3tourney2](docs/screenshots/world_q3tourney2.jpg) |
 | ![q3dm4](docs/screenshots/world_q3dm4.jpg) | ![q3dm0](docs/screenshots/world_q3dm0.jpg) |
 
-The original look (left) and Oz's (right), pixel for pixel:
+From across a room Oz keeps id's look on purpose: the same colors, the same brightness, the same arenas. The difference shows up close, where id's textures turn to blurred blocks and Oz's keep their detail (both zoomed in with the zoom key, the same spot and frame):
 
-![Original and Oz Arena](docs/screenshots/compare_q3dm7.jpg)
+![Original and Oz Arena: a wall on q3dm6](docs/screenshots/closeup_q3dm6_wall.jpg)
+
+![Original and Oz Arena: stone blocks on q3dm6](docs/screenshots/closeup_q3dm6_stone.jpg)
+
+And in the light: on q3dm1 the relit lava lights the floor and rock around it.
+
+![Original and Oz Arena: the lava on q3dm1](docs/screenshots/relight_q3dm1.jpg)
 
 Everything Oz adds to the look loads only in its own renderer. Pick the OpenGL or Vulkan renderer and you get id's look, untouched.
 

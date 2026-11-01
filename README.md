@@ -97,7 +97,7 @@ Everything Oz adds to the look loads only in its own renderer. Pick the OpenGL o
 |---|---|
 | ![Skirmish](docs/screenshots/menu_skirmish.jpg) | ![Campaign](docs/screenshots/menu_campaign.jpg) |
 
-- **Skirmish and Custom Match:** bots on any arena, in any mode, with the rules and modifiers you set.
+- **Skirmish and Custom Match:** bots on any arena, in any mode, with the rules and modifiers you set. Skirmish plays under Oz's own game, CPMA or Defrag (the mods you have installed); under Defrag it races any map you own, with search and an Oz estimate of each course's difficulty to sort by.
 - **Campaign:** the original's tiers of arenas, up to the final duel.
 - **Training:** movement, aim and duels.
 - **Your career:** XP and levels, achievements, records and a player card you build from what you've earned.
@@ -114,7 +114,7 @@ Everything Oz adds to the look loads only in its own renderer. Pick the OpenGL o
 One HUD on every server and every mod, pure servers included, drawn by the engine itself.
 
 - **Presets:** Modern, Classic, Competitive and Minimal, or set each part yourself.
-- **A scoreboard and results** with each player's weapons, accuracy and damage.
+- **A scoreboard and results** with each player's weapons, accuracy and damage, up to 64 players. Right-click under Tab to open a player's card and add them as a friend.
 - **The crosshair editor:** shapes, size, color and outline, previewed exactly as the match draws them.
 - **A speedometer, chat with emoji, and item timers for spectators.** Players never see item timers: knowing when items come back would be cheating.
 

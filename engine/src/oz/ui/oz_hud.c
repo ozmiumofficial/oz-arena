@@ -31,6 +31,7 @@ the Godot build never recorded (frags by weapon, pickups, deaths by cause, the r
 #include "oz_progress.h"
 #include "oz_ui_engine.h"
 #ifdef USE_OZ_ONLINE
+#include "../online/oz_online.h"
 #include "../online/oz_stats.h"
 #endif
 
@@ -71,6 +72,7 @@ static struct {
 	ozScore_t		scores[MAX_CLIENTS];
 	int				scoresRequestTime;
 	int				scoresParsed;		// scoreboards parsed so far (the recorder waits for one after the intermission)
+	qboolean		scoresFull;			// the last was baseq3's: accuracy, medals and time (not CPMA's)
 	int				warmup;
 	char			centerPrint[1024];
 	int				centerPrintTime;
@@ -1144,36 +1146,72 @@ static void DamageNumber( int target, int amount ) {
 }
 
 // cg_servercmds.c CG_ParseScores: baseq3's "scores" (a mod with its own format just leaves the list
-// as it was)
+// as it was). A command holds about 25 players: Oz's game sends the rest first, as "scoresmore <first>
+// <count> ..." (game patch 0028), kept here until "scores" comes; id's game leaves them out (the board
+// lists them from the configstrings)
+static struct {
+	ozScore_t	s[MAX_CLIENTS];
+	int			from, to;		// the places kept, [from, to)
+} moreScores;
+
+static void ParseScoreAt( int arg, ozScore_t *s ) {
+	s->client = atoi( Cmd_Argv( arg ) );
+	s->score = atoi( Cmd_Argv( arg + 1 ) );
+	s->ping = atoi( Cmd_Argv( arg + 2 ) );
+	s->time = atoi( Cmd_Argv( arg + 3 ) );
+	s->scoreFlags = atoi( Cmd_Argv( arg + 4 ) );
+	s->powerUps = atoi( Cmd_Argv( arg + 5 ) );
+	s->accuracy = atoi( Cmd_Argv( arg + 6 ) );
+	s->impressiveCount = atoi( Cmd_Argv( arg + 7 ) );
+	s->excellentCount = atoi( Cmd_Argv( arg + 8 ) );
+	s->guantletCount = atoi( Cmd_Argv( arg + 9 ) );
+	s->defendCount = atoi( Cmd_Argv( arg + 10 ) );
+	s->assistCount = atoi( Cmd_Argv( arg + 11 ) );
+	s->perfect = atoi( Cmd_Argv( arg + 12 ) );
+	s->captures = atoi( Cmd_Argv( arg + 13 ) );
+	if ( s->client < 0 || s->client >= MAX_CLIENTS ) {
+		s->client = 0;
+	}
+	s->team = cgs.clientinfo[s->client].team;
+}
+
+static void ParseMoreScores( void ) {
+	const int	first = atoi( Cmd_Argv( 1 ) );
+	int			n = atoi( Cmd_Argv( 2 ) ), i;
+
+	if ( first <= 0 || first >= MAX_CLIENTS || n < 0 || Cmd_Argc() < 3 + n * 14 ) {
+		return;
+	}
+	if ( first != moreScores.to || !moreScores.to ) {
+		moreScores.from = moreScores.to = first;	// the first part of a new list
+	}
+	if ( first + n > MAX_CLIENTS ) {
+		n = MAX_CLIENTS - first;
+	}
+	for ( i = 0; i < n; i++ ) {
+		ParseScoreAt( i * 14 + 3, &moreScores.s[first + i] );
+	}
+	moreScores.to = first + n;
+}
+
 static void ParseScores( void ) {
 	int	i, n = atoi( Cmd_Argv( 1 ) );
 
 	if ( n < 0 || n > MAX_CLIENTS || Cmd_Argc() < 4 + n * 14 ) {
 		return;
 	}
-	cg.numScores = n;
-	cg.scoresParsed++;
 	for ( i = 0; i < n; i++ ) {
-		ozScore_t *s = &cg.scores[i];
-		s->client = atoi( Cmd_Argv( i * 14 + 4 ) );
-		s->score = atoi( Cmd_Argv( i * 14 + 5 ) );
-		s->ping = atoi( Cmd_Argv( i * 14 + 6 ) );
-		s->time = atoi( Cmd_Argv( i * 14 + 7 ) );
-		s->scoreFlags = atoi( Cmd_Argv( i * 14 + 8 ) );
-		s->powerUps = atoi( Cmd_Argv( i * 14 + 9 ) );
-		s->accuracy = atoi( Cmd_Argv( i * 14 + 10 ) );
-		s->impressiveCount = atoi( Cmd_Argv( i * 14 + 11 ) );
-		s->excellentCount = atoi( Cmd_Argv( i * 14 + 12 ) );
-		s->guantletCount = atoi( Cmd_Argv( i * 14 + 13 ) );
-		s->defendCount = atoi( Cmd_Argv( i * 14 + 14 ) );
-		s->assistCount = atoi( Cmd_Argv( i * 14 + 15 ) );
-		s->perfect = atoi( Cmd_Argv( i * 14 + 16 ) );
-		s->captures = atoi( Cmd_Argv( i * 14 + 17 ) );
-		if ( s->client < 0 || s->client >= MAX_CLIENTS ) {
-			s->client = 0;
-		}
-		s->team = cgs.clientinfo[s->client].team;
+		ParseScoreAt( i * 14 + 4, &cg.scores[i] );
 	}
+	if ( moreScores.from == n ) {
+		for ( ; i < moreScores.to; i++ ) {
+			cg.scores[i] = moreScores.s[i];
+		}
+	}
+	moreScores.from = moreScores.to = 0;
+	cg.numScores = i;
+	cg.scoresParsed++;
+	cg.scoresFull = qtrue;
 }
 
 /*
@@ -1190,6 +1228,7 @@ static void ParseCpmaScores( void ) {
 	memset( cg.scores, 0, sizeof( cg.scores[0] ) * n );
 	cg.numScores = n;
 	cg.scoresParsed++;
+	cg.scoresFull = qfalse;
 	for ( i = 0; i < n; i++ ) {
 		ozScore_t *s = &cg.scores[i];
 		s->client = atoi( Cmd_Argv( i * 7 + 2 ) );
@@ -1236,6 +1275,7 @@ static void ParseCpmaDuel( void ) {
 	}
 	cg.numScores = n;
 	cg.scoresParsed++;
+	cg.scoresFull = qfalse;
 }
 
 static qboolean hudInit;
@@ -1349,6 +1389,10 @@ int OzHud_ServerCommand( const char *text ) {
 	}
 	if ( !strcmp( cmd, "scores" ) ) {
 		ParseScores();
+		return 0;
+	}
+	if ( !strcmp( cmd, "scoresmore" ) ) {
+		ParseMoreScores();
 		return 0;
 	}
 	if ( !strcmp( cmd, "xscores" ) ) {
@@ -1509,6 +1553,9 @@ static void GoTo_f( void ) {
 
 static void Type_f( void );
 static void Emoji_f( void );
+static void Board_f( void );
+static void BoardPoint_f( void );
+static void BoardMouseReset( void );
 
 void OzHud_Init( void ) {
 	if ( hudInit ) {
@@ -1517,10 +1564,13 @@ void OzHud_Init( void ) {
 	hudInit = qtrue;
 	RegisterCvars();
 	OzHud_ModsInit();
+	BoardMouseReset();
 	Cmd_AddCommand( "oz_aimat", AimAt_f );
 	Cmd_AddCommand( "oz_goto", GoTo_f );
 	Cmd_AddCommand( "oz_type", Type_f );
 	Cmd_AddCommand( "oz_emoji", Emoji_f );
+	Cmd_AddCommand( "ozboard", Board_f );
+	Cmd_AddCommand( "ozboard_point", BoardPoint_f );
 }
 
 // a new map or server: nothing of the last one carries over
@@ -1530,6 +1580,8 @@ void OzHud_Reset( void ) {
 	memset( &hud, 0, sizeof( hud ) );
 	memset( &cg, 0, sizeof( cg ) );
 	memset( &img, 0, sizeof( img ) );
+	memset( &moreScores, 0, sizeof( moreScores ) );
+	BoardMouseReset();
 	cg.showScores = showScores;
 	hud.jump = -1;
 	hud.pushed = qtrue;
@@ -3762,6 +3814,9 @@ void OzHud_Draw( void ) {
 static const vec4_t PLACE_COLORS[3] = { { 1.0f, 0.788f, 0.302f, 1 }, { 0.839f, 0.867f, 0.902f, 1 }, { 0.816f, 0.541f, 0.306f, 1 } };
 static const char *statLabels[NAMES] = { "", "Gauntlet", "Machinegun", "Shotgun", "Grenade L.", "Rocket L.", "Lightning", "Railgun",
 	"Plasma Gun", "BFG10K", "Grapple" };
+// the weapons as the match record and the hub's careers name them
+static const char *const weaponKeys[] = { "", "gauntlet", "machinegun", "shotgun", "grenade", "rocket", "lightning", "railgun", "plasma",
+	"bfg", "grapple" };
 static const char *medalNames[6] = { "IMPRESSIVE", "EXCELLENT", "HUMILIATION", "DEFEND", "ASSIST", "CAPTURE" };
 static const int medalPers[6] = { PERS_IMPRESSIVE_COUNT, PERS_EXCELLENT_COUNT, PERS_GAUNTLET_FRAG_COUNT, PERS_DEFEND_COUNT,
 	PERS_ASSIST_COUNT, PERS_CAPTURES };
@@ -3810,6 +3865,16 @@ static struct {
 	cardData_t	card;
 } botCards[MAX_CLIENTS];
 
+#ifdef USE_OZ_ONLINE
+// another Oz player's card, as their game sent it to the hub (the roster, oz_online_engine.c)
+static struct {
+	char		id[24];
+	int			level;
+	char		parts[1024];			// the card's parts (JSON), when looked up
+	cardData_t	card;
+} seatCards[MAX_CLIENTS];
+#endif
+
 static void FromLook( const ozCardLook_t *look, cardData_t *cd ) {
 	Q_strncpyz( cd->banner, look->banner, sizeof( cd->banner ) );
 	cd->bannerWide = look->bannerWide;
@@ -3855,7 +3920,25 @@ static void CardFor( int client, cardData_t *cd ) {
 			FromLook( &look, &botCards[client].card );
 		}
 		*cd = botCards[client].card;
+		return;
 	}
+#ifdef USE_OZ_ONLINE
+	{
+		ozSeat_t seat;
+		PlayerName( client, name, sizeof( name ) );
+		if ( OzOnline_Seated( client, name, &seat ) ) {
+			if ( strcmp( seatCards[client].id, seat.id ) || seatCards[client].level != seat.level || strcmp( seatCards[client].parts, seat.card ) ) {
+				Q_strncpyz( seatCards[client].id, seat.id, sizeof( seatCards[client].id ) );
+				seatCards[client].level = seat.level;
+				Q_strncpyz( seatCards[client].parts, seat.card, sizeof( seatCards[client].parts ) );
+				seatCards[client].card = *cd;
+				OzProgress_CardLook( seat.card, seat.level, &look );
+				FromLook( &look, &seatCards[client].card );
+			}
+			*cd = seatCards[client].card;
+		}
+	}
+#endif
 }
 
 // a player's card (q3_card_view.gd): the banner darkened toward the text, the emblem in its square,
@@ -4060,51 +4143,494 @@ static void DrawStats( float x0, float y0, float w0, const playerState_t *ps ) {
 	}
 }
 
-static void BoardRow( float x, float y, float w, float h, const ozScore_t *s, int place ) {
-	const qboolean	me = s->client == cg.snap->ps.clientNum;
-	const qboolean	bot = cgs.clientinfo[s->client].botSkill > 0;
-	const float		cy = y + h * 0.5f, base = cy + 12 * u, px = x + w * 0.93f;
-	const int		deaths = me ? cg.snap->ps.persistant[PERS_KILLED] : hud.deaths[s->client];
-	float			c[4];
+// ---------------------------------------------------------------- the board's mouse
+
+/*
+While Tab holds the board up, the right mouse button frees the mouse for it and again takes it back
+(scoreboard.gd set_interactive; holding it while clicking works too): a cursor, rows light up under it,
+and a click on one opens that player's card in the left column, where your match shows (a click on the
+same row closes it). Letting go of Tab ends it. The card is theirs large, this match's numbers and
+their career: yours from your profile, a bot's skill, another Oz player's from the hub, with Add friend
+(the hub's roster of the Oz players seated in the match, oz_online_engine.c).
+*/
+typedef struct {
+	float	x, y, w, h;
+	int		client;
+} boardRect_t;
+
+static struct {
+	qboolean	on;				// the board has the mouse
+	float		x, y;			// the cursor, in pixels
+	int			hover;			// the client under it, -1
+	int			selected;		// whose card is open, -1
+	int			drawnAt;		// cls.framecount the board last drew
+	int			numRows;
+	boardRect_t	rows[MAX_CLIENTS];	// where the last board drawn put each player
+	boardRect_t	button;			// the card's Add friend, w 0 with none
+	char		buttonFor[24];	// the hub id it adds
+	int			addedAt;		// cls.realtime of the last Add friend, for the hub's answer
+	char		layout[96];		// the layout last printed, and the card's state (tests)
+	char		cardState[96];
+} boardMouse;
+
+static void BoardMouseReset( void ) {
+	memset( &boardMouse, 0, sizeof( boardMouse ) );
+	boardMouse.hover = boardMouse.selected = -1;
+}
+
+static void BoardMouseOff( void ) {
+	if ( boardMouse.on ) {
+		boardMouse.on = qfalse;
+		OzE_StartLocalSound( "sound/misc/menu3.wav" );
+		Com_Printf( "ozhud board: mouse off\n" );
+	}
+	boardMouse.hover = boardMouse.selected = -1;
+}
+
+// the board is up and was drawn, and nothing else has the keys (the console, a menu, the chat line)
+static qboolean BoardUp( void ) {
+	return cg.showScores && OzHud_Active() && !Key_GetCatcher() && cls.framecount - boardMouse.drawnAt <= 2;
+}
+
+static qboolean Inside( const boardRect_t *r, float x, float y ) {
+	return r->w > 0 && x >= r->x && x < r->x + r->w && y >= r->y && y < r->y + r->h;
+}
+
+static void BoardClick( void ) {
+	int i;
+
+	if ( Inside( &boardMouse.button, boardMouse.x, boardMouse.y ) ) {
+		Com_Printf( "ozhud board: add friend %s\n", boardMouse.buttonFor );
+#ifdef USE_OZ_ONLINE
+		OzOnline_AddFriend( boardMouse.buttonFor );
+#endif
+		boardMouse.addedAt = cls.realtime ? cls.realtime : 1;
+		OzE_StartLocalSound( "sound/misc/menu2.wav" );
+		return;
+	}
+	for ( i = 0; i < boardMouse.numRows; i++ ) {
+		if ( Inside( &boardMouse.rows[i], boardMouse.x, boardMouse.y ) ) {
+			const int client = boardMouse.rows[i].client;
+			boardMouse.selected = boardMouse.selected == client ? -1 : client;
+			boardMouse.cardState[0] = 0;
+			OzE_StartLocalSound( boardMouse.selected >= 0 ? "sound/misc/menu1.wav" : "sound/misc/menu3.wav" );
+			Com_Printf( boardMouse.selected >= 0 ? "ozhud board: card %d\n" : "ozhud board: card %d closed\n", client );
+			return;
+		}
+	}
+}
+
+// CL_MouseEvent: while the board has the mouse it moves the cursor, not the view (1)
+int OzHud_BoardMouse( int dx, int dy ) {
+	const float scale = cls.glconfig.vidHeight / 1080.0f;	// a mouse count a 1080p pixel, as the desktop's
+
+	if ( !boardMouse.on ) {
+		return 0;
+	}
+	if ( !BoardUp() ) {
+		BoardMouseOff();
+		return 0;
+	}
+	boardMouse.x += dx * scale;
+	boardMouse.y += dy * scale;
+	boardMouse.x = boardMouse.x < 0 ? 0 : boardMouse.x > cls.glconfig.vidWidth - 1 ? cls.glconfig.vidWidth - 1 : boardMouse.x;
+	boardMouse.y = boardMouse.y < 0 ? 0 : boardMouse.y > cls.glconfig.vidHeight - 1 ? cls.glconfig.vidHeight - 1 : boardMouse.y;
+	return 1;
+}
+
+// CL_KeyDownEvent, a key about to run its binding: right click under Tab gives the board the mouse or
+// takes it back, and while the board has it, the mouse's buttons are its clicks (1: the key is the board's)
+int OzHud_BoardKey( int key ) {
+	if ( !BoardUp() ) {
+		if ( boardMouse.on ) {
+			BoardMouseOff();
+		}
+		return 0;
+	}
+	if ( key == K_MOUSE2 ) {
+		if ( boardMouse.on ) {
+			BoardMouseOff();
+		} else {
+			boardMouse.on = qtrue;
+			boardMouse.x = cls.glconfig.vidWidth * 0.5f;
+			boardMouse.y = cls.glconfig.vidHeight * 0.5f;
+			boardMouse.hover = -1;
+			OzE_StartLocalSound( "sound/misc/menu1.wav" );
+			Com_Printf( "ozhud board: mouse on\n" );
+		}
+		return 1;
+	}
+	if ( !boardMouse.on ) {
+		return 0;
+	}
+	if ( key == K_MOUSE1 ) {
+		BoardClick();
+		return 1;
+	}
+	return ( key >= K_MOUSE3 && key <= K_MOUSE5 ) || key == K_MWHEELUP || key == K_MWHEELDOWN;
+}
+
+// the arrow, its point at the cursor
+static void BoardCursor( void ) {
+	const float x = boardMouse.x, y = boardMouse.y, k = u * 1.15f;
+	const float	p[7][2] = { { x, y }, { x, y + 16 * k }, { x + 4 * k, y + 12 * k }, { x + 7 * k, y + 18 * k }, { x + 9 * k, y + 17 * k },
+		{ x + 6 * k, y + 11 * k }, { x + 11 * k, y + 11 * k } };
+	float		outline[14];
+	int			i;
+
+	Tri( p[0], WHITE, p[1], WHITE, p[2], WHITE, 1, 1, 1 );
+	Tri( p[0], WHITE, p[2], WHITE, p[5], WHITE, 1, 1, 1 );
+	Tri( p[0], WHITE, p[5], WHITE, p[6], WHITE, 1, 1, 1 );
+	Tri( p[2], WHITE, p[3], WHITE, p[4], WHITE, 1, 1, 1 );
+	Tri( p[2], WHITE, p[4], WHITE, p[5], WHITE, 1, 1, 1 );
+	for ( i = 0; i < 7; i++ ) {
+		outline[i * 2] = p[i][0];
+		outline[i * 2 + 1] = p[i][1];
+	}
+	Strip( outline, 7, 1.5f * u, BLACK, qtrue );
+}
+
+// ozboard: the board's mouse, card and rows (tests)
+static void Board_f( void ) {
+	int i;
+
+	Com_Printf( "ozboard: mouse %s at %d %d, hover %d, card %d, %d rows, button %s\n", boardMouse.on ? "on" : "off", (int)boardMouse.x,
+		(int)boardMouse.y, boardMouse.hover, boardMouse.selected, boardMouse.numRows, boardMouse.button.w > 0 ? boardMouse.buttonFor : "none" );
+	for ( i = 0; i < boardMouse.numRows; i++ ) {
+		const boardRect_t	*r = &boardMouse.rows[i];
+		char				name[MAX_QPATH];
+		PlayerName( r->client, name, sizeof( name ) );
+		Q_CleanStr( name );
+		Com_Printf( "ozboard: row %d at %d %d %d %d: %s\n", r->client, (int)r->x, (int)r->y, (int)r->w, (int)r->h, name );
+	}
+}
+
+// ozboard_point <client> | button: the cursor to the middle of that player's row or the card's button,
+// through the board's own mouse (tests, which run without a mouse)
+static void BoardPoint_f( void ) {
+	const char	*what = Cmd_Argv( 1 );
+	const int	client = atoi( what );
+	int			i;
+
+	if ( !Q_stricmp( what, "button" ) ) {
+		if ( boardMouse.button.w > 0 ) {
+			OzHud_BoardMouse( (int)( ( boardMouse.button.x + boardMouse.button.w * 0.5f - boardMouse.x ) * 1080.0f / cls.glconfig.vidHeight ),
+				(int)( ( boardMouse.button.y + boardMouse.button.h * 0.5f - boardMouse.y ) * 1080.0f / cls.glconfig.vidHeight ) );
+			Com_Printf( "ozboard: pointing at the button (%s)\n", boardMouse.buttonFor );
+			return;
+		}
+		Com_Printf( "ozboard: no button\n" );
+		return;
+	}
+	for ( i = 0; i < boardMouse.numRows; i++ ) {
+		const boardRect_t *r = &boardMouse.rows[i];
+		if ( r->client == client ) {
+			OzHud_BoardMouse( (int)( ( r->x + r->w * 0.3f - boardMouse.x ) * 1080.0f / cls.glconfig.vidHeight ),
+				(int)( ( r->y + r->h * 0.5f - boardMouse.y ) * 1080.0f / cls.glconfig.vidHeight ) );
+			Com_Printf( "ozboard: pointing at client %d (%d %d)\n", client, (int)boardMouse.x, (int)boardMouse.y );
+			return;
+		}
+	}
+	Com_Printf( "ozboard: client %d has no row\n", client );
+}
+
+// ---------------------------------------------------------------- a player's card (scoreboard.gd _player_panel)
+
+typedef struct {
+	char	label[48];
+	char	value[96];		// a section's title has none
+	int		section;
+} panelLine_t;
+
+#define PANEL_LINES		24
+#define PANEL_CARD		120.0f		// the card's height, 1080p units
+#define PANEL_BUTTON	42.0f
+
+static const char *const botSkills[5] = { "I Can Win", "Bring It On", "Hurt Me Plenty", "Hardcore", "Nightmare!" };
+static const char *const medalWords[6] = { "Impressive", "Excellent", "Humiliation", "Defend", "Assist", "Capture" };
+
+static void AddLine( panelLine_t *l, int *n, const char *label, const char *value ) {
+	if ( *n >= PANEL_LINES ) {
+		return;
+	}
+	Q_strncpyz( l[*n].label, label, sizeof( l[0].label ) );
+	Q_strncpyz( l[*n].value, value ? value : "", sizeof( l[0].value ) );
+	l[*n].section = value == NULL;
+	( *n )++;
+}
+
+static const ozScore_t *ScoreRow( int client ) {
+	int i;
+
+	for ( i = 0; i < cg.numScores; i++ ) {
+		if ( cg.scores[i].client == client ) {
+			return &cg.scores[i];
+		}
+	}
+	return NULL;
+}
+
+static const char *Hours( int seconds ) {
+	return va( "%dh %02dm", seconds / 3600, seconds / 60 % 60 );
+}
+
+static const char *Ratio( int frags, int deaths ) {
+	return va( "%.2f", frags / (float)( deaths > 1 ? deaths : 1 ) );
+}
+
+// what the card says under it, and what kind of player it is for the log
+typedef struct {
+	panelLine_t	lines[PANEL_LINES];
+	int			numLines;
+	qboolean	seated;			// another Oz player, with a button
+#ifdef USE_OZ_ONLINE
+	ozSeat_t	seat;
+#endif
+	char		state[96];
+} panel_t;
+
+static void PanelOf( int client, const playerState_t *ps, panel_t *p ) {
+	const ozClientInfo_t	*ci = &cgs.clientinfo[client];
+	const ozScore_t			*s = ScoreRow( client );
+	const qboolean			me = client == ps->clientNum;
+	const int				frags = hud.kills[client];
+	const int				deaths = me ? ps->persistant[PERS_KILLED] : hud.deaths[client];
+	panelLine_t				*l = p->lines;
+	int						*n = &p->numLines, i;
+	char					model[MAX_QPATH], medals[96];
+
+	memset( p, 0, sizeof( *p ) );
+	AddLine( l, n, "THIS MATCH", NULL );
+	AddLine( l, n, "Score", s ? va( "%d", s->score ) : "-" );
+	AddLine( l, n, "Frags / deaths", va( "%d / %d", frags, deaths ) );
+	AddLine( l, n, "Ratio", Ratio( frags, deaths ) );
+	if ( me ) {
+		int wp, shots = 0, hits = 0;
+		for ( wp = 1; wp < NAMES; wp++ ) {
+			if ( wp != WP_GAUNTLET && wp != WP_GRAPPLING_HOOK ) {
+				shots += hud.shots[wp];
+				hits += hud.statHits[wp] < hud.shots[wp] ? hud.statHits[wp] : hud.shots[wp];
+			}
+		}
+		AddLine( l, n, "Accuracy", shots ? va( "%d%%", (int)( hits * 100.0f / shots + 0.5f ) ) : "-" );
+	} else if ( s && cg.scoresFull ) {
+		AddLine( l, n, "Accuracy", va( "%d%%", s->accuracy ) );
+	}
+	if ( s && cg.scoresFull ) {
+		const int counts[6] = { s->impressiveCount, s->excellentCount, s->guantletCount, s->defendCount, s->assistCount, s->captures };
+		medals[0] = 0;
+		for ( i = 0; i < 6; i++ ) {
+			if ( counts[i] > 0 ) {
+				Q_strcat( medals, sizeof( medals ), va( "%s%s %d", medals[0] ? ", " : "", medalWords[i], counts[i] ) );
+			}
+		}
+		AddLine( l, n, "Medals", medals[0] ? medals : "-" );
+	}
+	if ( ci->botSkill <= 0 ) {
+		AddLine( l, n, "Ping", !s || s->ping >= 999 ? "-" : va( "%d ms", s->ping ) );
+	}
+	if ( s && s->time > 0 ) {
+		AddLine( l, n, "Playing for", va( "%d min", s->time ) );
+	}
+	Q_strncpyz( model, ci->modelName, sizeof( model ) );
+	model[0] = toupper( (unsigned char)model[0] );
+	AddLine( l, n, "Character", model );
+	if ( ci->botSkill > 0 ) {
+		const int skill = ci->botSkill < 1 ? 1 : ci->botSkill > 5 ? 5 : ci->botSkill;
+		AddLine( l, n, "BOT", NULL );
+		AddLine( l, n, "Skill", va( "%d  %s", skill, botSkills[skill - 1] ) );
+		Q_strncpyz( p->state, "bot", sizeof( p->state ) );
+		return;
+	}
+	if ( me ) {
+		int into, next, matches, wins, f, d, seconds;
+		const int level = OzProgress_LevelFor( OzProgress_TotalXP(), &into, &next );
+		OzProgress_LocalCareer( &matches, &wins, &f, &d, &seconds );
+		AddLine( l, n, "CAREER", NULL );
+		AddLine( l, n, "Level", va( "%d   %d / %d XP", level, into, next ) );
+		AddLine( l, n, "Matches / wins", va( "%d / %d", matches, wins ) );
+		AddLine( l, n, "Frags / deaths", va( "%d / %d   (%s)", f, d, Ratio( f, d ) ) );
+		AddLine( l, n, "Time played", Hours( seconds ) );
+		Q_strncpyz( p->state, "you", sizeof( p->state ) );
+		return;
+	}
+	AddLine( l, n, "CAREER", NULL );
+#ifdef USE_OZ_ONLINE
+	{
+		ozCareer_t	career;
+		char		name[MAX_QPATH];
+		PlayerName( client, name, sizeof( name ) );
+		if ( !OzOnline_Online() ) {
+			AddLine( l, n, "Offline: online services are off", "" );
+			Q_strncpyz( p->state, "offline", sizeof( p->state ) );
+		} else if ( !OzOnline_Seated( client, name, &p->seat ) ) {
+			AddLine( l, n, "No online profile", "" );
+			Q_strncpyz( p->state, "no online profile", sizeof( p->state ) );
+		} else {
+			static const char *const relations[4] = { "none", "friend", "sent", "asked" };
+			p->seated = qtrue;
+			if ( !OzOnline_Career( p->seat.id, &career ) ) {
+				AddLine( l, n, "Asking the hub", "" );
+			} else {
+				char	labels[3][32], values[3][24];
+				int		shown;
+				AddLine( l, n, "Matches / wins", va( "%d / %d", career.matches, career.wins ) );
+				AddLine( l, n, "Frags / deaths", va( "%d / %d   (%s)", career.frags, career.deaths, Ratio( career.frags, career.deaths ) ) );
+				AddLine( l, n, "Time played", Hours( career.seconds ) );
+				for ( i = 1; i < NAMES && Q_stricmp( weaponKeys[i], career.weapon ); i++ ) {
+				}
+				if ( career.weapon[0] && i < NAMES ) {
+					AddLine( l, n, "Best weapon", career.weaponShots > 0 && i != WP_GAUNTLET
+						? va( "%s   %d frags, %d%%", statLabels[i], career.weaponFrags, career.weaponHits * 100 / career.weaponShots )
+						: va( "%s   %d frags", statLabels[i], career.weaponFrags ) );
+				}
+				shown = OzProgress_Showcase( p->seat.card, p->seat.stats, labels, values, 3 );
+				for ( i = 0; i < shown; i++ ) {
+					AddLine( l, n, labels[i], values[i] );
+				}
+			}
+			Com_sprintf( p->state, sizeof( p->state ), "oz %s, %s, %s", p->seat.id, relations[OzOnline_Relation( p->seat.id ) & 3],
+				*n > 0 && !strcmp( l[*n - 1].label, "Asking the hub" ) ? "career asked" : "career in" );
+		}
+	}
+#else
+	AddLine( l, n, "No online profile", "" );
+	Q_strncpyz( p->state, "no online profile", sizeof( p->state ) );
+#endif
+}
+
+static float PanelHeight( const panel_t *p ) {
+	float	h = ( 32 + PANEL_CARD + 30 ) * u;
+	int		i;
+
+	if ( p->seated ) {
+		h += ( PANEL_BUTTON + 34 ) * u;
+	}
+	for ( i = 0; i < p->numLines; i++ ) {
+		h += ( p->lines[i].section ? 40 : 30 ) * u;
+	}
+	return h + 16 * u;
+}
+
+static void DrawPlayerPanel( float x, float y, float w, int client, const playerState_t *ps ) {
+	static const vec4_t box = { 0.03f, 0.025f, 0.022f, 0.92f };
+	static const vec4_t off = { 1, 1, 1, 0.06f };
+	static panel_t	p;
+	const float		pad = 26 * u;
+	float			ly, c[4];
+	int				i;
+
+	PanelOf( client, ps, &p );
+	if ( strcmp( p.state, boardMouse.cardState ) ) {
+		Q_strncpyz( boardMouse.cardState, p.state, sizeof( boardMouse.cardState ) );
+		Com_Printf( "ozhud board: card %d shows %s\n", client, p.state );
+	}
+	Rect( x, y, w, PanelHeight( &p ), box );
+	Outline( x, y, w, PanelHeight( &p ), 1, GLASS_EDGE );
+	Rect( x, y, w, 3 * u, RED );
+	Card( x + pad, y + 30 * u, w - pad * 2, PANEL_CARD * u, client, client == ps->clientNum, 1 );
+	ly = y + ( 30 + PANEL_CARD + 22 ) * u;
+#ifdef USE_OZ_ONLINE
+	if ( p.seated ) {
+		const int		rel = OzOnline_Relation( p.seat.id );
+		const qboolean	active = rel == OZ_REL_NONE || rel == OZ_REL_ASKED;
+		const char		*label = rel == OZ_REL_FRIEND ? "FRIENDS" : rel == OZ_REL_SENT ? "FRIEND REQUEST SENT"
+			: rel == OZ_REL_ASKED ? "ACCEPT FRIEND REQUEST" : "ADD FRIEND";
+		const boardRect_t	r = { x + pad, ly, w - pad * 2, PANEL_BUTTON * u, -1 };
+		char			text[256];
+		const int		age = OzOnline_Notice( text, sizeof( text ) );
+		if ( active ) {
+			Col( c, RED, boardMouse.on && Inside( &r, boardMouse.x, boardMouse.y ) ? 1.0f : 0.75f );
+			boardMouse.button = r;
+			Q_strncpyz( boardMouse.buttonFor, p.seat.id, sizeof( boardMouse.buttonFor ) );
+		} else {
+			Col( c, off, 1 );
+		}
+		Rect( r.x, r.y, r.w, r.h, c );
+		Outline( r.x, r.y, r.w, r.h, 1, GLASS_EDGE );
+		Text( FONT_LABEL, r.x + r.w * 0.5f, r.y + r.h * 0.66f, label, 17 * u, active ? INK_HOT : DIM, ALIGN_CENTER );
+		// the hub's answer to Add friend, a moment
+		if ( boardMouse.addedAt && age >= 0 && age < 6000 && cls.realtime - boardMouse.addedAt < 8000 ) {
+			CText( FONT_MEDIUM, r.x, r.y + r.h + 22 * u, text, 15 * u, INK, ALIGN_LEFT, r.w );
+		}
+		ly += ( PANEL_BUTTON + 34 ) * u;
+	}
+#endif
+	for ( i = 0; i < p.numLines; i++ ) {
+		const panelLine_t *l = &p.lines[i];
+		if ( l->section ) {
+			const float tw = TextWidth( FONT_LABEL, l->label, 16 * u );
+			ly += 10 * u;
+			Text( FONT_LABEL, x + pad, ly, l->label, 16 * u, RED, ALIGN_LEFT );
+			Col( c, RED, 0.35f );
+			Rect( x + pad + tw + 12 * u, ly - 6 * u, w - pad * 2 - tw - 12 * u, 1, c );
+			ly += 30 * u;
+			continue;
+		}
+		Col( c, INK, 0.7f );
+		Text( FONT_MEDIUM, x + pad, ly, l->label, 19 * u, c, ALIGN_LEFT );
+		Text( FONT_NUM, x + w - pad, ly, l->value, 20 * u, INK_HOT, ALIGN_RIGHT );
+		ly += 30 * u;
+	}
+}
+
+// ---------------------------------------------------------------- the rows
+
+// a player's row: place, their icon and name, the flag they carry, score, frags and deaths, ping
+static void BoardRow( float x, float y, float w, float h, int client, const ozScore_t *s, int place ) {
+	const ozClientInfo_t	*ci = &cgs.clientinfo[client];
+	const qboolean			me = client == cg.snap->ps.clientNum;
+	const qboolean			hot = boardMouse.on && ( client == boardMouse.hover || client == boardMouse.selected );
+	const float				fs = h * 0.56f < 26 * u ? h * 0.56f : 26 * u;
+	const float				cy = y + h * 0.5f, base = cy + fs * 0.36f, px = x + w * 0.94f;
+	const float				icon = h - 4 * u;
+	const float				nameX = x + 42 * u + ( icon >= 14 * u ? icon + 8 * u : 0 );
+	const int				deaths = me ? cg.snap->ps.persistant[PERS_KILLED] : hud.deaths[client];
+	float					c[4];
+	char					name[MAX_QPATH];
 
 	c[0] = c[1] = c[2] = 1;
-	c[3] = place % 2 == 0 ? 0.07f : 0.035f;
-	if ( me ) {
+	c[3] = hot ? 0.13f : place % 2 == 0 ? 0.07f : 0.035f;
+	if ( me && !hot ) {
 		Col( c, AMBER, 0.13f );
 	}
 	Panel( x, y, w, h, c, NULL, 0 );
-	if ( me ) {
-		Rect( x, y, 4 * u, h, AMBER );
+	if ( me || hot ) {
+		Rect( x, y, 3 * u, h, me ? AMBER : RED );
 	}
 	if ( place < 3 ) {
 		Col( c, PLACE_COLORS[place], 1 );
 	} else {
 		Col( c, DIM, 0.9f );
 	}
-	Text( FONT_NUM, x + 34 * u, cy + 13 * u, va( "%d", place + 1 ), 36 * u, c, ALIGN_CENTER );
-	Card( x + 64 * u, y + 6 * u, w * 0.5f, h - 12 * u, s->client, me, 1 );
-	Text( FONT_NUM, x + w * 0.67f, base + 2 * u, va( "%d", s->score ), 36 * u, INK_HOT, ALIGN_CENTER );
-	// cg_scoreboard.c: the flag beside a CTF flag carrier
-	if ( s->powerUps & ( ( 1 << PW_REDFLAG ) | ( 1 << PW_BLUEFLAG ) ) ) {
-		Image( img.flags[( s->powerUps & ( 1 << PW_REDFLAG ) ) ? 0 : 1][1], x + w * 0.59f - 16 * u, cy - 16 * u, 32 * u, 32 * u, WHITE );
+	Text( FONT_NUM, x + 22 * u, base, va( "%d", place + 1 ), fs, c, ALIGN_CENTER );
+	if ( icon >= 14 * u ) {
+		Image( ImageNamed( va( "models/players/%s/icon_%s", ci->modelName, ci->skinName ) ), x + 42 * u, y + 2 * u, icon, icon, WHITE );
 	}
+	PlayerName( client, name, sizeof( name ) );
+	CText( FONT_MEDIUM, nameX, base, name, fs, INK_HOT, ALIGN_LEFT, x + w * 0.6f - nameX );
+	// cg_scoreboard.c: the flag beside a CTF flag carrier
+	if ( s && ( s->powerUps & ( ( 1 << PW_REDFLAG ) | ( 1 << PW_BLUEFLAG ) ) ) ) {
+		Image( img.flags[( s->powerUps & ( 1 << PW_REDFLAG ) ) ? 0 : 1][1], x + w * 0.62f - h * 0.4f, cy - h * 0.4f, h * 0.8f, h * 0.8f, WHITE );
+	}
+	Text( FONT_NUM, x + w * 0.71f, base, s ? va( "%d", s->score ) : "-", fs, INK_HOT, ALIGN_CENTER );
 	Col( c, INK, 0.85f );
-	Text( FONT_MEDIUM, x + w * 0.81f, base - 1 * u, va( "%d / %d", hud.kills[s->client], deaths ), 24 * u, c, ALIGN_CENTER );
-	if ( bot ) {
-		static const vec4_t chip = { 1, 1, 1, 0.08f };
-		static const vec4_t edge = { 1, 1, 1, 0.2f };
-		Rect( px - 26 * u, cy - 12 * u, 52 * u, 24 * u, chip );
-		Outline( px - 26 * u, cy - 12 * u, 52 * u, 24 * u, 1, edge );
-		Text( FONT_LABEL, px, cy + 6 * u, "BOT", 14 * u, DIM, ALIGN_CENTER );
+	Text( FONT_MEDIUM, x + w * 0.83f, base, va( "%d / %d", hud.kills[client], deaths ), fs * 0.9f, c, ALIGN_CENTER );
+	if ( ci->botSkill > 0 ) {
+		Text( FONT_LABEL, px, base, "BOT", fs * 0.7f, DIM, ALIGN_CENTER );
+	} else if ( h >= 34 * u && w >= 470 * u ) {		// room for the bars beside the number
+		PingBars( px - 34 * u, cy + 9 * u, s ? s->ping : 999 );
+		Text( FONT_MEDIUM, px + 22 * u, base, !s || s->ping >= 999 ? "-" : va( "%d", s->ping ), fs * 0.9f, c, ALIGN_CENTER );
 	} else {
-		PingBars( px - 30 * u, cy + 10 * u, s->ping );
-		Text( FONT_MEDIUM, px + 26 * u, base - 2 * u, s->ping >= 999 ? "-" : va( "%d", s->ping ), 20 * u, c, ALIGN_CENTER );
+		Text( FONT_MEDIUM, px, base, !s || s->ping >= 999 ? "-" : va( "%d", s->ping ), fs * 0.9f, c, ALIGN_CENTER );
 	}
 }
 
-// the header: the level shot, darkened toward the text, the mode, the map, the clock
+// the header: the level shot, darkened toward the text, the mode, the map, the clock; a crowded board's
+// is shorter, its text smaller
 static void BoardHeader( float px, float py, float pw, float headH, const char *mode ) {
 	static const vec4_t shot = { 1, 1, 1, 1 };
+	const float	k = headH / ( 132 * u );
 	float		a[2], b[2], cc[2], d[2], c1[4], c2[4], c3[4], c4[4], c[4];
 	char		title[MAX_QPATH], mapName[MAX_QPATH];
 	int			levelshot, elapsed, ms, secs;
@@ -4131,31 +4657,24 @@ static void BoardHeader( float px, float py, float pw, float headH, const char *
 	a[0] = px; a[1] = py; b[0] = px + pw; b[1] = py; cc[0] = px + pw; cc[1] = py + headH; d[0] = px; d[1] = py + headH;
 	Quad4( a, b, cc, d, c1, c2, c3, c4 );
 	Rect( px, py, pw, 3 * u, RED );
-	Text( FONT_LABEL, px + 32 * u, py + 62 * u, mode, 44 * u, INK_HOT, ALIGN_LEFT );
+	Text( FONT_LABEL, px + 32 * u, py + 62 * u * k, mode, 44 * u * k, INK_HOT, ALIGN_LEFT );
 	Q_strncpyz( title, CS( CS_MESSAGE ), sizeof( title ) );
 	Upper( title );
 	Col( c, AMBER, 0.95f );
-	CText( FONT_LABEL, px + 34 * u, py + 100 * u, title, 20 * u, c, ALIGN_LEFT, 0 );
+	CText( FONT_LABEL, px + 34 * u, py + 100 * u * k, title, 20 * u * ( k > 0.8f ? k : 0.8f ), c, ALIGN_LEFT, 0 );
 	elapsed = cg.time - cgs.levelStartTime;
 	if ( elapsed < 0 ) {
 		elapsed = 0;
 	}
 	ms = cgs.timelimit > 0 ? cgs.timelimit * 60000 - elapsed : elapsed;
 	secs = ( ms > 0 ? ms : 0 ) / 1000;
-	Text( FONT_NUM, px + pw - 32 * u, py + 70 * u, va( "%d:%02d", secs / 60, secs % 60 ), 46 * u, INK_HOT, ALIGN_RIGHT );
+	Text( FONT_NUM, px + pw - 32 * u, py + 70 * u * k, va( "%d:%02d", secs / 60, secs % 60 ), 46 * u * k, INK_HOT, ALIGN_RIGHT );
 	Col( c, DIM, 0.95f );
 	if ( cgs.gametype == GT_CTF && cgs.capturelimit > 0 ) {
-		Text( FONT_LABEL, px + pw - 34 * u, py + 102 * u, va( "FIRST TO %d", cgs.capturelimit ), 15 * u, c, ALIGN_RIGHT );
+		Text( FONT_LABEL, px + pw - 34 * u, py + 102 * u * k, va( "FIRST TO %d", cgs.capturelimit ), 15 * u * ( k > 0.87f ? k : 0.87f ), c, ALIGN_RIGHT );
 	} else if ( cgs.fraglimit > 0 ) {
-		Text( FONT_LABEL, px + pw - 34 * u, py + 102 * u, va( "FRAG LIMIT %d", cgs.fraglimit ), 15 * u, c, ALIGN_RIGHT );
+		Text( FONT_LABEL, px + pw - 34 * u, py + 102 * u * k, va( "FRAG LIMIT %d", cgs.fraglimit ), 15 * u * ( k > 0.87f ? k : 0.87f ), c, ALIGN_RIGHT );
 	}
-}
-
-static qboolean InColumn( const ozScore_t *s, qboolean teams, int col ) {
-	if ( s->client < 0 || s->client >= MAX_CLIENTS ) {
-		return qfalse;
-	}
-	return teams ? s->team == ( col ? TEAM_BLUE : TEAM_RED ) : s->team != TEAM_SPECTATOR;
 }
 
 // the players watching, as the server lists them (its configstrings: a mod's scores may leave them out),
@@ -4175,24 +4694,81 @@ static int Spectators( char *out, int size ) {
 	return n;
 }
 
+typedef struct {
+	int				client;
+	const ozScore_t	*s;		// NULL: a player the game's scores left out
+} boardEntry_t;
+
+// everyone on the board, in the scores' order (best first), then any the scores left out, from the
+// configstrings (id's game sends about 25 players, Oz's all 64; game patch 0028)
+static int BoardEntries( boardEntry_t *out ) {
+	qboolean	listed[MAX_CLIENTS];
+	int			i, n = 0;
+
+	memset( listed, 0, sizeof( listed ) );
+	for ( i = 0; i < cg.numScores; i++ ) {
+		const int c = cg.scores[i].client;
+		if ( c < 0 || c >= MAX_CLIENTS || listed[c] || !cgs.clientinfo[c].infoValid ) {
+			continue;
+		}
+		listed[c] = qtrue;
+		out[n].client = c;
+		out[n++].s = &cg.scores[i];
+	}
+	for ( i = 0; i < MAX_CLIENTS; i++ ) {
+		if ( !listed[i] && cgs.clientinfo[i].infoValid ) {
+			out[n].client = i;
+			out[n++].s = NULL;
+		}
+	}
+	return n;
+}
+
+// the column a player's row goes in: red or blue in team games, else the one; -1 for a spectator
+static int BoardColumn( int client, qboolean teams ) {
+	const int team = cgs.clientinfo[client].team;
+
+	if ( teams ) {
+		return team == TEAM_RED ? 0 : team == TEAM_BLUE ? 1 : -1;
+	}
+	return team != TEAM_SPECTATOR ? 0 : -1;
+}
+
+// a row and the gap under it, 1080p units, tallest first: a board takes the tallest its rows fit
+#define BOARD_STEPS	9
+static const float boardPitch[BOARD_STEPS] = { 52, 44, 38, 33, 29, 25, 23, 21, 19 };
+
+static float BoardPitch( int rows, float room ) {
+	int i;
+
+	for ( i = 0; i < BOARD_STEPS; i++ ) {
+		if ( rows * boardPitch[i] * u <= room ) {
+			return boardPitch[i] * u;
+		}
+	}
+	return 0;
+}
+
+/*
+The board: up to 64 players, every one on it. Compact rows (no cards: a player's card opens with a
+click, see the board's mouse), as tall as they fit; a free for all with many players splits into two
+or three columns side by side, a team game keeps a column a team. A crowded board's header is shorter.
+*/
 static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 	static const vec4_t dimmer = { 0, 0, 0, 0.45f };
 	static const vec4_t panelColor = { 0.03f, 0.025f, 0.022f, 0.86f };
-	const float	pw = W * 0.92f < 1780 * u ? W * 0.92f : 1780 * u;
-	const float	px = ( W - pw ) * 0.5f, py = 70 * u;
-	const float	leftX = px + 24 * u, leftY = py + 156 * u, leftW = pw * 0.33f;
-	const float	listX = leftX + leftW + 28 * u, listW = px + pw - 24 * u - listX;
-	const qboolean teams = cgs.gametype >= GT_TEAM;
-	const int	cols = teams ? 2 : 1;
-	const float	gap = 24 * u, cw = ( listW - gap * ( cols - 1 ) ) / cols;
-	const float	rh = 64 * u, headH = 132 * u;
-	const float	top = py + 170 * u + ( teams ? 64 * u : 0 );
-	const qboolean mine = ps->persistant[PERS_TEAM] != TEAM_SPECTATOR;
-	const float	specH = 40 * u;
-	char		specs[MAX_STRING_CHARS];
-	const int	numSpecs = Spectators( specs, sizeof( specs ) );
-	float		bottom, ph, specY, c[4];
-	int			col, i, place;
+	static boardEntry_t	entries[MAX_CLIENTS];
+	const qboolean	teams = cgs.gametype >= GT_TEAM;
+	const int		cols = teams ? 2 : 1;
+	const int		numEntries = BoardEntries( entries );
+	const qboolean	mine = ps->persistant[PERS_TEAM] != TEAM_SPECTATOR;
+	const float		specH = 40 * u, gap = 24 * u;
+	char			specs[MAX_STRING_CHARS];
+	const int		numSpecs = Spectators( specs, sizeof( specs ) );
+	int				count[2] = { 0, 0 }, maxRows, sub = 1, rowsPer, col, i, drawn = 0;
+	qboolean		crowded;
+	float			pw, px, py, headH, leftX, leftY, leftW, listX, listW, cw, sw, top, room, pitch, rh, bottom, ph, specY, c[4];
+	static panel_t	measure;
 
 	if ( !boardShown && cg.numScores > 0 ) {
 		// what the board shows, in the console, for the HUD test to check against the server's log
@@ -4224,24 +4800,81 @@ static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 		cg.scoresRequestTime = cg.time;
 		CL_AddReliableCommand( "score", qfalse );
 	}
-	// as tall as the longest column, or your match
-	bottom = top;
-	for ( col = 0; col < cols; col++ ) {
-		float y = top;
-		for ( i = 0; i < cg.numScores; i++ ) {
-			if ( InColumn( &cg.scores[i], teams, col ) ) {
-				y += rh + 6 * u;
+#ifdef USE_OZ_ONLINE
+	OzOnline_WantRoster();		// who's an Oz player here, for their cards
+#endif
+	boardMouse.drawnAt = cls.framecount;
+	if ( boardMouse.selected >= 0 && !cgs.clientinfo[boardMouse.selected].infoValid ) {
+		boardMouse.selected = -1;	// they left
+	}
+	if ( boardMouse.on ) {
+		int hover = -1;
+		for ( i = 0; i < boardMouse.numRows; i++ ) {
+			if ( Inside( &boardMouse.rows[i], boardMouse.x, boardMouse.y ) ) {
+				hover = boardMouse.rows[i].client;
 			}
 		}
-		if ( y > bottom ) {
-			bottom = y;
+		if ( hover >= 0 && hover != boardMouse.hover ) {
+			OzE_StartLocalSound( "sound/misc/menu2.wav" );
+		}
+		boardMouse.hover = hover;
+	}
+
+	// the layout
+	for ( i = 0; i < numEntries; i++ ) {
+		col = BoardColumn( entries[i].client, teams );
+		if ( col >= 0 ) {
+			count[col]++;
 		}
 	}
+	maxRows = count[0] > count[1] ? count[0] : count[1];
+	crowded = maxRows > ( teams ? 14 : 24 );
+	pw = W * 0.92f < 1780 * u ? W * 0.92f : 1780 * u;
+	px = ( W - pw ) * 0.5f;
+	py = ( crowded ? 36 : 70 ) * u;
+	headH = ( crowded ? 92 : 132 ) * u;
+	leftX = px + 24 * u;
+	leftY = py + headH + 24 * u;
+	leftW = pw * 0.33f;
+	listX = leftX + leftW + 28 * u;
+	listW = px + pw - 24 * u - listX;
+	cw = ( listW - gap * ( cols - 1 ) ) / cols;
+	top = py + headH + 38 * u + ( teams ? 64 * u : 0 );
+	room = H - 50 * u - ( numSpecs ? specH + 4 * u : 0 ) - top;
+	pitch = BoardPitch( maxRows, room );
+	if ( !teams ) {
+		// side by side when that makes the rows taller, each column wide enough for a name
+		int k;
+		for ( k = 2; k <= 3 && pitch < 33 * u; k++ ) {
+			const float p = BoardPitch( ( maxRows + k - 1 ) / k, room );
+			if ( ( cw - gap * ( k - 1 ) ) / k >= 330 * u && p > pitch ) {
+				sub = k;
+				pitch = p;
+			}
+		}
+	} else if ( !pitch && ( cw - gap ) / 2 >= 240 * u ) {
+		sub = 2;
+		pitch = BoardPitch( ( maxRows + 1 ) / 2, room );
+	}
+	if ( !pitch ) {
+		pitch = boardPitch[BOARD_STEPS - 1] * u;	// the last don't fit: cut
+	}
+	rowsPer = maxRows > 0 ? ( maxRows + sub - 1 ) / sub : 1;
+	rh = pitch - ( pitch >= 33 * u ? 4 : 2 ) * u;
+	sw = ( cw - gap * ( sub - 1 ) ) / sub;
+
+	// as tall as the longest column, the spectators' line, or the left column
+	bottom = top + rowsPer * pitch;
 	specY = bottom + 4 * u;
 	if ( numSpecs ) {
 		bottom = specY + specH;
 	}
-	if ( mine && leftY + StatsHeight() > bottom ) {
+	if ( boardMouse.selected >= 0 ) {
+		PanelOf( boardMouse.selected, ps, &measure );
+		if ( leftY + PanelHeight( &measure ) > bottom ) {
+			bottom = leftY + PanelHeight( &measure );
+		}
+	} else if ( mine && leftY + StatsHeight() > bottom ) {
 		bottom = leftY + StatsHeight();
 	}
 	ph = bottom - py + 70 * u;
@@ -4252,12 +4885,17 @@ static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 	Rect( px, py, pw, ph, panelColor );
 	Outline( px, py, pw, ph, 1, GLASS_EDGE );
 	BoardHeader( px, py, pw, headH, ps->pm_type == PM_INTERMISSION ? "RESULTS" : GametypeName() );
-	if ( mine ) {
+	boardMouse.button.w = 0;
+	if ( boardMouse.selected >= 0 ) {
+		DrawPlayerPanel( leftX, leftY, leftW, boardMouse.selected, ps );
+	} else if ( mine ) {
 		DrawStats( leftX, leftY, leftW, ps );
 	}
+	boardMouse.numRows = 0;
 	for ( col = 0; col < cols; col++ ) {
-		const float x = listX + col * ( cw + gap );
-		float y = py + headH + 30 * u, ly;
+		const float	x0 = listX + col * ( cw + gap );
+		float		y = py + headH + 30 * u;
+		int			place = 0, k;
 		if ( teams ) {
 			const float	*tc = col ? HUD_TEAM_BLUE : HUD_TEAM_RED;
 			float		dark[4], light[4];
@@ -4265,31 +4903,44 @@ static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 			dark[1] = tc[1] * 0.3f;
 			dark[2] = tc[2] * 0.3f;
 			dark[3] = 0.85f;
-			Panel( x, y - 8 * u, cw, 54 * u, dark, NULL, 0 );
-			Bar( x, y - 8 * u + 50 * u, cw, 4 * u, 0, 1, tc );
+			Panel( x0, y - 8 * u, cw, 54 * u, dark, NULL, 0 );
+			Bar( x0, y - 8 * u + 50 * u, cw, 4 * u, 0, 1, tc );
 			Mix( light, tc, WHITE, 0.2f );
-			Text( FONT_LABEL, x + 26 * u, y - 8 * u + 36 * u, col ? "BLUE TEAM" : "RED TEAM", 24 * u, light, ALIGN_LEFT );
-			Text( FONT_NUM, x + cw - 24 * u, y - 8 * u + 42 * u, va( "%d", col ? cgs.scores2 : cgs.scores1 ), 44 * u, INK_HOT, ALIGN_RIGHT );
+			Text( FONT_LABEL, x0 + 26 * u, y - 8 * u + 36 * u, col ? "BLUE TEAM" : "RED TEAM", 24 * u, light, ALIGN_LEFT );
+			Text( FONT_LABEL, x0 + 26 * u + TextWidth( FONT_LABEL, col ? "BLUE TEAM" : "RED TEAM", 24 * u ) + 14 * u, y - 8 * u + 36 * u,
+				va( "%d PLAYERS", count[col] ), 13 * u, DIM, ALIGN_LEFT );
+			Text( FONT_NUM, x0 + cw - 24 * u, y - 8 * u + 42 * u, va( "%d", col ? cgs.scores2 : cgs.scores1 ), 44 * u, INK_HOT, ALIGN_RIGHT );
 			y += 64 * u;
 		}
-		ly = y + 4 * u;
 		Col( c, DIM, 0.8f );
-		Text( FONT_LABEL, x + 8 * u, ly, "#", 13 * u, c, ALIGN_LEFT );
-		Text( FONT_LABEL, x + 72 * u, ly, "PLAYER", 13 * u, c, ALIGN_LEFT );
-		Text( FONT_LABEL, x + cw * 0.67f, ly, "SCORE", 13 * u, c, ALIGN_CENTER );
-		Text( FONT_LABEL, x + cw * 0.81f, ly, "K / D", 13 * u, c, ALIGN_CENTER );
-		Text( FONT_LABEL, x + cw * 0.93f, ly, "PING", 13 * u, c, ALIGN_CENTER );
-		y = top;
-		place = 0;
-		for ( i = 0; i < cg.numScores; i++ ) {
-			if ( !InColumn( &cg.scores[i], teams, col ) ) {
+		for ( k = 0; k < sub; k++ ) {
+			const float x = x0 + k * ( sw + gap );
+			Text( FONT_LABEL, x + 22 * u, y + 4 * u, "#", 13 * u, c, ALIGN_CENTER );
+			Text( FONT_LABEL, x + 42 * u, y + 4 * u, "PLAYER", 13 * u, c, ALIGN_LEFT );
+			Text( FONT_LABEL, x + sw * 0.71f, y + 4 * u, "SCORE", 13 * u, c, ALIGN_CENTER );
+			Text( FONT_LABEL, x + sw * 0.83f, y + 4 * u, "K / D", 13 * u, c, ALIGN_CENTER );
+			Text( FONT_LABEL, x + sw * 0.94f, y + 4 * u, "PING", 13 * u, c, ALIGN_CENTER );
+		}
+		for ( i = 0; i < numEntries; i++ ) {
+			const int	client = entries[i].client;
+			float		x, ry;
+			if ( BoardColumn( client, teams ) != col ) {
 				continue;
 			}
-			if ( y + rh > py + ph - 40 * u ) {
-				break;
+			k = place / rowsPer;
+			x = x0 + k * ( sw + gap );
+			ry = top + ( place % rowsPer ) * pitch;
+			if ( k < sub && ry + rh <= py + ph - 40 * u ) {
+				boardRect_t *r = &boardMouse.rows[boardMouse.numRows++];
+				BoardRow( x, ry, sw, rh, client, entries[i].s, place );
+				r->x = x;
+				r->y = ry;
+				r->w = sw;
+				r->h = rh;
+				r->client = client;
+				drawn++;
 			}
-			BoardRow( x, y, cw, rh, &cg.scores[i], place++ );
-			y += rh + 6 * u;
+			place++;
 		}
 	}
 	// who's watching, under the players (Ozmium, 2026-10-31: the board left spectators out)
@@ -4299,9 +4950,28 @@ static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 			listW - label - 38 * u );
 	}
 	Col( c, DIM, 0.9f );
-	Text( FONT_LABEL, px + pw * 0.5f, py + ph - 26 * u, ps->pm_type == PM_INTERMISSION ? "FIRE  CONTINUE" : "RELEASE TAB TO PLAY", 14 * u, c, ALIGN_CENTER );
+	Text( FONT_LABEL, px + pw * 0.5f, py + ph - 26 * u, boardMouse.on ? ( ps->pm_type == PM_INTERMISSION
+		? "CLICK A PLAYER FOR THEIR CARD     RIGHT CLICK  BACK" : "CLICK A PLAYER FOR THEIR CARD     RIGHT CLICK  BACK TO PLAY" )
+		: ps->pm_type == PM_INTERMISSION ? "FIRE  CONTINUE     RIGHT CLICK  PLAYER CARDS" : "RIGHT CLICK  PLAYER CARDS     RELEASE TAB TO PLAY",
+		14 * u, c, ALIGN_CENTER );
 	Col( c, RED, 0.5f );
 	Rect( px, py + ph - 3 * u, pw, 3 * u, c );
+	{
+		char	layout[sizeof( boardMouse.layout )];
+		int		scored = 0;
+		for ( i = 0; i < numEntries; i++ ) {
+			scored += entries[i].s && BoardColumn( entries[i].client, teams ) >= 0;
+		}
+		Com_sprintf( layout, sizeof( layout ), "%d players (%d scored), %d rows drawn, %d column%s of %d, rows %d units",
+			count[0] + count[1], scored, drawn, cols * sub, cols * sub > 1 ? "s" : "", rowsPer, (int)( pitch / u + 0.5f ) );
+		if ( strcmp( layout, boardMouse.layout ) ) {
+			Q_strncpyz( boardMouse.layout, layout, sizeof( boardMouse.layout ) );
+			Com_Printf( "ozhud board: layout %s\n", layout );
+		}
+	}
+	if ( boardMouse.on ) {
+		BoardCursor();
+	}
 }
 
 // ================================================================ the results (results_screen.gd)
@@ -4315,9 +4985,6 @@ static struct {
 } xp;
 
 // ---------------------------------------------------------------- the record's names
-
-static const char *const weaponKeys[] = { "", "gauntlet", "machinegun", "shotgun", "grenade", "rocket", "lightning", "railgun", "plasma",
-	"bfg", "grapple" };
 
 // a frag's or a death's cause, by weapon, or what killed you without one (deaths_by's names for those)
 static const char *CauseKey( int mod ) {
@@ -4704,9 +5371,13 @@ static void DrawResults( float W, float H, const playerState_t *ps ) {
 	Text( FONT_LABEL, W * 0.5f, H * 0.94f, "TAB  SCOREBOARD", H * 0.022f, c, ALIGN_CENTER );
 }
 
-// +scores / -scores, which the game code takes: the board shows while it's held
+// +scores / -scores, which the game code takes: the board shows while it's held, and letting go takes
+// the board's mouse back
 void OzHud_ScoresKey( int down ) {
 	cg.showScores = down ? qtrue : qfalse;
+	if ( !down ) {
+		BoardMouseOff();
+	}
 }
 
 // an emoji's code put in the chat line at the cursor, ":name:"

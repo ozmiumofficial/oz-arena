@@ -17,6 +17,12 @@ engine build's own hub; the Godot repo isn't changed for it. Live on the Worker 
   player's signed report of a match they finished, on any server, the matches those reports make, careers and the
   boards (see "Match records" below). The level board counts only matches two or more Oz players' reports agree on: a
   career the game sends is self-reported and puts no one on a board.
+- **Seats and the scoreboard's cards (2026-11-01).** An Oz game in a match others can join sends `seat {server, serverid,
+  client, name}` (the server as its stats reports name it, the server's id for the map load, its client number and name
+  there; no server leaves it), kept on the socket. `roster {server, serverid}` answers the Oz players seated in the asker's
+  own match (nothing for a match it isn't seated in), each with the seat and the card, level and showcase stats their game
+  last sent. `player_stats {id}` answers a player's shared career (`Stats`), for someone seated with the asker, a friend
+  or the asker. `friend_add {id}` (no `code`) asks a player seated in the same match. Checks: `test/roster.mjs`.
 
 Friends, presence, parties and leaderboards for the remaster, on Cloudflare's free tier (PLAN.md "Multiplayer and online services").
 A Worker (`src/index.ts`) checks each player's signature and hands the WebSocket to one Durable Object, `Hub`
@@ -157,6 +163,10 @@ setting (Settings, Network) at any other hub.
 
 To ship a change: `npm run deploy`. If the protocol changed incompatibly, bump `PROTOCOL` in `src/index.ts` and
 `Q3OnlineClient.PROTOCOL` together.
+
+2026-11-01 (Ozmium): version `d7f0e66d` adds the seats, roster, `player_stats` and `friend_add` by id (the scoreboard's
+player cards) over `b8322b61`, deployed from `build/hub` after `tsc --noEmit` and `test/smoke.mjs`, `test/stats.mjs` and
+`test/roster.mjs` on a local copy; `wrangler rollback b8322b61` puts the one before back.
 
 Against a remote hub the smoke test only reads the leaderboards, so its test players never appear on the public
 boards. With `HUB_ADMIN_TOKEN` set it removes its three players when it's done; without it they stay in the database.

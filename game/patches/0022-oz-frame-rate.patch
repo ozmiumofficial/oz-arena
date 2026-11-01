@@ -1,7 +1,7 @@
 diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
 --- a/code/cgame/cg_local.h
 +++ b/code/cgame/cg_local.h
-@@ -507,6 +507,10 @@
+@@ -507,6 +507,10 @@ typedef struct {
  	int			predictedErrorTime;
  	vec3_t		predictedError;
  
@@ -15,7 +15,7 @@ diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
 diff --git a/code/cgame/cg_main.c b/code/cgame/cg_main.c
 --- a/code/cgame/cg_main.c
 +++ b/code/cgame/cg_main.c
-@@ -309,7 +309,7 @@
+@@ -309,7 +309,7 @@ static cvarTable_t cvarTable[] = {
  	{ &cg_smoothClients, "cg_smoothClients", "0", CVAR_USERINFO | CVAR_ARCHIVE},
  	{ &cg_cameraMode, "com_cameraMode", "0", CVAR_CHEAT},
  
@@ -27,12 +27,78 @@ diff --git a/code/cgame/cg_main.c b/code/cgame/cg_main.c
 diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
 --- a/code/cgame/cg_predict.c
 +++ b/code/cgame/cg_predict.c
-@@ -415,9 +415,17 @@
+@@ -253,6 +253,64 @@ static void CG_InterpolatePlayerState( qboolean grabAngles ) {
+ 
+ }
+ 
++/*
++=================
++CG_CheckPredictionError
++
++Oz: id's check from CG_PredictPlayerState, which ran it only before a command past the last frame's
++prediction: the prediction has come as far as the last frame's, and where it has the player now
++against where the last frame did is the error to ease out (cg_errorDecay) instead of jumping to.
++=================
++*/
++static void CG_CheckPredictionError( const playerState_t *oldPlayerState ) {
++	vec3_t	delta;
++	float	len;
++
++	if ( cg.thisFrameTeleport ) {
++		// a teleport will not cause an error decay
++		VectorClear( cg.predictedError );
++		if ( cg_showmiss.integer ) {
++			CG_Printf( "PredictionTeleport\n" );
++		}
++		cg.thisFrameTeleport = qfalse;
++	} else {
++		vec3_t adjusted, new_angles;
++		CG_AdjustPositionForMover( cg.predictedPlayerState.origin,
++		cg.predictedPlayerState.groundEntityNum, cg.physicsTime, cg.oldTime, adjusted, cg.predictedPlayerState.viewangles, new_angles);
++
++		if ( cg_showmiss.integer ) {
++			if (!VectorCompare( oldPlayerState->origin, adjusted )) {
++				CG_Printf("prediction error\n");
++			}
++		}
++		VectorSubtract( oldPlayerState->origin, adjusted, delta );
++		len = VectorLength( delta );
++		if ( len > 0.1 ) {
++			if ( cg_showmiss.integer ) {
++				CG_Printf("Prediction miss: %f\n", len);
++			}
++			if ( cg_errorDecay.integer ) {
++				int		t;
++				float	f;
++
++				t = cg.time - cg.predictedErrorTime;
++				f = ( cg_errorDecay.value - t ) / cg_errorDecay.value;
++				if ( f < 0 ) {
++					f = 0;
++				}
++				if ( f > 0 && cg_showmiss.integer ) {
++					CG_Printf("Double prediction decay: %f\n", f);
++				}
++				VectorScale( cg.predictedError, f, cg.predictedError );
++			} else {
++				VectorClear( cg.predictedError );
++			}
++			VectorAdd( delta, cg.predictedError, cg.predictedError );
++			cg.predictedErrorTime = cg.oldTime;
++		}
++	}
++}
++
+ /*
+ ===================
+ CG_TouchItem
+@@ -415,9 +473,18 @@ void CG_PredictPlayerState( void ) {
  	qboolean	moved;
  	usercmd_t	oldestCmd;
  	usercmd_t	latestCmd;
 +	playerState_t	stepFrom;
 +	vec3_t		stepBack;
++	qboolean	checked;
  
  	cg.hyperspace = qfalse;	// will be set if touching a trigger_teleport
  
@@ -45,25 +111,92 @@ diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
  	// if this is the first frame we must guarantee
  	// predictedPlayerState is valid even if there is some
  	// other error condition
-@@ -498,6 +506,8 @@
+@@ -498,6 +565,9 @@ void CG_PredictPlayerState( void ) {
  
  	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
  	cg_pmove.pmove_msec = pmove_msec.integer;
 +	stepFrom = cg.predictedPlayerState;
 +	cg_pmove.stepFrom = &stepFrom;
++	checked = qfalse;
  
  	// run cmds
  	moved = qfalse;
-@@ -592,14 +602,47 @@
+@@ -525,52 +595,8 @@ void CG_PredictPlayerState( void ) {
+ 		// to predict several commands to get to the point
+ 		// we want to compare
+ 		if ( cg.predictedPlayerState.commandTime == oldPlayerState.commandTime ) {
+-			vec3_t	delta;
+-			float	len;
+-
+-			if ( cg.thisFrameTeleport ) {
+-				// a teleport will not cause an error decay
+-				VectorClear( cg.predictedError );
+-				if ( cg_showmiss.integer ) {
+-					CG_Printf( "PredictionTeleport\n" );
+-				}
+-				cg.thisFrameTeleport = qfalse;
+-			} else {
+-				vec3_t adjusted, new_angles;
+-				CG_AdjustPositionForMover( cg.predictedPlayerState.origin, 
+-				cg.predictedPlayerState.groundEntityNum, cg.physicsTime, cg.oldTime, adjusted, cg.predictedPlayerState.viewangles, new_angles);
+-
+-				if ( cg_showmiss.integer ) {
+-					if (!VectorCompare( oldPlayerState.origin, adjusted )) {
+-						CG_Printf("prediction error\n");
+-					}
+-				}
+-				VectorSubtract( oldPlayerState.origin, adjusted, delta );
+-				len = VectorLength( delta );
+-				if ( len > 0.1 ) {
+-					if ( cg_showmiss.integer ) {
+-						CG_Printf("Prediction miss: %f\n", len);
+-					}
+-					if ( cg_errorDecay.integer ) {
+-						int		t;
+-						float	f;
+-
+-						t = cg.time - cg.predictedErrorTime;
+-						f = ( cg_errorDecay.value - t ) / cg_errorDecay.value;
+-						if ( f < 0 ) {
+-							f = 0;
+-						}
+-						if ( f > 0 && cg_showmiss.integer ) {
+-							CG_Printf("Double prediction decay: %f\n", f);
+-						}
+-						VectorScale( cg.predictedError, f, cg.predictedError );
+-					} else {
+-						VectorClear( cg.predictedError );
+-					}
+-					VectorAdd( delta, cg.predictedError, cg.predictedError );
+-					cg.predictedErrorTime = cg.oldTime;
+-				}
+-			}
++			CG_CheckPredictionError( &oldPlayerState );
++			checked = qtrue;
+ 		}
+ 
+ 		// don't predict gauntlet firing, which is only supposed to happen
+@@ -592,15 +618,53 @@ void CG_PredictPlayerState( void ) {
  		//CG_CheckChangedPredictableEvents(&cg.predictedPlayerState);
  	}
  
 +	cg_pmove.stepFrom = NULL;
 +
++	// Oz: the prediction error is checked also when no command went past the last frame's prediction.
++	// Under pmove_fixed the last frame's often ended the step this frame's ends too (7 frames in 8 at
++	// 1000 fps), as id's did when the client's clock held still: a correction there jumped in one
++	// frame, where at 125 fps it eased out
++	if ( !checked && cg.predictedPlayerState.commandTime == oldPlayerState.commandTime ) {
++		CG_CheckPredictionError( &oldPlayerState );
++	}
++
  	if ( cg_showmiss.integer > 1 ) {
  		CG_Printf( "[%i : %i] ", cg_pmove.cmd.serverTime, cg.time );
  	}
  
+-	if ( !moved ) {
+-		if ( cg_showmiss.integer ) {
+-			CG_Printf( "not moved\n" );
 +	// Oz: under pmove_fixed the player moves in whole steps of pmove_msec, the last one up to a step
 +	// ahead of the latest command; it's drawn where it is at that command's time, between the last
 +	// step's start and end, so the view moves every frame as it did without fixed steps. The step is
@@ -83,26 +216,25 @@ diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
 +		VectorSubtract( cg.ozStepFrom.origin, cg.ozStepTo.origin, stepBack );
 +		if ( cg.ozStepFrom.groundEntityNum != ENTITYNUM_NONE && cg.predictedPlayerState.groundEntityNum != ENTITYNUM_NONE ) {
 +			stepBack[2] = 0;
-+		}
+ 		}
+-		return;
 +		if ( VectorLength( stepBack ) > 64 ) {
 +			VectorClear( stepBack );
 +		}
 +		VectorScale( stepBack, f > 1 ? 1 : f, stepBack );
 +	}
 +
- 	if ( !moved ) {
- 		if ( cg_showmiss.integer ) {
- 			CG_Printf( "not moved\n" );
- 		}
-+		if ( !VectorCompare( stepBack, vec3_origin ) ) {
-+			VectorCopy( cg.predictedPlayerState.origin, cg.ozStepTrue );
-+			VectorAdd( cg.predictedPlayerState.origin, stepBack, cg.predictedPlayerState.origin );
-+			cg.ozStepShift = qtrue;
-+		}
- 		return;
++	// Oz: a frame that ran no command goes on like any other. id's returned here, and the next frame
++	// compared against what it set, so the news its snapshot brought (a hit's beep, the damage feedback,
++	// the pain sound) never showed, nor did the mover under the player move it. id's had such a frame
++	// when the client's clock held still; under pmove_fixed most are at high frame rates, the snapshot
++	// having run the latest command's step already
++	if ( !moved && cg_showmiss.integer ) {
++		CG_Printf( "not moved\n" );
  	}
  
-@@ -623,6 +666,12 @@
+ 	// adjust for the movement of the groundentity
+@@ -623,6 +687,12 @@ void CG_PredictPlayerState( void ) {
  			cg.eventSequence = cg.predictedPlayerState.eventSequence;
  		}
  	}
@@ -118,7 +250,7 @@ diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
 diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
 --- a/code/game/bg_pmove.c
 +++ b/code/game/bg_pmove.c
-@@ -2032,6 +2032,7 @@
+@@ -2032,6 +2032,7 @@ Can be called by either the server or the client
  */
  void Pmove (pmove_t *pmove) {
  	int			finalTime;
@@ -126,7 +258,7 @@ diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
  
  	finalTime = pmove->cmd.serverTime;
  
-@@ -2047,14 +2048,17 @@
+@@ -2047,14 +2048,17 @@ void Pmove (pmove_t *pmove) {
  
  	// chop the move up if it is too long, to prevent framerate
  	// dependent behavior
@@ -146,7 +278,7 @@ diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
  			}
  		}
  		else {
-@@ -2063,9 +2067,17 @@
+@@ -2063,9 +2067,17 @@ void Pmove (pmove_t *pmove) {
  			}
  		}
  		pmove->cmd.serverTime = pmove->ps->commandTime + msec;
@@ -168,7 +300,7 @@ diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
 diff --git a/code/game/bg_public.h b/code/game/bg_public.h
 --- a/code/game/bg_public.h
 +++ b/code/game/bg_public.h
-@@ -220,6 +220,8 @@
+@@ -220,6 +220,8 @@ typedef struct {
  	// these will be different functions during game and cgame
  	void		(*trace)( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask );
  	int			(*pointcontents)( const vec3_t point, int passEntityNum );
@@ -180,7 +312,7 @@ diff --git a/code/game/bg_public.h b/code/game/bg_public.h
 diff --git a/code/game/g_main.c b/code/game/g_main.c
 --- a/code/game/g_main.c
 +++ b/code/game/g_main.c
-@@ -177,7 +177,7 @@
+@@ -177,7 +177,7 @@ static cvarTable_t		gameCvarTable[] = {
  	{ &g_proxMineTimeout, "g_proxMineTimeout", "20000", 0, 0, qfalse },
  #endif
  	{ &g_smoothClients, "g_smoothClients", "1", 0, 0, qfalse},

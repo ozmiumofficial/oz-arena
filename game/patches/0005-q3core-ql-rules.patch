@@ -1,5 +1,4 @@
 diff --git a/code/game/bg_misc.c b/code/game/bg_misc.c
-index 4159409..5b31307 100644
 --- a/code/game/bg_misc.c
 +++ b/code/game/bg_misc.c
 @@ -1608,3 +1608,64 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
@@ -34,7 +33,7 @@ index 4159409..5b31307 100644
 +	const char	*s;
 +
 +	memset( rules, 0, sizeof( *rules ) );
-+	rules->ql = Q_stricmp( cvar( "g_ruleset" ), "classic" ) != 0;
++	rules->ql = Q_stricmp( cvar( "g_ruleset" ), "ql" ) == 0;	// anything else (unset too) is id 1.32
 +	for ( i = 0 ; i < bg_numQLPmoveCvars ; i++ ) {
 +		s = cvar( bg_qlPmoveCvars[i].name );
 +		rules->weaponReload[bg_qlPmoveCvars[i].weapon] = atoi( s[0] ? s : bg_qlPmoveCvars[i].ql );
@@ -68,7 +67,6 @@ index 4159409..5b31307 100644
 +	*up = radius * sin( DEG2RAD( angle ) );
 +}
 diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
-index 504aefe..1ede0bc 100644
 --- a/code/game/bg_pmove.c
 +++ b/code/game/bg_pmove.c
 @@ -1687,6 +1687,11 @@ static void PM_Weapon( void ) {
@@ -84,7 +82,6 @@ index 504aefe..1ede0bc 100644
  	if( bg_itemlist[pm->ps->stats[STAT_PERSISTANT_POWERUP]].giTag == PW_SCOUT ) {
  		addTime /= 1.5;
 diff --git a/code/game/bg_public.h b/code/game/bg_public.h
-index 7d203fb..820a29e 100644
 --- a/code/game/bg_public.h
 +++ b/code/game/bg_public.h
 @@ -161,6 +161,30 @@ typedef enum {
@@ -128,7 +125,6 @@ index 7d203fb..820a29e 100644
  	// these will be different functions during game and cgame
  	void		(*trace)( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask );
 diff --git a/code/game/g_active.c b/code/game/g_active.c
-index 8e37a70..89de65c 100644
 --- a/code/game/g_active.c
 +++ b/code/game/g_active.c
 @@ -930,6 +930,7 @@ void ClientThink_real( gentity_t *ent ) {
@@ -157,7 +153,6 @@ index 8e37a70..89de65c 100644
  				ClientRespawn( ent );
  				return;
 diff --git a/code/game/g_client.c b/code/game/g_client.c
-index c6a0e87..9d841b6 100644
 --- a/code/game/g_client.c
 +++ b/code/game/g_client.c
 @@ -1178,6 +1178,10 @@ void ClientSpawn(gentity_t *ent) {
@@ -172,7 +167,6 @@ index c6a0e87..9d841b6 100644
  	VectorCopy( spawn_origin, client->ps.origin );
  
 diff --git a/code/game/g_cmds.c b/code/game/g_cmds.c
-index 7ec0a68..125b6cc 100644
 --- a/code/game/g_cmds.c
 +++ b/code/game/g_cmds.c
 @@ -478,9 +478,16 @@ void Cmd_Kill_f( gentity_t *ent ) {
@@ -193,7 +187,6 @@ index 7ec0a68..125b6cc 100644
  
  /*
 diff --git a/code/game/g_combat.c b/code/game/g_combat.c
-index 6734eaa..70a9edb 100644
 --- a/code/game/g_combat.c
 +++ b/code/game/g_combat.c
 @@ -96,7 +96,8 @@ void TossClientItems( gentity_t *self ) {
@@ -271,7 +264,6 @@ index 6734eaa..70a9edb 100644
  
  	// add to the attacker's hit counter (if the target isn't a general entity like a prox mine)
 diff --git a/code/game/g_items.c b/code/game/g_items.c
-index 6cb31aa..bf2167a 100644
 --- a/code/game/g_items.c
 +++ b/code/game/g_items.c
 @@ -221,7 +221,7 @@ int Pickup_Ammo (gentity_t *ent, gentity_t *other)
@@ -303,7 +295,6 @@ index 6cb31aa..bf2167a 100644
  		ent->r.contents = 0;
  		ent->nextthink = level.time + respawn * 1000;
 diff --git a/code/game/g_local.h b/code/game/g_local.h
-index 8fddcbd..14f3774 100644
 --- a/code/game/g_local.h
 +++ b/code/game/g_local.h
 @@ -954,3 +954,18 @@ int		trap_GeneticParentsAndChildSelection(int numranks, float *ranks, int *paren
@@ -326,7 +317,6 @@ index 8fddcbd..14f3774 100644
 +void		G_QLMissile( gentity_t *bolt, int weapon, vec3_t dir, float speed );
 +void		G_QLSpawnLoadout( gentity_t *ent );
 diff --git a/code/game/g_main.c b/code/game/g_main.c
-index 5a156a7..497f72f 100644
 --- a/code/game/g_main.c
 +++ b/code/game/g_main.c
 @@ -358,6 +358,8 @@ void G_RegisterCvars( void ) {
@@ -348,7 +338,6 @@ index 5a156a7..497f72f 100644
  
  /*
 diff --git a/code/game/g_missile.c b/code/game/g_missile.c
-index 3a138b9..21a7308 100644
 --- a/code/game/g_missile.c
 +++ b/code/game/g_missile.c
 @@ -544,7 +544,7 @@ gentity_t *fire_plasma (gentity_t *self, vec3_t start, vec3_t dir) {
@@ -389,16 +378,16 @@ index 3a138b9..21a7308 100644
  
 diff --git a/code/game/g_ql.c b/code/game/g_ql.c
 new file mode 100644
-index 0000000..9e50780
 --- /dev/null
 +++ b/code/game/g_ql.c
-@@ -0,0 +1,329 @@
+@@ -0,0 +1,330 @@
 +/*
 +q3core: Quake Live's rules (QUAKE_LIVE_PLAN.md). Quake Live's game code is closed: these numbers were
 +read from its own cvar and item tables (tools/ql/ql_rules.json), under Quake Live's cvar names.
 +
-+g_ruleset "ql" (the default) plays them. "classic" plays id 1.32: every change is behind G_QL(), so
-+the 1.32 code paths run as they were.
++g_ruleset "ql" plays them. "classic", the default, plays id 1.32: every change is behind G_QL(), so the
++1.32 code paths run as they were. Oz plays vanilla Quake III's rules (Ozmium, 2026-10-31): Quake Live's
++knockback (a flat upward kick on every hit) made hits floaty.
 +*/
 +
 +#include "g_local.h"
@@ -474,7 +463,7 @@ index 0000000..9e50780
 +static qlCvar_t qlCvars[] = {
 +	// clients read it too (prediction, the shotgun pattern), so it travels in the systeminfo; latched,
 +	// so a change waits for the next map instead of switching rules mid-match
-+	{ &g_ruleset, "g_ruleset", "ql", CVAR_SERVERINFO | CVAR_SYSTEMINFO | CVAR_LATCH },
++	{ &g_ruleset, "g_ruleset", "classic", CVAR_SERVERINFO | CVAR_SYSTEMINFO | CVAR_LATCH },
 +
 +	{ &g_damage_g, "g_damage_g", "50", 0 },
 +	{ &g_damage_mg, "g_damage_mg", "5", 0 },
@@ -723,7 +712,6 @@ index 0000000..9e50780
 +	client->ps.stats[STAT_ARMOR] = g_startingArmor.integer;
 +}
 diff --git a/code/game/g_weapon.c b/code/game/g_weapon.c
-index d78afb0..abc0281 100644
 --- a/code/game/g_weapon.c
 +++ b/code/game/g_weapon.c
 @@ -115,7 +115,7 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {

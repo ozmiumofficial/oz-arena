@@ -1507,6 +1507,43 @@ void OzProgress_BotCard( const char *name, const char *model, int skill, ozCardL
 	cJSON_Delete( card );
 }
 
+void OzProgress_CardLook( const char *cardJson, int level, ozCardLook_t *out ) {
+	cJSON *card = cJSON_Parse( cardJson ? cardJson : "" );
+	Look( card, level, out );
+	cJSON_Delete( card );
+}
+
+int OzProgress_Showcase( const char *cardJson, const char *statsJson, char labels[][32], char values[][24], int max ) {
+	cJSON *card = cJSON_Parse( cardJson ? cardJson : "" ), *stats = cJSON_Parse( statsJson ? statsJson : "" );
+	const cJSON *id, *e;
+	int n = 0;
+	cJSON_ArrayForEach( id, Get( card, "stats" ) ) {
+		if ( n >= max || !cJSON_IsString( id ) ) {
+			continue;
+		}
+		cJSON_ArrayForEach( e, Get( Catalog(), "card_stats" ) ) {
+			if ( Str( e, "id" ) == id->valuestring ) {
+				Copy( labels[n], Str( e, "label" ).c_str(), 32 );
+				Copy( values[n], Str( stats, id->valuestring, "-" ).c_str(), 24 );
+				n++;
+				break;
+			}
+		}
+	}
+	cJSON_Delete( card );
+	cJSON_Delete( stats );
+	return n;
+}
+
+void OzProgress_LocalCareer( int *matches, int *wins, int *frags, int *deaths, int *seconds ) {
+	const cJSON *stats = Get( Profile(), "stats" );
+	*matches = (int)Stat( stats, "matches" );
+	*wins = (int)Stat( stats, "wins" );
+	*frags = (int)Stat( stats, "frags" );
+	*deaths = (int)Stat( stats, "deaths" );
+	*seconds = (int)Stat( stats, "playtime" );
+}
+
 int OzProgress_CampaignMatch( void ) {
 	char map[64];
 	int gametype = 0, seconds, warmup, score, local;

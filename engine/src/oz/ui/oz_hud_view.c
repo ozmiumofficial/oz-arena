@@ -680,7 +680,9 @@ void OzView_RenderScene( const refdef_t *fd ) {
 		numGunParts = 0;
 	}
 	if ( cl_ozProbe && cl_ozProbe->integer > 1 && !( fd->rdflags & RDF_NOWORLDMODEL ) ) {
-		Com_Printf( "ozview %d %.3f %.3f %.3f\n", fd->time, fd->vieworg[0], fd->vieworg[1], fd->vieworg[2] );
+		Com_Printf( "ozview %d %.3f %.3f %.3f %.3f %d %.3f %.3f\n", fd->time, fd->vieworg[0], fd->vieworg[1], fd->vieworg[2],
+			RAD2DEG( -asin( fd->viewaxis[0][2] ) ), cl.cmds[cl.cmdNumber & CMD_MASK].serverTime, Sys_Microseconds() / 1000.0,
+			RAD2DEG( atan2( fd->viewaxis[1][2], fd->viewaxis[2][2] ) ) );
 	}
 }
 
@@ -691,8 +693,9 @@ void OzView_RenderScene( const refdef_t *fd ) {
 OzView_ProbeSnapshot
 
 cl_ozProbe 1 (engine/tests/frame_rate_test.py): each new snapshot's player as the server moved it, a line
-"ozprobe <server time> <command time> <x> <y> <z> <xy speed> <z speed> <ground> <weapon> <ammo> <events>",
-the events the ones new since the last snapshot. 2 also prints each world view's place ("ozview").
+"ozprobe <server time> <command time> <x> <y> <z> <xy speed> <z speed> <ground> <weapon> <ammo> <events> <hits>
+<damage event>", the events the ones new since the last snapshot. 2 also prints each world view's place, a line
+"ozview <time> <x> <y> <z> <pitch> <latest command's time> <real ms> <roll>".
 =================
 */
 void OzView_ProbeSnapshot( void ) {
@@ -715,10 +718,10 @@ void OzView_ProbeSnapshot( void ) {
 		}
 	}
 	sequence = ps->eventSequence;
-	Com_Printf( "ozprobe %d %d %.3f %.3f %.3f %.2f %.2f %d %d %d %s\n", cl.snap.serverTime, ps->commandTime,
+	Com_Printf( "ozprobe %d %d %.3f %.3f %.3f %.2f %.2f %d %d %d %s %d %d\n", cl.snap.serverTime, ps->commandTime,
 		ps->origin[0], ps->origin[1], ps->origin[2], sqrt( ps->velocity[0] * ps->velocity[0] + ps->velocity[1] * ps->velocity[1] ),
 		ps->velocity[2], ps->groundEntityNum != ENTITYNUM_NONE, ps->weapon, ps->weapon > 0 && ps->weapon < MAX_WEAPONS ? ps->ammo[ps->weapon] : 0,
-		events[0] ? events : "-" );
+		events[0] ? events : "-", ps->persistant[PERS_HITS], ps->damageEvent );
 }
 
 // ================================================================ the ragdolls' push

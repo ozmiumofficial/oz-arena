@@ -752,7 +752,7 @@ static void CL_KeyDownEvent( int key, unsigned time )
 		VM_Call( cgvm, 2, CG_KEY_EVENT, key, qtrue );
 	} else if ( cls.state == CA_DISCONNECTED ) {
 		Console_Key( key );
-	} else {
+	} else if ( !OzHud_BoardKey( key ) ) {	// Oz: right click under Tab, then clicks, are the scoreboard's (P6)
 		// send the bound action
 		Key_ParseBinding( key, qtrue, time );
 	}

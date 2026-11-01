@@ -65,6 +65,11 @@ int		OzProgress_LevelFor( int xp, int *into, int *next );
 int		OzProgress_TotalXP( void );
 void	OzProgress_LocalCard( ozCardLook_t *out );
 void	OzProgress_BotCard( const char *name, const char *model, int skill, ozCardLook_t *out );
+// a card the hub keeps (its parts as JSON), as another Oz player's game sent it; its showcase stats with their labels
+void	OzProgress_CardLook( const char *cardJson, int level, ozCardLook_t *out );
+int		OzProgress_Showcase( const char *cardJson, const char *statsJson, char labels[][32], char values[][24], int max );
+// the local career's counts (profile.json's stats)
+void	OzProgress_LocalCareer( int *matches, int *wins, int *frags, int *deaths, int *seconds );
 
 // Once per match, at the intermission. 0: wait (a campaign match waits up to a second for the game's
 // postgame), 1: awarded into *out (and saved, unless `demo`).

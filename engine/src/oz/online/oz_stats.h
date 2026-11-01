@@ -33,6 +33,8 @@ void	OzStats_Init( void );
 void	OzStats_Record( const ozMatchRecord_t *r );
 void	OzStats_Online( void );		// the hub connection came up: the pending reports go again
 void	OzStats_Frame( void );		// while online: the pending reports go to the hub, one at a time
+void	OzStats_ServerOf( char *out, int size );	// the server as every player in the match names it: an address,
+													// ice:<host id>, or "local" (your own match)
 struct cJSON;
 void	OzStats_HubMessage( const char *type, const struct cJSON *m );
 

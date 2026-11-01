@@ -425,6 +425,9 @@ void CL_MouseEvent( int dx, int dy /*, int time*/ ) {
 		return;	// Oz: a native UI page follows the system cursor (CL_MouseAbsEvent)
 	}
 #endif
+	if ( OzHud_BoardMouse( dx, dy ) ) {
+		return;	// Oz: the scoreboard's cursor has the mouse (Tab + right click, P6)
+	}
 	if ( Key_GetCatcher() & KEYCATCH_UI ) {
 		mouseMenuBuffer[0] += m_menuSensitivity->value * dx;
 		mouseMenuBuffer[1] += m_menuSensitivity->value * dy;

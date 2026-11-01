@@ -1,5 +1,4 @@
 diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
-index 1ede0bc..a8effee 100644
 --- a/code/game/bg_pmove.c
 +++ b/code/game/bg_pmove.c
 @@ -350,6 +350,9 @@ static void PM_SetMovementDir( void ) {
@@ -24,7 +23,6 @@ index 1ede0bc..a8effee 100644
  		pm->cmd.upmove = 0;
  		return qfalse;
 diff --git a/code/game/bg_public.h b/code/game/bg_public.h
-index 820a29e..2811ddf 100644
 --- a/code/game/bg_public.h
 +++ b/code/game/bg_public.h
 @@ -767,3 +767,6 @@ qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTim
@@ -35,7 +33,6 @@ index 820a29e..2811ddf 100644
 +extern int	bg_autoHop;
 +
 diff --git a/code/game/g_active.c b/code/game/g_active.c
-index 89de65c..fbcccdb 100644
 --- a/code/game/g_active.c
 +++ b/code/game/g_active.c
 @@ -750,6 +750,26 @@ void SendPendingPredictableEvents( playerState_t *ps ) {
@@ -46,8 +43,8 @@ index 89de65c..fbcccdb 100644
 +==============
 +G_AutoHop
 +
-+q3core: Quake Live's pmove_AutoHop (on by default; off under Classic rules). In systeminfo, so clients
-+predict it as the server runs it.
++q3core: Quake Live's pmove_AutoHop, on by default under either ruleset (Oz keeps it with id's rules, Ozmium
++2026-11-01). In systeminfo, so clients predict it as the server runs it (Oz's cgame, game patch 0027).
 +==============
 +*/
 +static int G_AutoHop( void ) {
@@ -59,7 +56,7 @@ index 89de65c..fbcccdb 100644
 +		registered = 1;
 +	}
 +	trap_Cvar_Update( &autoHop );
-+	return G_QL() && autoHop.integer;
++	return autoHop.integer;
 +}
 +
  /*

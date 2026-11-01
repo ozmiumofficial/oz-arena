@@ -173,6 +173,11 @@ interface Tag {
   engine?: string;
   /** the player's public key (x-key, base64 SPKI DER), for the Oz engine's signed match reports */
   key?: string;
+  /** the match the Oz game plays in ("<server>|<serverid>", as its stats reports name it; seat), "" for none; its client
+   *  number and name there. Other Oz players seated in the same match see this player in their roster. */
+  seat?: string;
+  seatClient?: number;
+  seatName?: string;
   tokens: number;
   at: number;
   chat: number;
@@ -347,7 +352,15 @@ export class Hub extends DurableObject<Env> {
         return this.send(ws, { type: 'match_history', ...h, career: await this.sharedCareer(me) });
       }
       case 'friend_add':
+        // by id: a player seated in the same match (the scoreboard's Add friend); else by friend code
+        if (id && m.code === undefined) return this.friendAddSeated(ws, tag, id);
         return this.friendAdd(ws, me, String(m.code ?? ''));
+      case 'seat':
+        return this.seat(ws, tag, m);
+      case 'roster':
+        return this.roster(ws, tag, m);
+      case 'player_stats':
+        return this.playerStats(ws, tag, id);
       case 'friend_accept':
         return this.friendAccept(ws, me, id);
       case 'friend_decline':
@@ -630,6 +643,18 @@ export class Hub extends DurableObject<Env> {
     const them = this.one<Player>('SELECT * FROM players WHERE code = ?', code);
     if (!them) return this.notice(ws, `No player has the code ${code}.`, 'error');
     if (them.id === me) return this.notice(ws, "That's your own code.", 'error');
+    this.friendAsk(ws, me, them);
+  }
+
+  /** friend_add {id}: a player seated in the asker's match, from the scoreboard, without their code. */
+  private friendAddSeated(ws: WebSocket, tag: Tag, id: string) {
+    const them = this.player(id);
+    if (!them || id === tag.pid || !this.seated(tag.seat ?? '').some((s) => s.pid === id))
+      return this.notice(ws, "That player isn't in your match anymore.", 'warn');
+    this.friendAsk(ws, tag.pid, them);
+  }
+
+  private friendAsk(ws: WebSocket, me: string, them: Player) {
     if (this.areFriends(me, them.id)) return this.notice(ws, `${them.name} is already your friend.`, 'warn');
     // they asked first: adding them back accepts
     if (this.one('SELECT 1 AS x FROM requests WHERE src = ? AND dst = ?', them.id, me)) return this.friendAccept(ws, me, them.id);
@@ -659,6 +684,63 @@ export class Hub extends DurableObject<Env> {
 
   private areFriends(a: string, b: string) {
     return !!this.one('SELECT 1 AS x FROM friends WHERE a = ? AND b = ?', a, b);
+  }
+
+  // ------------------------------------------------------------------ seats: the Oz players in a match (the scoreboard's cards)
+
+  /**
+   * seat {server, serverid, client, name}: the match an Oz game plays in (oz_online_engine.c), its server as the stats reports
+   * name it (an address, ice:<host id>) with the server's id for the map load, and its client number and name there; no
+   * server leaves it. The engine's scoreboard asks who else is seated there (roster) for their cards and Add friend.
+   */
+  private seat(ws: WebSocket, tag: Tag, m: Msg) {
+    const server = clean(m.server, 64);
+    const client = Math.floor(Number(m.client));
+    const seated = !!server && client >= 0 && client < 64;
+    tag.seat = seated ? `${server}|${Math.floor(Number(m.serverid) || 0)}` : '';
+    tag.seatClient = seated ? client : -1;
+    tag.seatName = seated ? cleanName(m.name) : '';
+    ws.serializeAttachment(tag);
+  }
+
+  /** Who's seated in a match, once a player (their first socket there). */
+  private seated(key: string): { pid: string; client: number; name: string }[] {
+    const out = new Map<string, { pid: string; client: number; name: string }>();
+    if (!key) return [];
+    for (const s of this.ctx.getWebSockets()) {
+      const t = s.readyState === 1 ? (s.deserializeAttachment() as Tag | null) : null;
+      if (t && t.seat === key && !out.has(t.pid)) out.set(t.pid, { pid: t.pid, client: t.seatClient ?? -1, name: t.seatName ?? '' });
+    }
+    return [...out.values()];
+  }
+
+  /**
+   * roster {server, serverid}: the Oz players seated in the asker's own match, each with the seat's client number and name, and
+   * the card, level and showcase stats their game last sent (career). Nothing for a match the asker isn't seated in.
+   */
+  private roster(ws: WebSocket, tag: Tag, m: Msg) {
+    const server = clean(m.server, 64);
+    const serverid = Math.floor(Number(m.serverid) || 0);
+    const key = `${server}|${serverid}`;
+    const players = tag.seat !== key ? [] : this.seated(key).flatMap((s) => {
+      const r = this.one<{ name: string; level: number | null; card: string | null; stats: string | null }>(
+        'SELECT p.name, c.level, c.card, c.stats FROM players p LEFT JOIN careers c ON c.pid = p.id WHERE p.id = ?', s.pid);
+      return r ? [{ client: s.client, seat_name: s.name, id: s.pid, name: r.name, level: r.level ?? 1,
+        card: JSON.parse(r.card ?? '{}'), stats: JSON.parse(r.stats ?? '{}') }] : [];
+    });
+    this.send(ws, { type: 'roster', server, serverid, players });
+  }
+
+  /**
+   * player_stats {id}: a player's shared career (the matches that counted, as the boards count them) and level from it, for a
+   * scoreboard's player card: someone seated in the asker's match, a friend, or the asker.
+   */
+  private async playerStats(ws: WebSocket, tag: Tag, id: string) {
+    const p = this.player(id);
+    if (!p || (id !== tag.pid && !this.areFriends(tag.pid, id) && !this.seated(tag.seat ?? '').some((s) => s.pid === id))) {
+      return this.send(ws, { type: 'player_stats', id, error: 'unknown' });
+    }
+    this.send(ws, { type: 'player_stats', id, name: p.name, career: await this.sharedCareer(id) });
   }
 
   // ------------------------------------------------------------------ parties

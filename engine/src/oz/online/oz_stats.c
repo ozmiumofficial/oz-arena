@@ -160,6 +160,11 @@ static void ServerOf( char *out, int size ) {
 }
 
 
+void OzStats_ServerOf( char *out, int size ) {
+	ServerOf( out, size );
+}
+
+
 // g_gametype as the hub's modes name it (baseq3's numbering; a mod's own modes keep their number until
 // the per-mod parsers, ENGINE_PLAN.md PH step 4)
 static const char *ModeOf( int gametype ) {

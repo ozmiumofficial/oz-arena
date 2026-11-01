@@ -169,6 +169,305 @@ static void Profile( void ) {
 }
 
 
+/*
+==================
+The match's Oz players (the scoreboard's player cards, oz_hud.c)
+
+While the player is in a match on a server others can be on (not their own local one), the hub hears their
+seat: the server as the stats reports name it (OzStats_ServerOf), the server's id for the map load, their
+client number and name there. While the scoreboard is up the HUD wants the roster, the Oz players seated
+there with their cards (asked every few seconds); a card that opens asks for that player's career. Friend
+relations come from the hub's social snapshot.
+==================
+*/
+#define ROSTER_EVERY	5000		// ms between roster asks while the board is up
+#define CAREER_EVERY	60000		// ms before a career shown is asked again
+#define CAREER_RETRY	10000		// ms before an unanswered ask goes again
+#define CAREERS			16
+#define RELATIONS		512
+
+static struct {
+	char		sent[160];			// the seat the hub has: "<server>|<serverid>|<client>|<name>"
+	char		server[64];			// "" while not seated
+	int			serverid;
+	int			wanted;				// cls.realtime the board last wanted the roster
+	int			asked;				// cls.realtime it was last asked for, 0 not yet for this seat
+	char		signature[256];		// the last roster printed (clients and ids), to print changes only
+	int			numSeats;
+	struct { int client; char seatName[40]; ozSeat_t s; } seats[MAX_CLIENTS];
+} roster;
+
+static struct {
+	char		id[24];
+	int			asked, answered;	// cls.realtime, 0 not yet
+	ozCareer_t	c;
+} careers[CAREERS];
+
+static char		relIds[RELATIONS][24];
+static byte		relKinds[RELATIONS];
+static int		numRelations;
+static char		notice[256];
+static int		noticeAt = -1;
+
+
+static void Seat( qboolean force ) {
+	char key[sizeof( roster.sent )], server[64], name[40];
+	int serverid = 0, client = -1;
+	cJSON *m;
+
+	server[0] = name[0] = '\0';
+	if ( cls.state == CA_ACTIVE && cl.snap.valid && !clc.demoplaying ) {
+		OzStats_ServerOf( server, sizeof( server ) );
+		if ( !strcmp( server, "local" ) ) {
+			server[0] = '\0';		// the player's own match: no one else is there
+		} else {
+			serverid = cl.serverId;
+			client = clc.clientNum;
+			if ( client >= 0 && client < MAX_CLIENTS && cl.gameState.stringOffsets[CS_PLAYERS + client] ) {
+				Q_strncpyz( name, Info_ValueForKey( cl.gameState.stringData + cl.gameState.stringOffsets[CS_PLAYERS + client], "n" ),
+					sizeof( name ) );
+			}
+		}
+	}
+	Com_sprintf( key, sizeof( key ), "%s|%d|%d|%s", server, serverid, client, name );
+	if ( !force && !strcmp( key, roster.sent ) ) {
+		return;
+	}
+	if ( strcmp( server, roster.server ) || serverid != roster.serverid ) {
+		roster.numSeats = 0;		// another match: its own roster
+		roster.signature[0] = '\0';
+	}
+	Q_strncpyz( roster.sent, key, sizeof( roster.sent ) );
+	Q_strncpyz( roster.server, server, sizeof( roster.server ) );
+	roster.serverid = serverid;
+	roster.asked = 0;
+	m = cJSON_CreateObject();
+	cJSON_AddStringToObject( m, "type", "seat" );
+	cJSON_AddStringToObject( m, "server", server );
+	cJSON_AddNumberToObject( m, "serverid", serverid );
+	cJSON_AddNumberToObject( m, "client", client );
+	cJSON_AddStringToObject( m, "name", name );
+	SendJson( m );
+}
+
+
+static void RosterFrame( void ) {
+	cJSON *m;
+
+	if ( !roster.server[0] || cls.realtime - roster.wanted > 500 || ( roster.asked && cls.realtime - roster.asked < ROSTER_EVERY ) ) {
+		return;
+	}
+	roster.asked = cls.realtime ? cls.realtime : 1;
+	m = cJSON_CreateObject();
+	cJSON_AddStringToObject( m, "type", "roster" );
+	cJSON_AddStringToObject( m, "server", roster.server );
+	cJSON_AddNumberToObject( m, "serverid", roster.serverid );
+	SendJson( m );
+}
+
+
+static const char *JsonString( const cJSON *o, const char *key ) {
+	const cJSON *v = cJSON_GetObjectItemCaseSensitive( o, key );
+	return cJSON_IsString( v ) ? v->valuestring : "";
+}
+
+
+static int JsonInt( const cJSON *o, const char *key ) {
+	const cJSON *v = cJSON_GetObjectItemCaseSensitive( o, key );
+	return cJSON_IsNumber( v ) ? v->valueint : 0;
+}
+
+
+// a part of a message as JSON text (a card, its stats), "{}" when it doesn't fit
+static void JsonText( const cJSON *o, const char *key, char *out, int size ) {
+	char *text = cJSON_PrintUnformatted( cJSON_GetObjectItemCaseSensitive( o, key ) );
+	Q_strncpyz( out, text && (int)strlen( text ) < size ? text : "{}", size );
+	cJSON_free( text );
+}
+
+
+static void HandleRoster( const cJSON *m ) {
+	const cJSON *p, *players = cJSON_GetObjectItemCaseSensitive( m, "players" );
+	char signature[sizeof( roster.signature )];
+
+	if ( strcmp( JsonString( m, "server" ), roster.server ) || JsonInt( m, "serverid" ) != roster.serverid ) {
+		return;		// a match the player left
+	}
+	roster.numSeats = 0;
+	signature[0] = '\0';
+	cJSON_ArrayForEach( p, players ) {
+		const int client = JsonInt( p, "client" );
+		if ( client < 0 || client >= MAX_CLIENTS || roster.numSeats >= MAX_CLIENTS ) {
+			continue;
+		}
+		roster.seats[roster.numSeats].client = client;
+		Q_strncpyz( roster.seats[roster.numSeats].seatName, JsonString( p, "seat_name" ), sizeof( roster.seats[0].seatName ) );
+		{
+			ozSeat_t *s = &roster.seats[roster.numSeats].s;
+			Q_strncpyz( s->id, JsonString( p, "id" ), sizeof( s->id ) );
+			Q_strncpyz( s->name, JsonString( p, "name" ), sizeof( s->name ) );
+			s->level = JsonInt( p, "level" );
+			JsonText( p, "card", s->card, sizeof( s->card ) );
+			JsonText( p, "stats", s->stats, sizeof( s->stats ) );
+			Q_strcat( signature, sizeof( signature ), va( " %d:%s", client, s->id ) );
+		}
+		roster.numSeats++;
+	}
+	if ( strcmp( signature, roster.signature ) ) {
+		Q_strncpyz( roster.signature, signature, sizeof( roster.signature ) );
+		Com_Printf( "online: roster of %s|%d:%s\n", roster.server, roster.serverid, signature[0] ? signature : " no one" );
+	}
+}
+
+
+static void HandleCareer( const cJSON *m ) {
+	const char *id = JsonString( m, "id" );
+	const cJSON *c = cJSON_GetObjectItemCaseSensitive( m, "career" ), *w;
+	int i;
+
+	for ( i = 0; i < CAREERS && strcmp( careers[i].id, id ); i++ ) {
+	}
+	if ( i == CAREERS || !id[0] ) {
+		return;
+	}
+	memset( &careers[i].c, 0, sizeof( careers[i].c ) );
+	careers[i].answered = cls.realtime ? cls.realtime : 1;
+	if ( !cJSON_IsObject( c ) ) {
+		Com_Printf( "online: no career for %s\n", id );
+		return;
+	}
+	careers[i].c.known = 1;
+	careers[i].c.level = JsonInt( c, "level" );
+	careers[i].c.matches = JsonInt( c, "matches" );
+	careers[i].c.wins = JsonInt( c, "wins" );
+	careers[i].c.frags = JsonInt( c, "frags" );
+	careers[i].c.deaths = JsonInt( c, "deaths" );
+	careers[i].c.seconds = JsonInt( c, "seconds" );
+	w = cJSON_GetArrayItem( cJSON_GetObjectItemCaseSensitive( c, "weapons" ), 0 );	// the most frags first
+	if ( w && JsonInt( w, "frags" ) > 0 ) {
+		Q_strncpyz( careers[i].c.weapon, JsonString( w, "weapon" ), sizeof( careers[i].c.weapon ) );
+		careers[i].c.weaponFrags = JsonInt( w, "frags" );
+		careers[i].c.weaponShots = JsonInt( w, "shots" );
+		careers[i].c.weaponHits = JsonInt( w, "hits" );
+	}
+	Com_Printf( "online: career of %s: level %d, %d matches, %d wins, %d frags\n", id, careers[i].c.level, careers[i].c.matches,
+		careers[i].c.wins, careers[i].c.frags );
+}
+
+
+static void HandleRelations( const cJSON *m ) {
+	static const char *lists[3] = { "friends", "outgoing", "incoming" };
+	static const byte kinds[3] = { OZ_REL_FRIEND, OZ_REL_SENT, OZ_REL_ASKED };
+	const cJSON *p;
+	int i;
+
+	numRelations = 0;
+	for ( i = 0; i < 3; i++ ) {
+		cJSON_ArrayForEach( p, cJSON_GetObjectItemCaseSensitive( m, lists[i] ) ) {
+			if ( numRelations < RELATIONS ) {
+				Q_strncpyz( relIds[numRelations], JsonString( p, "id" ), sizeof( relIds[0] ) );
+				relKinds[numRelations++] = kinds[i];
+			}
+		}
+	}
+}
+
+
+int OzOnline_Online( void ) {
+	return started && OzOnline_Status( NULL, 0 ) == OZ_ONLINE_ONLINE;
+}
+
+
+void OzOnline_WantRoster( void ) {
+	roster.wanted = cls.realtime;
+}
+
+
+int OzOnline_Seated( int client, const char *name, ozSeat_t *out ) {
+	char want[64], seat[64];
+	int i;
+
+	Q_strncpyz( want, name, sizeof( want ) );
+	Q_CleanStr( want );
+	for ( i = 0; i < roster.numSeats; i++ ) {
+		if ( roster.seats[i].client != client ) {
+			continue;
+		}
+		Q_strncpyz( seat, roster.seats[i].seatName, sizeof( seat ) );
+		Q_CleanStr( seat );
+		if ( !Q_stricmp( seat, want ) && strcmp( roster.seats[i].s.id, OzIdentity_PlayerId() ) ) {
+			*out = roster.seats[i].s;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+int OzOnline_Career( const char *id, ozCareer_t *out ) {
+	int i, slot = 0;
+	cJSON *m;
+
+	if ( !id[0] ) {
+		return 0;
+	}
+	for ( i = 0; i < CAREERS; i++ ) {
+		if ( !strcmp( careers[i].id, id ) ) {
+			break;
+		}
+		if ( careers[i].asked < careers[slot].asked ) {
+			slot = i;		// the one asked longest ago makes room
+		}
+	}
+	if ( i == CAREERS ) {
+		i = slot;
+		memset( &careers[i], 0, sizeof( careers[i] ) );
+		Q_strncpyz( careers[i].id, id, sizeof( careers[i].id ) );
+	}
+	if ( !careers[i].asked || cls.realtime - careers[i].asked > ( careers[i].answered ? CAREER_EVERY : CAREER_RETRY ) ) {
+		if ( OzOnline_Online() ) {
+			careers[i].asked = cls.realtime ? cls.realtime : 1;
+			m = cJSON_CreateObject();
+			cJSON_AddStringToObject( m, "type", "player_stats" );
+			cJSON_AddStringToObject( m, "id", id );
+			SendJson( m );
+		}
+	}
+	if ( careers[i].answered ) {
+		*out = careers[i].c;
+		return 1;
+	}
+	return 0;
+}
+
+
+int OzOnline_Relation( const char *id ) {
+	int i;
+
+	for ( i = 0; i < numRelations; i++ ) {
+		if ( !strcmp( relIds[i], id ) ) {
+			return relKinds[i];
+		}
+	}
+	return OZ_REL_NONE;
+}
+
+
+void OzOnline_AddFriend( const char *id ) {
+	cJSON *m = cJSON_CreateObject();
+
+	cJSON_AddStringToObject( m, "type", OzOnline_Relation( id ) == OZ_REL_ASKED ? "friend_accept" : "friend_add" );
+	cJSON_AddStringToObject( m, "id", id );
+	SendJson( m );
+}
+
+
+int OzOnline_Notice( char *out, int size ) {
+	Q_strncpyz( out, notice, size );
+	return noticeAt < 0 ? -1 : cls.realtime - noticeAt;
+}
+
+
 static void Handle( const char *text ) {
 	cJSON *m = cJSON_Parse( text );
 	const cJSON *type;
@@ -178,9 +477,15 @@ static void Handle( const char *text ) {
 	}
 	type = cJSON_GetObjectItemCaseSensitive( m, "type" );
 	if ( cJSON_IsString( type ) ) {
+		if ( !strcmp( type->valuestring, "roster" ) ) {
+			HandleRoster( m );
+		} else if ( !strcmp( type->valuestring, "player_stats" ) ) {
+			HandleCareer( m );
+		}
 		if ( !strcmp( type->valuestring, "social" ) ) {
 			const cJSON *me = cJSON_GetObjectItemCaseSensitive( m, "me" );
 			const cJSON *code = me ? cJSON_GetObjectItemCaseSensitive( me, "code" ) : NULL;
+			HandleRelations( m );
 			if ( cJSON_IsString( code ) ) {
 				Q_strncpyz( friendCode, code->valuestring, sizeof( friendCode ) );
 			}
@@ -202,6 +507,8 @@ static void Handle( const char *text ) {
 			const cJSON *t = cJSON_GetObjectItemCaseSensitive( m, "text" );
 			if ( cJSON_IsString( t ) ) {
 				Com_Printf( "online: %s\n", t->valuestring );
+				Q_strncpyz( notice, t->valuestring, sizeof( notice ) );	// the scoreboard's card shows it a moment
+				noticeAt = cls.realtime;
 			}
 		} else if ( !strcmp( type->valuestring, "party_chat" ) ) {
 			const cJSON *from = cJSON_GetObjectItemCaseSensitive( m, "from" ), *t = cJSON_GetObjectItemCaseSensitive( m, "text" );
@@ -266,6 +573,7 @@ void CL_OzOnlineFrame( void ) {
 		if ( status == OZ_ONLINE_ONLINE ) {
 			Com_Printf( "online: connected to %s as %s\n", Server(), OzIdentity_PlayerId() );
 			Presence( qtrue );
+			Seat( qtrue );	// a new connection has no seat
 			Profile();		// the name may have changed while offline
 			OzStats_Online();
 #ifdef USE_OZ_UI
@@ -288,6 +596,8 @@ void CL_OzOnlineFrame( void ) {
 		Handle( msgBuf );
 	}
 	Presence( qfalse );
+	Seat( qfalse );
+	RosterFrame();
 	OzStats_Frame();		// the finished matches' reports (P8b)
 #ifdef USE_OZ_UI
 	// the career (XP, the card others see, its showcase stats) for the level board, as online.gd's career_changed sends it

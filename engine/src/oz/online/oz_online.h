@@ -40,6 +40,33 @@ int			OzOnline_Rtt( void );						// the last ping's round trip, ms
 int			OzOnline_Send( const char *json );			// a message (a JSON object with "type"); 0 when not online
 int			OzOnline_Receive( char *buf, int size );	// the next message from the hub, 0 when none
 
+// The Oz players in the match being played, as the hub knows them (oz_online_engine.c: the game tells the hub
+// its seat, the scoreboard asks for the roster): the scoreboard's player cards (oz_hud.c), their careers, Add friend.
+typedef struct {
+	char	id[24];			// the hub's player id
+	char	name[40];		// the hub's name for them
+	int		level;			// their card's level, as their game sent it
+	char	card[1024];		// the card's parts, as the hub keeps them (JSON)
+	char	stats[512];		// its showcase stats' values (JSON)
+} ozSeat_t;
+
+typedef struct {
+	int		known;			// 0: the hub has no career for them
+	int		level, matches, wins, frags, deaths, seconds;	// the shared career: the matches that counted
+	char	weapon[16];		// the weapon with the most frags, "" with none
+	int		weaponFrags, weaponShots, weaponHits;
+} ozCareer_t;
+
+enum { OZ_REL_NONE, OZ_REL_FRIEND, OZ_REL_SENT, OZ_REL_ASKED };	// SENT: your request, ASKED: theirs
+
+int			OzOnline_Online( void );					// 1: connected to the hub
+void		OzOnline_WantRoster( void );				// the scoreboard is up: who's who, asked now and then
+int			OzOnline_Seated( int client, const char *name, ozSeat_t *out );	// 1: an Oz player sits there (their name there)
+int			OzOnline_Career( const char *id, ozCareer_t *out );	// 1: the hub's answer is in; asked for when it isn't
+int			OzOnline_Relation( const char *id );		// OZ_REL_*
+void		OzOnline_AddFriend( const char *id );		// a friend request, or yes to theirs
+int			OzOnline_Notice( char *out, int size );		// the hub's last notice, and how long ago in ms (-1: none)
+
 #ifdef __cplusplus
 }
 #endif

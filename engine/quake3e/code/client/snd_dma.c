@@ -86,6 +86,7 @@ static sfx_t *sfxHash[LOOP_HASH];
 cvar_t		*s_testsound;
 cvar_t		*s_khz;
 cvar_t		*s_show;
+static cvar_t	*s_showTwice;	// Oz: S_OzShowTwice
 static cvar_t *s_mixahead;
 static cvar_t *s_mixOffset;
 #if defined(__linux__) && !defined(USE_SDL)
@@ -449,6 +450,37 @@ static void S_SpatializeOrigin( const vec3_t origin, int master_vol, int *left_v
 
 /*
 ====================
+S_OzShowTwice
+
+Oz: s_showTwice 1 prints a sound an entity starts again within 300 ms (not a cheat, so a player can
+turn it on in an online match): the player's own predicted sounds should start once.
+====================
+*/
+static void S_OzShowTwice( const sfx_t *sfx, sfxHandle_t sfxHandle, int entityNum, int entchannel ) {
+	static struct { sfxHandle_t sfx; int ent, ms; } last[64];
+	static int next;
+	const int now = Sys_Milliseconds();
+	int i;
+
+	if ( Q_stristr( sfx->soundName, "/footsteps/" ) ) {
+		return;		// a running player's steps come about 300 ms apart, the same one now and then
+	}
+	for ( i = 0; i < ARRAY_LEN( last ); i++ ) {
+		if ( last[i].sfx == sfxHandle && last[i].ent == entityNum && last[i].ms && now - last[i].ms < 300 ) {
+			Com_Printf( "sound twice: %s ent %i%s ch %i, %i ms after the last (cl %i)\n", sfx->soundName, entityNum,
+				cls.state == CA_ACTIVE && entityNum == cl.snap.ps.clientNum ? " (you)" : "", entchannel, now - last[i].ms, cl.serverTime );
+			break;
+		}
+	}
+	last[next].sfx = sfxHandle;
+	last[next].ent = entityNum;
+	last[next].ms = now;
+	next = ( next + 1 ) % ARRAY_LEN( last );
+}
+
+
+/*
+====================
 S_Base_StartSound
 
 Validates the parms and ques the sound up
@@ -484,6 +516,9 @@ static void S_Base_StartSound( const vec3_t origin, int entityNum, int entchanne
 	if ( s_show->integer == 1 ) {
 		// Oz: and who started it, on which channel, when (a sound started twice shows as two lines)
 		Com_Printf( "%i : %s ent %i ch %i at %i\n", s_paintedtime, sfx->soundName, entityNum, entchannel, Sys_Milliseconds() );
+	}
+	if ( s_showTwice->integer ) {
+		S_OzShowTwice( sfx, sfxHandle, entityNum, entchannel );	// Oz
 	}
 
 	startTime = s_soundtime; // Com_Milliseconds();
@@ -1539,6 +1574,8 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 
 	s_show = Cvar_Get( "s_show", "0", CVAR_CHEAT );
 	Cvar_SetDescription( s_show, "Debugging output (used sound files)." );
+	s_showTwice = Cvar_Get( "s_showTwice", "0", 0 );	// Oz
+	Cvar_SetDescription( s_showTwice, "Prints a sound an entity starts again within 300 ms." );
 	s_testsound = Cvar_Get( "s_testsound", "0", CVAR_CHEAT );
 	Cvar_SetDescription( s_testsound, "Debugging tool that plays a simple sine wave tone to test the sound system." );
 #if defined(__linux__) && !defined(USE_SDL)

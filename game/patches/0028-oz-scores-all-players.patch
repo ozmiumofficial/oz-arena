@@ -1,0 +1,201 @@
+Oz: every player on the board, up to 64. A server command holds 1022 characters, about 25 players of
+id's "scores", and id's game cut the list there (ioquake3's at 1000 characters). Oz's game sends the rest
+first as "scoresmore <first> <count> ...", then "scores" with the first part as id's game sends it; the cgame
+keeps the parts until "scores" comes and puts them together, as the engine's HUD does. The game's memory pool
+held about 26 bots (a bot's state is 8.8 KB of its 256 KB): it holds 1 MB, so 63 bots fill a 64-player server.
+
+diff --git a/code/game/g_cmds.c b/code/game/g_cmds.c
+--- a/code/game/g_cmds.c
++++ b/code/game/g_cmds.c
+@@ -30,12 +30,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ ==================
+ DeathmatchScoreboardMessage
+ 
++Oz: every connected player, up to 64, in as many commands as they take (a server command holds 1022
++characters, about 25 players): "scores" carries the first part as id's game sends it, so any cgame reads
++it, and "scoresmore <first> <count>" each further part, sent ahead of it (cg_servercmds.c CG_ParseScores
++and the engine's HUD put them together when "scores" comes)
+ ==================
+ */
++#define OZ_SCORE_PARTS	8
++#define OZ_SCORE_PART	990		// with "scores 64 -9999 -9999" or "scoresmore 64 64" in front, under 1022
++
+ void DeathmatchScoreboardMessage( gentity_t *ent ) {
+ 	char		entry[1024];
+-	char		string[1000];
+-	int			stringlength;
++	static char	parts[OZ_SCORE_PARTS][OZ_SCORE_PART + 1];
++	int			partLength[OZ_SCORE_PARTS], partFirst[OZ_SCORE_PARTS], partCount[OZ_SCORE_PARTS];
++	int			numParts;
+ 	int			i, j;
+ 	gclient_t	*cl;
+ 	int			numSorted, scoreFlags, accuracy, perfect;
+@@ -46,8 +54,9 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
+ 	}
+ 
+ 	// send the latest information on all clients
+-	string[0] = 0;
+-	stringlength = 0;
++	parts[0][0] = 0;
++	partLength[0] = partFirst[0] = partCount[0] = 0;
++	numParts = 1;
+ 	scoreFlags = 0;
+ 
+ 	numSorted = level.numConnectedClients;
+@@ -83,15 +92,26 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
+ 			perfect,
+ 			cl->ps.persistant[PERS_CAPTURES]);
+ 		j = strlen(entry);
+-		if (stringlength + j >= sizeof(string))
+-			break;
+-		strcpy (string + stringlength, entry);
+-		stringlength += j;
++		if ( partLength[numParts - 1] + j > OZ_SCORE_PART ) {
++			if ( numParts == OZ_SCORE_PARTS ) {
++				break;
++			}
++			parts[numParts][0] = 0;
++			partLength[numParts] = partCount[numParts] = 0;
++			partFirst[numParts] = i;
++			numParts++;
++		}
++		strcpy( parts[numParts - 1] + partLength[numParts - 1], entry );
++		partLength[numParts - 1] += j;
++		partCount[numParts - 1]++;
+ 	}
+ 
+-	trap_SendServerCommand( ent-g_entities, va("scores %i %i %i%s", i, 
++	for ( j = 1; j < numParts; j++ ) {
++		trap_SendServerCommand( ent-g_entities, va( "scoresmore %i %i%s", partFirst[j], partCount[j], parts[j] ) );
++	}
++	trap_SendServerCommand( ent-g_entities, va("scores %i %i %i%s", partCount[0],
+ 		level.teamScores[TEAM_RED], level.teamScores[TEAM_BLUE],
+-		string ) );
++		parts[0] ) );
+ }
+ 
+ 
+diff --git a/code/cgame/cg_servercmds.c b/code/cgame/cg_servercmds.c
+--- a/code/cgame/cg_servercmds.c
++++ b/code/cgame/cg_servercmds.c
+@@ -62,8 +62,54 @@ static int CG_ValidOrder(const char *p) {
+ =================
+ CG_ParseScores
+ 
++Oz: with more players than one command holds, Oz's game sends the rest first as "scoresmore <first>
++<count> ..." (g_cmds.c DeathmatchScoreboardMessage), kept here until "scores" comes
+ =================
+ */
++static score_t	ozMoreScores[MAX_CLIENTS];
++static int		ozMorePowerups[MAX_CLIENTS];
++static int		ozMoreFrom, ozMoreTo;		// the places kept, [from, to)
++
++static void CG_OzParseScore( int arg, score_t *s, int *powerups ) {
++	memset( s, 0, sizeof( *s ) );
++	s->client = atoi( CG_Argv( arg ) );
++	s->score = atoi( CG_Argv( arg + 1 ) );
++	s->ping = atoi( CG_Argv( arg + 2 ) );
++	s->time = atoi( CG_Argv( arg + 3 ) );
++	s->scoreFlags = atoi( CG_Argv( arg + 4 ) );
++	*powerups = atoi( CG_Argv( arg + 5 ) );
++	s->accuracy = atoi( CG_Argv( arg + 6 ) );
++	s->impressiveCount = atoi( CG_Argv( arg + 7 ) );
++	s->excellentCount = atoi( CG_Argv( arg + 8 ) );
++	s->guantletCount = atoi( CG_Argv( arg + 9 ) );
++	s->defendCount = atoi( CG_Argv( arg + 10 ) );
++	s->assistCount = atoi( CG_Argv( arg + 11 ) );
++	s->perfect = atoi( CG_Argv( arg + 12 ) );
++	s->captures = atoi( CG_Argv( arg + 13 ) );
++	if ( s->client < 0 || s->client >= MAX_CLIENTS ) {
++		s->client = 0;
++	}
++}
++
++static void CG_OzParseMoreScores( void ) {
++	const int	first = atoi( CG_Argv( 1 ) );
++	int			n = atoi( CG_Argv( 2 ) ), i;
++
++	if ( first <= 0 || first >= MAX_CLIENTS || n < 0 ) {
++		return;
++	}
++	if ( first != ozMoreTo || ozMoreTo == 0 ) {
++		ozMoreFrom = ozMoreTo = first;		// the first part of a new list
++	}
++	if ( first + n > MAX_CLIENTS ) {
++		n = MAX_CLIENTS - first;
++	}
++	for ( i = 0; i < n; i++ ) {
++		CG_OzParseScore( i * 14 + 3, &ozMoreScores[first + i], &ozMorePowerups[first + i] );
++	}
++	ozMoreTo = first + n;
++}
++
+ static void CG_ParseScores( void ) {
+ 	int		i, powerups;
+ 
+@@ -76,31 +122,22 @@ static void CG_ParseScores( void ) {
+ 	cg.teamScores[1] = atoi( CG_Argv( 3 ) );
+ 
+ 	memset( cg.scores, 0, sizeof( cg.scores ) );
+-	for ( i = 0 ; i < cg.numScores ; i++ ) {
+-		//
+-		cg.scores[i].client = atoi( CG_Argv( i * 14 + 4 ) );
+-		cg.scores[i].score = atoi( CG_Argv( i * 14 + 5 ) );
+-		cg.scores[i].ping = atoi( CG_Argv( i * 14 + 6 ) );
+-		cg.scores[i].time = atoi( CG_Argv( i * 14 + 7 ) );
+-		cg.scores[i].scoreFlags = atoi( CG_Argv( i * 14 + 8 ) );
+-		powerups = atoi( CG_Argv( i * 14 + 9 ) );
+-		cg.scores[i].accuracy = atoi(CG_Argv(i * 14 + 10));
+-		cg.scores[i].impressiveCount = atoi(CG_Argv(i * 14 + 11));
+-		cg.scores[i].excellentCount = atoi(CG_Argv(i * 14 + 12));
+-		cg.scores[i].guantletCount = atoi(CG_Argv(i * 14 + 13));
+-		cg.scores[i].defendCount = atoi(CG_Argv(i * 14 + 14));
+-		cg.scores[i].assistCount = atoi(CG_Argv(i * 14 + 15));
+-		cg.scores[i].perfect = atoi(CG_Argv(i * 14 + 16));
+-		cg.scores[i].captures = atoi(CG_Argv(i * 14 + 17));
+-
+-		if ( cg.scores[i].client < 0 || cg.scores[i].client >= MAX_CLIENTS ) {
+-			cg.scores[i].client = 0;
++	for ( i = 0 ; i < MAX_CLIENTS ; i++ ) {
++		if ( i < cg.numScores ) {
++			CG_OzParseScore( i * 14 + 4, &cg.scores[i], &powerups );
++		} else if ( i >= ozMoreFrom && i < ozMoreTo && ozMoreFrom == cg.numScores ) {
++			cg.scores[i] = ozMoreScores[i];		// the rest, sent ahead
++			powerups = ozMorePowerups[i];
++		} else {
++			break;
+ 		}
+ 		cgs.clientinfo[ cg.scores[i].client ].score = cg.scores[i].score;
+ 		cgs.clientinfo[ cg.scores[i].client ].powerups = powerups;
+ 
+ 		cg.scores[i].team = cgs.clientinfo[cg.scores[i].client].team;
+ 	}
++	cg.numScores = i;
++	ozMoreFrom = ozMoreTo = 0;
+ #ifdef MISSIONPACK
+ 	CG_SetScoreSelection(NULL);
+ #endif
+@@ -1094,6 +1131,11 @@ static void CG_ServerCommand( void ) {
+ 		return;
+ 	}
+ 
++	if ( !strcmp( cmd, "scoresmore" ) ) {	// Oz: the players past the first command's (g_cmds.c)
++		CG_OzParseMoreScores();
++		return;
++	}
++
+ 	if ( !strcmp( cmd, "tinfo" ) ) {
+ 		CG_ParseTeamInfo();
+ 		return;
+diff --git a/code/game/g_mem.c b/code/game/g_mem.c
+--- a/code/game/g_mem.c
++++ b/code/game/g_mem.c
+@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ #include "g_local.h"
+ 
+ 
+-#define POOLSIZE	(256 * 1024)
++#define POOLSIZE	(1024 * 1024)	// Oz: was 256 KB, which held about 26 bots (a bot_state_t is 8.8 KB): 63 need 560 KB
+ 
+ static char		memoryPool[POOLSIZE];
+ static int		allocPoint;

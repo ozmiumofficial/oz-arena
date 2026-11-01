@@ -11,6 +11,8 @@ void	OzHud_Reset( void );						// CL_InitCGame: a new map or server
 int		OzHud_ServerCommand( const char *text );	// every reliable command as it arrives (it tokenizes); 1: only the HUD reads it
 void	OzHud_RenderScene( const refdef_t *fd );	// every scene cgame renders (the world view is kept)
 void	OzHud_ScoresKey( int down );				// +scores / -scores
+int		OzHud_BoardMouse( int dx, int dy );			// the mouse moved: 1 while the board's cursor has it
+int		OzHud_BoardKey( int key );					// a key about to run its binding: 1 when it's the board's (right click under Tab, its clicks)
 void	OzHud_NoteSound( int sfx, const char *name );	// the game code registered a sound
 int		OzHud_LocalSound( int sfx );				// the game code plays a local sound (0: don't)
 void	OzHud_NoteModel( int model, const char *name );	// the game code registered a model

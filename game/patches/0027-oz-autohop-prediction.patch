@@ -1,0 +1,21 @@
+Oz: the cgame predicts the server's auto hop. A server running pmove_AutoHop (game patch 0008; on by
+default under id's rules too, Ozmium 2026-11-01) jumps again as a held jump lands; Oz's cgame never set
+bg_autoHop, so it predicted no hop where the server hopped, and every held jump was a prediction miss at
+its landing. It reads pmove_AutoHop from the server's systeminfo string: a server without it (id's game)
+doesn't hop, and neither does the prediction. Not a cvar of the cgame's: on a listen server the cgame's
+registration, with its own default, reset the server's, and no one hopped.
+
+diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
+--- a/code/cgame/cg_predict.c
++++ b/code/cgame/cg_predict.c
+@@ -547,6 +547,10 @@ void CG_PredictPlayerState( void ) {
+ 		cg_pmove.tracemask &= ~CONTENTS_BODY;	// spectators can fly through bodies
+ 	}
+ 	cg_pmove.noFootsteps = ( cgs.dmflags & DF_NO_FOOTSTEPS ) > 0;
++	// Oz: hop as the server does (g_active.c G_AutoHop puts pmove_AutoHop in its systeminfo; id's game hasn't
++	// one and doesn't hop), or every held jump mispredicts. Read from the configstring, not a cvar of the
++	// cgame's: on a listen server that registration reset the server's own
++	bg_autoHop = atoi( Info_ValueForKey( CG_ConfigString( CS_SYSTEMINFO ), "pmove_AutoHop" ) );
+ 
+ 	// save the state before the pmove so we can detect transitions
+ 	oldPlayerState = cg.predictedPlayerState;

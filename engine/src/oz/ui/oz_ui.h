@@ -50,12 +50,15 @@ typedef struct {
 #define OZ_HUD_ALIGN_RIGHT		2
 #define OZ_HUD_TEXT_NOCODES		4	// "^" is just a character
 #define OZ_HUD_TEXT_MEASURE		8	// only the width
+#define OZ_HUD_TEXT_STEPPED		16	// a size that drifts from frame to frame: drawn from the nearest of a few
 
 int		OzUI_HudAvailable( void );		// the renderer draws the UI
 int		OzUI_HudImage( const char *name );	// a handle, 0 for none
 void	OzUI_HudTris( const ozHudVertex_t *verts, int numVerts, int image );	// a triangle list
-float	OzUI_HudText( const char *text, float x, float y, int font, float size, int flags, const float *rgba,
-			float outline, float maxWidth );	// y is the baseline; returns the width
+// y is the baseline; returns the width. Laid out at size, drawn scale times as large about (x, y): a pop
+// is a scale, so a text whose size animates keeps its face
+float	OzUI_HudText( const char *text, float x, float y, int font, float size, float scale, int flags,
+			const float *rgba, float outline, float maxWidth );
 int		OzUI_EmojiFont( void );			// the UI's fonts draw emoji (Windows' Segoe UI Emoji, oz_emoji.c)
 
 // oz_hud.c, for the crosshair editor (oz_ui_crosshair.cpp): the weapon tab the match behind shows (each

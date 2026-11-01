@@ -105,6 +105,7 @@ netadr_t			rcon_address;
 
 char				cl_oldGame[ MAX_QPATH ];
 qboolean			cl_oldGameSet;
+char				cl_ozReturnGame[ MAX_QPATH ];	// Oz: the mod a match oz_playmod started comes back to (cl_parse.c)
 static	qboolean	noGameRestart = qfalse;
 
 // Oz: before connecting, ask the server which mod it runs and switch to it in place
@@ -1348,6 +1349,38 @@ static void CL_UpdateGUID( const char *prefix, int prefix_len )
 
 /*
 =====================
+CL_OzPlayMod_f
+
+Oz: oz_playmod <mod>: a match the menus start under another mod (Skirmish's CPMA and Defrag) switches
+to it now, in place, and comes back to this mod when it ends. What's queued after it (the match's map)
+runs under the new mod. The way back is armed at the match's gamestate (cl_parse.c): the map load's own
+disconnect would take it back at once, as for a demo's switch.
+=====================
+*/
+static void CL_OzPlayMod_f( void ) {
+	const char *game = Cmd_Argv( 1 );
+	char previous[ MAX_QPATH ];
+
+	if ( Cmd_Argc() != 2 || FS_InvalidGameDir( game ) ) {
+		Com_Printf( "usage: oz_playmod <mod>\n" );
+		return;
+	}
+	if ( !Q_stricmp( game, BASEGAME ) ) {
+		game = DEFAULT_GAME;
+	}
+	Q_strncpyz( previous, Cvar_VariableString( "fs_game" ), sizeof( previous ) );
+	if ( !Q_stricmp( game, previous ) ) {
+		return;
+	}
+	Com_Printf( "Playing under %s, back to %s after\n", game, previous );
+	Cvar_Set( "fs_game", game );
+	Com_GameRestart( 0, qtrue );
+	Q_strncpyz( cl_ozReturnGame, previous, sizeof( cl_ozReturnGame ) );
+}
+
+
+/*
+=====================
 CL_ResetOldGame
 =====================
 */
@@ -2440,6 +2473,106 @@ void CL_NextDownload( void )
 
 /*
 =================
+CL_MapName
+
+Oz: the gamestate's map, "" without one
+=================
+*/
+static const char *CL_MapName( void ) {
+	return Info_ValueForKey( cl.gameState.stringData + cl.gameState.stringOffsets[ CS_SERVERINFO ], "mapname" );
+}
+
+
+#ifdef USE_CURL
+/*
+=================
+CL_ServerSendsPaks
+
+Oz: whether the server sends the paks it lists, from its sv_dlURL or over the connection, as
+CL_NextDownload asks it. id's servers default to sv_allowDownload 0 and refuse every one.
+=================
+*/
+static qboolean CL_ServerSendsPaks( void ) {
+	if ( clc.sv_dlURL[0] && !( clc.sv_allowDownload & DLF_NO_REDIRECT ) && !( cl_allowDownload->integer & DLF_NO_REDIRECT ) ) {
+		return qtrue;
+	}
+	return ( clc.sv_allowDownload & DLF_ENABLE ) && !( clc.sv_allowDownload & DLF_NO_UDP ) && !( cl_allowDownload->integer & DLF_NO_UDP );
+}
+
+
+/*
+=================
+CL_FetchMap
+
+Oz: a map that isn't installed comes from the map archives (dl_source, Quake3e's map auto-download)
+when the server doesn't send it. Quake3e asked them only of a server that took no downloads at all,
+but one that does sends only the paks it lists: oDFe's servers (sv_noReferencedPaks 1) list none,
+and a player with downloads off asks for none. The join then stopped at CM_LoadMap. Asked once a
+connection: the archives' map that still doesn't load is another version than a pure server's.
+=================
+*/
+static qboolean CL_FetchMap( void ) {
+	char mapname[ MAX_QPATH ];
+
+	Q_strncpyz( mapname, CL_MapName(), sizeof( mapname ) );
+	if ( !cl_mapAutoDownload->integer || !mapname[0] ) {
+		return qfalse;
+	}
+	if ( !Q_stricmp( clc.mapFetched, mapname ) ) {
+		if ( Com_DL_InProgress( &download ) ) {
+			cls.state = CA_CONNECTED;	// a gamestate again while it downloads: still coming
+			return qtrue;
+		}
+		return qfalse;
+	}
+	if ( FS_FOpenFileRead( va( "maps/%s.bsp", mapname ), NULL, qfalse ) != -1 ) {
+		return qfalse;
+	}
+	Q_strncpyz( clc.mapFetched, mapname, sizeof( clc.mapFetched ) );
+	if ( CL_Download( "dlmap", mapname, qtrue ) ) {
+		cls.state = CA_CONNECTED; // prevent continue loading and shows the ui download progress screen
+		return qtrue;
+	}
+	return qfalse;
+}
+#endif // USE_CURL
+
+
+/*
+=================
+CL_CheckMap
+
+Oz: a map still missing once the downloads are done stops the join here, saying why and what to do,
+in place of CM_LoadMap's "couldn't load maps/<map>.bsp" from inside the cgame's start.
+=================
+*/
+static void CL_CheckMap( void ) {
+	char mapname[ MAX_QPATH ];
+	char bsp[ MAX_QPATH ];
+	char pak[ MAX_OSPATH ];
+	const char *again = clc.demoplaying ? "play the demo" : "join";
+
+	Q_strncpyz( mapname, CL_MapName(), sizeof( mapname ) );
+	Com_sprintf( bsp, sizeof( bsp ), "maps/%s.bsp", mapname );
+	if ( !mapname[0] || com_sv_running->integer || FS_FOpenFileRead( bsp, NULL, qfalse ) != -1 ) {
+		return;
+	}
+	if ( FS_FileIsInPAK( bsp, NULL, pak ) ) {
+		// on a pak the pure server doesn't list ("<game>/<pak>"; a Maps folder pak's game is baseq3)
+		Com_Error( ERR_DROP, "This pure server runs another version of the map %s than yours (%s.pk3), "
+			"and doesn't send its own.", mapname, strrchr( pak, '/' ) ? strrchr( pak, '/' ) + 1 : pak );
+	}
+	if ( clc.mapFetched[0] ) {
+		Com_Error( ERR_DROP, "The map %s isn't installed, and couldn't be downloaded. "
+			"Put its pk3 in the Maps folder and %s again.", mapname, again );
+	}
+	Com_Error( ERR_DROP, "The map %s isn't installed%s. Put its pk3 in the Maps folder and %s again.",
+		mapname, clc.demoplaying ? "" : ", and the server doesn't send it", again );
+}
+
+
+/*
+=================
 CL_InitDownloads
 
 After receiving a valid game state, we valid the cgame and local zip files here
@@ -2468,6 +2601,13 @@ void CL_InitDownloads( void ) {
 		Com_Printf( "Need paks: %s\n", clc.downloadList );
 
 		if ( *clc.downloadList ) {
+#ifdef USE_CURL
+			// Oz: a server that sends nothing still lists its paks and refuses each: its map can come from
+			// the map archives first, and the paks still missing after it are asked for as before
+			if ( !CL_ServerSendsPaks() && CL_FetchMap() ) {
+				return;
+			}
+#endif
 			// if autodownloading is not enabled on the server
 			cls.state = CA_CONNECTED;
 
@@ -2481,26 +2621,13 @@ void CL_InitDownloads( void ) {
 	}
 
 #ifdef USE_CURL
-	if ( cl_mapAutoDownload->integer && ( !(clc.sv_allowDownload & DLF_ENABLE) || clc.demoplaying ) )
-	{
-		const char *info, *mapname, *bsp;
-
-		// get map name and BSP file name
-		info = cl.gameState.stringData + cl.gameState.stringOffsets[ CS_SERVERINFO ];
-		mapname = Info_ValueForKey( info, "mapname" );
-		bsp = va( "maps/%s.bsp", mapname );
-
-		if ( FS_FOpenFileRead( bsp, NULL, qfalse ) == -1 )
-		{
-			if ( CL_Download( "dlmap", mapname, qtrue ) )
-			{
-				cls.state = CA_CONNECTED; // prevent continue loading and shows the ui download progress screen
-				return;
-			}
-		}
+	// Oz: whatever the server allows (CL_FetchMap)
+	if ( CL_FetchMap() ) {
+		return;
 	}
 #endif // USE_CURL
 
+	CL_CheckMap();	// Oz
 	CL_DownloadsComplete();
 }
 
@@ -4504,6 +4631,7 @@ void CL_Init( void ) {
 	Cmd_AddCommand ("cinematic", CL_PlayCinematic_f);
 	Cmd_AddCommand ("stoprecord", CL_StopRecord_f);
 	Cmd_AddCommand ("connect", CL_Connect_f);
+	Cmd_AddCommand( "oz_playmod", CL_OzPlayMod_f );	// Oz: the menus' matches under another mod
 	Cmd_AddCommand ("reconnect", CL_Reconnect_f);
 	Cmd_AddCommand ("localservers", CL_LocalServers_f);
 	Cmd_AddCommand ("globalservers", CL_GlobalServers_f);

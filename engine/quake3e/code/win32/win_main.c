@@ -73,6 +73,22 @@ void Sys_BeginProfiling( void ) {
 	// this is just used on the mac build
 }
 
+
+static qboolean sys_errorBox;	// Oz: Sys_ErrorBox
+
+/*
+=============
+Sys_ErrorBox
+
+Oz: the next fatal error shows in a message box of its own, and the game quits when it's closed: for
+an error the player must fix (no Quake III Arena found, FS_CheckIdPaks), which the console's error
+line, one line high, would cut short.
+=============
+*/
+void Sys_ErrorBox( void ) {
+	sys_errorBox = qtrue;
+}
+
 #endif // !DEDICATED
 
 /*
@@ -93,6 +109,14 @@ void NORETURN FORMAT_PRINTF(1, 2) QDECL Sys_Error( const char *error, ... ) {
 
 #ifndef DEDICATED
 	CL_Shutdown( text, qtrue );
+
+	if ( sys_errorBox ) {	// Oz: the box alone, without the early console's startup log behind it
+		Sys_ShowConsole( 0, qfalse );
+		MessageBox( NULL, AtoW( text ), T( OZ_PRODUCT ), MB_OK | MB_ICONERROR | MB_SETFOREGROUND );
+		timeEndPeriod( 1 );
+		Sys_DestroyConsole();
+		exit( 1 );
+	}
 #endif
 
 	Conbuf_AppendText( text );

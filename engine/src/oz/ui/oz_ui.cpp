@@ -320,6 +320,7 @@ static Page pages[] = {
 	{ "quit", "ui/pages/quit.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "error", "ui/pages/error.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "display_confirm", "ui/pages/display_confirm.rml", nullptr, PAGE_OVERLAY, nullptr },
+	{ "apply_confirm", "ui/pages/apply_confirm.rml", nullptr, PAGE_OVERLAY, nullptr },
 	{ "color_picker", "ui/pages/color_picker.rml", nullptr, PAGE_OVERLAY, nullptr },
 	{ "friends", "ui/pages/friends.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "quick_join", "ui/pages/quick_join.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
@@ -463,7 +464,7 @@ static bool OpenPage( Page *p ) {
 		// an overlay keeps the page under it drawn, unless both are panels (the Dedicated page from
 		// the Server Browser): then the new panel takes the old one's place until it closes
 		const bool dialog = !strcmp( p->name, "friends" ) || !strcmp( p->name, "quit" ) ||
-			!strcmp( p->name, "display_confirm" ) || !strcmp( p->name, "color_picker" );	// over Settings
+			!strcmp( p->name, "display_confirm" ) || !strcmp( p->name, "apply_confirm" ) || !strcmp( p->name, "color_picker" );	// over Settings
 		const bool base = !strcmp( stack.back()->name, "menu" ) || !strcmp( stack.back()->name, "pause" );
 		if ( !( p->flags & PAGE_OVERLAY ) || ( !dialog && !base && ( stack.back()->flags & PAGE_OVERLAY ) ) ) {
 			stack.back()->doc->Hide();
@@ -1447,7 +1448,7 @@ void OzUI_Shutdown( void ) {
 void OzUI_RendererShutdown( void ) {
 	OzE_RendererRestarted();	// the showcase's models and shaders go with it
 	if ( initialized ) {
-		Hud_Clear();
+		Hud_RendererShutdown();
 		Renderer().RendererShutdown();
 	}
 }

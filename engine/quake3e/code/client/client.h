@@ -210,6 +210,7 @@ typedef struct {
 	int			downloadSize;	// how many bytes we got
 	char		downloadList[BIG_INFO_STRING]; // list of paks we need to download
 	qboolean	downloadRestart;	// if true, we need to do another FS_Restart because we downloaded a pak
+	char		mapFetched[MAX_QPATH];	// Oz: the map this connection asked the map archives for (CL_FetchMap)
 
 #ifdef USE_CURL
 	qboolean	cURLEnabled;
@@ -382,6 +383,7 @@ extern	clientStatic_t		cls;
 
 extern	char		cl_oldGame[MAX_QPATH];
 extern	qboolean	cl_oldGameSet;
+extern	char		cl_ozReturnGame[MAX_QPATH];	// Oz: oz_playmod's way back, armed at the match's gamestate
 
 #ifdef USE_CURL
 

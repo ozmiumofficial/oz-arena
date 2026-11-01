@@ -61,8 +61,9 @@ Marked `Oz:` in the code. The world library and its scripts come from `tools/mak
   soft shoulder; rend2's filmic curve (`r_ozToneMap 0`) has a toe and a black point that crushed
   the maps' shadows.
 - `RB_OzBloom` (`tr_postprocess.c`, `glsl/ozbloom_fp.glsl`, `tr.ozBloomShader`): bright pass over
-  `r_ozBloomThreshold`, three rounds of `RB_BlurAxis`, added back before the tone map
-  (`r_ozBloom`, `r_ozBloomIntensity`).
+  `r_ozBloomThreshold`, three rounds of `RB_BlurAxis`'s taps, added back before the tone map
+  (`r_ozBloom`, `r_ozBloomIntensity`). Each axis is one pass (`glsl/ozblur_fp.glsl`,
+  `tr.ozBlurShader`) rather than `RB_BlurAxis`'s five blended blits.
 - Defaults: `r_pbr 1`, `r_glossType 2` (roughness), `r_cubeMapping 1`, `r_autoExposure 0`.
 - `tr_main.c` `R_RadixSort`: a first pass on `cubemapIndex`, so the surfaces of each cubemap are
   drawn together within a sort key. `RB_RenderDrawSurfList` starts a batch at every cubemap change

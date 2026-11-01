@@ -5457,6 +5457,55 @@ static void FS_PrintSearchPaths( void )
 
 /*
 ===================
+FS_OzNoIdPaks
+
+Oz: without the player's own Quake III Arena (id's baseq3/pak0 to pak8) Oz's game stops, saying where
+it looked and where a copy goes, in a message box of its own on Windows: Quake3e's check left fs_game oz
+out, so Oz started with menus missing id's art.
+===================
+*/
+#ifdef _WIN32
+#ifdef DEDICATED
+#define OZ_EXE		"OzArena.ded.exe"
+#else
+#define OZ_EXE		"OzArena.exe"
+#endif
+#define OZ_LOOKED	"It looked in your Steam libraries, among your GOG games and next to " OZ_EXE "."
+#else
+#define OZ_EXE		"the server"
+#define OZ_LOOKED	"It looked next to the server."
+#endif
+
+static void FS_OzNoIdPaks( unsigned foundPak )
+{
+	char missing[ 128 ], found[ 256 ];
+	int i;
+
+	missing[0] = '\0';
+	for ( i = 0; i < 9 && ( foundPak & 0x1ff ); i++ ) {	// some found: name the rest
+		if ( !( foundPak & ( 1 << i ) ) ) {
+			Q_strcat( missing, sizeof( missing ), va( "%spak%i.pk3", missing[0] ? ", " : "", i ) );
+		}
+	}
+	if ( missing[0] ) {
+		Com_sprintf( found, sizeof( found ), "found only part of it.\n\nMissing: %s.%s", missing,
+			( foundPak & 0x1fe ) != 0x1fe ? " The game's 1.32 patch brings pak1.pk3 to pak8.pk3." : "" );
+	} else {
+		Q_strncpyz( found, "didn't find it.", sizeof( found ) );
+	}
+
+#if defined(_WIN32) && !defined(DEDICATED)
+	Sys_ErrorBox();
+#endif
+	Com_Error( ERR_FATAL, OZ_PRODUCT " needs your own copy of Quake III Arena, and %s\n\n" OZ_LOOKED "\n\n"
+		"If your copy came from a CD, GOG or anywhere else, copy its " BASEGAME " folder (pak0.pk3 to pak8.pk3) "
+		"next to " OZ_EXE ":\n\n%s\n\nThen start " OZ_PRODUCT " again.",
+		found, FS_BuildOSPath( fs_basepath->string, BASEGAME, NULL ) );
+}
+
+
+/*
+===================
 FS_CheckIdPaks
 
 Checks that pak0.pk3 is present and its checksum is correct
@@ -5553,8 +5602,9 @@ static void FS_CheckIdPaks( void )
 
 		if(!fs_gamedirvar->string[0]
 		|| !Q_stricmp( fs_gamedirvar->string, BASEGAME )
-		|| !Q_stricmp( fs_gamedirvar->string, BASETA ))
-			Com_Error(ERR_FATAL, "\n*** you need to install Quake III Arena in order to play ***");
+		|| !Q_stricmp( fs_gamedirvar->string, BASETA )
+		|| !Q_stricmp( fs_gamedirvar->string, DEFAULT_GAME ))	// Oz: Oz's own game too, in Oz's words
+			FS_OzNoIdPaks( foundPak );
 	}
 }
 

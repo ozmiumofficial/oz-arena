@@ -770,7 +770,11 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		}
 		OzView_RenderScene( VMA(1) );	// Oz: the gun, placed against this view (P6)
 	    tc_vis_render();
-		re.RenderScene( VMA(1) );
+		{
+			const int64_t prof = Com_ProfStart();	// Oz: frametime's details
+			re.RenderScene( VMA(1) );
+			Com_ProfDetail( "cg render scene", prof );
+		}
 		return 0;
 	case CG_R_SETCOLOR:
 		re.SetColor( VMA(1) );
@@ -786,8 +790,12 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	case CG_R_MODELBOUNDS:
 		re.ModelBounds( args[1], VMA(2), VMA(3) );
 		return 0;
-	case CG_R_LERPTAG:
-		return re.LerpTag( VMA(1), args[2], args[3], args[4], VMF(5), VMA(6) );
+	case CG_R_LERPTAG: {
+		const int64_t prof = Com_ProfStart();	// Oz: frametime's details
+		const int r = re.LerpTag( VMA(1), args[2], args[3], args[4], VMF(5), VMA(6) );
+		Com_ProfDetail( "cg lerp tag", prof );
+		return r;
+	}
 	case CG_GETGLCONFIG:
 		VM_CHECKBOUNDS( cgvm, args[1], sizeof( glconfig_t ) );
 		CL_GetGlconfig( VMA(1) );

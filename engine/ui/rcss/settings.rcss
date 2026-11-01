@@ -214,6 +214,9 @@ focused setting's description beside it, reset and config codes below. On top of
 	color: #5d554f;
 }
 
+/* a Video change waiting for Apply */
+.row.pending { border-left-color: #ffad3399; }
+
 .row.current {
 	border-left-color: #ff4a1c;
 	background-color: #ffffff0d;

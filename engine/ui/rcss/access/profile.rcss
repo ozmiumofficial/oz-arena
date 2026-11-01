@@ -80,3 +80,8 @@ body.hc .kv .k { color: #d9d0c6; }
 body.hc .wep .wn { color: #d9d0c6; }
 body.hc .med .mk { color: #d9d0c6; }
 body.hc .mode { background-color: #000000; color: #d9d0c6; }
+body.hc .mrow { background-color: #000000; }
+body.hc .mrow .mw { color: #b0a79e; }
+body.hc .mrow .msv { color: #b0a79e; }
+body.hc .mrow .mk { color: #d9d0c6; }
+body.hc .mrow .mx { color: #ffad33; }

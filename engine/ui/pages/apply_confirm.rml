@@ -1,0 +1,29 @@
+<rml>
+<head>
+	<title>Apply</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		body { display: flex; align-items: center; justify-content: center; }
+		.dialog { width: 50rem; }	/* three buttons */
+		.dialog banner { font-size: 2.4rem; margin-bottom: 1.25rem; }
+		.dialog .why { display: block; max-width: 40rem; margin-bottom: 1.75rem; font-size: 1.1rem; line-height: 1.5;
+			text-align: center; color: #e6ddd2; }
+		.row { display: flex; }
+	</style>
+</head>
+<!-- Back from Settings with Video changes still waiting for Apply (oz_ui_settings.cpp): Apply sets
+them and Discard drops them, and either closes Settings; Cancel and Escape go back to it. Apply is
+focused first. -->
+<body data-model="menu">
+	<div class="dialog">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<banner text="Apply changes?"/>
+		<div class="why"><span>Some video settings you changed haven't been applied.</span></div>
+		<div class="row">
+			<button id="leave_apply" class="confirm" autofocus="" onclick="settingsleave apply">Apply</button>
+			<button id="leave_discard" class="confirm" onclick="settingsleave discard">Discard</button>
+			<button id="leave_cancel" class="confirm" onclick="back">Cancel</button>
+		</div>
+	</div>
+</body>
+</rml>

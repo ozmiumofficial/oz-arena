@@ -5,14 +5,20 @@ hit's knockback, a jump pad or a turn swung its end off the crosshair. Damage vi
 of it (cg.ozKickPitch): the shots keep going where you aimed. cg_trueLightning still sets a beam seen in
 third person.
 
+While it fires, the lightning gun holds still in the view (cg.ozGunSteady, CG_CalculateWeaponPosition),
+so the beam stays put from the muzzle to the crosshair: id's bob and drift follow the speed, and a hit's
+push, a wall, a landing on a stair jumped the gun, the beam's start with it, by up to 75 px at 1600x1024.
+The sway eases out over 100 ms as the beam starts and back in after it stops.
+
 diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
 --- a/code/cgame/cg_local.h
 +++ b/code/cgame/cg_local.h
-@@ -641,6 +641,7 @@ typedef struct {
+@@ -641,6 +641,8 @@ typedef struct {
  	float		v_dmg_time;
  	float		v_dmg_pitch;
  	float		v_dmg_roll;
 +	float		ozKickPitch;			// Oz: Damage view kick's share of refdefViewAngles' pitch
++	float		ozGunSteady;			// Oz: 0 .. 1 as the firing lightning gun's sway eases out
  
  	// temp working variables for player view
  	float		bobfracsin;
@@ -30,7 +36,41 @@ diff --git a/code/cgame/cg_view.c b/code/cgame/cg_view.c
 diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
 --- a/code/cgame/cg_weapons.c
 +++ b/code/cgame/cg_weapons.c
-@@ -1031,6 +1031,19 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
+@@ -915,6 +915,8 @@ static int CG_MapTorsoToWeaponFrame( clientInfo_t *ci, int frame ) {
+ }
+ 
+ 
++#define	OZ_GUN_STEADY_TIME	100		// Oz: ms the firing lightning gun's sway takes to ease out, and back in
++
+ /*
+ ==============
+ CG_CalculateWeaponPosition
+@@ -965,6 +967,24 @@ static void CG_CalculateWeaponPosition( vec3_t origin, vec3_t angles ) {
+ 	angles[ROLL] += scale * fracsin * 0.01;
+ 	angles[YAW] += scale * fracsin * 0.01;
+ 	angles[PITCH] += scale * fracsin * 0.01;
++
++	// Oz: while it fires, the lightning gun holds still in the view, so its beam stays put from the muzzle
++	// to the crosshair. The bob and the drift follow the speed: a hit's push, a wall, a landing on a stair
++	// jumped the gun, and the beam's start with it. The sway eases out as the beam starts, back in after.
++	if ( cg.predictedPlayerState.weapon == WP_LIGHTNING && ( cg.predictedPlayerState.eFlags & EF_FIRING ) ) {
++		cg.ozGunSteady = MIN( 1.0f, cg.ozGunSteady + cg.frametime / (float)OZ_GUN_STEADY_TIME );
++	} else {
++		cg.ozGunSteady = MAX( 0.0f, cg.ozGunSteady - cg.frametime / (float)OZ_GUN_STEADY_TIME );
++	}
++	if ( cg.ozGunSteady > 0.0f ) {
++		float	sway = 1.0f - cg.ozGunSteady * cg.ozGunSteady * ( 3.0f - 2.0f * cg.ozGunSteady );
++		int		i;
++
++		for ( i = 0; i < 3; i++ ) {
++			angles[i] = cg.refdefViewAngles[i] + sway * AngleSubtract( angles[i], cg.refdefViewAngles[i] );
++			origin[i] = cg.refdef.vieworg[i] + sway * ( origin[i] - cg.refdef.vieworg[i] );
++		}
++	}
+ }
+ 
+ 
+@@ -1031,6 +1051,19 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
  		muzzlePoint[2] += DEFAULT_VIEWHEIGHT;
  	}
  

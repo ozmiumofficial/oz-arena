@@ -691,6 +691,13 @@ static void CL_ParseGamestate( msg_t *msg ) {
 
 	gamedirModified = ( Cvar_Flags( "fs_game" ) & CVAR_MODIFIED ) ? qtrue : qfalse;
 
+	// Oz: a match oz_playmod started under another mod comes back to the menus' mod when it ends
+	if ( !cl_oldGameSet && cl_ozReturnGame[0] ) {
+		cl_oldGameSet = qtrue;
+		Q_strncpyz( cl_oldGame, cl_ozReturnGame, sizeof( cl_oldGame ) );
+	}
+	cl_ozReturnGame[0] = '\0';
+
 	if ( !cl_oldGameSet && gamedirModified ) {
 		cl_oldGameSet = qtrue;
 		Q_strncpyz( cl_oldGame, oldGame, sizeof( cl_oldGame ) );

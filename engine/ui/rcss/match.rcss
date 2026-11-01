@@ -178,6 +178,80 @@ button.card:focus .img { transform: scale(1.1); }
 	color: #e6ddd2;
 }
 
+/* Skirmish's mods, over its map browser; its side column scrolls when Defrag's race and import box don't fit */
+.sktabs { margin: -0.5rem 0 0.75rem 0; }
+
+.cols .side.skside { overflow-y: auto; padding-right: 0.5rem; }
+.cols .side.skside > * { flex-shrink: 0; }
+
+/* Skirmish's search box and sort chips (buttons there, so the d-pad reaches them) */
+.mbar input.search {
+	width: 15rem;
+	margin-right: 0.75rem;
+}
+
+button.chip { transition: border-color color 0.15s linear-in-out; }
+button.chip:focus, button.chip:hover { border-color: #e6ddd299; color: #fff3e6; }
+
+/* a race map's card: Oz's estimate of how hard it is */
+.card .fits span.lvl { color: #ffd23c; }
+.card .fits span.lvl.easy { color: #5ccf4a; }
+.card .fits span.lvl.hard { color: #ff4a1c; }
+
+/* the list's line when nothing shows (no race maps, or none the search finds), and the looking's progress */
+.nomaps, .looking {
+	margin-top: 1rem;
+	font-size: 0.95rem;
+	color: #8d847c;
+}
+
+.looking { color: #5d554f; }
+
+/* a mod in the install where a switch doesn't look: its import (the Server Browser's) */
+.modimport {
+	margin-top: 0.75rem;
+	padding: 0.75rem 1rem;
+	border: 1dp #ffad3366;
+	border-radius: 2dp;
+	background-color: #ffad3314;
+	font-size: 0.85rem;
+	color: #e6ddd2;
+}
+
+.modimport button.btn {
+	margin-top: 0.75rem;
+	font-size: 0.8rem;
+}
+
+.modimport .msg { margin-top: 0.5rem; color: #ffad33; }
+
+/* the picked race: Oz's estimate and what it's from */
+.raceinfo .level {
+	display: flex;
+	align-items: baseline;
+	margin-bottom: 0.5rem;
+}
+
+.raceinfo .level .word {
+	font-family: OzDisplay;
+	font-size: 1.2rem;
+	letter-spacing: 0.08em;
+	color: #ffd23c;
+	margin-right: 0.75rem;
+}
+
+.raceinfo .level .word.easy { color: #5ccf4a; }
+.raceinfo .level .word.hard { color: #ff4a1c; }
+.raceinfo .level .est { font-size: 0.8rem; color: #8d847c; }
+
+.raceinfo .fact {
+	margin-top: 0.25rem;
+	font-size: 0.9rem;
+	color: #e6ddd2;
+}
+
+.raceinfo .fact.by { color: #8d847c; }
+
 /* the mode spinners run their own arrows and value (they also keep the arena fitting the mode):
 no padding, so a click always lands on one of them */
 .spinner.modespin { padding: 0; }

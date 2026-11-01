@@ -210,6 +210,7 @@
     "skills": ["I Can Win", "Bring It On", "Hurt Me Plenty", "Hardcore", "Nightmare!"],
     "skirmish": {
       "mi": 0,
+      "mod": "oz",
       "count": 5,
       "skill": 3,
       "map": "",
@@ -367,8 +368,31 @@
     ]
   },
   "create_match_pick": {
-    "_note": "What the two pages' map browsers show: fit, the chosen mode's map type (modes[mi].fit), and mapi, the chosen arena's index in the engine's maps (21 is the original game's q3dm17 in its arenas.txt order). Apart from create_match so that the pages' other choices don't make every card be checked again.",
-    "skirmish": {"fit": "ffa", "mapi": 21},
+    "_note": "What the two pages' map browsers show: fit, the chosen mode's map type (modes[mi].fit), and mapi, the chosen arena's index in the engine's maps (21 is the original game's q3dm17 in its arenas.txt order); Skirmish's racei, the chosen race map's in skirmish_races. Apart from create_match so that the pages' other choices don't make every card be checked again.",
+    "skirmish": {"fit": "ffa", "mapi": 21, "racei": 0},
     "custom": {"fit": "ffa", "mapi": 21}
-  }
+  },
+  "skirmish": {
+    "_note": "Skirmish's mod picker, search and sorts (oz_ui_skirmish.cpp fills what the page doesn't set): mod, the picked one (oz, cpma, defrag); mods, the ones offered (the spinner's options); have.<mod>.state, ready (a switch finds it), import (in the install where a switch doesn't look: found is that folder) or none; q, the search box; sort: order or name, under Defrag easy, hard or name; count and shown, the cards listed and shown by the search.",
+    "mod": "oz",
+    "mod_name": "Oz",
+    "mods": "oz",
+    "ready": true,
+    "found": "",
+    "import_message": "",
+    "have": {
+      "oz": {"state": "ready", "found": ""},
+      "cpma": {"state": "none", "found": ""},
+      "defrag": {"state": "none", "found": ""}
+    },
+    "q": "",
+    "sort": "order",
+    "count": 0,
+    "shown": 0
+  },
+  "skirmish_view": [],
+  "skirmish_races": [],
+  "skirmish_rview": [],
+  "skirmish_race": {"title": "", "map": "", "author": "", "shot": "", "word": "", "level": 0, "score": "", "facts": []},
+  "skirmish_scan": {"text": "", "empty": ""}
 }

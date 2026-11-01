@@ -57,6 +57,7 @@ Rml::ElementDocument *TopDocument();
 bool Hud_Pending();							// cgame drew something this frame
 void Hud_Render( int width, int height );	// inside the UI's frame, before the pages; then dropped
 void Hud_Clear();
+void Hud_RendererShutdown();				// the renderer's textures go (each map load): read them ahead again
 void Hud_Shutdown();
 Rml::Texture Hud_ImageTexture( int image );	// an OzUI_HudImage handle's texture
 
@@ -133,6 +134,10 @@ void Settings_Commands();
 void Settings_DisplayKeep();							// display_confirm.rml: keep the new window settings
 void Settings_DisplayRevert();							// or put the old ones back (Escape, or 15 s)
 int Settings_DisplayPending();
+void Settings_ApplyChanges();							// the Video tab's changes, waiting for Apply, set
+void Settings_Discard();								// or dropped
+int Settings_Unapplied();								// how many wait
+void Settings_Leave( bool apply );						// apply_confirm.rml: apply or drop them, and close Settings
 void Settings_PickColor( const char *key );				// opens color_picker.rml for a color setting
 void Settings_PickerSet( const char *hex );				// color_picker.rml: the chosen color
 
@@ -178,6 +183,12 @@ bool Servers_Back();						// the server card was open: Back closed it
 void Servers_MatchesChanged();				// the hub's peer-to-peer rows came again
 void Servers_JoinedMatch( const char *host, const char *name );	// a peer-to-peer match joined: the history's
 std::string Servers_Name( const char *address );	// a server row's name, "" when it isn't one
+
+// ---- oz_ui_skirmish.cpp: Skirmish's mod picker, search and sorts, and Defrag's race maps
+bool Skirmish_Action( const Rml::String &verb, const Rml::String &arg );	// skimport, race, skmods
+void Skirmish_Opened( const char *page );
+void Skirmish_Commands();					// ui_skirmish, for tests
+void Skirmish_Frame();						// the race maps looked for; the cards follow the mod, the search and the sort
 
 // ---- oz_progress.cpp (P12): the career, cards and campaign, ported from the Godot build
 namespace Prog {

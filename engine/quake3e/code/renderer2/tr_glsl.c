@@ -51,6 +51,7 @@ extern const char *fallbackShader_ssao_fp;
 extern const char *fallbackShader_texturecolor_vp;
 extern const char *fallbackShader_texturecolor_fp;
 extern const char *fallbackShader_ozbloom_fp;	// Oz
+extern const char *fallbackShader_ozblur_fp;
 extern const char *fallbackShader_ozgrade_fp;
 extern const char *fallbackShader_ozfxaa_fp;
 extern const char *fallbackShader_ozfsreasu_fp;	// made from AMD's FSR 1 at build time (engine/build_engine.py)
@@ -1091,6 +1092,20 @@ void GLSL_InitGPUShaders(void)
 
 	numEtcShaders++;
 
+	// Oz: one axis of the bloom's blur in one pass
+	if (!GLSL_InitGPUShader(&tr.ozBlurShader, "ozblur", attribs, qtrue, extradefines, qtrue, fallbackShader_texturecolor_vp, fallbackShader_ozblur_fp))
+	{
+		ri.Error(ERR_FATAL, "Could not load ozblur shader!");
+	}
+
+	GLSL_InitUniforms(&tr.ozBlurShader);
+
+	GLSL_SetUniformInt(&tr.ozBlurShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
+
+	GLSL_FinishGPUShader(&tr.ozBlurShader);
+
+	numEtcShaders++;
+
 	// Oz: the Settings page's passes over the finished view (RB_OzFinish): contrast and the colorblind
 	// filter, FXAA, and AMD FSR 1's upscale and sharpening, all on texturecolor's vertex shader
 	if (!GLSL_InitGPUShader(&tr.ozGradeShader, "ozgrade", attribs, qtrue, extradefines, qtrue, fallbackShader_texturecolor_vp, fallbackShader_ozgrade_fp))
@@ -1644,6 +1659,7 @@ void GLSL_ShutdownGPUShaders(void)
 
 	GLSL_DeleteGPUShader(&tr.textureColorShader);
 	GLSL_DeleteGPUShader(&tr.ozBloomShader);	// Oz
+	GLSL_DeleteGPUShader(&tr.ozBlurShader);
 	GLSL_DeleteGPUShader(&tr.ozGradeShader);
 	GLSL_DeleteGPUShader(&tr.ozFxaaShader);
 	if (tr.ozFsrReady)

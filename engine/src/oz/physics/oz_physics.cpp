@@ -219,6 +219,11 @@ void OzPhys_Init( void ( *print )( const char *text ) ) {
 	PhysicsSettings settings = world->system->GetPhysicsSettings();
 	settings.mNumVelocitySteps = 32;
 	settings.mNumPositionSteps = 16;
+	// a body lying still sleeps (it costs nothing then): Jolt's own threshold (0.03 m/s, each part's points kept
+	// within half a unit for half a second) is finer than a body's resting jitter, so bodies crept along the
+	// floor a few units a second and stayed awake until they burned, 0.2 ms a step each. At 0.2 m/s a part
+	// stays within 3.2 units for half a second; a falling, rolling or carried body moves far more.
+	settings.mPointVelocitySleepThreshold = 0.2f;
 	world->system->SetPhysicsSettings( settings );
 }
 
@@ -508,13 +513,18 @@ int OzPhys_RagdollCarried( int r ) {
 	return world && r >= 0 && r < OZ_PHYS_RAGDOLLS && world->ragdolls[r].used && world->ragdolls[r].carried;
 }
 
+int OzPhys_Optimize( void ) {
+	if ( !world || world->added < 256 ) {
+		return 0;
+	}
+	world->system->OptimizeBroadPhase();
+	world->added = 0;
+	return 1;
+}
+
 void OzPhys_Step( float dt, float gravity ) {
 	if ( !world ) {
 		return;
-	}
-	if ( world->added >= 256 ) {
-		world->system->OptimizeBroadPhase();
-		world->added = 0;
 	}
 	world->system->SetGravity( Vec3( 0.0f, 0.0f, -gravity ) );
 	for ( int r = 0; r < OZ_PHYS_RAGDOLLS; r++ ) {
@@ -523,6 +533,12 @@ void OzPhys_Step( float dt, float gravity ) {
 		}
 	}
 	world->system->Update( dt, 1, world->temp, world->jobs );
+}
+
+void OzPhys_Counts( int *bodies, int *awake, int *solids ) {
+	*bodies = world ? (int)world->system->GetNumBodies() : 0;
+	*awake = world ? (int)world->system->GetNumActiveBodies( EBodyType::RigidBody ) : 0;
+	*solids = world ? (int)world->solids.size() : 0;
 }
 
 } // extern "C"

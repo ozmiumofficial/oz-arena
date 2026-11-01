@@ -5,31 +5,45 @@
 	<link type="text/rcss" href="../rcss/match.rcss"/>
 </head>
 <!--
-Skirmish (CreateMatchPage.tsx's OfflineBotsPage with MapBrowser.tsx): a mode, an arena, how many bots
-and their skill. Its state is create_match.skirmish, the map browser's create_match_pick.skirmish
-(fit: the mode's map type, mapi: the arena's index in the engine's maps), in ui/data/create_match.json.
+Skirmish (CreateMatchPage.tsx's OfflineBotsPage with MapBrowser.tsx): a mod, a mode, an arena, how many
+bots and their skill. Its state is create_match.skirmish, the map browser's create_match_pick.skirmish
+(fit: the mode's map type, mapi: the arena's index in the engine's maps, racei: the race map's in
+skirmish_races), in ui/data/create_match.json, and skirmish.* (oz_ui_skirmish.cpp).
 
-The map browser lists the arenas made for the mode first, then the ones made for the other modes
-(picking one of those switches to the first mode it's made for). There is no search: RmlUi's data
-expressions can't look into a name. A mode change keeps the arena when it's made for the new mode,
-else picks the mode's own (modes[].pick): the arrows and the value run that themselves, Left and
-Right spin in C++ and the key's release checks. RmlUi's expressions have no loops, so the checks
-over an arena's types (up to six) are written out; they were generated, so keep their shape.
+Mod: the tabs, Oz Arena, CPMA and Defrag, the ones the player has (Q and E switch them). A mod that's
+in the install where a switch to it doesn't look (Defrag's bundle) shows the import box, as the Server
+Browser's. Under Oz and CPMA the map browser lists the arenas; under Defrag the race maps (oz_races.c),
+with Oz's estimate of how hard each is, and Fight races the picked one (the race action): Defrag's
+game, its own timer, no bots.
+
+The cards are the views' (skirmish_view: v.i is the arena's index in maps, v.show whether the search
+shows it, v.fits the modes it's made for; skirmish_rview the same for skirmish_races): the search box
+and the sort chips change the views' values in C++ (oz_ui_skirmish.cpp), never the cards. A card's id
+is sk_map_<map> (sk_other_<map> in the second list, sk_race_<map> for a race). The map browser lists
+the arenas made for the mode first, then the ones made for the other modes (picking one of those
+switches to the first mode it's made for). A mode change keeps the arena when it's made for the new
+mode, else picks the mode's own (modes[].pick): the arrows and the value run that themselves, Left and
+Right spin in C++ and the key's release checks. RmlUi's expressions have no loops, so the checks over an arena's types (up
+to six) are written out; they were generated, so keep their shape.
 
 Fight: the button's click works out the lineup, the fight wrapper's click (after it, as the click
-bubbles) starts the match with startmatch create_match.skirmish, puts you in a team in the team
-modes (q3_ui's "team"), and sets back the cvars a custom match may have changed. The lineup is the
-arena's own bots (arenas.txt), then the engine's bots in their order, skipping the arena's, up to
-the count (one in a duel): k0..k6 are the arena's bots in lower case, d is whether bots[j] is one
-of them, c how many of the first j were, and bots.m0..m6, f0..f17 are the names startmatch adds
-('' is no bot).
+bubbles) starts the match with startmatch create_match.skirmish (its mod too: CPMA's game plays it),
+puts you in a team in the team modes (q3_ui's "team"), and sets back the cvars a custom match may have
+changed. The lineup is the arena's own bots (arenas.txt), then the engine's bots in their order,
+skipping the arena's, up to the count (one in a duel): k0..k6 are the arena's bots in lower case, d is
+whether bots[j] is one of them, c how many of the first j were, and bots.m0..m6, f0..f17 are the names
+startmatch adds ('' is no bot).
 -->
 <body data-model="menu">
 	<div class="panel">
 		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
 		<div class="topline"/>
 		<div class="phead">
-			<div><banner text="Skirmish"/><p class="subtitle">Pick a mode and an arena; the map's own bots come first, as in the original game's single-player tiers.</p></div>
+			<div><banner text="Skirmish"/>
+				<p class="subtitle" data-if="skirmish.mod == 'oz'">Pick a mode and an arena; the map's own bots come first, as in the original game's single-player tiers.</p>
+				<p class="subtitle" data-if="skirmish.mod == 'cpma'">The same bot match, played under your CPMA: its own game decides the movement and the rules.</p>
+				<p class="subtitle" data-if="skirmish.mod == 'defrag'">Race a map under your Defrag: its own game runs the race and times it, with no bots. Leaving the match brings you back to Oz.</p>
+			</div>
 			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
 		</div>
 		<div class="divider"/>
@@ -37,54 +51,95 @@ of them, c how many of the first j were, and bots.m0..m6, f0..f17 are the names 
 			<div class="cols">
 				<div class="main">
 					<div class="browser">
-						<div class="mbar">
-							<span class="chip on">All<span class="n">{{ maps.size }}</span></span>
-							<span class="hint">Arenas made for {{ create_match.modes[create_match.skirmish.mi].name }} come first</span>
+						<div class="tabs sktabs">
+							<button id="sk_mod_oz" class="tab" data-class-active="skirmish.mod == 'oz'" data-event-click="skirmish.mod = 'oz'"><span>Oz Arena</span><span class="under"/></button>
+							<button id="sk_mod_cpma" class="tab" data-if="skirmish.have.cpma.state != 'none'" data-class-active="skirmish.mod == 'cpma'" data-event-click="skirmish.mod = 'cpma'"><span>CPMA</span><span class="under"/></button>
+							<button id="sk_mod_defrag" class="tab" data-if="skirmish.have.defrag.state != 'none'" data-class-active="skirmish.mod == 'defrag'" data-event-click="skirmish.mod = 'defrag'"><span>Defrag</span><span class="under"/></button>
 						</div>
-						<div class="cards">
+						<div class="mbar">
+							<input id="sk_search" class="text search" type="text" maxlength="64" placeholder="Search maps" data-value="skirmish.q"/>
+							<button id="sk_sort_order" class="chip" data-if="skirmish.mod != 'defrag'" data-class-on="skirmish.sort == 'order'" data-event-click="skirmish.sort = 'order'"><span>Game order</span></button>
+							<button id="sk_sort_easy" class="chip" data-if="skirmish.mod == 'defrag'" data-class-on="skirmish.sort == 'easy'" data-event-click="skirmish.sort = 'easy'"><span>Easiest first</span></button>
+							<button id="sk_sort_hard" class="chip" data-if="skirmish.mod == 'defrag'" data-class-on="skirmish.sort == 'hard'" data-event-click="skirmish.sort = 'hard'"><span>Hardest first</span></button>
+							<button id="sk_sort_name" class="chip" data-class-on="skirmish.sort == 'name'" data-event-click="skirmish.sort = 'name'"><span>Name</span></button>
+							<span class="hint">{{ skirmish.shown == skirmish.count ? skirmish.count + (skirmish.mod == 'defrag' ? ' race maps' : ' arenas') : skirmish.shown + ' of ' + skirmish.count }}</span>
+						</div>
+						<div class="cards" data-if="skirmish.mod != 'defrag'">
 							<div class="grid">
-								<button class="card" data-for="m, i : maps" data-if="@@MINE@@" data-class-sel="i == create_match_pick.skirmish.mapi" data-attrif-autofocus="i == create_match_pick.skirmish.mapi" data-event-click="create_match_pick.skirmish.mapi = i">
-									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (m.shot != '' ? ', image(' + m.shot + ' fill)' : '')"/>
-									<div class="cap"><div class="n">{{ m.name | plain }}</div><div class="id">{{ m.map }}</div></div>
+								<button class="card" data-for="v : skirmish_view" data-if="@@MINE@@" data-attr-id="'sk_map_' + maps[v.i].map" data-class-sel="v.i == create_match_pick.skirmish.mapi" data-attrif-autofocus="v.i == create_match_pick.skirmish.mapi" data-event-click="create_match_pick.skirmish.mapi = v.i">
+									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (maps[v.i].shot != '' ? ', image(' + maps[v.i].shot + ' fill)' : '')"/>
+									<div class="cap"><div class="n">{{ maps[v.i].name | plain }}</div><div class="id">{{ maps[v.i].map }}</div></div>
 								</button>
 							</div>
 							<div class="othersh">Made for other modes than {{ create_match.modes[create_match.skirmish.mi].name }}: picking one switches the mode</div>
 							<div class="grid">
-								<button class="card" data-for="m, i : maps" data-if="@@OTHER@@" data-class-sel="i == create_match_pick.skirmish.mapi" data-attrif-autofocus="i == create_match_pick.skirmish.mapi" data-event-click="@@PICK_OTHER@@">
-									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (m.shot != '' ? ', image(' + m.shot + ' fill)' : '')"/>
-									<div class="fits"><span data-for="t : m.types" data-if="t == 'ffa' || t == 'tourney' || t == 'team' || t == 'ctf'">{{ t == 'ffa' ? 'Free For All' : t == 'tourney' ? 'Duel' : t == 'team' ? 'Team Deathmatch' : 'Capture the Flag' }}</span></div>
-									<div class="cap"><div class="n">{{ m.name | plain }}</div><div class="id">{{ m.map }}</div></div>
+								<button class="card" data-for="v : skirmish_view" data-if="@@OTHER@@" data-attr-id="'sk_other_' + maps[v.i].map" data-class-sel="v.i == create_match_pick.skirmish.mapi" data-attrif-autofocus="v.i == create_match_pick.skirmish.mapi" data-event-click="@@PICK_OTHER@@">
+									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (maps[v.i].shot != '' ? ', image(' + maps[v.i].shot + ' fill)' : '')"/>
+									<div class="fits"><span data-for="t : v.fits">{{ t }}</span></div>
+									<div class="cap"><div class="n">{{ maps[v.i].name | plain }}</div><div class="id">{{ maps[v.i].map }}</div></div>
 								</button>
 							</div>
+							<p class="nomaps" data-if="skirmish.shown == 0">No arena's name or file name has "{{ skirmish.q }}".</p>
+						</div>
+						<div class="cards" data-if="skirmish.mod == 'defrag'">
+							<div class="grid">
+								<button class="card" data-for="r : skirmish_rview" data-if="r.show" data-attr-id="'sk_race_' + skirmish_races[r.i].map" data-class-sel="r.i == create_match_pick.skirmish.racei" data-attrif-autofocus="r.i == create_match_pick.skirmish.racei" data-event-click="create_match_pick.skirmish.racei = r.i">
+									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (skirmish_races[r.i].shot != '' ? ', image(' + skirmish_races[r.i].shot + ' fill)' : '')"/>
+									<div class="fits"><span class="lvl" data-class-easy="skirmish_races[r.i].level &lt; 3" data-class-hard="skirmish_races[r.i].level &gt; 3">{{ skirmish_races[r.i].word }}</span></div>
+									<div class="cap"><div class="n">{{ skirmish_races[r.i].title }}</div><div class="id">{{ skirmish_races[r.i].map }}</div></div>
+								</button>
+							</div>
+							<p class="nomaps" data-if="skirmish_scan.empty != ''">{{ skirmish_scan.empty }}</p>
+							<p class="looking" data-if="skirmish_scan.empty == '' &amp;&amp; skirmish_scan.text != ''">{{ skirmish_scan.text }}</p>
 						</div>
 					</div>
 				</div>
-				<div class="side">
-					<div class="preview">
+				<div class="side skside">
+					<div class="preview" data-if="skirmish.mod != 'defrag'">
 						<div data-if="maps.size &gt; create_match_pick.skirmish.mapi">
 							<div class="img" data-style-decorator="maps[create_match_pick.skirmish.mapi].shot != '' ? 'image(' + maps[create_match_pick.skirmish.mapi].shot + ' fill)' : 'none'"/>
 							<div class="fade"/>
 							<div class="cap"><div class="n">{{ maps[create_match_pick.skirmish.mapi].name | plain }}</div><div class="id">{{ maps[create_match_pick.skirmish.mapi].map }}</div></div>
 						</div>
 					</div>
-					<div class="section"><span class="t">Mode</span><span class="rule"/></div>
-					<div id="sk_mode" class="spinner wide modespin" spin="create_match.skirmish.mi" options="@@MODE_OPTIONS@@" data-event-keyup="@@FIX@@">
-						<span class="arrow" onclick="sound move" data-event-click="@@MODE_PREV@@">&lt;</span>
-						<span class="v" onclick="sound move" data-event-click="@@MODE_NEXT@@">{{ create_match.modes[create_match.skirmish.mi].name }}</span>
-						<span class="arrow" onclick="sound move" data-event-click="@@MODE_NEXT@@">&gt;</span>
+					<div class="preview" data-if="skirmish.mod == 'defrag'">
+						<div data-if="skirmish_race.map != ''">
+							<div class="img" data-style-decorator="skirmish_race.shot != '' ? 'image(' + skirmish_race.shot + ' fill)' : 'none'"/>
+							<div class="fade"/>
+							<div class="cap"><div class="n">{{ skirmish_race.title }}</div><div class="id">{{ skirmish_race.map }}</div></div>
+						</div>
 					</div>
-					<div data-if="create_match.skirmish.mi != 1">
-						<div class="section"><span class="t">Bots</span><span class="rule"/></div>
-						<div class="slrow"><input type="range" class="slider" min="1" max="11" step="1" data-value="create_match.skirmish.count"/><span class="val">{{ create_match.skirmish.count }}</span></div>
+					<div class="modimport" data-if="!skirmish.ready">
+						<p>Your {{ skirmish.mod_name }} is one folder deeper than the game loads a mod from ({{ skirmish.found }}). Import copies it into your Oz folder; nothing is downloaded.</p>
+						<button id="sk_import" class="btn" onclick="skimport"><span>Import from your game</span></button>
+						<p class="msg" data-if="skirmish.import_message != ''">{{ skirmish.import_message }}</p>
 					</div>
-					<div class="section"><span class="t">Skill</span><span class="rule"/></div>
-					<div class="spinner wide" spin="create_match.skirmish.skill" options="1|2|3|4|5">
-						<span class="arrow prev">&lt;</span><span class="v">{{ create_match.skills[create_match.skirmish.skill - 1] }}</span><span class="arrow next">&gt;</span>
+					<div data-if="skirmish.mod != 'defrag'">
+						<div class="section"><span class="t">Mode</span><span class="rule"/></div>
+						<div id="sk_mode" class="spinner wide modespin" spin="create_match.skirmish.mi" options="@@MODE_OPTIONS@@" data-event-keyup="@@FIX@@">
+							<span class="arrow" onclick="sound move" data-event-click="@@MODE_PREV@@">&lt;</span>
+							<span class="v" onclick="sound move" data-event-click="@@MODE_NEXT@@">{{ create_match.modes[create_match.skirmish.mi].name }}</span>
+							<span class="arrow" onclick="sound move" data-event-click="@@MODE_NEXT@@">&gt;</span>
+						</div>
+						<div data-if="create_match.skirmish.mi != 1">
+							<div class="section"><span class="t">Bots</span><span class="rule"/></div>
+							<div class="slrow"><input type="range" class="slider" min="1" max="11" step="1" data-value="create_match.skirmish.count"/><span class="val">{{ create_match.skirmish.count }}</span></div>
+						</div>
+						<div class="section"><span class="t">Skill</span><span class="rule"/></div>
+						<div class="spinner wide" spin="create_match.skirmish.skill" options="1|2|3|4|5">
+							<span class="arrow prev">&lt;</span><span class="v">{{ create_match.skills[create_match.skirmish.skill - 1] }}</span><span class="arrow next">&gt;</span>
+						</div>
+					</div>
+					<div class="raceinfo" data-if="skirmish.mod == 'defrag' &amp;&amp; skirmish.ready &amp;&amp; skirmish_race.map != ''">
+						<div class="section"><span class="t">Race</span><span class="rule"/></div>
+						<div class="level"><span class="word" data-class-easy="skirmish_race.level &lt; 3" data-class-hard="skirmish_race.level &gt; 3">{{ skirmish_race.word }}</span><span class="est">Oz's estimate from the map: {{ skirmish_race.score }} of 5</span></div>
+						<p class="fact" data-for="f : skirmish_race.facts">{{ f }}</p>
+						<p class="fact by" data-if="skirmish_race.author != ''">By {{ skirmish_race.author }}</p>
 					</div>
 					<div class="grow"/>
-					<p class="warn" data-if="@@NOT_FITS_SEL@@">{{ create_match.modes[create_match.skirmish.mi].name }} needs an arena made for it: pick one of the first ones.</p>
+					<p class="warn" data-if="skirmish.mod != 'defrag' &amp;&amp; @@NOT_FITS_SEL@@">{{ create_match.modes[create_match.skirmish.mi].name }} needs an arena made for it: pick one of the first ones.</p>
 					<div class="fightwrap" data-attr-onclick="@@START@@">
-						<button id="sk_fight" class="btn primary fight" data-event-click="@@PROGRAM@@"><span>Fight</span></button>
+						<button id="sk_fight" class="btn primary fight" data-event-click="@@PROGRAM@@"><span>{{ skirmish.mod == 'defrag' ? 'Race' : 'Fight' }}</span></button>
 					</div>
 				</div>
 			</div>

@@ -1634,6 +1634,7 @@ typedef struct {
 	shaderProgram_t genericShader[GENERICDEF_COUNT];
 	shaderProgram_t textureColorShader;
 	shaderProgram_t ozBloomShader;	// Oz: bloom's bright pass
+	shaderProgram_t ozBlurShader;	// Oz: and its blur, an axis a pass
 	shaderProgram_t ozGradeShader;	// Oz: contrast and the colorblind filter (r_ozContrast, r_ozColorblind)
 	shaderProgram_t ozFxaaShader;	// Oz: FXAA (r_ozFxaa)
 	shaderProgram_t ozFsrEasuShader;	// Oz: AMD FSR 1's upscale and sharpening (r_ozUpscaler 1)

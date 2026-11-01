@@ -8,7 +8,9 @@ Settings page from them: tabs, groups, a control per entry, search, the descript
 crosshair and cm/360 previews, reset (R) and share codes in the Godot build's format.
 
 The page's data model ("settings") is bound to the rows below; the cvars stay the truth, read
-back every frame while the page shows, so a change from the console shows at once.
+back every frame while the page shows, so a change from the console shows at once. The Video tab's
+changes wait for Apply (Ozmium, 2026-11-01: stepping through window sizes restarted the window at
+each one): the row shows the value waiting, the cvar keeps the old one until then.
 */
 #include "oz_ui_internal.h"
 
@@ -19,6 +21,7 @@ back every frame while the page shows, so a change from the console shows at onc
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <map>
 #include <vector>
 
 namespace OzUI {
@@ -46,7 +49,7 @@ struct Entry {
 struct Row {
 	Rml::String text, str, b0, b1, b2;
 	float num = 0;
-	bool on = false, shown = false, modified = false;
+	bool on = false, shown = false, modified = false, pending = false;	// pending: waiting for Apply
 };
 
 struct Group {
@@ -71,10 +74,16 @@ static std::vector<std::pair<int, std::vector<Rml::String>>> presets;	// (entry,
 static int displayDeadline;					// OzE_Milliseconds; 0 with nothing to confirm
 static Rml::String displayOld[3];
 static const char *const displayKeys[3] = { "video/display_mode", "video/resolution", "video/monitor" };
+// the Video tab's changes, waiting for Apply: entry -> its cvar's new value
+static std::map<int, Rml::String> staged;
+static bool applyShown;				// the footer's Apply and Discard: on the Video tab, or with changes waiting
+static int pendingCount;
+static Rml::String applyNote;
 
 static void ShowTip( int i );
 static void Refresh( int i );
 static void Apply( int i, const Rml::String &value );
+static void UpdateApply();
 static void PickerFrame();
 
 static int Find( const char *key ) {
@@ -366,10 +375,18 @@ static Rml::String CurrentCvar( const Entry &e ) {
 	return OzE_CvarExists( e.cvar.c_str() ) ? Rml::String( OzE_CvarString( e.cvar.c_str() ) ) : e.def;
 }
 
+// what the page shows: the value waiting for Apply, else the cvar's
+static Rml::String ShownCvar( size_t i ) {
+	const auto s = staged.find( (int)i );
+	return s != staged.end() ? s->second : CurrentCvar( entries[i] );
+}
+
 // the row from the cvar's current value
 static void MakeRow( size_t i, const Rml::String &cv ) {
 	const Entry &e = entries[i];
 	Row &r = rows[i];
+
+	r.pending = staged.count( (int)i ) != 0;
 
 	if ( e.type == "bind" ) {
 		int keys[3], defaults = 0;
@@ -454,6 +471,9 @@ static void UpdateShown() {
 		}
 		g.title = words.empty() || t == tabIds.size() ? g.name : tabLabels[t] + " / " + g.name;
 	}
+	// set here, where the focus moves to a tab or the search: Apply never takes away the button it's on
+	applyShown = !staged.empty() || ( words.empty() && tab == "video" );
+	UpdateApply();
 	if ( model ) {
 		model.DirtyVariable( "rows" );
 		model.DirtyVariable( "groups" );
@@ -576,6 +596,9 @@ void Settings_Frame() {
 		OzE_InsertText( "vid_restart\n" );
 	}
 	wasShown = shown;
+	if ( !staged.empty() && !IsPageOpen( "settings" ) ) {
+		Settings_Discard();		// closed some other way than Back (which asks): ui_close, a map load
+	}
 	PickerFrame();
 	if ( displayDeadline ) {
 		const int left = displayDeadline - OzE_Milliseconds();
@@ -597,7 +620,7 @@ void Settings_Frame() {
 		if ( entries[i].type == "bind" && !binds && lastCvar[i] != "\x01" ) {
 			continue;
 		}
-		const Rml::String cv = CurrentCvar( entries[i] );
+		const Rml::String cv = ShownCvar( i );
 		if ( cv != lastCvar[i] ) {
 			lastCvar[i] = cv;
 			MakeRow( i, cv );
@@ -612,7 +635,7 @@ void Settings_Frame() {
 
 static void Refresh( int i ) {
 	lastCvar[i] = "\x01";	// remade next frame
-	MakeRow( i, CurrentCvar( entries[i] ) );
+	MakeRow( i, ShownCvar( i ) );
 	if ( model ) {
 		model.DirtyVariable( "rows" );
 	}
@@ -656,8 +679,8 @@ static void PresetToCustom( int i ) {
 
 /*
 ================
-Video's window settings: the window changes at once (oz_settings_apply.c restarts the renderer), and
-goes back unless the player keeps it within 15 s (display_confirm.rml)
+Video's window settings: the window changes as they're applied (oz_settings_apply.c restarts the
+renderer), and goes back unless the player keeps it within 15 s (display_confirm.rml)
 ================
 */
 static bool IsDisplayKey( const Rml::String &key ) {
@@ -744,7 +767,29 @@ static void PickerFrame() {
 	}
 }
 
-static void Apply( int i, const Rml::String &value ) {
+// a Video setting changed on the Settings page waits for Apply; elsewhere (another page, the
+// crosshair editor's paste, the console with the page closed) it applies at once
+static bool Waits( const Entry &e ) {
+	return e.tab == "video" && IsPageOpen( "settings" );
+}
+
+// the cvar's value for what the page set: a number clamped to its range; "" for a malformed color
+static Rml::String CvarValue( const Entry &e, const Rml::String &value ) {
+	if ( e.type == "int" || e.type == "float" ) {
+		float v = (float)atof( value.c_str() );
+		if ( e.hasRange ) {
+			v = Rml::Math::Clamp( v, e.min, e.max );
+		}
+		return e.type == "int" && e.scale == 1.0f ? Fmt( "%d", (int)roundf( v ) ) : Fmt( "%g", v * e.scale );
+	}
+	if ( e.type == "color" && !( value.size() == 7 && value[0] == '#' && strspn( value.c_str() + 1, "0123456789abcdefABCDEF" ) == 6 ) ) {
+		return "";
+	}
+	return value;
+}
+
+// the cvar set now, and what follows from it: the preset, the window's 15 s question
+static void SetNow( int i, const Rml::String &value ) {
 	const Entry &e = entries[i];
 	const bool display = IsDisplayKey( e.key );
 
@@ -756,19 +801,7 @@ static void Apply( int i, const Rml::String &value ) {
 	}
 	Rml::String before = e.cvar.empty() ? Rml::String() : Rml::String( OzE_CvarString( e.cvar.c_str() ) );
 
-	if ( e.type == "int" || e.type == "float" ) {
-		float v = (float)atof( value.c_str() );
-		if ( e.hasRange ) {
-			v = Rml::Math::Clamp( v, e.min, e.max );
-		}
-		SetCvar( e, e.type == "int" && e.scale == 1.0f ? Fmt( "%d", (int)roundf( v ) ) : Fmt( "%g", v * e.scale ) );
-	} else if ( e.type == "color" ) {
-		if ( value.size() == 7 && value[0] == '#' && strspn( value.c_str() + 1, "0123456789abcdefABCDEF" ) == 6 ) {
-			SetCvar( e, value );
-		}
-	} else {
-		SetCvar( e, value );
-	}
+	SetCvar( e, value );
 	Refresh( i );
 
 	if ( e.cvar.empty() || before == OzE_CvarString( e.cvar.c_str() ) ) {
@@ -788,6 +821,82 @@ static void Apply( int i, const Rml::String &value ) {
 	}
 }
 
+static void Apply( int i, const Rml::String &value ) {
+	const Entry &e = entries[i];
+	const Rml::String v = CvarValue( e, value );
+
+	if ( e.type == "color" && v.empty() ) {
+		Refresh( i );	// not a color: the field shows the setting again
+		return;
+	}
+	if ( !Waits( e ) ) {
+		SetNow( i, v );
+		return;
+	}
+	if ( SameValue( v, CurrentCvar( e ).c_str() ) ) {
+		staged.erase( i );	// back to what it is: nothing to apply
+	} else {
+		staged[i] = v;
+	}
+	applyShown = applyShown || !staged.empty();
+	Refresh( i );
+	UpdateApply();
+}
+
+/*
+================
+The Video tab's Apply: its changes wait until Apply sets them all at once (so the window restarts
+once, and asks to be kept as before). Discard drops them, and so does leaving Settings any way but
+Back, which asks first (apply_confirm.rml).
+================
+*/
+static void UpdateApply() {
+	pendingCount = (int)staged.size();
+	applyNote = !applyShown ? "Changes apply and save as you make them." : pendingCount == 0 ? "Video changes wait for Apply." :
+		pendingCount == 1 ? "1 change waits for Apply." : Fmt( "%d changes wait for Apply.", pendingCount );
+	if ( model ) {
+		model.DirtyVariable( "apply_shown" );
+		model.DirtyVariable( "pending" );
+		model.DirtyVariable( "apply_note" );
+	}
+}
+
+void Settings_ApplyChanges() {
+	std::map<int, Rml::String> now;
+	now.swap( staged );		// each row shows its cvar again
+	for ( const auto &s : now ) {
+		SetNow( s.first, s.second );
+	}
+	UpdateApply();
+}
+
+void Settings_Discard() {
+	std::map<int, Rml::String> was;
+	was.swap( staged );
+	for ( const auto &s : was ) {
+		Refresh( s.first );
+	}
+	UpdateApply();
+}
+
+int Settings_Unapplied() {
+	return (int)staged.size();
+}
+
+// apply_confirm.rml: the changes applied or not, and Settings closed under it
+void Settings_Leave( bool apply ) {
+	std::map<int, Rml::String> now;
+	now.swap( staged );		// so Back closes Settings instead of asking again
+	GoBack();				// the question
+	GoBack();				// Settings
+	staged.swap( now );
+	if ( apply ) {
+		Settings_ApplyChanges();	// the window's question opens over the page below
+	} else {
+		Settings_Discard();
+	}
+}
+
 static void Toggle( int i ) {
 	const Entry &e = entries[i];
 	Apply( i, rows[i].on ? e.boolValues[0] : e.boolValues[1] );
@@ -799,7 +908,7 @@ static void Cycle( int i, int dir ) {
 		return;
 	}
 	const int n = (int)e.options.size();
-	const int o = OptionIndex( e, CurrentCvar( e ).c_str() );
+	const int o = OptionIndex( e, ShownCvar( i ).c_str() );
 	Apply( i, e.options[( ( o < 0 ? 0 : o + dir ) % n + n ) % n].cvarValue );	// SpinControl_Key wraps
 }
 
@@ -819,6 +928,9 @@ static void ResetEntry( int i ) {
 				OzE_SetBinding( k, e.command.c_str() );
 			}
 		}
+	} else if ( Waits( e ) ) {
+		Apply( i, e.def );	// waits for Apply as any other change there
+		return;
 	} else {
 		SetCvar( e, e.def );
 	}
@@ -1037,7 +1149,11 @@ static Rml::String ExportCode( const char *prefix ) {
 	for ( size_t i = 0; i < entries.size(); i++ ) {
 		const Entry &e = entries[i];
 		MakeRow( i, CurrentCvar( e ) );
-		if ( e.key.compare( 0, strlen( prefix ), prefix ) || e.tab == "profile" || !rows[i].modified ) {
+		const bool modified = rows[i].modified;
+		if ( staged.count( (int)i ) ) {
+			MakeRow( i, ShownCvar( i ) );	// the code has the setting as it is; the row shows what waits for Apply
+		}
+		if ( e.key.compare( 0, strlen( prefix ), prefix ) || e.tab == "profile" || !modified ) {
 			continue;
 		}
 		cJSON_AddStringToObject( o, e.key.c_str(), GodotValue( e ).c_str() );
@@ -1205,9 +1321,13 @@ Rml::String Settings_PageRml() {
 			rml += Fmt( "<div class=\"group\" data-if=\"groups[%d].shown\"><span class=\"t\">{{groups[%d].title}}</span><span class=\"rule\"/></div>\n",
 				e.groupIndex, e.groupIndex );
 		}
-		rml += Fmt( "<div class=\"row\" id=\"row_%s\" data-if=\"rows[%d].shown\" data-class-modified=\"rows[%d].modified\">", e.id.c_str(), (int)i, (int)i );
+		// a Video row's change waits for Apply (Waits)
+		const bool waits = e.tab == "video";
+		rml += Fmt( "<div class=\"row\" id=\"row_%s\" data-if=\"rows[%d].shown\" data-class-modified=\"rows[%d].modified\"", e.id.c_str(), (int)i, (int)i ) +
+			( waits ? Fmt( " data-class-pending=\"rows[%d].pending\"", (int)i ) : Rml::String() ) + ">";
 		rml += "<span class=\"label\"><span>" + Escape( e.label ) + "</span>" + ( e.restart ? "<span class=\"badge\">restart</span>" : "" ) +
-			( e.wired ? "" : "<span class=\"badge dimb\">soon</span>" ) + "</span>";
+			( e.wired ? "" : "<span class=\"badge dimb\">soon</span>" ) +
+			( waits ? Fmt( "<span class=\"badge\" data-if=\"rows[%d].pending\">not applied</span>", (int)i ) : Rml::String() ) + "</span>";
 		rml += "<div class=\"control " + e.type + "\">" + Control( i ) + "</div></div>\n";
 	}
 	rml += "</div>\n<div class=\"info\">\n<div class=\"info-label q3\">{{tip_label}}</div>\n<div class=\"info-text\">{{tip_text}}</div>\n"
@@ -1218,7 +1338,9 @@ Rml::String Settings_PageRml() {
 		"<button class=\"btn small\" id=\"copy_code\">Copy config code</button>"
 		"<button class=\"btn small\" id=\"paste_code\">Paste code</button>"
 		"<button class=\"btn small primary\" id=\"xh_editor\" data-if=\"tab == 'crosshair' &amp;&amp; search == ''\" onclick=\"page crosshair\">Crosshair editor</button>"
-		"<span class=\"note\">Changes apply and save as you make them.</span></div>\n"
+		"<span class=\"note\">{{apply_note}}</span>"
+		"<button class=\"btn small\" id=\"settings_discard\" data-if=\"apply_shown\" data-class-refused=\"pending == 0\">Discard</button>"
+		"<button class=\"btn small\" id=\"settings_apply\" data-if=\"apply_shown\" data-class-primary=\"pending &gt; 0\" data-class-refused=\"pending == 0\">Apply</button></div>\n"
 		"</div>\n</body>\n</rml>\n";
 	return rml;
 }
@@ -1238,6 +1360,7 @@ void Settings_BindModel( Rml::Context *context ) {
 		s.RegisterMember( "on", &Row::on );
 		s.RegisterMember( "shown", &Row::shown );
 		s.RegisterMember( "modified", &Row::modified );
+		s.RegisterMember( "pending", &Row::pending );
 	}
 	if ( auto g = c.RegisterStruct<Group>() ) {
 		g.RegisterMember( "title", &Group::title );
@@ -1253,10 +1376,13 @@ void Settings_BindModel( Rml::Context *context ) {
 	c.Bind( "tip_text", &tipText );
 	c.Bind( "tip_note", &tipNote );
 	c.Bind( "cm360", &cm360 );
+	c.Bind( "apply_shown", &applyShown );
+	c.Bind( "pending", &pendingCount );
+	c.Bind( "apply_note", &applyNote );
 	model = c.GetModelHandle();
 
 	for ( size_t i = 0; i < entries.size(); i++ ) {
-		MakeRow( i, CurrentCvar( entries[i] ) );
+		MakeRow( i, ShownCvar( i ) );
 	}
 	UpdateShown();
 	UpdatePreviews();
@@ -1411,6 +1537,14 @@ public:
 					PlaySound( Sound::Buzz );
 				}
 				Printf( n < 0 ? "That isn't a config code\n" : "Applied %d settings from the code\n", n );
+			} else if ( id == "settings_apply" || id == "settings_discard" ) {
+				if ( staged.empty() ) {
+					PlaySound( Sound::Buzz );
+				} else if ( id == "settings_apply" ) {
+					Settings_ApplyChanges();
+				} else {
+					Settings_Discard();
+				}
 			} else if ( id == "back" ) {
 				OzE_ExecuteNow( "ui_back\n" );
 			} else if ( ci >= 0 ) {
@@ -1481,7 +1615,7 @@ public:
 			} else if ( key == Rml::Input::KI_DOWN && InList( target ) ) {
 				Rml::Element *last = EdgeControl( true );
 				if ( last && ( target == last || target->GetParentNode() == last->GetParentNode() ) ) {
-					to = page->GetElementById( "reset_tab" );
+					to = page->GetElementById( staged.empty() ? "reset_tab" : "settings_apply" );
 				}
 			} else if ( key == Rml::Input::KI_UP && InFooter( target ) ) {
 				to = EdgeControl( true );
@@ -1547,7 +1681,7 @@ const char *Settings_Value( const char *key ) {
 		return "";
 	}
 	const Entry &e = entries[i];
-	value = CurrentCvar( e );
+	value = ShownCvar( i );
 	if ( e.type == "bool" ) {
 		value = SameValue( e.boolValues[1], value.c_str() ) ? "true" : "false";
 	} else if ( ( e.type == "int" || e.type == "float" ) && e.scale != 1.0f ) {	// 60 (%) for 0.6
@@ -1572,7 +1706,7 @@ const char *Settings_Get( const char *key ) {
 	if ( i < 0 ) {
 		return "";
 	}
-	MakeRow( i, CurrentCvar( entries[i] ) );
+	MakeRow( i, ShownCvar( i ) );
 	value = entries[i].type == "bind" ? rows[i].b0 + " " + rows[i].b1 + " " + rows[i].b2 : rows[i].text;
 	return value.c_str();
 }

@@ -1308,10 +1308,16 @@ qboolean Com_DL_Perform( download_t *dl )
 		qboolean autoDownload = dl->mapAutoDownload;
 		char fallbackURL[MAX_OSPATH];
 		char originalName[MAX_OSPATH];
+		char failure[MAX_OSPATH];	// Oz: for the player, if this ends the join
 
 		dl->func.easy_getinfo( msg->easy_handle, CURLINFO_RESPONSE_CODE, &code );
 		Com_Printf( S_COLOR_RED "Download Error: %s Code: %ld\n",
 			dl->func.easy_strerror( msg->data.result ), code );
+		if ( code == 404 )
+			Com_sprintf( failure, sizeof( failure ), "The map %s isn't installed, and the map archives don't have it.", dl->Name );
+		else
+			Com_sprintf( failure, sizeof( failure ), "The map %s isn't installed, and its download failed (%s, code %ld).",
+				dl->Name, dl->func.easy_strerror( msg->data.result ), code );
 
 		// save fallback info before cleanup
 		Q_strncpyz( fallbackURL, dl->fallbackURL, sizeof( fallbackURL ) );
@@ -1336,7 +1342,8 @@ qboolean Com_DL_Perform( download_t *dl )
 		{
 			if ( cls.state == CA_CONNECTED )
 			{
-				Com_Error( ERR_DROP, "%s\n", "download error" );
+				Com_Error( ERR_DROP, "%s Put its pk3 in the Maps folder and %s again.", failure,
+					clc.demoplaying ? "play the demo" : "join" );	// Oz: was "download error"
 			}
 		}
 	}

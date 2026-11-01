@@ -489,6 +489,7 @@ to handle mirrors,
 void RE_RenderScene( const refdef_t *fd ) {
 	viewParms_t		parms;
 	int				startTime;
+	int64_t			prof;	// Oz: frametime's details
 
 	if ( !tr.registered ) {
 		return;
@@ -507,7 +508,9 @@ void RE_RenderScene( const refdef_t *fd ) {
 
 	RE_BeginScene(fd);
 
+	prof = ri.ProfStart();
 	R_OzRigPrepareScene();	// Oz: pose the fighters from their parts' entities
+	ri.ProfDetail( "rf fighters", prof );
 
 	// SmileTheory: playing with shadow mapping
 	if (!( fd->rdflags & RDF_NOWORLDMODEL ) && tr.refdef.num_dlights && r_dlightMode->integer >= 2)
@@ -610,7 +613,9 @@ void RE_RenderScene( const refdef_t *fd ) {
 		parms.flags |= VPF_ORTHOGRAPHIC;	// Oz: the map editor's 2D views (R_RenderView)
 	}
 
+	prof = ri.ProfStart();	// Oz
 	R_RenderView( &parms );
+	ri.ProfDetail( "rf view", prof );
 
 	if(!( fd->rdflags & RDF_NOWORLDMODEL ) || ( fd->rdflags & RDF_OZ_EDITOR ))	// Oz: the map editor's view too
 		R_AddPostProcessCmd();

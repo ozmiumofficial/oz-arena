@@ -37,6 +37,10 @@ body.hc .mbar .hint { color: #b0a79e; }
 body.hc .othersh { color: #d9d0c6; }
 body.hc .card .cap .id { color: #d9d0c6; }
 body.hc .card .fits span { background-color: #000000; }
+body.hc .nomaps, body.hc .looking { color: #d9d0c6; }
+body.hc .looking { color: #b0a79e; }
+body.hc .raceinfo .level .est { color: #d9d0c6; }
+body.hc .raceinfo .fact.by { color: #d9d0c6; }
 body.hc .preview .cap .id { color: #d9d0c6; }
 body.hc .desc { color: #d9d0c6; }
 body.hc .field .lbl { color: #e6ddd2; }

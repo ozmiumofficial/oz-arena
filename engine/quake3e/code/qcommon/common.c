@@ -3164,6 +3164,9 @@ static const char *const com_engineCvars[] = {
 	"r_ext_multisample", "r_gamma", "vid_xpos", "vid_ypos",
 	"s_volume", "s_musicVolume", "s_useOpenAL", "s_alHRTF", "s_alDevice", "s_khz",
 	"in_joystick", "cl_demoPlayer",
+	// Oz: joining any server takes what it needs, under every mod: a mod's first config is the install's
+	// baseq3/q3config.cfg, whose id default (cl_allowDownload 0) refused every OSP and CPMA server's paks
+	"cl_allowDownload", "cl_mapAutoDownload",
 	// Oz: the options that change the 3D view (P2, P6), under every mod too
 	"oz_gameplay_gun_fov", "oz_gameplay_gun_widescreen", "oz_gameplay_view_bob", "oz_gameplay_damage_kick",
 	"oz_gameplay_force_model",
@@ -3238,6 +3241,13 @@ static void Com_ExecuteEngineConfig( void ) {
 		text = Z_Malloc( len + 1 );
 		FS_Read( text, len, f );
 		text[ len ] = '\0';
+		// a setting the file doesn't hold yet (one listed since it was written) takes Oz's default,
+		// not the mod config's value, which the next write would save for every mod
+		for ( i = 0; i < ARRAY_LEN( com_engineCvars ); i++ ) {
+			if ( !Q_stristr( text, va( "seta %s \"", com_engineCvars[i] ) ) && Cvar_Flags( com_engineCvars[i] ) != CVAR_NONEXISTENT ) {
+				Cvar_Reset( com_engineCvars[i] );
+			}
+		}
 		// a line at a time, as exec runs a file: EXEC_NOW took the whole file for one command, so
 		// seta cl_renderer got the rest of the file as its value and the default renderer loaded
 		Cbuf_InsertText( text );
@@ -4650,8 +4660,11 @@ void Com_ProfEnd( comProf_t part, int64_t start ) {
 // what a part spent its time on, by name (a static string), for the hitch line: Com_ProfDetail
 // adds the time since a Com_ProfStart, so any code can say where a slow frame went
 #define COM_PROF_DETAILS	32
-static struct { const char *name; int64_t us; int count; } com_profDetails[COM_PROF_DETAILS];
+typedef struct { const char *name; int64_t us; int count; } comProfDetail_t;
+static comProfDetail_t com_profDetails[COM_PROF_DETAILS];
 static int com_profDetailCount;
+static comProfDetail_t com_ftDetails[COM_PROF_DETAILS];	// frametime's: every frame's details added up
+static int com_ftDetailCount;
 
 void Com_ProfDetail( const char *name, int64_t start ) {
 	int64_t us;
@@ -4731,10 +4744,27 @@ static void Com_FrameTimeRecord( const comFrameRecord_t *r, int64_t now ) {
 		Com_Memset( com_profUs, 0, sizeof( com_profUs ) );
 		Com_Memset( com_ftWorst, 0, sizeof( com_ftWorst ) );
 		com_ftCount = 0;
+		com_ftDetailCount = 0;
 		return;
 	}
 	for ( i = 0; i < COM_PROF_COUNT; i++ ) {
 		com_profUs[i] += (int64_t)( r->parts[i] * 1000.0f );
+	}
+	for ( i = 0; i < com_profDetailCount; i++ ) {
+		int k;
+		for ( k = 0; k < com_ftDetailCount && com_ftDetails[k].name != com_profDetails[i].name; k++ ) {
+		}
+		if ( k == com_ftDetailCount ) {
+			if ( k == COM_PROF_DETAILS ) {
+				continue;
+			}
+			com_ftDetails[k].name = com_profDetails[i].name;
+			com_ftDetails[k].us = 0;
+			com_ftDetails[k].count = 0;
+			com_ftDetailCount++;
+		}
+		com_ftDetails[k].us += com_profDetails[i].us;
+		com_ftDetails[k].count += com_profDetails[i].count;
 	}
 	com_ftLengths[com_ftCount++] = r->length;
 	for ( worst = 0, i = 1; i < COM_FT_WORST; i++ ) {
@@ -4757,6 +4787,11 @@ static void Com_FrameTimeRecord( const comFrameRecord_t *r, int64_t now ) {
 			us / 1000.0 / com_frameTimeFrames, us > 0 ? com_frameTimeFrames * 1e6 / us : 0.0 );
 		for ( i = 0; i < COM_PROF_COUNT; i++ ) {
 			Com_Printf( "frametime: %s %.3f ms\n", com_profNames[i], com_profUs[i] / 1000.0 / com_frameTimeFrames );
+		}
+		// the named details (Com_ProfDetail) a frame on average, under their parts
+		for ( i = 0; i < com_ftDetailCount; i++ ) {
+			Com_Printf( "frametime: detail %s %.3f ms, %.2f calls\n", com_ftDetails[i].name,
+				com_ftDetails[i].us / 1000.0 / com_frameTimeFrames, (float)com_ftDetails[i].count / com_frameTimeFrames );
 		}
 		qsort( com_ftLengths, n, sizeof( *com_ftLengths ), Com_CompareFloats );
 		median = v[n / 2];

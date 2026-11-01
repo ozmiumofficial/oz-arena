@@ -8,6 +8,11 @@ pages at that frame's OzUI_Draw, in the order sent, then dropped. Every renderer
 Text is laid out once and kept: most of the HUD's text is the same from frame to frame, and
 shaping it and making its geometry anew every frame cost more than the rest of the HUD together.
 A text is cached by everything but its place, laid out from its pen start, and drawn moved there.
+
+A face is made for each whole-pixel size, and its glyphs rendered into an atlas at its first draw: a few
+milliseconds each. A text whose size changes from frame to frame (a pop, a damage number's growth) is
+laid out at a size that stays and drawn scaled (OzUI_HudText's scale), or a kill's center print and
+damage numbers made a face every frame they grew or shrank.
 */
 #include "oz_ui_internal.h"
 #include "oz_ui.h"
@@ -16,6 +21,7 @@ A text is cached by everything but its place, laid out from its pen start, and d
 #include <cstring>
 #include <deque>
 #include <map>
+#include <set>
 #include <tuple>
 #include <unordered_map>
 
@@ -78,10 +84,19 @@ struct Item {
 	CachedText *text = nullptr;
 	size_t piece = 0;
 	Rml::Vector2f at;
+	float scale = 1.0f;				// the text's, about at
 };
 
 std::vector<Rml::String> imageNames;			// handle - 1
 std::vector<Rml::Texture> images;
+std::vector<int> imagesAsked;		// the renderer start each was last asked for in
+std::deque<int> readAhead;			// images asked for since the renderer started, to read (Hud_Render)
+int rendererStart;
+// each face and outline drawn since the UI started, and those to draw again after the renderer restarts: a
+// face's glyph atlas and its outline's are made at their first draw (1 to 8 ms each), and they go with the
+// renderer at every map load
+std::set<std::pair<Rml::FontFaceHandle, Rml::FontEffectsHandle>> layersDrawn;
+std::deque<std::pair<Rml::FontFaceHandle, Rml::FontEffectsHandle>> layersAhead;
 std::map<std::pair<int, int>, Face> faces;		// (font, size)
 std::map<std::tuple<Rml::FontFaceHandle, int, int>, Rml::FontEffectsHandle> effects;	// (face, width, alpha)
 std::unordered_map<Rml::String, CachedText> texts;
@@ -139,6 +154,16 @@ const Face *GetFace( int font, int size ) {
 		}
 	}
 	return f.handle ? &f : nullptr;
+}
+
+// OZ_HUD_TEXT_STEPPED: a size snapped up to one of a few, each 12.5% above the last, so a size that drifts
+// (a damage number's, with the damage) comes from a handful of faces
+int SteppedSize( float size ) {
+	float s = 8.0f;
+	while ( s < size ) {
+		s *= 1.125f;
+	}
+	return (int)std::ceil( s );
 }
 
 Rml::FontEffectsHandle GetOutline( Rml::FontFaceHandle face, int width, int alpha ) {
@@ -286,6 +311,7 @@ void LayOut( CachedText &t ) {
 	}
 	t.laidOut = true;
 	t.version = Rml::GetFontEngineInterface()->GetVersion( t.face->handle );
+	layersDrawn.insert( { t.face->handle, t.fx } );
 }
 
 } // namespace
@@ -298,6 +324,28 @@ bool Hud_Pending() {
 // inside the UI's frame, before the pages
 void Hud_Render( int width, int height ) {
 	Rml::RenderManager *m = Manager();
+	// one image a frame read ahead of its first draw: RmlUi reads a file texture as it's first drawn, and
+	// a 32-pixel icon took up to 9 ms to find among the install's paks: a kill's weapon in the feed, a
+	// pickup, the killer's card art. Here, inside the UI's frame, the renderer is the UI's to load into.
+	if ( !readAhead.empty() ) {
+		const long long prof = OzE_ProfStart();
+		images[readAhead.front()].GetDimensions();
+		readAhead.pop_front();
+		OzE_ProfDetail( "hud read ahead", prof );
+	} else if ( !layersAhead.empty() && m ) {
+		// a face and outline the last map drew, drawn off the screen to make its atlases again
+		const long long prof = OzE_ProfStart();
+		Rml::TexturedMeshList meshes;
+		Rml::GetFontEngineInterface()->GenerateString( *m, layersAhead.front().first, layersAhead.front().second, "0",
+			Rml::Vector2f( -1000.0f, -1000.0f ), Rml::ColourbPremultiplied( 255, 255 ), 1.0f, Rml::TextShapingContext{ language }, meshes );
+		m->PrepareRender( Rml::Vector2i( width, height ) );
+		for ( Rml::TexturedMesh &tm : meshes ) {
+			m->MakeGeometry( std::move( tm.mesh ) ).Render( Rml::Vector2f( 0.0f, 0.0f ), tm.texture );
+		}
+		m->ResetState();
+		layersAhead.pop_front();
+		OzE_ProfDetail( "hud layers ahead", prof );
+	}
 	FlushShapes();
 	if ( m && !items.empty() ) {
 		Rml::FontEngineInterface *fe = Rml::GetFontEngineInterface();
@@ -315,7 +363,15 @@ void Hud_Render( int width, int height ) {
 			}
 			if ( it.piece < t.pieces.size() ) {
 				const long long prof = OzE_ProfStart();
-				t.pieces[it.piece].geometry.Render( it.at, t.pieces[it.piece].texture );
+				if ( it.scale != 1.0f ) {
+					const Rml::Matrix4f scaled = Rml::Matrix4f::Translate( it.at.x, it.at.y, 0.0f ) *
+						Rml::Matrix4f::Scale( it.scale, it.scale, 1.0f );
+					m->SetTransform( &scaled );
+					t.pieces[it.piece].geometry.Render( Rml::Vector2f( 0.0f, 0.0f ), t.pieces[it.piece].texture );
+					m->SetTransform( nullptr );
+				} else {
+					t.pieces[it.piece].geometry.Render( it.at, t.pieces[it.piece].texture );
+				}
 				OzE_ProfDetail( "hud text draw", prof );
 			}
 		}
@@ -340,6 +396,13 @@ void Hud_Clear() {
 	}
 }
 
+void Hud_RendererShutdown() {
+	Hud_Clear();
+	readAhead.clear();
+	rendererStart++;
+	layersAhead.assign( layersDrawn.begin(), layersDrawn.end() );
+}
+
 // a HUD image's texture, to draw it outside the HUD (the crosshair previews)
 Rml::Texture Hud_ImageTexture( int image ) {
 	return image > 0 && image <= (int)images.size() ? images[image - 1] : Rml::Texture();
@@ -351,6 +414,10 @@ void Hud_Shutdown() {
 	texts.clear();
 	images.clear();
 	imageNames.clear();
+	imagesAsked.clear();
+	readAhead.clear();
+	layersDrawn.clear();
+	layersAhead.clear();
 	faces.clear();
 	effects.clear();
 }
@@ -372,11 +439,17 @@ int OzUI_HudImage( const char *name ) {
 	}
 	for ( size_t i = 0; i < imageNames.size(); i++ ) {
 		if ( imageNames[i] == name ) {
+			if ( imagesAsked[i] != rendererStart ) {
+				imagesAsked[i] = rendererStart;
+				readAhead.push_back( (int)i );
+			}
 			return (int)i + 1;
 		}
 	}
 	imageNames.push_back( name );
 	images.push_back( m->LoadTexture( name ) );
+	imagesAsked.push_back( rendererStart );
+	readAhead.push_back( (int)images.size() - 1 );
 	return (int)images.size();
 }
 
@@ -384,24 +457,42 @@ void OzUI_HudTris( const ozHudVertex_t *verts, int numVerts, int image ) {
 	if ( !verts || numVerts < 3 || !Manager() ) {
 		return;
 	}
+	const long long prof = OzE_ProfStart();
 	if ( image != shapesImage ) {
 		FlushShapes();
 		shapesImage = image;
 	}
 	numVerts -= numVerts % 3;
-	const int base = (int)shapes.vertices.size();
+	// sized once and filled in place: a frame hands over some 10,000 vertices (the speed arc's strips are most),
+	// and a push_back each took 0.15 ms of the HUD's 0.26
+	const size_t base = shapes.vertices.size();
+	shapes.vertices.resize( base + numVerts );
+	shapes.indices.resize( base + numVerts );
+	Rml::Vertex *out = shapes.vertices.data() + base;
+	int *index = shapes.indices.data() + base;
 	for ( int i = 0; i < numVerts; i++ ) {
 		const ozHudVertex_t &v = verts[i];
-		Rml::Vertex rv;
-		rv.position = Rml::Vector2f( v.xy[0], v.xy[1] );
-		rv.tex_coord = Rml::Vector2f( v.st[0], v.st[1] );
-		rv.colour = Rml::Colourb( v.color[0], v.color[1], v.color[2], v.color[3] ).ToPremultiplied();
-		shapes.vertices.push_back( rv );
-		shapes.indices.push_back( base + i );
+		const unsigned a = v.color[3];
+		out[i].position = Rml::Vector2f( v.xy[0], v.xy[1] );
+		out[i].tex_coord = Rml::Vector2f( v.st[0], v.st[1] );
+		out[i].colour = Rml::ColourbPremultiplied( (Rml::byte)( v.color[0] * a / 255 ), (Rml::byte)( v.color[1] * a / 255 ),
+			(Rml::byte)( v.color[2] * a / 255 ), (Rml::byte)a );
+		index[i] = (int)( base + i );
 	}
+	OzE_ProfDetail( "hud tris", prof );
 }
 
-float OzUI_HudText( const char *text, float x, float y, int font, float size, int flags, const float *rgba, float outline, float maxWidth ) {
+float OzUI_HudText( const char *text, float x, float y, int font, float size, float scale, int flags, const float *rgba,
+		float outline, float maxWidth ) {
+	if ( flags & OZ_HUD_TEXT_STEPPED ) {
+		const int stepped = SteppedSize( size );
+		scale *= size / stepped;
+		size = (float)stepped;
+	}
+	if ( scale <= 0.0f ) {
+		return 0.0f;
+	}
+	maxWidth /= scale;
 	const Face *f = GetFace( font, (int)( size + 0.5f ) );
 	if ( !f || !text ) {
 		return 0.0f;
@@ -476,7 +567,7 @@ float OzUI_HudText( const char *text, float x, float y, int font, float size, in
 		}
 	}
 	if ( flags & OZ_HUD_TEXT_MEASURE ) {
-		return t.width;
+		return t.width * scale;
 	}
 	if ( !t.laidOut || t.version != Rml::GetFontEngineInterface()->GetVersion( f->handle ) ) {
 		const long long prof = OzE_ProfStart();
@@ -485,21 +576,22 @@ float OzUI_HudText( const char *text, float x, float y, int font, float size, in
 	}
 	const int align = flags & 3;
 	if ( align == OZ_HUD_ALIGN_CENTER ) {
-		x -= t.width * 0.5f;
+		x -= t.width * scale * 0.5f;
 	} else if ( align == OZ_HUD_ALIGN_RIGHT ) {
-		x -= t.width;
+		x -= t.width * scale;
 	}
 	FlushShapes();
-	// whole pixels, as RmlUi places glyphs
-	const Rml::Vector2f at( std::round( x ), std::round( y ) );
+	// whole pixels, as RmlUi places glyphs (a scaled text's glyphs fall between them anyway)
+	const Rml::Vector2f at = scale != 1.0f ? Rml::Vector2f( x, y ) : Rml::Vector2f( std::round( x ), std::round( y ) );
 	for ( size_t i = 0; i < t.pieces.size(); i++ ) {
 		Item it;
 		it.text = &t;
 		it.piece = i;
 		it.at = at;
+		it.scale = scale;
 		items.push_back( it );
 	}
-	return t.width;
+	return t.width * scale;
 }
 
 } // extern "C"

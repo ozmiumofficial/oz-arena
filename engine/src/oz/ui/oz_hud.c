@@ -48,6 +48,7 @@ the Godot build never recorded (frags by weapon, pickups, deaths by cause, the r
 #define ALIGN_RIGHT		OZ_HUD_ALIGN_RIGHT
 #define TEXT_NOCODES	OZ_HUD_TEXT_NOCODES
 #define TEXT_MEASURE	OZ_HUD_TEXT_MEASURE
+#define TEXT_STEPPED	OZ_HUD_TEXT_STEPPED
 
 // ================================================================ the match, as a cgame would see it
 
@@ -380,8 +381,10 @@ static int ImageNamed( const char *name ) {
 	return name && name[0] ? OzUI_HudImage( name ) : 0;
 }
 
-// text: y is the baseline, x its left end (or middle, or right end); returns the width
-static float TextFlags( int font, float x, float y, const char *s, float size, const float *color, int flags, float outline, float maxWidth ) {
+// text: y is the baseline, x its left end (or middle, or right end); returns the width. A text whose size
+// animates (a pop) passes its steady size and the pop as scale, so it keeps its face (oz_ui_hud.cpp)
+static float TextScaled( int font, float x, float y, const char *s, float size, float scale, const float *color, int flags,
+		float outline, float maxWidth ) {
 	float	rgba[4];
 
 	if ( !s || !s[0] ) {
@@ -397,7 +400,11 @@ static float TextFlags( int font, float x, float y, const char *s, float size, c
 	rgba[1] = color[1];
 	rgba[2] = color[2];
 	rgba[3] = color[3] * hudAlpha;
-	return OzUI_HudText( s, x, y, font, (float)(int)size, flags, rgba, outline, maxWidth );
+	return OzUI_HudText( s, x, y, font, (float)(int)size, scale, flags, rgba, outline, maxWidth );
+}
+
+static float TextFlags( int font, float x, float y, const char *s, float size, const float *color, int flags, float outline, float maxWidth ) {
+	return TextScaled( font, x, y, s, size, 1.0f, color, flags, outline, maxWidth );
 }
 
 // hud_style.gd text(): no color codes, a soft dark outline
@@ -423,10 +430,11 @@ static qboolean HasBlack( const char *s ) {
 
 // a text with black letters (a player's name, mostly) would vanish on the HUD's dark panels and the
 // night skies: a soft grey panel goes behind it (Ozmium, 2026-10-31); y is the text's baseline
-static void BlackBacking( int font, float x, float y, const char *s, float size, const float *color, int align, float maxWidth ) {
+static void BlackBacking( int font, float x, float y, const char *s, float size, float scale, const float *color, int align,
+		float maxWidth ) {
 	if ( s && color[3] > 0.0f && HasBlack( s ) ) {
-		const float	w = TextFlags( font, 0, 0, s, size, color, TEXT_MEASURE, 0, maxWidth );
-		const float	padX = size * 0.22f, top = size * 0.86f, bottom = size * 0.26f;
+		const float	w = TextScaled( font, 0, 0, s, size, scale, color, TEXT_MEASURE, 0, maxWidth );
+		const float	padX = size * scale * 0.22f, top = size * scale * 0.86f, bottom = size * scale * 0.26f;
 		const float	left = ( align & 3 ) == ALIGN_CENTER ? x - w * 0.5f : ( align & 3 ) == ALIGN_RIGHT ? x - w : x;
 		vec4_t		grey = { 0.62f, 0.62f, 0.62f, 0.5f };
 
@@ -436,9 +444,14 @@ static void BlackBacking( int font, float x, float y, const char *s, float size,
 }
 
 // hud_style.gd ctext(): Quake 3's color codes
+static float CTextScaled( int font, float x, float y, const char *s, float size, float scale, const float *color, int align,
+		float maxWidth ) {
+	BlackBacking( font, x, y, s, size, scale, color, align, maxWidth );
+	return TextScaled( font, x, y, s, size, scale, color, align, 0.35f, maxWidth );
+}
+
 static float CText( int font, float x, float y, const char *s, float size, const float *color, int align, float maxWidth ) {
-	BlackBacking( font, x, y, s, size, color, align, maxWidth );
-	return TextFlags( font, x, y, s, size, color, align, 0.35f, maxWidth );
+	return CTextScaled( font, x, y, s, size, 1.0f, color, align, maxWidth );
 }
 
 static float TextWidth( int font, const char *s, float size ) {
@@ -933,6 +946,8 @@ static const char *ObituaryLine( int mod ) {
 }
 
 static void Card( float x, float y, float w, float h, int client, qboolean highlight, float alpha );
+static void LoadImages( void );
+static void LoadCards( void );
 
 static void PlayerName( int client, char *out, int size ) {
 	const char *info;
@@ -1754,6 +1769,12 @@ static void LoadImages( void ) {
 		img.flags[0][i] = ImageNamed( va( "icons/iconf_red%d", i + 1 ) );
 		img.flags[1][i] = ImageNamed( va( "icons/iconf_blu%d", i + 1 ) );
 	}
+	// and the rest a match shows, so they're read ahead (oz_ui_hud.cpp Hud_Render) rather than at their first
+	// show: the items' icons (a pickup) and the level shot (the board's header)
+	for ( i = 1; i < (int)numHudItems; i++ ) {
+		ImageNamed( hudItems[i].icon );
+	}
+	ImageNamed( va( "levelshots/%s", Info_ValueForKey( CS( CS_SERVERINFO ), "mapname" ) ) );
 }
 
 static int ItemIcon( int itemNum ) {
@@ -2652,7 +2673,7 @@ static void ChatLine( float x, float y, const char *text, float fs, float alpha 
 	float	c[4];
 
 	Col( c, INK, alpha );
-	BlackBacking( FONT_MEDIUM, x, y, text, fs, c, ALIGN_LEFT, 0 );
+	BlackBacking( FONT_MEDIUM, x, y, text, fs, 1.0f, c, ALIGN_LEFT, 0 );
 	TextFlags( FONT_MEDIUM, x, y, text, fs, c, ALIGN_LEFT, 0.7f, 0 );
 }
 
@@ -2893,7 +2914,7 @@ static void DrawCenter( float W, float H ) {
 			*nl++ = 0;
 		}
 		Col( c, i == 0 ? INK_HOT : DIM, a );
-		CText( FONT_LABEL, W * 0.5f, y + i * size * 1.2f, line, size * pop * ( i == 0 ? 1.0f : 0.7f ), c, ALIGN_CENTER, 0 );
+		CTextScaled( FONT_LABEL, W * 0.5f, y + i * size * 1.2f, line, size * ( i == 0 ? 1.0f : 0.7f ), pop, c, ALIGN_CENTER, 0 );
 	}
 }
 
@@ -3216,8 +3237,11 @@ int OzHud_RefEntity( refEntity_t *ent ) {
 		return 1;
 	}
 	// Gameplay > Gun position, side offset and field of view: the gun is placed when the scene renders,
-	// against that scene's view (oz_hud_view.c)
-	if ( ent->renderfx & RF_FIRST_PERSON ) {
+	// against that scene's view (oz_hud_view.c). Not id's damage blood blob, a first-person sprite drawn
+	// without the gun's depth hack (CG_DamageBlendBlob): for half a second after every hit it came first,
+	// so the marks and effects drawn after it counted as the gun's, filled its quads, and the lightning
+	// beam's layers were drawn where the cgame put them, off the gun as it shows
+	if ( ( ent->renderfx & RF_FIRST_PERSON ) && ( ent->reType != RT_SPRITE || ( ent->renderfx & RF_DEPTHHACK ) ) ) {
 		return OzView_Gun( ent );
 	}
 	// Gameplay > Force enemy model, and what hangs on a forced body (oz_hud_view.c)
@@ -3348,7 +3372,7 @@ static void DrawDamageNumbers( float W, float H ) {
 
 	for ( i = 0; i < MAX_NUMBERS; i++ ) {
 		damageNumber_t	*n = &hud.numbers[i];
-		float			x, y, heat, size, alpha, c[4];
+		float			x, y, heat, size, pop, alpha, c[4];
 		static const vec4_t yellow = { 1.0f, 0.85f, 0.2f, 1 };
 		static const vec4_t orange = { 1.0f, 0.45f, 0.1f, 1 };
 		static const vec4_t red = { 1.0f, 0.12f, 0.08f, 1 };
@@ -3375,11 +3399,12 @@ static void DrawDamageNumbers( float W, float H ) {
 		c[3] = alpha;
 		size = ( 40 + ( n->total < 200 ? n->total : 200 ) * 0.18f ) * 0.9f * u;
 		// 1.45x on a hit, back to 1 in 0.18 s with a little overshoot (TRANS_BACK)
+		pop = 1.0f;
 		if ( n->pop < 0.18f ) {
 			const float k = n->pop / 0.18f - 1.0f;
-			size *= 1.0f + 0.45f * ( 1.0f - ( 1.0f + 2.70158f * k * k * k + 1.70158f * k * k ) );
+			pop = 1.0f + 0.45f * ( 1.0f - ( 1.0f + 2.70158f * k * k * k + 1.70158f * k * k ) );
 		}
-		TextFlags( FONT_NUM, x, y, va( "%d", n->total ), size, c, ALIGN_CENTER | TEXT_NOCODES, 0.85f, 0 );
+		TextScaled( FONT_NUM, x, y, va( "%d", n->total ), size, pop, c, ALIGN_CENTER | TEXT_NOCODES | TEXT_STEPPED, 0.85f, 0 );
 	}
 }
 
@@ -3648,6 +3673,7 @@ void OzHud_Draw( void ) {
 	float				m, vitW, vitH, ammW, ammH, barX, barY, barW, barH, speedW, speedH, speedX, speedY;
 	float				vitX, vitY, ammoX, ammoY, feedX, feedY, feedW, feedH, chatW, chatH, chatBottom, barTop;
 	qboolean			barOn, classic, speedOn, arc, playing, spectator;
+	int64_t				prof;	// frametime's details
 
 	if ( !OzHud_Active() ) {
 		return;
@@ -3664,12 +3690,15 @@ void OzHud_Draw( void ) {
 	cgs.glconfig.h = cls.glconfig.vidHeight;
 	W = (float)cgs.glconfig.w;
 	H = (float)cgs.glconfig.h;
+	prof = Com_ProfStart();
 	ReadConfigstrings();
 	ReadEvents();
 	ScanForCrosshairEntity( ps );
 	LoadImages();
+	LoadCards();
 	Update( ps );
 	RecordMatch( ps );
+	Com_ProfDetail( "hud update", prof );
 	if ( !cg_draw2D->integer ) {
 		return;		// the screen is the world's, as id's cgame leaves it; the HUD keeps following the match
 	}
@@ -3939,6 +3968,24 @@ static void CardFor( int client, cardData_t *cd ) {
 		}
 	}
 #endif
+}
+
+// a player's card images, named as they join (one player a frame) so they're read ahead rather than at the
+// card's first show: the killer's card at your death, the board
+static void LoadCards( void ) {
+	static int	next;
+	cardData_t	cd;
+	int			i;
+
+	for ( i = 0; i < MAX_CLIENTS; i++, next = ( next + 1 ) % MAX_CLIENTS ) {
+		if ( cgs.clientinfo[next].infoValid ) {
+			CardFor( next, &cd );
+			ImageNamed( cd.banner );
+			ImageNamed( cd.emblem );
+			next = ( next + 1 ) % MAX_CLIENTS;
+			return;
+		}
+	}
 }
 
 // a player's card (q3_card_view.gd): the banner darkened toward the text, the emblem in its square,
@@ -5316,7 +5363,7 @@ static void DrawResults( float W, float H, const playerState_t *ps ) {
 	// the title pops in
 	pop = 1.0f + 0.4f * ( 1.0f - Clamp01( t / 0.45f ) );
 	Col( c, spectator ? INK_HOT : won ? gold : loss, Clamp01( t / 0.3f ) );
-	Text( FONT_LABEL, W * 0.5f, H * 0.04f + H * 0.1f, title, H * 0.11f * pop, c, ALIGN_CENTER );
+	TextScaled( FONT_LABEL, W * 0.5f, H * 0.04f + H * 0.1f, title, H * 0.11f, pop, c, ALIGN_CENTER | TEXT_NOCODES, 0.35f, 0 );
 	if ( !spectator ) {
 		Col( c, WHITE, 0.75f * Clamp01( t / 0.3f ) );
 		Text( FONT_MEDIUM, W * 0.5f, H * 0.2f, sub, H * 0.028f, c, ALIGN_CENTER );

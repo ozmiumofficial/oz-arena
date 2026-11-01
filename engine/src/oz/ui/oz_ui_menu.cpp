@@ -18,7 +18,8 @@ ui/pages, their data and their actions.
     url <link>       an https link in the player's browser (Discord, GitHub, Steam's hosts only)
     startmatch <p>   an offline match            host <path>    the same match, hosted online (P8)
     and the online pages' own: browse, join, joinask, askcancel, unjoin, quick, quickjoin,
-    quickcancel, quickhost (oz_ui_social.cpp); servers, serverjoin, sbsort (oz_ui_servers.cpp)
+    quickcancel, quickhost (oz_ui_social.cpp); servers, serverjoin, sbsort (oz_ui_servers.cpp);
+    Skirmish's skimport and race (oz_ui_skirmish.cpp)
 - Spinners: an element with class "spinner", spin="<path>" and options="a|b|c" steps through the
   options with Left and Right (or its .prev and .next arrows), wrapping, and stores the option.
 - Tabs: Q and E (the shoulder buttons) click the next or previous .tab in the page's .tabs bar.
@@ -529,7 +530,8 @@ static bool Spin( Rml::Element *spinner, int dir ) {
 /*
 startmatch <path>: an offline match from the object at path, as q3_ui's StartServer starts one:
   gametype (0 FFA, 1 duel, 3 TDM, 4 CTF), map, fraglimit, timelimit, capturelimit, maxplayers,
-  skill (1-5), bots (an array of names, or of objects with a name and their own skill and team)
+  skill (1-5), bots (an array of names, or of objects with a name and their own skill and team),
+  mod (Skirmish's: "cpma" plays it under CPMA's game, oz_playmod, with CPMA's own mode for the gametype)
 The rules and the map now, the bots once the map has loaded. A listing left from hosting goes down.
 host <path>: the same match hosted online (P8): its name and password (name, password) as the
 server's, and once the map is up, oz_host lists it in the hub's directory (oz_ice.c). A party leader's
@@ -568,11 +570,23 @@ static void StartMatch( const char *path, bool online = false ) {
 	snprintf( cmd, sizeof( cmd ), "set g_gametype %d; set fraglimit %d; set timelimit %d; set capturelimit %d; set sv_maxclients %d; set g_spSkill %d; map %s\n",
 		(int)num( "gametype", 0 ), (int)num( "fraglimit", 20 ), (int)num( "timelimit", 0 ), (int)num( "capturelimit", 8 ),
 		(int)num( "maxplayers", 12 ), (int)num( "skill", 3 ), cJSON_GetStringValue( cJSON_GetObjectItem( m, "map" ) ) );
+	// another mod's game: switched to first (the rest runs under it), and back to Oz when the match ends.
+	// CPMA starts the mode its mode_start names (its standard ones; its cfg-maps may still change it for a map)
+	const char *mod = online ? nullptr : cJSON_GetStringValue( cJSON_GetObjectItem( m, "mod" ) );
+	Rml::String text;
+	if ( mod && *mod && StrICmp( mod, "oz" ) && StrICmp( mod, OzE_GameDir() ) ) {
+		static const char *const cpmaModes[] = { "ffa", "1v1", "ffa", "tdm", "ctf" };
+		const int gt = (int)num( "gametype", 0 );
+		text = Rml::String( "oz_playmod " ) + mod + "\n";
+		if ( !StrICmp( mod, "cpma" ) ) {
+			text += Rml::String( "set mode_start " ) + cpmaModes[gt >= 0 && gt < 5 ? gt : 0] + "\n";
+		}
+	}
 	CloseAllPages();
 	// in front of the buffer, in order (a test script's queued lines, a vstr loop, would hold them back);
 	// oz_host after the map: the server is up when it lists it; the party's follow after the listing (the
 	// hub sends it only to a listed match's party)
-	Rml::String text = Rml::String( cmd ) + ( online ? "oz_host\n" + Social_FollowText( password ? password : "" ) : "" ) + "wait 30\n";
+	text += Rml::String( cmd ) + ( online ? "oz_host\n" + Social_FollowText( password ? password : "" ) : "" ) + "wait 30\n";
 	cJSON *list = cJSON_GetObjectItem( m, "bots" );
 	for ( cJSON *b = list ? list->child : nullptr; b; b = b->next ) {
 		const char *name = cJSON_IsString( b ) ? b->valuestring : cJSON_GetStringValue( cJSON_GetObjectItem( b, "name" ) );
@@ -632,6 +646,8 @@ void Menu_Run( const Rml::String &commands, Rml::Element *element ) {
 			OzE_ExecuteNow( ( arg + "\n" ).c_str() );
 		} else if ( verb == "displaykeep" ) {	// display_confirm.rml: the new window settings stay
 			Settings_DisplayKeep();
+		} else if ( verb == "settingsleave" ) {	// settingsleave apply|discard: apply_confirm.rml, then Settings closes
+			Settings_Leave( arg == "apply" );
 		} else if ( verb == "pickcolor" ) {		// pickcolor <setting key>: color_picker.rml for it
 			Settings_PickColor( arg.c_str() );
 		} else if ( verb == "pickerset" ) {		// pickerset [#rrggbb]: the picker's color (else its sliders')
@@ -715,6 +731,7 @@ void Menu_Run( const Rml::String &commands, Rml::Element *element ) {
 			OzE_AppendText( ( arg + "\n" ).c_str() );
 		} else if ( Crosshair_Action( verb, arg ) ) {	// the crosshair editor's (oz_ui_crosshair.cpp)
 		} else if ( Profile_Action( verb, arg ) ) {	// the Profile and Campaign pages' (oz_ui_profile.cpp)
+		} else if ( Skirmish_Action( verb, arg ) ) {	// Skirmish's mods and races (oz_ui_skirmish.cpp)
 		} else if ( Servers_Action( verb, arg, element ) ) {	// the Server Browser's community servers (oz_ui_servers.cpp)
 		} else if ( Social_Action( verb, arg, element ) ) {	// the Server Browser's and Friends' joins (oz_ui_social.cpp)
 		} else if ( !verb.empty() ) {
@@ -895,6 +912,9 @@ bool Menu_Back( const char *page ) {
 		Settings_DisplayRevert();	// unless Keep cleared it: Escape, Revert and the 15 s all go back
 		return false;
 	}
+	if ( !strcmp( page, "settings" ) && Settings_Unapplied() ) {
+		return OpenPageByName( "apply_confirm" );	// Video changes waiting for Apply: apply, discard or stay
+	}
 	if ( !strcmp( page, "connect" ) ) {
 		// the connection screen: Escape gives up, as on the game code's (the main menu comes back)
 		OzE_ExecuteNow( "disconnect\n" );
@@ -985,6 +1005,7 @@ void Menu_Opened( const char *name ) {
 	}
 	Social_Opened( name );
 	Servers_Opened( name );
+	Skirmish_Opened( name );
 	if ( !strcmp( name, "leaderboards" ) ) {	// both scopes from the online hub (P7); offline, "hub" says so in the console
 		const Rml::String tab = Menu_Get( "leaderboards.tab" );
 		OzE_ExecuteNow( ( "hub leaderboard board " + tab + " scope global" ).c_str() );	// one command a call
@@ -1055,6 +1076,7 @@ void Menu_Frame() {
 	PauseFrame();
 	Social_Frame();
 	Servers_Frame();
+	Skirmish_Frame();
 	Crosshair_Frame();
 	if ( focusFirst && menuDoc && !strcmp( TopPageName(), "menu" ) ) {
 		Rml::Element *f = GetContext()->GetFocusElement();
@@ -1313,6 +1335,7 @@ void Menu_Shutdown() {
 // ui_menu_get <path> / ui_menu_set <path> <value>, for tests
 void Menu_Commands() {
 	Prog::Commands();
+	Skirmish_Commands();
 	OzE_AddCommand( "ui_menu_get", []() {
 		Printf( "ui_menu_get: %s = %s\n", OzE_Argv( 1 ), Menu_Get( OzE_Argv( 1 ) ) );
 	} );

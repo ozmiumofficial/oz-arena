@@ -133,14 +133,15 @@ v3 and v2 across its far end, the same half-width across both). As with the bolt
 with the gun and its end stays: each piece is laid again along the moved line, turned to the view from
 there. Left where the cgame put them, the halo and the core ran from the gun's old place, a second beam
 beside the bolt. `from` holds the parts' places before they moved, `to` where a beam from each starts now
-(where it shows, with the gun in a projection of its own: GunScale).
+(where it shows, with the gun in a projection of its own: GunScale). The first line's ends as drawn go in
+lineStart and lineEnd (cl_ozProbe's "ozbeam"); returns whether there was one.
 =================
 */
-static void PlaceLayers( const refdef_t *fd, const vec3_t *from, const vec3_t *to ) {
+static qboolean PlaceLayers( const refdef_t *fd, const vec3_t *from, const vec3_t *to, vec3_t lineStart, vec3_t lineEnd ) {
 	struct { int part; vec3_t dir; float len; } lines[MAX_GUN_LINES];
-	int		line[MAX_GUN_QUADS], numLines = 0, i, j, k;
-	float	at[MAX_GUN_QUADS][2], half[MAX_GUN_QUADS], s, len, w, scale;
-	vec3_t	m0, m1, r, r1, d, dir, view, side, end, start;
+	int		line[MAX_GUN_QUADS], numLines = 0, i, j, k, part;
+	float	at[MAX_GUN_QUADS][2], half[MAX_GUN_QUADS], s, len, w, scale, off, best, bestS, bestLen;
+	vec3_t	m0, m1, r, r1, d, dir, view, side, end, start, bestDir, bestView;
 
 	for ( i = 0; i < numGunQuads; i++ ) {
 		const polyVert_t *v = gunQuads[i];
@@ -154,46 +155,70 @@ static void PlaceLayers( const refdef_t *fd, const vec3_t *from, const vec3_t *t
 		if ( w < 0.01f || Distance( r, r1 ) > 0.05f ) {
 			continue;
 		}
-		for ( j = 0; j < numGunParts && line[i] < 0; j++ ) {
-			if ( gunBeam[j] || VectorCompare( from[j], to[j] ) ) {
-				continue;		// the bolt, or a part a beam leaves from where the cgame put it
+		// the part the piece's line comes from: the one nearest that line. A short piece (the near fade's
+		// steps by the gun) lines up with other parts too, and the first part that did used to win: the
+		// pieces by the muzzle were laid from the gun's own origin, behind the eye, whenever that came near
+		// the beam's line (on a staircase, strafing into a wall)
+		part = -1;
+		best = bestS = bestLen = 0.0f;
+		for ( j = 0; j < numGunParts; j++ ) {
+			if ( gunBeam[j] ) {
+				continue;		// the bolt
 			}
 			VectorSubtract( m1, from[j], d );
 			len = VectorNormalize2( d, dir );
 			VectorSubtract( m0, from[j], d );
 			s = DotProduct( d, dir );
 			VectorMA( d, -s, dir, d );
+			off = VectorLength( d );
 			VectorSubtract( from[j], fd->vieworg, view );
-			if ( len < 1.0f || s < -0.1f || s > len || VectorLength( d ) > 0.1f + len * 0.0001f ||
+			if ( len < 0.001f || s < -0.1f || s > len || off > 0.1f + len * 0.0001f ||
 				 VectorNormalize( view ) == 0.0f || fabs( DotProduct( r, dir ) ) > 0.02f * w + 0.05f ||
-				 fabs( DotProduct( r, view ) ) > 0.02f * w + 0.05f ) {
+				 fabs( DotProduct( r, view ) ) > 0.02f * w + 0.05f || ( part >= 0 && off >= best ) ) {
 				continue;
 			}
-			for ( k = 0; k < numLines && !( lines[k].part == j && DotProduct( lines[k].dir, dir ) > 0.9999f ); k++ ) {
-			}
-			if ( k == numLines ) {
-				if ( numLines == MAX_GUN_LINES ) {
-					break;
-				}
-				lines[k].part = j;
-				VectorCopy( dir, lines[k].dir );
-				lines[k].len = 0.0f;
-				numLines++;
-			}
-			lines[k].len = MAX( lines[k].len, len );
-			line[i] = k;
-			at[i][0] = s;
-			at[i][1] = len;
-			CrossProduct( dir, view, side );
-			VectorNormalize( side );
-			half[i] = DotProduct( r, side );	// the cgame's side is cross( dir, the start's offset from the eye )
+			part = j;
+			best = off;
+			bestS = s;
+			bestLen = len;
+			VectorCopy( dir, bestDir );
+			VectorCopy( view, bestView );
 		}
+		if ( part < 0 ) {
+			continue;
+		}
+		for ( k = 0; k < numLines && !( lines[k].part == part && DotProduct( lines[k].dir, bestDir ) > 0.9999f ); k++ ) {
+		}
+		if ( k == numLines ) {
+			if ( numLines == MAX_GUN_LINES ) {
+				continue;
+			}
+			lines[k].part = part;
+			VectorCopy( bestDir, lines[k].dir );
+			lines[k].len = 0.0f;
+			numLines++;
+		}
+		if ( bestLen > lines[k].len ) {
+			lines[k].len = bestLen;
+			VectorCopy( bestDir, lines[k].dir );	// the longest piece's: a short one's is less exact
+		}
+		line[i] = k;
+		at[i][0] = bestS;
+		at[i][1] = bestLen;
+		CrossProduct( bestDir, bestView, side );
+		VectorNormalize( side );
+		half[i] = DotProduct( r, side );	// the cgame's side is cross( dir, the start's offset from the eye )
 	}
 
+	if ( numLines ) {
+		VectorCopy( to[lines[0].part], lineStart );
+		VectorMA( from[lines[0].part], lines[0].len, lines[0].dir, lineEnd );
+	}
 	for ( i = 0; i < numGunQuads; i++ ) {
 		polyVert_t *v = gunQuads[i];
 
-		if ( ( k = line[i] ) >= 0 ) {
+		// a part a beam leaves from where the cgame put it keeps its layers there
+		if ( ( k = line[i] ) >= 0 && !VectorCompare( from[lines[k].part], to[lines[k].part] ) ) {
 			VectorCopy( to[lines[k].part], start );
 			VectorMA( from[lines[k].part], lines[k].len, lines[k].dir, end );
 			VectorSubtract( end, start, d );
@@ -214,6 +239,289 @@ static void PlaceLayers( const refdef_t *fd, const vec3_t *from, const vec3_t *t
 		re.AddPolyToScene( gunQuadShaders[i], 4, v, 1 );
 	}
 	numGunQuads = 0;
+	return numLines > 0;
+}
+
+// where a point of the world shows in the view, in pixels from its top left corner
+static void ScreenPoint( const refdef_t *fd, const vec3_t p, float *x, float *y ) {
+	vec3_t	d;
+	float	depth;
+
+	VectorSubtract( p, fd->vieworg, d );
+	depth = MAX( DotProduct( d, fd->viewaxis[0] ), 0.001f );
+	*x = fd->width * 0.5f * ( 1.0f - DotProduct( d, fd->viewaxis[1] ) / ( depth * tan( DEG2RAD( fd->fov_x ) * 0.5f ) ) );
+	*y = fd->height * 0.5f * ( 1.0f - DotProduct( d, fd->viewaxis[2] ) / ( depth * tan( DEG2RAD( fd->fov_y ) * 0.5f ) ) );
+}
+
+/*
+=================
+ProbeBeam
+
+cl_ozProbe 3 (engine/tests/gun_test.py --only beam): each world view with a lightning beam from the gun,
+a line "ozbeam <time> <start x> <start y> <end x> <end y> <eye height> <health>": where the beam starts
+and ends as drawn, in pixels from the view's top left corner, the eye's height and the snapshot's health (a
+hit shows as it drops).
+=================
+*/
+static void ProbeBeam( const refdef_t *fd, qboolean layers, const vec3_t lineStart, const vec3_t lineEnd ) {
+	const float	*start = lineStart, *end = lineEnd;
+	float		sx, sy, ex, ey;
+	int			i;
+
+	for ( i = 0; i < numGunParts; i++ ) {
+		if ( gunBeam[i] ) {
+			start = gunParts[i].origin;
+			end = gunParts[i].oldorigin;
+			break;
+		}
+	}
+	if ( i == numGunParts && !layers ) {
+		return;
+	}
+	ScreenPoint( fd, start, &sx, &sy );
+	ScreenPoint( fd, end, &ex, &ey );
+	Com_Printf( "ozbeam %d %.2f %.2f %.2f %.2f %.3f %d\n", fd->time, sx, sy, ex, ey, fd->vieworg[2], cl.snap.ps.stats[STAT_HEALTH] );
+}
+
+// ================================================================ id's lightning gun
+
+/*
+On a pure baseq3 server Oz's cgame doesn't load: id's own draws the lightning beam, aimed from where the
+snapshots last had you along their angles (a ping or more behind the view), and its damage kick, which is
+always on, tilts the view off it; the gun sways with your speed. A hit swung the beam's end off the
+crosshair by up to 80 px and its start with the gun (Ozmium on the community servers, 2026-11-01). So, as
+Oz's cgame does (game patch 0023): the beam ends where the middle of the view meets something, and while
+it fires the gun holds still in the view. Only under id's cgame: a mod's beam is the mod's.
+*/
+#define GUN_SETTLE			120		// ms the gun takes into its firing pose once the beam starts, before it's held
+#define GUN_EASE			100		// ms it takes back into its sway after the beam stops
+
+static int			crackleModel;		// id's flare where the beam hits (models/weaphits/crackle.md3)
+static refEntity_t	boltFlare;
+static qboolean		boltFlareHeld;
+static struct {
+	int			since, released;	// when the beam started, and when it stopped while the gun eases back
+	qboolean	held;
+	qhandle_t	model;
+	vec3_t		origin, axis[3];	// the gun's place in the view's frame (forward, left, up)
+} gunHold;
+static float		holdBlend;			// 0 the gun as the cgame put it .. 1 held
+static vec3_t		holdR[3], holdT;	// held, in the view's frame: R x + T
+
+// id's cgame, a pure baseq3 server's: neither Oz's (cl_ozDemoSeek, game patch 0024) nor a mod's
+static qboolean IdCgame( void ) {
+	return !cls.cgameOzDemoSeek && !Q_stricmp( FS_GetCurrentGameDir(), "oz" );
+}
+
+static void ToView( const refdef_t *fd, const vec3_t p, qboolean point, vec3_t out ) {
+	vec3_t	d;
+	int		i;
+
+	if ( point ) {
+		VectorSubtract( p, fd->vieworg, d );
+	} else {
+		VectorCopy( p, d );
+	}
+	for ( i = 0; i < 3; i++ ) {
+		out[i] = DotProduct( d, fd->viewaxis[i] );
+	}
+}
+
+static void FromView( const refdef_t *fd, const vec3_t v, qboolean point, vec3_t out ) {
+	int i;
+
+	if ( point ) {
+		VectorCopy( fd->vieworg, out );
+	} else {
+		VectorClear( out );
+	}
+	for ( i = 0; i < 3; i++ ) {
+		VectorMA( out, v[i], fd->viewaxis[i], out );
+	}
+}
+
+/*
+=================
+HoldGun
+
+While the beam fires, the gun's first part is held where it was in the view GUN_SETTLE ms after the beam
+started, and every part moves with it (holdR, holdT): the gun's parts hang rigidly on the hand, which
+the cgame only turned and dropped. It eases back over GUN_EASE once the beam stops.
+=================
+*/
+static void HoldGun( const refdef_t *fd ) {
+	const refEntity_t	*gun = &gunParts[0];
+	qboolean			beam = qfalse;
+	vec3_t				o, a[3];
+	int					i, j;
+
+	holdBlend = 0.0f;
+	if ( !IdCgame() ) {
+		gunHold.since = gunHold.released = 0;
+		gunHold.held = qfalse;
+		return;
+	}
+	for ( i = 0; i < numGunParts; i++ ) {
+		beam |= gunBeam[i];
+	}
+	ToView( fd, gun->origin, qtrue, o );
+	for ( i = 0; i < 3; i++ ) {
+		ToView( fd, gun->axis[i], qfalse, a[i] );
+	}
+	if ( beam ) {
+		if ( !gunHold.since ) {
+			gunHold.since = fd->time;
+			gunHold.held = qfalse;
+			gunHold.released = 0;
+		}
+		if ( !gunHold.held && fd->time - gunHold.since >= GUN_SETTLE ) {
+			gunHold.held = qtrue;
+			gunHold.model = gun->hModel;
+			VectorCopy( o, gunHold.origin );
+			for ( i = 0; i < 3; i++ ) {
+				VectorCopy( a[i], gunHold.axis[i] );
+			}
+		}
+		if ( gunHold.held && gunHold.model == gun->hModel ) {
+			holdBlend = 1.0f;
+		}
+	} else {
+		if ( gunHold.held ) {
+			gunHold.held = qfalse;
+			gunHold.released = fd->time;
+		}
+		gunHold.since = 0;
+		if ( gunHold.released && gunHold.model == gun->hModel && fd->time - gunHold.released < GUN_EASE ) {
+			holdBlend = 1.0f - (float)( fd->time - gunHold.released ) / GUN_EASE;
+		} else {
+			gunHold.released = 0;
+		}
+	}
+	if ( holdBlend <= 0.0f ) {
+		return;
+	}
+	// R takes each of the gun's axes now to the held one, T its origin
+	for ( i = 0; i < 3; i++ ) {
+		for ( j = 0; j < 3; j++ ) {
+			holdR[i][j] = gunHold.axis[0][i] * a[0][j] + gunHold.axis[1][i] * a[1][j] + gunHold.axis[2][i] * a[2][j];
+		}
+		holdT[i] = gunHold.origin[i] - DotProduct( holdR[i], o );
+	}
+}
+
+static void HoldVector( const refdef_t *fd, vec3_t p, qboolean point ) {
+	vec3_t	v, h;
+	float	len = point ? 0.0f : VectorLength( p );
+	int		i;
+
+	if ( holdBlend <= 0.0f ) {
+		return;
+	}
+	ToView( fd, p, point, v );
+	for ( i = 0; i < 3; i++ ) {
+		h[i] = DotProduct( holdR[i], v ) + ( point ? holdT[i] : 0.0f );
+	}
+	for ( i = 0; i < 3; i++ ) {
+		v[i] += holdBlend * ( h[i] - v[i] );
+	}
+	FromView( fd, v, point, p );
+	if ( !point && len > 0.0f ) {
+		VectorNormalize( p );
+		VectorScale( p, len, p );
+	}
+}
+
+static void HoldPart( const refdef_t *fd, refEntity_t *e, qboolean bolt ) {
+	int i;
+
+	HoldVector( fd, e->origin, qtrue );
+	if ( bolt ) {
+		return;		// its oldorigin is the end
+	}
+	HoldVector( fd, e->oldorigin, qtrue );
+	if ( e->renderfx & RF_LIGHTING_ORIGIN ) {
+		HoldVector( fd, e->lightingOrigin, qtrue );
+	}
+	for ( i = 0; i < 3; i++ ) {
+		HoldVector( fd, e->axis[i], qfalse );
+	}
+}
+
+// an entity's place at a time, as BG_EvaluateTrajectory has it, for the kinds a solid entity uses
+static void TrajectoryAt( const trajectory_t *tr, int time, vec3_t out ) {
+	float dt;
+
+	switch ( tr->trType ) {
+	case TR_LINEAR_STOP:
+		if ( time > tr->trTime + tr->trDuration ) {
+			time = tr->trTime + tr->trDuration;
+		}
+		dt = MAX( 0.0f, ( time - tr->trTime ) * 0.001f );
+		VectorMA( tr->trBase, dt, tr->trDelta, out );
+		break;
+	case TR_LINEAR:
+		VectorMA( tr->trBase, ( time - tr->trTime ) * 0.001f, tr->trDelta, out );
+		break;
+	case TR_SINE:
+		VectorMA( tr->trBase, sin( ( time - tr->trTime ) / (float)tr->trDuration * M_PI * 2 ), tr->trDelta, out );
+		break;
+	default:
+		VectorCopy( tr->trBase, out );
+		break;
+	}
+}
+
+// what id's CG_Trace meets on a shot's line: the world, then the snapshot's solid entities but yours
+static void ViewTrace( trace_t *tr, const vec3_t start, const vec3_t end, int time ) {
+	int i;
+
+	CM_BoxTrace( tr, start, end, vec3_origin, vec3_origin, 0, MASK_SHOT, qfalse );
+	for ( i = 0; i < cl.snap.numEntities; i++ ) {
+		const entityState_t	*es = &cl.parseEntities[( cl.snap.parseEntitiesNum + i ) & ( MAX_PARSE_ENTITIES - 1 )];
+		clipHandle_t		cmodel;
+		vec3_t				origin, angles, mins, maxs;
+		trace_t				t;
+		int					x, zd, zu;
+
+		if ( !es->solid || es->number == cl.snap.ps.clientNum ) {
+			continue;
+		}
+		if ( es->solid == SOLID_BMODEL ) {
+			cmodel = CM_InlineModel( es->modelindex );
+			TrajectoryAt( &es->apos, time, angles );
+		} else {	// an encoded box (SV_LinkEntity)
+			x = es->solid & 255;
+			zd = ( es->solid >> 8 ) & 255;
+			zu = ( ( es->solid >> 16 ) & 255 ) - 32;
+			VectorSet( mins, -x, -x, -zd );
+			VectorSet( maxs, x, x, zu );
+			cmodel = CM_TempBoxModel( mins, maxs, qfalse );
+			VectorClear( angles );
+		}
+		TrajectoryAt( &es->pos, time, origin );
+		CM_TransformedBoxTrace( &t, start, end, vec3_origin, vec3_origin, cmodel, MASK_SHOT, origin, angles, qfalse );
+		if ( t.allsolid || t.fraction < tr->fraction ) {
+			*tr = t;
+		}
+	}
+}
+
+// the bolt's end where the middle of the view meets something, and id's flare there (CG_LightningBolt's)
+static void AimBolt( const refdef_t *fd, refEntity_t *bolt ) {
+	trace_t	tr;
+	vec3_t	start, end, dir;
+
+	VectorMA( fd->vieworg, 14, fd->viewaxis[0], start );
+	VectorMA( start, LIGHTNING_RANGE, fd->viewaxis[0], end );
+	ViewTrace( &tr, start, end, fd->time );
+	VectorCopy( tr.endpos, bolt->oldorigin );
+	if ( boltFlareHeld && tr.fraction < 1.0f ) {
+		VectorSubtract( bolt->oldorigin, bolt->origin, dir );
+		VectorNormalize( dir );
+		VectorMA( tr.endpos, -16, dir, boltFlare.origin );
+		re.AddRefEntityToScene( &boltFlare, qfalse );
+	}
+	boltFlareHeld = qfalse;
 }
 
 /*
@@ -236,10 +544,14 @@ static void PlaceGun( const refdef_t *fd ) {
 	const float		*o = fd->vieworg, *lateral = fd->viewaxis[1];	// it points left
 	const float		scale = GunScale( fd );
 	float			y0, target, shift, lift = 0.0f;
-	vec3_t			d, from[MAX_GUN_PARTS], to[MAX_GUN_PARTS];
+	vec3_t			d, from[MAX_GUN_PARTS], to[MAX_GUN_PARTS], lineStart, lineEnd;
+	qboolean		layers;
 	int				i, j;
 
-	VectorSubtract( gunParts[0].origin, o, d );
+	HoldGun( fd );
+	VectorCopy( gunParts[0].origin, d );
+	HoldVector( fd, d, qtrue );
+	VectorSubtract( d, o, d );
 	y0 = DotProduct( d, lateral );
 	target = center ? 0.0f : ( y0 * wide - oz_gameplay_gun_offset->value ) * ( left ? -1.0f : 1.0f );
 	shift = target - ( left ? -y0 : y0 );
@@ -251,6 +563,7 @@ static void PlaceGun( const refdef_t *fd ) {
 		refEntity_t *e = &gunParts[i];
 
 		VectorCopy( e->origin, from[i] );
+		HoldPart( fd, e, gunBeam[i] );
 		if ( left ) {
 			ReflectPoint( e->origin, o, lateral );
 			if ( !gunBeam[i] ) {
@@ -268,6 +581,9 @@ static void PlaceGun( const refdef_t *fd ) {
 		OnScreen( fd, scale, e->origin, to[i] );	// a beam from the part starts where it shows
 		if ( gunBeam[i] ) {
 			VectorCopy( to[i], e->origin );		// the bolt: from where the flash shows
+			if ( IdCgame() ) {
+				AimBolt( fd, e );
+			}
 		} else {
 			VectorMA( e->oldorigin, shift, lateral, e->oldorigin );
 			VectorMA( e->oldorigin, lift, fd->viewaxis[2], e->oldorigin );
@@ -277,7 +593,10 @@ static void PlaceGun( const refdef_t *fd ) {
 		}
 		re.AddRefEntityToScene( e, qfalse );
 	}
-	PlaceLayers( fd, from, to );
+	layers = PlaceLayers( fd, from, to, lineStart, lineEnd );
+	if ( cl_ozProbe && cl_ozProbe->integer > 2 ) {
+		ProbeBeam( fd, layers, lineStart, lineEnd );
+	}
 }
 
 // ================================================================ the forced enemy model
@@ -363,6 +682,11 @@ void OzView_NoteModel( int model, const char *name ) {
 	}
 	notedPart[model] = PART_NONE;
 	notedWeapon[model] = name && !Q_stricmpn( name, "models/weapons", 14 );
+	if ( name && !Q_stricmp( name, "models/weaphits/crackle.md3" ) ) {
+		crackleModel = model;
+	} else if ( model == crackleModel ) {
+		crackleModel = 0;
+	}
 	if ( !name || Q_stricmpn( name, "models/players/", 15 ) ) {
 		return;
 	}
@@ -642,6 +966,13 @@ int OzView_Entity( refEntity_t *ent ) {
 		}
 		return 1;
 	}
+	// id's flare where the beam from the gun hits, which comes right after it: it goes where the beam ends now
+	if ( ent->reType == RT_MODEL && crackleModel && ent->hModel == crackleModel && !boltFlareHeld && numGunParts &&
+		 gunBeam[numGunParts - 1] && IdCgame() ) {
+		boltFlare = *ent;
+		boltFlareHeld = qtrue;
+		return 0;
+	}
 	InitCvars();
 	if ( ent->reType != RT_MODEL || !Forcing() ) {
 		return 1;
@@ -668,6 +999,7 @@ int OzView_Entity( refEntity_t *ent ) {
 void OzView_ClearScene( void ) {
 	numGunParts = 0;
 	numGunQuads = 0;
+	boltFlareHeld = qfalse;
 	scene++;
 }
 
@@ -695,7 +1027,8 @@ OzView_ProbeSnapshot
 cl_ozProbe 1 (engine/tests/frame_rate_test.py): each new snapshot's player as the server moved it, a line
 "ozprobe <server time> <command time> <x> <y> <z> <xy speed> <z speed> <ground> <weapon> <ammo> <events> <hits>
 <damage event>", the events the ones new since the last snapshot. 2 also prints each world view's place, a line
-"ozview <time> <x> <y> <z> <pitch> <latest command's time> <real ms> <roll>".
+"ozview <time> <x> <y> <z> <pitch> <latest command's time> <real ms> <roll>"; 3 also the lightning beam
+from the gun on screen ("ozbeam", ProbeBeam).
 =================
 */
 void OzView_ProbeSnapshot( void ) {

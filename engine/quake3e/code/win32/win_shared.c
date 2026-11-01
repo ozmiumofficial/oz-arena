@@ -232,6 +232,44 @@ static qboolean Sys_SteamLibraryGame( const char *steamRoot, char *out, int outS
 #endif
 
 
+#ifdef GOGPATH_ID
+/*
+================
+Sys_GogGame
+
+Oz: GOG's copy of the game, as ioquake3's Sys_GogPath finds it: the folder GOG's installer records as
+"path" under HKLM\SOFTWARE\GOG.com\Games\<GOGPATH_ID> (the 32-bit view), when it has baseq3.
+================
+*/
+static qboolean Sys_GogGame( char *out, int outSize )
+{
+	char path[ MAX_OSPATH ];
+	DWORD len = sizeof( path ) - 1, type, attr;
+	HKEY key;
+	int n;
+
+	if ( RegOpenKeyExA( HKEY_LOCAL_MACHINE, "SOFTWARE\\GOG.com\\Games\\" GOGPATH_ID, 0, KEY_QUERY_VALUE | KEY_WOW64_32KEY, &key ) != ERROR_SUCCESS )
+		return qfalse;
+	if ( RegQueryValueExA( key, "path", NULL, &type, (LPBYTE)path, &len ) != ERROR_SUCCESS || ( type != REG_SZ && type != REG_EXPAND_SZ ) )
+		len = 0;
+	RegCloseKey( key );
+	path[ len ] = '\0';
+
+	n = (int)strlen( path );
+	while ( n > 0 && ( path[ n - 1 ] == '\\' || path[ n - 1 ] == '/' ) )	// some installers end it with one
+		path[ --n ] = '\0';
+	if ( n == 0 )
+		return qfalse;
+	attr = GetFileAttributesA( va( "%s\\" BASEGAME, path ) );
+	if ( attr == INVALID_FILE_ATTRIBUTES || !( attr & FILE_ATTRIBUTE_DIRECTORY ) )
+		return qfalse;
+
+	Q_strncpyz( out, path, outSize );
+	return qtrue;
+}
+#endif
+
+
 /*
 ================
 Sys_SteamPath
@@ -291,6 +329,15 @@ const char *Sys_SteamPath( void )
 			if ( !Sys_SteamLibraryGame( steamRoot, (char*)steamPath, MAX_OSPATH ) )
 				Q_strcat( (char*)steamPath, MAX_OSPATH, "\\SteamApps\\common\\" STEAMPATH_NAME );
 		}
+	}
+#endif
+
+#ifdef GOGPATH_ID
+	// Oz: without Steam's copy, GOG's: fs_steampath is the player's own install for the engine and Oz's tools
+	{
+		DWORD attr = ( (char*)steamPath )[0] ? GetFileAttributesA( va( "%s\\" BASEGAME, (char*)steamPath ) ) : INVALID_FILE_ATTRIBUTES;
+		if ( attr == INVALID_FILE_ATTRIBUTES || !( attr & FILE_ATTRIBUTE_DIRECTORY ) )
+			Sys_GogGame( (char*)steamPath, MAX_OSPATH );
 	}
 #endif
 

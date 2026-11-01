@@ -386,7 +386,8 @@ IF(RMLUI_LIBRARY)
 	TARGET_INCLUDE_DIRECTORIES(oz_ui PRIVATE ${RMLUI_INCLUDE_DIR} ${CJSON_DIR})
 	TARGET_COMPILE_DEFINITIONS(oz_ui PRIVATE RMLUI_STATIC_LIB)
 	TARGET_SOURCES(client PRIVATE ${OZ_UI_DIR}/oz_ui_engine.c ${OZ_UI_DIR}/oz_ui_showcase.c ${OZ_UI_DIR}/oz_hud.c ${OZ_UI_DIR}/oz_emoji.c ${OZ_UI_DIR}/oz_hud_mods.c ${OZ_UI_DIR}/oz_hud_view.c ${OZ_UI_DIR}/oz_settings_apply.c
-		${OZ_UI_DIR}/../online/oz_servers.c ${OZ_UI_DIR}/oz_mods.c)	# the Server Browser's community servers and the mods players bring (P8b)
+		${OZ_UI_DIR}/../online/oz_servers.c ${OZ_UI_DIR}/oz_mods.c	# the Server Browser's community servers and the mods players bring (P8b)
+		${OZ_UI_DIR}/oz_races.c)	# Defrag's race maps, for Skirmish's mod picker
 	TARGET_COMPILE_DEFINITIONS(client PRIVATE USE_OZ_UI)
 	TARGET_COMPILE_DEFINITIONS(qcommon PRIVATE USE_OZ_UI)	# sv_game.c hands the campaign its postgame (P12)
 	TARGET_COMPILE_DEFINITIONS(q3ui PRIVATE USE_OZ_UI)

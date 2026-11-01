@@ -357,6 +357,39 @@ int OzMods_InInstall( const char *mod, char *path, int size ) {
 
 /*
 ==================
+OzMods_Ready
+
+The mod's game code where a switch to it finds it: a pak named for the mod (z-cpma-pak153.pk3,
+zz-defrag_vm_191.pk3) in its folder of the user folder, the base path or the Steam install
+==================
+*/
+int OzMods_Ready( const char *mod ) {
+	const char *roots[] = { Cvar_VariableString( "fs_homepath" ), Cvar_VariableString( "fs_basepath" ), Cvar_VariableString( "fs_steampath" ) };
+	int i, j;
+
+	for ( i = 0; i < ARRAY_LEN( roots ); i++ ) {
+		char dir[MAX_OSPATH];
+		char **list;
+		int n, found = 0;
+		if ( !*roots[i] ) {
+			continue;
+		}
+		Com_sprintf( dir, sizeof( dir ), "%s%c%s", roots[i], PATH_SEP, mod );
+		list = Sys_ListFiles( dir, ".pk3", NULL, &n, qfalse );
+		for ( j = 0; j < n && !found; j++ ) {
+			found = Q_stristr( list[j], mod ) != NULL;
+		}
+		Sys_FreeFileList( list );
+		if ( found ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+/*
+==================
 OzMods_Pick
 
 Windows' open dialog over the game: a zip (or a pak), or a folder. 0 when the player cancels it.

@@ -2661,8 +2661,8 @@ bool Editor_Key( int key, bool down ) {
 		return true;
 	}
 	if ( guideOpen ) {
-		// the card's: its buttons take clicks; Escape, Enter and F1 close it
-		if ( down && ( key == K_ESCAPE || key == K_ENTER || key == K_KP_ENTER || key == K_F1 ) ) {
+		// the card's: its buttons take clicks; Escape, Enter and F1 close it, and the pad's A and B
+		if ( down && ( key == K_ESCAPE || key == K_ENTER || key == K_KP_ENTER || key == K_F1 || key == K_PAD0_A || key == K_PAD0_B ) ) {
 			CloseGuide( doc );
 			return true;
 		}

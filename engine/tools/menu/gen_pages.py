@@ -32,19 +32,21 @@ def first_mode(m):
     return f"{has_type(m, chr(39) + 'ffa' + chr(39))} ? 0 : {has_type(m, chr(39) + 'tourney' + chr(39))} ? 1 : {has_type(m, chr(39) + 'team' + chr(39))} ? 2 : 3"
 
 
-def tokens(P, Q, nmodes):
+def tokens(P, Q, nmodes, m="m", i="i", show=None):
     """P: the page's state (mi, the mode), Q: what its map browser shows (fit, the mode's map type, and
     mapi, the arena): a top-level key of its own, so that the other choices don't make RmlUi check
-    every card again"""
+    every card again. m and i: a card's arena and its index in maps; show: whether the card shows at all
+    (Skirmish's search)"""
     MD = f"create_match.modes[{P}.mi]"
     T = f"{Q}.fit"
     SEL = f"maps[{Q}.mapi]"
     fits_sel = f"(maps.size {GT} {Q}.mapi ? {has_type(SEL, T)} : false)"
     fix = f"{Q}.fit = {MD}.fit; {Q}.mapi = {fits_sel} ? {Q}.mapi : {MD}.pick"
+    shown = (lambda x: f"{show} ? ({x}) : false") if show else (lambda x: x)
     return {
-        "MINE": has_type("m", T),
-        "OTHER": f"{has_type('m', T)} ? false : {any_type('m')}",
-        "PICK_OTHER": f"{Q}.mapi = i; {P}.mi = {first_mode('m')}; {Q}.fit = {MD}.fit",
+        "MINE": shown(has_type(m, T)),
+        "OTHER": shown(f"{has_type(m, T)} ? false : {any_type(m)}"),
+        "PICK_OTHER": f"{Q}.mapi = {i}; {P}.mi = {first_mode(m)}; {Q}.fit = {MD}.fit",
         "FITS_SEL": fits_sel,
         "NOT_FITS_SEL": f"!{fits_sel}",
         "FIX": fix,
@@ -59,11 +61,14 @@ RESET = "cmd set g_quadfactor 3; cmd set g_weaponrespawn 5; cmd set g_friendlyFi
 
 
 def skirmish():
+    """Skirmish: its cards are skirmish_view's (v.i: the arena's index in maps, v.show: the search
+    shows it), and its mod is skirmish.mod (oz_ui_skirmish.cpp): under CPMA startmatch plays the match
+    under CPMA's game, under Defrag the race action races the picked race map"""
     P = "create_match.skirmish"
     Q = "create_match_pick.skirmish"
     M = f"maps[{Q}.mapi]"
     MD = f"create_match.modes[{P}.mi]"
-    prog = [f"{P}.map = {M}.map", f"{P}.n = {P}.mi == 1 ? 1 : {P}.count * 1", f"{P}.nmb = {M}.bots.size"]
+    prog = [f"{P}.mod = skirmish.mod", f"{P}.map = {M}.map", f"{P}.n = {P}.mi == 1 ? 1 : {P}.count * 1", f"{P}.nmb = {M}.bots.size"]
     prog += [f"{P}.k{k} = {P}.nmb {GT} {k} ? to_lower({M}.bots[{k}]) : '-'" for k in range(NBOTS)]
     prog += [f"{P}.bots.m{k} = {P}.n {GT} {k} {AND} {P}.nmb {GT} {k} ? {M}.bots[{k}] : ''" for k in range(NBOTS)]
     prog += [f"{P}.nm = {P}.nmb {GT} {P}.n ? {P}.n : {P}.nmb", f"{P}.c = 0"]
@@ -79,10 +84,12 @@ def skirmish():
         f"{P}.capturelimit = {MD}.rules.capturelimit",
         f"{P}.maxplayers = {P}.n + 1 {GT} {MD}.rules.max_players ? {P}.n + 1 : {MD}.rules.max_players",
     ]
-    t = tokens(P, Q, 4)
+    t = tokens(P, Q, 4, m="maps[v.i]", i="v.i", show="v.show")
     W = f"{MD}.rules.warmup"
     t["PROGRAM"] = "; ".join(prog)
-    t["START"] = (f"{t['FITS_SEL']} ? '{RESET}; cmd set g_doWarmup ' + ({W} {GT} 0 ? 1 : 0) + '; cmd set g_warmup ' + {W} + "
+    t["START"] = (f"!skirmish.ready ? 'sound buzz; toast ' + skirmish.mod_name + ' has to be imported first' : "
+                  f"skirmish.mod == 'defrag' ? 'race' : "
+                  f"{t['FITS_SEL']} ? '{RESET}; cmd set g_doWarmup ' + ({W} {GT} 0 ? 1 : 0) + '; cmd set g_warmup ' + {W} + "
                   f"'; startmatch create_match.skirmish' + ({MD}.team ? '; append wait 5; append team auto' : '') : "
                   f"'sound buzz; toast ' + {MD}.name + ' needs an arena made for it'")
     return t

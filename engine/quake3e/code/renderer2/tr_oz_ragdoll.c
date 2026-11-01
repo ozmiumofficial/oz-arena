@@ -109,6 +109,8 @@ static struct {
 	float	stretch;
 	char	last[4][256];		// the latest ragdolls that ended in a wall or pulled apart, for ozragdolls
 	char	lastStart[192];		// the latest ragdoll's start: where, how fast, and the hit's push
+	int		steps, shifts, wakes;	// since the last ozragdolls: physics steps and their time, shifts out of a wall, wakes by a mover
+	int64_t	stepUs, worstStepUs;
 } stats;
 
 static void JointOrigin( const float *joints, int j, vec3_t out ) {
@@ -261,13 +263,16 @@ static void AddSolid( void *ctx, int id, const float *planes, int numPlanes ) {
 	float points[OZ_RAGDOLL_HULL * 3];
 
 	if ( !OzPhys_HasSolid( id ) ) {
+		const int64_t prof = ri.ProfStart();
 		OzPhys_AddSolid( id, points, HullPoints( planes, numPlanes, points ) );
+		ri.ProfDetail( "rag solid", prof );
 	}
 }
 
 // the map's solids around a body, once it has moved on from where they last were
 static void Gather( ozTrack_t *t, qboolean now ) {
 	vec3_t at, mins, maxs;
+	int64_t prof;
 	int i;
 
 	VectorSet( at, t->place[0][3], t->place[0][7], t->place[0][11] );
@@ -279,7 +284,9 @@ static void Gather( ozTrack_t *t, qboolean now ) {
 		mins[i] = at[i] - OZ_RAGDOLL_NEAR;
 		maxs[i] = at[i] + OZ_RAGDOLL_NEAR;
 	}
+	prof = ri.ProfStart();
 	ri.CM_OzSolids( 0, mins, maxs, OZ_RAGDOLL_MASK, AddSolid, NULL );
+	ri.ProfDetail( "rag gather", prof );
 }
 
 typedef struct {
@@ -358,9 +365,11 @@ static void FindMovers( void ) {
 			}
 		}
 		if ( physUp && !OzPhys_HasMover( index ) ) {
+			const int64_t prof = ri.ProfStart();
 			hulls.numHulls = hulls.numPoints = 0;
 			ri.CM_OzSolids( m->clip, NULL, NULL, OZ_RAGDOLL_MASK, AddMoverHull, &hulls );
 			OzPhys_AddMover( index, hulls.numHulls, hulls.counts, hulls.points );
+			ri.ProfDetail( "rag mover", prof );
 		}
 	}
 }
@@ -469,6 +478,7 @@ static void WakeNearMovers( const ozTrack_t *t ) {
 			 t->place[0][7] > m->mins[1] - 64.0f && t->place[0][7] < m->maxs[1] + 64.0f &&
 			 t->place[0][11] > m->mins[2] - 64.0f && t->place[0][11] < m->maxs[2] + 64.0f ) {
 			OzPhys_WakeRagdoll( t->phys );
+			stats.wakes++;
 			return;
 		}
 	}
@@ -477,6 +487,7 @@ static void WakeNearMovers( const ozTrack_t *t ) {
 // the physics steps up to the scene's time, the movers going from where the last scene had them to this one's
 static void Step( int now ) {
 	float gravity = ri.Cvar_VariableIntegerValue( "g_gravity" ) / OZ_RAGDOLL_METER;
+	int64_t prof;
 	int i, s, steps, ragdolls = 0;
 
 	for ( i = 0; i < OZ_RAGDOLL_TRACKS; i++ ) {
@@ -497,7 +508,13 @@ static void Step( int now ) {
 		if ( gravity <= 0.0f ) {
 			gravity = 800.0f / OZ_RAGDOLL_METER;
 		}
+		prof = ri.ProfStart();
+		if ( OzPhys_Optimize() ) {
+			ri.ProfDetail( "rag optimize", prof );
+			prof = ri.ProfStart();
+		}
 		for ( s = 1; s <= steps; s++ ) {
+			const int64_t began = ri.Microseconds();
 			const float f = (float)s / steps;
 			for ( i = 0; i < numMovers; i++ ) {
 				const ozMover_t *m = &movers[i], *was = m;
@@ -519,7 +536,11 @@ static void Step( int now ) {
 				OzPhys_MoveMover( m->index, at, q, OZ_RAGDOLL_STEP * 0.001f );
 			}
 			OzPhys_Step( OZ_RAGDOLL_STEP * 0.001f, gravity );
+			stats.steps++;
+			stats.stepUs += ri.Microseconds() - began;
+			stats.worstStepUs = MAX( stats.worstStepUs, ri.Microseconds() - began );
 		}
+		ri.ProfDetail( "rag step", prof );
 		physTime += steps * OZ_RAGDOLL_STEP;
 	}
 	Com_Memcpy( wasMovers, movers, sizeof( movers[0] ) * numMovers );
@@ -563,11 +584,22 @@ void R_OzRagdollStats_f( void ) {
 	if ( stats.lastStart[0] ) {
 		ri.Printf( PRINT_ALL, "  last start: %s\n", stats.lastStart );
 	}
+	{
+		int bodies, awake, solids;
+		OzPhys_Counts( &bodies, &awake, &solids );
+		ri.Printf( PRINT_ALL, "  physics: %d steps since the last ozragdolls, %.3f ms each, the slowest %.3f ms; %d bodies, "
+				   "%d awake, %d of the map's solids; %d shifts out of a wall, %d wakes by a mover\n", stats.steps,
+				   stats.steps ? stats.stepUs / 1000.0 / stats.steps : 0.0, stats.worstStepUs / 1000.0, bodies, awake, solids,
+				   stats.shifts, stats.wakes );
+		stats.steps = stats.shifts = stats.wakes = 0;
+		stats.stepUs = stats.worstStepUs = 0;
+	}
 	for ( i = 0; i < OZ_RAGDOLL_TRACKS; i++ ) {
 		const ozTrack_t *t = &tracks[i];
 		if ( t->active && t->ragdoll ) {
-			ri.Printf( PRINT_ALL, "  ragdoll %s: hips at (%.0f %.0f %.0f)%s\n", t->rig->name, t->place[0][3],
-					   t->place[0][7], t->place[0][11], OzPhys_RagdollCarried( t->phys ) ? ", carried" : "" );
+			ri.Printf( PRINT_ALL, "  ragdoll %s: hips at (%.0f %.0f %.0f)%s%s\n", t->rig->name, t->place[0][3],
+					   t->place[0][7], t->place[0][11], OzPhys_RagdollCarried( t->phys ) ? ", carried" : "",
+					   t->phys < 0 ? ", burned" : OzPhys_RagdollAsleep( t->phys ) ? ", asleep" : "" );
 		}
 	}
 	for ( i = 0; i < numMovers; i++ ) {
@@ -726,6 +758,7 @@ static void Start( ozTrack_t *t, const trRefEntity_t *legs, const float *world, 
 	ozPhysBody_t desc[OZ_RAGDOLL_BODIES];
 	unsigned char apart[OZ_RAGDOLL_BODIES * OZ_RAGDOLL_BODIES];
 	vec3_t drawn, body, push, mean, shift = { 0.0f, 0.0f, 0.0f };
+	int64_t prof = ri.ProfStart();
 	int i, k;
 
 	// the body as drawn moved with the legs; the server's corpse moves with the knockback too (where the
@@ -862,8 +895,11 @@ static void Start( ozTrack_t *t, const trRefEntity_t *legs, const float *world, 
 	Com_sprintf( stats.lastStart, sizeof( stats.lastStart ), "%s at (%.0f %.0f %.0f), moving (%.0f %.0f %.0f), "
 				 "body (%.0f %.0f %.0f), push (%.0f %.0f %.0f)", rig->name, legs->e.origin[0], legs->e.origin[1],
 				 legs->e.origin[2], mean[0], mean[1], mean[2], body[0], body[1], body[2], push[0], push[1], push[2] );
+	ri.ProfDetail( "rag start", prof );
 	Gather( t, qtrue );
+	prof = ri.ProfStart();
 	t->phys = OzPhys_AddRagdoll( desc, rig->numBodies, apart, r_ozRagdollTone->integer );
+	ri.ProfDetail( "rag bodies", prof );
 	Com_Memcpy( t->startJoints, world, rig->data->num_joints * 12 * sizeof( float ) );
 	Com_Memcpy( t->joints, world, rig->data->num_joints * 12 * sizeof( float ) );
 	t->ragdoll = qtrue;
@@ -956,6 +992,7 @@ static void Check( ozTrack_t *t, int now ) {
 				VectorAdd( mid, delta, mid );
 				VectorScale( delta, 1.0f / OZ_RAGDOLL_METER, delta );
 				OzPhys_ShiftRagdoll( t->phys, delta );
+				stats.shifts++;
 			}
 		}
 		if ( t->solidAt < 0 && ( ri.CM_PointContents( mid, 0 ) & CONTENTS_SOLID ) ) {
@@ -1027,6 +1064,7 @@ instead (its ragdoll's) and how far it has burned, or NULL while it lives (or fo
 */
 const float *R_OzRagdollFighter( const ozRig_t *rig, const trRefEntity_t *legs, const float *world, float *dissolve ) {
 	int frame = legs->e.frame, now = tr.refdef.time, i;
+	int64_t prof;
 	qboolean dead = ( frame >= 0 && frame < rig->deathFrames ) || r_ozRagdollTest->integer;
 	ozTrack_t *t;
 
@@ -1088,8 +1126,10 @@ const float *R_OzRagdollFighter( const ozRig_t *rig, const trRefEntity_t *legs, 
 		NoteBurn( t, now, "timer" );
 	}
 	OzPhys_ToneRagdoll( t->phys, 2.0f - (float)( now - t->startTime ) / OZ_RAGDOLL_LIMP );
+	prof = ri.ProfStart();
 	Pose( t );
 	Check( t, now );
+	ri.ProfDetail( "rag check", prof );
 	if ( t->burnStart && now - t->burnStart >= OZ_RAGDOLL_BURN_TIME && t->phys >= 0 ) {
 		stats.carried += OzPhys_RagdollCarried( t->phys );
 		OzPhys_RemoveRagdoll( t->phys );		// burned away: it lies as it was, unseen, until the track ends

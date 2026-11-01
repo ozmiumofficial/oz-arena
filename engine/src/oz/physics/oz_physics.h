@@ -61,7 +61,9 @@ int		OzPhys_RagdollCarried( int ragdoll );	// a mover has touched it
 void	OzPhys_WakeRagdoll( int ragdoll );
 void	OzPhys_ToneRagdoll( int ragdoll, float tone );		// how much of its muscle tone is left, 0 to 1
 void	OzPhys_ShiftRagdoll( int ragdoll, const float delta[3] );	// every body moved by delta
+int		OzPhys_Optimize( void );			// the broad phase rebuilt after many solids were added: 1 if it was
 void	OzPhys_Step( float dt, float gravity );
+void	OzPhys_Counts( int *bodies, int *awake, int *solids );	// for ozragdolls
 
 #ifdef __cplusplus
 }

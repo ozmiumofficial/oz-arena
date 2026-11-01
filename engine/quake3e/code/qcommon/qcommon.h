@@ -1383,6 +1383,7 @@ const char *Sys_Pwd( void );
 const char *Sys_DefaultBasePath( void );
 const char *Sys_DefaultHomePath( void );
 const char *Sys_SteamPath( void );
+void Sys_ErrorBox( void );	// Oz: the Windows client's next fatal error in a message box (win_main.c)
 
 #ifdef __APPLE__
 char    *Sys_DefaultAppPath( void );

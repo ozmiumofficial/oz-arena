@@ -48,6 +48,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define BASETA					"missionpack"
 #define STEAMPATH_NAME			"Quake 3 Arena"
 #define STEAMPATH_APPID			"2200"
+#define GOGPATH_ID				"1441704920"	// Oz: GOG's product id for the game (ioquake3's, api.gog.com)
 
 #define MAX_TEAMNAME            32
 #define MAX_MASTER_SERVERS      5	// number of supported master servers

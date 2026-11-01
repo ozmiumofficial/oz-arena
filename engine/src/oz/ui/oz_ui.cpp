@@ -1104,6 +1104,12 @@ static void WalkSlice() {
 		if ( !walk.open ) {
 			walk.open = WalkOpen( p );
 			walk.page += walk.open ? 0 : 1;
+			if ( walk.open ) {
+				// its first step in the frame it opened, wherever the slice's time runs out: a frame between lets
+				// the page put up what it shows by itself, the map editor's getting started card in a home
+				// that never closed it, which takes every key
+				WalkStep( p, walk.steps[walk.step++] );
+			}
 		} else if ( walk.step < walk.steps.size() ) {
 			WalkStep( p, walk.steps[walk.step++] );
 		} else {
@@ -1448,6 +1454,16 @@ void OzUI_RendererShutdown( void ) {
 
 int OzUI_IsActive( void ) {
 	return initialized && !stack.empty();
+}
+
+// The game code's UI going (CL_ShutdownUI: a vid_restart, the map editor's lit preview restarting
+// the client's systems) takes KEYCATCH_UI from under the pages, which stay open: without it, while
+// disconnected, the console drew full screen over them and couldn't be closed. The page takes it
+// back, as its own now that the game code's menu is gone.
+void OzUI_KeepKeys( void ) {
+	if ( OzUI_IsActive() ) {
+		OzE_CatchKeys( 1 );
+	}
 }
 
 int OzUI_EditorOpen( void ) {

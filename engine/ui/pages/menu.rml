@@ -17,7 +17,7 @@ The main column on the left; a submenu opens beside it (Right, or Enter); the pa
 
 	<!-- top bar -->
 	<div class="topbar">
-		<button class="pill discord" onclick="soon online"><span>Join us on Discord</span></button>
+		<button class="pill discord" id="discord" onclick="url https://discord.gg/HbrAUzkEbJ"><span>Join us on Discord</span></button>
 		<button class="pill online" onclick="social"><span class="dot"/><span class="q3 t">{{ social.status_label }}</span></button>
 		<button class="rankbtn" onclick="page ranked">
 			<span class="rankicon q3">?</span>

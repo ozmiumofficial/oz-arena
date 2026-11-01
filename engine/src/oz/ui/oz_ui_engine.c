@@ -136,6 +136,18 @@ void OzE_InsertText( const char *text ) {
 	Cbuf_InsertText( text );
 }
 
+#ifdef USE_SDL
+qboolean IN_OpenURL( const char *url );	// sdl_input.c
+#endif
+
+int OzE_OpenURL( const char *url ) {
+#ifdef USE_SDL
+	return IN_OpenURL( url );
+#else
+	return 0;
+#endif
+}
+
 // as the platform sends it, so it goes through CL_KeyEvent (Escape in a match opens the pause menu)
 void OzE_QueueKey( int key ) {
 	Sys_QueEvent( 0, SE_KEY, key, qtrue, 0, NULL );

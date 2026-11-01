@@ -1277,6 +1277,9 @@ CL_ShutdownUI
 */
 void CL_ShutdownUI( void ) {
 	Key_SetCatcher( Key_GetCatcher() & ~KEYCATCH_UI );
+#ifdef USE_OZ_UI
+	OzUI_KeepKeys();	// Oz: an open native page outlives the game code's UI (the map editor's lit preview, a vid_restart)
+#endif
 	cls.uiStarted = qfalse;
 	if ( !uivm ) {
 		return;

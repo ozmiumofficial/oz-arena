@@ -1381,6 +1381,44 @@ static void IN_Minimize( void )
 
 /*
 ===============
+IN_OpenURL
+
+Oz: a web page in the player's own browser, outside the game (the main menu's Join us on Discord).
+Opened while the game has the focus, so Windows lets the browser come to the front. In exclusive full
+screen SDL minimizes the game as the browser takes the focus; minimized here at once, the game gave
+the focus to whatever window was next, in front of the browser. If the browser hasn't taken it a few
+seconds later, IN_Frame minimizes the game itself.
+===============
+*/
+static int urlOpenedAt;
+
+qboolean IN_OpenURL( const char *url )
+{
+	if ( SDL_OpenURL( url ) != 0 ) {
+		Com_Printf( S_COLOR_YELLOW "Couldn't open %s: %s\n", url, SDL_GetError() );
+		return qfalse;
+	}
+	urlOpenedAt = SDL_window && ( SDL_GetWindowFlags( SDL_window ) & SDL_WINDOW_FULLSCREEN ) ? Sys_Milliseconds() : 0;
+	return qtrue;
+}
+
+
+static void IN_OpenURLFrame( void )
+{
+	const Uint32 front = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_INPUT_FOCUS;
+
+	if ( !urlOpenedAt || Sys_Milliseconds() - urlOpenedAt < 3000 ) {
+		return;
+	}
+	urlOpenedAt = 0;
+	if ( SDL_window && ( SDL_GetWindowFlags( SDL_window ) & ( front | SDL_WINDOW_MINIMIZED ) ) == front ) {
+		SDL_MinimizeWindow( SDL_window );
+	}
+}
+
+
+/*
+===============
 IN_PumpEvents
 
 Oz: takes the window's messages inside a long command (ui_focuswalk), so Windows doesn't take the game
@@ -1403,6 +1441,8 @@ void IN_Frame( void )
 #ifdef USE_JOYSTICK
 	IN_JoyMove();
 #endif
+
+	IN_OpenURLFrame();	// Oz
 
 #ifdef USE_OZ_UI
 	if ( OzUI_IsActive() ) {

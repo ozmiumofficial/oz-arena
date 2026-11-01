@@ -41,6 +41,7 @@ const char	*OzE_ArgsFrom( int arg );
 void		OzE_ExecuteNow( const char *text );
 void		OzE_AppendText( const char *text );		// queued, after what's queued already (waits count frames)
 void		OzE_InsertText( const char *text );		// queued, before what's queued already
+int			OzE_OpenURL( const char *url );			// in the player's browser, outside the game; 0 if it didn't open
 void		OzE_QueueKey( int key );				// a key press and release through the engine's event queue (tests)
 
 void		OzE_StartLocalSound( const char *name );

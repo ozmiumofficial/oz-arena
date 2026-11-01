@@ -15,6 +15,7 @@ ui/pages, their data and their actions.
     cmd <command>    a console command           social         the friends panel
     toast <text>     a toast                     sound <in|move|out|buzz>
     set <path> <v>   a value (a string)          next           the showcase's next subject
+    url <link>       an https link in the player's browser (Discord, GitHub, Steam's hosts only)
     startmatch <p>   an offline match            host <path>    the same match, hosted online (P8)
     and the online pages' own: browse, join, joinask, askcancel, unjoin, quick, quickjoin,
     quickcancel, quickhost (oz_ui_social.cpp); servers, serverjoin, sbsort (oz_ui_servers.cpp)
@@ -475,6 +476,27 @@ static const char *SoonText( const Rml::String &what ) {
 	return "That isn't built yet.";
 }
 
+// the url action: an https link to one of these hosts (the Godot build's URL_HOSTS) opens in the
+// player's browser; nothing else leaves the game
+static bool OpenLink( const Rml::String &url ) {
+	static const char *hosts[] = { "discord.gg", "github.com", "store.steampowered.com", "steamcommunity.com" };
+
+	if ( url.compare( 0, 8, "https://" ) || url.size() >= 512 || url.find_first_of( " \"" ) != Rml::String::npos ) {
+		return false;
+	}
+	const Rml::String host = Rml::StringUtilities::ToLower( url.substr( 8, url.find( '/', 8 ) - 8 ) );
+	for ( const char *h : hosts ) {
+		if ( host == h ) {
+			if ( !OzE_OpenURL( url.c_str() ) ) {
+				return false;
+			}
+			Printf( "UI: opened %s in the browser\n", url.c_str() );
+			return true;
+		}
+	}
+	return false;
+}
+
 static Rml::Element *FindSpinner( Rml::Element *e ) {
 	for ( ; e; e = e->GetParentNode() ) {
 		if ( e->IsClassSet( "spinner" ) && e->HasAttribute( "spin" ) ) {
@@ -630,6 +652,11 @@ void Menu_Run( const Rml::String &commands, Rml::Element *element ) {
 			}
 		} else if ( verb == "next" ) {
 			OzE_ShowcaseNext();
+		} else if ( verb == "url" ) {
+			if ( !OpenLink( arg ) ) {
+				PlaySound( Sound::Buzz );
+				Menu_Toast( "That link didn't open.", "warn" );
+			}
 		} else if ( verb == "copy" ) {	// copy <text>: to the clipboard (the friend code)
 			Rml::GetSystemInterface()->SetClipboardText( arg );
 		} else if ( verb == "hubinput" ) {

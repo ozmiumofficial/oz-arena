@@ -17,6 +17,7 @@ void	OzUI_Shutdown( void );			// CL_Shutdown, before the renderer goes
 void	OzUI_RendererShutdown( void );	// before every re.Shutdown: give back the renderer's handles
 void	OzUI_Draw( void );				// SCR_DrawScreenField, between the game's 2D and the console
 int		OzUI_IsActive( void );			// a page is open: it takes the keys, characters and mouse
+void	OzUI_KeepKeys( void );			// CL_ShutdownUI took KEYCATCH_UI: an open page takes it back
 int		OzUI_EditorOpen( void );		// the map editor's page is open (its dialogs over it too): no menu music
 void	OzUI_KeyEvent( int key, int down );
 void	OzUI_CharEvent( int ch );

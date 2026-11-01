@@ -855,7 +855,11 @@ static const void *RB_StretchPic ( const void *data ) {
 	RB_SetGL2D();
 
 	shader = cmd->shader;
-	if ( shader != tess.shader ) {
+	// Oz: also when the last surface was drawn already (RB_EndSurface clears useInternalVao): with its
+	// shader, the pic skipped RB_UpdateTessVao and drew from whatever VAO was bound, none once the UI
+	// had made its buffers between frames (tr_oz_ui.c UI_MakeVao), a driver crash (the main menu after
+	// a vid_restart)
+	if ( shader != tess.shader || !tess.useInternalVao ) {
 		if ( tess.numIndexes ) {
 			RB_EndSurface();
 		}

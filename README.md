@@ -87,7 +87,7 @@ Everything Oz adds to the look loads only in its own renderer. Pick the OpenGL o
 - **Every community server.** The Server Browser asks every master server and lists the vanilla, CPMA and Defrag servers that answer, with search, filters, favorites, history and LAN. **Join** switches to the server's mod by itself and back again when you leave.
 - **Pure servers stay playable.** A server that forces its own files is always joinable. Oz leaves its packs out there and keeps the engine's own upgrades: the lighting, the menus and the HUD.
 - **The server's rules.** Your game predicts movement with the server's own settings, so a server that runs id's original physics feels right.
-- **With friends.** Friends, parties, Quick Play and peer-to-peer matches hosted from your own PC, through Oz's online service. Hide my IP sends a match through a relay. (The service's update for this version isn't live yet.)
+- **With friends.** Friends, parties, Quick Play and peer-to-peer matches hosted from your own PC, through Oz's online service. Hide my IP sends a match through a relay.
 
 ---
 

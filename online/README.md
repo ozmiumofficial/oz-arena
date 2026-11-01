@@ -1,7 +1,7 @@
 # Online services
 
 **Oz Arena's copy (Ozmium, 2026-10-30, ENGINE_PLAN.md P8).** Taken from the Godot build's `online/` (v0.6.0, 2026-10-27) as the
-engine build's own hub; the Godot repo isn't changed for it. Deploying it to the live Worker waits for Ozmium. Oz's changes:
+engine build's own hub; the Godot repo isn't changed for it. Live on the Worker since 2026-10-31 (Ozmium; it took over from the Godot build's, whose data it keeps). Oz's changes:
 
 - **The game build.** The engine sends `x-engine: oz` in its handshake (`Tag.engine`, "godot" without it). Listings carry
   `engine`; browsing, Quick Play, joins and the matchmaking queues keep each build to its own.

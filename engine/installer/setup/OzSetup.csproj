@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oz Arena's web installer: engine/tools/make_setup.py builds it into build/installer/OzArenaSetup.exe.
+       .NET Framework 4.8 ships with every Windows 10 and 11, so the exe needs no runtime and stays small. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>OzArenaSetup</AssemblyName>
+    <RootNamespace>OzSetup</RootNamespace>
+    <ApplicationIcon>..\..\quake3e\code\win32\oz.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Product>Oz Arena Setup</Product>
+    <Company>Ozmium</Company>
+    <Description>Oz Arena Setup</Description>
+    <Copyright>GPL-2.0</Copyright>
+    <Version>1.0.0</Version>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <DebugType>none</DebugType>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="Microsoft.CSharp" />
+    <Resource Include="Assets\**\*.ttf" />
+    <Resource Include="Assets\*.png" />
+    <Resource Include="Assets\*.jpg" />
+    <Resource Include="..\..\quake3e\code\win32\oz.ico" Link="Assets\oz.ico" />
+  </ItemGroup>
+</Project>

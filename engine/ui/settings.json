@@ -3749,92 +3749,6 @@
    "preview": ""
   },
   {
-   "key": "gameplay/draw_gun",
-   "tab": "gameplay",
-   "label": "Gun position",
-   "type": "enum",
-   "default": "right",
-   "tip": "Where your gun is drawn (cg_drawGun).",
-   "group": "Weapons",
-   "wired": true,
-   "restart": false,
-   "options": [
-    [
-     "right",
-     "Right"
-    ],
-    [
-     "center",
-     "Center"
-    ],
-    [
-     "left",
-     "Left"
-    ],
-    [
-     "hidden",
-     "Hidden"
-    ]
-   ],
-   "cvar": "oz_gameplay_draw_gun",
-   "create": true,
-   "cvar_default": "right",
-   "preview": ""
-  },
-  {
-   "key": "gameplay/gun_fov",
-   "tab": "gameplay",
-   "label": "Gun field of view",
-   "type": "float",
-   "default": 0.0,
-   "tip": "Field of view the gun is drawn at. 0 draws it at your Field of view, as the original does.",
-   "group": "Weapons",
-   "wired": true,
-   "restart": false,
-   "min": 0.0,
-   "max": 120.0,
-   "step": 1.0,
-   "unit": "deg",
-   "cvar": "oz_gameplay_gun_fov",
-   "create": true,
-   "cvar_default": "0",
-   "preview": ""
-  },
-  {
-   "key": "gameplay/gun_widescreen",
-   "tab": "gameplay",
-   "label": "Widescreen gun placement",
-   "type": "bool",
-   "default": true,
-   "tip": "With a Gun field of view of its own, the gun keeps as far toward the edge as on a 4:3 screen. Off draws it where a wide screen puts it, nearer the middle. At your Field of view the gun is already where 4:3 puts it.",
-   "group": "Weapons",
-   "wired": true,
-   "restart": false,
-   "cvar": "oz_gameplay_gun_widescreen",
-   "create": true,
-   "cvar_default": "1",
-   "preview": ""
-  },
-  {
-   "key": "gameplay/gun_offset",
-   "tab": "gameplay",
-   "label": "Gun side offset",
-   "type": "float",
-   "default": 0.0,
-   "tip": "Moves the gun sideways (cg_gunY): toward the edge its side is on, or back toward the middle.",
-   "group": "Weapons",
-   "wired": true,
-   "restart": false,
-   "min": -10.0,
-   "max": 10.0,
-   "step": 0.5,
-   "unit": "units",
-   "cvar": "oz_gameplay_gun_offset",
-   "create": true,
-   "cvar_default": "0",
-   "preview": ""
-  },
-  {
    "key": "gameplay/view_bob",
    "tab": "gameplay",
    "label": "View bob",
@@ -3862,6 +3776,220 @@
    "cvar": "oz_gameplay_damage_kick",
    "create": true,
    "cvar_default": "0",
+   "preview": ""
+  },
+  {
+   "key": "gameplay/gun_preset",
+   "tab": "gameplay",
+   "label": "Gun preset",
+   "type": "enum",
+   "default": "classic",
+   "tip": "Sets every gun setting below. Classic is the original's place, on the right; Centered puts the gun in the middle; Low tucks it down into the corner, clear of the view. Changing one of them switches this to Custom.",
+   "group": "Gun",
+   "wired": true,
+   "restart": false,
+   "options": [
+    [
+     "classic",
+     "Classic"
+    ],
+    [
+     "centered",
+     "Centered"
+    ],
+    [
+     "low",
+     "Low"
+    ],
+    [
+     "custom",
+     "Custom"
+    ]
+   ],
+   "cvar": "oz_gameplay_gun_preset",
+   "create": true,
+   "cvar_default": "classic",
+   "preview": ""
+  },
+  {
+   "key": "gameplay/draw_gun",
+   "tab": "gameplay",
+   "label": "Gun position",
+   "type": "enum",
+   "default": "right",
+   "tip": "Where your gun is drawn: on the right, in the center, on the left (mirrored), or hidden. Under every game, mods' too.",
+   "group": "Gun",
+   "wired": true,
+   "restart": false,
+   "options": [
+    [
+     "right",
+     "Right"
+    ],
+    [
+     "center",
+     "Center"
+    ],
+    [
+     "left",
+     "Left"
+    ],
+    [
+     "hidden",
+     "Hidden"
+    ]
+   ],
+   "cvar": "oz_gameplay_draw_gun",
+   "create": true,
+   "cvar_default": "right",
+   "preview": ""
+  },
+  {
+   "key": "gameplay/gun_forward",
+   "tab": "gameplay",
+   "label": "Gun forward",
+   "type": "float",
+   "default": 0.0,
+   "tip": "Moves the gun away from you, deeper into the view, or back toward you.",
+   "group": "Gun",
+   "wired": true,
+   "restart": false,
+   "min": -8.0,
+   "max": 8.0,
+   "step": 0.25,
+   "unit": "units",
+   "cvar": "oz_gameplay_gun_forward",
+   "create": true,
+   "cvar_default": "0",
+   "preview": ""
+  },
+  {
+   "key": "gameplay/gun_offset",
+   "tab": "gameplay",
+   "label": "Gun side",
+   "type": "float",
+   "default": 0.0,
+   "tip": "Moves the gun sideways: toward the edge its side is on, or back toward the middle. In the center, toward the right.",
+   "group": "Gun",
+   "wired": true,
+   "restart": false,
+   "min": -15.0,
+   "max": 15.0,
+   "step": 0.25,
+   "unit": "units",
+   "cvar": "oz_gameplay_gun_offset",
+   "create": true,
+   "cvar_default": "0",
+   "preview": ""
+  },
+  {
+   "key": "gameplay/gun_height",
+   "tab": "gameplay",
+   "label": "Gun height",
+   "type": "float",
+   "default": 0.0,
+   "tip": "Moves the gun up or down in the view.",
+   "group": "Gun",
+   "wired": true,
+   "restart": false,
+   "min": -8.0,
+   "max": 8.0,
+   "step": 0.25,
+   "unit": "units",
+   "cvar": "oz_gameplay_gun_height",
+   "create": true,
+   "cvar_default": "0",
+   "preview": ""
+  },
+  {
+   "key": "gameplay/gun_pitch",
+   "tab": "gameplay",
+   "label": "Gun pitch",
+   "type": "float",
+   "default": 0.0,
+   "tip": "Tips the muzzle up or down, turning the gun about its grip.",
+   "group": "Gun",
+   "wired": true,
+   "restart": false,
+   "min": -20.0,
+   "max": 20.0,
+   "step": 1.0,
+   "unit": "deg",
+   "cvar": "oz_gameplay_gun_pitch",
+   "create": true,
+   "cvar_default": "0",
+   "preview": ""
+  },
+  {
+   "key": "gameplay/gun_yaw",
+   "tab": "gameplay",
+   "label": "Gun yaw",
+   "type": "float",
+   "default": 0.0,
+   "tip": "Turns the muzzle toward the middle of the screen, or away from it toward the edge.",
+   "group": "Gun",
+   "wired": true,
+   "restart": false,
+   "min": -20.0,
+   "max": 20.0,
+   "step": 1.0,
+   "unit": "deg",
+   "cvar": "oz_gameplay_gun_yaw",
+   "create": true,
+   "cvar_default": "0",
+   "preview": ""
+  },
+  {
+   "key": "gameplay/gun_roll",
+   "tab": "gameplay",
+   "label": "Gun roll",
+   "type": "float",
+   "default": 0.0,
+   "tip": "Leans the top of the gun toward the middle of the screen, or toward the edge.",
+   "group": "Gun",
+   "wired": true,
+   "restart": false,
+   "min": -30.0,
+   "max": 30.0,
+   "step": 1.0,
+   "unit": "deg",
+   "cvar": "oz_gameplay_gun_roll",
+   "create": true,
+   "cvar_default": "0",
+   "preview": ""
+  },
+  {
+   "key": "gameplay/gun_fov",
+   "tab": "gameplay",
+   "label": "Gun field of view",
+   "type": "float",
+   "default": 0.0,
+   "tip": "Field of view the gun is drawn at, so it keeps one size whatever your Field of view. 0 draws it at your Field of view, as the original does. Lower draws it bigger and closer, higher smaller.",
+   "group": "Gun",
+   "wired": true,
+   "restart": false,
+   "min": 0.0,
+   "max": 120.0,
+   "step": 1.0,
+   "unit": "deg",
+   "cvar": "oz_gameplay_gun_fov",
+   "create": true,
+   "cvar_default": "0",
+   "preview": ""
+  },
+  {
+   "key": "gameplay/gun_widescreen",
+   "tab": "gameplay",
+   "label": "Widescreen gun placement",
+   "type": "bool",
+   "default": true,
+   "tip": "With a Gun field of view of its own, the gun keeps as far toward the edge as on a 4:3 screen. Off draws it where a wide screen puts it, nearer the middle. At your Field of view the gun is already where 4:3 puts it.",
+   "group": "Gun",
+   "wired": true,
+   "restart": false,
+   "cvar": "oz_gameplay_gun_widescreen",
+   "create": true,
+   "cvar_default": "1",
    "preview": ""
   },
   {
@@ -4504,5 +4632,55 @@
    "cvar_default": "#d9140a",
    "preview": ""
   }
- ]
+ ],
+ "preset_tables": {
+  "_note": "A preset setting's columns, in its options' order (Custom left out): picking one sets each setting to its column's value; changing one of them makes the preset Custom. Graphics > Preset's are \"presets\" above.",
+  "gameplay/gun_preset": {
+   "gameplay/draw_gun": [
+    "right",
+    "center",
+    "right"
+   ],
+   "gameplay/gun_forward": [
+    0,
+    0,
+    0
+   ],
+   "gameplay/gun_offset": [
+    0,
+    0,
+    3
+   ],
+   "gameplay/gun_height": [
+    0,
+    2,
+    -1
+   ],
+   "gameplay/gun_pitch": [
+    0,
+    0,
+    0
+   ],
+   "gameplay/gun_yaw": [
+    0,
+    0,
+    0
+   ],
+   "gameplay/gun_roll": [
+    0,
+    0,
+    0
+   ],
+   "gameplay/gun_fov": [
+    0,
+    0,
+    0
+   ],
+   "gameplay/gun_widescreen": [
+    true,
+    true,
+    true
+   ]
+  }
+ }
 }

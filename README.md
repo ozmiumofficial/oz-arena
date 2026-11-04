@@ -6,7 +6,7 @@
 
 ![q3dm7 in Oz Arena](docs/screenshots/hero.jpg)
 
-**[Download the latest release](https://github.com/ozmiumofficial/oz-arena/releases/latest)** · Windows 10 or 11, 64-bit · You need your own copy of Quake III Arena.
+**[Download the installer](https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe)** · Windows 10 or 11, 64-bit · You need your own copy of Quake III Arena.
 
 ---
 
@@ -28,15 +28,24 @@
 
 ## Install
 
-1. **Get the game files you own.** Oz Arena reads Quake III Arena's `baseq3` from your copy and never ships it.
-   - **Steam:** nothing to do. Oz finds the game in any of your Steam libraries.
-   - **GOG, CD or another copy:** copy your `baseq3` folder (the one with `pak0.pk3` to `pak8.pk3`) into the Oz Arena folder, next to `OzArena.exe`.
-2. **Download three files** from the [latest release](https://github.com/ozmiumofficial/oz-arena/releases/latest), about 4 GB in all:
-   - `OzArena-<version>-windows.zip`: the game, the fighters, weapons, effects and cinematics.
-   - `pak_oz_world.pk3` and `pak_oz_world1.pk3`: the world textures and relit arenas.
-3. **Unzip** `OzArena-<version>-windows.zip` anywhere. It makes an `OzArena` folder.
-4. **Put the two world packs** in that folder's `oz` folder, beside the other `pak_oz_*.pk3` files. Don't unzip or rename them.
-5. **Run `OzArena.exe`.**
+1. **Download [`OzArenaSetup.exe`](https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe)** (about 1 MB) and run it.
+2. **Check what it found.** Setup finds your Quake III Arena on its own: in any of your Steam libraries, among your GOG games, or in the usual folders. If it doesn't, press **Locate** and pick the folder that holds `baseq3`.
+3. **Press Install.** Setup downloads the latest release (about 4 GB) and puts Oz Arena in a folder of its own inside your Quake III Arena folder, so the two never mix. If the download stops, run Setup again and it carries on where it left off.
+4. **Press Play.** Setup also adds Oz Arena to the Start Menu (and your desktop, if you leave that ticked).
+
+Oz Arena reads the game's own files from your copy and never ships or changes them. To update, run Setup again: it skips any world pack you already have. To uninstall, use Windows' **Apps & features**; your settings, career and maps stay.
+
+<details>
+<summary>Installing by hand instead</summary>
+
+1. Download `OzArena-<version>-windows.zip`, `pak_oz_world.pk3` and `pak_oz_world1.pk3` from the [latest release](https://github.com/ozmiumofficial/oz-arena/releases/latest).
+2. Unzip the zip anywhere. It makes an `OzArena` folder.
+3. Put the two world packs in that folder's `oz` folder, beside the other `pak_oz_*.pk3` files. Don't unzip or rename them, and don't put them in `baseq3`.
+4. On Steam, Oz finds the game by itself. For a GOG, CD or other copy, copy your `baseq3` folder (the one with `pak0.pk3` to `pak8.pk3`) next to `OzArena.exe`.
+5. Run `OzArena.exe`.
+
+Or put all three release files next to `OzArenaSetup.exe` and run it: it installs from them without downloading.
+</details>
 
 Settings, saved matches and your career live in `%APPDATA%\Oz Arena`. To play CPMA or Defrag, install them into your Quake III Arena folder as usual (or beside `OzArena.exe` if you copied `baseq3` there); Oz never downloads them for you.
 
@@ -193,6 +202,8 @@ build/engine/OzArena.exe
 For the map editor's import and compile, unpack a [NetRadiant-custom](https://github.com/Garux/netradiant-custom/releases) Windows release into `build/tools/` (so its programs are in `build/tools/netradiant-custom-<date>/app`); the build stages its q3map2 and mbspc beside the game.
 
 The asset packs come from `tools/`, which rebuild them from your own copy's files: `make_textures.py` (the texture library, on the GPU with PyTorch and CUDA), `make_pk3s.py` and `q3relight.py` (the world and the relit maps, with q3map2), `make_fighters.py`, `make_props.py`, `make_fx_pk3.py` and `make_levelshots.py`. The release has them all prebuilt.
+
+The installer is `engine/installer/setup`: `python engine/tools/make_setup.py` builds `build/installer/OzArenaSetup.exe` (it needs the .NET SDK).
 
 | Folder | What's there |
 |---|---|

@@ -321,6 +321,7 @@ static Page pages[] = {
 	{ "error", "ui/pages/error.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "display_confirm", "ui/pages/display_confirm.rml", nullptr, PAGE_OVERLAY, nullptr },
 	{ "apply_confirm", "ui/pages/apply_confirm.rml", nullptr, PAGE_OVERLAY, nullptr },
+	{ "q3import", "ui/pages/q3import.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },	// over the main menu or Settings
 	{ "color_picker", "ui/pages/color_picker.rml", nullptr, PAGE_OVERLAY, nullptr },
 	{ "friends", "ui/pages/friends.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "quick_join", "ui/pages/quick_join.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
@@ -340,6 +341,7 @@ static Page pages[] = {
 	{ "pause", "ui/pages/pause.rml", nullptr, PAGE_MENU, nullptr },
 	{ "connect", "ui/pages/connect.rml", nullptr, PAGE_MENU, nullptr },
 	{ "crosshair", "ui/pages/crosshair.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
+	{ "gun", "ui/pages/gun.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "editor", "ui/pages/editor.rml", nullptr, 0, nullptr },	// P13: the map editor (oz_ui_editor.cpp)
 };
 
@@ -465,7 +467,8 @@ static bool OpenPage( Page *p ) {
 		// an overlay keeps the page under it drawn, unless both are panels (the Dedicated page from
 		// the Server Browser): then the new panel takes the old one's place until it closes
 		const bool dialog = !strcmp( p->name, "friends" ) || !strcmp( p->name, "quit" ) ||
-			!strcmp( p->name, "display_confirm" ) || !strcmp( p->name, "apply_confirm" ) || !strcmp( p->name, "color_picker" );	// over Settings
+			!strcmp( p->name, "display_confirm" ) || !strcmp( p->name, "apply_confirm" ) || !strcmp( p->name, "color_picker" ) ||
+			!strcmp( p->name, "q3import" );	// over Settings
 		const bool base = !strcmp( stack.back()->name, "menu" ) || !strcmp( stack.back()->name, "pause" );
 		if ( !( p->flags & PAGE_OVERLAY ) || ( !dialog && !base && ( stack.back()->flags & PAGE_OVERLAY ) ) ) {
 			stack.back()->doc->Hide();
@@ -1385,6 +1388,7 @@ void OzUI_Init( void ) {
 	}
 	Settings_Init();
 	AddCommands();
+	OzQ3Import_Init();
 	OzE_CvarCreate( "ui_nativeMenu", "1", 0, "Oz Arena's own menus: the main menu and the pause menu (0: the game code's menus).", "0", "1", 1 );
 
 	Rml::SetSystemInterface( &systemInterface );

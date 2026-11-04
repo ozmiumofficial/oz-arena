@@ -72,11 +72,32 @@ int			OzE_Connection( char *server, int serverSize, int *tries, char *message, i
 int			OzE_PlayingDemo( void );
 // the match the client is in, for the pause menu; 0 when not in one
 int			OzE_MatchInfo( char *map, int mapSize, int *gametype, int *seconds, int *warmup, int *score, int *localServer );
+// the pause menu's team choices (oz_hud.c): your team and the sides, from the configstrings; 0 when not in a match
+typedef struct {
+	int		gametype;
+	int		team;			// baseq3's: 0 free, 1 red, 2 blue, 3 spectator
+	int		count[4];		// the players on each of those
+	int		redScore, blueScore;
+	int		fraglimit, timelimit, capturelimit;
+	int		line;			// a duel's waiting spectator: your place in the line to play (1 next), 0 not known
+	int		following;		// watching a player (not flying free)
+	int		intermission;	// the match is over (the scores screen)
+} ozTeamInfo_t;
+int			OzE_TeamInfo( ozTeamInfo_t *t );
 const char	*OzE_GameDir( void );				// the running mod ("oz" is Oz's own game)
 int			OzE_IsOzGame( void );
 const char	*OzE_Version( void );
 void		OzE_RendererRestarted( void );		// the renderer's handles are gone (OzUI_RendererShutdown)
 int			OzE_RendererGeneration( void );
+
+// oz_q3import.c: the player's Quake III config, imported (binds and the settings Settings shows)
+void		OzQ3Import_Init( void );			// at CL_Init, before the first config write
+int			OzQ3Import_Offer( void );		// once: Oz's first run, with something to import (planned)
+int			OzQ3Import_Plan( void );			// reads the config: how many binds and settings would come over
+const char	*OzQ3Import_From( void );		// the folder it's in, "" without one
+const char	*OzQ3Import_Kept( void );		// what stays as Oz has it, a line
+int			OzQ3Import_Summary( int line, char *name, int nameSize, char *text, int textSize );	// 0 past the last
+int			OzQ3Import_Apply( void );		// the plan imported: how many
 
 // oz_ui_showcase.c: the main menu's 3D showcase, drawn before the page layer
 void		OzE_ShowcaseDraw( int width, int height, const float *accent );

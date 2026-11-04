@@ -4,11 +4,12 @@ Oz Arena: the competitive options that change the 3D view (ENGINE_PLAN.md P2, P6
 
 Like the HUD (oz_hud.c), these work under every cgame, from the entities it adds to the scene:
 
-- Gameplay > Gun position, Gun side offset, Gun field of view and Widescreen gun placement: the gun's
-  parts (RF_FIRST_PERSON) are kept until the scene renders, then placed against that scene's own view:
-  moved sideways, mirrored for the left (a reflection across the view's forward-up plane, which the oz
-  renderer draws with its culling flipped), or put in the middle. Gun field of view itself is the
-  renderer's (tr_backend.c gives the gun its own projection).
+- Gameplay > Gun position, Gun forward, Gun side, Gun height, Gun pitch, Gun yaw, Gun roll, Gun field
+  of view and Widescreen gun placement (the gun editor, ui/pages/gun.rml): the gun's parts
+  (RF_FIRST_PERSON) are kept until the scene renders, then placed against that scene's own view: moved
+  along it and turned about the gun's grip, then mirrored for the left (a reflection across the view's
+  forward-up plane, which the oz renderer draws with its culling flipped), or put in the middle, and moved
+  sideways. Gun field of view itself is the renderer's (tr_backend.c gives the gun its own projection).
 - Gameplay > Force enemy model: an enemy's lower, upper and head models are swapped for the chosen
   character's, each entity on its own (the cgame shares model handles between players), with its frames
   moved to the same animation in the new model's animation.cfg. The torso, the head, the gun and the
@@ -35,6 +36,7 @@ which the cgame works out from its own prediction.
 enum { PART_NONE, PART_LOWER, PART_UPPER, PART_HEAD };
 
 static cvar_t	*oz_gameplay_draw_gun, *oz_gameplay_gun_offset, *oz_gameplay_gun_fov, *oz_gameplay_gun_widescreen;
+static cvar_t	*oz_gameplay_gun_forward, *oz_gameplay_gun_height, *oz_gameplay_gun_pitch, *oz_gameplay_gun_yaw, *oz_gameplay_gun_roll;
 static cvar_t	*oz_gameplay_force_model, *cg_fov;
 
 static void InitCvars( void ) {
@@ -45,6 +47,11 @@ static void InitCvars( void ) {
 	oz_gameplay_gun_offset = Cvar_Get( "oz_gameplay_gun_offset", "0", CVAR_ARCHIVE );
 	oz_gameplay_gun_fov = Cvar_Get( "oz_gameplay_gun_fov", "0", CVAR_ARCHIVE );
 	oz_gameplay_gun_widescreen = Cvar_Get( "oz_gameplay_gun_widescreen", "1", CVAR_ARCHIVE );
+	oz_gameplay_gun_forward = Cvar_Get( "oz_gameplay_gun_forward", "0", CVAR_ARCHIVE );
+	oz_gameplay_gun_height = Cvar_Get( "oz_gameplay_gun_height", "0", CVAR_ARCHIVE );
+	oz_gameplay_gun_pitch = Cvar_Get( "oz_gameplay_gun_pitch", "0", CVAR_ARCHIVE );
+	oz_gameplay_gun_yaw = Cvar_Get( "oz_gameplay_gun_yaw", "0", CVAR_ARCHIVE );
+	oz_gameplay_gun_roll = Cvar_Get( "oz_gameplay_gun_roll", "0", CVAR_ARCHIVE );
 	oz_gameplay_force_model = Cvar_Get( "oz_gameplay_force_model", "off", CVAR_ARCHIVE );
 	Cvar_Get( "oz_gameplay_view_bob", "1", CVAR_ARCHIVE );		// Oz's cgame reads these two
 	Cvar_Get( "oz_gameplay_damage_kick", "0", CVAR_ARCHIVE );
@@ -526,11 +533,72 @@ static void AimBolt( const refdef_t *fd, refEntity_t *bolt ) {
 
 /*
 =================
+PoseGun
+
+Gun forward and height move the right-hand gun along the view; Gun pitch, yaw and roll turn it about its
+grip (the gun's first part's origin) on the view's axes: the muzzle up, the muzzle toward the middle, the
+top toward the middle. The left then mirrors the whole pose. A lightning bolt from the flash moves only
+its start.
+=================
+*/
+static void PoseVector( const refdef_t *fd, const vec3_t grip, vec3_t p, qboolean point ) {
+	const float	roll = -oz_gameplay_gun_roll->value, pitch = -oz_gameplay_gun_pitch->value, yaw = oz_gameplay_gun_yaw->value;
+	vec3_t		v, t;
+
+	if ( point ) {
+		VectorSubtract( p, grip, v );
+	} else {
+		VectorCopy( p, v );
+	}
+	if ( roll ) {
+		RotatePointAroundVector( t, fd->viewaxis[0], v, roll );
+		VectorCopy( t, v );
+	}
+	if ( pitch ) {
+		RotatePointAroundVector( t, fd->viewaxis[1], v, pitch );
+		VectorCopy( t, v );
+	}
+	if ( yaw ) {
+		RotatePointAroundVector( t, fd->viewaxis[2], v, yaw );
+		VectorCopy( t, v );
+	}
+	if ( point ) {
+		VectorAdd( v, grip, p );
+		VectorMA( p, oz_gameplay_gun_forward->value, fd->viewaxis[0], p );
+		VectorMA( p, oz_gameplay_gun_height->value, fd->viewaxis[2], p );
+	} else {
+		VectorCopy( v, p );
+	}
+}
+
+static void PoseGun( const refdef_t *fd, const vec3_t grip, refEntity_t *e, qboolean bolt ) {
+	int i;
+
+	if ( !oz_gameplay_gun_forward->value && !oz_gameplay_gun_height->value && !oz_gameplay_gun_pitch->value &&
+		 !oz_gameplay_gun_yaw->value && !oz_gameplay_gun_roll->value ) {
+		return;
+	}
+	PoseVector( fd, grip, e->origin, qtrue );
+	if ( bolt ) {
+		return;		// its oldorigin is the end
+	}
+	PoseVector( fd, grip, e->oldorigin, qtrue );
+	if ( e->renderfx & RF_LIGHTING_ORIGIN ) {
+		PoseVector( fd, grip, e->lightingOrigin, qtrue );
+	}
+	for ( i = 0; i < 3; i++ ) {
+		PoseVector( fd, grip, e->axis[i], qfalse );
+	}
+}
+
+/*
+=================
 PlaceGun
 
-The gun's parts against the view they're drawn in (the cgame placed them against the same one). Sideways,
-the gun's first part (the gun itself, on the hand's tag_weapon) sets where it is: the right keeps that,
-pushed out toward the edge by the offset; the left mirrors it; the center moves it to the middle. With a
+The gun's parts against the view they're drawn in (the cgame placed them against the same one), posed
+first (PoseGun). Sideways, the gun's first part (the gun itself, on the hand's tag_weapon) sets where it
+is: the right keeps that, pushed out toward the edge by Gun side; the left mirrors it; the center moves it
+to the middle, and Gun side moves it right from there. With a
 field of view of its own the gun is the same size on every screen, so on a wide one it would sit nearer
 the middle than on 4:3: Widescreen gun placement moves it out by the screen's width over 4:3's, and the
 drop baseq3's cgame gives the gun at a wide cg_fov (CG_AddViewWeapon's fovOffset) is taken back.
@@ -544,16 +612,17 @@ static void PlaceGun( const refdef_t *fd ) {
 	const float		*o = fd->vieworg, *lateral = fd->viewaxis[1];	// it points left
 	const float		scale = GunScale( fd );
 	float			y0, target, shift, lift = 0.0f;
-	vec3_t			d, from[MAX_GUN_PARTS], to[MAX_GUN_PARTS], lineStart, lineEnd;
+	vec3_t			d, grip, from[MAX_GUN_PARTS], to[MAX_GUN_PARTS], lineStart, lineEnd;
 	qboolean		layers;
 	int				i, j;
 
 	HoldGun( fd );
 	VectorCopy( gunParts[0].origin, d );
 	HoldVector( fd, d, qtrue );
+	VectorCopy( d, grip );
 	VectorSubtract( d, o, d );
 	y0 = DotProduct( d, lateral );
-	target = center ? 0.0f : ( y0 * wide - oz_gameplay_gun_offset->value ) * ( left ? -1.0f : 1.0f );
+	target = center ? -oz_gameplay_gun_offset->value : ( y0 * wide - oz_gameplay_gun_offset->value ) * ( left ? -1.0f : 1.0f );
 	shift = target - ( left ? -y0 : y0 );
 	if ( ownFov && cg_fov->value > 90.0f && !Q_stricmp( FS_GetCurrentGameDir(), "oz" ) ) {
 		lift = 0.2f * ( cg_fov->integer - 90 );
@@ -564,6 +633,7 @@ static void PlaceGun( const refdef_t *fd ) {
 
 		VectorCopy( e->origin, from[i] );
 		HoldPart( fd, e, gunBeam[i] );
+		PoseGun( fd, grip, e, gunBeam[i] );
 		if ( left ) {
 			ReflectPoint( e->origin, o, lateral );
 			if ( !gunBeam[i] ) {

@@ -645,6 +645,8 @@ void Menu_Run( const Rml::String &commands, Rml::Element *element ) {
 			Menu_Toast( arg.c_str(), "warn" );
 		} else if ( verb == "cmd" ) {
 			OzE_ExecuteNow( ( arg + "\n" ).c_str() );
+		} else if ( verb == "q3import" ) {	// q3import show|apply: q3import.rml, the player's Quake III config
+			Menu_Q3Import( arg == "apply" );
 		} else if ( verb == "displaykeep" ) {	// display_confirm.rml: the new window settings stay
 			Settings_DisplayKeep();
 		} else if ( verb == "settingsleave" ) {	// settingsleave apply|discard: apply_confirm.rml, then Settings closes
@@ -731,6 +733,7 @@ void Menu_Run( const Rml::String &commands, Rml::Element *element ) {
 		} else if ( verb == "append" ) {
 			OzE_AppendText( ( arg + "\n" ).c_str() );
 		} else if ( Crosshair_Action( verb, arg ) ) {	// the crosshair editor's (oz_ui_crosshair.cpp)
+		} else if ( Gun_Action( verb, arg ) ) {			// the gun editor's (oz_ui_gun.cpp)
 		} else if ( Profile_Action( verb, arg ) ) {	// the Profile and Campaign pages' (oz_ui_profile.cpp)
 		} else if ( Skirmish_Action( verb, arg ) ) {	// Skirmish's mods and races (oz_ui_skirmish.cpp)
 		} else if ( Mods_Action( verb, arg ) ) {	// the Mod Library (oz_ui_mods.cpp)
@@ -949,6 +952,52 @@ bool Menu_Back( const char *page ) {
 void Menu_SplashDone() {
 	CloseAllPages();
 	OpenPageByName( "menu" );
+	if ( OzQ3Import_Offer() ) {
+		Menu_Q3Import( false );	// the first run: the player's Quake III settings, once
+	}
+}
+
+/*
+================
+Menu_Q3Import
+
+q3import.rml: what the player's Quake III config brings (oz_q3import.c), a line a group, and what
+stays Oz's; apply imports it and closes the dialog. From the first run's main menu and Settings.
+================
+*/
+void Menu_Q3Import( bool apply ) {
+	if ( apply ) {
+		const int n = OzQ3Import_Apply();
+		if ( !strcmp( TopPageName(), "q3import" ) ) {
+			GoBack();
+		}
+		Menu_Toast( n ? "Your Quake III settings are in. Settings shows them." : "Nothing to import.", "info" );
+		return;
+	}
+	if ( OzQ3Import_Plan() <= 0 ) {
+		PlaySound( Sound::Buzz );
+		Menu_Toast( OzQ3Import_From()[0] ? "Your Quake III config has nothing Oz doesn't have already." :
+			"No Quake III config found in your install.", "warn" );
+		return;
+	}
+	cJSON *lines = cJSON_CreateArray();
+	char name[64], text[1024];
+	for ( int i = 0; OzQ3Import_Summary( i, name, sizeof( name ), text, sizeof( text ) ); i++ ) {
+		cJSON *l = cJSON_CreateObject();
+		cJSON_AddStringToObject( l, "name", name );
+		cJSON_AddStringToObject( l, "text", text );
+		cJSON_AddItemToArray( lines, l );
+	}
+	if ( cJSON *dst = Menu_Node( "q3import.lines" ) ) {
+		Replace( dst, lines );		// consumes lines
+	} else {
+		cJSON_Delete( lines );
+	}
+	Menu_Dirty( "q3import" );
+	Menu_Set( "q3import.from", OzQ3Import_From() );
+	Menu_Set( "q3import.kept", OzQ3Import_Kept()[0] ? ( Rml::String( "Kept as Oz has them: " ) + OzQ3Import_Kept() + "." ).c_str() :
+		"Graphics, frame rate and network stay as Oz has them." );
+	OpenPageByName( "q3import" );
 }
 
 // the friends panel (Y, F, the top bar's button), over the main menu and its pages
@@ -967,9 +1016,9 @@ void Menu_Social() {
 
 // what a page over the main menu changes in it: the shade's dim, the column's opacity (Shade, MainColumn)
 void Menu_Covered( const char *top ) {
-	if ( pauseDoc ) {	// a page over the pause menu dims it; the crosshair editor clears it from the screen's middle
+	if ( pauseDoc ) {	// a page over the pause menu dims it; the crosshair and gun editors clear it from the match
 		pauseDoc->SetClass( "covered", *top && strcmp( top, "pause" ) );
-		pauseDoc->SetClass( "clear", !strcmp( top, "crosshair" ) );
+		pauseDoc->SetClass( "clear", !strcmp( top, "crosshair" ) || !strcmp( top, "gun" ) );
 	}
 	if ( !menuDoc ) {
 		return;
@@ -1023,6 +1072,9 @@ void Menu_Opened( const char *name ) {
 	if ( !strcmp( name, "crosshair" ) ) {
 		Crosshair_Opened();
 	}
+	if ( !strcmp( name, "gun" ) ) {
+		Gun_Opened();
+	}
 }
 
 /*
@@ -1043,6 +1095,99 @@ static void RotateNews() {
 	cJSON *item = cJSON_GetArrayItem( news, index );
 	Menu_Set( "state.news_title", cJSON_GetStringValue( cJSON_GetArrayItem( item, 0 ) ) );
 	Menu_Set( "state.news_text", cJSON_GetStringValue( cJSON_GetArrayItem( item, 1 ) ) );
+}
+
+/*
+The pause menu's team choices, for the game type and the team you're on (OzE_TeamInfo): Join game
+(the free for all, or the side id's PickTeam would give: the one with fewer players, else the one
+behind, else blue), Switch team, Spectate, and in a duel your place in the line to play. Each is the
+game's own "team" command, which id's game, Oz's and CPMA's take, on pure servers too. In a full duel
+id's game makes a joiner a spectator again, so a waiting spectator gets the line's note instead of a
+Join; and a duelist who spectates gives the other the win (SetTeam), so that asks first. The line's
+place and its rules are id's (Oz's game and baseq3 servers): under a mod the note only says the duel
+is full. None in single player or at the intermission.
+*/
+static void PauseTeams( bool warmup ) {
+	static const char *const sides[] = { "free", "red", "blue", "spectator" };
+	ozTeamInfo_t t;
+	Rml::String join, joinHint, flip, flipHint, spectateHint, status, queueTitle, queueText;
+	bool spectate = false, forfeit = false;
+
+	const bool known = OzE_TeamInfo( &t ) && !t.intermission && t.gametype != 2 && t.team >= 0 && t.team <= 3;
+	const bool teams = t.gametype >= 3, duel = t.gametype == 1;
+	const bool watching = t.team == 3;
+	if ( known && teams ) {
+		const int red = t.count[1], blue = t.count[2];
+		if ( watching ) {
+			const int side = red < blue ? 1 : blue < red ? 2 : t.blueScore > t.redScore ? 1 : 2;
+			join = sides[side];
+			joinHint = Rml::String( side == 1 ? "On Red" : "On Blue" ) + ( red != blue ? ", the side with fewer players" : t.redScore != t.blueScore ? ", the side behind" : "" );
+			status = "You're watching";
+		} else {
+			const int other = t.team == 1 ? 2 : 1;
+			flip = sides[other];
+			flipHint = Rml::CreateString( "Red has %d %s, Blue %d", red, red == 1 ? "player" : "players", blue );
+			status = t.team == 1 ? "You're on Red" : "You're on Blue";
+		}
+	} else if ( known && duel ) {
+		const int duelists = t.count[0];
+		if ( watching && duelists < 2 ) {
+			join = "free";
+			joinHint = "A place in the duel is open";
+			status = "You're watching";
+		} else if ( watching ) {
+			Rml::String ends;
+			if ( t.fraglimit > 0 && t.timelimit > 0 ) {
+				ends = Rml::CreateString( " (at %d frags or %d:00)", t.fraglimit, t.timelimit );
+			} else if ( t.fraglimit > 0 ) {
+				ends = Rml::CreateString( " (at %d frags)", t.fraglimit );
+			} else if ( t.timelimit > 0 ) {
+				ends = Rml::CreateString( " (at %d:00)", t.timelimit );
+			}
+			status = "You're waiting to play";
+			if ( !OzE_IsOzGame() ) {	// a mod's own duel rules (CPMA lists its spectators, but its line isn't id's)
+				queueTitle = "The duel is full";
+				queueText = "Join game shows here when a place opens.";
+			} else if ( t.line == 1 ) {
+				queueTitle = "You're next in line";
+				queueText = "You play the winner when this duel ends" + ends + ".";
+			} else if ( t.line > 1 ) {
+				static const char *const nth[] = { "", "", "2nd", "3rd" };
+				queueTitle = t.line < 4 ? Rml::String( nth[t.line] ) + " in line" : Rml::CreateString( "%dth in line", t.line );
+				queueText = Rml::CreateString( "%d %s before you. Each duel's winner stays on, its loser goes to the back of the line, and the next in line comes in.", t.line - 1, t.line == 2 ? "player plays" : "players play" );
+			} else {
+				queueTitle = "In line to play";
+				queueText = "Each duel's winner stays on, its loser goes to the back of the line, and the next in line comes in.";
+			}
+		} else {
+			status = "";
+			forfeit = !warmup;
+			spectateHint = forfeit ? "Leave the duel: your opponent takes the win" : "Leave the duel for the back of the line";
+		}
+	} else if ( known ) {	// a free for all
+		if ( watching ) {
+			join = "free";
+			joinHint = "Into the match";
+			status = "You're watching";
+		}
+	}
+	if ( known && !watching ) {
+		spectate = true;
+		if ( spectateHint.empty() ) {
+			spectateHint = "Watch the match, and join again from here";
+		}
+	}
+	Menu_Set( "pause.team", known ? sides[t.team] : "" );
+	Menu_Set( "pause.status", status.c_str() );
+	Menu_Set( "pause.join", join.c_str() );
+	Menu_Set( "pause.join_hint", joinHint.c_str() );
+	Menu_Set( "pause.switch", flip.c_str() );
+	Menu_Set( "pause.switch_hint", flipHint.c_str() );
+	Menu_Set( "pause.can_spectate", spectate ? "true" : "false" );
+	Menu_Set( "pause.spectate_hint", spectateHint.c_str() );
+	Menu_Set( "pause.forfeit", forfeit ? "true" : "false" );
+	Menu_Set( "pause.queue_title", queueTitle.c_str() );
+	Menu_Set( "pause.queue_text", queueText.c_str() );
 }
 
 // the pause menu's match: its mode and arena, the clock, warmup, the local player's score (the full
@@ -1078,6 +1223,7 @@ static void PauseFrame() {
 	Menu_Set( "pause.editor", local && !strncmp( map, "ed_", 3 ) ? "true" : "false" );	// a map editor's play-test (P13)
 	Menu_Set( "pause.standings.0.name", Menu_Get( "player.name" ) );
 	Menu_Set( "pause.standings.0.score", Rml::CreateString( "%d", score ).c_str() );
+	PauseTeams( warmup != 0 );
 }
 
 void Menu_Frame() {
@@ -1087,6 +1233,7 @@ void Menu_Frame() {
 	Servers_Frame();
 	Skirmish_Frame();
 	Crosshair_Frame();
+	Gun_Frame();
 	if ( focusFirst && menuDoc && !strcmp( TopPageName(), "menu" ) ) {
 		Rml::Element *f = GetContext()->GetFocusElement();
 		Rml::Element *first = menuDoc->GetElementById( "main_play" );

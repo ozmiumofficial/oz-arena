@@ -207,7 +207,7 @@ diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
 -			trap_R_AddLightToScene( flash.origin, 300 + (rand()&31), weapon->flashDlightColor[0],
 -				weapon->flashDlightColor[1], weapon->flashDlightColor[2] );
 +			const float *c = CG_OzFlashColor( weaponNum, weapon->flashDlightColor );	// Oz: Lightning color, Plasma color
-+			trap_R_AddLightToScene( flash.origin, CG_OzFlashLight( 300 + (rand()&31) ), c[0], c[1], c[2] );	// Oz
++			trap_R_AddLightToScene( flash.origin, CG_OzFlashLight( weaponNum == WP_LIGHTNING ? 130 + (rand()&15) : 300 + (rand()&31) ), c[0], c[1], c[2] );	// Oz
  		}
  	}
  }
@@ -1340,7 +1340,7 @@ new file mode 100644
 +		c[3] = 1.0f;
 +		OzColorBytes( c, qtrue, oz.gain, flare.shaderRGBA );
 +		trap_R_AddRefEntityToScene( &flare );
-+		trap_R_AddLightToScene( at, 160.0f * f * MAX( oz.gain, 0.1f ), halo[0], halo[1], halo[2] );
++		trap_R_AddLightToScene( at, 100.0f * f * MAX( oz.gain, 0.1f ), halo[0], halo[1], halo[2] );
 +	}
 +	return oz.lightningStyle != OZ_LG_STRAIGHT;
 +}

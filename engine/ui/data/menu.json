@@ -47,6 +47,7 @@
     "news_text": ""
   },
   "error": { "text": "" },
+  "q3import": { "from": "", "kept": "", "lines": [] },
   "display": { "seconds": 15 },
   "picker": { "label": "", "r": 255, "g": 255, "b": 255, "hex": "#ffffff" },
   "player": { "name": "Player", "model": "sarge", "icon": "", "version": "", "accent": "#db2410", "title": "Fresh Meat", "level": 1, "rank": "Unranked" },

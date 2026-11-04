@@ -1,14 +1,38 @@
 {
-  "_note": "The pause menu's match (filled by the engine while the menu is open: mode and arena, clock, warmup, the local player's score) and the crosshair editor's values (the crosshair settings, followed every frame it's open, oz_ui_crosshair.cpp; its controls write them).",
+  "_note": "The pause menu's match (filled by the engine while the menu is open: mode and arena, clock, warmup, the local player's score, the team choices and a duel's line: oz_ui_menu.cpp PauseTeams), the crosshair editor's values (the crosshair settings, followed every frame it's open, oz_ui_crosshair.cpp; its controls write them) and the gun editor's (the Gun settings, the same way, oz_ui_gun.cpp).",
   "pause": {
     "title": "",
     "clock": "0:00",
     "warmup": false,
     "can_restart": false,
     "editor": false,
+    "team": "",
+    "status": "",
+    "join": "",
+    "join_hint": "",
+    "switch": "",
+    "switch_hint": "",
+    "can_spectate": false,
+    "spectate_hint": "",
+    "forfeit": false,
+    "queue_title": "",
+    "queue_text": "",
     "standings": [
       { "name": "Player", "score": 0, "local": true }
     ]
+  },
+  "gun": {
+    "live": false,
+    "preset": "classic",
+    "position": "right",
+    "forward": 0,
+    "side": 0,
+    "height": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "roll": 0,
+    "fov": 0,
+    "widescreen": true
   },
   "crosshair": {
     "weapon": "all",

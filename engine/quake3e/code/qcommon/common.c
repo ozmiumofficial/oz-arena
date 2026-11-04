@@ -3261,18 +3261,19 @@ static void Com_ExecuteEngineConfig( void ) {
 
 
 /*
-Oz's own game runs only a q3config.cfg of its own. Without one (a first run) the search path finds the
-player's install's baseq3/q3config.cfg, often from 1999: half-size textures (r_picmip), an 85 fps cap
-and id's binds over Oz's defaults (its default.cfg, made from engine/ui/settings.json). A mod keeps
+Oz's own game runs only a q3config.cfg and an autoexec.cfg of its own. Without them (a first run) the
+search path finds the player's install's baseq3 ones, often from 1999: half-size textures (r_picmip),
+an 85 fps cap and id's binds over Oz's defaults (its default.cfg, made from engine/ui/settings.json).
+What is the player's own in them comes over through the import instead (oz_q3import.c). A mod keeps
 Quake3e's search: its players' configs are where they've always been.
 */
-static qboolean Com_RunsGameConfig( void ) {
+static qboolean Com_RunsGameConfig( const char *name ) {
 	const char *game = FS_GetCurrentGameDir();
 
 	if ( Q_stricmp( game, "oz" ) ) {
 		return qtrue;
 	}
-	return FS_SV_FileExists( va( "%s/%s", game, Q3CONFIG_CFG ) );
+	return FS_SV_FileExists( va( "%s/%s", game, name ) );
 }
 #endif
 
@@ -3286,10 +3287,13 @@ static void Com_ExecuteCfg( void )
 	{
 		// skip the q3config.cfg and autoexec.cfg if "safe" is on the command line
 #ifndef DEDICATED
-		if ( Com_RunsGameConfig() )	// Oz
+		if ( Com_RunsGameConfig( Q3CONFIG_CFG ) )	// Oz
 #endif
 		Cbuf_ExecuteText(EXEC_NOW, "exec " Q3CONFIG_CFG "\n");
 		Cbuf_Execute();
+#ifndef DEDICATED
+		if ( Com_RunsGameConfig( "autoexec.cfg" ) )	// Oz: the install's ran whole at every start
+#endif
 		Cbuf_ExecuteText(EXEC_NOW, "exec autoexec.cfg\n");
 		Cbuf_Execute();
 #ifndef DEDICATED
@@ -3306,6 +3310,9 @@ Com_GameRestart
 Change to a new mod properly with cleaning up cvars before switching.
 ==================
 */
+// Oz: no config writes while a mod switch has cvars at their defaults (Com_GameRestart)
+static qboolean com_holdConfigWrites;
+
 void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 {
 	static qboolean com_gameRestarting = qfalse;
@@ -3321,6 +3328,10 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 		// Oz: save the mod we leave (binds, its settings) while the file system still points at its folder
 		cvar_modifiedFlags |= CVAR_ARCHIVE;
 		Com_WriteConfiguration();
+		// Oz: until the new mod's configs and ozengine.cfg have run, cvars sit at their defaults (Cvar_Restart),
+		// and the delayed writes (FS_Shutdown, exec q3config.cfg under DELAY_WRITECONFIG) saved those defaults
+		// over ozengine.cfg before it was read: every mod switch lost the settings every mod shares
+		com_holdConfigWrites = qtrue;
 
 #ifndef DEDICATED
 		if ( clientRestart )
@@ -3363,6 +3374,8 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 
 		// Load new configuration
 		Com_ExecuteCfg();
+		com_holdConfigWrites = qfalse;	// Oz: what was loaded is saved at the next write
+		cvar_modifiedFlags |= CVAR_ARCHIVE;
 
 		// Oz: what the command line set (+set, a launcher's options) holds in every mod, as at startup
 		Com_StartupVariable( NULL );
@@ -4465,6 +4478,10 @@ void Com_WriteConfiguration( void ) {
 	// if we are quitting without fully initializing, make sure
 	// we don't write out anything
 	if ( !com_fullyInitialized ) {
+		return;
+	}
+
+	if ( com_holdConfigWrites ) {	// Oz: a mod switch is loading the configs (Com_GameRestart)
 		return;
 	}
 

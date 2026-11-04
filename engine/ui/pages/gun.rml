@@ -1,0 +1,103 @@
+<rml>
+<head>
+	<title>Gun</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		/* over a match the panel sits on the side away from the gun, which is the preview */
+		.panel.onleft { left: 3rem; right: auto; width: 38rem; top: 5rem; bottom: 5.25rem; }
+		.panel.onright { left: auto; right: 3rem; width: 38rem; top: 5rem; bottom: 5.25rem; }
+		.list { position: absolute; left: 0; right: 0; top: 0; bottom: 0; padding: 1rem 2.5rem 1.25rem 2.5rem; overflow-y: auto; }
+		.list.beside { right: 21rem; padding-right: 1.5rem; }
+		.picks { display: flex; flex-wrap: wrap; margin-bottom: 0.25rem; }
+		.pick {
+			display: flex; align-items: center; justify-content: center;
+			height: 2.4rem; padding: 0 0.9rem; margin: 0 0.375rem 0.375rem 0;
+			box-sizing: border-box; border: 1dp #ffffff1a; background-color: #00000066;
+			font-size: 0.75rem; letter-spacing: 0.12em; color: #8d847c;
+			transition: border-color background-color 0.15s linear-in-out;
+		}
+		.pick:focus, .pick:hover { border-color: #ff4a1cb3; background-color: #db24101a; }
+		.pick.active { border-color: #ff4a1c; background-color: #db241033; color: #fff3e6; }
+		.pick.custom { color: #ffad33; }
+		.note { min-height: 1.4rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #8d847c; }
+		.field { display: flex; align-items: center; min-height: 3rem; padding: 0.25rem 0.75rem; }
+		.field.dim { opacity: 0.45; }
+		.field .l { flex: 1; font-size: 1.02rem; font-weight: 500; color: #e6ddd2; }
+		.field .value { width: 5rem; text-align: right; font-size: 0.85rem; letter-spacing: 0.05em; color: #e6ddd2; }
+		.field input.slider { width: 13rem; }
+		.pfoot .note { margin: 0 0 0 auto; min-height: 0; font-size: 0.85rem; color: #5d554f; }
+		/* from the menus: what the preview needs */
+		.aside { position: absolute; right: 2.5rem; top: 1rem; width: 17.5rem; }
+		.shot { position: relative; height: 17.5rem; overflow: hidden; clip: always; border: 1dp #ffffff1a; }
+		.shot .bg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; decorator: image( /levelshots/q3dm17 cover ); }
+		.veil { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background-color: #00000099; }
+		.shot .msg { position: absolute; left: 1.25rem; right: 1.25rem; top: 6.5rem; text-align: center; font-size: 0.95rem; color: #e6ddd2; }
+		.aside .note { margin-top: 0.75rem; font-size: 0.85rem; }
+		/* over a match: a caption by the gun */
+		.live { position: absolute; bottom: 2rem; font-size: 0.65rem; letter-spacing: 0.3em; color: #ffffff99; pointer-events: none; }
+		.live.r { right: 3rem; }
+		.live.l { left: 3rem; }
+		.live.c { left: 50%; width: 10rem; margin-left: -5rem; text-align: center; }
+	</style>
+</head>
+<!--
+The gun editor (oz_ui_gun.cpp), from the pause menu and from Settings' Gameplay tab: the Gun group's
+settings (settings.json's gameplay/gun_* and gameplay/draw_gun), which the engine applies to the gun
+under every cgame (oz_hud_view.c PlaceGun). Over a match (gun.live) the panel sits on the side away from
+the gun and the match's own gun is the preview, moving as the controls change; from the main menu there's
+no gun to show, and the page says so. The controls write the settings as they change.
+-->
+<body data-model="menu">
+	<div class="panel" data-class-onleft="gun.live &amp;&amp; gun.position != 'left'" data-class-onright="gun.live &amp;&amp; gun.position == 'left'">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="phead">
+			<div><banner text="Gun"/></div>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
+		</div>
+		<div class="divider"/>
+		<div class="pbody">
+			<div class="list" data-class-beside="!gun.live">
+				<div class="section first"><span class="t">Preset</span><span class="rule"/></div>
+				<div class="picks">
+					<button id="gun_preset_classic" class="pick q3" data-class-active="gun.preset == 'classic'" onclick="choose gun.preset classic gameplay/gun_preset"><span>Classic</span></button>
+					<button id="gun_preset_centered" class="pick q3" data-class-active="gun.preset == 'centered'" onclick="choose gun.preset centered gameplay/gun_preset"><span>Centered</span></button>
+					<button id="gun_preset_low" class="pick q3" data-class-active="gun.preset == 'low'" onclick="choose gun.preset low gameplay/gun_preset"><span>Low</span></button>
+					<span class="pick custom q3" data-if="gun.preset == 'custom'" data-class-active="true"><span>Custom</span></span>
+				</div>
+				<p class="note">{{ gun.preset == 'classic' ? 'The original place, on the right.' : gun.preset == 'centered' ? 'In the middle.' : gun.preset == 'low' ? 'Down in the corner, clear of the view.' : 'Your own: pick a preset to start again from one.' }}</p>
+
+				<div class="section"><span class="t">Position</span><span class="rule"/></div>
+				<div class="picks">
+					<button id="gun_pos_right" class="pick q3" data-class-active="gun.position == 'right'" onclick="choose gun.position right gameplay/draw_gun"><span>Right</span></button>
+					<button id="gun_pos_center" class="pick q3" data-class-active="gun.position == 'center'" onclick="choose gun.position center gameplay/draw_gun"><span>Center</span></button>
+					<button id="gun_pos_left" class="pick q3" data-class-active="gun.position == 'left'" onclick="choose gun.position left gameplay/draw_gun"><span>Left</span></button>
+					<button id="gun_pos_hidden" class="pick q3" data-class-active="gun.position == 'hidden'" onclick="choose gun.position hidden gameplay/draw_gun"><span>Hidden</span></button>
+				</div>
+				<div class="field" data-class-dim="gun.position == 'hidden'"><span class="l">Forward</span><input id="gun_forward" class="slider" type="range" min="-8" max="8" step="0.25" data-value="gun.forward" setting="gameplay/gun_forward"/><span class="q3 value">{{ gun.forward }}</span></div>
+				<div class="field" data-class-dim="gun.position == 'hidden'"><span class="l">Side</span><input id="gun_side" class="slider" type="range" min="-15" max="15" step="0.25" data-value="gun.side" setting="gameplay/gun_offset"/><span class="q3 value">{{ gun.side }}</span></div>
+				<div class="field" data-class-dim="gun.position == 'hidden'"><span class="l">Height</span><input id="gun_height" class="slider" type="range" min="-8" max="8" step="0.25" data-value="gun.height" setting="gameplay/gun_height"/><span class="q3 value">{{ gun.height }}</span></div>
+
+				<div class="section"><span class="t">Angle</span><span class="rule"/></div>
+				<div class="field" data-class-dim="gun.position == 'hidden'"><span class="l">Pitch</span><input id="gun_pitch" class="slider" type="range" min="-20" max="20" step="1" data-value="gun.pitch" setting="gameplay/gun_pitch"/><span class="q3 value">{{ gun.pitch }} deg</span></div>
+				<div class="field" data-class-dim="gun.position == 'hidden'"><span class="l">Yaw</span><input id="gun_yaw" class="slider" type="range" min="-20" max="20" step="1" data-value="gun.yaw" setting="gameplay/gun_yaw"/><span class="q3 value">{{ gun.yaw }} deg</span></div>
+				<div class="field" data-class-dim="gun.position == 'hidden'"><span class="l">Roll</span><input id="gun_roll" class="slider" type="range" min="-30" max="30" step="1" data-value="gun.roll" setting="gameplay/gun_roll"/><span class="q3 value">{{ gun.roll }} deg</span></div>
+
+				<div class="section"><span class="t">Size</span><span class="rule"/></div>
+				<div class="field" data-class-dim="gun.position == 'hidden'"><span class="l">Field of view</span><input id="gun_fov" class="slider" type="range" min="0" max="120" step="1" data-value="gun.fov" setting="gameplay/gun_fov"/><span class="q3 value">{{ gun.fov == 0 ? 'Yours' : gun.fov + ' deg' }}</span></div>
+				<div class="field" data-class-dim="gun.position == 'hidden' || gun.fov == 0"><span class="l">Widescreen placement</span>
+					<div id="gun_widescreen" class="toggle" data-class-on="gun.widescreen" onclick="toggle gun.widescreen gameplay/gun_widescreen"><span class="track"><span class="knob"/></span><span class="state">{{ gun.widescreen ? 'On' : 'Off' }}</span></div></div>
+			</div>
+			<div class="aside" data-if="!gun.live">
+				<div class="shot"><div class="bg"/><div class="veil"/><p class="msg">Your gun shows here in a match.</p></div>
+				<p class="note">In a match, the pause menu's Gun moves it live over your game as you change it.</p>
+			</div>
+		</div>
+		<div class="pfoot">
+			<button id="gun_reset" class="btn small" onclick="gunreset">Reset</button>
+			<span class="note">Saved as you go. Under every game, mods' too.</span>
+		</div>
+	</div>
+	<span class="live q3" data-if="gun.live &amp;&amp; gun.position != 'hidden'" data-class-r="gun.position == 'right'" data-class-l="gun.position == 'left'" data-class-c="gun.position == 'center'">Live</span>
+</body>
+</rml>

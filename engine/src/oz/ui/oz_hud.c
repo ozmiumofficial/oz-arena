@@ -4790,6 +4790,64 @@ static void BoardHeader( float px, float py, float pw, float headH, const char *
 	}
 }
 
+/*
+The pause menu's team choices (oz_ui_menu.cpp PauseFrame): your team is your configstring's "t",
+which id's game, Oz's and CPMA's all send, so it holds on any server, pure ones too; the snapshot
+would show the followed player's team. In a duel id's game keeps every spectator in a line to play
+(AddTournamentQueue, 1.32's spectatorTime) and its scores list the waiting ones longest-waiting first
+(SortRanks), as CPMA's dmscores lists them after the two duelists: your place is how many spectators
+the last scores put ahead of you. Each duel's end puts its loser at the line's back and the next in
+line in against the winner.
+*/
+int OzE_TeamInfo( ozTeamInfo_t *t ) {
+	const char	*info;
+	int			i, me;
+
+	memset( t, 0, sizeof( *t ) );
+	if ( cls.state != CA_ACTIVE || clc.demoplaying ) {
+		return 0;
+	}
+	info = CS( CS_SERVERINFO );
+	me = clc.clientNum;
+	t->gametype = atoi( Info_ValueForKey( info, "g_gametype" ) );
+	t->fraglimit = atoi( Info_ValueForKey( info, "fraglimit" ) );
+	t->timelimit = atoi( Info_ValueForKey( info, "timelimit" ) );
+	t->capturelimit = atoi( Info_ValueForKey( info, "capturelimit" ) );
+	t->redScore = atoi( CS( CS_SCORES1 ) );
+	t->blueScore = atoi( CS( CS_SCORES2 ) );
+	t->team = TEAM_SPECTATOR;
+	for ( i = 0; i < MAX_CLIENTS; i++ ) {
+		const char	*p = CS( CS_PLAYERS + i );
+		int			team;
+		if ( !p[0] ) {
+			continue;
+		}
+		team = atoi( Info_ValueForKey( p, "t" ) );
+		if ( team >= TEAM_FREE && team <= TEAM_SPECTATOR ) {
+			t->count[team]++;
+		}
+		if ( i == me ) {
+			t->team = team;
+		}
+	}
+	t->following = t->team == TEAM_SPECTATOR && ( cl.snap.ps.pm_flags & PMF_FOLLOW );
+	t->intermission = cl.snap.ps.pm_type == PM_INTERMISSION;
+	if ( t->gametype == GT_TOURNAMENT && t->team == TEAM_SPECTATOR ) {
+		int ahead = 0;
+		for ( i = 0; i < cg.numScores; i++ ) {
+			const int c = cg.scores[i].client;
+			if ( c == me ) {
+				t->line = ahead + 1;
+				break;
+			}
+			if ( c >= 0 && c < MAX_CLIENTS && CS( CS_PLAYERS + c )[0] && atoi( Info_ValueForKey( CS( CS_PLAYERS + c ), "t" ) ) == TEAM_SPECTATOR ) {
+				ahead++;
+			}
+		}
+	}
+	return 1;
+}
+
 // the players watching, as the server lists them (its configstrings: a mod's scores may leave them out),
 // names with their color codes; 0 when no one is
 static int Spectators( char *out, int size ) {

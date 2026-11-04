@@ -1,0 +1,40 @@
+<rml>
+<head>
+	<title>Import</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<style>
+		body { display: flex; align-items: center; justify-content: center; }
+		.dialog { width: 56rem; background-color: #0a0807f7; }	/* a list over Settings' rows: they mustn't show through */
+		.dialog banner { font-size: 2.4rem; margin-bottom: 1.25rem; }
+		.dialog .why { display: block; max-width: 48rem; margin-bottom: 1rem; font-size: 1.1rem; line-height: 1.5;
+			text-align: center; color: #e6ddd2; }
+		.lines { display: block; width: 48rem; margin-bottom: 1rem; }
+		.line { display: flex; font-size: 1.05rem; line-height: 1.45; margin-bottom: 0.35rem; }
+		.line .name { display: block; width: 10rem; flex-shrink: 0; color: #c8a67a; }
+		.line .text { display: block; flex: 1; color: #f2ebe2; }
+		.dialog .kept { display: block; max-width: 48rem; margin-bottom: 1.75rem; font-size: 0.95rem; line-height: 1.45;
+			text-align: center; color: #a89c90; }
+		.row { display: flex; }
+		/* under 1700 dp across it centers right of the main column (menu.rcss), as Quit does */
+		@media (max-width: 1699dp) { body { padding-left: 31rem; box-sizing: border-box; } }
+	</style>
+</head>
+<!-- The player's own Quake III settings (oz_q3import.c, Menu_Q3Import): offered once over the first
+run's main menu, and from Settings' footer. Each line is a group of what comes over; what Oz keeps as
+it has it (graphics, frame rate, network) is said under them. Import is focused first. -->
+<body data-model="menu">
+	<div class="dialog">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<banner text="Bring your settings?"/>
+		<div class="why"><span>Your Quake III Arena config has these. Bring them into Oz Arena?</span></div>
+		<div class="lines">
+			<div class="line" data-for="l : q3import.lines"><span class="name">{{ l.name }}</span><span class="text">{{ l.text }}</span></div>
+		</div>
+		<div class="kept"><span>{{ q3import.kept }}</span></div>
+		<div class="row">
+			<button id="q3import_yes" class="confirm" autofocus="" onclick="q3import apply">Import</button>
+			<button id="q3import_no" class="confirm" onclick="back">Not now</button>
+		</div>
+	</div>
+</body>
+</rml>

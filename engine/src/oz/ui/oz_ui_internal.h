@@ -160,6 +160,7 @@ bool Menu_Tab( Rml::ElementDocument *doc, int dir );	// Q and E: false if the pa
 void Menu_OpenSub( const char *name );
 void Menu_Social();
 void Menu_SplashDone();
+void Menu_Q3Import( bool apply );						// q3import.rml shown, or the import done (oz_q3import.c)
 void Menu_Frame();
 void Menu_Accent( float rgb[3] );
 void Menu_Toast( const char *text, const char *tone );
@@ -172,6 +173,11 @@ void Crosshair_Init();						// the element's instancer
 void Crosshair_Opened();					// the editor opened: its values, live over a match or not
 void Crosshair_Frame();						// its values follow the settings while it's open
 bool Crosshair_Action( const Rml::String &verb, const Rml::String &arg );	// xhweapon, xhshape, xhhit, xhreset
+
+// ---- oz_ui_gun.cpp: the gun editor (gun.rml)
+void Gun_Opened();							// its values, live over a match or not
+void Gun_Frame();							// its values follow the settings while it's open
+bool Gun_Action( const Rml::String &verb, const Rml::String &arg );	// gunreset
 
 // ---- oz_ui_social.cpp (P7, P8): the online pages' parts
 bool Social_Action( const Rml::String &verb, const Rml::String &arg, Rml::Element *element );	// browse, join, joinask, askcancel, unjoin, quick...

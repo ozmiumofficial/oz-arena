@@ -21,6 +21,7 @@ each one): the row shows the value waiting, the cvar keeps the old one until the
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <iterator>
 #include <map>
 #include <vector>
 
@@ -67,9 +68,15 @@ static Rml::DataModelHandle model;
 static Rml::ElementDocument *page;
 static int captureRow = -1, captureSlot, bindFrames, tipRow = -1;
 
-// Graphics > Preset: each setting's cvar value for low, medium, high, ultra and classic (settings.json "presets")
+// a preset setting (Graphics > Preset, Gameplay > Gun preset): its options' cvar values, and each setting's
+// cvar value in each (settings.json "presets" for the graphics', in presetNames' order; "preset_tables")
+struct PresetTable {
+	int preset;
+	std::vector<Rml::String> names;
+	std::vector<std::pair<int, std::vector<Rml::String>>> values;	// (entry, values)
+};
 static const char *const presetNames[] = { "low", "medium", "high", "ultra", "classic" };
-static std::vector<std::pair<int, std::vector<Rml::String>>> presets;	// (entry, values)
+static std::vector<PresetTable> presets;
 // Video's window settings, kept 15 s only if the player says so (display_confirm.rml)
 static int displayDeadline;					// OzE_Milliseconds; 0 with nothing to confirm
 static Rml::String displayOld[3];
@@ -133,6 +140,16 @@ static bool SameValue( const Rml::String &a, const char *b ) {
 	return a == b || SameNumber( a.c_str(), b );
 }
 
+// a toggle's state from its cvar; one whose values are a number and its negative (Invert, m_pitch)
+// goes by the sign, so an imported m_pitch of another size still shows
+static bool BoolOn( const Entry &e, const char *cv ) {
+	if ( SameValue( e.boolValues[1], cv ) || ( e.boolValues[1] == "1" && atof( cv ) != 0 ) ) {
+		return true;
+	}
+	const float off = (float)atof( e.boolValues[0].c_str() ), on = (float)atof( e.boolValues[1].c_str() );
+	return off != 0 && on == -off && atof( cv ) * on > 0;
+}
+
 /*
 ================
 Settings_Init: ui/settings.json -> entries, and their cvars
@@ -161,6 +178,42 @@ static bool JsonBool( cJSON *o, const char *name, bool def ) {
 	cJSON *v = cJSON_GetObjectItemCaseSensitive( o, name );
 	return cJSON_IsBool( v ) ? cJSON_IsTrue( v ) != 0 : def;
 }
+
+// a preset's table: each setting's value in each of its columns, as the cvars hold them
+static void ReadPresetTable( PresetTable &table, cJSON *columns ) {
+	cJSON *p;
+	cJSON_ArrayForEach( p, columns ) {
+		const int i = Find( p->string );
+		if ( i < 0 ) {
+			continue;
+		}
+		const Entry &e = entries[i];
+		std::vector<Rml::String> values;
+		cJSON *v;
+		cJSON_ArrayForEach( v, p ) {
+			Rml::String value = cJSON_IsString( v ) ? Rml::String( v->valuestring ) :
+				cJSON_IsBool( v ) ? Rml::String( cJSON_IsTrue( v ) ? "true" : "false" ) : Fmt( "%g", v->valuedouble );
+			if ( e.type == "bool" ) {
+				value = e.boolValues[value == "true" ? 1 : 0];
+			} else {
+				for ( const Option &o : e.options ) {
+					if ( o.value == value ) {
+						value = o.cvarValue;
+						break;
+					}
+				}
+			}
+			values.push_back( value );
+		}
+		if ( values.size() == table.names.size() ) {
+			table.values.push_back( { i, values } );
+		}
+	}
+	if ( !table.values.empty() ) {
+		presets.push_back( table );
+	}
+}
+
 
 void Settings_Init() {
 	void *buffer = nullptr;
@@ -262,33 +315,21 @@ void Settings_Init() {
 
 	// the presets' values, as the cvars hold them
 	presets.clear();
-	cJSON *p;
-	cJSON_ArrayForEach( p, cJSON_GetObjectItemCaseSensitive( root, "presets" ) ) {
-		const int i = Find( p->string );
-		if ( i < 0 ) {
+	PresetTable graphics = { Find( "graphics/preset" ), std::vector<Rml::String>( std::begin( presetNames ), std::end( presetNames ) ), {} };
+	if ( graphics.preset >= 0 ) {
+		ReadPresetTable( graphics, cJSON_GetObjectItemCaseSensitive( root, "presets" ) );
+	}
+	cJSON_ArrayForEach( t, cJSON_GetObjectItemCaseSensitive( root, "preset_tables" ) ) {
+		PresetTable table = { Find( t->string ), {}, {} };
+		if ( table.preset < 0 ) {
 			continue;
 		}
-		const Entry &e = entries[i];
-		std::vector<Rml::String> values;
-		cJSON *v;
-		cJSON_ArrayForEach( v, p ) {
-			Rml::String value = cJSON_IsString( v ) ? Rml::String( v->valuestring ) :
-				cJSON_IsBool( v ) ? Rml::String( cJSON_IsTrue( v ) ? "true" : "false" ) : Fmt( "%g", v->valuedouble );
-			if ( e.type == "bool" ) {
-				value = e.boolValues[value == "true" ? 1 : 0];
-			} else {
-				for ( const Option &o : e.options ) {
-					if ( o.value == value ) {
-						value = o.cvarValue;
-						break;
-					}
-				}
+		for ( const Option &o : entries[table.preset].options ) {
+			if ( o.value != "custom" ) {
+				table.names.push_back( o.cvarValue );
 			}
-			values.push_back( value );
 		}
-		if ( values.size() == sizeof( presetNames ) / sizeof( presetNames[0] ) ) {
-			presets.push_back( { i, values } );
-		}
+		ReadPresetTable( table, t );
 	}
 	cJSON_Delete( root );
 
@@ -406,7 +447,7 @@ static void MakeRow( size_t i, const Rml::String &cv ) {
 
 	r.modified = !SameValue( e.def, cv.c_str() );
 	if ( e.type == "bool" ) {
-		r.on = SameValue( e.boolValues[1], cv.c_str() ) || ( e.boolValues[1] == "1" && atof( cv.c_str() ) != 0 );
+		r.on = BoolOn( e, cv.c_str() );
 		r.text = r.on ? "On" : "Off";
 	} else if ( e.type == "int" || e.type == "float" ) {
 		r.num = (float)atof( cv.c_str() ) / e.scale;
@@ -648,31 +689,36 @@ Changes, as the page makes them
 */
 /*
 ================
-Graphics > Preset sets the settings in its column; changing one of them makes it Custom
+A preset (Graphics > Preset, Gun preset) sets the settings in its column; changing one of them makes it Custom
 ================
 */
-static void ApplyPreset( const Rml::String &name ) {
-	for ( int c = 0; c < (int)( sizeof( presetNames ) / sizeof( presetNames[0] ) ); c++ ) {
-		if ( name == presetNames[c] ) {
-			for ( const auto &p : presets ) {
-				SetCvar( entries[p.first], p.second[c] );
-				Refresh( p.first );
-			}
-			return;
+static bool ApplyPreset( int i ) {
+	const Rml::String name = OzE_CvarString( entries[i].cvar.c_str() );
+	for ( const PresetTable &t : presets ) {
+		if ( t.preset != i ) {
+			continue;
 		}
+		for ( size_t c = 0; c < t.names.size(); c++ ) {
+			if ( name == t.names[c] ) {
+				for ( const auto &p : t.values ) {
+					SetCvar( entries[p.first], p.second[c] );
+					Refresh( p.first );
+				}
+			}
+		}
+		return true;
 	}
+	return false;
 }
 
 static void PresetToCustom( int i ) {
-	const int preset = Find( "graphics/preset" );
-	if ( preset < 0 ) {
-		return;
-	}
-	for ( const auto &p : presets ) {
-		if ( p.first == i ) {
-			SetCvar( entries[preset], "custom" );
-			Refresh( preset );
-			return;
+	for ( const PresetTable &t : presets ) {
+		for ( const auto &p : t.values ) {
+			if ( p.first == i ) {
+				SetCvar( entries[t.preset], "custom" );
+				Refresh( t.preset );
+				break;
+			}
 		}
 	}
 }
@@ -807,9 +853,7 @@ static void SetNow( int i, const Rml::String &value ) {
 	if ( e.cvar.empty() || before == OzE_CvarString( e.cvar.c_str() ) ) {
 		return;
 	}
-	if ( e.key == "graphics/preset" ) {
-		ApplyPreset( Rml::String( OzE_CvarString( e.cvar.c_str() ) ) );
-	} else {
+	if ( !ApplyPreset( i ) ) {
 		PresetToCustom( i );
 	}
 	if ( display ) {
@@ -1122,7 +1166,7 @@ static Rml::String GodotValue( const Entry &e ) {
 		return "[" + GodotQuote( ToGodotKey( keys[0] ) ) + ", " + GodotQuote( ToGodotKey( keys[1] ) ) + ", " + GodotQuote( ToGodotKey( keys[2] ) ) + "]";
 	}
 	if ( e.type == "bool" ) {
-		return SameValue( e.boolValues[1], cv.c_str() ) || ( e.boolValues[1] == "1" && atof( cv.c_str() ) != 0 ) ? "true" : "false";
+		return BoolOn( e, cv.c_str() ) ? "true" : "false";
 	}
 	if ( e.type == "int" ) {
 		return Fmt( "%d", (int)roundf( (float)atof( cv.c_str() ) / e.scale ) );
@@ -1337,7 +1381,9 @@ Rml::String Settings_PageRml() {
 		"<div class=\"footer pfoot\" id=\"footer\"><button class=\"btn small\" id=\"reset_tab\">Reset tab</button>"
 		"<button class=\"btn small\" id=\"copy_code\">Copy config code</button>"
 		"<button class=\"btn small\" id=\"paste_code\">Paste code</button>"
+		"<button class=\"btn small\" id=\"q3import\">Import from Quake III</button>"
 		"<button class=\"btn small primary\" id=\"xh_editor\" data-if=\"tab == 'crosshair' &amp;&amp; search == ''\" onclick=\"page crosshair\">Crosshair editor</button>"
+		"<button class=\"btn small primary\" id=\"gun_editor\" data-if=\"tab == 'gameplay' &amp;&amp; search == ''\" onclick=\"page gun\">Gun editor</button>"
 		"<span class=\"note\">{{apply_note}}</span>"
 		"<button class=\"btn small\" id=\"settings_discard\" data-if=\"apply_shown\" data-class-refused=\"pending == 0\">Discard</button>"
 		"<button class=\"btn small\" id=\"settings_apply\" data-if=\"apply_shown\" data-class-primary=\"pending &gt; 0\" data-class-refused=\"pending == 0\">Apply</button></div>\n"
@@ -1537,6 +1583,8 @@ public:
 					PlaySound( Sound::Buzz );
 				}
 				Printf( n < 0 ? "That isn't a config code\n" : "Applied %d settings from the code\n", n );
+			} else if ( id == "q3import" ) {
+				Menu_Q3Import( false );		// the player's Quake III config, over the page (oz_q3import.c)
 			} else if ( id == "settings_apply" || id == "settings_discard" ) {
 				if ( staged.empty() ) {
 					PlaySound( Sound::Buzz );

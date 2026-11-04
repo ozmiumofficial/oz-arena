@@ -14,8 +14,10 @@ in the user folder (unzOpen takes a path in the system's code page, a download f
 
 The Mod Library page (oz_ui_mods.cpp) lists what OzMods_List finds: every mod folder with paks in the
 user folder, the base path and the Steam install (as the file system's $modlist does, plus the
-nested copies), each with its version (description.txt's first line, else the digits in the pak named
-for it), where it is, and whether it's one Oz supports (decision 14: CPMA and Defrag; the rest play
+nested copies), each with its version (the version in description.txt's first line, else the digits in
+the pak named for it), where it is, whether it's ready (a mod folder with paks plays: what it lacks of
+its own game code comes from baseq3; CPMA and Defrag need theirs, which Skirmish runs), and whether it's
+one Oz supports (decision 14: CPMA and Defrag; the rest play
 with no promise). A zip or folder dropped on the window (SDL_DROPFILE, sdl_input.c) comes to
 OzMods_Dropped, which guesses the mod from the paks' folder or names and hands it to the page.
 Remove deletes an imported mod's folder from the user folder, never one in the install. The known
@@ -517,7 +519,20 @@ static void Version( const char *dir, const char *mod, char *out, int size ) {
 				}
 			}
 			Q_CleanStr( line );
-			Q_strncpyz( out, line, size );
+			// the version in it ("Defrag 1.91.31" is 1.91.31): the first word that starts with a digit
+			// (or v and a digit), up to the next space
+			for ( c = line; *c; c++ ) {
+				const int at = c == line || c[-1] == ' ' || c[-1] == '\t';
+				char *v = c + ( ( *c == 'v' || *c == 'V' ) && c[1] >= '0' && c[1] <= '9' );
+				if ( at && *v >= '0' && *v <= '9' ) {
+					int len = 0;
+					while ( v[len] && v[len] != ' ' && v[len] != '\t' && v[len] != ',' && v[len] != ')' ) {
+						len++;
+					}
+					Com_sprintf( out, size, "%.*s", len, v );
+					break;
+				}
+			}
 		}
 		fclose( f );
 		if ( out[0] ) {
@@ -526,13 +541,13 @@ static void Version( const char *dir, const char *mod, char *out, int size ) {
 	}
 	list = Sys_ListFiles( dir, ".pk3", NULL, &n, qfalse );
 	for ( i = 0; i < n; i++ ) {
-		const char *p = Q_stristr( list[i], mod );
+		const char *p = Q_stristr( list[i], mod ), *ext = strrchr( list[i], '.' );
 		int digits = 0, run;
 		if ( !p ) {
 			continue;
 		}
-		// the longest digit run after the mod's name
-		for ( ; *p; p++ ) {
+		// the longest digit run after the mod's name, before the extension (zz-mymod.pk3 has none)
+		for ( ; *p && p != ext; p++ ) {
 			if ( *p >= '0' && *p <= '9' ) {
 				run = 0;
 				while ( p[run] >= '0' && p[run] <= '9' ) {
@@ -616,7 +631,9 @@ int OzMods_List( ozModInfo_t *out, int max ) {
 				Q_strncpyz( m->name, k ? k->name : name, sizeof( m->name ) );
 				Q_strncpyz( m->where, dir, sizeof( m->where ) );
 				m->imported = r == 0;
-				m->ready = OzMods_Ready( name );
+				// any mod with paks plays: under it, the game code it doesn't bring comes from baseq3's paks.
+				// CPMA and Defrag must bring theirs: Skirmish runs their rules (OzMods_Ready, as its mod picker)
+				m->ready = k && k->supported ? OzMods_Ready( name ) : 1;
 				m->supported = k ? k->supported : 0;
 				m->known = k != NULL;
 				m->paks = numPaks;
@@ -650,6 +667,12 @@ int OzMods_List( ozModInfo_t *out, int max ) {
 			Q_strncpyz( m->where, found, sizeof( m->where ) );
 			m->nested = 1;
 			m->imported = 0;
+			{
+				int numPaks;
+				char **paks = Sys_ListFiles( found, ".pk3", NULL, &numPaks, qfalse );
+				Sys_FreeFileList( paks );
+				m->paks = numPaks > 0 ? numPaks : 0;	// the nested copy's own, not the outer folder's
+			}
 			Version( found, m->dir, m->version, sizeof( m->version ) );
 		}
 	}

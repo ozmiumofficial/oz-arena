@@ -141,6 +141,7 @@ const ozModInfo_t *Find( const std::string &dir ) {
 
 void Refuse( const char *why ) {
 	PlaySound( Sound::Buzz );
+	Printf( "UI: mods: %s\n", why );	// the console's record too (the toast fades)
 	Menu_Toast( why, "warn" );
 }
 
@@ -219,7 +220,7 @@ void Play( const std::string &dir ) {
 		return;
 	}
 	if ( !m->ready ) {
-		Refuse( m->nested ? "Import it first: the game doesn't find a nested copy on its own." : "No game code in its folder: the mod can't run." );
+		Refuse( m->nested ? "Import it first: the game doesn't find a nested copy on its own." : "Its game code isn't in its folder: Skirmish needs the mod's own." );
 		return;
 	}
 	if ( OzE_ClientState() != 0 ) {

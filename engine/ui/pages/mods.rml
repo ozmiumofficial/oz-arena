@@ -70,7 +70,7 @@
 </head>
 <!--
 The Mod Library (ENGINE_PLAN.md PH step 2; decision 24: players bring their own). Oz never provides
-CPMA or Defrag, nor any other mod: no download, no link. The rows are the mod folders found in the
+CPMA or Defrag, nor any other mod: nothing fetched, no link. The rows are the mod folders found in the
 player's user folder (imported) and their Quake III install (oz_mods.c OzMods_List), each with its
 version and whether it's ready. Import a zip, a pak or a folder (Windows' open dialog), or drop one
 on the game's window: the card guesses the mod's folder name from its paks and imports it into the

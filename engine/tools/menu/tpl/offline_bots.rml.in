@@ -67,14 +67,14 @@ startmatch adds ('' is no bot).
 						<div class="cards" data-if="skirmish.mod != 'defrag'">
 							<div class="grid">
 								<button class="card" data-for="v : skirmish_view" data-if="@@MINE@@" data-attr-id="'sk_map_' + maps[v.i].map" data-class-sel="v.i == create_match_pick.skirmish.mapi" data-attrif-autofocus="v.i == create_match_pick.skirmish.mapi" data-event-click="create_match_pick.skirmish.mapi = v.i">
-									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (maps[v.i].shot != '' ? ', image(' + maps[v.i].shot + ' fill)' : '')"/>
+									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (maps[v.i].tile != '' ? ', image(' + maps[v.i].tile + ' fill)' : '')"/>
 									<div class="cap"><div class="n">{{ maps[v.i].name | plain }}</div><div class="id">{{ maps[v.i].map }}</div></div>
 								</button>
 							</div>
 							<div class="othersh">Made for other modes than {{ create_match.modes[create_match.skirmish.mi].name }}: picking one switches the mode</div>
 							<div class="grid">
 								<button class="card" data-for="v : skirmish_view" data-if="@@OTHER@@" data-attr-id="'sk_other_' + maps[v.i].map" data-class-sel="v.i == create_match_pick.skirmish.mapi" data-attrif-autofocus="v.i == create_match_pick.skirmish.mapi" data-event-click="@@PICK_OTHER@@">
-									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (maps[v.i].shot != '' ? ', image(' + maps[v.i].shot + ' fill)' : '')"/>
+									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (maps[v.i].tile != '' ? ', image(' + maps[v.i].tile + ' fill)' : '')"/>
 									<div class="fits"><span data-for="t : v.fits">{{ t }}</span></div>
 									<div class="cap"><div class="n">{{ maps[v.i].name | plain }}</div><div class="id">{{ maps[v.i].map }}</div></div>
 								</button>
@@ -84,7 +84,7 @@ startmatch adds ('' is no bot).
 						<div class="cards" data-if="skirmish.mod == 'defrag'">
 							<div class="grid">
 								<button class="card" data-for="r : skirmish_rview" data-if="r.show" data-attr-id="'sk_race_' + skirmish_races[r.i].map" data-class-sel="r.i == create_match_pick.skirmish.racei" data-attrif-autofocus="r.i == create_match_pick.skirmish.racei" data-event-click="create_match_pick.skirmish.racei = r.i">
-									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (skirmish_races[r.i].shot != '' ? ', image(' + skirmish_races[r.i].shot + ' fill)' : '')"/>
+									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (skirmish_races[r.i].tile != '' ? ', image(' + skirmish_races[r.i].tile + ' fill)' : '')"/>
 									<div class="fits"><span class="lvl" data-class-easy="skirmish_races[r.i].level &lt; 3" data-class-hard="skirmish_races[r.i].level &gt; 3">{{ skirmish_races[r.i].word }}</span></div>
 									<div class="cap"><div class="n">{{ skirmish_races[r.i].title }}</div><div class="id">{{ skirmish_races[r.i].map }}</div></div>
 								</button>

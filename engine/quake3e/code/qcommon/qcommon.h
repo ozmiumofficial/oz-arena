@@ -658,6 +658,7 @@ void	Cvar_SetDescription( cvar_t *var, const char *var_description );
 void	Cvar_SetRangeCNQ3( const char *name, int cnq3Type, const char *minVal, const char *maxVal );	// Oz
 void	Cvar_WriteNamed( fileHandle_t f, const char *const *names, int count );	// Oz
 const char *Cvar_SavedString( const char *var_name );	// Oz
+void	Cvar_ServerCreated( const char *var_name );	// Oz: a server-created cvar as if the server never set it
 
 // Oz: the parts of a frame "frametime" and com_hitchLog time besides the whole (Com_ProfStart is 0 when
 // neither runs); com_profNames in common.c names them

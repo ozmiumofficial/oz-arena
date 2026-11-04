@@ -121,6 +121,8 @@ void  R_NoiseInit( void );
 
 image_t *R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags );
 GLuint R_OzThumbnail( const char *name, int size, int *outWidth, int *outHeight );	// Oz: the map editor's texture browser
+GLuint R_OzReducedImage( const char *name, int atLeast, int *outWidth, int *outHeight );	// Oz: the menus' level shot tiles
+extern int r_jpgAtLeast;	// Oz: tr_image_jpg.c
 image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgType_t type, imgFlags_t flags, GLint internalFormat );
 void R_UploadSubImage( unsigned *data, int x, int y, int width, int height, image_t *image );
 

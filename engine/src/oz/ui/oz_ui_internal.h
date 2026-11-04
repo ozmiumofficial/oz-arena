@@ -70,6 +70,7 @@ public:
 
 	void Acquire();				// the renderer's UI calls, before RmlUi lays out (images load then)
 	bool BeginFrame( int width, int height );
+	void LoadTiles( bool all );	// the "/@tile/" images waiting: a few a frame, or all at once (a capture)
 	void EndFrame();
 	void RendererShutdown();	// release everything RmlUi holds of the renderer's
 
@@ -99,6 +100,9 @@ public:
 
 private:
 	unsigned generation = 1;	// in each handle's top bits: a handle from before a renderer restart is ignored
+	struct Tile { int handle; Rml::String path; };
+	std::vector<Tile> tiles;	// loaded by LoadTiles into the stand-in handle given out
+	bool tilesNow = false;		// a capture waits: tiles load as asked
 	int scissor[4] = {};
 	bool scissorOn = false;
 

@@ -26,6 +26,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 static unsigned frame_msec;
 static qboolean frame_timeless;	// Oz: the clock didn't move this frame (under 1 ms)
 static int old_com_frameTime;
+static qboolean cmdOpen;		// Oz: cl.cmds[cl.cmdNumber] still takes each frame's input (CL_MergeCommands)
+static int cmdClose;			// Oz: the server time it closes at
 
 /*
 ===============================================================================
@@ -737,6 +739,25 @@ static usercmd_t CL_CreateCmd( void ) {
 
 /*
 =================
+CL_MergeCommands
+
+Oz: id's cgame (a pure baseq3 server's) keeps 64 commands, which at 1000 fps are 64 ms: behind any real lag
+the snapshot's command is older than all of them, and it stops predicting ("exceeded PACKET_BACKUP on
+commands"), the view standing still. Above 250 fps under it, the frames between 8 ms marks of the server's
+clock make one command, as at 125 fps: 64 of them reach half a second back, and the newest still takes
+every frame's look and keys for the view. Packets carry only the commands that closed (CL_SendCmd), so the
+server runs exactly what the cgame predicts. Oz's cgame reads 512 (game patch 0025); a mod's movement is
+the mod's.
+=================
+*/
+static qboolean CL_MergeCommands( void ) {
+	return frame_msec < 4 && cls.state == CA_ACTIVE && !cls.cgameOzDemoSeek && !clc.demoplaying &&
+		clc.netchan.remoteAddress.type != NA_LOOPBACK && !Q_stricmp( FS_GetCurrentGameDir(), "oz" );
+}
+
+
+/*
+=================
 CL_CreateNewCommands
 
 Create a new usercmd_t structure for this frame
@@ -766,11 +787,35 @@ static void CL_CreateNewCommands( void ) {
 	}
 	old_com_frameTime = com_frameTime;
 
+	// Oz: one command for the frames up to the next 8 ms mark (CL_MergeCommands); a packet that carried the
+	// open one (a download's, a disconnect's) closed it. A button newly pressed closes it at once, so the shot
+	// goes where the view pointed as it was pressed, not where it turned to by the mark
+	if ( cmdOpen && cl.outPackets[ ( clc.netchan.outgoingSequence - 1 ) & PACKET_MASK ].p_cmdNumber >= cl.cmdNumber ) {
+		cmdOpen = qfalse;
+	}
+	if ( CL_MergeCommands() ) {
+		if ( cmdOpen && cl.serverTime < cmdClose ) {
+			usercmd_t	*cmd = &cl.cmds[cl.cmdNumber & CMD_MASK];
+			const int	buttons = cmd->buttons;		// a tap since it opened stays (CL_CmdButtons forgets it)
+
+			*cmd = CL_CreateCmd();
+			cmdOpen = !( cmd->buttons & ~buttons & ~( BUTTON_TALK | BUTTON_ANY ) );
+			cmd->buttons |= buttons;
+			return;
+		}
+		cmdOpen = qtrue;
+		cmdClose = ( cl.serverTime / 8 + 1 ) * 8;
+	} else {
+		cmdOpen = qfalse;
+	}
 
 	// generate a command for this frame
 	cl.cmdNumber++;
 	cmdNum = cl.cmdNumber & CMD_MASK;
 	cl.cmds[cmdNum] = CL_CreateCmd();
+	if ( cmdOpen && ( cl.cmds[cmdNum].buttons & ~cl.cmds[( cl.cmdNumber - 1 ) & CMD_MASK].buttons & ~( BUTTON_TALK | BUTTON_ANY ) ) ) {
+		cmdOpen = qfalse;	// Oz: as above
+	}
 
 	// Oz: the parity harness (engine/tests/compat) reads every usercmd through cl_cmdLog
 	if ( *Cvar_VariableString( "cl_cmdLog" ) ) {
@@ -993,6 +1038,20 @@ void CL_SendCmd( void ) {
 
 	// we create commands even if a demo is playing,
 	CL_CreateNewCommands();
+
+	// Oz: while a command is open (CL_MergeCommands) packets carry the closed ones, as each closes
+	if ( cmdOpen ) {
+		if ( cl.outPackets[ ( clc.netchan.outgoingSequence - 1 ) & PACKET_MASK ].p_cmdNumber >= cl.cmdNumber - 1 ) {
+			return;		// none closed since the last packet
+		}
+		if ( !CL_ReadyToSendPacket() ) {
+			return;
+		}
+		cl.cmdNumber--;
+		CL_WritePacket( 0 );
+		cl.cmdNumber++;
+		return;
+	}
 
 	// don't send a packet if the last packet was sent too recently
 	if ( !CL_ReadyToSendPacket() ) {

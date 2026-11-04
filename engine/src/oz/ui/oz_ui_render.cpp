@@ -8,6 +8,7 @@ handed over whole when drawn, so they outlive a restart.
 */
 #include "oz_ui_internal.h"
 
+#include <chrono>
 #include <cmath>
 
 namespace OzUI {
@@ -62,6 +63,7 @@ void RenderInterface::RendererShutdown() {
 		Rml::ReleaseCompiledGeometry( this );
 	}
 	generation++;
+	tiles.clear();
 	r = nullptr;
 }
 
@@ -100,7 +102,27 @@ Rml::TextureHandle RenderInterface::LoadTexture( Rml::Vector2i &dimensions, cons
 	if ( thumb ) {
 		path += 7;
 	}
-	const int t = thumb && r->LoadThumbnail ? r->LoadThumbnail( path, 128, &w, &h ) : r->LoadTexture( path, &w, &h );
+	// "/@tile/<image>": an image shown small, kept at least 640 across (a level shot's tile: about 600 px
+	// at 4K), and loaded after the page shows: Create Match's 200 level shots took 1.3 s in its first
+	// frame, 0.8 s at that size. The tile shows a clear stand-in until LoadTiles puts the image in it;
+	// a tile fills its box (a card's shot, a banner, an img sized by its box), so the size given here is
+	// never read.
+	const bool tile = !thumb && !strncmp( path, "@tile/", 6 );
+	if ( tile ) {
+		path += 6;
+	}
+	if ( tile && r->LoadReduced && !tilesNow ) {
+		static const Rml::byte clear[4] = {};
+		const int t = r->CreateTexture( clear, 1, 1 );
+		if ( !t ) {
+			return 0;
+		}
+		tiles.push_back( { t, path } );
+		dimensions = Rml::Vector2i( 640, 480 );
+		return Wrap( t );
+	}
+	const int t = thumb && r->LoadThumbnail ? r->LoadThumbnail( path, 128, &w, &h )
+		: tile && r->LoadReduced ? r->LoadReduced( path, 640, &w, &h, 0 ) : r->LoadTexture( path, &w, &h );
 	if ( !t ) {
 		if ( !thumb ) {	// a tool material's tile has no image: its color shows
 			Printf( "^3UI: no image %s\n", path );
@@ -120,7 +142,30 @@ Rml::TextureHandle RenderInterface::GenerateTexture( Rml::Span<const Rml::byte> 
 
 void RenderInterface::ReleaseTexture( Rml::TextureHandle texture ) {
 	if ( const int t = Unwrap( texture ) ) {
+		for ( size_t i = 0; i < tiles.size(); i++ ) {
+			if ( tiles[i].handle == t ) {
+				tiles.erase( tiles.begin() + i );
+				break;
+			}
+		}
 		r->ReleaseTexture( t );
+	}
+}
+
+// in the frame, before the pages draw: tiles in the order the pages asked for them (a list's from its
+// top), until 3 ms went by (a 1280x960 level shot takes about 4)
+void RenderInterface::LoadTiles( bool all ) {
+	const auto start = std::chrono::steady_clock::now();
+
+	tilesNow = all;
+	while ( r && !tiles.empty() ) {
+		const Tile tile = tiles.front();
+		int w, h;
+		tiles.erase( tiles.begin() );
+		r->LoadReduced( tile.path.c_str(), 640, &w, &h, tile.handle );
+		if ( !all && std::chrono::steady_clock::now() - start > std::chrono::milliseconds( 3 ) ) {
+			break;
+		}
 	}
 }
 

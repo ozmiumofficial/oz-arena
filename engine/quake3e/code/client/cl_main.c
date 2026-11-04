@@ -3921,6 +3921,7 @@ static void CL_InitRef( void ) {
 	rimp.CM_OzSolids = CM_OzSolids;
 	rimp.ProfStart = Com_ProfStart;
 	rimp.ProfDetail = Com_ProfDetail;
+	rimp.CL_LoadJPGScaled = CL_LoadJPGScaled;
 #ifdef USE_OZ_UI
 	rimp.OzBodyVelocity = OzHud_BodyVelocity;
 #endif

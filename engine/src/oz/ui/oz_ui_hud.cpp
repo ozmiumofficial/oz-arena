@@ -453,8 +453,8 @@ int OzUI_HudImage( const char *name ) {
 	return (int)images.size();
 }
 
-void OzUI_HudTris( const ozHudVertex_t *verts, int numVerts, int image ) {
-	if ( !verts || numVerts < 3 || !Manager() ) {
+void OzUI_HudMesh( const ozHudVertex_t *verts, int numVerts, const int *indexes, int numIndexes, int image ) {
+	if ( !verts || numVerts < 1 || numIndexes < 3 || !Manager() ) {
 		return;
 	}
 	const long long prof = OzE_ProfStart();
@@ -462,14 +462,17 @@ void OzUI_HudTris( const ozHudVertex_t *verts, int numVerts, int image ) {
 		FlushShapes();
 		shapesImage = image;
 	}
-	numVerts -= numVerts % 3;
-	// sized once and filled in place: a frame hands over some 10,000 vertices (the speed arc's strips are most),
-	// and a push_back each took 0.15 ms of the HUD's 0.26
-	const size_t base = shapes.vertices.size();
+	numIndexes -= numIndexes % 3;
+	// sized once and filled in place: a push_back a vertex took 0.15 ms of the HUD's 0.26. The strips (the speed
+	// arc's most) share their corners, a third of the vertices they took as plain triangles
+	const size_t base = shapes.vertices.size(), first = shapes.indices.size();
 	shapes.vertices.resize( base + numVerts );
-	shapes.indices.resize( base + numVerts );
+	shapes.indices.resize( first + numIndexes );
 	Rml::Vertex *out = shapes.vertices.data() + base;
-	int *index = shapes.indices.data() + base;
+	int *index = shapes.indices.data() + first;
+	for ( int i = 0; i < numIndexes; i++ ) {
+		index[i] = (int)base + indexes[i];
+	}
 	for ( int i = 0; i < numVerts; i++ ) {
 		const ozHudVertex_t &v = verts[i];
 		const unsigned a = v.color[3];
@@ -477,7 +480,6 @@ void OzUI_HudTris( const ozHudVertex_t *verts, int numVerts, int image ) {
 		out[i].tex_coord = Rml::Vector2f( v.st[0], v.st[1] );
 		out[i].colour = Rml::ColourbPremultiplied( (Rml::byte)( v.color[0] * a / 255 ), (Rml::byte)( v.color[1] * a / 255 ),
 			(Rml::byte)( v.color[2] * a / 255 ), (Rml::byte)a );
-		index[i] = (int)( base + i );
 	}
 	OzE_ProfDetail( "hud tris", prof );
 }
@@ -502,6 +504,14 @@ float OzUI_HudText( const char *text, float x, float y, int font, float size, fl
 	const int outlineAlpha = outline > 0.0f ? (int)( outline * 255.0f + 0.5f ) : 0;
 	// the outline: Godot's draw_string_outline at size * 0.12 (at least 2), half of it each side
 	const int outlineWidth = (int)std::fmax( 1.0f, std::round( std::fmax( size * 0.12f, 2.0f ) * 0.5f ) );
+	if ( flags & OZ_HUD_TEXT_WARM ) {
+		// a face and outline a later text will want (oz_hud.c WarmTexts): its atlases made a frame ahead
+		const Rml::FontEffectsHandle fx = outlineAlpha > 0 ? GetOutline( f->handle, outlineWidth, outlineAlpha ) : 0;
+		if ( layersDrawn.insert( { f->handle, fx } ).second ) {
+			layersAhead.push_back( { f->handle, fx } );
+		}
+		return 0.0f;
+	}
 
 	// everything but the place and the alignment
 	struct {

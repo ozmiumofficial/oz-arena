@@ -498,6 +498,18 @@ cJSON *CardView( const cJSON *card, int level, const cJSON *statValues, const ch
 
 // ---------------------------------------------------------------- the Profile page
 
+// the grids' images load a few a frame after the page shows ("/@tile/", oz_ui_render.cpp): the banner grid's
+// 98 took 0.24 s in Profile's first frame. A tile shows a stand-in of no fixed size, so a banner's art goes
+// in as fill: the cards pak's banners are 4:1, as their box, so it draws what cover did.
+static std::string GridBanner( const std::string &deco ) {
+	static const std::string from = "image(/ui/cards/banners/", cover = " cover)";
+	if ( deco.compare( 0, from.size(), from ) || deco.size() < from.size() + cover.size()
+		|| deco.compare( deco.size() - cover.size(), cover.size(), cover ) ) {
+		return deco;
+	}
+	return "image(/@tile" + deco.substr( 6, deco.size() - 6 - cover.size() ) + " fill)";
+}
+
 static cJSON *Grid( const char *slot, const char *kind, const cJSON *profile, const std::set<std::string> &done ) {
 	std::vector<const cJSON *> parts;
 	const cJSON *p;
@@ -546,11 +558,11 @@ static cJSON *Grid( const char *slot, const char *kind, const cJSON *profile, co
 		Add( item, "toast", Str( x, "name" ) + ": " + Sentence( how ) );
 		if ( k == "banners" ) {
 			const auto b = Banner( id, nullptr );
-			Add( item, "bg", b.first );
+			Add( item, "bg", GridBanner( b.first ) );
 			Add( item, "fg", b.second );
 		} else if ( k == "emblems" || k == "taunts" ) {
 			art = EmblemArt( k == "taunts" ? "head_" + id.substr( 6 ) : id );
-			Add( item, "art", art );
+			Add( item, "art", art.empty() ? art : "/@tile" + art );	// an img sized by its box
 		} else if ( k == "frames" ) {
 			const auto f = Frame( id, "#db2410" );
 			Add( item, "deco", f.first );

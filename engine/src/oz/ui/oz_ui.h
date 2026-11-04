@@ -51,10 +51,11 @@ typedef struct {
 #define OZ_HUD_TEXT_NOCODES		4	// "^" is just a character
 #define OZ_HUD_TEXT_MEASURE		8	// only the width
 #define OZ_HUD_TEXT_STEPPED		16	// a size that drifts from frame to frame: drawn from the nearest of a few
+#define OZ_HUD_TEXT_WARM		32	// nothing drawn: the face and outline made, and drawn ahead off the screen
 
 int		OzUI_HudAvailable( void );		// the renderer draws the UI
 int		OzUI_HudImage( const char *name );	// a handle, 0 for none
-void	OzUI_HudTris( const ozHudVertex_t *verts, int numVerts, int image );	// a triangle list
+void	OzUI_HudMesh( const ozHudVertex_t *verts, int numVerts, const int *indexes, int numIndexes, int image );	// triangles by index
 // y is the baseline; returns the width. Laid out at size, drawn scale times as large about (x, y): a pop
 // is a scale, so a text whose size animates keeps its face
 float	OzUI_HudText( const char *text, float x, float y, int font, float size, float scale, int flags,

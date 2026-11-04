@@ -282,6 +282,7 @@ void BuildRaces() {
 		cJSON_AddStringToObject( o, "title", e.title.c_str() );
 		cJSON_AddStringToObject( o, "author", e.author.c_str() );
 		cJSON_AddStringToObject( o, "shot", e.shot.c_str() );
+		cJSON_AddStringToObject( o, "tile", e.shot.empty() ? "" : ( "/@tile" + e.shot ).c_str() );
 		cJSON_AddNumberToObject( o, "level", level );
 		cJSON_AddStringToObject( o, "word", LevelWord( level ) );
 		cJSON_AddStringToObject( o, "score", Rml::CreateString( "%.1f", e.score ).c_str() );

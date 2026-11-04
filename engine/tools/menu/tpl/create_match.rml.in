@@ -60,14 +60,14 @@ or host create_match.custom when the server is Online.
 						<div class="cards">
 							<div class="grid">
 								<button class="card" data-for="m, i : maps" data-if="@@MINE@@" data-class-sel="i == create_match_pick.custom.mapi" data-event-click="create_match_pick.custom.mapi = i">
-									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (m.shot != '' ? ', image(' + m.shot + ' fill)' : '')"/>
+									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (m.tile != '' ? ', image(' + m.tile + ' fill)' : '')"/>
 									<div class="cap"><div class="n">{{ m.name | plain }}</div><div class="id">{{ m.map }}</div></div>
 								</button>
 							</div>
 							<div class="othersh">Made for other modes than {{ create_match.modes[create_match.custom.mi].name }}: picking one switches the mode</div>
 							<div class="grid">
 								<button class="card" data-for="m, i : maps" data-if="@@OTHER@@" data-class-sel="i == create_match_pick.custom.mapi" data-event-click="@@PICK_OTHER@@">
-									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (m.shot != '' ? ', image(' + m.shot + ' fill)' : '')"/>
+									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (m.tile != '' ? ', image(' + m.tile + ' fill)' : '')"/>
 									<div class="fits"><span data-for="t : m.types" data-if="t == 'ffa' || t == 'tourney' || t == 'team' || t == 'ctf'">{{ t == 'ffa' ? 'Free For All' : t == 'tourney' ? 'Duel' : t == 'team' ? 'Team Deathmatch' : 'Capture the Flag' }}</span></div>
 									<div class="cap"><div class="n">{{ m.name | plain }}</div><div class="id">{{ m.map }}</div></div>
 								</button>

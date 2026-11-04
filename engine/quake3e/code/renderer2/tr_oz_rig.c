@@ -831,8 +831,10 @@ qboolean R_OzRigLerpTag( orientation_t *tag, const model_t *mod, int startFrame,
 	}
 	first = mod->ozRigPart == OZ_RIG_LOWER ? 0 : rig->upperFirst;
 	count = mod->ozRigPart == OZ_RIG_LOWER ? rig->upperFirst : rig->data->num_frames - rig->upperFirst;
-	R_IQMJointMats( rig->data, first + ClampFrame( startFrame, count ), first + ClampFrame( endFrame, count ),
-					frac, joints );
+	// asked as the scene poses the part (its frame, the one it comes from, how far back), so both share the pose
+	// R_IQMJointMats keeps for the frame
+	R_IQMJointMats( rig->data, first + ClampFrame( endFrame, count ), first + ClampFrame( startFrame, count ),
+					1.0f - frac, joints );
 	if ( mod->ozRigPart == OZ_RIG_UPPER ) {
 		R_OzMat34InvertRigid( joints + 12 * rig->tagTorso, inv );
 		R_OzMat34Multiply( inv, joints + 12 * t, m );

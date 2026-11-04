@@ -654,6 +654,34 @@ static int UI_LoadThumbnail( const char *name, int size, int *width, int *height
 }
 
 
+// Oz: an image the menus show small (a level shot's tile), reduced as far as keeps it atLeast across; into
+// a handle given out before (the page's stand-in while it waited), or a new one
+static int UI_LoadReduced( const char *name, int atLeast, int *width, int *height, int into ) {
+	uiTexture_t	*t;
+	GLuint		tex;
+
+	if ( !tr.registered || !UI_Init() ) {
+		return 0;
+	}
+	tex = R_OzReducedImage( name, atLeast, width, height );
+	if ( !tex ) {
+		return 0;
+	}
+	t = UI_Texture( into );
+	if ( !t ) {
+		return UI_AddTexture( tex, qtrue, qtrue );
+	}
+	if ( t->owned ) {
+		GL_BindNullTextures();	// rend2's binding cache must not keep a deleted name
+		qglDeleteTextures( 1, &t->texnum );
+	}
+	t->texnum = tex;
+	t->owned = qtrue;
+	t->straight = qtrue;
+	return into;
+}
+
+
 static int UI_CreateTexture( const byte *rgba, int width, int height ) {
 	if ( !tr.registered || !UI_Init() || width <= 0 || height <= 0 ) {
 		return 0;
@@ -1351,7 +1379,8 @@ static const ozUiRender_t uiRender = {
 	UI_PopLayer,
 	UI_SaveLayerAsTexture,
 	UI_SaveLayerAsMask,
-	UI_LoadThumbnail
+	UI_LoadThumbnail,
+	UI_LoadReduced
 };
 
 

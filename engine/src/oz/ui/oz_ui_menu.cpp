@@ -328,6 +328,7 @@ static void FillFromGame() {
 		// an arena pack without a level shot gets an empty one, which the pages draw as a dark plate
 		const bool shot = OzE_FileExists( ( "levelshots/" + m + ".jpg" ).c_str() ) || OzE_FileExists( ( "levelshots/" + m + ".tga" ).c_str() );
 		cJSON_AddStringToObject( e, "shot", shot ? ( "/levelshots/" + m ).c_str() : "" );
+		cJSON_AddStringToObject( e, "tile", shot ? ( "/@tile/levelshots/" + m ).c_str() : "" );	// the cards': smaller, after the page shows
 		cJSON_AddItemToArray( maps, e );
 	}
 

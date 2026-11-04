@@ -49,6 +49,7 @@ the Godot build never recorded (frags by weapon, pickups, deaths by cause, the r
 #define TEXT_NOCODES	OZ_HUD_TEXT_NOCODES
 #define TEXT_MEASURE	OZ_HUD_TEXT_MEASURE
 #define TEXT_STEPPED	OZ_HUD_TEXT_STEPPED
+#define TEXT_WARM		OZ_HUD_TEXT_WARM
 
 // ================================================================ the match, as a cgame would see it
 
@@ -141,9 +142,12 @@ static qboolean EntityOrigin( int number, vec3_t out ) {
 }
 
 #define MAX_HUD_VERTS	3000
+#define MAX_HUD_INDEXES	( MAX_HUD_VERTS * 5 )	// a strip's points share their corners: 4 vertices, 18 indexes a segment
 
 static ozHudVertex_t	hverts[MAX_HUD_VERTS];
 static int		numHVerts;
+static int		hindexes[MAX_HUD_INDEXES];
+static int		numHIndexes;
 static int		hvertImage;
 static float	hudAlpha = 1.0f;		// Settings > HUD > Opacity, over everything but the crosshair
 // where the triangles go instead of the HUD canvas (a crosshair preview's, OzHud_CrosshairPreview)
@@ -151,21 +155,33 @@ static void		( *hudSink )( const ozHudVertex_t *verts, int numVerts, int image, 
 static void		*hudSinkCtx;
 
 static void Flush( void ) {
-	if ( numHVerts ) {
+	if ( numHIndexes ) {
 		if ( hudSink ) {
-			hudSink( hverts, numHVerts, hvertImage, hudSinkCtx );
+			// the previews' sink takes a triangle list
+			static ozHudVertex_t	tris[MAX_HUD_INDEXES];
+			int						i;
+			for ( i = 0; i < numHIndexes; i++ ) {
+				tris[i] = hverts[hindexes[i]];
+			}
+			hudSink( tris, numHIndexes, hvertImage, hudSinkCtx );
 		} else {
-			OzUI_HudTris( hverts, numHVerts, hvertImage );
+			OzUI_HudMesh( hverts, numHVerts, hindexes, numHIndexes, hvertImage );
 		}
 	}
 	numHVerts = 0;
+	numHIndexes = 0;
 }
 
-static void UseImage( int image, int verts ) {
-	if ( image != hvertImage || numHVerts + verts > MAX_HUD_VERTS ) {
+static void UseImageIndexed( int image, int verts, int indexes ) {
+	if ( image != hvertImage || numHVerts + verts > MAX_HUD_VERTS || numHIndexes + indexes > MAX_HUD_INDEXES ) {
 		Flush();
 		hvertImage = image;
 	}
+}
+
+// room for verts vertices of triangles, each its own (Vert indexes them in order)
+static void UseImage( int image, int verts ) {
+	UseImageIndexed( image, verts, verts );
 }
 
 static byte ToByte( float v ) {
@@ -178,7 +194,8 @@ static byte ToByte( float v ) {
 	return (byte)( v * 255.0f + 0.5f );
 }
 
-static void Vert( float x, float y, float s, float t, const float *c, float a ) {
+// a corner shared by indexes (Strip's), not drawn by itself
+static void Corner( float x, float y, float s, float t, const float *c, float a ) {
 	ozHudVertex_t	*v = &hverts[numHVerts++];
 
 	v->xy[0] = x;
@@ -189,6 +206,12 @@ static void Vert( float x, float y, float s, float t, const float *c, float a ) 
 	v->color[1] = ToByte( c[1] );
 	v->color[2] = ToByte( c[2] );
 	v->color[3] = ToByte( c[3] * a * hudAlpha );
+}
+
+// a triangle list's next vertex
+static void Vert( float x, float y, float s, float t, const float *c, float a ) {
+	hindexes[numHIndexes++] = numHVerts;
+	Corner( x, y, s, t, c, a );
 }
 
 static void Tri( const float *a, const float *ca, const float *b, const float *cb, const float *c, const float *cc, float fa, float fb, float fc ) {
@@ -281,7 +304,7 @@ static void Rect( float x, float y, float w, float h, const float *color ) {
 static void Strip( const float *pts, int n, float width, const float *color, qboolean closed ) {
 	float	in[MAX_STRIP][2][2], out[MAX_STRIP][2][2];
 	float	hw = width * 0.5f;
-	int		i, segs;
+	int		i, segs, base;
 
 	if ( n < 2 || n > MAX_STRIP || color[3] <= 0.0f ) {
 		return;
@@ -315,14 +338,22 @@ static void Strip( const float *pts, int n, float width, const float *color, qbo
 		out[i][1][0] = p[0] - nrm[0] * ( hw + FEATHER );	out[i][1][1] = p[1] - nrm[1] * ( hw + FEATHER );
 	}
 	segs = closed ? n : n - 1;
+	// each point's four corners once (outer, inner, inner, outer), and each segment's six triangles over them:
+	// the core, then the feather on either side, as Tri drew them a vertex each
+	UseImageIndexed( 0, n * 4, segs * 18 );
+	base = numHVerts;
+	for ( i = 0; i < n; i++ ) {
+		Corner( out[i][0][0], out[i][0][1], 0, 0, color, 0 );
+		Corner( in[i][0][0], in[i][0][1], 0, 0, color, 1 );
+		Corner( in[i][1][0], in[i][1][1], 0, 0, color, 1 );
+		Corner( out[i][1][0], out[i][1][1], 0, 0, color, 0 );
+	}
 	for ( i = 0; i < segs; i++ ) {
-		const int j = ( i + 1 ) % n;
-		Tri( in[i][0], color, in[j][0], color, in[j][1], color, 1, 1, 1 );
-		Tri( in[i][0], color, in[j][1], color, in[i][1], color, 1, 1, 1 );
-		Tri( out[i][0], color, out[j][0], color, in[j][0], color, 0, 0, 1 );
-		Tri( out[i][0], color, in[j][0], color, in[i][0], color, 0, 1, 1 );
-		Tri( in[i][1], color, in[j][1], color, out[j][1], color, 1, 1, 0 );
-		Tri( in[i][1], color, out[j][1], color, out[i][1], color, 1, 0, 0 );
+		const int a = base + i * 4, b = base + ( ( i + 1 ) % n ) * 4;
+		const int tris[18] = { a + 1, b + 1, b + 2,  a + 1, b + 2, a + 2,  a, b, b + 1,  a, b + 1, a + 1,
+							   a + 2, b + 2, b + 3,  a + 2, b + 3, a + 3 };
+		Com_Memcpy( hindexes + numHIndexes, tris, sizeof( tris ) );
+		numHIndexes += 18;
 	}
 }
 
@@ -856,6 +887,7 @@ static struct {
 	// captions (Accessibility > Subtitles)
 	struct { char text[64]; float t; } captions[3];
 	int			numCaptions;
+	int			warmed;			// WarmTexts' next
 } hud;
 
 // HUD > Item timers: the armors, the Mega Health and the powerups, with g_items.c's respawn times
@@ -3666,6 +3698,37 @@ static void ScanForCrosshairEntity( const playerState_t *ps ) {
 	cg.crosshairClientTime = cg.time;
 }
 
+/*
+The texts a kill, a death and the match's end first show, at the sizes they'll take: each one's face and
+outline made ahead, one a frame from a map's first HUD frames (oz_ui_hud.cpp draws its atlases off the
+screen a frame later). A face takes 2 to 3 ms and its atlases 1 to 2 the first time, and the first kill of a
+run made two of them in its frame.
+*/
+static void WarmTexts( float H ) {
+	static const float	white[4] = { 1, 1, 1, 1 };
+	const float			card = 80 * u;		// the death card's height
+	const struct { int font; float size, outline; int flags; } texts[] = {
+		{ FONT_LABEL, 30 * u, 0.35f, 0 }, { FONT_LABEL, 30 * u * 0.7f, 0.35f, 0 },		// the center print's lines
+		{ FONT_NUM, 36 * u, 0.85f, TEXT_STEPPED }, { FONT_NUM, 44 * u, 0.85f, TEXT_STEPPED },	// damage numbers,
+		{ FONT_NUM, 52 * u, 0.85f, TEXT_STEPPED }, { FONT_NUM, 60 * u, 0.85f, TEXT_STEPPED },	// their steps
+		{ FONT_NUM, 68.4f * u, 0.85f, TEXT_STEPPED },
+		{ FONT_MEDIUM, 19 * u, 0.35f, 0 }, { FONT_LABEL, 13 * u, 0.35f, 0 },			// the feed
+		{ FONT_NUM, 26 * u, 0.35f, 0 },													// a medal's count
+		{ FONT_LABEL, 18 * u, 0.35f, 0 }, { FONT_LABEL, 16 * u, 0.35f, 0 },			// the death card
+		{ FONT_LABEL, card * 0.32f, 0.35f, 0 }, { FONT_LABEL, card * 0.2f, 0, 0 },
+		{ FONT_LABEL, card * 0.16f, 0.35f, 0 }, { FONT_LABEL, card * 0.34f, 0.35f, 0 },
+		{ FONT_MEDIUM, 28 * u, 0.35f, 0 },
+		{ FONT_LABEL, 64 * u, 0.35f, 0 },												// FIGHT!
+		{ FONT_LABEL, H * 0.11f, 0.35f, 0 }, { FONT_MEDIUM, H * 0.028f, 0.35f, 0 },	// the results
+	};
+
+	if ( hud.warmed >= 0 && hud.warmed < (int)ARRAY_LEN( texts ) ) {
+		OzUI_HudText( "0", 0, 0, texts[hud.warmed].font, (float)(int)texts[hud.warmed].size, 1.0f,
+			texts[hud.warmed].flags | TEXT_WARM, white, texts[hud.warmed].outline, 0 );
+		hud.warmed++;
+	}
+}
+
 void OzHud_Draw( void ) {
 	const playerState_t	*ps;
 	float				W, H;
@@ -3707,6 +3770,7 @@ void OzHud_Draw( void ) {
 	classic = hud.preset == 3;
 	u = H / 1080.0f * ( oz_hud_scale->value > 0 ? oz_hud_scale->value : 1.0f ) * ( hud.preset == 1 ? 0.88f : 1.0f );
 	hudAlpha = oz_hud_opacity->value > 0 ? ( oz_hud_opacity->value < 1 ? oz_hud_opacity->value : 1.0f ) : 1.0f;
+	WarmTexts( H );
 	compact = hud.preset != 0;
 	spectator = ps->persistant[PERS_TEAM] == TEAM_SPECTATOR;
 	playing = !spectator && ps->pm_type != PM_INTERMISSION;

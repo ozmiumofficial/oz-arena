@@ -963,7 +963,9 @@ static const void	*RB_DrawSurfs( const void *data ) {
 
 		backEnd.depthFill = qtrue;
 		qglColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		{ int64_t prof = ri.ProfStart();	// Oz: frametime's details
 		RB_RenderDrawSurfList( cmd->drawSurfs, cmd->numDrawSurfs );
+		ri.ProfDetail( "rb prepass", prof ); }
 		qglColorMask(!backEnd.colorMask[0], !backEnd.colorMask[1], !backEnd.colorMask[2], !backEnd.colorMask[3]);
 		backEnd.depthFill = qfalse;
 
@@ -1183,7 +1185,9 @@ static const void	*RB_DrawSurfs( const void *data ) {
 
 	if (!isShadowView)
 	{
+		{ int64_t prof = ri.ProfStart();	// Oz: frametime's details
 		RB_RenderDrawSurfList( cmd->drawSurfs, cmd->numDrawSurfs );
+		ri.ProfDetail( "rb main", prof ); }
 
 		if (r_drawSun->integer)
 		{
@@ -1916,7 +1920,9 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			data = RB_CapShadowMap(data);
 			break;
 		case RC_POSTPROCESS:
+			{ int64_t prof = ri.ProfStart();	// Oz: frametime's details
 			data = RB_PostProcess(data);
+			ri.ProfDetail( "rb post", prof ); }
 			break;
 		case RC_EXPORT_CUBEMAPS:
 			data = RB_ExportCubemaps(data);

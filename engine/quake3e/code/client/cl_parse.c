@@ -449,11 +449,41 @@ Oz: the systeminfo's cvars set as the server has them (CL_SystemInfoChanged's lo
 systeminfo creates takes the default of the game code that registers it next (cvar.c Cvar_Get), so
 the cgame's own defaults replaced the server's as it loaded: Oz's cgame predicted pmove_fixed 1 on
 id's servers, which run 0, and missed at every snapshot while the player moved. CL_InitCGame runs
-this again after the cgame's init. A remote server's are noted, and go back to their defaults as
-the client leaves it (CL_ResetServerCvars), so a local match runs Oz's own.
+this again after the cgame's init. A remote server's are noted as they were before it set them,
+and go back to that as the client leaves it (CL_ResetServerCvars), so a local match runs Oz's own.
 ==================
 */
-static char cl_serverCvars[BIG_INFO_STRING];	// " name name ... ": the cvars a remote server's systeminfo set
+#define MAX_SERVER_CVARS	128
+
+static struct {
+	char		name[MAX_CVAR_VALUE_STRING];
+	char		before[MAX_CVAR_VALUE_STRING];	// its value before the server set it
+	qboolean	created;	// the server created it (or an earlier server did, and no code has registered it since)
+} cl_serverCvars[MAX_SERVER_CVARS];	// the cvars a remote server's systeminfo set
+static int cl_numServerCvars;
+
+static void CL_NoteServerCvar( const char *name ) {
+	unsigned	flags;
+	int			i;
+
+	if ( com_sv_running->integer ) {
+		return;
+	}
+	for ( i = 0; i < cl_numServerCvars; i++ ) {
+		if ( !Q_stricmp( cl_serverCvars[i].name, name ) ) {
+			return;
+		}
+	}
+	if ( cl_numServerCvars == MAX_SERVER_CVARS || strlen( name ) >= sizeof( cl_serverCvars[0].name ) ) {
+		Com_Printf( S_COLOR_YELLOW "WARNING: the server's %s stays set after leaving it\n", name );
+		return;
+	}
+	flags = Cvar_Flags( name );
+	Q_strncpyz( cl_serverCvars[i].name, name, sizeof( cl_serverCvars[i].name ) );
+	Cvar_VariableStringBuffer( name, cl_serverCvars[i].before, sizeof( cl_serverCvars[i].before ) );
+	cl_serverCvars[i].created = flags == CVAR_NONEXISTENT || ( flags & CVAR_SERVER_CREATED );
+	cl_numServerCvars++;
+}
 
 void CL_SystemInfoCvars( void ) {
 	const char		*systemInfo;
@@ -488,9 +518,10 @@ void CL_SystemInfoCvars( void ) {
 			continue; // already processed
 		}
 
-		if ( ( cvar_flags = Cvar_Flags( key ) ) == CVAR_NONEXISTENT )
+		if ( ( cvar_flags = Cvar_Flags( key ) ) == CVAR_NONEXISTENT ) {
+			CL_NoteServerCvar( key );	// Oz
 			Cvar_Get( key, value, CVAR_SERVER_CREATED | CVAR_ROM );
-		else
+		} else
 		{
 			// If this cvar may not be modified by a server discard the value.
 			if ( !(cvar_flags & ( CVAR_SYSTEMINFO | CVAR_SERVER_CREATED | CVAR_USER_CREATED ) ) )
@@ -504,11 +535,8 @@ void CL_SystemInfoCvars( void ) {
 				}
 			}
 
+			CL_NoteServerCvar( key );	// Oz
 			Cvar_SetSafe( key, value );
-		}
-
-		if ( !com_sv_running->integer && !strstr( cl_serverCvars, va( " %s ", key ) ) ) {
-			Q_strcat( cl_serverCvars, sizeof( cl_serverCvars ), va( "%s%s ", cl_serverCvars[0] ? "" : " ", key ) );
 		}
 	}
 	while ( *s != '\0' );
@@ -520,26 +548,29 @@ void CL_SystemInfoCvars( void ) {
 CL_ResetServerCvars
 
 Oz: leaving a remote server, the systeminfo cvars it set (pmove_fixed, pmove_msec, timescale)
-go back to their defaults. A cvar the server created stays read-only until game code registers
-it, which gives it the code's own default (Cvar_Get); sv_cheats is the engine's (CL_Disconnect).
-A cvar the server created and the cgame registered later isn't marked as the game code's
-(CVAR_VM_CREATED), so what counts here is the systeminfo flag.
+are as if it never had. One that was there before takes its value from then again. One the server
+created goes back to how it was as the server created it (Cvar_ServerCreated), so the next game
+code to register it gives it its own default. Its default was the cgame's, and putting that back
+left id's cgame's pmove_fixed 0 after a pure server: Oz's game then registered it with its 1, and
+Cvar_Get keeps an existing cvar's value. sv_cheats is the engine's (CL_Disconnect).
 ==================
 */
 void CL_ResetServerCvars( void ) {
-	char	name[MAX_CVAR_VALUE_STRING];
-	const char	*s = cl_serverCvars;
-	int		n, flags;
+	unsigned	flags;
+	int			i;
 
-	while ( sscanf( s, " %255s%n", name, &n ) == 1 ) {
-		s += n;
-		flags = Cvar_Flags( name );
-		if ( flags != CVAR_NONEXISTENT && ( flags & CVAR_SYSTEMINFO )
-				&& !( flags & ( CVAR_ROM | CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE ) ) ) {
-			Cvar_Set2( name, NULL, qtrue );
+	for ( i = 0; i < cl_numServerCvars; i++ ) {
+		flags = Cvar_Flags( cl_serverCvars[i].name );
+		if ( flags == CVAR_NONEXISTENT || ( flags & ( CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE ) ) ) {
+			continue;
+		}
+		if ( cl_serverCvars[i].created ) {
+			Cvar_ServerCreated( cl_serverCvars[i].name );
+		} else if ( !( flags & CVAR_ROM ) ) {
+			Cvar_Set2( cl_serverCvars[i].name, cl_serverCvars[i].before, qtrue );
 		}
 	}
-	cl_serverCvars[0] = '\0';
+	cl_numServerCvars = 0;
 }
 
 

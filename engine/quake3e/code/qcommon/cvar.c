@@ -1901,6 +1901,34 @@ const char *Cvar_SavedString( const char *var_name )
 
 
 /*
+============
+Cvar_ServerCreated
+
+Oz: a cvar a remote server's systeminfo created, as if it never had (CL_ResetServerCvars). One no
+code registered since goes. One code registered can't go from under it: it goes back to how
+Cvar_Get made it for the server, read-only and with none of the flags code gave it since, at the
+default the code gave it. So the next game code to register it gives it its own default.
+============
+*/
+void Cvar_ServerCreated( const char *var_name )
+{
+	cvar_t *var = Cvar_FindVar( var_name );
+
+	if ( !var ) {
+		return;
+	}
+	if ( var->flags & CVAR_SERVER_CREATED ) {
+		Cvar_Unset( var );
+		return;
+	}
+	Cvar_CheckRange( var, NULL, NULL, CV_NONE );
+	Cvar_Set2( var_name, NULL, qtrue );	// the default, a latched value dropped
+	cvar_modifiedFlags |= var->flags;
+	var->flags = CVAR_SERVER_CREATED | CVAR_ROM;
+}
+
+
+/*
 =====================
 Cvar_SetRangeCNQ3
 

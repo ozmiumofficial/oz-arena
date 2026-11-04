@@ -2370,6 +2370,7 @@ int R_IQMLerpTag( orientation_t *tag, iqmData_t *data,
                   int startFrame, int endFrame,
                   float frac, const char *tagName );
 void R_IQMJointMats( iqmData_t *data, int frame, int oldframe, float backlerp, float *mat );	// Oz
+void R_IQMJointMatsReset( void );
 
 // Oz: the remastered fighters (tr_oz_rig.c)
 #define OZ_RIG_LOWER	0

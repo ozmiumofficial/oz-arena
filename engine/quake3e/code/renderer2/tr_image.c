@@ -2592,6 +2592,95 @@ GLuint R_OzThumbnail( const char *name, int size, int *outWidth, int *outHeight 
 
 /*
 ===============
+R_OzReducedImage
+
+Oz: an image the menus show small (a level shot's tile), reduced by the largest whole factor that keeps
+it at least atLeast texels across, as a texture of its own that the caller deletes; 0 when there's no
+such image. A JPEG decodes smaller by its DCT (1/2, 1/4, 1/8), which saves more than half the work (a
+1280x960 level shot: 10 ms whole, 4 at half size); others are boxed down, alpha kept. A .dds gives the mip level that
+fits. No mipmaps, as the UI loads every image.
+===============
+*/
+GLuint R_OzReducedImage( const char *name, int atLeast, int *outWidth, int *outHeight )
+{
+	byte	*pic;
+	int		width, height, numMips, level;
+	GLenum	picFormat;
+	GLuint	tex;
+	int64_t	prof;
+
+	prof = ri.ProfStart();
+	r_jpgAtLeast = atLeast;
+	R_LoadImage( name, &pic, &width, &height, &picFormat, &numMips );
+	r_jpgAtLeast = 0;
+	ri.ProfDetail( "rf tile read", prof );
+	prof = ri.ProfStart();
+	if ( !pic || width <= 0 || height <= 0 ) {
+		if ( pic ) ri.Free( pic );
+		return 0;
+	}
+	switch ( picFormat ) {
+	case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT: picFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT; break;
+	case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT: picFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT; break;
+	case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: picFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; break;
+	case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB: picFormat = GL_COMPRESSED_RGBA_BPTC_UNORM_ARB; break;
+	case GL_SRGB8_ALPHA8_EXT: picFormat = GL_RGBA8; break;
+	default: break;
+	}
+	qglGenTextures( 1, &tex );
+	if ( picFormat != GL_RGBA8 ) {
+		byte *data = pic;
+		for ( level = 0; level + 1 < numMips && MAX( width, height ) / 2 >= atLeast; level++ ) {
+			data += CalculateMipSize( width, height, picFormat );
+			width = MAX( 1, width >> 1 );
+			height = MAX( 1, height >> 1 );
+		}
+		qglTextureImage2DEXT( tex, GL_TEXTURE_2D, 0, picFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+		qglCompressedTextureSubImage2DEXT( tex, GL_TEXTURE_2D, 0, 0, 0, width, height, picFormat, CalculateMipSize( width, height, picFormat ), data );
+	} else {
+		const int k = MAX( 1, MAX( width, height ) / atLeast );
+		if ( k > 1 ) {
+			const int w = MAX( 1, width / k ), h = MAX( 1, height / k );
+			byte *out = ri.Malloc( w * h * 4 );
+			int x, y, i, j, c;
+			for ( y = 0; y < h; y++ ) {
+				for ( x = 0; x < w; x++ ) {
+					int sum[4] = { 0, 0, 0, 0 };
+					for ( j = 0; j < k; j++ ) {
+						const byte *p = pic + ( ( y * k + j ) * width + x * k ) * 4;
+						for ( i = 0; i < k; i++, p += 4 ) {
+							for ( c = 0; c < 4; c++ ) {
+								sum[c] += p[c];
+							}
+						}
+					}
+					for ( c = 0; c < 4; c++ ) {
+						out[( y * w + x ) * 4 + c] = (byte)( sum[c] / ( k * k ) );
+					}
+				}
+			}
+			ri.Free( pic );
+			pic = out;
+			width = w;
+			height = h;
+		}
+		qglTextureImage2DEXT( tex, GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic );
+	}
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0 );
+	ri.Free( pic );
+	*outWidth = width;
+	*outHeight = height;
+	ri.ProfDetail( "rf tile upload", prof );
+	return tex;
+}
+
+
+/*
+===============
 R_FindImageFile
 
 Finds or loads the given image.

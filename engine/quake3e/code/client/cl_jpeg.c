@@ -81,6 +81,16 @@ static void CL_JPGOutputMessage(j_common_ptr cinfo)
 
 void CL_LoadJPG( const char *filename, unsigned char **pic, int *width, int *height )
 {
+	CL_LoadJPGScaled( filename, pic, width, height, 0 );
+}
+
+/*
+Oz: a JPEG decoded smaller where it's shown small (the menus' level shot tiles, R_OzReducedImage): libjpeg
+scales by 1/2, 1/4 or 1/8 as it decodes, which saves more than half its work. The largest of those that keeps
+the picture at least atLeast texels across is taken; 0 decodes it whole.
+*/
+void CL_LoadJPGScaled( const char *filename, unsigned char **pic, int *width, int *height, int atLeast )
+{
 	/* This struct contains the JPEG decompression parameters and pointers to
 	* working space (which is allocated as needed by the JPEG library).
 	*/
@@ -170,6 +180,16 @@ void CL_LoadJPG( const char *filename, unsigned char **pic, int *width, int *hei
    * automatically convert 8-bit greyscale images to RGB as well.
    */
   cinfo.out_color_space = JCS_RGB;
+
+  if ( atLeast > 0 ) {	// Oz
+    const unsigned int longest = cinfo.image_width > cinfo.image_height ? cinfo.image_width : cinfo.image_height;
+    unsigned int denom = 1;
+    while ( denom < 8 && longest / ( denom * 2 ) >= (unsigned int)atLeast ) {
+      denom *= 2;
+    }
+    cinfo.scale_num = 1;
+    cinfo.scale_denom = denom;
+  }
 
   /* Step 5: Start decompressor */
 

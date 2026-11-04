@@ -19,7 +19,7 @@ Plain C with no engine types, so the client's C++ can include it.
 #ifndef TR_OZ_UI_H
 #define TR_OZ_UI_H
 
-#define OZ_UI_RENDER_VERSION	2
+#define OZ_UI_RENDER_VERSION	3
 #define OZ_UI_MAX_STOPS			16
 
 typedef struct {
@@ -98,6 +98,11 @@ typedef struct {
 	// a small copy of an image, at most size texels across (the map editor's texture browser); NULL
 	// where the renderer has none (the page then loads the image whole)
 	int		(*LoadThumbnail)( const char *name, int size, int *width, int *height );
+
+	// an image the menus show small (a level shot's tile), reduced by the largest whole factor that keeps it
+	// at least atLeast texels across, as a new handle or into the handle "into" (its texture replaced);
+	// NULL where the renderer has none (the page then loads the image whole)
+	int		(*LoadReduced)( const char *name, int atLeast, int *width, int *height, int into );
 } ozUiRender_t;
 
 #endif

@@ -1429,9 +1429,46 @@ static void ComputeJointMats( iqmData_t *data, int frame, int oldframe,
 	}
 }
 
-// Oz: every joint's transform in model space at a lerped frame (tr_oz_rig.c)
+/*
+Oz: every joint's transform in model space at a lerped frame (tr_oz_rig.c). The cgame's tag lookups and the
+scene's posing ask for the same poses several times a frame (a fighter's legs for tag_torso and to pose it,
+its torso for tag_head, tag_weapon and to pose it, every head at its one frame): each is worked out once a
+frame and kept. A blend within 1e-5 counts as the same (the cgame's tags ask for 1 - its backlerp, which comes
+back a rounding off). A new renderer starts the cache over (R_IQMJointMatsReset), as models reuse their memory.
+*/
+#define IQM_POSE_CACHE	64
+
+static struct {
+	const iqmData_t	*data;
+	int				frame, oldframe, frameCount, generation;
+	float			backlerp;
+	float			mats[IQM_MAX_JOINTS * 12];
+} poseCache[IQM_POSE_CACHE];
+static int poseCacheGeneration = 1;
+
+void R_IQMJointMatsReset( void ) {
+	poseCacheGeneration++;
+}
+
 void R_IQMJointMats( iqmData_t *data, int frame, int oldframe, float backlerp, float *mat ) {
+	const unsigned slot = ( (unsigned)( (uintptr_t)data >> 4 ) + (unsigned)frame * 31u + (unsigned)oldframe * 131u ) % IQM_POSE_CACHE;
+
+	if ( poseCache[slot].data == data && poseCache[slot].frame == frame && poseCache[slot].oldframe == oldframe &&
+		 fabs( poseCache[slot].backlerp - backlerp ) < 1e-5f && poseCache[slot].frameCount == tr.frameCount &&
+		 poseCache[slot].generation == poseCacheGeneration ) {
+		Com_Memcpy( mat, poseCache[slot].mats, data->num_joints * 12 * sizeof( float ) );
+		return;
+	}
 	ComputeJointMats( data, frame, oldframe, backlerp, mat );
+	if ( data->num_joints <= IQM_MAX_JOINTS ) {
+		poseCache[slot].data = data;
+		poseCache[slot].frame = frame;
+		poseCache[slot].oldframe = oldframe;
+		poseCache[slot].backlerp = backlerp;
+		poseCache[slot].frameCount = tr.frameCount;
+		poseCache[slot].generation = poseCacheGeneration;
+		Com_Memcpy( poseCache[slot].mats, mat, data->num_joints * 12 * sizeof( float ) );
+	}
 }
 
 

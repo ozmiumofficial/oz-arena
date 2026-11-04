@@ -1567,6 +1567,7 @@ void R_Init( void ) {
 
 	// clear all our internal state
 	Com_Memset( &tr, 0, sizeof( tr ) );
+	R_IQMJointMatsReset();	// Oz: models reuse the last renderer's memory
 	Com_Memset( &backEnd, 0, sizeof( backEnd ) );
 	Com_Memset( &tess, 0, sizeof( tess ) );
 

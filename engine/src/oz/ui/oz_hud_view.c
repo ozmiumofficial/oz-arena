@@ -1026,7 +1026,7 @@ OzView_ProbeSnapshot
 
 cl_ozProbe 1 (engine/tests/frame_rate_test.py): each new snapshot's player as the server moved it, a line
 "ozprobe <server time> <command time> <x> <y> <z> <xy speed> <z speed> <ground> <weapon> <ammo> <events> <hits>
-<damage event>", the events the ones new since the last snapshot. 2 also prints each world view's place, a line
+<damage event> <health>", the events the ones new since the last snapshot. 2 also prints each world view's place, a line
 "ozview <time> <x> <y> <z> <pitch> <latest command's time> <real ms> <roll>"; 3 also the lightning beam
 from the gun on screen ("ozbeam", ProbeBeam).
 =================
@@ -1051,10 +1051,10 @@ void OzView_ProbeSnapshot( void ) {
 		}
 	}
 	sequence = ps->eventSequence;
-	Com_Printf( "ozprobe %d %d %.3f %.3f %.3f %.2f %.2f %d %d %d %s %d %d\n", cl.snap.serverTime, ps->commandTime,
+	Com_Printf( "ozprobe %d %d %.3f %.3f %.3f %.2f %.2f %d %d %d %s %d %d %d\n", cl.snap.serverTime, ps->commandTime,
 		ps->origin[0], ps->origin[1], ps->origin[2], sqrt( ps->velocity[0] * ps->velocity[0] + ps->velocity[1] * ps->velocity[1] ),
 		ps->velocity[2], ps->groundEntityNum != ENTITYNUM_NONE, ps->weapon, ps->weapon > 0 && ps->weapon < MAX_WEAPONS ? ps->ammo[ps->weapon] : 0,
-		events[0] ? events : "-", ps->persistant[PERS_HITS], ps->damageEvent );
+		events[0] ? events : "-", ps->persistant[PERS_HITS], ps->damageEvent, ps->stats[STAT_HEALTH] );
 }
 
 // ================================================================ the ragdolls' push

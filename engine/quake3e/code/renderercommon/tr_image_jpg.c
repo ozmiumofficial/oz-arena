@@ -23,7 +23,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../qcommon/q_shared.h"
 #include "../renderercommon/tr_public.h"
 
+// Oz: while set, a JPEG loads smaller by its DCT, at least this many texels across (R_OzReducedImage)
+int r_jpgAtLeast;
+
 void R_LoadJPG( const char *filename, unsigned char **pic, int *width, int *height )
 {
+	if ( r_jpgAtLeast > 0 && ri.CL_LoadJPGScaled ) {
+		ri.CL_LoadJPGScaled( filename, pic, width, height, r_jpgAtLeast );
+		return;
+	}
 	ri.CL_LoadJPG( filename, pic, width, height );
 }

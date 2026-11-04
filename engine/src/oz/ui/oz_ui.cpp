@@ -1597,6 +1597,9 @@ void OzUI_Draw( void ) {
 			OzE_ProfDetail( "ui hud render", part );
 			if ( !stack.empty() || debugger ) {
 				part = OzE_ProfStart();
+				Renderer().LoadTiles( captureName[0] != 0 );	// a capture shows every tile
+				OzE_ProfDetail( "ui tiles", part );
+				part = OzE_ProfStart();
 				context->Render();
 				OzE_ProfDetail( "ui pages render", part );
 			}

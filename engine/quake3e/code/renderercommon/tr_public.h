@@ -256,6 +256,8 @@ typedef struct {
 	// when nothing is timing
 	int64_t	(*ProfStart)( void );
 	void	(*ProfDetail)( const char *name, int64_t start );
+	// a JPEG decoded smaller by its DCT, at least atLeast texels across (0: whole)
+	void	(*CL_LoadJPGScaled)( const char *filename, unsigned char **pic, int *width, int *height, int atLeast );
 
 } refimport_t;
 

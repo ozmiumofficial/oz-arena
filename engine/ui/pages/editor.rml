@@ -332,6 +332,10 @@
 			z-index: 20;
 		}
 		.tip.hidden { display: none; }
+		/* the size of the brush being drawn, or a drag's numbers, by the pointer */
+		.sizetag { position: absolute; z-index: 15; pointer-events: none; white-space: nowrap; font-size: 0.86rem; font-weight: 600;
+			color: #fff3e6; background-color: #0a0807d9; border: 1dp #ffd28a59; padding: 0.12rem 0.45rem; }
+		.sizetag.hidden { display: none; }
 		.tip .tt { font-size: 0.86rem; font-weight: 600; color: #fff3e6; }
 		.tip .tt span { color: #ffd28a; font-weight: normal; margin-left: 0.5rem; }
 		.tip .th { font-size: 0.8rem; color: #a59a90; margin-top: 0.15rem; }
@@ -853,6 +857,8 @@
 		<span id="ed-hint"></span>
 		<span id="ed-status"></span>
 	</div>
+
+	<div class="sizetag hidden" id="ed-size-tag"></div>
 
 	<div class="tip hidden" id="ed-tip">
 		<div class="tt" id="ed-tip-title"></div>

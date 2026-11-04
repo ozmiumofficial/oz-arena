@@ -672,7 +672,10 @@ void Overlay::reset() {
 
 // ---------------------------------------------------------------- the grid
 
-static int build_grid(int existing) {
+// The 3D view's ground grid: lines on the editor's grid, every eighth brighter, the axes in red and
+// green. The fine lines cover the ground near the middle and the bright ones go on further (fine
+// lines far off run together into a haze), so the lines stay few.
+static int build_grid(int existing, double grid) {
 	const ozEdRender_t *r = OzEd_Renderer();
 	if (!r) {
 		return 0;
@@ -683,7 +686,7 @@ static int build_grid(int existing) {
 	}
 	std::vector<ozEdVertex_t> verts;
 	std::vector<unsigned short> indexes;
-	const int extent = 8192, step = 64;
+	const double step = grid, extent = std::min(8192.0, step * 8 * 256), near = std::min(extent, step * 128);
 	auto line = [&](float x0, float y0, float x1, float y1, unsigned char r8, unsigned char g8, unsigned char b8, unsigned char a8) {
 		ozEdVertex_t v{};
 		v.color[0] = r8, v.color[1] = g8, v.color[2] = b8, v.color[3] = a8;
@@ -694,16 +697,20 @@ static int build_grid(int existing) {
 		indexes.push_back((unsigned short)verts.size());
 		verts.push_back(v);
 	};
-	for (int i = -extent; i <= extent; i += step) {
-		bool major = i % 512 == 0;
-		unsigned char a = major ? 70 : 28;
-		if (i == 0) {
-			line(float(-extent), 0, float(extent), 0, 219, 60, 40, 200);  // X: red
-			line(0, float(-extent), 0, float(extent), 90, 200, 90, 200);  // Y: green
+	const int cells = int(std::lround(extent / step));
+	for (int c = -cells; c <= cells; c++) {
+		const bool major = c % 8 == 0;
+		const float i = float(c * step), e = float(major ? extent : near);
+		if (!major && std::fabs(i) > near) {
 			continue;
 		}
-		line(float(-extent), float(i), float(extent), float(i), 230, 221, 210, a);
-		line(float(i), float(-extent), float(i), float(extent), 230, 221, 210, a);
+		if (c == 0) {
+			line(-e, 0, e, 0, 219, 60, 40, 200);  // X: red
+			line(0, -e, 0, e, 90, 200, 90, 200);  // Y: green
+			continue;
+		}
+		line(-e, i, e, i, 230, 221, 210, major ? 70 : 28);
+		line(i, -e, i, e, 230, 221, 210, major ? 70 : 28);
 	}
 	ozEdRange_t range{r->RegisterShader("$oz_ed_lines"), 0, int(indexes.size())};
 	r->UploadMesh(h, verts.data(), int(verts.size()), indexes.data(), int(indexes.size()), &range, 1);
@@ -1046,8 +1053,9 @@ void Session::frame(int x, int y, int w, int h) {
 		ents_dirty_ = true;
 		hover_rev_ = ~0ull;
 	}
-	if (!grid_mesh_) {
-		grid_mesh_ = build_grid(0);
+	if (!grid_mesh_ || grid_mesh_step_ != grid) {
+		grid_mesh_ = build_grid(grid_mesh_, grid);
+		grid_mesh_step_ = grid;
 	}
 	load_defs();
 

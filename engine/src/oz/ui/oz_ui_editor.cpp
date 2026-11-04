@@ -66,7 +66,7 @@ bool leaving;          // ed_leave: closed at the next frame, outside any event
 std::string note;      // what the editor last said, shown in the status line a while
 bool noteError;
 int noteUntil;
-Rml::String lastStatus, lastName, lastHint, lastTools;
+Rml::String lastStatus, lastName, lastHint, lastSizeTag, lastTools;
 uint64_t lastSel = ~0ull;
 
 // the panel
@@ -2777,6 +2777,7 @@ bool Editor_Draw( int width, int height ) {
 		lastStatus.clear();
 		lastName.clear();
 		lastHint.clear();
+		lastSizeTag.clear();
 		lastTools.clear();
 		lastKeyHelp.clear();
 		lastPanes.clear();
@@ -2809,6 +2810,25 @@ bool Editor_Draw( int width, int height ) {
 		hint->SetClass( "err", noting && noteError );
 	}
 	SetText( doc, "ed-status", s.status(), lastStatus );
+	if ( Rml::Element *tag = doc->GetElementById( "ed-size-tag" ) ) {
+		// the size by the pointer, kept inside the view (to the pointer's left or above it at an edge)
+		std::string text;
+		double tx = 0, ty = 0;
+		const bool shown = s.renderer_ok() && s.size_tag( text, tx, ty );
+		tag->SetClass( "hidden", !shown );
+		if ( shown ) {
+			SetText( doc, "ed-size-tag", text, lastSizeTag );
+			const Rml::Vector2f ts = tag->GetBox().GetSize( Rml::BoxArea::Border );
+			if ( tx + ts.x > pos.x + size.x ) {
+				tx -= ts.x + 36;
+			}
+			if ( ty + ts.y > pos.y + size.y ) {
+				ty -= ts.y + 28;
+			}
+			tag->SetProperty( "left", Rml::CreateString( "%dpx", (int)tx ) );
+			tag->SetProperty( "top", Rml::CreateString( "%dpx", (int)ty ) );
+		}
+	}
 	SetText( doc, "ed-name", s.name + ( s.doc.dirty ? " *" : "" ), lastName );
 
 	// the tool strip shows the tool in use (Light, Jump pad and Teleport the place tool's own), the

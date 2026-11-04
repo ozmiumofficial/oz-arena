@@ -2,8 +2,9 @@
 // build's q3_map_compiler.gd: q3map2 (BSP, vis, light) and mbspc (the bots' area file) run as programs
 // of their own in the background, a stage at a time, while the mapper goes on editing. The map is
 // compiled as it is in the editor (nothing is saved) under the name ed_<name>, into maps/ in the
-// player's own files, so a play-test never shadows a stock map. A leak stops the compile and the line
-// q3map2 traced out to the void is drawn in the view. F5 plays the map once it's built.
+// player's own files, so a play-test never shadows a stock map. A map open to the void (a leak) still
+// builds and plays, without vis (q3map2 makes no portals for it), and the line q3map2 traced out to
+// the void is drawn in the view. F5 plays the map once it's built.
 
 #include "ed_view.h"
 #include "ed_engine.h"
@@ -218,6 +219,9 @@ void Session::compile_done(bool ok, const std::string &why) {
 	char buf[160];
 	std::snprintf(buf, sizeof buf, "ok %s %d stages %.1f s", j.out.c_str(), int(j.stages.size()), secs);
 	compile_report_ = buf;
+	if (j.leaked) {
+		compile_report_ += " leak " + std::to_string(leak_.size());
+	}
 	std::snprintf(buf, sizeof buf, "Compiled maps/%s.bsp in %.1f s%s", j.out.c_str(), secs, j.play ? ": playing it" : "");
 	// models q3map2 couldn't bake in (id's own misc_models never shipped: a stock map recompiled loses them)
 	std::set<std::string> missing;
@@ -235,6 +239,9 @@ void Session::compile_done(bool ok, const std::string &why) {
 		}
 	}
 	std::string note = buf;
+	if (j.leaked) {
+		note += " \xc2\xb7 open to the void, so it's drawn whole without vis and has no bots (the red line shows one way out: seal it for both)";
+	}
 	if (!warnings_.empty()) {
 		note += " \xc2\xb7 " + std::to_string(warnings_.size()) + (warnings_.size() == 1 ? " warning" : " warnings") + " (Warnings lists them)";
 		compile_report_ += " warnings " + std::to_string(warnings_.size());
@@ -302,11 +309,11 @@ void Session::compile_poll() {
 				}
 				at = eol == std::string::npos ? lin.size() : eol + 1;
 			}
-			leak_rev_++;
-			compile_report_ = "leak " + std::to_string(leak_.size());
-			j.running = false;
-			say("The map leaks: the red line runs from an entity out to the void through the gap (Show the leak frames it). Seal it, then compile again", true);
-			return;
+			// it plays anyway: q3map2 wrote the BSP, but with no inside to it there are no portals, so no vis,
+			// and mbspc refuses a map that leaks, so no bots' file (it plays without bots)
+			j.leaked = true;
+			j.stages.erase(std::remove_if(j.stages.begin() + long(j.at) + 1, j.stages.end(),
+				[](const CompileJob::Stage &st) { return st.name == "vis" || st.name == "bots"; }), j.stages.end());
 		}
 		leak_rev_++;
 	}

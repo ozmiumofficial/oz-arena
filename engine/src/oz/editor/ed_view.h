@@ -246,6 +246,8 @@ public:
 
 	std::string status() const;        // the status line's right side
 	std::string hint() const;          // its left side: what the pointer and the tool can do now
+	// the size tag by the pointer while a brush is drawn or a drag runs (window pixels): false when none
+	bool size_tag(std::string &text, double &sx, double &sy) const;
 	std::string render_stats() const;  // the view's meshes and triangles (ed_stats)
 	bool renderer_ok() const;          // the renderer can draw the view (only the oz renderer can)
 	void load_defs();                  // the mods' .def files into the entity catalog, once
@@ -450,6 +452,7 @@ private:
 	uint64_t faces_doc_rev_ = ~0ull, faces_sel_rev_ = ~0ull;
 	int generation_ = -1;
 	int grid_mesh_ = 0;
+	double grid_mesh_step_ = 0;  // the grid the 3D view's ground lines were made for
 	int last_ms_ = 0;
 	bool looking_ = false;
 	std::vector<Id> pending_;
@@ -536,6 +539,7 @@ private:
 		std::string out, dir, map, log;
 		int t0 = 0, stage_t0 = 0;
 		bool running = false, full = false, play = false, here = false, preview = false, defrag = false;
+		bool leaked = false;  // the BSP found a way out to the void: built and played without vis
 		Camera cam;
 		std::unordered_map<Id, ObjectPtr> snapshot;  // the document compiled
 		std::vector<std::vector<Id>> order;          // as written: each entity, then its brushes and curves

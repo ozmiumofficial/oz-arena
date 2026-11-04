@@ -1219,6 +1219,48 @@ void Session::build_preview() {
 
 // ---------------------------------------------------------------- hints
 
+// What the brush being drawn, or the drag, makes, by the pointer: a footprint's two sides (a side
+// without width yet the cell a let-go gives it; in a 2D view its depth too), then the whole box, a
+// move's offset, a push's or a corner's distance with the selection's size.
+bool Session::size_tag(std::string &text, double &sx, double &sy) const {
+	if (looking_ || mx_ <= -10000) {
+		return false;
+	}
+	char buf[160];
+	if (tool == Tool::Create && create_state_ == 1) {
+		const double cell = std::max(grid, 8.0);
+		double side[3];
+		for (int i = 0; i < 3; i++) {
+			const double w = std::fabs(comp(create_b_, i) - comp(create_a_, i));
+			side[i] = i == create_axis_ ? create_height_ : w > 0 ? w : cell;
+		}
+		if (ortho_axis_ >= 0) {
+			std::snprintf(buf, sizeof buf, "%g x %g x %g", side[0], side[1], side[2]);
+		} else {
+			const int o1 = std::min((create_axis_ + 1) % 3, (create_axis_ + 2) % 3), o2 = 3 - create_axis_ - o1;
+			std::snprintf(buf, sizeof buf, "%g x %g", side[o1], side[o2]);
+		}
+	} else if (tool == Tool::Create && create_state_ == 2) {
+		Vec3 lo, hi;
+		create_box(create_a_, create_b_, create_axis_, create_plane_, create_sign_, create_height_, lo, hi);
+		const Vec3 s = hi - lo;
+		std::snprintf(buf, sizeof buf, "%g x %g x %g", s.x, s.y, s.z);
+	} else if (!drag_note_.empty()) {
+		const Bounds b = selection_bounds();
+		if ((drag_ == Drag::Push || drag_ == Drag::Corners) && !b.empty()) {
+			const Vec3 s = b.hi - b.lo;
+			std::snprintf(buf, sizeof buf, "%s Â· %g x %g x %g", drag_note_.c_str(), s.x, s.y, s.z);
+		} else {
+			std::snprintf(buf, sizeof buf, "%s", drag_note_.c_str());
+		}
+	} else {
+		return false;
+	}
+	text = buf;
+	sx = mx_ + 18, sy = my_ + 14;
+	return true;
+}
+
 std::string Session::hint() const {
 	if (looking_) {
 		return "Looking: W A S D to fly, Q and E down and up, Shift faster, Ctrl slower";

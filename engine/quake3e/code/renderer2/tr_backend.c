@@ -1615,7 +1615,9 @@ static const void *RB_PostProcess(const void *data)
 	dstBox[2] = backEnd.viewParms.viewportWidth;
 	dstBox[3] = backEnd.viewParms.viewportHeight;
 
-	if (r_ssao->integer)
+	// Oz: only a scene with a world made its SSAO (the depth prepass's); the map editor's view has
+	// none, and the last match's (or a black one) multiplied it to black
+	if (r_ssao->integer && !(backEnd.refdef.rdflags & RDF_NOWORLDMODEL))
 	{
 		srcBox[0] = backEnd.viewParms.viewportX      * tr.screenSsaoImage->width  / (float)glConfig.vidWidth;
 		srcBox[1] = backEnd.viewParms.viewportY      * tr.screenSsaoImage->height / (float)glConfig.vidHeight;

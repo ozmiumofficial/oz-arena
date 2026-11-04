@@ -56,6 +56,7 @@ struct Server {
 	std::string map, mapName, game, kind, gameName, mode;	// kind: oz, vanilla, cpma, defrag, other (a mod) or game (another game)
 	std::string engine;							// the engine's tag (Quake3e, ioquake3, CNQ3, oDFe, id 1.32...), "" until known
 	int ping = 0, clients = 0, humans = -1, max = 0;	// humans: -1 when the server doesn't say
+	int protocol = 0;					// 68 (Quake III's) or 71 (ioquake3's and OpenArena's)
 	bool password = false, pure = true, have = true;
 	int folded = 0;						// other addresses of the same game
 	// favorites and history: a peer-to-peer match's host instead of an address; up, or why not; when it was joined
@@ -340,6 +341,24 @@ Server ParseOne( const ozServerInfo_t &in ) {
 		s.engine = known == engines.end() ? "" : known->second;
 	}
 	s.mode = ModeName( s.kind, atoi( Value( kv, "gametype" ).c_str() ) );
+	// A51's Clan Arena and Freeze Tag run on baseq3's team number (3), which only their names tell apart:
+	// "*A51* Freeze Tag" and "A51|FRZ", "*A51* Clan Arena" and "A51|CA" (the short words only beside A51:
+	// a server in "LA, CA" isn't Clan Arena)
+	if ( s.kind == "vanilla" && atoi( Value( kv, "gametype" ).c_str() ) == 3 ) {
+		const std::string low = Lower( s.name );
+		std::string spaced = " ";
+		for ( const char c : low ) {
+			spaced += isalnum( (unsigned char)c ) ? c : ' ';
+		}
+		spaced += ' ';
+		const bool a51 = spaced.find( " a51 " ) != std::string::npos;
+		if ( spaced.find( " freeze " ) != std::string::npos || ( a51 && spaced.find( " frz " ) != std::string::npos ) ) {
+			s.mode = "Freeze Tag";
+		} else if ( spaced.find( " clan arena " ) != std::string::npos || ( a51 && spaced.find( " ca " ) != std::string::npos ) ) {
+			s.mode = "Clan Arena";
+		}
+	}
+	s.protocol = atoi( Value( kv, "protocol" ).c_str() );
 	s.clients = atoi( Value( kv, "clients" ).c_str() );
 	s.max = atoi( Value( kv, "sv_maxclients" ).c_str() );
 	const std::string humans = Value( kv, "g_humanplayers" );
@@ -352,8 +371,23 @@ Server ParseOne( const ozServerInfo_t &in ) {
 	return s;
 }
 
+// one game under several addresses: the same name, map, mod, mode and players
+std::string FoldKey( const Server &s ) {
+	return Lower( s.name ) + "\n" + s.map + "\n" + s.game + "\n" + s.mode + "\n" + std::to_string( s.clients ) + "/" + std::to_string( s.max );
+}
+
+// which of one game's addresses its row joins: Quake III's protocol first, then the lowest ping. Area 51 opens each
+// server to OpenArena players too, on another port with protocol 71, where it hands out its OpenArena mod (a51oa) and
+// maps, which a Quake III install doesn't have.
+bool Better( const Server &s, const Server &than ) {
+	if ( ( s.protocol == 68 ) != ( than.protocol == 68 ) ) {
+		return s.protocol == 68;
+	}
+	return s.ping < than.ping;
+}
+
 // every server that answered, parsed; while a refresh runs, the last answers of those not asked again yet (so the list
-// doesn't empty and refill); then the same game under several addresses folded into its lowest ping. And the LAN's.
+// doesn't empty and refill); then the same game under several addresses folded into the one it joins (Better). And the LAN's.
 void Parse() {
 	answers.clear();
 	std::set<std::string> fresh;
@@ -386,7 +420,7 @@ void Parse() {
 	servers.clear();
 	std::map<std::string, size_t> seen;
 	for ( Server s : answers ) {
-		const std::string key = Lower( s.name ) + "\n" + s.map + "\n" + s.game + "\n" + s.mode + "\n" + std::to_string( s.clients ) + "/" + std::to_string( s.max );
+		const std::string key = FoldKey( s );
 		const auto it = seen.find( key );
 		if ( it == seen.end() ) {
 			seen[key] = servers.size();
@@ -394,7 +428,7 @@ void Parse() {
 		} else {
 			Server &kept = servers[it->second];
 			kept.folded++;
-			if ( s.ping < kept.ping ) {
+			if ( Better( s, kept ) ) {
 				s.folded = kept.folded;
 				kept = s;
 			}
@@ -1070,8 +1104,36 @@ void ClearAsk() {
 	SetText( "server_browser.ask.name", "" );
 }
 
+// a server's name by its letters and digits alone, lowercase
+std::string NameKey( const std::string &name ) {
+	std::string key;
+	for ( const char c : name ) {
+		if ( isalnum( (unsigned char)c ) ) {
+			key += (char)tolower( (unsigned char)c );
+		}
+	}
+	return key;
+}
+
 // connect, with the server's password or none, the pages closed for the connection screen
-void Connect( const std::string &address, const Server *s, const std::string &password ) {
+void Connect( const std::string &joined, const Server *s, const std::string &password ) {
+	std::string address = joined;
+	if ( s && s->protocol != 68 ) {
+		// a favorite, the history or a row folded apart may name the game's other address (Better): join its Quake III
+		// one, the same server on the same machine. Not by the player counts, which change between answers, nor the name
+		// as written: Area 51's OpenArena door is "*A51* FFA", its Quake III ones "A51|FFA".
+		const std::string ip = address.substr( 0, address.rfind( ':' ) );
+		for ( const Server &t : answers ) {
+			if ( t.protocol == 68 && t.address.substr( 0, t.address.rfind( ':' ) ) == ip && NameKey( t.name ) == NameKey( s->name ) &&
+				t.game == s->game && t.mode == s->mode ) {
+				Printf( "UI: %s is %s's protocol %d address: joining its Quake III one, %s\n", address.c_str(), s->name.c_str(),
+					s->protocol, t.address.c_str() );
+				address = t.address;
+				s = &t;
+				break;
+			}
+		}
+	}
 	if ( s && s->kind == "game" ) {
 		Menu_Toast( ( s->name + " runs " + s->gameName + ", another game: its server may not take you." ).c_str(), "info" );
 	} else if ( s && s->kind == "other" ) {

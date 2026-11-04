@@ -177,6 +177,18 @@ qboolean GLimp_DisplayBounds( int index, int *x, int *y, int *w, int *h )
 }
 
 
+// Oz: a monitor's bounds less the taskbar, for a window that has to fit beside it
+qboolean GLimp_UsableBounds( int index, int *x, int *y, int *w, int *h )
+{
+	SDL_Rect r;
+
+	if ( !SDL_WasInit( SDL_INIT_VIDEO ) || index < 0 || index >= SDL_GetNumVideoDisplays() || SDL_GetDisplayUsableBounds( index, &r ) != 0 )
+		return qfalse;
+	*x = r.x; *y = r.y; *w = r.w; *h = r.h;
+	return qtrue;
+}
+
+
 static int FindNearestDisplay( int *x, int *y, int w, int h )
 {
 	const int cx = *x + w / 2;

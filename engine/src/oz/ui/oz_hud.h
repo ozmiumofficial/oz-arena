@@ -25,6 +25,7 @@ void	OzHud_ChatPaste( char *line, int size, int *cursor, const char *text );	// 
 void	OzHud_Draw( void );							// SCR_DrawScreenField, after the game's 2D, before the UI
 int		OzHud_Active( void );						// in a match, cl_ozHud 1, on a renderer with the UI
 int		OzHud_HideCgame2D( void );					// the game code's 2D is dropped now
+int		OzHud_KeepsKeys( void );					// the game code doesn't get the keys now
 
 // oz_hud_mods.c: what a mod's own 2D draws, for cl_ozHudLog2D
 void	OzHud_ModsInit( void );

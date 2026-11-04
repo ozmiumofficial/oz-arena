@@ -83,6 +83,7 @@ static Rml::String displayOld[3];
 static const char *const displayKeys[3] = { "video/display_mode", "video/resolution", "video/monitor" };
 // the Video tab's changes, waiting for Apply: entry -> its cvar's new value
 static std::map<int, Rml::String> staged;
+static bool xhThick, xhGap;			// the crosshair's Thickness and Gap change what it draws (else their rows dim)
 static bool applyShown;				// the footer's Apply and Discard: on the Video tab, or with changes waiting
 static int pendingCount;
 static Rml::String applyNote;
@@ -536,8 +537,15 @@ static void UpdatePreviews() {
 	const float sens = (float)atof( OzE_CvarString( "sensitivity" ) ), dpi = (float)atof( OzE_CvarString( "oz_mouse_dpi" ) );
 	cm360 = sens > 0 && dpi > 0 ? Fmt( "%.1f cm per full turn at %.0f DPI", 360.0f / ( sens * 0.022f ) / dpi * 2.54f, dpi ) : "";
 	// (the crosshair's preview is a <crosshair> element: the HUD draws it from the cvars, oz_ui_crosshair.cpp)
+	// a classic shape is an image: thickness sizes only its center dot, and only cross and T have a gap
+	const Rml::String shape = OzE_CvarString( "oz_crosshair_shape" );
+	const bool classic = shape.size() == 1 && shape[0] >= 'a' && shape[0] <= 'j';
+	xhThick = shape != "none" && ( !classic || atoi( OzE_CvarString( "oz_crosshair_dot" ) ) );
+	xhGap = shape == "cross" || shape == "t";
 	if ( model ) {
 		model.DirtyVariable( "cm360" );
+		model.DirtyVariable( "xh_thick" );
+		model.DirtyVariable( "xh_gap" );
 	}
 }
 
@@ -1367,8 +1375,10 @@ Rml::String Settings_PageRml() {
 		}
 		// a Video row's change waits for Apply (Waits)
 		const bool waits = e.tab == "video";
+		const char *dim = e.key == "crosshair/thickness" ? "!xh_thick" : e.key == "crosshair/gap" ? "!xh_gap" : nullptr;
 		rml += Fmt( "<div class=\"row\" id=\"row_%s\" data-if=\"rows[%d].shown\" data-class-modified=\"rows[%d].modified\"", e.id.c_str(), (int)i, (int)i ) +
-			( waits ? Fmt( " data-class-pending=\"rows[%d].pending\"", (int)i ) : Rml::String() ) + ">";
+			( waits ? Fmt( " data-class-pending=\"rows[%d].pending\"", (int)i ) : Rml::String() ) +
+			( dim ? Fmt( " data-class-dim=\"%s\"", dim ) : Rml::String() ) + ">";
 		rml += "<span class=\"label\"><span>" + Escape( e.label ) + "</span>" + ( e.restart ? "<span class=\"badge\">restart</span>" : "" ) +
 			( e.wired ? "" : "<span class=\"badge dimb\">soon</span>" ) +
 			( waits ? Fmt( "<span class=\"badge\" data-if=\"rows[%d].pending\">not applied</span>", (int)i ) : Rml::String() ) + "</span>";
@@ -1422,6 +1432,8 @@ void Settings_BindModel( Rml::Context *context ) {
 	c.Bind( "tip_text", &tipText );
 	c.Bind( "tip_note", &tipNote );
 	c.Bind( "cm360", &cm360 );
+	c.Bind( "xh_thick", &xhThick );
+	c.Bind( "xh_gap", &xhGap );
 	c.Bind( "apply_shown", &applyShown );
 	c.Bind( "pending", &pendingCount );
 	c.Bind( "apply_note", &applyNote );

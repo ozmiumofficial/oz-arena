@@ -119,7 +119,7 @@ same as Settings' Crosshair tab); a weapon tab edits that weapon's own crosshair
 					</button>
 				</div>
 				<div class="field"><span class="l">Size</span><input id="xh_size" class="slider" type="range" min="8" max="96" step="1" data-value="crosshair.size" setting="crosshair/size"/><span class="q3 value">{{ crosshair.size }} px</span></div>
-				<div class="field" data-class-dim="!crosshair.vector"><span class="l">Thickness</span><input id="xh_thickness" class="slider" type="range" min="1" max="8" step="1" data-value="crosshair.thickness" setting="crosshair/thickness"/><span class="q3 value">{{ crosshair.thickness }} px</span></div>
+				<div class="field" data-class-dim="!crosshair.vector &amp;&amp; !crosshair.dot"><span class="l">Thickness</span><input id="xh_thickness" class="slider" type="range" min="1" max="8" step="1" data-value="crosshair.thickness" setting="crosshair/thickness"/><span class="q3 value">{{ crosshair.thickness }} px</span></div>
 				<div class="field" data-class-dim="!crosshair.lines"><span class="l">Gap</span><input id="xh_gap" class="slider" type="range" min="0" max="32" step="1" data-value="crosshair.gap" setting="crosshair/gap"/><span class="q3 value">{{ crosshair.gap }} px</span></div>
 				<div class="field"><span class="l">Center dot</span>
 					<div id="xh_dot" class="toggle" data-class-on="crosshair.dot" onclick="toggle crosshair.dot crosshair/dot"><span class="track"><span class="knob"/></span><span class="state">{{ crosshair.dot ? 'On' : 'Off' }}</span></div></div>

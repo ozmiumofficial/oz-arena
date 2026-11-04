@@ -414,6 +414,7 @@ void CL_ShutdownCGame( void ) {
 	cls.cgameCharEvents = qfalse;
 	cls.cgameNewDemoPlayer = qfalse;
 	cls.cgameOzDemoSeek = 0;	// Oz (P10)
+	cls.cgameClientMod = qfalse;	// Oz
 	Com_Memset( &cl_cgInterop, 0, sizeof( cl_cgInterop ) );
 
 	if ( !cgvm ) {
@@ -826,7 +827,8 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		return Key_GetCatcher();
 	case CG_KEY_SETCATCHER:
 		// Don't allow the cgame module to close the console
-		Key_SetCatcher( args[1] | ( Key_GetCatcher( ) & KEYCATCH_CONSOLE ) );
+		// Oz: nor to take the keys from the HUD while it stays up (OzHud_KeepsKeys)
+		Key_SetCatcher( ( OzHud_KeepsKeys() ? args[1] & ~KEYCATCH_CGAME : args[1] ) | ( Key_GetCatcher( ) & KEYCATCH_CONSOLE ) );
 		return 0;
 	case CG_KEY_GETKEY:
 		return Key_GetKey( VMA(1) );
@@ -1077,6 +1079,7 @@ Should only be called by CL_StartHunkUsers
 void CL_InitCGame( void ) {
 	const char			*info;
 	const char			*mapname;
+	const char			*game;	// Oz
 	int					t1, t2;
 	vmInterpret_t		interpret;
 
@@ -1106,7 +1109,20 @@ void CL_InitCGame( void ) {
 			interpret = VMI_COMPILED;
 	}
 
+	// Oz: on a remote baseq3 server Oz's own cgame runs, its effects and HUD with it, even where the
+	// player has a client mod's cgame in baseq3 (Area 51's, from its /update; Ozmium, 2026-11-03).
+	// cl_ozClientMod 1 lets that one come first (FS_OzClientMod), as Quake3e loads it. Oz's servers
+	// say fs_game oz.
+	game = Info_ValueForKey( cl.gameState.stringData + cl.gameState.stringOffsets[ CS_SYSTEMINFO ], "fs_game" );
+	FS_OzClientMod( Cvar_Get( "cl_ozClientMod", "0", CVAR_ARCHIVE_ND )->integer && !clc.demoplaying &&
+		!com_sv_running->integer && ( !game[0] || !Q_stricmp( game, BASEGAME ) ) &&
+		!Q_stricmp( FS_GetCurrentGameDir(), "oz" ) );
 	cgvm = VM_Create( VM_CGAME, CL_CgameSystemCalls, CL_DllSyscall, interpret );
+	cls.cgameClientMod = FS_OzClientModName()[0] != '\0';
+	if ( cls.cgameClientMod ) {
+		Com_Printf( "The server's client mod: cgame from %s\n", FS_OzClientModName() );
+	}
+	FS_OzClientMod( qfalse );
 	if ( !cgvm ) {
 		Com_Error( ERR_DROP, "VM_Create on cgame failed" );
 	}

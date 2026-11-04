@@ -1065,7 +1065,8 @@ instead (its ragdoll's) and how far it has burned, or NULL while it lives (or fo
 const float *R_OzRagdollFighter( const ozRig_t *rig, const trRefEntity_t *legs, const float *world, float *dissolve ) {
 	int frame = legs->e.frame, now = tr.refdef.time, i;
 	int64_t prof;
-	qboolean dead = ( frame >= 0 && frame < rig->deathFrames ) || r_ozRagdollTest->integer;
+	// a frozen player (RF_OZ_FROZEN, A51's Freeze Tag) stays in the pose the game code gives it, unburned
+	qboolean dead = ( ( frame >= 0 && frame < rig->deathFrames ) || r_ozRagdollTest->integer ) && !( legs->e.renderfx & RF_OZ_FROZEN );
 	ozTrack_t *t;
 
 	*dissolve = 0.0f;

@@ -315,9 +315,9 @@ static struct {
 static float		holdBlend;			// 0 the gun as the cgame put it .. 1 held
 static vec3_t		holdR[3], holdT;	// held, in the view's frame: R x + T
 
-// id's cgame, a pure baseq3 server's: neither Oz's (cl_ozDemoSeek, game patch 0024) nor a mod's
+// id's cgame, a pure baseq3 server's: neither Oz's (cl_ozDemoSeek, game patch 0024) nor a mod's, a baseq3 client mod's included
 static qboolean IdCgame( void ) {
-	return !cls.cgameOzDemoSeek && !Q_stricmp( FS_GetCurrentGameDir(), "oz" );
+	return !cls.cgameOzDemoSeek && !cls.cgameClientMod && !Q_stricmp( FS_GetCurrentGameDir(), "oz" );
 }
 
 static void ToView( const refdef_t *fd, const vec3_t p, qboolean point, vec3_t out ) {

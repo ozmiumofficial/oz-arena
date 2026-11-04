@@ -364,6 +364,7 @@ typedef struct {
 	qboolean	cgameNewDemoPlayer;	// the cgame turned on the new demo player (trap_CNQ3_NDP_Enable)
 	int			cgvmNDPCalls[5];	// its vmMain commands: analyze command, generate commands, CS needed, analyze snapshot, end analysis
 	int			cgameOzDemoSeek;	// Oz: the vmMain command Oz's cgame resets on after a seek (cl_ozDemoSeek), or 0 (P10)
+	qboolean	cgameClientMod;		// Oz: the cgame is a baseq3 client mod's (FS_OzClientMod), a mod's as far as the engine goes
 
 } clientStatic_t;
 

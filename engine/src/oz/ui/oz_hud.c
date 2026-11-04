@@ -865,6 +865,10 @@ static struct {
 	int			fragsMod[MOD_COUNT], deathsMod[MOD_COUNT];
 	int			pickups[64];
 	int			railShots, railHits, railRun, railBest, railPersHits;
+	// hits on a game without Oz's dmg command (id's, the mods): PERS_HITS rising in a snapshot, on the weapon
+	// in hand (or the last one fired, for a missile landing after a switch)
+	qboolean	dmgFromServer;		// Oz's game sends dmg: its hits are counted there
+	int			lastFired;
 	// death
 	qboolean	dead;
 	int			deathTime;
@@ -1088,6 +1092,7 @@ static void EntityEvent( const entityState_t *es, int event, qboolean mine ) {
 		// g_weapon.c's accuracy_shots: the gauntlet and the grapple don't count
 		if ( mine && es->weapon > WP_NONE && es->weapon < NAMES ) {
 			hud.shots[es->weapon]++;
+			hud.lastFired = es->weapon;
 		}
 		break;
 	case EV_ITEM_PICKUP:
@@ -1468,6 +1473,7 @@ int OzHud_ServerCommand( const char *text ) {
 		const int	means = Cmd_Argc() > 4 ? atoi( Cmd_Argv( 4 ) ) : -1;
 		const int	time = Cmd_Argc() > 5 ? atoi( Cmd_Argv( 5 ) ) : -1;
 		const int	w = means >= 0 ? ModWeapon( means ) : cg.snap ? cg.snap->ps.weapon : 0;
+		hud.dmgFromServer = qtrue;
 		if ( cg.snap && target == cg.snap->ps.clientNum ) {
 			return 0;
 		}
@@ -1598,6 +1604,40 @@ static void GoTo_f( void ) {
 	Cbuf_InsertText( va( "setviewpos %i %i %i 0\n", (int)o[0], (int)o[1], (int)o[2] ) );
 }
 
+// ozents [all]: the snapshot's player entities (all: every entity) as the server sent them, and the
+// playerState: how a server's mode marks its players (A51's Freeze Tag), read from what it sends
+static void Ents_f( void ) {
+	const qboolean	all = !Q_stricmp( Cmd_Argv( 1 ), "all" );
+	const playerState_t	*ps = &cl.snap.ps;
+	int				i;
+
+	if ( !cl.snap.valid ) {
+		Com_Printf( "ozents: no snapshot\n" );
+		return;
+	}
+	Com_Printf( "ozents: snap %d, ps client %d pm_type %d pm_flags 0x%x eFlags 0x%x health %d weapon %d"
+		" powerups 0x%x stats %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d pers %d %d %d %d %d %d %d %d\n",
+		cl.snap.serverTime, ps->clientNum, ps->pm_type, ps->pm_flags, ps->eFlags, ps->stats[STAT_HEALTH], ps->weapon,
+		( ps->powerups[0] ? 1 : 0 ) | ( ps->powerups[1] ? 2 : 0 ) | ( ps->powerups[2] ? 4 : 0 ) | ( ps->powerups[3] ? 8 : 0 )
+		| ( ps->powerups[4] ? 16 : 0 ) | ( ps->powerups[5] ? 32 : 0 ) | ( ps->powerups[6] ? 64 : 0 ) | ( ps->powerups[7] ? 128 : 0 ),
+		ps->stats[0], ps->stats[1], ps->stats[2], ps->stats[3], ps->stats[4], ps->stats[5], ps->stats[6], ps->stats[7],
+		ps->stats[8], ps->stats[9], ps->stats[10], ps->stats[11], ps->stats[12], ps->stats[13], ps->stats[14], ps->stats[15],
+		ps->persistant[0], ps->persistant[1], ps->persistant[2], ps->persistant[3], ps->persistant[4], ps->persistant[5],
+		ps->persistant[6], ps->persistant[7] );
+	for ( i = 0; i < cl.snap.numEntities; i++ ) {
+		const entityState_t *es = &cl.parseEntities[( cl.snap.parseEntitiesNum + i ) & ( MAX_PARSE_ENTITIES - 1 )];
+		if ( !all && es->eType != ET_PLAYER ) {
+			continue;
+		}
+		Com_Printf( "ozents: %d type %d flags 0x%x powerups 0x%x legs %d torso %d weapon %d model %d %d client %d"
+			" other %d %d generic %d frame %d solid 0x%x time %d %d event 0x%x %d tr %d at %d %d %d\n",
+			es->number, es->eType, es->eFlags, es->powerups, es->legsAnim & ~ANIM_TOGGLEBIT, es->torsoAnim & ~ANIM_TOGGLEBIT,
+			es->weapon, es->modelindex, es->modelindex2, es->clientNum, es->otherEntityNum, es->otherEntityNum2,
+			es->generic1, es->frame, es->solid, es->time, es->time2, es->event, es->eventParm, es->pos.trType,
+			(int)es->pos.trBase[0], (int)es->pos.trBase[1], (int)es->pos.trBase[2] );
+	}
+}
+
 static void Type_f( void );
 static void Emoji_f( void );
 static void Board_f( void );
@@ -1619,6 +1659,7 @@ void OzHud_Init( void ) {
 	Cmd_AddCommand( "oz_type", Type_f );
 	Cmd_AddCommand( "oz_emoji", Emoji_f );
 	Cmd_AddCommand( "ozboard", Board_f );
+	Cmd_AddCommand( "ozents", Ents_f );
 	Cmd_AddCommand( "ozboard_point", BoardPoint_f );
 }
 
@@ -1654,6 +1695,15 @@ int OzHud_Active( void ) {
 
 int OzHud_HideCgame2D( void ) {
 	return OzHud_Active();
+}
+
+// the keys the game code asks for (CG_KEY_SETCATCHER) and doesn't get, so the HUD stays up: the
+// scoreboard key's (A51's cgame takes the mouse for its board, which hid the Oz HUD and its board and
+// kept -scores from Oz), and every time under a server's client mod (Ozmium, 2026-11-03: on A51's
+// servers the Oz HUD stays, whatever the mod does). CPMA's in-match menus keep theirs (decision 21)
+int OzHud_KeepsKeys( void ) {
+	return hudInit && oz_hud->integer && !clc.demoplaying && OzUI_HudAvailable()
+		&& ( cg.showScores || cls.cgameClientMod );
 }
 
 void OzHud_RenderScene( const refdef_t *fd ) {
@@ -1713,7 +1763,7 @@ static void ReadConfigstrings( void ) {
 // once, an entity's own event when its bits change) and the playerState's own (CG_CheckPlayerstateEvents)
 static void ReadEvents( void ) {
 	const playerState_t	*ps = &cl.snap.ps;
-	int					i, railShots;
+	int					i, railShots, shotsBefore[NAMES];
 
 	if ( cl.snap.messageNum == hud.eventSnap ) {
 		return;
@@ -1725,6 +1775,7 @@ static void ReadEvents( void ) {
 		hud.railPersHits = ps->persistant[PERS_HITS];
 	}
 	railShots = hud.shots[WP_RAILGUN];
+	memcpy( shotsBefore, hud.shots, sizeof( shotsBefore ) );
 	for ( i = 0; i < cl.snap.numEntities; i++ ) {
 		const entityState_t	*es = SnapEntity( i );
 		const int			n = es->number & ( MAX_GENTITIES - 1 );
@@ -1775,6 +1826,24 @@ static void ReadEvents( void ) {
 			hud.railBest = MAX( hud.railBest, hud.railRun );
 		} else {
 			hud.railRun = 0;
+		}
+	}
+	// a game without dmg (id's, the mods' on community servers): G_Damage counts PERS_HITS once a damage
+	// on a live enemy, so a shotgun's pellets or a rail through two count once a shot fired in this snapshot
+	// (hitscan damages in the frame it fires), and no weapon gets more hits than shots
+	if ( !hud.dmgFromServer && OwnPlay() && ps->persistant[PERS_HITS] > hud.railPersHits ) {
+		int	w = ps->weapon, add = ps->persistant[PERS_HITS] - hud.railPersHits;
+		if ( ( w <= WP_NONE || w >= NAMES || ( w != WP_GAUNTLET && hud.shots[w] == shotsBefore[w] ) ) && hud.lastFired > WP_NONE ) {
+			w = hud.lastFired;
+		}
+		if ( w > WP_NONE && w < NAMES ) {
+			if ( w == WP_SHOTGUN || w == WP_RAILGUN ) {
+				add = MIN( add, MAX( hud.shots[w] - shotsBefore[w], 1 ) );
+			}
+			hud.statHits[w] += add;
+			if ( w != WP_GAUNTLET && hud.statHits[w] > hud.shots[w] ) {
+				hud.statHits[w] = hud.shots[w];
+			}
 		}
 	}
 	hud.railPersHits = ps->persistant[PERS_HITS];
@@ -2367,6 +2436,18 @@ static const char *CrosshairShape( int weapon ) {
 	return oz_crosshair_shape->string;
 }
 
+// the center dot (Center dot, or the dot shape): at least two 1080p pixels across, as thick as the lines
+static void CrossDot( float cx, float cy, float k, const char *shape, float t, float ow, const float *color, const float *outline ) {
+	float d = t > 2 * k ? t : 2 * k;
+	if ( !Q_stricmp( shape, "dot" ) ) {
+		d *= 1.6f;
+	}
+	if ( oz_crosshair_outline->integer ) {
+		Disc( cx, cy, d + ow, outline );
+	}
+	Disc( cx, cy, d, color );
+}
+
 /*
 The crosshair centered at (cx, cy), k screen pixels to a 1080p pixel, sz across (screen pixels); health
 (armor counted) for Color by health, hitT seconds since a hit. The HUD's and the editors' previews
@@ -2395,6 +2476,10 @@ static void CrosshairAt( float cx, float cy, float k, const char *shape, float s
 		ow = 1;
 	}
 	oa = Com_Clamp( 0.0f, 1.0f, oz_crosshair_outline_opacity->value ) * color[3];
+	t = oz_crosshair_thickness->value * k;
+	if ( t < 1 ) {
+		t = 1;
+	}
 	if ( !shape[1] && shape[0] >= 'a' && shape[0] <= 'j' ) {
 		const int n = shape[0] - 'a';
 		const int image = img.crosshairs[n] ? img.crosshairs[n] : ImageNamed( va( "gfx/2d/crosshair%c", 'a' + n ) );
@@ -2415,12 +2500,13 @@ static void CrosshairAt( float cx, float cy, float k, const char *shape, float s
 			}
 		}
 		Image( image, x, y, sz, sz, color );
+		// Center dot over a classic image too (thickness sizes it)
+		if ( oz_crosshair_dot->integer ) {
+			Col( outline, BLACK, oa );
+			CrossDot( cx, cy, k, shape, t, ow, color, outline );
+		}
 		hudAlpha = saved;
 		return;
-	}
-	t = oz_crosshair_thickness->value * k;
-	if ( t < 1 ) {
-		t = 1;
 	}
 	gap = oz_crosshair_gap->value * k;
 	arm = sz * 0.5f;
@@ -2447,14 +2533,7 @@ static void CrosshairAt( float cx, float cy, float k, const char *shape, float s
 		StrokeArc( cx, cy, arm, 0, (float)M_PI * 2, 48, color, t );
 	}
 	if ( !Q_stricmp( shape, "dot" ) || oz_crosshair_dot->integer ) {
-		float d = t > 2 * k ? t : 2 * k;
-		if ( !Q_stricmp( shape, "dot" ) ) {
-			d *= 1.6f;
-		}
-		if ( oz_crosshair_outline->integer ) {
-			Disc( cx, cy, d + ow, outline );
-		}
-		Disc( cx, cy, d, color );
+		CrossDot( cx, cy, k, shape, t, ow, color, outline );
 	}
 	hudAlpha = saved;
 }
@@ -3266,7 +3345,65 @@ int OzHud_EnemyBody( const refEntity_t *ent, int *team ) {
 	return owner;
 }
 
+// A51's Freeze Tag: a team game whose server says clientversion (A51's servers all do) and sets
+// configstring 873 to 1, which none of A51's other modes does (read from what its servers send:
+// ozents, configstrings; 2026-11-03)
+static qboolean A51FreezeTag( void ) {
+	const char *info = CS( CS_SERVERINFO );
+
+	return cls.state == CA_ACTIVE && atoi( Info_ValueForKey( info, "g_gametype" ) ) >= GT_TEAM
+		&& Info_ValueForKey( info, "clientversion" )[0] && !strcmp( CS( 873 ), "1" );
+}
+
+// A51's Freeze Tag freezes a player as a body in a death pose (EF_DEAD, the body queue's entity once the
+// player is back in), where they stay until thawed. Fighters' ragdolls fell and burned away within 10 s, so
+// frozen teammates vanished: such a body keeps the game code's pose (RF_OZ_FROZEN) and gets a shell of ice
+static void FrozenBody( refEntity_t *ent ) {
+	static qhandle_t	ice;
+	static int			iceGeneration = -1;
+	float				best = 64 * 64;
+	const entityState_t	*body = NULL;
+	refEntity_t			shell;
+	int					i;
+
+	if ( ent->reType != RT_MODEL || ent->hModel <= 0 || ent->hModel >= MAX_NOTED_MODELS
+		|| !( modelIsPlayer[ent->hModel >> 3] & ( 1 << ( ent->hModel & 7 ) ) ) || !A51FreezeTag() ) {
+		return;
+	}
+	for ( i = 0; i < cl.snap.numEntities; i++ ) {
+		const entityState_t	*es = SnapEntity( i );
+		vec3_t				d;
+		float				dist;
+		if ( es->eType != ET_PLAYER ) {
+			continue;
+		}
+		VectorSubtract( es->pos.trBase, ent->lightingOrigin, d );
+		dist = DotProduct( d, d );
+		if ( dist < best ) {
+			best = dist;
+			body = es;
+		}
+	}
+	if ( !body || !( body->eFlags & EF_DEAD ) ) {
+		return;
+	}
+	ent->renderfx |= RF_OZ_FROZEN;
+	if ( iceGeneration != OzE_RendererGeneration() ) {
+		iceGeneration = OzE_RendererGeneration();
+		ice = re.RegisterShader( "oz_frozen" );
+	}
+	shell = *ent;
+	shell.customShader = ice;
+	shell.customSkin = 0;
+	shell.shader.rgba[0] = 70;
+	shell.shader.rgba[1] = 130;
+	shell.shader.rgba[2] = 190;
+	shell.shader.rgba[3] = 255;
+	re.AddRefEntityToScene( &shell, qfalse );
+}
+
 int OzHud_RefEntity( refEntity_t *ent ) {
+	FrozenBody( ent );
 	if ( !OzHud_Active() ) {
 		return 1;
 	}
@@ -3277,6 +3414,11 @@ int OzHud_RefEntity( refEntity_t *ent ) {
 	// beam's layers were drawn where the cgame put them, off the gun as it shows
 	if ( ( ent->renderfx & RF_FIRST_PERSON ) && ( ent->reType != RT_SPRITE || ( ent->renderfx & RF_DEPTHHACK ) ) ) {
 		return OzView_Gun( ent );
+	}
+	// That blood blob smeared over the view after every hit hid what you were fighting (Ozmium,
+	// 2026-11-03): it's dropped under every cgame. The HUD's red edge still shows the hit
+	if ( ( ent->renderfx & RF_FIRST_PERSON ) && ent->reType == RT_SPRITE ) {
+		return 0;
 	}
 	// Gameplay > Force enemy model, and what hangs on a forced body (oz_hud_view.c)
 	if ( !OzView_Entity( ent ) ) {
@@ -3920,7 +4062,23 @@ static const char *GametypeName( void ) {
 	switch ( cgs.gametype ) {
 	case GT_TOURNAMENT: return "DUEL";
 	case GT_SINGLE_PLAYER: return "SINGLE PLAYER";
-	case GT_TEAM: return "TEAM DEATHMATCH";
+	case GT_TEAM: {
+		// A51's Clan Arena has no mark of its own but its name, "*A51* Clan Arena" or "A51|CA" (as the
+		// Server Browser reads it)
+		char name[MAX_INFO_STRING + 2], *c;
+		Com_sprintf( name, sizeof( name ), " %s ", Info_ValueForKey( CS( CS_SERVERINFO ), "sv_hostname" ) );
+		Q_CleanStr( name );
+		for ( c = name; *c; c++ ) {
+			*c = isalnum( (unsigned char)*c ) ? tolower( (unsigned char)*c ) : ' ';
+		}
+		if ( A51FreezeTag() ) {
+			return "FREEZE TAG";
+		}
+		if ( Info_ValueForKey( CS( CS_SERVERINFO ), "clientversion" )[0] && ( strstr( name, " clan arena " ) || strstr( name, " ca " ) ) ) {
+			return "CLAN ARENA";
+		}
+		return "TEAM DEATHMATCH";
+	}
 	case GT_CTF: return "CAPTURE THE FLAG";
 	default: return "FREE FOR ALL";
 	}
@@ -5380,7 +5538,7 @@ static void RecordMatch( const playerState_t *ps ) {
 	}
 	for ( w = WP_GAUNTLET; w < NAMES && w < (int)ARRAY_LEN( weaponKeys ); w++ ) {
 		CountAdd( &r.shots, weaponKeys[w], hud.shots[w] );
-		// hits: Oz's game's dmg command (any damage, a corpse's too); the rail's, any game's, by PERS_HITS: live enemies
+		// hits: Oz's game's dmg command (any damage, a corpse's too), other games' PERS_HITS; the rail's, any game's, by PERS_HITS: live enemies
 		// only, as id's accuracy counts them, and as the career's rail accuracy takes them
 		CountAdd( &r.hits, weaponKeys[w], w == WP_RAILGUN ? hud.railHits : hud.statHits[w] );
 		CountAdd( &r.damage, weaponKeys[w], hud.damage[w] );
@@ -5546,6 +5704,9 @@ static void DrawResults( float W, float H, const playerState_t *ps ) {
 // the board's mouse back
 void OzHud_ScoresKey( int down ) {
 	cg.showScores = down ? qtrue : qfalse;
+	if ( OzHud_KeepsKeys() ) {	// keys the game code took before
+		Key_SetCatcher( Key_GetCatcher() & ~KEYCATCH_CGAME );
+	}
 	if ( !down ) {
 		BoardMouseOff();
 	}

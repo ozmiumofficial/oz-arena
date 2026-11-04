@@ -19,6 +19,7 @@ settings restart it at once, and the page asks to keep them (Settings_ConfirmDis
 // sdl_glimp.c: the monitors, for Video > Monitor
 int			GLimp_DisplayCount( void );
 qboolean	GLimp_DisplayBounds( int index, int *x, int *y, int *w, int *h );
+qboolean	GLimp_UsableBounds( int index, int *x, int *y, int *w, int *h );
 #endif
 
 typedef struct {
@@ -57,15 +58,34 @@ static int Pick( const char *value, const char *const *names, int fallback ) {
 
 /*
 ================
-Video: the window. Windowed is the Resolution's size centered on the monitor; Borderless and Full
-screen cover the monitor with a borderless window at its own resolution; Exclusive takes the monitor
-over at its resolution. Changing any of them restarts the renderer at once.
+Video: the window. Windowed is the Window size centered on the monitor, with its frame; Borderless is
+that size without a frame. Both fit beside the taskbar: a size as big as the monitor (1920x1080 on a
+1080p screen) covered it all, the title bar off its top, and looked full screen. Full screen covers
+the monitor with a borderless window at its own resolution; Exclusive takes the monitor over at its
+resolution. Changing any of them restarts the renderer at once.
 ================
 */
+#define OZ_WINDOW_TITLE		32	// a window's title bar and edges, outside the size SDL is given
+#define OZ_WINDOW_EDGE		8
+
+// the window's size and place: w by h shrunk to fit the usable area (aspect kept), centered in it
+static void FitWindow( int ux, int uy, int uw, int uh, qboolean frame, int *w, int *h, int *x, int *y ) {
+	const int top = frame ? OZ_WINDOW_TITLE : 0, edge = frame ? OZ_WINDOW_EDGE : 0;
+	const int aw = uw - 2 * edge, ah = uh - top - edge;
+
+	if ( uw > 0 && uh > 0 && aw > 0 && ah > 0 && ( *w > aw || *h > ah ) ) {
+		const float s = MIN( (float)aw / *w, (float)ah / *h );
+		*w = (int)( *w * s ) & ~1;
+		*h = (int)( *h * s ) & ~1;
+	}
+	*x = uw > 0 ? ux + ( uw - *w ) / 2 : ux;
+	*y = uh > 0 ? uy + top + ( uh - top - edge - *h ) / 2 : uy;
+}
+
 static void Window( const char *unused ) {
 	char	mode[32], res[32];
 	int		monitor = Cvar_VariableIntegerValue( "oz_video_monitor" );
-	int		mx = 0, my = 0, mw = 0, mh = 0, w = 1600, h = 900;
+	int		mx = 0, my = 0, mw = 0, mh = 0, ux, uy, uw, uh, w = 1600, h = 900, x, y;
 	qboolean changed = qfalse;
 
 	Cvar_VariableStringBuffer( "oz_video_display_mode", mode, sizeof( mode ) );
@@ -75,8 +95,14 @@ static void Window( const char *unused ) {
 		h = 900;
 	}
 #ifdef USE_SDL
-	if ( !GLimp_DisplayBounds( monitor, &mx, &my, &mw, &mh ) && !GLimp_DisplayBounds( 0, &mx, &my, &mw, &mh ) ) {
+	if ( !GLimp_DisplayBounds( monitor, &mx, &my, &mw, &mh ) && !GLimp_DisplayBounds( monitor = 0, &mx, &my, &mw, &mh ) ) {
 		mw = mh = 0;
+	}
+#endif
+	ux = mx; uy = my; uw = mw; uh = mh;
+#ifdef USE_SDL
+	if ( mw && !GLimp_UsableBounds( monitor, &ux, &uy, &uw, &uh ) ) {
+		ux = mx; uy = my; uw = mw; uh = mh;
 	}
 #endif
 #define SET( n, v ) do { if ( strcmp( Cvar_SavedString( n ), v ) ) { Cvar_Set( n, v ); changed = qtrue; } } while ( 0 )
@@ -85,20 +111,22 @@ static void Window( const char *unused ) {
 		SET( "r_modeFullscreen", "-2" );
 		SET( "vid_xpos", va( "%d", mx ) );
 		SET( "vid_ypos", va( "%d", my ) );
-	} else if ( !Q_stricmp( mode, "borderless" ) || !Q_stricmp( mode, "fullscreen" ) ) {
+	} else if ( !Q_stricmp( mode, "fullscreen" ) ) {
 		SET( "r_fullscreen", "0" );
 		SET( "r_noborder", "1" );
 		SET( "r_mode", "-2" );
 		SET( "vid_xpos", va( "%d", mx ) );
 		SET( "vid_ypos", va( "%d", my ) );
 	} else {
+		const qboolean borderless = !Q_stricmp( mode, "borderless" );
+		FitWindow( ux, uy, uw, uh, !borderless, &w, &h, &x, &y );
 		SET( "r_fullscreen", "0" );
-		SET( "r_noborder", "0" );
+		SET( "r_noborder", borderless ? "1" : "0" );
 		SET( "r_mode", "-1" );
 		SET( "r_customwidth", va( "%d", w ) );
 		SET( "r_customheight", va( "%d", h ) );
-		SET( "vid_xpos", va( "%d", mw > w ? mx + ( mw - w ) / 2 : mx ) );
-		SET( "vid_ypos", va( "%d", mh > h ? my + ( mh - h ) / 2 : my ) );
+		SET( "vid_xpos", va( "%d", x ) );
+		SET( "vid_ypos", va( "%d", y ) );
 	}
 #undef SET
 	if ( changed ) {

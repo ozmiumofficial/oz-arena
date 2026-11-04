@@ -76,6 +76,7 @@ focused setting's description beside it, reset and config codes below. On top of
 }
 
 .row.modified .label span { color: #ffad33; }
+.row.dim { opacity: 0.45; }	/* a crosshair setting that changes nothing for the shape */
 
 .row .badge { margin-left: 0.5rem; }
 

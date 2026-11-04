@@ -1756,6 +1756,58 @@ static fileInPack_t *FS_UiPakFile( const char *filename, long fullHash, pack_t *
 	}
 	return NULL;
 }
+
+
+static qboolean	fs_ozClientMod;					// Oz: FS_OzClientMod
+static char		fs_ozClientModPak[ MAX_OSPATH ];	// Oz: the pak FS_OzClientModFile last took the cgame from
+
+/*
+===========
+FS_OzClientMod
+
+Oz: on a remote baseq3 server the game is Oz's own (fs_game oz), so oz/pak_oz_code.pk3's cgame came
+before every baseq3 pak's. A server's client mod comes as a baseq3 pak with its own vm/cgame.qvm
+(Area 51's zzzzzzzzzzzzz-a51-v047.pk3: its prediction and lag compensation), which Quake3e loads
+there. While on (CL_InitCGame), the first such pak on the search path that isn't one of id's gives
+the cgame instead, if the pure list allows it.
+===========
+*/
+void FS_OzClientMod( qboolean on ) {
+	fs_ozClientMod = on;
+	fs_ozClientModPak[0] = '\0';
+}
+
+
+// Oz: "baseq3/<pak>" FS_OzClientModFile took the cgame from, or ""
+const char *FS_OzClientModName( void ) {
+	return fs_ozClientModPak;
+}
+
+
+static fileInPack_t *FS_OzClientModFile( const char *filename, long fullHash, pack_t **pak ) {
+	const searchpath_t *search;
+	fileInPack_t *f;
+	char name[ MAX_OSPATH ];
+
+	if ( !fs_ozClientMod || Q_stricmp( filename, "vm/cgame.qvm" ) ) {
+		return NULL;
+	}
+	for ( search = fs_searchpaths; search; search = search->next ) {
+		if ( !search->pack || Q_stricmp( search->pack->pakGamename, BASEGAME ) || !FS_PakIsPure( search->pack ) ) {
+			continue;
+		}
+		Com_sprintf( name, sizeof( name ), "%s/%s", search->pack->pakGamename, search->pack->pakBasename );
+		if ( FS_idPak( name, BASEGAME, NUM_ID_PAKS ) ) {
+			continue;
+		}
+		if ( ( f = FS_FindFileInPak( search->pack, filename, fullHash ) ) != NULL ) {
+			Q_strncpyz( fs_ozClientModPak, name, sizeof( fs_ozClientModPak ) );
+			*pak = search->pack;
+			return f;
+		}
+	}
+	return NULL;
+}
 #endif
 
 
@@ -1865,6 +1917,12 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 		*file = FS_INVALID_HANDLE;
 		return -1;
 	}
+
+#ifndef DEDICATED
+	if ( ( pakFile = FS_OzClientModFile( filename, fullHash, &pak ) ) != NULL ) {	// Oz
+		return FS_OpenFileInPak( file, pak, pakFile, uniqueFILE );
+	}
+#endif
 
 	//
 	// search through the path, one element at a time

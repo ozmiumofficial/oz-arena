@@ -48,6 +48,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define	RF_SHADOW_PLANE		0x0100		// use refEntity->shadowPlane
 #define	RF_WRAP_FRAMES		0x0200		// mod the model frames by the maxframes to allow continuous
 										// animation without needing to know the frame count
+#define	RF_OZ_FROZEN		0x0400		// Oz: a frozen player's body (A51's Freeze Tag): no ragdoll; the client sets it
 
 // refdef flags
 #define RDF_NOWORLDMODEL	0x0001		// used for player configuration screen

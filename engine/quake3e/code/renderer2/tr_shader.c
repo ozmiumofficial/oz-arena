@@ -4348,6 +4348,16 @@ static void CreateInternalShaders( void ) {
 	stages[0].alphaGen = AGEN_IDENTITY;
 	stages[0].stateBits = GLS_DEFAULT;
 	FinishShader();
+
+	// Oz: a frozen player's ice (A51's Freeze Tag): a shell added over the body in the entity's color,
+	// as id's powerup shells are; the client's HUD adds it (oz_hud.c FrozenBody)
+	InitShader( "oz_frozen", LIGHTMAP_2D );
+	stages[0].bundle[0].image[0] = tr.whiteImage;
+	stages[0].active = qtrue;
+	stages[0].rgbGen = CGEN_ENTITY;
+	stages[0].alphaGen = AGEN_IDENTITY;
+	stages[0].stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_EQUAL;
+	FinishShader();
 }
 
 

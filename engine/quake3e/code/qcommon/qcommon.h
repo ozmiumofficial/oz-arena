@@ -912,6 +912,8 @@ void FS_VM_CloseFile( fileHandle_t f, handleOwner_t owner );
 void FS_VM_CloseFiles( handleOwner_t owner );
 
 const char *FS_GetCurrentGameDir( void );
+void FS_OzClientMod( qboolean on );		// Oz: a remote baseq3 server's client mod gives the cgame (files.c)
+const char *FS_OzClientModName( void );
 const char *FS_GetBaseGameDir( void );
 
 const char *FS_GetHomePath( void );

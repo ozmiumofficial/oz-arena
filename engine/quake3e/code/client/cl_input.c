@@ -754,7 +754,7 @@ the mod's.
 */
 static qboolean CL_MergeCommands( void ) {
 	return frame_msec < 4 && cls.state == CA_ACTIVE && !cls.cgameOzDemoSeek && !clc.demoplaying &&
-		clc.netchan.remoteAddress.type != NA_LOOPBACK && !Q_stricmp( FS_GetCurrentGameDir(), "oz" );
+		clc.netchan.remoteAddress.type != NA_LOOPBACK && !Q_stricmp( FS_GetCurrentGameDir(), "oz" ) && !cls.cgameClientMod;
 }
 
 

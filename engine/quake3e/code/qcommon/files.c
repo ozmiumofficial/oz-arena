@@ -5238,6 +5238,46 @@ qboolean FS_IsPureChecksum( int sum )
 
 /*
 ================
+FS_OzParentInstall
+
+Oz: the installer puts Oz Arena in a folder of its own inside the player's Quake III Arena folder
+(<Quake III Arena>\Oz Arena), so Oz's files never mix with id's. A Steam or GOG copy is found
+through the registry (Sys_SteamPath); a copy from a CD or anywhere else isn't, so when nothing was
+found and the folder above the game's own holds baseq3/pak0.pk3, that folder is the install:
+fs_steampath, which also finds the mods (cpma, defrag) beside baseq3. The game never writes there.
+================
+*/
+static void FS_OzParentInstall( void ) {
+	char parent[ MAX_OSPATH ];
+	const char *path;
+	int n;
+
+	if ( fs_steampath->string[0] != '\0' || fs_basepath->string[0] == '\0' )
+		return;
+
+	Q_strncpyz( parent, fs_basepath->string, sizeof( parent ) );
+	n = (int)strlen( parent );
+	while ( n > 0 && ( parent[ n - 1 ] == '/' || parent[ n - 1 ] == '\\' ) )
+		parent[ --n ] = '\0';
+	while ( n > 0 && parent[ n - 1 ] != '/' && parent[ n - 1 ] != '\\' )
+		n--;
+	if ( n <= 1 )
+		return;
+	parent[ n - 1 ] = '\0';	// drop the game's own folder name
+	if ( parent[0] == '\0' || ( n == 3 && parent[1] == ':' ) )	// a drive's root isn't an install
+		return;
+
+	path = FS_BuildOSPath( parent, BASEGAME, "pak0.pk3" );
+	if ( !FS_OS_FileExists( path ) )
+		return;
+
+	Cvar_Set( "fs_steampath", parent );
+	Com_Printf( "Quake III Arena found above the game: %s\n", parent );
+}
+
+
+/*
+================
 FS_Startup
 ================
 */
@@ -5260,6 +5300,7 @@ static void FS_Startup( void ) {
 	Cvar_SetDescription( fs_mapPakDir, "Directory with one pk3 per map (<mapname>.pk3). The directory is never scanned into the search path; a pak is loaded on demand when its maps/<mapname>.bsp is requested, and map listings include the whole pool. Intended for dedicated servers with a large (possibly network-mounted) map pool. Empty = disabled." );
 #endif // DEDICATED
 	fs_steampath = Cvar_Get( "fs_steampath", Sys_SteamPath(), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
+	FS_OzParentInstall();
 	fs_mapspath = Cvar_Get( "fs_mapspath", va( "%s%cMaps", fs_basepath->string, PATH_SEP ), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
 	Cvar_SetDescription( fs_mapspath, "Write-protected CVAR: a folder of map pk3s loaded as base game paks (the Maps folder beside the game)." );
 
@@ -5470,7 +5511,7 @@ out, so Oz started with menus missing id's art.
 #else
 #define OZ_EXE		"OzArena.exe"
 #endif
-#define OZ_LOOKED	"It looked in your Steam libraries, among your GOG games and next to " OZ_EXE "."
+#define OZ_LOOKED	"It looked in your Steam libraries, among your GOG games, next to " OZ_EXE " and in the folder above it."
 #else
 #define OZ_EXE		"the server"
 #define OZ_LOOKED	"It looked next to the server."

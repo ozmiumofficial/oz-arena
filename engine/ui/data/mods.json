@@ -1,0 +1,10 @@
+{
+  "_note": "The Mod Library (pages/mods.rml, oz_ui_mods.cpp over oz_mods.c; ENGINE_PLAN.md PH step 2, decision 24): the mods the player brings. rows: every mod folder with paks in the user folder and the Quake III install (dir, name, version, where it is, place, state ready|nested|paks, supported: CPMA and Defrag, known: in the table, uses: what it is and the engine extensions it uses). known: the table of known mods, each found or not; never a download link. ask: the import card (a picked or dropped zip, pak or folder, the folder name guessed for it, the import's status and message). remove: the question before an imported mod's folder is deleted.",
+  "mods": {
+    "count": "",
+    "rows": [],
+    "known": [],
+    "ask": { "open": false, "path": "", "file": "", "dir": "", "status": "", "message": "" },
+    "remove": { "open": false, "dir": "", "name": "", "where": "" }
+  }
+}

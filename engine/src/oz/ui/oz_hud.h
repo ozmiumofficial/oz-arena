@@ -42,5 +42,8 @@ void	OzView_RenderScene( const refdef_t *fd );	// before a scene renders: the gu
 qboolean OzHud_BodyVelocity( const vec3_t origin, vec3_t velocity );	// refimport: the ragdolls' push
 void	OzView_ProbeSnapshot( void );				// CL_ParseSnapshot: cl_ozProbe's line for a new snapshot
 extern cvar_t	*cl_ozProbe;
+void	OzView_AimDrawn_f( void );					// oz_aimdrawn <client>|off: aim at a player as drawn (tests)
+void	OzView_Patrol_f( void );					// oz_patrol <x1> <y1> <x2> <y2>|off: run back and forth (tests)
+void	OzView_TestCommand( usercmd_t *cmd );		// CL_CreateCmd: their aim and run
 
 #endif

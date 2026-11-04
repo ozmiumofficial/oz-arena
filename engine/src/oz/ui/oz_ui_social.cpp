@@ -196,6 +196,9 @@ void Social( const cJSON *m ) {
 		cJSON_AddStringToObject( o, "host", host.c_str() );
 		cJSON_AddStringToObject( o, "server", server.c_str() );
 		cJSON_AddBoolToObject( o, "locked", locked );
+		// the match's mod and map (PH step 3), beside the detail line that names them
+		cJSON_AddStringToObject( o, "mod", on ? Str( i, "mod" ) : "" );
+		cJSON_AddStringToObject( o, "map", on ? Str( i, "map" ) : "" );
 		if ( !host.empty() && !matchNames.count( host ) ) {
 			matchNames[host] = Plain( Str( i, "name", "A friend" ) ) + "'s match";
 		}
@@ -565,16 +568,23 @@ the menus. A member in a match already, or joining one, is only told: Friends' J
 ================
 */
 void Follow( const cJSON *m ) {
-	const std::string host = Str( m, "host" ), who = Plain( Str( m, "name", "Your party leader" ) ), password = Str( m, "password" );
-	if ( host.empty() || host == myId ) {
+	const std::string host = Str( m, "host" ), server = Str( m, "server" ), who = Plain( Str( m, "name", "Your party leader" ) ), password = Str( m, "password" );
+	if ( ( host.empty() && server.empty() ) || host == myId ) {
 		return;
 	}
-	if ( !matchNames.count( host ) ) {
+	if ( !host.empty() && !matchNames.count( host ) ) {
 		matchNames[host] = who + "'s match";
 	}
 	if ( OzE_ClientState() != 0 || Joining() || password.find( '"' ) != std::string::npos ) {
 		Printf( "UI: party: %s is in a match, not followed\n", who.c_str() );
 		Menu_Toast( ( who + " is in a match. Join it from Friends." ).c_str(), "info" );
+		return;
+	}
+	if ( host.empty() ) {
+		// a community server (PH step 3): joined as from the Server Browser, with the leader's password
+		Printf( "UI: party: following %s onto %s\n", who.c_str(), server.c_str() );
+		Menu_Toast( ( "Joining " + who + "'s server" ).c_str(), "info" );
+		Servers_FollowServer( server.c_str(), password.c_str() );
 		return;
 	}
 	Printf( "UI: party: following %s into their match\n", who.c_str() );
@@ -791,11 +801,15 @@ void Social_Opened( const char *page ) {
 	}
 }
 
-// the hub's party_follow, run once the match a party leader hosts is listed (the host action, after
-// oz_host): "" when this player doesn't lead a party
-Rml::String Social_FollowText( const char *password ) {
+// the hub's party_follow: the match a party leader hosts, run once it's listed (the host action, after
+// oz_host), or the community server the leader joins (PH step 3: "server", its address, from the Server
+// Browser's Connect); "" when this player doesn't lead a party
+Rml::String Social_FollowText( const char *kind, const char *key, const char *password ) {
 	if ( !Online() || myId.empty() || !cJSON_IsTrue( Menu_Node( "social.party.on" ) ) || !cJSON_IsTrue( Menu_Node( "social.party.lead" ) ) ) {
 		return "";
+	}
+	if ( !strcmp( kind, "server" ) ) {
+		return std::string( "hub party_follow server " ) + key + " password \"" + password + "\"\n";
 	}
 	return "hub party_follow host " + myId + " password \"" + password + "\"\n";
 }

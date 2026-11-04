@@ -47,7 +47,7 @@ const char	*OzIce_JoinString( void );
 static cvar_t	*oz_online, *oz_online_import, *oz_online_debug;
 static cvar_t	*oz_network_online, *oz_network_online_server;		// the Settings page's (engine/ui/settings.json)
 static int		lastStatus = -1;
-static char		lastPresence[256];
+static char		lastPresence[512];
 static int		nameModified = -1;
 static qboolean	started;
 static qboolean	decided;	// whether to start was asked since the cvars last changed
@@ -120,17 +120,59 @@ static void SendJson( cJSON *m ) {
 
 // what the player is doing, as the Godot build words it: "In the menu", or the match; and how a
 // friend joins it (a peer-to-peer match: oz_ice.c's OzIce_JoinString; a listed community server: its address)
+// the mod's name as players know it (the Server Browser's: oz_ui_servers.cpp names the rest)
+static const char *ModLabel( const char *game ) {
+	if ( !*game || !Q_stricmp( game, BASEGAME ) ) {
+		return "";
+	}
+	if ( !Q_stricmp( game, DEFAULT_GAME ) ) {
+		return "";	// Oz's own game: nothing to say
+	}
+	if ( !Q_stricmp( game, "cpma" ) ) {
+		return "CPMA ";
+	}
+	if ( !Q_stricmp( game, "defrag" ) ) {
+		return "Defrag ";
+	}
+	if ( !Q_stricmp( game, "osp" ) ) {
+		return "OSP ";
+	}
+	return va( "%s ", game );
+}
+
+// a mode's name under the mod's own numbering (what oz_ui_servers.cpp's ModeName does for the rows)
+static const char *ModeLabel( const char *game, int gt ) {
+	static const char *modes[] = { "FFA", "Duel", "FFA", "TDM", "CTF" };
+	if ( !Q_stricmp( game, "defrag" ) ) {
+		return gt == 4 ? "Fast caps" : "Run";
+	}
+	if ( !Q_stricmp( game, "cpma" ) ) {
+		switch ( gt ) {
+		case -1: return "Hoonymode";
+		case 5: return "CA";
+		case 6: return "Freeze Tag";
+		case 7: return "CTFS";
+		case 8: return "NTF";
+		case 9: return "2v2";
+		}
+	}
+	return gt >= 0 && gt < ARRAY_LEN( modes ) ? modes[gt] : "Match";
+}
+
 static void Presence( qboolean force ) {
-	char buf[256];
-	const char *status = "online", *detail = "In the menu", *join = "";
+	char buf[512];
+	const char *status = "online", *detail = "In the menu", *join = "", *mod = "", *map = "", *server = "";
 	cJSON *m;
 
 	if ( cls.state == CA_ACTIVE && cl.gameState.dataCount ) {
+		// the match's mod, mode and map (PH step 3: presence carries server, mod and map)
 		const char *info = cl.gameState.stringData + cl.gameState.stringOffsets[CS_SERVERINFO];
-		status = "match";
-		static const char *modes[] = { "FFA", "Duel", "FFA", "TDM", "CTF" };
+		const char *game = FS_GetCurrentGameDir();
 		int gt = atoi( Info_ValueForKey( info, "g_gametype" ) );
-		detail = va( "%s on %s", gt >= 0 && gt < ARRAY_LEN( modes ) ? modes[gt] : "Match", Info_ValueForKey( info, "mapname" ) );
+		status = "match";
+		map = Info_ValueForKey( info, "mapname" );
+		mod = !*game || !Q_stricmp( game, DEFAULT_GAME ) ? BASEGAME : game;
+		detail = va( "%s%s on %s", ModLabel( game ), ModeLabel( game, gt ), map );
 #ifdef USE_OZ_ICE
 		join = OzIce_JoinString();
 #endif
@@ -141,11 +183,12 @@ static void Presence( qboolean force ) {
 			const char *address = NET_AdrToStringwPort( &clc.serverAddress );
 			if ( OzServers_Listed( address ) ) {
 				join = va( "server:%s%s", address, atoi( Info_ValueForKey( info, "g_needpass" ) ) ? " locked" : "" );
+				server = address;
 			}
 		}
 #endif
 	}
-	Com_sprintf( buf, sizeof( buf ), "%s|%s|%s", status, detail, join );
+	Com_sprintf( buf, sizeof( buf ), "%s|%s|%s|%s|%s|%s", status, detail, join, mod, map, server );
 	if ( !force && !strcmp( buf, lastPresence ) ) {
 		return;
 	}
@@ -155,6 +198,9 @@ static void Presence( qboolean force ) {
 	cJSON_AddStringToObject( m, "status", status );
 	cJSON_AddStringToObject( m, "detail", detail );
 	cJSON_AddStringToObject( m, "join", join );
+	cJSON_AddStringToObject( m, "mod", mod );
+	cJSON_AddStringToObject( m, "map", map );
+	cJSON_AddStringToObject( m, "server", server );
 	SendJson( m );
 }
 

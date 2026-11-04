@@ -1613,6 +1613,8 @@ void OzHud_Init( void ) {
 	OzHud_ModsInit();
 	BoardMouseReset();
 	Cmd_AddCommand( "oz_aimat", AimAt_f );
+	Cmd_AddCommand( "oz_aimdrawn", OzView_AimDrawn_f );
+	Cmd_AddCommand( "oz_patrol", OzView_Patrol_f );
 	Cmd_AddCommand( "oz_goto", GoTo_f );
 	Cmd_AddCommand( "oz_type", Type_f );
 	Cmd_AddCommand( "oz_emoji", Emoji_f );

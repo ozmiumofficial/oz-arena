@@ -21,8 +21,6 @@ export const MODES: Record<string, ModeInfo> = {
   ctf: { size: 6, team: true, ranked: true, maps: ['q3ctf1', 'q3ctf2', 'q3ctf3', 'q3ctf4'] },
 };
 
-/** Ranked opens at this level (q3_profile.gd RANKED_LEVEL); the hub checks it against the level it computes from XP. */
-export const RANKED_LEVEL = 30;
 export const START_RATING = 1000;
 export const RATING_FLOOR = 100;
 export const PLACEMENTS = 10;

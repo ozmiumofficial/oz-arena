@@ -1,0 +1,167 @@
+<rml>
+<head>
+	<title>Mod Library</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<link type="text/rcss" href="../rcss/play.rcss"/>
+	<style>
+		.cols { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; padding: 1rem 2.5rem; }
+		.main { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; margin-right: 2rem; }
+		.side { flex: 0 0 auto; width: 26rem; display: flex; flex-direction: column; min-height: 0; }
+		.bar { display: flex; align-items: center; }
+		.bar .count { margin-left: auto; font-size: 0.85rem; color: #8d847c; }
+		/* flex: 1, a zero basis: RmlUi doesn't shrink an auto basis below the rows */
+		.list { flex: 1; min-height: 0; overflow-y: auto; margin-top: 0.75rem; border: 1dp #ffffff12; }
+		.mrow { position: relative; border-bottom: 1dp #ffffff0d; }
+		.mrow .hit { position: absolute; left: 0; right: 0; top: 0; bottom: 0; transition: background-color 0.1s linear-in-out; }
+		.mrow .hit:hover { background-color: #ffffff0a; }
+		.mrow .hit:focus { background-color: #db241026; }
+		.mrow .cells { position: relative; z-index: 1; display: flex; align-items: center; padding: 0.75rem 1rem; pointer-events: none; }
+		.mrow .txt { flex: 1; min-width: 0; }
+		.mrow .nm { display: flex; align-items: center; }
+		.mrow .nm .t { font-family: OzDisplay; font-size: 1.05rem; letter-spacing: 0.04em; color: #fff3e6; }
+		.mrow .nm .badge { margin-left: 0.6rem; }
+		.mrow .nm .ver { margin-left: 0.6rem; font-size: 0.85rem; color: #8d847c; }
+		.mrow .sub { margin-top: 0.2rem; font-size: 0.85rem; line-height: 1.4; color: #8d847c; }
+		.mrow .sub .dir { color: #e6ddd2; }
+		.mrow .uses { margin-top: 0.2rem; font-size: 0.8rem; line-height: 1.4; color: #5d554f; }
+		.mrow .acts { display: flex; align-items: center; margin-left: 1rem; }
+		.mrow .acts button { pointer-events: auto; margin-left: 0.5rem; }
+		.badge.ok { border-color: #5ccf4a66; background-color: #5ccf4a1a; color: #5ccf4a; }
+		.badge.warn { border-color: #ffd23c66; background-color: #ffd23c1a; color: #ffd23c; }
+		.badge.sup { border-color: #4a7dff80; background-color: #4a7dff1a; color: #7d9fff; }
+		.emptywrap { position: absolute; left: 0; right: 0; top: 3rem; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+		.emptywrap .empty { border-color: #ffffff1a; background-color: #00000033; }
+
+		.side .buttons { display: flex; margin-top: 0.75rem; }
+		.side .buttons button { margin-right: 0.75rem; }
+		.side .drop { margin-top: 0.75rem; padding: 1rem; border: 1dp dashed #ffffff26; border-radius: 2dp; text-align: center; font-size: 0.85rem; line-height: 1.45; color: #8d847c; }
+		.side .note { margin-top: 0.5rem; font-size: 0.8rem; line-height: 1.45; color: #5d554f; }
+		.side .section { margin-top: 1.5rem; }
+		.known { flex: 1; min-height: 0; overflow-y: auto; margin-top: 0.5rem; padding-right: 0.25rem; }
+		.krow { display: flex; align-items: flex-start; padding: 0.4rem 0; border-bottom: 1dp #ffffff0a; }
+		.krow .kn { width: 9rem; flex: 0 0 auto; font-family: OzDisplay; font-size: 0.8rem; letter-spacing: 0.05em; color: #e6ddd2; }
+		.krow .kn .d { display: block; margin-top: 0.15rem; font-family: Barlow; font-size: 0.75rem; letter-spacing: 0; color: #5d554f; }
+		.krow .ku { flex: 1; font-size: 0.78rem; line-height: 1.4; color: #8d847c; }
+		.krow .kf { flex: 0 0 auto; margin-left: 0.5rem; }
+
+		/* the import card and the remove question, over the list (a modal: the d-pad stays in it) */
+		.list.under { visibility: hidden; }
+		.card {
+			position: absolute;
+			left: 4%; right: 4%; top: 12%;
+			z-index: 5;
+			display: flex;
+			flex-direction: column;
+			padding: 1rem 1.25rem;
+			border: 1dp #db241066;
+			background-color: #0a0807f7;
+		}
+		.card .cname { font-family: OzDisplay; font-size: 1.3rem; letter-spacing: 0.05em; color: #fff3e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.card .mtext { margin-top: 0.6rem; font-size: 0.95rem; line-height: 1.45; color: #e6ddd2; }
+		.card .mtext.dim { color: #8d847c; }
+		.card .mtext.msg { color: #5ccf4a; }
+		.card .mtext.msg.bad { color: #ff4a1c; }
+		.card .field { display: flex; align-items: center; margin-top: 0.75rem; }
+		.card .field .l { width: 12rem; font-size: 0.9rem; color: #e6ddd2cc; }
+		.card .field input.text { width: 16rem; }
+		.card .cfoot { display: flex; margin-top: 1rem; }
+		.card .cfoot button { margin-right: 0.75rem; nav-up: none; nav-down: none; }
+	</style>
+</head>
+<!--
+The Mod Library (ENGINE_PLAN.md PH step 2; decision 24: players bring their own). Oz never provides
+CPMA or Defrag, nor any other mod: no download, no link. The rows are the mod folders found in the
+player's user folder (imported) and their Quake III install (oz_mods.c OzMods_List), each with its
+version and whether it's ready. Import a zip, a pak or a folder (Windows' open dialog), or drop one
+on the game's window: the card guesses the mod's folder name from its paks and imports it into the
+user folder. Remove deletes an imported mod's folder. Play opens Skirmish on CPMA or Defrag, or
+starts a match under any other mod (its own rules, the Oz HUD, no promise it plays right).
+-->
+<body data-model="menu">
+	<div class="panel">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="phead">
+			<div><banner text="Mod Library"/><p class="subtitle">The mods you bring. Oz finds CPMA, Defrag and the rest in your Quake III folder, and imports what you got yourself: a zip, a pak or a folder, picked or dropped on this window.</p></div>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
+		</div>
+		<div class="divider"/>
+		<div class="pbody">
+			<div class="cols">
+				<div class="main">
+					<div class="bar">
+						<div class="section first" style="flex: 1; margin-right: 1rem;"><span class="t">Your mods</span><span class="rule"/></div>
+						<span class="count">{{ mods.count }}</span>
+					</div>
+					<div id="ml_list" class="list" data-class-under="mods.ask.open || mods.remove.open">
+						<div class="mrow" data-for="m, i : mods.rows">
+							<button class="hit" data-attr-id="'ml_row_' + i" data-style-nav-right="'#ml_play_' + i" data-attr-onclick="'modlib_play ' + m.dir"/>
+							<div class="cells">
+								<div class="txt">
+									<div class="nm"><span class="t">{{ m.name }}</span><span class="ver" data-if="m.version != ''">{{ m.version }}</span>
+										<span class="badge sup" data-if="m.supported">Supported</span>
+										<span class="badge ok" data-if="m.ready">Ready</span>
+										<span class="badge warn" data-if="!m.ready">{{ m.state_text }}</span>
+										<span class="badge dimb" data-if="m.imported">Imported</span>
+									</div>
+									<div class="sub"><span class="dir">{{ m.dir }}</span><span>, {{ m.paks }} {{ m.paks == '1' ? 'pak' : 'paks' }}: {{ m.where }}</span></div>
+									<div class="uses">{{ m.uses }}</div>
+								</div>
+								<div class="acts">
+									<button class="btn small" data-attr-id="'ml_play_' + i" data-style-nav-left="'#ml_row_' + i" data-style-nav-right="m.imported ? '#ml_remove_' + i : 'none'" data-attr-onclick="'modlib_play ' + m.dir">{{ m.ready ? 'Play' : (m.nested ? 'Import' : 'Play') }}</button>
+									<button class="btn small" data-if="m.imported" data-attr-id="'ml_remove_' + i" data-style-nav-left="'#ml_play_' + i" data-attr-onclick="'modlib_remove ' + m.dir">Remove</button>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="emptywrap" data-if="mods.rows.size == 0 &amp;&amp; !mods.ask.open &amp;&amp; !mods.remove.open">
+						<div class="empty"><div class="t">No mods found</div><p>No mod folder with paks in your user folder or your Quake III folder. Import one you got yourself, or drop its zip on this window.</p></div>
+					</div>
+
+					<!-- the import card (oz_ui_mods.cpp): the file picked or dropped, the folder name guessed for it -->
+					<div class="card modal" data-if="mods.ask.open">
+						<div class="cname">Import {{ mods.ask.file }}</div>
+						<p class="mtext">Its files go into a folder of their own in your user folder, where the game finds them as it finds a mod in your Quake III folder. Programs in it (.exe, .dll) are left out: Oz runs a mod's game code, never its programs.</p>
+						<div class="field"><span class="l">The mod's folder name</span><input id="ml_ask_dir" class="text" type="text" maxlength="32" data-value="mods.ask.dir"/></div>
+						<p class="mtext msg" data-if="mods.ask.message != ''" data-class-bad="mods.ask.status == 'failed'">{{ mods.ask.message }}</p>
+						<div class="cfoot">
+							<button id="ml_ask_go" class="btn small primary" data-if="mods.ask.status != 'done'" onclick="modlib_go">Import</button>
+							<button id="ml_ask_close" class="btn small" onclick="modlib_close">{{ mods.ask.status == 'done' ? 'Done' : 'Cancel' }}</button>
+						</div>
+					</div>
+					<!-- the remove question -->
+					<div class="card modal" data-if="mods.remove.open">
+						<div class="cname">Remove {{ mods.remove.name }}?</div>
+						<p class="mtext">Its folder in your user folder is deleted, with its settings and demos: {{ mods.remove.where }}</p>
+						<p class="mtext dim">A copy in your Quake III folder stays as it is.</p>
+						<div class="cfoot">
+							<button id="ml_remove_go" class="btn small" onclick="modlib_remove_go">Remove</button>
+							<button id="ml_remove_no" class="btn small" onclick="modlib_remove_no">Keep it</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="side">
+					<div class="section first"><span class="t">Import</span><span class="rule"/></div>
+					<div class="buttons">
+						<button id="ml_zip" class="btn small primary" autofocus="" onclick="modlib_import zip">Import a zip</button>
+						<button id="ml_folder" class="btn small" onclick="modlib_import folder">Import a folder</button>
+						<button id="ml_refresh" class="btn small" onclick="modlib_refresh">Look again</button>
+					</div>
+					<div class="drop">Or drop a mod's zip, pak or folder anywhere on this window.</div>
+					<p class="note">Oz never downloads a mod or says where to get one: CPMA and Defrag come from their makers, under their own terms. A server that offers its mod's files hands them over as you join.</p>
+					<div class="section"><span class="t">Known mods</span><span class="rule"/></div>
+					<div class="known">
+						<div class="krow" data-for="k : mods.known">
+							<span class="kn">{{ k.name }}<span class="d">{{ k.dir }}</span></span>
+							<span class="ku">{{ k.uses }}</span>
+							<span class="kf badge ok" data-if="k.found">Found</span>
+							<span class="kf badge sup" data-if="!k.found &amp;&amp; k.supported">Supported</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</rml>

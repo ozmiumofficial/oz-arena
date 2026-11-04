@@ -1329,6 +1329,13 @@ void HandleEvents( void )
 				Cbuf_ExecuteText( EXEC_NOW, "quit Closed window\n" );
 				break;
 
+			case SDL_DROPFILE:	// Oz: a mod's zip or folder dropped on the window (ENGINE_PLAN.md PH step 2)
+				if ( e.drop.file ) {
+					OzMods_Dropped( e.drop.file );
+					SDL_free( e.drop.file );
+				}
+				break;
+
 			case SDL_WINDOWEVENT:
 #ifdef DEBUG_EVENTS
 				Com_Printf( "%4i %s\n", e.window.timestamp, eventName( e.window.event ) );
@@ -1527,6 +1534,8 @@ void IN_Init( void )
 	Cvar_SetDescription( in_forceCharset, "Try to translate non-ASCII chars in keyboard input or force EN/US keyboard layout." );
 
 	// mouse variables
+	SDL_EventState( SDL_DROPFILE, SDL_ENABLE );	// Oz: a mod's zip or folder dropped on the window
+
 	in_mouse = Cvar_Get( "in_mouse", "1", CVAR_ARCHIVE );
 	Cvar_CheckRange( in_mouse, "-1", "1", CV_INTEGER );
 	Cvar_SetDescription( in_mouse,

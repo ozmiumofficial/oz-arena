@@ -1,6 +1,6 @@
 {
   "_note": "The menus' data model (oz_ui_menu.cpp): the web menu's lib/menu.json tree, the news line, and stand-in data for the systems not built yet (social is live from the online hub, P7). Each page's own data is ui/data/<name>.json, merged in by the names in include. maps, bots, characters, player and subject are filled by the engine.",
-  "include": ["play", "server_browser", "dedicated", "create_match", "campaign", "profile", "leaderboards", "replays", "cinematics", "pause", "connect"],
+  "include": ["play", "server_browser", "mods", "dedicated", "create_match", "campaign", "profile", "leaderboards", "replays", "cinematics", "pause", "connect"],
   "main": [
     { "id": "play", "label": "Play", "hint": "Online matches, ranked, bots, the campaign and training", "do": "sub play", "submenu": "play", "primary": true, "num": "01" },
     { "id": "profile", "label": "Profile", "hint": "Your player card, leaderboards and replays", "do": "sub profile_menu", "submenu": "profile_menu", "primary": false, "num": "02" },
@@ -12,10 +12,11 @@
   "subs": {
     "play": { "title": "Play", "items": [
       { "id": "quick_join", "label": "Quick Play", "hint": "Pick a mode and jump straight into the best open match", "do": "page quick_join", "section": "Online", "lock": "" },
-      { "id": "ranked", "label": "Ranked", "hint": "Unlocks at level 30. You're level 1.", "do": "page ranked", "section": "", "lock": "Level 30" },
+      { "id": "ranked", "label": "Ranked", "hint": "Competitive queues with an MMR ladder from Bronze to Godlike", "do": "page ranked", "section": "" },
       { "id": "server_browser", "label": "Server Browser", "hint": "Every open match, with filters, favorites and history", "do": "page server_browser", "section": "", "lock": "" },
       { "id": "skirmish", "label": "Skirmish", "hint": "Bots on any arena: pick a mode, a map and go", "do": "page offline_bots", "section": "Offline", "lock": "" },
       { "id": "custom_match", "label": "Custom Match", "hint": "Full setup: rules, modifiers and every bot", "do": "page create_match", "section": "", "lock": "" },
+      { "id": "mods", "label": "Mod Library", "hint": "CPMA, Defrag and the other mods you bring: found, imported, played", "do": "page mods", "section": "", "lock": "" },
       { "id": "campaign", "label": "Campaign", "hint": "The original game's tiers of arenas up to the final duel", "do": "page campaign", "section": "", "lock": "" },
       { "id": "training", "label": "Training", "hint": "Practice movement, aim and duels", "do": "page training", "section": "", "lock": "" }
     ] },

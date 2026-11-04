@@ -18,11 +18,9 @@
     ]
   },
   "ranked": {
-    "need": 30,
     "level": 1,
-    "locked": true,
+    "locked": false,
     "tier": "",
-    "progress": "3.33%",
     "tiers": [
       { "id": "bronze", "name": "Bronze", "range": "0-999" },
       { "id": "silver", "name": "Silver", "range": "1,000-1,299" },

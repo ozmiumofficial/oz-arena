@@ -54,6 +54,25 @@ int		OzMods_Pick( int folder, char *path, int size );	// Windows' open dialog: a
 int		OzMods_Ready( const char *mod );	// the mod's game code is where a switch to it finds it (a pak named for it
 						// in <mod> of the user folder, the base path or the Steam install)
 
+// the Mod Library (PH step 2, oz_ui_mods.cpp)
+typedef struct {
+	const char	*dir, *name, *uses;	// its folder, its name, what it is and the engine extensions it uses
+	int			supported;			// CPMA and Defrag (decision 14); the rest play with no promise
+} ozKnownMod_t;
+
+typedef struct {
+	char		dir[64], name[64], version[64], where[256];	// where: the folder it was found in
+	int			ready, imported, nested, supported, known, paks;	// ready: OzMods_Ready; imported: in the user folder;
+						// nested: only a copy the file system doesn't find (<mod>/<mod>); known: in the table
+} ozModInfo_t;
+
+int		OzMods_Known( const ozKnownMod_t **out );	// the table of known mods (no download links, ever)
+const ozKnownMod_t *OzMods_KnownMod( const char *dir );
+int		OzMods_List( ozModInfo_t *out, int max );	// every mod folder with paks, where it is, its version
+int		OzMods_Remove( const char *mod, char *message, int size );	// an imported mod's folder deleted: files, or -1 and why
+int		OzMods_Guess( const char *source, char *mod, int size );	// which mod a zip, pak or folder holds, from its paks
+void	OzMods_Dropped( const char *path );	// a file or folder dropped on the window (sdl_input.c)
+
 #ifdef __cplusplus
 }
 #endif

@@ -524,6 +524,11 @@ void Skirmish_Commands() {
 	} );
 }
 
+// the tab the page opens on next (the Mod Library's Play on CPMA or Defrag)
+void Skirmish_SetMod( const char *mod ) {
+	keptMod = mod;
+}
+
 void Skirmish_Opened( const char *page ) {
 	if ( strcmp( page, PAGE ) ) {
 		return;

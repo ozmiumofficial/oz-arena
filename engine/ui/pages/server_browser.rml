@@ -83,6 +83,8 @@
 		.badge.k-cpma { border-color: #4a7dff80; background-color: #4a7dff1a; color: #7d9fff; }
 		.badge.k-defrag { border-color: #5ccf4a66; background-color: #5ccf4a1a; color: #5ccf4a; }
 		.badge.k-other { border-color: #ffffff26; background-color: transparent; color: #8d847c; }
+		.badge.k-game { border-color: #ffffff26; background-color: transparent; color: #5d554f; }
+		.badge.warn { border-color: #ffd23c66; background-color: #ffd23c1a; color: #ffd23c; }
 		.acts .badge.look { margin-right: 0.5rem; }
 
 		.srow { position: relative; border-bottom: 1dp #ffffff0d; }
@@ -343,7 +345,7 @@ Connect runs the console's connect with the address typed.
 							<button class="hit" data-attr-id="'sb_sv_' + r.n" data-style-nav-right="r.host != '' ? '#sb_sv_star' + r.n : '#sb_sv_info' + r.n"
 								data-attr-onclick="r.host != '' ? 'join ' + r.host + (r.password ? ' locked' : '') : 'serverjoin ' + r.address"/>
 							<div class="cells" data-class-down="r.full || !r.up">
-								<div class="c name"><span class="hot" data-rml="r.rich"/><span class="hot tag" data-if="r.password">(password)</span><span class="badge fr tag" data-if="r.friends != ''">{{ r.friends }}</span><span class="dim tag" data-if="!r.up">{{ r.status }}</span><span class="dim tag" data-if="r.when != ''">{{ r.when }}</span></div>
+								<div class="c name"><span class="hot" data-rml="r.rich"/><span class="hot tag" data-if="r.password">(password)</span><span class="badge fr tag" data-if="r.friends != ''">{{ r.friends }}</span><span class="badge warn tag" data-if="r.needs != ''">needs {{ r.needs }}</span><span class="dim tag" data-if="r.engine != ''">{{ r.engine }}</span><span class="dim tag" data-if="!r.up">{{ r.status }}</span><span class="dim tag" data-if="r.when != ''">{{ r.when }}</span></div>
 								<div class="c game"><span data-attr-class="'badge k-' + r.kind">{{ r.game }}</span></div>
 								<div class="c map">{{ r.map }}</div>
 								<div class="c mode">{{ r.mode }}</div>
@@ -366,13 +368,14 @@ Connect runs the console's connect with the address typed.
 					<!-- the server card (Info on a row, oz_ui_servers.cpp): over the list; Escape or Close closes it -->
 					<div class="card modal" data-if="servers.card.open">
 						<div class="cname" data-rml="servers.card.rich"/>
-						<div class="csub"><span data-attr-class="'badge k-' + servers.card.kind">{{ servers.card.game }}</span><span class="badge look" data-if="servers.card.look">Oz look</span><span class="badge dimb" data-if="servers.card.password">Password</span><span class="addr">{{ servers.card.address }}</span></div>
+						<div class="csub"><span data-attr-class="'badge k-' + servers.card.kind">{{ servers.card.game }}</span><span class="badge look" data-if="servers.card.look">Oz look</span><span class="badge dimb" data-if="servers.card.password">Password</span><span class="badge warn" data-if="servers.card.needs != ''">needs {{ servers.card.needs }}</span><span class="addr">{{ servers.card.address }}</span></div>
 						<div class="cfacts">
 							<div class="f"><span class="k">Map</span><span class="v">{{ servers.card.map }}</span></div>
 							<div class="f"><span class="k">Mode</span><span class="v">{{ servers.card.mode }}</span></div>
 							<div class="f" data-if="servers.card.physics != ''"><span class="k">Physics</span><span class="v">{{ servers.card.physics }}</span></div>
 							<div class="f"><span class="k">Ping</span><span class="v">{{ servers.card.ping }}</span></div>
 							<div class="f" data-if="servers.card.version != ''"><span class="k">Version</span><span class="v">{{ servers.card.version }}</span></div>
+							<div class="f" data-if="servers.card.engine != ''"><span class="k">Engine</span><span class="v">{{ servers.card.engine }}</span></div>
 						</div>
 						<div class="cfriends" data-if="servers.card.friends != ''"><span>Friends here: {{ servers.card.friends }}</span></div>
 						<div class="cplayers">
@@ -399,6 +402,7 @@ Connect runs the console's connect with the address typed.
 							<button id="sb_mod_install" class="btn small primary" data-if="servers.mod.found != '' &amp;&amp; servers.mod.status != 'done'" onclick="modimport install">Use that copy</button>
 							<button id="sb_mod_zip" class="btn small" data-if="servers.mod.status != 'done'" onclick="modimport zip">Import a zip</button>
 							<button id="sb_mod_folder" class="btn small" data-if="servers.mod.status != 'done'" onclick="modimport folder">Import a folder</button>
+							<button id="sb_mod_library" class="btn small" data-if="servers.mod.status != 'done'" onclick="modclose; page mods">Mod Library</button>
 							<button id="sb_mod_join" class="btn small" data-class-primary="servers.mod.status == 'done'" onclick="modjoin">{{ servers.mod.status == 'done' ? 'Join' : 'Join anyway' }}</button>
 							<button id="sb_mod_close" class="btn small" onclick="modclose">Cancel</button>
 						</div>

@@ -442,7 +442,6 @@ career = {
     "level": prof["level"], "max": prof["max_level"], "total": fmt(prof["total"]),
     "xp": "%s / %s" % (fmt(prof["xp"]), fmt(prof["next"])), "to_next": "%s to level %d" % (fmt(prof["next"] - prof["xp"]), min(prof["max_level"], prof["level"] + 1)),
     "pct": "%.1f%%" % (prof["xp"] / max(1, prof["next"]) * 100),
-    "ranked_open": prof["level"] >= prof["ranked_level"], "ranked_level": prof["ranked_level"], "ranked_pct": "%.1f%%" % (min(1, prof["level"] / prof["ranked_level"]) * 100),
     "next": next_unlocks,
     "rows": [{"k": k, "v": v} for k, v in [
         ("Matches", fmt(c["matches"])), ("Wins", fmt(c["wins"])), ("Win rate", "%d%%" % round(c["wins"] / c["matches"] * 100) if c["matches"] else "-"),

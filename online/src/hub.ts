@@ -3,7 +3,7 @@
 // players cost nothing). The Worker has already checked the player's signature; this object trusts x-pid.
 //
 // Protocol (JSON, one object per message, "type" says what it is):
-//   game -> hub  presence {status, detail, join?}   profile {name, model, color}   sync
+//   game -> hub  presence {status, detail, join?, mod?, map?, server?}   profile {name, model, color}   sync
 //                career {xp, card, stats}   leaderboard {board: level|ranked|wins|frags, scope: global|friends, mode?}
 //                stats_report {report: "<JSON text>", sig} (an Oz game's signed record of a match it finished, stats.ts)
 //                match_history {before?}
@@ -13,9 +13,12 @@
 //                net_signal {to, kind: offer|answer|candidate, sdp | candidate, mid, index}   net_leave {peer}   net_kick {peer}
 //                queue_join {modes, ranked, region, rtt}   queue_leave   match_joined {match}
 //                match_report {match, me, rows: [{client, score, team}], left, peers}
+//                servers_seen {servers: [[addr, mod, gametype, map, clients, humans, max, pure, needpass, version, ping, hostname]...]}
+//                  (an Oz game's Server Browser sweep: the community server registry, servers.ts)   servers_verified
+//                mm_pings {match, pings: [{addr, ping, info}]} (a member's pings of the matchmaker's shortlist)
 //                friend_add {code}   friend_accept {id}   friend_decline {id}   friend_cancel {id}   friend_remove {id}
 //                party_invite {id}   party_accept {party}   party_decline {party}   party_leave
-//                party_kick {id}   party_promote {id}   party_chat {text}   party_follow {host, password?}
+//                party_kick {id}   party_promote {id}   party_chat {text}   party_follow {host | server, password?}
 //                ping (answered without waking the object)
 //   hub -> game  social {me, friends, incoming, outgoing, party, invites}   (the whole picture, sent on every change)
 //                notice {text, tone}   party_chat {from, text, at}   pong
@@ -26,14 +29,26 @@
 //                net_matches {matches, region}   net_quick {status: found|far|none, mode, region, match?, est?, near, skipped}
 //                net_wait {host}   net_request {peer, name, password, version}
 //                net_accepted {host}   net_refused {host, reason}   net_ice {servers, relay_only, ttl | error}
-//                net_signal {from, kind, ...}   net_gone {pid}   net_follow {host, leader, name, password} (the party leader's match)
+//                net_signal {from, kind, ...}   net_gone {pid}   net_follow {host | server, leader, name, password} (the party leader's
+//                match: a peer-to-peer host, or a community server's address, ENGINE_PLAN.md PH step 3)
 //                queue_state {status: queued|idle|locked|refused, ...}   match_found {match, host, you_host, mode, map, ranked, team, players}
+//                mm_ping {match, mode, ranked, servers: [addr...]} (ping these, answer within 2 s)
+//                mm_go {match, addr, mode, ranked, team, players} (connect to this community server; the match id keys the stats reports)
 //                match_result {match, voided, reason?, queue, before, after, delta, rated, wins, losses, won}   ratings {season, queues}
+//                servers_seen {n, verified: [addr...]}   servers_verified {verified}
+//   agent -> hub  (HTTP, index.ts /agent/*, the Oz Server Agent, ENGINE_PLAN.md P8b step 8) POST /agent/register {addr, name} -> {server, secret};
+//                POST /agent/alive {info} and POST /agent/report {result}, each with x-oz-server: <server> and x-oz-sig: the body's
+//                HMAC-SHA256 with the secret, hex
 import { DurableObject } from 'cloudflare:workers';
 import type { Env } from './index';
-import { refuse } from './util';
+import { refuse, hex } from './util';
 import {
-  MODES, PLACEMENTS, RANKED_LEVEL, START_RATING, assignTeams, decide, easeToStart, electHost, eloDeltas, formGroup, seasonId, won,
+  AGENT_ALIVE_MS, MODE_GAMETYPE, PING_ANSWER_MS, cleanAddr, cleanInfo, cleanPing, cleanSeen, expire, merge, pick, pingLimit, regionOf, shortlist,
+  type AgentInfo, type PingAnswer, type Rules, type Seen, type Verified,
+} from './servers';
+import type { Stored } from './stats';
+import {
+  MODES, PLACEMENTS, REGION_WIDEN_MS, START_RATING, assignTeams, decide, easeToStart, electHost, eloDeltas, formGroup, seasonId, won,
   type Played, type QEntry, type Report, type Row as ScoreRow,
 } from './ranked';
 
@@ -159,6 +174,11 @@ interface Tag {
   status: Status;
   detail: string;
   join: string;
+  /** in a match: the mod's folder (baseq3, cpma, defrag...), the map and the server's address (PH step 3; "" when not
+   *  in one, or the server is the player's own) */
+  mod?: string;
+  map?: string;
+  server?: string;
   since: number;
   /** the matchmaking region the Worker saw the player in */
   region: string;
@@ -202,6 +222,9 @@ interface Card {
   status: Status | 'offline';
   detail: string;
   join: string;
+  mod: string;
+  map: string;
+  server: string;
   seen: number;
 }
 
@@ -250,8 +273,21 @@ export class Hub extends DurableObject<Env> {
       CREATE TABLE IF NOT EXISTS lockouts(pid TEXT PRIMARY KEY, until INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS host_stats(pid TEXT PRIMARY KEY, matches INTEGER NOT NULL DEFAULT 0, voids INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS bans(host TEXT NOT NULL, pid TEXT NOT NULL, until INTEGER NOT NULL, PRIMARY KEY(host, pid));
+      CREATE TABLE IF NOT EXISTS agents(id TEXT PRIMARY KEY, addr TEXT UNIQUE NOT NULL, name TEXT NOT NULL, secret TEXT NOT NULL,
+        created INTEGER NOT NULL, seen INTEGER NOT NULL DEFAULT 0, info TEXT NOT NULL DEFAULT '{}');
+      CREATE TABLE IF NOT EXISTS server_rules(addr TEXT NOT NULL, kind TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(addr, kind));
+      CREATE TABLE IF NOT EXISTS placements(addr TEXT PRIMARY KEY, at INTEGER NOT NULL);
     `);
+    // columns added since the first deployment (CREATE TABLE IF NOT EXISTS leaves an existing table as it was): a
+    // matchmade match on a community server (P8b step 3)
+    const cols = new Set(this.rows<{ name: string }>('PRAGMA table_info(rmatches)').map((c) => c.name));
+    for (const [col, def] of [['server', "TEXT NOT NULL DEFAULT ''"], ['shortlist', "TEXT NOT NULL DEFAULT '[]'"], ['pings', "TEXT NOT NULL DEFAULT '{}'"],
+      ['deadline', 'INTEGER NOT NULL DEFAULT 0'], ['qgroup', "TEXT NOT NULL DEFAULT '[]'"]])
+      if (!cols.has(col)) this.sql.exec(`ALTER TABLE rmatches ADD COLUMN ${col} ${def}`);
   }
+
+  /** The community server registry (servers.ts): what the Oz games' sweeps saw, kept in memory for its 5-minute life. */
+  private registry = new Map<string, Seen>();
 
   // ------------------------------------------------------------------ connection
 
@@ -275,6 +311,8 @@ export class Hub extends DurableObject<Env> {
       const ids = Array.isArray(body.ids) ? body.ids.filter((x): x is string => typeof x === 'string' && /^[0-9a-f]{20}$/.test(x)) : [];
       return Response.json({ removed: await this.purge(ids) });
     }
+    if (path === '/admin/servers') return this.adminServers(req);
+    if (path.startsWith('/agent/')) return this.agentRoute(path.slice(7), req);
     const h = req.headers;
     const pid = h.get('x-pid') ?? '';
     const ts = Number(h.get('x-ts'));
@@ -417,6 +455,12 @@ export class Hub extends DurableObject<Env> {
         return this.queueLeave(ws, tag);
       case 'match_joined':
         return this.matchJoined(me, String(m.match ?? ''));
+      case 'servers_seen':
+        return this.serversSeen(ws, tag, m);
+      case 'servers_verified':
+        return this.send(ws, { type: 'servers_verified', verified: this.verifiedAddrs() });
+      case 'mm_pings':
+        return this.mmPings(tag, m);
       case 'match_report':
         if (engineOf(tag) === 'oz') {
           const signed = await signedReport(tag, m);
@@ -469,8 +513,12 @@ export class Hub extends DurableObject<Env> {
     const status = STATUSES.includes(m.status as Status) ? (m.status as Status) : 'online';
     const detail = clean(m.detail, 80);
     const join = clean(m.join, 120);
+    // the match's mod, map and server (PH step 3): short tokens, or nothing
+    const mod = status === 'match' ? token(m.mod, 32) : '';
+    const map = status === 'match' ? token(m.map, 64) : '';
+    const server = status === 'match' && isAddress(m.server) ? String(m.server) : '';
     if (status !== tag.status) tag.since = Date.now();
-    Object.assign(tag, { status, detail, join });
+    Object.assign(tag, { status, detail, join, mod, map, server });
     ws.serializeAttachment(tag);
     // the player too: their own row in the party shows it
     this.push(this.related(tag.pid));
@@ -595,11 +643,23 @@ export class Hub extends DurableObject<Env> {
     }
     const r = await this.stats().report(tag.pid, text, String(m.sig));
     if (!r.ok) return this.send(ws, { type: 'stats_report', ...r });
-    const { reporters, changed, counted, ...answer } = r;
+    const { reporters, changed, counted, rows, who, ...answer } = r;
     this.send(ws, { type: 'stats_report', ...answer });
-    if (changed)
-      for (const p of reporters) this.sendTo(p, { type: 'stats_match', match: r.match, trust: r.trust, map: r.map, mode: r.mode, agreed: r.agreed });
-    if (counted.length) this.boards.clear();
+    this.afterStored(r);
+  }
+
+  /** A match record changed (a player's report, an agent's result): its agreeing reporters hear it, the boards refresh,
+   *  and a matchmade ranked match on a community server settles its ratings (step 7). */
+  private afterStored(r: Stored) {
+    if (!r.ok) return;
+    if (r.changed)
+      for (const p of r.reporters) this.sendTo(p, { type: 'stats_match', match: r.match, trust: r.trust, map: r.map, mode: r.mode, agreed: r.agreed });
+    if (r.counted.length) this.boards.clear();
+    if (r.key.startsWith('id:')) {
+      const id = r.key.slice(3);
+      if (r.trust === 'corroborated' || r.trust === 'verified') this.settleServer(id, r);
+      else if (r.reports >= 1) this.sql.exec('UPDATE rmatches SET first_report = ? WHERE id = ? AND first_report = 0', Date.now(), id);
+    }
   }
 
   // ------------------------------------------------------------------ admin
@@ -862,14 +922,20 @@ export class Hub extends DurableObject<Env> {
     if (this.memberIds(party).length <= 1 && !this.count('SELECT COUNT(*) AS n FROM invites WHERE party = ?', party)) this.dissolve(party);
   }
 
-  /** The leader hosted or joined a match: the rest of the party follow them into it (net_follow). The password
-   *  passes through to the members only; it is never stored. */
+  /** The leader hosted or joined a match: the rest of the party follow them into it (net_follow). A peer-to-peer
+   *  match is its host (listed), a community server its address (PH step 3: the hub can't check a server, so the
+   *  address must look like one). The password passes through to the members only; it is never stored. */
   private partyFollow(me: string, m: Msg) {
     const party = this.partyOf(me);
     if (!party || this.leaderOf(party) !== me) return;
     const host = String(m.host ?? '');
-    if (!host || !this.listings().some((l) => l.host === host)) return;
-    const msg = { type: 'net_follow', host, leader: me, name: this.player(me)?.name ?? 'Player', password: clean(m.password, 40) };
+    const server = isAddress(m.server) ? String(m.server) : '';
+    if (host) {
+      if (!this.listings().some((l) => l.host === host)) return;
+    } else if (!server) {
+      return;
+    }
+    const msg = { type: 'net_follow', host, server, leader: me, name: this.player(me)?.name ?? 'Player', password: clean(m.password, 40) };
     for (const p of this.memberIds(party)) if (p !== me && p !== host) this.sendTo(p, msg);
   }
 
@@ -904,7 +970,8 @@ export class Hub extends DurableObject<Env> {
     const t = tags.find((x) => x.status === 'match') ?? tags.find((x) => x.status === 'editor') ?? tags[0];
     return {
       id: p.id, name: p.name, model: p.model, color: p.color, online: !!t,
-      status: t ? t.status : 'offline', detail: t?.detail ?? '', join: t?.join ?? '', seen: t ? t.since : p.seen,
+      status: t ? t.status : 'offline', detail: t?.detail ?? '', join: t?.join ?? '', mod: t?.mod ?? '', map: t?.map ?? '',
+      server: t?.server ?? '', seen: t ? t.since : p.seen,
     };
   }
 
@@ -1396,10 +1463,6 @@ export class Hub extends DurableObject<Env> {
     const now = Date.now();
     const lock = this.one<{ until: number }>('SELECT until FROM lockouts WHERE pid = ?', tag.pid);
     if (lock && lock.until > now) return this.send(ws, { type: 'queue_state', status: 'locked', until: lock.until, reason: 'You left a match you were sent to. Try again in a few minutes.' });
-    if (ranked) {
-      const level = this.one<{ level: number }>('SELECT level FROM careers WHERE pid = ?', tag.pid)?.level ?? 1;
-      if (level < RANKED_LEVEL) return refused(`Ranked opens at level ${RANKED_LEVEL}. You are level ${level}.`);
-    }
     const ratings: Record<string, number> = {};
     if (ranked) for (const q of modes) ratings[q] = this.ratingRow(tag.pid, q).rating;
     const named = REGIONS.includes(String(m.region)); // "auto" (or nothing) means the player's own region, widening after a wait
@@ -1457,7 +1520,7 @@ export class Hub extends DurableObject<Env> {
       } catch {
         relay = Date.now() + this.relayCheckMs();
       }
-      const busy = this.entries().length > 0 || this.one("SELECT id FROM rmatches WHERE state IN ('forming', 'live') LIMIT 1");
+      const busy = this.entries().length > 0 || this.one("SELECT id FROM rmatches WHERE state IN ('pinging', 'forming', 'live') LIMIT 1");
       next = Math.min(busy ? Date.now() + 1000 : Infinity, relay || Infinity);
     } finally {
       // the handler sets its own next alarm, and takes any wake asked for meanwhile (even during these writes)
@@ -1494,6 +1557,8 @@ export class Hub extends DurableObject<Env> {
       }
     }
     // 2. matches that never started, and results still waiting for reports
+    for (const row of this.rows<{ id: string; deadline: number }>("SELECT id, deadline FROM rmatches WHERE state = 'pinging'"))
+      if (now >= row.deadline) this.decideServer(row.id);
     for (const row of this.rows<{ id: string; created: number; first_report: number; state: string; ranked: number }>(
       "SELECT id, created, first_report, state, ranked FROM rmatches WHERE state IN ('forming', 'live')")) {
       if (row.state === 'forming' && now - row.created > (Number(this.env.MATCH_FORM_MS) || 90_000)) this.voidMatch(row.id, 'The match never started.', null, true);
@@ -1503,29 +1568,118 @@ export class Hub extends DurableObject<Env> {
     this.sql.exec("DELETE FROM rmatches WHERE state IN ('done', 'void') AND created < ?", now - 24 * 3600_000);
   }
 
+  /**
+   * A group formed. Oz games get the matchmaker's destinations in the plan's order (ENGINE_PLAN.md P8b step 3): a shortlist
+   * of Verified servers and community servers passing every rule (servers.ts shortlist), which the members ping (mm_ping,
+   * answered with mm_pings within PING_ANSWER_MS; decideServer picks the winner and sends mm_go); with no shortlist, or
+   * no server every member reaches in time, a peer-to-peer host elected from the group (P8, match_found), as the Godot
+   * build's groups always get.
+   */
   private formMatch(group: QEntry[], mode: string, ranked: boolean, pool: { entry: QEntry; ws: WebSocket; tag: Tag }[]) {
     const info = MODES[mode];
-    // a host whose matches keep getting voided loses hosting (when someone else can)
-    const bad = new Set(this.rows<{ pid: string }>('SELECT pid FROM host_stats WHERE voids >= 3 AND voids * 3 > matches').map((r) => r.pid));
-    const eligible = group.filter((g) => !bad.has(g.pid));
-    const host = electHost(eligible.length ? eligible : group);
     const teams = info.team ? assignTeams(group, mode) : group.map(() => 0);
     const id = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('');
     const map = info.maps[Math.floor(Math.random() * info.maps.length)];
     const players = group.map((g, i) => ({ id: g.pid, name: this.player(g.pid)?.name ?? 'Player', team: teams[i], joined: false }));
-    this.sql.exec('INSERT INTO rmatches(id, queue, ranked, host, map, created, state, players) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      id, mode, ranked ? 1 : 0, host.pid, map, Date.now(), 'forming', JSON.stringify(players));
     for (const g of group) {
       const e = pool.find((x) => x.entry.pid === g.pid);
       if (e) {
         e.tag.queue = '';
         e.ws.serializeAttachment(e.tag);
       }
+    }
+    const now = Date.now();
+    const list = group.every((g) => engineOf(g) === 'oz') ? shortlist(this.registry, this.verifiedServers(now), this.serverRules(now), group, mode, ranked, now) : [];
+    if (list.length) {
+      this.sql.exec('INSERT INTO rmatches(id, queue, ranked, host, map, created, state, players, shortlist, deadline, qgroup) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        id, mode, ranked ? 1 : 0, '', map, now, 'pinging', JSON.stringify(players), JSON.stringify(list), now + PING_ANSWER_MS + 500, JSON.stringify(group));
+      for (const g of group) this.sendTo(g.pid, { type: 'mm_ping', match: id, mode, ranked, servers: list });
+      return;
+    }
+    this.sql.exec('INSERT INTO rmatches(id, queue, ranked, host, map, created, state, players, qgroup) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, mode, ranked ? 1 : 0, '', map, now, 'forming', JSON.stringify(players), JSON.stringify(group));
+    this.formPeer(id, group, mode, ranked, map, players);
+  }
+
+  /** The peer-to-peer match (P8): the best connected player hosts, everyone hears match_found. */
+  private formPeer(id: string, group: QEntry[], mode: string, ranked: boolean, map: string, players: { id: string; name: string; team: number }[]) {
+    // a host whose matches keep getting voided loses hosting (when someone else can)
+    const bad = new Set(this.rows<{ pid: string }>('SELECT pid FROM host_stats WHERE voids >= 3 AND voids * 3 > matches').map((r) => r.pid));
+    const eligible = group.filter((g) => !bad.has(g.pid));
+    const host = electHost(eligible.length ? eligible : group);
+    this.sql.exec("UPDATE rmatches SET host = ?, state = 'forming', created = ? WHERE id = ?", host.pid, Date.now(), id);
+    for (const g of group) {
       this.sendTo(g.pid, {
         type: 'match_found', match: id, host: host.pid, you_host: g.pid === host.pid, mode, map, ranked,
         team: players.find((p) => p.id === g.pid)!.team, players: players.map((p) => ({ id: p.id, name: p.name, team: p.team })),
       });
     }
+  }
+
+  /** mm_pings {match, pings: [{addr, ping, info}]}: one member's pings of the shortlist; the last one in decides. */
+  private mmPings(tag: Tag, m: Msg) {
+    const id = String(m.match ?? '');
+    const row = this.one<{ players: string; pings: string; state: string; shortlist: string }>('SELECT players, pings, state, shortlist FROM rmatches WHERE id = ?', id);
+    if (!row || row.state !== 'pinging') return;
+    const players = JSON.parse(row.players) as { id: string }[];
+    if (!players.some((p) => p.id === tag.pid)) return;
+    const shortlisted = JSON.parse(row.shortlist) as string[];
+    const pings = JSON.parse(row.pings) as Record<string, Record<string, PingAnswer>>;
+    const mine: Record<string, PingAnswer> = {};
+    for (const x of (Array.isArray(m.pings) ? m.pings : []).slice(0, 16)) {
+      const p = cleanPing(x);
+      if (p && shortlisted.includes(p.addr)) mine[p.addr] = p.answer;
+    }
+    pings[tag.pid] = mine;
+    // what a member's getstatus said about a server the registry keeps too (oz_mm 0 opts it out for everyone)
+    for (const [addr, a] of Object.entries(mine)) {
+      const s = this.registry.get(addr);
+      if (s && a.info?.mm !== undefined) s.mm = a.info.mm;
+    }
+    this.sql.exec('UPDATE rmatches SET pings = ? WHERE id = ?', JSON.stringify(pings), id);
+    if (players.every((p) => pings[p.id])) this.decideServer(id);
+  }
+
+  /** The shortlist's winner (servers.ts pick): mm_go to every member and the match is live there; none: peer-to-peer after all. */
+  private decideServer(id: string) {
+    const row = this.one<{ queue: string; ranked: number; players: string; pings: string; state: string; shortlist: string; qgroup: string; map: string }>(
+      'SELECT queue, ranked, players, pings, state, shortlist, qgroup, map FROM rmatches WHERE id = ?', id);
+    if (!row || row.state !== 'pinging') return;
+    const players = JSON.parse(row.players) as { id: string; name: string; team: number }[];
+    const group = JSON.parse(row.qgroup) as QEntry[];
+    const now = Date.now();
+    const winner = pick(JSON.parse(row.shortlist) as string[], JSON.parse(row.pings) as Record<string, Record<string, PingAnswer>>,
+      players.map((p) => p.id), players.length, !!row.ranked, MODE_GAMETYPE[row.queue] ?? -1, pingLimit(group, now, REGION_WIDEN_MS));
+    if (!winner) return this.formPeer(id, group, row.queue, !!row.ranked, row.map, players);
+    this.sql.exec("UPDATE rmatches SET state = 'live', server = ?, created = ? WHERE id = ?", winner.addr, now, id);
+    this.sql.exec('INSERT OR REPLACE INTO placements(addr, at) VALUES (?, ?)', winner.addr, now);
+    for (const p of players) {
+      this.sendTo(p.id, { type: 'mm_go', match: id, addr: winner.addr, mode: row.queue, ranked: !!row.ranked, team: p.team, worst: winner.worst,
+        players: players.map((x) => ({ id: x.id, name: x.name, team: x.team })) });
+    }
+  }
+
+  /**
+   * A matchmade ranked match on a community server was decided by its players' reports (Stats: Corroborated, or Verified
+   * by the server's agent): the ratings move as a peer-to-peer match's do, through the same decide() (step 7). A player
+   * from outside the match on the scoreboard (more non-spectator rows than the group) makes it unranked.
+   */
+  private settleServer(id: string, r: Stored & { ok: true }) {
+    const row = this.one<{ queue: string; ranked: number; players: string; state: string; server: string }>(
+      'SELECT queue, ranked, players, state, server FROM rmatches WHERE id = ?', id);
+    if (!row || !row.server || row.state !== 'live') return;
+    if (!row.ranked) return this.sql.exec("UPDATE rmatches SET state = 'done' WHERE id = ?", id);
+    const players = JSON.parse(row.players) as { id: string; name: string; team: number }[];
+    const onBoard = r.rows.filter((x) => x.client >= 0 && x.team !== 3);
+    if (onBoard.length > players.length) return this.voidMatch(id, 'A player from outside the match joined, so it is unranked.', null);
+    const played: Played[] = players.map((p) => {
+      const client = r.who[p.id];
+      const x = client === undefined ? undefined : r.rows.find((y) => y.client === client);
+      const rating = this.ratingRow(p.id, row.queue);
+      return { pid: p.id, rating: rating.rating, rated: rating.rated, team: x?.team || p.team, score: x?.score ?? 0, left: !x };
+    });
+    this.applyRatings(id, row.queue, played);
+    this.sql.exec("UPDATE rmatches SET state = 'done' WHERE id = ?", id);
   }
 
   private matchJoined(me: string, id: string) {
@@ -1586,32 +1740,158 @@ export class Hub extends DurableObject<Env> {
       const rating = this.ratingRow(p.id, row.queue);
       return { pid: p.id, rating: rating.rating, rated: rating.rated, team: r?.team || p.team, score: r?.score ?? 0, left: left.has(p.id) || !r };
     });
-    const deltas = eloDeltas(row.queue, played);
+    this.applyRatings(id, row.queue, played);
+    this.sql.exec("UPDATE rmatches SET state = 'done' WHERE id = ?", id);
+    this.sql.exec('INSERT INTO host_stats(pid, matches, voids) VALUES (?, 1, ?) ON CONFLICT(pid) DO UPDATE SET matches = matches + 1, voids = voids + ?',
+      row.host, verdict.hostOverruled ? 1 : 0, verdict.hostOverruled ? 1 : 0);
+  }
+
+  /** One decided ranked match's rating changes (eloDeltas), the duel's into the leaderboard's ranked columns, told to each player. */
+  private applyRatings(id: string, queue: string, played: Played[]) {
+    const deltas = eloDeltas(queue, played);
     const season = seasonId(Date.now());
     for (const p of played) {
-      const before = this.ratingRow(p.pid, row.queue);
+      const before = this.ratingRow(p.pid, queue);
       const after = before.rating + deltas[p.pid];
-      const win = won(row.queue, p, played);
+      const win = won(queue, p, played);
       this.sql.exec(
         `INSERT INTO ratings(pid, queue, rating, rated, wins, losses, peak, season) VALUES (?, ?, ?, 1, ?, ?, ?, ?)
          ON CONFLICT(pid, queue) DO UPDATE SET rating = excluded.rating, rated = rated + 1, wins = wins + ?, losses = losses + ?, peak = MAX(peak, excluded.rating)`,
-        p.pid, row.queue, after, win ? 1 : 0, win ? 0 : 1, Math.max(after, before.peak), season, win ? 1 : 0, win ? 0 : 1);
-      if (row.queue === 'duel') {
+        p.pid, queue, after, win ? 1 : 0, win ? 0 : 1, Math.max(after, before.peak), season, win ? 1 : 0, win ? 0 : 1);
+      if (queue === 'duel') {
         // the leaderboard's ranked columns: the headline queue (the duel). Only the hub writes them.
         const r = this.ratingRow(p.pid, 'duel');
         this.sql.exec('INSERT OR IGNORE INTO careers(pid, xp, level, card, stats, updated) VALUES (?, 0, 1, ?, ?, ?)', p.pid, '{}', '{}', Date.now());
         this.sql.exec('UPDATE careers SET rating = ?, rated = ?, peak = ? WHERE pid = ?', r.rating, r.rated, r.peak, p.pid);
       }
-      const now = this.ratingRow(p.pid, row.queue);
+      const now = this.ratingRow(p.pid, queue);
       this.sendTo(p.pid, {
-        type: 'match_result', match: id, voided: false, queue: row.queue, before: before.rating, after: now.rating, delta: deltas[p.pid],
+        type: 'match_result', match: id, voided: false, queue, before: before.rating, after: now.rating, delta: deltas[p.pid],
         rated: now.rated, wins: now.wins, losses: now.losses, won: win,
       });
       this.sendTo(p.pid, this.ratingsMessage(p.pid));
     }
-    this.sql.exec("UPDATE rmatches SET state = 'done' WHERE id = ?", id);
-    this.sql.exec('INSERT INTO host_stats(pid, matches, voids) VALUES (?, 1, ?) ON CONFLICT(pid) DO UPDATE SET matches = matches + 1, voids = voids + ?',
-      row.host, verdict.hostOverruled ? 1 : 0, verdict.hostOverruled ? 1 : 0);
+  }
+
+  // ------------------------------------------------------------------ the community server registry and the Oz Server Agent (P8b steps 2, 4, 8)
+
+  /**
+   * servers_seen {servers: [...]}: an Oz game's Server Browser sweep, a digest of the servers that answered it with the
+   * sender's ping to each (servers.ts cleanSeen), merged into the registry; answered with the Verified servers' addresses.
+   */
+  private serversSeen(ws: WebSocket, tag: Tag, m: Msg) {
+    if (engineOf(tag) !== 'oz') return;
+    const now = Date.now();
+    expire(this.registry, now);
+    let n = 0;
+    for (const x of (Array.isArray(m.servers) ? m.servers : []).slice(0, 400)) {
+      const s = cleanSeen(x, tag.region, now);
+      if (!s) continue;
+      merge(this.registry, s);
+      n++;
+    }
+    this.send(ws, { type: 'servers_seen', n, verified: this.verifiedAddrs() });
+  }
+
+  /** The Verified servers (step 7): an agent alive within AGENT_ALIVE_MS, with what its heartbeat said; Oz's own among them (decision 23). */
+  private verifiedServers(now: number): Verified[] {
+    const own = new Set(this.rows<{ addr: string }>("SELECT addr FROM server_rules WHERE kind = 'own'").map((r) => r.addr));
+    const blocked = new Set(this.rows<{ addr: string }>("SELECT addr FROM server_rules WHERE kind = 'block'").map((r) => r.addr));
+    return this.rows<{ addr: string; seen: number; info: string }>('SELECT addr, seen, info FROM agents WHERE seen > ?', now - AGENT_ALIVE_MS)
+      .filter((a) => !blocked.has(a.addr))
+      .map((a) => ({ addr: a.addr, own: own.has(a.addr), info: JSON.parse(a.info) as AgentInfo, seen: a.seen }));
+  }
+
+  private verifiedAddrs(): string[] {
+    return this.verifiedServers(Date.now()).map((v) => v.addr).sort();
+  }
+
+  private serverRules(now: number): Rules {
+    const blocked = new Set(this.rows<{ addr: string }>("SELECT addr FROM server_rules WHERE kind = 'block'").map((r) => r.addr));
+    this.sql.exec('DELETE FROM placements WHERE at < ?', now - 3600_000);
+    const placed = new Map(this.rows<{ addr: string; at: number }>('SELECT addr, at FROM placements').map((r) => [r.addr, r.at]));
+    return { blocked, placed };
+  }
+
+  /**
+   * GET /admin/servers: the registry as the matchmaker sees it (each server's region from the players' pings), the agents
+   * and the rules. POST {block: [addr...], unblock: [...], own: [...], unown: [...], forget: [...]}: the blocklist (step 4), Oz's
+   * own servers (duels go there first), and agents to forget (their next heartbeat is refused until they register again).
+   */
+  private async adminServers(req: Request): Promise<Response> {
+    const now = Date.now();
+    if (req.method === 'POST') {
+      const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+      const list = (k: string) => (Array.isArray(body[k]) ? body[k] : []).map(cleanAddr).filter(Boolean);
+      for (const a of list('block')) this.sql.exec("INSERT OR REPLACE INTO server_rules(addr, kind, at) VALUES (?, 'block', ?)", a, now);
+      for (const a of list('unblock')) this.sql.exec("DELETE FROM server_rules WHERE addr = ? AND kind = 'block'", a);
+      for (const a of list('own')) this.sql.exec("INSERT OR REPLACE INTO server_rules(addr, kind, at) VALUES (?, 'own', ?)", a, now);
+      for (const a of list('unown')) this.sql.exec("DELETE FROM server_rules WHERE addr = ? AND kind = 'own'", a);
+      for (const a of list('forget')) this.sql.exec('DELETE FROM agents WHERE addr = ?', a);
+    }
+    expire(this.registry, now);
+    return Response.json({
+      servers: [...this.registry.values()].map((s) => ({ ...s, region: regionOf(s) })),
+      agents: this.rows<{ id: string; addr: string; name: string; created: number; seen: number; info: string }>('SELECT id, addr, name, created, seen, info FROM agents')
+        .map((a) => ({ ...a, info: JSON.parse(a.info), alive: a.seen > now - AGENT_ALIVE_MS })),
+      rules: this.rows<{ addr: string; kind: string; at: number }>('SELECT addr, kind, at FROM server_rules'),
+      placements: this.rows<{ addr: string; at: number }>('SELECT addr, at FROM placements WHERE at > ?', now - 3600_000),
+    });
+  }
+
+  /**
+   * The Oz Server Agent's routes (ENGINE_PLAN.md P8b step 8; engine/src/oz/agent). register {addr, name} once: the server's id
+   * and secret, which the agent keeps (an address registers once; the admin's `forget` frees it). alive {info} every minute
+   * (its own getstatus of its server: the matchmaker's Verified pick reads it) and report {result} at each match's end (the
+   * Stats object's agentReport), each signed: x-oz-sig is the body's HMAC-SHA256 with the secret, hex.
+   */
+  private async agentRoute(what: string, req: Request): Promise<Response> {
+    if (req.method !== 'POST') return new Response('method', { status: 405 });
+    const text = await req.text();
+    if (text.length > 64_000) return Response.json({ ok: false, reason: 'too big' }, { status: 413 });
+    const now = Date.now();
+    if (what === 'register') {
+      let body: Record<string, unknown>;
+      try {
+        body = JSON.parse(text);
+      } catch {
+        return Response.json({ ok: false, reason: 'not JSON' }, { status: 400 });
+      }
+      const addr = cleanAddr(body.addr);
+      if (!addr) return Response.json({ ok: false, reason: 'addr must be ip:port' }, { status: 400 });
+      const have = this.one<{ id: string; secret: string }>('SELECT id, secret FROM agents WHERE addr = ?', addr);
+      if (have && have.secret !== String(body.secret ?? '')) return Response.json({ ok: false, reason: 'That address is registered already.' }, { status: 409 });
+      if (have) return Response.json({ ok: true, server: have.id, secret: have.secret, addr });
+      const id = hex(crypto.getRandomValues(new Uint8Array(8)));
+      const secret = hex(crypto.getRandomValues(new Uint8Array(32)));
+      this.sql.exec('INSERT INTO agents(id, addr, name, secret, created, seen) VALUES (?, ?, ?, ?, ?, 0)', id, addr, clean(body.name, 40), secret, now);
+      return Response.json({ ok: true, server: id, secret, addr });
+    }
+    const id = req.headers.get('x-oz-server') ?? '';
+    const sig = (req.headers.get('x-oz-sig') ?? '').toLowerCase();
+    const agent = /^[0-9a-f]{16}$/.test(id) ? this.one<{ addr: string; secret: string }>('SELECT addr, secret FROM agents WHERE id = ?', id) : null;
+    if (!agent || !(await hmacOk(agent.secret, text, sig))) return Response.json({ ok: false, reason: 'The signature check failed.' }, { status: 403 });
+    if (this.one("SELECT 1 AS x FROM server_rules WHERE addr = ? AND kind = 'block'", agent.addr))
+      return Response.json({ ok: false, reason: 'This server is blocked.' }, { status: 403 });
+    let body: Record<string, unknown>;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      return Response.json({ ok: false, reason: 'not JSON' }, { status: 400 });
+    }
+    if (what === 'alive') {
+      const info = cleanInfo(body.info);
+      this.sql.exec('UPDATE agents SET seen = ?, info = ? WHERE id = ?', now, JSON.stringify(info), id);
+      return Response.json({ ok: true, addr: agent.addr, verified: true });
+    }
+    if (what === 'report') {
+      this.sql.exec('UPDATE agents SET seen = ? WHERE id = ?', now, id);
+      const r = await this.stats().agentReport(agent.addr, JSON.stringify(body.result ?? body));
+      if (!r.ok) return Response.json({ ok: false, reason: r.reason }, { status: 400 });
+      this.afterStored(r);
+      return Response.json({ ok: true, match: r.match, trust: r.trust, reports: r.reports, agreed: r.agreed });
+    }
+    return new Response('not found', { status: 404 });
   }
 
   /** The match is void: no rating moves. `lockMissing`: players who never joined it get a lockout (queue dodging). */
@@ -1684,6 +1964,17 @@ export function normalizeCode(raw: string): string {
   return `${s.slice(0, 4)}-${s.slice(4)}`;
 }
 
+/** Whether `sig` (hex) is HMAC-SHA256 of `text` with `secret` (the agent's). */
+async function hmacOk(secret: string, text: string, sig: string): Promise<boolean> {
+  if (!/^[0-9a-f]{64}$/.test(sig)) return false;
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = hex(new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(text))));
+  const a = enc.encode(mac);
+  const b = enc.encode(sig);
+  return a.length === b.length && crypto.subtle.timingSafeEqual(a, b);
+}
+
 function trySend(ws: WebSocket, data: string) {
   try {
     ws.send(data);
@@ -1699,6 +1990,17 @@ function gen(v: unknown): number {
 
 function clean(v: unknown, max: number): string {
   return String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max);
+}
+
+/** A short lowercase id (a mod's folder, a map's file name), or "". */
+function token(v: unknown, max: number): string {
+  const s = String(v ?? '').toLowerCase();
+  return new RegExp(`^[a-z0-9_.\\-]{1,${max}}$`).test(s) ? s : '';
+}
+
+/** A community server's address as the game names it: a host name or an IP (v6 in brackets) and a port. */
+export function isAddress(v: unknown): boolean {
+  return typeof v === 'string' && /^(\[[0-9a-f:.]{2,45}\]|[\w.\-]{1,64}):\d{1,5}$/i.test(v);
 }
 
 /** The game URI-encodes the name so any characters survive an HTTP header. */

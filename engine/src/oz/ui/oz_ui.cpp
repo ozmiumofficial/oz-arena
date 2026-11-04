@@ -328,6 +328,7 @@ static Page pages[] = {
 	{ "server_browser", "ui/pages/server_browser.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "dedicated", "ui/pages/dedicated.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "offline_bots", "ui/pages/offline_bots.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
+	{ "mods", "ui/pages/mods.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },	// PH step 2: the Mod Library (oz_ui_mods.cpp)
 	{ "create_match", "ui/pages/create_match.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "campaign", "ui/pages/campaign.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "training", "ui/pages/training.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },

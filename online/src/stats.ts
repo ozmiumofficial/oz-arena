@@ -17,8 +17,12 @@
 // Trust (step 7): a match counts for nothing shared until two or more Oz players' reports agree on its scoreboard
 // (Corroborated), decided by ranked.ts decide(), the hub's one agreement check. A lone report (Self-reported) stays in
 // its player's own history. A match that counted keeps counting; a later report that disagrees just doesn't count.
-// Verified (the Oz Server Agent, step 8) comes later. Shared XP, the level board's, is the XP the agreed scoreboard
-// gives: 100 for finishing, 10 a point of score, 150 a win (q3_profile.gd's lines that the scoreboard proves).
+// Verified (step 8): the Oz Server Agent beside a server posts each match's result from the server's own games.log,
+// signed with the server's key (the Hub checks it: /agent/report). It is one more reporter of the match: it can't know
+// sv_serverid or the level start time, so its result meets the players' reports by server, map, time and the scoreboard
+// itself (the same rows), and a match whose agreed scoreboard the agent confirms is Verified, which counts even for one
+// Oz player alone on the server. Shared XP, the level board's, is the XP the agreed scoreboard gives: 100 for finishing,
+// 10 a point of score, 150 a win (q3_profile.gd's lines that the scoreboard proves).
 import { DurableObject } from 'cloudflare:workers';
 import type { Env } from './index';
 import { canonical, decide, MODES, type Report, type Row } from './ranked';
@@ -28,6 +32,10 @@ const KEY_WINDOW_MS = 6 * 3600_000;
 /** A report older than this (a game that was offline for long) is refused. */
 const MAX_AGE_MS = 30 * 86_400_000;
 const HISTORY_ROWS = 20;
+/** An agent's result and the players' reports of the same match on a server come within this long of each other. */
+const AGENT_WINDOW_MS = 30 * 60_000;
+/** the agent's place among a match's reporters (resolve): never a client number */
+const AGENT = 'agent';
 const XP_FINISHED = 100;
 const XP_FRAG = 10;
 const XP_WIN = 150;
@@ -78,7 +86,9 @@ interface You {
 export type Stored =
   | { ok: true; rid: string; match: number; key: string; trust: Trust; reports: number; agreed: number; map: string; mode: string;
       /** reporters whose report agrees with the decided scoreboard (each told when the match's trust changes) */
-      reporters: string[]; changed: boolean; counted: string[] }
+      reporters: string[]; changed: boolean; counted: string[];
+      /** the decided scoreboard and which client each agreeing reporter was (the Hub's ranked results for a matchmade match) */
+      rows: Row[]; who: Record<string, number>; agent: boolean }
   | { ok: false; rid: string; reason: string };
 
 export interface HistoryRow {
@@ -124,7 +134,12 @@ export class Stats extends DurableObject<Env> {
         deaths INTEGER NOT NULL DEFAULT 0, shots INTEGER NOT NULL DEFAULT 0, hits INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(pid, weapon));
       CREATE TABLE IF NOT EXISTS career_maps(pid TEXT NOT NULL, map TEXT NOT NULL, matches INTEGER NOT NULL DEFAULT 0,
         wins INTEGER NOT NULL DEFAULT 0, frags INTEGER NOT NULL DEFAULT 0, deaths INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(pid, map));
+      CREATE INDEX IF NOT EXISTS matches_server ON matches(server, map, first);
     `);
+    // columns added since the first deployment (CREATE TABLE IF NOT EXISTS leaves an existing table as it was)
+    const cols = new Set(this.rows<{ name: string }>('PRAGMA table_info(matches)').map((c) => c.name));
+    if (!cols.has('agent')) this.sql.exec("ALTER TABLE matches ADD COLUMN agent TEXT NOT NULL DEFAULT ''");
+    if (!cols.has('agent_at')) this.sql.exec('ALTER TABLE matches ADD COLUMN agent_at INTEGER NOT NULL DEFAULT 0');
   }
 
   // ------------------------------------------------------------------ reports
@@ -146,6 +161,11 @@ export class Stats extends DurableObject<Env> {
     if (again) return this.answer(again.match, r.rid, false, []);
     const key = r.match_id ? `id:${r.match_id}` : r.server === 'local' ? `local:${pid}:${r.rid}` : `${r.server}|${r.map}|${r.serverid}|${r.start}`;
     let match = this.one<{ id: number }>('SELECT id FROM matches WHERE key = ? AND first > ? ORDER BY first DESC LIMIT 1', key, now - KEY_WINDOW_MS)?.id;
+    if (match === undefined && r.server !== 'local') {
+      // the agent's result came first: the match it made on this server and map with this very scoreboard
+      match = this.agentMatchFor(r.server, r.map, canonical(r.rows), now);
+      if (match !== undefined) this.sql.exec('UPDATE matches SET key = ? WHERE id = ?', key, match);
+    }
     if (match === undefined) {
       match = this.one<{ id: number }>(
         `INSERT INTO matches(key, server, hostname, mod, mode, gametype, map, start, first, seconds, trust, rows)
@@ -161,8 +181,8 @@ export class Stats extends DurableObject<Env> {
 
   /** Decides the match from all its reports (decide()); counts it for every agreeing reporter once it's Corroborated. */
   private resolve(match: number, rid: string): Stored {
-    const m = this.one<{ trust: Trust; mode: string; mod: string; map: string; seconds: number }>(
-      'SELECT trust, mode, mod, map, seconds FROM matches WHERE id = ?', match)!;
+    const m = this.one<{ trust: Trust; mode: string; mod: string; map: string; seconds: number; agent: string }>(
+      'SELECT trust, mode, mod, map, seconds, agent FROM matches WHERE id = ?', match)!;
     const rows = this.rows<{ pid: string; report: string; counted: number }>('SELECT pid, report, counted FROM reports WHERE match = ?', match);
     const cleanBy: Record<string, Clean> = {};
     const reports: Record<string, Report> = {};
@@ -171,16 +191,20 @@ export class Stats extends DurableObject<Env> {
       cleanBy[x.pid] = c;
       reports[x.pid] = { me: c.me, rows: c.rows, left: c.left, peers: {} };
     }
+    // the server's agent is one more reporter, with no seat of its own
+    const agentRows = m.agent ? (JSON.parse(m.agent) as AgentResult).rows : null;
+    if (agentRows) reports[AGENT] = { me: -1, rows: agentRows, left: false, peers: {} };
     const verdict = decide(Object.keys(reports), '', reports, m.mode === 'duel', true);
     let trust: Trust = m.trust;
     let agreed: string[] = [];
-    let decided = rows.length ? cleanBy[rows[0].pid].rows : [];
+    let decided = rows.length ? cleanBy[rows[0].pid].rows : agentRows ?? [];
     if (verdict !== 'wait' && verdict.ok) {
       const want = canonical(verdict.rows);
-      agreed = Object.keys(reports).filter((p) => !reports[p].left && canonical(reports[p].rows) === want);
+      agreed = Object.keys(cleanBy).filter((p) => !reports[p].left && canonical(reports[p].rows) === want);
       decided = cleanBy[agreed[0]]?.rows ?? decided;
-      if (agreed.length >= 2 && trust !== 'verified') trust = 'corroborated';
-    } else if (rows.length >= 2 && trust === 'self') {
+      if (agentRows && canonical(agentRows) === want) trust = 'verified';
+      else if (agreed.length >= 2 && trust !== 'verified') trust = 'corroborated';
+    } else if (rows.length + (agentRows ? 1 : 0) >= 2 && trust === 'self') {
       trust = 'disputed';
     }
     const changed = trust !== m.trust;
@@ -233,11 +257,66 @@ export class Stats extends DurableObject<Env> {
   }
 
   private answer(match: number, rid: string, changed: boolean, counted: string[]): Stored {
-    const m = this.one<{ key: string; trust: Trust; reports: number; agreed: number; map: string; mode: string }>(
-      'SELECT key, trust, reports, agreed, map, mode FROM matches WHERE id = ?', match)!;
-    const reporters = this.rows<{ pid: string }>('SELECT pid FROM reports WHERE match = ? AND agreed = 1', match).map((x) => x.pid);
+    const m = this.one<{ key: string; trust: Trust; reports: number; agreed: number; map: string; mode: string; rows: string; agent: string }>(
+      'SELECT key, trust, reports, agreed, map, mode, rows, agent FROM matches WHERE id = ?', match)!;
+    const who: Record<string, number> = {};
+    for (const x of this.rows<{ pid: string; report: string }>('SELECT pid, report FROM reports WHERE match = ? AND agreed = 1', match))
+      who[x.pid] = (JSON.parse(x.report) as Clean).me;
     return { ok: true, rid, match, key: m.key.startsWith('local:') ? 'local' : m.key, trust: m.trust, reports: m.reports, agreed: m.agreed,
-      map: m.map, mode: m.mode, reporters, changed, counted };
+      map: m.map, mode: m.mode, reporters: Object.keys(who), changed, counted, rows: JSON.parse(m.rows) as Row[], who, agent: !!m.agent };
+  }
+
+  // ------------------------------------------------------------------ the Oz Server Agent (step 8)
+
+  /** The agent's match on this server and map, with this scoreboard, that no player has reported yet (within the window). */
+  private agentMatchFor(server: string, map: string, want: string, now: number): number | undefined {
+    for (const m of this.rows<{ id: number; agent: string }>(
+      "SELECT id, agent FROM matches WHERE server = ? AND map = ? AND agent != '' AND reports = 0 AND first > ? ORDER BY first DESC",
+      server, map, now - AGENT_WINDOW_MS)) {
+      if (canonical((JSON.parse(m.agent) as AgentResult).rows) === want) return m.id;
+    }
+    return undefined;
+  }
+
+  /**
+   * A server's agent posted a match's result (the Hub checked its signature; `server` is the address it registered). It
+   * joins the match the players reported from that server and map with the same scoreboard, within the window, or makes
+   * the match itself when no player has reported it yet; either way the match is decided again with the agent among its
+   * reporters, so an agreeing scoreboard makes it Verified.
+   */
+  agentReport(server: string, text: string): Stored {
+    let raw: unknown;
+    try {
+      raw = JSON.parse(text);
+    } catch {
+      return { ok: false, rid: '', reason: 'The result is not JSON.' };
+    }
+    const r = cleanAgent(raw);
+    if (typeof r === 'string') return { ok: false, rid: '', reason: r };
+    const now = Date.now();
+    const want = canonical(r.rows);
+    let match: number | undefined;
+    for (const m of this.rows<{ id: number; rows: string; agent: string }>(
+      'SELECT id, rows, agent FROM matches WHERE server = ? AND map = ? AND first > ? ORDER BY first DESC', server, r.map, now - AGENT_WINDOW_MS)) {
+      if (m.agent) {
+        if (canonical((JSON.parse(m.agent) as AgentResult).rows) === want) return this.answer(m.id, '', false, []); // the same result again
+        continue;
+      }
+      const theirs = this.rows<{ report: string }>('SELECT report FROM reports WHERE match = ?', m.id)
+        .some((x) => canonical((JSON.parse(x.report) as Clean).rows) === want);
+      if (theirs || canonical(JSON.parse(m.rows) as Row[]) === want) {
+        match = m.id;
+        break;
+      }
+    }
+    if (match === undefined) {
+      match = this.one<{ id: number }>(
+        `INSERT INTO matches(key, server, hostname, mod, mode, gametype, map, start, first, seconds, trust, rows)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 'self', ?) RETURNING id`,
+        `agent:${server}|${r.map}|${r.at}`, server, r.hostname, r.mod, r.mode, r.gametype, r.map, now, r.seconds, JSON.stringify(r.rows))!.id;
+    }
+    this.sql.exec('UPDATE matches SET agent = ?, agent_at = ? WHERE id = ?', JSON.stringify(r), now, match);
+    return this.resolve(match, '');
   }
 
   // ------------------------------------------------------------------ reading
@@ -374,6 +453,49 @@ function counts(v: unknown): Record<string, number> {
   return out;
 }
 
+/** An agent's result as stored: the match and its final scoreboard in the players' reports' form (rows -1 and -2 the team scores). */
+export interface AgentResult {
+  v: number;
+  mod: string;
+  gametype: number;
+  mode: string;
+  map: string;
+  hostname: string;
+  exit: string;
+  seconds: number;
+  at: number;
+  rows: Clean['rows'];
+}
+
+/** The gametype's mode name, as the engine's recorder names it (oz_stats.c ModeOf). */
+export function modeOf(gametype: number): string {
+  return ['ffa', 'duel', 'single', 'tdm', 'ctf'][gametype] ?? `gt${gametype}`;
+}
+
+function cleanRows(v: unknown): Clean['rows'] {
+  return (Array.isArray(v) ? v : []).slice(0, 66).map((x) => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    return { client: int(r.client, -2, 63), score: int(r.score, -100_000, 100_000), team: int(r.team, 0, 3), name: text(r.name, 36), bot: r.bot === true };
+  });
+}
+
+/** An agent's result ({v: 1, mod, gametype, map, hostname, exit, seconds, at, rows}) in a fixed shape, or why it can't be taken. */
+function cleanAgent(v: unknown): AgentResult | string {
+  if (!v || typeof v !== 'object') return 'The result is empty.';
+  const o = v as Record<string, unknown>;
+  if (o.v !== 1) return 'This result format is not known.';
+  const map = token(o.map, 64);
+  if (!map) return 'The result names no map.';
+  const rows = cleanRows(o.rows);
+  if (!rows.some((r) => r.client >= 0)) return 'The result has no players.';
+  if (new Set(rows.map((r) => r.client)).size !== rows.length) return 'The scoreboard lists a player twice.';
+  const gametype = int(o.gametype, -1, 32);
+  const at = int(o.at, 0, 2 ** 52);
+  if (Math.abs(Date.now() - at) > AGENT_WINDOW_MS) return 'The result is too old.';
+  return { v: 1, mod: token(o.mod, 32) || 'baseq3', gametype, mode: token(o.mode, 16) || modeOf(gametype), map, hostname: text(o.hostname, 64),
+    exit: text(o.exit, 40), seconds: int(o.seconds, 0, 86_400), at, rows };
+}
+
 /** The report in a fixed shape with every field bounded, or why it can't be taken. */
 function cleanReport(v: unknown): Clean | string {
   if (!v || typeof v !== 'object') return 'The report is empty.';
@@ -385,10 +507,7 @@ function cleanReport(v: unknown): Clean | string {
   if (!/^[\w.:\-[\]]{1,64}$/.test(server)) return 'The report names no server.';
   const map = token(o.map, 64);
   if (!map) return 'The report names no map.';
-  const rows = (Array.isArray(o.rows) ? o.rows : []).slice(0, 66).map((x) => {
-    const r = (x ?? {}) as Record<string, unknown>;
-    return { client: int(r.client, -2, 63), score: int(r.score, -100_000, 100_000), team: int(r.team, 0, 3), name: text(r.name, 36), bot: r.bot === true };
-  });
+  const rows = cleanRows(o.rows);
   const me = int(o.me, 0, 63);
   if (!rows.some((r) => r.client === me && r.client >= 0)) return 'The reporter is not on the scoreboard.';
   if (new Set(rows.map((r) => r.client)).size !== rows.length) return 'The scoreboard lists a player twice.';

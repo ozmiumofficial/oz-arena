@@ -1,0 +1,1348 @@
+Oz: Unlagged 2.01's lag compensation (Neil "haste" Toronto, GPL v2 or later: www.ra.is/unlagged), fitted to
+Oz's game. The server traces an instant hit (machine gun, shotgun, lightning gun, railgun, and in Oz the
+gauntlet) against every other player where the shooter saw him, at the shooter's command time, from a
+history of each player's place kept by time (g_unlagged.c), never further back than g_delagMax ms; a player
+whose commands miss server frames is moved on along his path (skip correction). The shooter's cgame draws his
+own rail, shotgun and machine gun shots as he fires them, from the same seed the server takes, and drops the
+server's events for them (cg_unlagged.c). g_delagHitscan 0 is id's game exactly; cg_delag and cg_cmdTimeNudge
+are each player's, cg_projectileNudge draws the others' missiles ahead. Left out: Unlagged's missile pass (it
+moved no one), its lag simulation, true ping, optimized prediction and the lightning gun (game patch 0023).
+
+diff --git a/code/game/g_unlagged.c b/code/game/g_unlagged.c
+new file mode 100644
+--- /dev/null
++++ b/code/game/g_unlagged.c
+@@ -0,0 +1,664 @@
++/*
++===========================================================================
++Copyright (C) 2006 Neil Toronto.
++
++This file is part of the Unlagged source code.
++
++Unlagged source code is free software; you can redistribute it and/or
++modify it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 2 of the License, or (at your
++option) any later version.
++
++Unlagged source code is distributed in the hope that it will be useful, but
++WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++for more details.
++
++You should have received a copy of the GNU General Public License
++along with Unlagged source code; if not, write to the Free Software
++Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++===========================================================================
++*/
++//
++// g_unlagged.c -- Unlagged 2.01's lag compensation (Neil "haste" Toronto), fitted to Oz's game
++//
++// Oz: what's kept and what changed (game patch 0029)
++//	- Backward reconciliation: an instant-hit shot (machine gun, shotgun, lightning gun, railgun, and in Oz the
++//	  gauntlet too) is traced against every other player where the shooter saw him, at the shooter's command
++//	  time. g_delagHitscan 0 turns all of it off (Unlagged still took 50 ms off every shot then); a player's
++//	  cg_delag 0 keeps just those 50 ms.
++//	- Missiles run as in id's game. Unlagged ran them after the rest of the frame with the players shifted to
++//	  the last frame's time, but that time is always the newest in the history, which the shift leaves alone:
++//	  it moved no one.
++//	- The history is kept by time, 64 server frames (Unlagged kept 17, about 850 ms at sv_fps 20), and a shot
++//	  is never taken back further than g_delagMax ms, so a very high ping can't hit someone long since behind a
++//	  wall.
++//	- Skip correction: a player whose commands miss server frames is moved on along his path, up to two
++//	  frames, so the others don't see him stop and jump; the history keeps that place too, so shots at him
++//	  match what was drawn. The cgame's own extrapolation (g_smoothClients' TR_LINEAR_STOP) is off then.
++//	- Each player's state lives here, so g_local.h's structures are untouched and his options (cg_delag,
++//	  cg_cmdTimeNudge) survive a respawn. A client whose userinfo lacks cg_delag gets the full compensation.
++//	- Left out: Unlagged's lag simulation (Oz tests behind a relay), true ping, the grapple and the debug
++//	  prints.
++//
++#include "g_local.h"
++
++#define NUM_CLIENT_HISTORY	64
++
++// everything we need to know to backward reconcile
++typedef struct {
++	vec3_t		mins, maxs;
++	vec3_t		currentOrigin;
++	int			leveltime;
++} clientHistory_t;
++
++static struct {
++	int				delag;				// cg_delag: 0 off, 1 every instant-hit weapon, or 2 machine gun, 4 shotgun,
++										// 8 lightning gun, 16 railgun
++	int				cmdTimeNudge;		// cg_cmdTimeNudge: ms less compensation
++	int				attackTime;			// the command's time, before pmove_fixed rounds it: when the shooter saw
++										// what he shot at
++	int				frameOffset;		// ms into the server frame the command came
++	int				lastUpdateFrame;	// the server frame the last command came in
++	int				historyHead;
++	clientHistory_t	history[NUM_CLIENT_HISTORY];
++	clientHistory_t	saved;				// where he was before a time shift
++} ul[MAX_CLIENTS];
++
++static int	frameStartTime;		// trap_Milliseconds() as this server frame began
++
++
++/*
++============
++G_UnlaggedUserinfo
++
++A player's options, from his userinfo (ClientUserinfoChanged)
++============
++*/
++void G_UnlaggedUserinfo( gentity_t *ent, const char *userinfo ) {
++	const int	n = ent - g_entities;
++	const char	*s;
++
++	if ( n < 0 || n >= MAX_CLIENTS ) {
++		return;
++	}
++	s = Info_ValueForKey( userinfo, "cg_delag" );
++	ul[n].delag = *s ? atoi( s ) : 1;
++	// negative values would let people shoot others *long* after they had left the area, on purpose
++	ul[n].cmdTimeNudge = Com_Clamp( 0, 999, atoi( Info_ValueForKey( userinfo, "cg_cmdTimeNudge" ) ) );
++}
++
++
++/*
++============
++G_UnlaggedClientThink
++
++Each command a player sends, before pmove_fixed rounds its time (ClientThink_real)
++============
++*/
++void G_UnlaggedClientThink( gentity_t *ent, int serverTime ) {
++	const int n = ent - g_entities;
++
++	// frameOffset should be about the number of milliseconds into a frame this command packet was received,
++	// depending on how fast the server does a G_RunFrame()
++	ul[n].frameOffset = trap_Milliseconds() - frameStartTime;
++	// attackTime will be used for backward reconciliation later (time shift)
++	ul[n].attackTime = serverTime;
++	// keep track of this for later - we'll use this to decide whether or not to extrapolate this client
++	ul[n].lastUpdateFrame = level.framenum;
++}
++
++
++/*
++============
++G_AttackSeed
++
++A shot's spread, from something the client knows in advance (its command's time), so it can draw the same
++============
++*/
++int G_AttackSeed( gentity_t *ent ) {
++	return ul[ent - g_entities].attackTime & 255;
++}
++
++
++/*
++============
++G_ResetHistory
++
++Clear out the given client's history (should be called when the teleport bit is flipped)
++============
++*/
++void G_ResetHistory( gentity_t *ent ) {
++	const int	n = ent - g_entities;
++	const int	step = level.time > level.previousTime ? level.time - level.previousTime : 50;	// Oz: any sv_fps
++	int			i, time;
++
++	// fill up the history with data (assume the current position)
++	ul[n].historyHead = NUM_CLIENT_HISTORY - 1;
++	for ( i = ul[n].historyHead, time = level.time; i >= 0; i--, time -= step ) {
++		VectorCopy( ent->r.mins, ul[n].history[i].mins );
++		VectorCopy( ent->r.maxs, ul[n].history[i].maxs );
++		VectorCopy( ent->r.currentOrigin, ul[n].history[i].currentOrigin );
++		ul[n].history[i].leveltime = time;
++	}
++	// and this is as good a time as any to clear the saved state
++	ul[n].saved.leveltime = 0;
++}
++
++
++/*
++============
++G_StoreHistory
++
++Keep track of where the client's been
++============
++*/
++static void G_StoreHistory( gentity_t *ent ) {
++	const int	n = ent - g_entities;
++	int			head;
++
++	ul[n].historyHead++;
++	if ( ul[n].historyHead >= NUM_CLIENT_HISTORY ) {
++		ul[n].historyHead = 0;
++	}
++
++	head = ul[n].historyHead;
++
++	// store all the collision-detection info and the time
++	VectorCopy( ent->r.mins, ul[n].history[head].mins );
++	VectorCopy( ent->r.maxs, ul[n].history[head].maxs );
++	VectorCopy( ent->s.pos.trBase, ul[n].history[head].currentOrigin );
++	SnapVector( ul[n].history[head].currentOrigin );
++	ul[n].history[head].leveltime = level.time;
++}
++
++
++/*
++=============
++TimeShiftLerp
++
++Used below to interpolate between two previous vectors
++Returns a vector "frac" times the distance between "start" and "end"
++=============
++*/
++static void TimeShiftLerp( float frac, vec3_t start, vec3_t end, vec3_t result ) {
++	// From CG_InterpolateEntityPosition in cg_ents.c: making these exactly the same should avoid
++	// floating-point error
++	result[0] = start[0] + frac * ( end[0] - start[0] );
++	result[1] = start[1] + frac * ( end[1] - start[1] );
++	result[2] = start[2] + frac * ( end[2] - start[2] );
++}
++
++
++/*
++=================
++G_TimeShiftClient
++
++Move a client back to where he was at the specified "time"
++=================
++*/
++static void G_TimeShiftClient( gentity_t *ent, int time ) {
++	const int	n = ent - g_entities;
++	int			j, k;
++
++	// find two entries in the history whose times sandwich "time"
++	// assumes no two adjacent records have the same timestamp
++	j = k = ul[n].historyHead;
++	do {
++		if ( ul[n].history[j].leveltime <= time ) {
++			break;
++		}
++
++		k = j;
++		j--;
++		if ( j < 0 ) {
++			j = NUM_CLIENT_HISTORY - 1;
++		}
++	}
++	while ( j != ul[n].historyHead );
++
++	// if we got past the first iteration above, we've sandwiched (or wrapped)
++	if ( j != k ) {
++		// make sure it doesn't get re-saved
++		if ( ul[n].saved.leveltime != level.time ) {
++			// save the current origin and bounding box
++			VectorCopy( ent->r.mins, ul[n].saved.mins );
++			VectorCopy( ent->r.maxs, ul[n].saved.maxs );
++			VectorCopy( ent->r.currentOrigin, ul[n].saved.currentOrigin );
++			ul[n].saved.leveltime = level.time;
++		}
++
++		// if we haven't wrapped back to the head, we've sandwiched, so
++		// we shift the client's position back to where he was at "time"
++		if ( j != ul[n].historyHead ) {
++			float	frac = (float)( time - ul[n].history[j].leveltime ) /
++				(float)( ul[n].history[k].leveltime - ul[n].history[j].leveltime );
++
++			// interpolate between the two origins to give position at time index "time"
++			TimeShiftLerp( frac, ul[n].history[j].currentOrigin, ul[n].history[k].currentOrigin, ent->r.currentOrigin );
++
++			// lerp these too, just for fun (and ducking)
++			TimeShiftLerp( frac, ul[n].history[j].mins, ul[n].history[k].mins, ent->r.mins );
++			TimeShiftLerp( frac, ul[n].history[j].maxs, ul[n].history[k].maxs, ent->r.maxs );
++		} else {
++			// we wrapped, so grab the earliest
++			VectorCopy( ul[n].history[k].currentOrigin, ent->r.currentOrigin );
++			VectorCopy( ul[n].history[k].mins, ent->r.mins );
++			VectorCopy( ul[n].history[k].maxs, ent->r.maxs );
++		}
++
++		// this will recalculate absmin and absmax
++		trap_LinkEntity( ent );
++	}
++	// else the time is later than his newest record (a negative timenudge): he stays
++}
++
++
++/*
++=====================
++G_TimeShiftAllClients
++
++Move ALL clients back to where they were at the specified "time", except for "skip"
++=====================
++*/
++static void G_TimeShiftAllClients( int time, gentity_t *skip ) {
++	gentity_t	*ent;
++	int			i;
++
++	for ( i = 0, ent = g_entities; i < level.maxclients; i++, ent++ ) {
++		if ( ent->client && ent->inuse && ent->client->sess.sessionTeam < TEAM_SPECTATOR && ent != skip ) {
++			G_TimeShiftClient( ent, time );
++		}
++	}
++}
++
++
++/*
++================
++G_DoTimeShiftFor
++
++Decide what time to shift everyone back to, and do it
++================
++*/
++void G_DoTimeShiftFor( gentity_t *ent ) {
++	// Oz: the instant-hit weapons, and the cg_delag bit for each (the gauntlet goes with 1, every weapon)
++	static const qboolean	instant[WP_NUM_WEAPONS] = { qfalse, qtrue, qtrue, qtrue, qfalse, qfalse, qtrue, qtrue };
++	static const int		wpflags[WP_NUM_WEAPONS] = { 0, 0, 2, 4, 0, 0, 8, 16 };
++	int						n, flag, time;
++
++	// don't time shift for mistakes or bots, nor when it's off, nor for a missile
++	if ( !ent->inuse || !ent->client || ( ent->r.svFlags & SVF_BOT ) || !g_delagHitscan.integer ) {
++		return;
++	}
++	if ( ent->client->ps.weapon <= WP_NONE || ent->client->ps.weapon >= WP_NUM_WEAPONS || !instant[ent->client->ps.weapon] ) {
++		return;
++	}
++	n = ent - g_entities;
++	flag = wpflags[ent->client->ps.weapon];
++
++	// if the client wants it, or wants it for this weapon
++	if ( ( ul[n].delag & 1 ) || ( ul[n].delag & flag ) ) {
++		// do the full lag compensation, except what the client nudges
++		time = ul[n].attackTime + ul[n].cmdTimeNudge;
++		// Oz: no further back than g_delagMax
++		if ( time < level.time - g_delagMax.integer ) {
++			time = level.time - g_delagMax.integer;
++		}
++	} else {
++		// do just 50ms
++		time = level.previousTime + ul[n].frameOffset;
++	}
++
++	G_TimeShiftAllClients( time, ent );
++}
++
++
++/*
++===================
++G_UnTimeShiftClient
++
++Move a client back to where he was before the time shift
++===================
++*/
++void G_UnTimeShiftClient( gentity_t *ent ) {
++	const int n = ent - g_entities;
++
++	// if it was saved
++	if ( n >= 0 && n < MAX_CLIENTS && ul[n].saved.leveltime == level.time ) {
++		// move it back
++		VectorCopy( ul[n].saved.mins, ent->r.mins );
++		VectorCopy( ul[n].saved.maxs, ent->r.maxs );
++		VectorCopy( ul[n].saved.currentOrigin, ent->r.currentOrigin );
++		ul[n].saved.leveltime = 0;
++
++		// this will recalculate absmin and absmax
++		trap_LinkEntity( ent );
++	}
++}
++
++
++/*
++=======================
++G_UnTimeShiftAllClients
++
++Move ALL the clients back to where they were before the time shift, except for "skip"
++=======================
++*/
++static void G_UnTimeShiftAllClients( gentity_t *skip ) {
++	gentity_t	*ent;
++	int			i;
++
++	for ( i = 0, ent = g_entities; i < level.maxclients; i++, ent++ ) {
++		if ( ent->client && ent->inuse && ent->client->sess.sessionTeam < TEAM_SPECTATOR && ent != skip ) {
++			G_UnTimeShiftClient( ent );
++		}
++	}
++}
++
++
++/*
++==================
++G_UndoTimeShiftFor
++
++Put everyone except for this client back where they were
++==================
++*/
++void G_UndoTimeShiftFor( gentity_t *ent ) {
++	// don't un-time shift for mistakes or bots
++	if ( !ent->inuse || !ent->client || ( ent->r.svFlags & SVF_BOT ) ) {
++		return;
++	}
++
++	G_UnTimeShiftAllClients( ent );
++}
++
++
++/*
++=====================
++G_UnlaggedFrameStart
++
++Record the time at the start of this frame (G_RunFrame)
++=====================
++*/
++void G_UnlaggedFrameStart( void ) {
++	frameStartTime = trap_Milliseconds();
++}
++
++
++/*
++===========================
++G_PredictPlayerClipVelocity
++
++Slide on the impacting surface
++===========================
++*/
++
++#define	OVERCLIP		1.001f
++
++static void G_PredictPlayerClipVelocity( vec3_t in, vec3_t normal, vec3_t out ) {
++	float	backoff;
++
++	// find the magnitude of the vector "in" along "normal"
++	backoff = DotProduct (in, normal);
++
++	// tilt the plane a bit to avoid floating-point error issues
++	if ( backoff < 0 ) {
++		backoff *= OVERCLIP;
++	} else {
++		backoff /= OVERCLIP;
++	}
++
++	// slide along
++	VectorMA( in, -backoff, normal, out );
++}
++
++
++/*
++========================
++G_PredictPlayerSlideMove
++
++Advance the given entity frametime seconds, sliding as appropriate
++========================
++*/
++#define	MAX_CLIP_PLANES	5
++
++static qboolean G_PredictPlayerSlideMove( gentity_t *ent, float frametime ) {
++	int			bumpcount, numbumps;
++	vec3_t		dir;
++	float		d;
++	int			numplanes;
++	vec3_t		planes[MAX_CLIP_PLANES];
++	vec3_t		primal_velocity, velocity, origin;
++	vec3_t		clipVelocity;
++	int			i, j, k;
++	trace_t	trace;
++	vec3_t		end;
++	float		time_left;
++	float		into;
++	vec3_t		endVelocity;
++	vec3_t		endClipVelocity;
++
++	numbumps = 4;
++
++	VectorCopy( ent->s.pos.trDelta, primal_velocity );
++	VectorCopy( primal_velocity, velocity );
++	VectorCopy( ent->s.pos.trBase, origin );
++
++	VectorCopy( velocity, endVelocity );
++
++	time_left = frametime;
++
++	numplanes = 0;
++
++	for ( bumpcount = 0; bumpcount < numbumps; bumpcount++ ) {
++
++		// calculate position we are trying to move to
++		VectorMA( origin, time_left, velocity, end );
++
++		// see if we can make it there
++		trap_Trace( &trace, origin, ent->r.mins, ent->r.maxs, end, ent->s.number, ent->clipmask );
++
++		if (trace.allsolid) {
++			// entity is completely trapped in another solid
++			VectorClear( velocity );
++			VectorCopy( origin, ent->s.pos.trBase );
++			return qtrue;
++		}
++
++		if (trace.fraction > 0) {
++			// actually covered some distance
++			VectorCopy( trace.endpos, origin );
++		}
++
++		if (trace.fraction == 1) {
++			break;		// moved the entire distance
++		}
++
++		time_left -= time_left * trace.fraction;
++
++		if ( numplanes >= MAX_CLIP_PLANES ) {
++			// this shouldn't really happen
++			VectorClear( velocity );
++			VectorCopy( origin, ent->s.pos.trBase );
++			return qtrue;
++		}
++
++		//
++		// if this is the same plane we hit before, nudge velocity
++		// out along it, which fixes some epsilon issues with
++		// non-axial planes
++		//
++		for ( i = 0; i < numplanes; i++ ) {
++			if ( DotProduct( trace.plane.normal, planes[i] ) > 0.99 ) {
++				VectorAdd( trace.plane.normal, velocity, velocity );
++				break;
++			}
++		}
++
++		if ( i < numplanes ) {
++			continue;
++		}
++
++		VectorCopy( trace.plane.normal, planes[numplanes] );
++		numplanes++;
++
++		//
++		// modify velocity so it parallels all of the clip planes
++		//
++
++		// find a plane that it enters
++		for ( i = 0; i < numplanes; i++ ) {
++			into = DotProduct( velocity, planes[i] );
++			if ( into >= 0.1 ) {
++				continue;		// move doesn't interact with the plane
++			}
++
++			// slide along the plane
++			G_PredictPlayerClipVelocity( velocity, planes[i], clipVelocity );
++
++			// slide along the plane
++			G_PredictPlayerClipVelocity( endVelocity, planes[i], endClipVelocity );
++
++			// see if there is a second plane that the new move enters
++			for ( j = 0; j < numplanes; j++ ) {
++				if ( j == i ) {
++					continue;
++				}
++
++				if ( DotProduct( clipVelocity, planes[j] ) >= 0.1 ) {
++					continue;		// move doesn't interact with the plane
++				}
++
++				// try clipping the move to the plane
++				G_PredictPlayerClipVelocity( clipVelocity, planes[j], clipVelocity );
++				G_PredictPlayerClipVelocity( endClipVelocity, planes[j], endClipVelocity );
++
++				// see if it goes back into the first clip plane
++				if ( DotProduct( clipVelocity, planes[i] ) >= 0 ) {
++					continue;
++				}
++
++				// slide the original velocity along the crease
++				CrossProduct( planes[i], planes[j], dir );
++				VectorNormalize( dir );
++				d = DotProduct( dir, velocity );
++				VectorScale( dir, d, clipVelocity );
++
++				CrossProduct( planes[i], planes[j], dir );
++				VectorNormalize( dir );
++				d = DotProduct( dir, endVelocity );
++				VectorScale( dir, d, endClipVelocity );
++
++				// see if there is a third plane the the new move enters
++				for ( k = 0; k < numplanes; k++ ) {
++					if ( k == i || k == j ) {
++						continue;
++					}
++
++					if ( DotProduct( clipVelocity, planes[k] ) >= 0.1 ) {
++						continue;		// move doesn't interact with the plane
++					}
++
++					// stop dead at a tripple plane interaction
++					VectorClear( velocity );
++					VectorCopy( origin, ent->s.pos.trBase );
++					return qtrue;
++				}
++			}
++
++			// if we have fixed all interactions, try another move
++			VectorCopy( clipVelocity, velocity );
++			VectorCopy( endClipVelocity, endVelocity );
++			break;
++		}
++	}
++
++	VectorCopy( endVelocity, velocity );
++	VectorCopy( origin, ent->s.pos.trBase );
++
++	return (bumpcount != 0);
++}
++
++
++/*
++============================
++G_PredictPlayerStepSlideMove
++
++Advance the given entity frametime seconds, stepping and sliding as appropriate
++============================
++*/
++#define	STEPSIZE 18
++
++static void G_PredictPlayerStepSlideMove( gentity_t *ent, float frametime ) {
++	vec3_t start_o, start_v;
++	vec3_t down, up;
++	trace_t trace;
++	float stepSize;
++
++	VectorCopy (ent->s.pos.trBase, start_o);
++	VectorCopy (ent->s.pos.trDelta, start_v);
++
++	if ( !G_PredictPlayerSlideMove( ent, frametime ) ) {
++		// not clipped, so forget stepping
++		return;
++	}
++
++	VectorCopy (start_o, up);
++	up[2] += STEPSIZE;
++
++	// test the player position if they were a stepheight higher
++	trap_Trace( &trace, start_o, ent->r.mins, ent->r.maxs, up, ent->s.number, ent->clipmask );
++	if ( trace.allsolid ) {
++		return;		// can't step up
++	}
++
++	stepSize = trace.endpos[2] - start_o[2];
++
++	// try slidemove from this position
++	VectorCopy( trace.endpos, ent->s.pos.trBase );
++	VectorCopy( start_v, ent->s.pos.trDelta );
++
++	G_PredictPlayerSlideMove( ent, frametime );
++
++	// push down the final amount
++	VectorCopy( ent->s.pos.trBase, down );
++	down[2] -= stepSize;
++	trap_Trace( &trace, ent->s.pos.trBase, ent->r.mins, ent->r.maxs, down, ent->s.number, ent->clipmask );
++	if ( !trace.allsolid ) {
++		VectorCopy( trace.endpos, ent->s.pos.trBase );
++	}
++	if ( trace.fraction < 1.0 ) {
++		G_PredictPlayerClipVelocity( ent->s.pos.trDelta, trace.plane.normal, ent->s.pos.trDelta );
++	}
++}
++
++
++/*
++=====================
++G_UnlaggedClientEndFrame
++
++After the player's entity state is set each server frame (ClientEndFrame): skip correction, then the history
++=====================
++*/
++void G_UnlaggedClientEndFrame( gentity_t *ent ) {
++	const int	n = ent - g_entities;
++	int			frames;
++
++	if ( g_delagHitscan.integer && g_smoothClients.integer ) {
++		// see how many frames the client has missed, and don't extrapolate more than two
++		frames = level.framenum - ul[n].lastUpdateFrame - 1;
++		if ( frames > 2 ) {
++			frames = 2;
++		}
++
++		// did the client miss any frames? then move him along his path that far
++		if ( frames > 0 ) {
++			G_PredictPlayerStepSlideMove( ent, frames * ( level.time - level.previousTime ) * 0.001f );
++			// save network bandwidth
++			SnapVector( ent->s.pos.trBase );
++		}
++	}
++
++	// store the client's position for backward reconciliation later
++	G_StoreHistory( ent );
++}
+diff --git a/code/cgame/cg_unlagged.c b/code/cgame/cg_unlagged.c
+new file mode 100644
+--- /dev/null
++++ b/code/cgame/cg_unlagged.c
+@@ -0,0 +1,273 @@
++/*
++===========================================================================
++Copyright (C) 2006 Neil Toronto.
++
++This file is part of the Unlagged source code.
++
++Unlagged source code is free software; you can redistribute it and/or
++modify it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 2 of the License, or (at your
++option) any later version.
++
++Unlagged source code is distributed in the hope that it will be useful, but
++WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++for more details.
++
++You should have received a copy of the GNU General Public License
++along with Unlagged source code; if not, write to the Free Software
++Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++===========================================================================
++*/
++//
++// cg_unlagged.c -- Unlagged 2.01's client side (Neil "haste" Toronto), fitted to Oz's cgame
++//
++// Oz: what's kept and what changed (game patch 0029)
++//	- Attack prediction: on a server that compensates (g_delagHitscan in its serverinfo, g_unlagged.c), the
++//	  player's own railgun, shotgun and machine gun shots are drawn as he fires them, from his predicted place
++//	  and view, where the server traces them; the server's events for them are dropped (CG_UnlaggedPredicted).
++//	  The spread's seed is the command's time, the one the server takes (Unlagged read cg.oldTime, which is the
++//	  same time). Not while following someone, in a demo or without prediction: the view isn't the player's
++//	  own prediction then, so the server's events draw the shots. The lightning gun is game patch 0023's.
++//	- cg_projectileNudge draws the others' missiles that many ms ahead, so a high ping sees them nearer where
++//	  the server has them; the player's own aren't moved (Unlagged moved them a server frame ahead to make up
++//	  for its missile pass, which g_unlagged.c leaves out).
++//	- Left out: Unlagged's lag simulation, its optimized prediction (Oz's prediction is game patches 0022,
++//	  0025 and 0027), its early transitioning and timenudge extrapolation, the bounding boxes and the debug
++//	  prints.
++//
++#include "cg_local.h"
++
++vmCvar_t	cg_delag;
++vmCvar_t	cg_cmdTimeNudge;
++vmCvar_t	cg_projectileNudge;
++vmCvar_t	cg_debugDelag;
++
++// g_weapon.c's
++#define MACHINEGUN_SPREAD	200
++
++/*
++=================
++CG_UnlaggedServer
++
++The server's g_delagHitscan: "" when it isn't an Unlagged server
++=================
++*/
++static const char *CG_UnlaggedServer( void ) {
++	return Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_delagHitscan" );
++}
++
++/*
++=================
++CG_UnlaggedOn
++
++Whether this player's shots with the weapon of this cg_delag bit are drawn as he fires them
++=================
++*/
++static qboolean CG_UnlaggedOn( int bit ) {
++	if ( !( cg_delag.integer & ( 1 | bit ) ) ) {
++		return qfalse;
++	}
++	if ( cg.demoPlayback || cg_nopredict.integer || cg_synchronousClients.integer ) {
++		return qfalse;
++	}
++	if ( !cg.snap || ( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
++		return qfalse;
++	}
++	return atoi( CG_UnlaggedServer() ) != 0;
++}
++
++/*
++=================
++CG_UnlaggedFor
++
++Whether this shooter's shots with this weapon are drawn as he fires them
++=================
++*/
++static qboolean CG_UnlaggedFor( int shooter, int weapon ) {
++	if ( shooter != cg.predictedPlayerState.clientNum ) {
++		return qfalse;
++	}
++	switch ( weapon ) {
++	case WP_MACHINEGUN:
++		return CG_UnlaggedOn( 2 );
++	case WP_SHOTGUN:
++		return CG_UnlaggedOn( 4 );
++	case WP_RAILGUN:
++		return CG_UnlaggedOn( 16 );
++	default:
++		return qfalse;
++	}
++}
++
++/*
++=================
++CG_UnlaggedPredicted
++
++Whether a shot event was drawn as its shooter fired it, so CG_EntityEvent drops it. cg_debugDelag 1 prints
++the event, "delag: server <weapon> <seed> <x> <y> <z>" (where the shot ended, or where the shotgun fired
++from, with its seed), as CG_PredictWeaponEffects prints what it drew ("delag: drawn ...";
++engine/tests/unlagged_test.py compares them)
++=================
++*/
++qboolean CG_UnlaggedPredicted( const entityState_t *es, int shooter, int weapon ) {
++	if ( !CG_UnlaggedFor( shooter, weapon ) ) {
++		return qfalse;
++	}
++	if ( cg_debugDelag.integer ) {
++		CG_Printf( "delag: server %d %d %.0f %.0f %.0f\n", weapon, weapon == WP_SHOTGUN ? es->eventParm : -1,
++			es->pos.trBase[0], es->pos.trBase[1], es->pos.trBase[2] );
++	}
++	return qtrue;
++}
++
++// cg_debugDelag's line for a shot drawn as it was fired
++static void CG_DebugDrawn( int weapon, int seed, const vec3_t at ) {
++	if ( cg_debugDelag.integer ) {
++		CG_Printf( "delag: drawn %d %d %.0f %.0f %.0f\n", weapon, seed, at[0], at[1], at[2] );
++	}
++}
++
++/*
++=================
++SnapVectorTowards
++
++Round a vector to integers for more efficient network transmission, but make sure that it rounds towards
++a given point rather than blindly truncating. This prevents it from truncating into a wall. (g_weapon.c's)
++=================
++*/
++static void SnapVectorTowards( vec3_t v, vec3_t to ) {
++	int		i;
++
++	for ( i = 0 ; i < 3 ; i++ ) {
++		if ( to[i] <= v[i] ) {
++			v[i] = floor( v[i] );
++		} else {
++			v[i] = ceil( v[i] );
++		}
++	}
++}
++
++/*
++=======================
++CG_PredictWeaponEffects
++
++Draws predicted effects for the railgun, shotgun, and machinegun, as the server's game makes them
++(CG_FireWeapon)
++=======================
++*/
++void CG_PredictWeaponEffects( centity_t *cent ) {
++	const int		self = cg.predictedPlayerState.clientNum;
++	const int		weapon = cent->currentState.weapon;
++	vec3_t			muzzle, forward, right, up, end, dir;
++	trace_t			tr;
++	usercmd_t		cmd;
++	int				seed;
++
++	// if the client isn't us, forget it
++	if ( cent->currentState.number != self || !CG_UnlaggedFor( self, weapon ) ) {
++		return;
++	}
++
++	// the server's muzzle point (CalcMuzzlePointOrigin) and the seed it takes for the spread: the command's time
++	VectorCopy( cg.predictedPlayerState.origin, muzzle );
++	SnapVector( muzzle );
++	muzzle[2] += cg.predictedPlayerState.viewheight;
++	AngleVectors( cg.predictedPlayerState.viewangles, forward, right, up );
++	VectorMA( muzzle, 14, forward, muzzle );
++	SnapVector( muzzle );
++	trap_GetUserCmd( trap_GetCurrentCmdNumber(), &cmd );
++	seed = cmd.serverTime & 255;
++
++	if ( weapon == WP_RAILGUN ) {
++		vec3_t	start;
++
++		// trace only against the solids, so the railgun goes through people
++		VectorMA( muzzle, 8192, forward, end );
++		CG_Trace( &tr, muzzle, vec3_origin, vec3_origin, end, self, CONTENTS_SOLID );
++		SnapVectorTowards( tr.endpos, muzzle );
++
++		// move the start a bit to come closer to the drawn gun muzzle, as the server and EV_RAILTRAIL do
++		VectorMA( muzzle, 4, right, start );
++		VectorMA( start, -1, up, start );
++		if ( !cg.renderingThirdPerson ) {
++			if ( cg_drawGun.integer == 2 ) {
++				VectorMA( start, 8, cg.refdef.viewaxis[1], start );
++			} else if ( cg_drawGun.integer == 3 ) {
++				VectorMA( start, 4, cg.refdef.viewaxis[1], start );
++			}
++		}
++		CG_RailTrail( &cgs.clientinfo[self], start, tr.endpos );
++		CG_DebugDrawn( weapon, -1, tr.endpos );
++
++		// no explosion at the end if SURF_NOIMPACT
++		if ( !( tr.surfaceFlags & SURF_NOIMPACT ) ) {
++			ByteToDir( DirToByte( tr.plane.normal ), dir );
++			CG_MissileHitWall( WP_RAILGUN, self, tr.endpos, dir, IMPACTSOUND_DEFAULT );
++		}
++	} else if ( weapon == WP_SHOTGUN ) {
++		entityState_t	es;
++
++		// the server's EV_SHOTGUN
++		memset( &es, 0, sizeof( es ) );
++		VectorCopy( muzzle, es.pos.trBase );
++		VectorScale( forward, 4096, es.origin2 );
++		SnapVector( es.origin2 );
++		es.eventParm = seed;
++		es.otherEntityNum = self;
++		CG_ShotgunFire( &es );
++		CG_DebugDrawn( weapon, seed, muzzle );
++	} else if ( weapon == WP_MACHINEGUN ) {
++		float	r, u;
++
++		// do everything exactly like the server does (Bullet_Fire)
++		r = Q_random( &seed ) * M_PI * 2.0f;
++		u = sin( r ) * Q_crandom( &seed ) * MACHINEGUN_SPREAD * 16;
++		r = cos( r ) * Q_crandom( &seed ) * MACHINEGUN_SPREAD * 16;
++		VectorMA( muzzle, 8192 * 16, forward, end );
++		VectorMA( end, r, right, end );
++		VectorMA( end, u, up, end );
++
++		CG_Trace( &tr, muzzle, NULL, NULL, end, self, MASK_SHOT );
++		if ( tr.surfaceFlags & SURF_NOIMPACT ) {
++			return;
++		}
++
++		// snap the endpos to integers, but nudged towards the line
++		SnapVectorTowards( tr.endpos, muzzle );
++		CG_DebugDrawn( weapon, -1, tr.endpos );
++
++		if ( tr.entityNum < MAX_CLIENTS ) {
++			CG_Bullet( tr.endpos, self, tr.plane.normal, qtrue, tr.entityNum );
++		} else {
++			ByteToDir( DirToByte( tr.plane.normal ), dir );
++			CG_Bullet( tr.endpos, self, dir, qfalse, ENTITYNUM_WORLD );
++		}
++	}
++}
++
++/*
++=======================
++CG_ProjectileNudge
++
++The others' missiles drawn cg_projectileNudge ms ahead, never through a wall (CG_CalcEntityLerpPositions)
++=======================
++*/
++void CG_ProjectileNudge( centity_t *cent ) {
++	const entityState_t	*s = &cent->currentState;
++	vec3_t				ahead;
++	trace_t				tr;
++
++	if ( cg_projectileNudge.integer <= 0 || s->eType != ET_MISSILE ) {
++		return;
++	}
++	// not a grapple, nor a bouncing grenade, nor one of the player's own (only an Unlagged server says whose)
++	if ( s->weapon == WP_GRAPPLING_HOOK || s->weapon == WP_GRENADE_LAUNCHER || !*CG_UnlaggedServer()
++			|| s->otherEntityNum == cg.predictedPlayerState.clientNum ) {
++		return;
++	}
++
++	BG_EvaluateTrajectory( &s->pos, cg.time + cg_projectileNudge.integer, ahead );
++	CG_Trace( &tr, cent->lerpOrigin, vec3_origin, vec3_origin, ahead, s->number, MASK_SHOT );
++	VectorCopy( tr.endpos, cent->lerpOrigin );
++}
+diff --git a/code/game/g_active.c b/code/game/g_active.c
+--- a/code/game/g_active.c
++++ b/code/game/g_active.c
+@@ -807,6 +807,9 @@ void ClientThink_real( gentity_t *ent ) {
+ //		G_Printf("serverTime >>>>>\n" );
+ 	} 
+ 
++	// Oz: Unlagged's lag compensation takes the command's time before pmove_fixed rounds it (g_unlagged.c)
++	G_UnlaggedClientThink( ent, ucmd->serverTime );
++
+ 	msec = ucmd->serverTime - client->ps.commandTime;
+ 	// following others may result in bad times, but we still want
+ 	// to check for follow toggles
+@@ -977,7 +980,7 @@ void ClientThink_real( gentity_t *ent ) {
+ 	if ( ent->client->ps.eventSequence != oldEventSequence ) {
+ 		ent->eventTime = level.time;
+ 	}
+-	if (g_smoothClients.integer) {
++	if ( g_smoothClients.integer && !g_delagHitscan.integer ) {	// Oz: else Unlagged's skip correction does it here
+ 		BG_PlayerStateToEntityStateExtraPolate( &ent->client->ps, &ent->s, ent->client->ps.commandTime, qtrue );
+ 	}
+ 	else {
+@@ -1214,7 +1217,7 @@ void ClientEndFrame( gentity_t *ent ) {
+ 	G_SetClientSound (ent);
+ 
+ 	// set the latest infor
+-	if (g_smoothClients.integer) {
++	if ( g_smoothClients.integer && !g_delagHitscan.integer ) {	// Oz: else Unlagged's skip correction does it here
+ 		BG_PlayerStateToEntityStateExtraPolate( &ent->client->ps, &ent->s, ent->client->ps.commandTime, qtrue );
+ 	}
+ 	else {
+@@ -1222,6 +1225,9 @@ void ClientEndFrame( gentity_t *ent ) {
+ 	}
+ 	SendPendingPredictableEvents( &ent->client->ps );
+ 
++	// Oz: Unlagged's skip correction and the history it shoots against
++	G_UnlaggedClientEndFrame( ent );
++
+ 	// set the bit for the reachability area the client is currently in
+ //	i = trap_AAS_PointReachabilityAreaIndex( ent->client->ps.origin );
+ //	ent->client->areabits[i >> 3] |= 1 << (i & 7);
+diff --git a/code/game/g_weapon.c b/code/game/g_weapon.c
+--- a/code/game/g_weapon.c
++++ b/code/game/g_weapon.c
+@@ -80,7 +80,9 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
+ 
+ 	VectorMA (muzzle, 32, forward, end);
+ 
++	G_DoTimeShiftFor( ent );	// Oz: Unlagged's lag compensation, for the gauntlet too
+ 	trap_Trace (&tr, muzzle, NULL, NULL, end, ent->s.number, MASK_SHOT);
++	G_UndoTimeShiftFor( ent );
+ 	if ( tr.surfaceFlags & SURF_NOIMPACT ) {
+ 		return qfalse;
+ 	}
+@@ -175,9 +177,18 @@ void Bullet_Fire (gentity_t *ent, float spread, int damage, int mod ) {
+ 
+ 	damage *= s_quadFactor;
+ 
+-	r = random() * M_PI * 2.0f;
+-	u = sin(r) * crandom() * spread * 16;
+-	r = cos(r) * crandom() * spread * 16;
++	if ( g_delagHitscan.integer ) {
++		// Oz: Unlagged's attack prediction: a spread from the command's time, which the shooter's cgame draws too
++		int seed = G_AttackSeed( ent );
++
++		r = Q_random( &seed ) * M_PI * 2.0f;
++		u = sin( r ) * Q_crandom( &seed ) * spread * 16;
++		r = cos( r ) * Q_crandom( &seed ) * spread * 16;
++	} else {
++		r = random() * M_PI * 2.0f;
++		u = sin(r) * crandom() * spread * 16;
++		r = cos(r) * crandom() * spread * 16;
++	}
+ 	VectorMA (muzzle, 8192*16, forward, end);
+ 	VectorMA (end, r, right, end);
+ 	VectorMA (end, u, up, end);
+@@ -372,7 +383,7 @@ void weapon_supershotgun_fire (gentity_t *ent) {
+ 	tent = G_TempEntity( muzzle, EV_SHOTGUN );
+ 	VectorScale( forward, 4096, tent->s.origin2 );
+ 	SnapVector( tent->s.origin2 );
+-	tent->s.eventParm = rand() & 255;		// seed for spread pattern
++	tent->s.eventParm = g_delagHitscan.integer ? G_AttackSeed( ent ) : rand() & 255;		// seed for spread pattern (Oz: Unlagged's, which the shooter's cgame knows)
+ 	tent->s.otherEntityNum = ent->s.number;
+ 
+ 	ShotgunPattern( tent->s.pos.trBase, tent->s.origin2, tent->s.eventParm, ent );
+@@ -848,6 +859,9 @@ void FireWeapon( gentity_t *ent ) {
+ 
+ 	CalcMuzzlePointOrigin ( ent, ent->client->oldOrigin, forward, right, up, muzzle );
+ 
++	// Oz: Unlagged's lag compensation: an instant hit finds the others where this player saw them (g_unlagged.c)
++	G_DoTimeShiftFor( ent );
++
+ 	// fire the specific weapon
+ 	switch( ent->s.weapon ) {
+ 	case WP_GAUNTLET:
+@@ -901,6 +915,8 @@ void FireWeapon( gentity_t *ent ) {
+ // FIXME		G_Error( "Bad ent->s.weapon" );
+ 		break;
+ 	}
++
++	G_UndoTimeShiftFor( ent );
+ }
+ 
+ 
+diff --git a/code/game/g_main.c b/code/game/g_main.c
+--- a/code/game/g_main.c
++++ b/code/game/g_main.c
+@@ -83,6 +83,8 @@ vmCvar_t	pmove_msec;
+ vmCvar_t	g_rankings;
+ vmCvar_t	g_listEntity;
+ vmCvar_t	g_localTeamPref;
++vmCvar_t	g_delagHitscan;		// Oz: Unlagged's lag compensation (g_unlagged.c)
++vmCvar_t	g_delagMax;
+ #ifdef MISSIONPACK
+ vmCvar_t	g_obeliskHealth;
+ vmCvar_t	g_obeliskRegenPeriod;
+@@ -181,7 +183,11 @@ static cvarTable_t		gameCvarTable[] = {
+ 	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, 0, qfalse},
+ 
+ 	{ &g_rankings, "g_rankings", "0", 0, 0, qfalse},
+-	{ &g_localTeamPref, "g_localTeamPref", "", 0, 0, qfalse }
++	{ &g_localTeamPref, "g_localTeamPref", "", 0, 0, qfalse },
++
++	// Oz: Unlagged's lag compensation: instant hits where the shooter saw them, no further back than g_delagMax ms
++	{ &g_delagHitscan, "g_delagHitscan", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
++	{ &g_delagMax, "g_delagMax", "500", CVAR_ARCHIVE, 0, qfalse }
+ 
+ };
+ 
+@@ -1836,6 +1842,7 @@ void G_RunFrame( int levelTime ) {
+ 	level.framenum++;
+ 	level.previousTime = level.time;
+ 	level.time = levelTime;
++	G_UnlaggedFrameStart();	// Oz: Unlagged's lag compensation (g_unlagged.c)
+ 
+ 	// get any cvar changes
+ 	G_UpdateCvars();
+diff --git a/code/game/g_local.h b/code/game/g_local.h
+--- a/code/game/g_local.h
++++ b/code/game/g_local.h
+@@ -748,6 +748,21 @@ extern	vmCvar_t	g_enableBreath;
+ extern	vmCvar_t	g_singlePlayer;
+ extern	vmCvar_t	g_proxMineTimeout;
+ extern	vmCvar_t	g_localTeamPref;
++extern	vmCvar_t	g_delagHitscan;
++extern	vmCvar_t	g_delagMax;
++
++//
++// g_unlagged.c (Oz: Unlagged 2.01's lag compensation)
++//
++void G_UnlaggedUserinfo( gentity_t *ent, const char *userinfo );
++void G_UnlaggedClientThink( gentity_t *ent, int serverTime );
++void G_UnlaggedClientEndFrame( gentity_t *ent );
++void G_UnlaggedFrameStart( void );
++int G_AttackSeed( gentity_t *ent );
++void G_ResetHistory( gentity_t *ent );
++void G_DoTimeShiftFor( gentity_t *ent );
++void G_UndoTimeShiftFor( gentity_t *ent );
++void G_UnTimeShiftClient( gentity_t *ent );
+ 
+ void	trap_Print( const char *text );
+ void	trap_Error( const char *text ) Q_NO_RETURN;
+diff --git a/code/game/g_client.c b/code/game/g_client.c
+--- a/code/game/g_client.c
++++ b/code/game/g_client.c
+@@ -734,6 +734,9 @@ void ClientUserinfoChanged( int clientNum ) {
+ 		client->pers.predictItemPickup = qtrue;
+ 	}
+ 
++	// Oz: Unlagged's options, cg_delag and cg_cmdTimeNudge
++	G_UnlaggedUserinfo( ent, userinfo );
++
+ 	// set name
+ 	Q_strncpyz ( oldname, client->pers.netname, sizeof( oldname ) );
+ 	s = Info_ValueForKey (userinfo, "name");
+@@ -1244,6 +1247,9 @@ void ClientSpawn(gentity_t *ent) {
+ 
+ 	// clear entity state values
+ 	BG_PlayerStateToEntityState( &client->ps, &ent->s, qtrue );
++
++	// Oz: Unlagged's history starts again where he spawned, so no shot takes him back to where he died
++	G_ResetHistory( ent );
+ }
+ 
+ 
+diff --git a/code/game/g_combat.c b/code/game/g_combat.c
+--- a/code/game/g_combat.c
++++ b/code/game/g_combat.c
+@@ -448,6 +448,9 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
+ 		return;
+ 	}
+ 
++	// Oz: Unlagged: the body stays where he really was, not where a shot found him
++	G_UnTimeShiftClient( self );
++
+ 	// check for an almost capture
+ 	CheckAlmostCapture( self, attacker );
+ 	// check for a player that almost brought in cubes
+diff --git a/code/game/g_misc.c b/code/game/g_misc.c
+--- a/code/game/g_misc.c
++++ b/code/game/g_misc.c
+@@ -121,6 +121,10 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
+ 	if ( player->client->sess.sessionTeam != TEAM_SPECTATOR ) {
+ 		trap_LinkEntity (player);
+ 	}
++
++	// Oz: Unlagged's history starts again past the teleporter, so no shot takes him back through it
++	// (Unlagged reset it before he moved)
++	G_ResetHistory( player );
+ }
+ 
+ 
+diff --git a/code/game/g_missile.c b/code/game/g_missile.c
+--- a/code/game/g_missile.c
++++ b/code/game/g_missile.c
+@@ -532,6 +532,7 @@ gentity_t *fire_plasma (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->r.svFlags = SVF_USE_CURRENT_ORIGIN;
+ 	bolt->s.weapon = WP_PLASMAGUN;
+ 	bolt->r.ownerNum = self->s.number;
++	bolt->s.otherEntityNum = self->s.number;	// Oz: Unlagged's projectile nudge leaves the player's own alone
+ 	bolt->parent = self;
+ 	bolt->damage = 20;
+ 	bolt->splashDamage = 15;
+@@ -574,6 +575,7 @@ gentity_t *fire_grenade (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->s.weapon = WP_GRENADE_LAUNCHER;
+ 	bolt->s.eFlags = EF_BOUNCE_HALF;
+ 	bolt->r.ownerNum = self->s.number;
++	bolt->s.otherEntityNum = self->s.number;	// Oz: Unlagged's projectile nudge leaves the player's own alone
+ 	bolt->parent = self;
+ 	bolt->damage = 100;
+ 	bolt->splashDamage = 100;
+@@ -615,6 +617,7 @@ gentity_t *fire_bfg (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->r.svFlags = SVF_USE_CURRENT_ORIGIN;
+ 	bolt->s.weapon = WP_BFG;
+ 	bolt->r.ownerNum = self->s.number;
++	bolt->s.otherEntityNum = self->s.number;	// Oz: Unlagged's projectile nudge leaves the player's own alone
+ 	bolt->parent = self;
+ 	bolt->damage = 100;
+ 	bolt->splashDamage = 100;
+@@ -655,6 +658,7 @@ gentity_t *fire_rocket (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->r.svFlags = SVF_USE_CURRENT_ORIGIN;
+ 	bolt->s.weapon = WP_ROCKET_LAUNCHER;
+ 	bolt->r.ownerNum = self->s.number;
++	bolt->s.otherEntityNum = self->s.number;	// Oz: Unlagged's projectile nudge leaves the player's own alone
+ 	bolt->parent = self;
+ 	bolt->damage = 100;
+ 	bolt->splashDamage = 100;
+@@ -733,6 +737,7 @@ gentity_t *fire_nail( gentity_t *self, vec3_t start, vec3_t forward, vec3_t righ
+ 	bolt->r.svFlags = SVF_USE_CURRENT_ORIGIN;
+ 	bolt->s.weapon = WP_NAILGUN;
+ 	bolt->r.ownerNum = self->s.number;
++	bolt->s.otherEntityNum = self->s.number;	// Oz: Unlagged's projectile nudge leaves the player's own alone
+ 	bolt->parent = self;
+ 	bolt->damage = 20;
+ 	bolt->methodOfDeath = MOD_NAIL;
+@@ -781,6 +786,7 @@ gentity_t *fire_prox( gentity_t *self, vec3_t start, vec3_t dir ) {
+ 	bolt->s.weapon = WP_PROX_LAUNCHER;
+ 	bolt->s.eFlags = 0;
+ 	bolt->r.ownerNum = self->s.number;
++	bolt->s.otherEntityNum = self->s.number;	// Oz: Unlagged's projectile nudge leaves the player's own alone
+ 	bolt->parent = self;
+ 	bolt->damage = 0;
+ 	bolt->splashDamage = 100;
+diff --git a/code/cgame/cg_main.c b/code/cgame/cg_main.c
+--- a/code/cgame/cg_main.c
++++ b/code/cgame/cg_main.c
+@@ -294,6 +294,12 @@ static cvarTable_t cvarTable[] = {
+ 	{ &cg_paused, "cl_paused", "0", CVAR_ROM },
+ 	{ &cg_blood, "com_blood", "1", CVAR_ARCHIVE },
+ 	{ &cg_synchronousClients, "g_synchronousClients", "0", CVAR_SYSTEMINFO },
++	// Oz: Unlagged's options (cg_unlagged.c): the lag compensation (1 every instant-hit weapon, or 2 machine gun,
++	// 4 shotgun, 16 railgun), ms less of it, and how far ahead the others' missiles are drawn
++	{ &cg_delag, "cg_delag", "1", CVAR_ARCHIVE | CVAR_USERINFO },
++	{ &cg_cmdTimeNudge, "cg_cmdTimeNudge", "0", CVAR_ARCHIVE | CVAR_USERINFO },
++	{ &cg_projectileNudge, "cg_projectileNudge", "0", CVAR_ARCHIVE },
++	{ &cg_debugDelag, "cg_debugDelag", "0", 0 },
+ #ifdef MISSIONPACK
+ 	{ &cg_redTeamName, "g_redteam", DEFAULT_REDTEAM_NAME, CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_USERINFO },
+ 	{ &cg_blueTeamName, "g_blueteam", DEFAULT_BLUETEAM_NAME, CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_USERINFO },
+diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
+--- a/code/cgame/cg_local.h
++++ b/code/cgame/cg_local.h
+@@ -1166,6 +1166,10 @@ extern	vmCvar_t		cg_thirdPerson;
+ extern	vmCvar_t		cg_lagometer;
+ extern	vmCvar_t		cg_drawAttacker;
+ extern	vmCvar_t		cg_synchronousClients;
++extern	vmCvar_t		cg_delag;
++extern	vmCvar_t		cg_cmdTimeNudge;
++extern	vmCvar_t		cg_projectileNudge;
++extern	vmCvar_t		cg_debugDelag;
+ extern	vmCvar_t		cg_teamChatTime;
+ extern	vmCvar_t		cg_teamChatHeight;
+ extern	vmCvar_t		cg_stats;
+@@ -1392,6 +1396,14 @@ void CG_ShotgunFire( entityState_t *es );
+ void CG_Bullet( vec3_t origin, int sourceEntityNum, vec3_t normal, qboolean flesh, int fleshEntityNum );
+ 
+ void CG_RailTrail( clientInfo_t *ci, vec3_t start, vec3_t end );
++
++//
++// cg_unlagged.c (Oz: Unlagged 2.01's client side)
++//
++qboolean CG_UnlaggedPredicted( const entityState_t *es, int shooter, int weapon );
++void CG_PredictWeaponEffects( centity_t *cent );
++void CG_ProjectileNudge( centity_t *cent );
++
+ void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi );
+ void CG_AddViewWeapon (playerState_t *ps);
+ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent, int team );
+diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
+--- a/code/cgame/cg_weapons.c
++++ b/code/cgame/cg_weapons.c
+@@ -1782,6 +1782,9 @@ void CG_FireWeapon( centity_t *cent ) {
+ 	if ( weap->ejectBrassFunc && cg_brassTime.integer > 0 ) {
+ 		weap->ejectBrassFunc( cent );
+ 	}
++
++	// Oz: Unlagged's attack prediction: the player's own shot drawn as he fires it (cg_unlagged.c)
++	CG_PredictWeaponEffects( cent );
+ }
+ 
+ 
+diff --git a/code/cgame/cg_event.c b/code/cgame/cg_event.c
+--- a/code/cgame/cg_event.c
++++ b/code/cgame/cg_event.c
+@@ -987,6 +987,9 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
+ 	case EV_RAILTRAIL:
+ 		DEBUGNAME("EV_RAILTRAIL");
+ 		cent->currentState.weapon = WP_RAILGUN;
++		if ( CG_UnlaggedPredicted( es, es->clientNum, WP_RAILGUN ) ) {
++			break;	// Oz: drawn as it was fired (Unlagged, cg_unlagged.c)
++		}
+ 		
+ 		if(es->clientNum == cg.snap->ps.clientNum && !cg.renderingThirdPerson)
+ 		{
+@@ -1007,17 +1010,26 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
+ 
+ 	case EV_BULLET_HIT_WALL:
+ 		DEBUGNAME("EV_BULLET_HIT_WALL");
++		if ( CG_UnlaggedPredicted( es, es->otherEntityNum, WP_MACHINEGUN ) ) {
++			break;	// Oz: drawn as it was fired (Unlagged, cg_unlagged.c)
++		}
+ 		ByteToDir( es->eventParm, dir );
+ 		CG_Bullet( es->pos.trBase, es->otherEntityNum, dir, qfalse, ENTITYNUM_WORLD );
+ 		break;
+ 
+ 	case EV_BULLET_HIT_FLESH:
+ 		DEBUGNAME("EV_BULLET_HIT_FLESH");
++		if ( CG_UnlaggedPredicted( es, es->otherEntityNum, WP_MACHINEGUN ) ) {
++			break;	// Oz: drawn as it was fired (Unlagged, cg_unlagged.c)
++		}
+ 		CG_Bullet( es->pos.trBase, es->otherEntityNum, dir, qtrue, es->eventParm );
+ 		break;
+ 
+ 	case EV_SHOTGUN:
+ 		DEBUGNAME("EV_SHOTGUN");
++		if ( CG_UnlaggedPredicted( es, es->otherEntityNum, WP_SHOTGUN ) ) {
++			break;	// Oz: drawn as it was fired (Unlagged, cg_unlagged.c)
++		}
+ 		CG_ShotgunFire( es );
+ 		break;
+ 
+diff --git a/code/cgame/cg_ents.c b/code/cgame/cg_ents.c
+--- a/code/cgame/cg_ents.c
++++ b/code/cgame/cg_ents.c
+@@ -822,6 +822,7 @@ static void CG_CalcEntityLerpPositions( centity_t *cent ) {
+ 	// just use the current frame and evaluate as best we can
+ 	BG_EvaluateTrajectory( &cent->currentState.pos, cg.time, cent->lerpOrigin );
+ 	BG_EvaluateTrajectory( &cent->currentState.apos, cg.time, cent->lerpAngles );
++	CG_ProjectileNudge( cent );	// Oz: Unlagged's (cg_unlagged.c)
+ 
+ 	// adjust for riding a mover if it wasn't rolled into the predicted
+ 	// player state
+diff --git a/cmake/basegame.cmake b/cmake/basegame.cmake
+--- a/cmake/basegame.cmake
++++ b/cmake/basegame.cmake
+@@ -30,6 +30,7 @@ set(CGAME_SOURCES
+     ${SOURCE_DIR}/cgame/cg_snapshot.c
+     ${SOURCE_DIR}/cgame/cg_view.c
+     ${SOURCE_DIR}/cgame/cg_weapons.c
++    ${SOURCE_DIR}/cgame/cg_unlagged.c
+ )
+ 
+ set(CGAME_BINARY_SOURCES ${SOURCE_DIR}/cgame/cg_syscalls.c)
+@@ -64,6 +65,7 @@ set(GAME_SOURCES
+     ${SOURCE_DIR}/game/g_svcmds.c
+     ${SOURCE_DIR}/game/g_target.c
+     ${SOURCE_DIR}/game/g_team.c
++    ${SOURCE_DIR}/game/g_unlagged.c
+     ${SOURCE_DIR}/game/g_trigger.c
+     ${SOURCE_DIR}/game/g_utils.c
+     ${SOURCE_DIR}/game/g_weapon.c

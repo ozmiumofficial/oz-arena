@@ -721,6 +721,8 @@ static usercmd_t CL_CreateCmd( void ) {
 		cl.viewangles[PITCH] = oldAngles[PITCH] - 90;
 	}
 
+	OzView_TestCommand( &cmd );	// Oz: oz_aimdrawn and oz_patrol, a test's shooter and target (engine/tests/unlagged_test.py)
+
 	// store out the final values
 	CL_FinishMove( &cmd );
 

@@ -19,6 +19,7 @@ void	OzUI_Draw( void );				// SCR_DrawScreenField, between the game's 2D and the
 int		OzUI_IsActive( void );			// a page is open: it takes the keys, characters and mouse
 void	OzUI_KeepKeys( void );			// CL_ShutdownUI took KEYCATCH_UI: an open page takes it back
 int		OzUI_EditorOpen( void );		// the map editor's page is open (its dialogs over it too): no menu music
+void	OzUI_ModDropped( const char *path, const char *mod );	// a mod's zip or folder dropped on the window (oz_mods.c): the Mod Library's import
 void	OzUI_KeyEvent( int key, int down );
 void	OzUI_CharEvent( int ch );
 void	OzUI_MouseEvent( int x, int y );	// absolute, in the window's pixels

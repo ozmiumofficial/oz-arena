@@ -980,9 +980,6 @@ void Profile_Fill() {
 	Add( c, "xp", Thousands( lv.into ) + " / " + Thousands( lv.next ) );
 	Add( c, "to_next", Thousands( lv.next - lv.into ) + F( " to level %d", std::min( maxLevel, lv.level + 1 ) ) );
 	Add( c, "pct", Pct( (double)lv.into / std::max( 1LL, lv.next ) ) );
-	cJSON_AddBoolToObject( c, "ranked_open", lv.level >= RANKED_LEVEL );
-	cJSON_AddNumberToObject( c, "ranked_level", RANKED_LEVEL );
-	Add( c, "ranked_pct", Pct( (double)lv.level / RANKED_LEVEL ) );
 	struct Next { long long level; int kind; const char *k; const cJSON *p; };
 	std::vector<Next> nxt;
 	int ki = 0;

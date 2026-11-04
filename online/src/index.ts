@@ -1,5 +1,6 @@
 // Online services Worker. GET /hub upgrades to the social hub's WebSocket; /admin/* is the operator's (moderation,
-// removing test players), refused unless it carries the ADMIN_TOKEN secret (`wrangler secret put ADMIN_TOKEN`).
+// removing test players, the matchmaker's server blocklist), refused unless it carries the ADMIN_TOKEN secret
+// (`wrangler secret put ADMIN_TOKEN`); POST /agent/* is the Oz Server Agent's (hub.ts agentRoute).
 //
 // Identity without accounts: on first launch the game makes an RSA key pair (Godot Crypto) and keeps it in
 // user://. Every connection carries the public key (x-key, base64 SPKI DER), a millisecond timestamp (x-ts) and
@@ -54,6 +55,9 @@ export default {
       if (!(await admin(req, env))) return new Response('forbidden', { status: 403 });
       return env.HUB.get(env.HUB.idFromName('global')).fetch(req);
     }
+    // the Oz Server Agent (ENGINE_PLAN.md P8b step 8): registration, heartbeats and match results, each signed with the
+    // server's own secret, which the Hub checks
+    if (url.pathname.startsWith('/agent/')) return env.HUB.get(env.HUB.idFromName('global')).fetch(req);
     if (url.pathname !== '/hub') return new Response('not found', { status: 404 });
     if (req.headers.get('upgrade') !== 'websocket') return new Response('expected websocket', { status: 426 });
     if ((req.headers.get('x-proto') ?? '') !== PROTOCOL) return refuse(4002, 'This version of the game is out of date for online play.');

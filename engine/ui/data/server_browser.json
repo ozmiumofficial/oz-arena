@@ -5,7 +5,7 @@
     "query": "",
     "address": "",
     "game": "All supported",
-    "games": "All supported|Oz Arena|Vanilla|CPMA|Defrag|Other mods",
+    "games": "All supported|Oz Arena|Vanilla|CPMA|Defrag|Other mods|Other games",
     "region": "All regions",
     "regions": "All regions|North America East|North America West|Europe|South America|Asia|Oceania|Middle East and Africa",
     "mode": "Any mode",
@@ -34,7 +34,7 @@
     "empty_title": "",
     "empty_text": "",
     "card": { "open": false, "address": "", "rich": "", "name": "", "game": "", "kind": "", "map": "", "mode": "", "ping": "", "password": false, "look": false, "fav": false,
-      "status": "", "version": "", "physics": "", "who": "", "friends": "", "list": [] },
+      "status": "", "version": "", "engine": "", "needs": "", "physics": "", "who": "", "friends": "", "list": [] },
     "mod": { "open": false, "address": "", "dir": "", "game": "", "name": "", "found": "", "status": "", "message": "" }
   }
 }

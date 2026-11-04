@@ -938,6 +938,84 @@ static void ForceAttached( refEntity_t *ent, ozForcedBody_t *b ) {
 	}
 }
 
+// ================================================================ a test's shooter and target
+
+/*
+=================
+OzView_AimDrawn_f, OzView_Patrol_f
+
+engine/tests/unlagged_test.py's two players. oz_aimdrawn <client>|off: each command aims at that player's body
+where the last frame drew it, from that frame's eye, so a test shoots at what a player sees behind any lag. The
+command's time is the one that frame drew (Quake3e makes it before the frame's clock moves). oz_patrol <x1> <y1>
+<x2> <y2>|off: each command runs at full speed toward one end, from where the last frame's eye is, and turns back
+at it, so a moving target keeps to its line however unevenly the frames come (keys held by a script drifted off).
+On a straight line a hit's hold on the ground friction (PMF_TIME_KNOCKBACK) can't build speed; running a circle
+on it did, as a circle jump does. Cheats: only where the server has cheats on.
+=================
+*/
+static int		aimTarget = -1;
+static int		aimNoteScene, aimEyeScene;
+static vec3_t	aimAt, aimEye;
+static qboolean	patrolling;
+static float	patrol[4];		// the two ends' x, y
+static int		patrolEnd;		// the one it runs to
+
+void OzView_AimDrawn_f( void ) {
+	aimTarget = Cmd_Argc() > 1 && Q_stricmp( Cmd_Argv( 1 ), "off" ) ? atoi( Cmd_Argv( 1 ) ) : -1;
+	aimNoteScene = aimEyeScene = 0;
+}
+
+void OzView_Patrol_f( void ) {
+	int	i;
+
+	patrolling = Cmd_Argc() > 4;
+	for ( i = 0; patrolling && i < 4; i++ ) {
+		patrol[i] = atof( Cmd_Argv( i + 1 ) );
+	}
+	patrolEnd = 1;
+	aimEyeScene = 0;
+}
+
+// a part of the target's body: every part's lighting origin is where its body is drawn (OzView_Entity)
+static void AimDrawnNote( const refEntity_t *ent ) {
+	int	team;
+
+	if ( OzHud_EnemyBody( ent, &team ) == aimTarget ) {
+		VectorCopy( ent->lightingOrigin, aimAt );
+		aimAt[2] += 4;	// the middle of a standing player's box (-24 to 32)
+		aimNoteScene = scene;
+	}
+}
+
+// CL_CreateCmd: turn the view to the target, if the last world view drew it; run the patrol
+void OzView_TestCommand( usercmd_t *cmd ) {
+	vec3_t	dir, angles;
+	int		i;
+
+	if ( ( aimTarget < 0 && !patrolling ) || !aimEyeScene || cls.state != CA_ACTIVE || !Cvar_VariableIntegerValue( "sv_cheats" ) ) {
+		return;
+	}
+	if ( aimTarget >= 0 && aimNoteScene == aimEyeScene ) {
+		VectorSubtract( aimAt, aimEye, dir );
+		vectoangles( dir, angles );
+		for ( i = 0; i < 3; i++ ) {
+			cl.viewangles[i] = angles[i] - SHORT2ANGLE( cl.snap.ps.delta_angles[i] );
+		}
+	}
+	if ( patrolling ) {
+		dir[0] = patrol[patrolEnd * 2] - aimEye[0];
+		dir[1] = patrol[patrolEnd * 2 + 1] - aimEye[1];
+		if ( dir[0] * dir[0] + dir[1] * dir[1] < 16 * 16 ) {
+			patrolEnd ^= 1;
+			dir[0] = patrol[patrolEnd * 2] - aimEye[0];
+			dir[1] = patrol[patrolEnd * 2 + 1] - aimEye[1];
+		}
+		cl.viewangles[YAW] = RAD2DEG( atan2( dir[1], dir[0] ) ) - SHORT2ANGLE( cl.snap.ps.delta_angles[YAW] );
+		cmd->forwardmove = 127;
+		cmd->rightmove = 0;
+	}
+}
+
 /*
 =================
 OzView_Entity
@@ -972,6 +1050,9 @@ int OzView_Entity( refEntity_t *ent ) {
 		boltFlare = *ent;
 		boltFlareHeld = qtrue;
 		return 0;
+	}
+	if ( aimTarget >= 0 && ent->reType == RT_MODEL ) {
+		AimDrawnNote( ent );
 	}
 	InitCvars();
 	if ( ent->reType != RT_MODEL || !Forcing() ) {
@@ -1010,6 +1091,10 @@ void OzView_RenderScene( const refdef_t *fd ) {
 		InitCvars();
 		PlaceGun( fd );
 		numGunParts = 0;
+	}
+	if ( ( aimTarget >= 0 || patrolling ) && !( fd->rdflags & RDF_NOWORLDMODEL ) ) {
+		VectorCopy( fd->vieworg, aimEye );
+		aimEyeScene = scene;
 	}
 	if ( cl_ozProbe && cl_ozProbe->integer > 1 && !( fd->rdflags & RDF_NOWORLDMODEL ) ) {
 		Com_Printf( "ozview %d %.3f %.3f %.3f %.3f %d %.3f %.3f\n", fd->time, fd->vieworg[0], fd->vieworg[1], fd->vieworg[2],

@@ -53,7 +53,8 @@ const int MARGIN = 20;					// rows laid out beyond the part in view, either side
 
 struct Server {
 	std::string address, name, rich, search;	// rich: the name in its colors (RML); search: what the search box looks in, lowercase
-	std::string map, mapName, game, kind, gameName, mode;	// kind: oz, vanilla, cpma, defrag or other
+	std::string map, mapName, game, kind, gameName, mode;	// kind: oz, vanilla, cpma, defrag, other (a mod) or game (another game)
+	std::string engine;							// the engine's tag (Quake3e, ioquake3, CNQ3, oDFe, id 1.32...), "" until known
 	int ping = 0, clients = 0, humans = -1, max = 0;	// humans: -1 when the server doesn't say
 	bool password = false, pure = true, have = true;
 	int folded = 0;						// other addresses of the same game
@@ -63,6 +64,7 @@ struct Server {
 	long long at = 0;
 };
 
+std::map<std::string, std::string> engines;	// address -> the engine's tag, from the card's getstatus (getinfo has no version)
 std::vector<Server> servers;			// parsed and folded, in the sweep's order
 std::vector<Server> answers;			// every answer, parsed, before folding
 std::vector<Server> lanServers;			// the LAN broadcast's answers
@@ -260,6 +262,57 @@ std::string GameName( const std::string &kind, const std::string &game ) {
 	return kind == "vanilla" ? "Vanilla" : kind == "oz" ? "Oz Arena" : kind == "cpma" ? "CPMA" : kind == "defrag" ? "Defrag" : named ? named : game;
 }
 
+/*
+The engine's tag from its version string (PH step 1; getstatus's version, or getinfo's where an engine
+sends one): "Q3 1.32e linux-x86_64 Aug 4 2026" is Quake3e, "ioq3 1.36_GIT..." ioquake3, "CNQ3 1.53"
+CNQ3, "oDFe 1.00" oDFe, "Q3 1.32c" (or 1.32b, 1.32) id's own. Anything else keeps its first word.
+*/
+std::string EngineTag( const std::string &version ) {
+	const std::string v = Lower( version );
+	if ( v.empty() ) {
+		return "";
+	}
+	if ( v.compare( 0, 5, "ioq3 " ) == 0 || v.compare( 0, 8, "ioquake3" ) == 0 ) {
+		return "ioquake3";
+	}
+	if ( v.compare( 0, 4, "cnq3" ) == 0 ) {
+		return "CNQ3";
+	}
+	if ( v.compare( 0, 4, "odfe" ) == 0 ) {
+		return "oDFe";
+	}
+	if ( v.compare( 0, 8, "q3 1.32e" ) == 0 ) {
+		return "Quake3e";
+	}
+	if ( v.compare( 0, 7, "q3 1.32" ) == 0 || v.compare( 0, 7, "q3 1.31" ) == 0 || v.compare( 0, 7, "q3 1.30" ) == 0 || v.compare( 0, 7, "q3 1.17" ) == 0 ) {
+		return "id " + version.substr( 3, version.find( ' ', 3 ) == std::string::npos ? std::string::npos : version.find( ' ', 3 ) - 3 );
+	}
+	if ( v.compare( 0, 3, "oz " ) == 0 || v.find( "oz arena" ) != std::string::npos ) {
+		return "Oz Arena";
+	}
+	return version.substr( 0, version.find( ' ' ) );
+}
+
+/*
+Another game on the Quake III masters (PH step 1): an engine's "gamename" (ioquake3's com_gamename;
+Quake3e sends none) that isn't Quake III's own, nor the mod's folder, nor a known mod's name. Urban
+Terror and OpenArena list there with their own engines; their servers don't take this game, so they
+sit behind the Game filter's Other games.
+*/
+bool OtherGame( const std::string &gamename, const std::string &game ) {
+	static const char *const q3[] = { "quake3arena", "quake3", "q3a", "baseq3", "quake3e", "oz", "oz arena", "ozarena" };
+	const std::string g = Lower( gamename );
+	if ( g.empty() || g == game ) {
+		return false;
+	}
+	for ( const char *n : q3 ) {
+		if ( g == n ) {
+			return false;
+		}
+	}
+	return ModName( g ) == nullptr && g != "cpma" && g != "defrag";
+}
+
 // a server's getinfo answer as a row
 Server ParseOne( const ozServerInfo_t &in ) {
 	const auto kv = Info( in.info );
@@ -277,7 +330,15 @@ Server ParseOne( const ozServerInfo_t &in ) {
 		s.game = "baseq3";
 	}
 	s.kind = s.game == "baseq3" ? "vanilla" : s.game == "oz" || s.game == "cpma" || s.game == "defrag" ? s.game : "other";
-	s.gameName = GameName( s.kind, s.game );
+	if ( OtherGame( Value( kv, "gamename" ), s.game ) ) {
+		s.kind = "game";
+	}
+	s.gameName = s.kind == "game" ? Value( kv, "gamename" ) : GameName( s.kind, s.game );
+	s.engine = EngineTag( Value( kv, "version" ) );
+	if ( s.engine.empty() ) {
+		const auto known = engines.find( s.address );	// the card asked its status before
+		s.engine = known == engines.end() ? "" : known->second;
+	}
 	s.mode = ModeName( s.kind, atoi( Value( kv, "gametype" ).c_str() ) );
 	s.clients = atoi( Value( kv, "clients" ).c_str() );
 	s.max = atoi( Value( kv, "sv_maxclients" ).c_str() );
@@ -500,10 +561,18 @@ bool GameFits( const Filters &f, const std::string &kind ) {
 	if ( f.game == "Other mods" ) {
 		return kind == "other";
 	}
+	if ( f.game == "Other games" ) {
+		return kind == "game";
+	}
 	if ( f.game == "Oz Arena" || f.game == "Vanilla" || f.game == "CPMA" || f.game == "Defrag" ) {
 		return Lower( f.game ) == kind || ( f.game == "Oz Arena" && kind == "oz" );
 	}
-	return kind != "other";	// All supported
+	return kind != "other" && kind != "game";	// All supported
+}
+
+// what a row lacking its mod needs (PH step 1's "mod missing"): the mod's name, or "" where there's nothing to import
+std::string Needs( const Server &s ) {
+	return s.have || s.kind == "game" || s.kind == "oz" || s.kind == "vanilla" || s.gameName.empty() ? "" : s.gameName;
 }
 
 bool Fits( const Filters &f, const Server &s ) {
@@ -847,6 +916,8 @@ void Build( const Filters &f, bool filtered ) {
 		cJSON_AddBoolToObject( o, "password", s.password );
 		cJSON_AddBoolToObject( o, "look", s.kind != "other" && ( !s.pure || s.kind == "oz" ) );	// the full Oz look (decision 16)
 		cJSON_AddBoolToObject( o, "have", s.have );
+		cJSON_AddStringToObject( o, "needs", Needs( s ).c_str() );
+		cJSON_AddStringToObject( o, "engine", s.engine.c_str() );
 		cJSON_AddStringToObject( o, "friends", FriendsText( (int)friends[s.address].size() ).c_str() );
 		cJSON_AddStringToObject( o, "host", s.host.c_str() );
 		cJSON_AddBoolToObject( o, "up", s.up );
@@ -1001,7 +1072,9 @@ void ClearAsk() {
 
 // connect, with the server's password or none, the pages closed for the connection screen
 void Connect( const std::string &address, const Server *s, const std::string &password ) {
-	if ( s && s->kind == "other" ) {
+	if ( s && s->kind == "game" ) {
+		Menu_Toast( ( s->name + " runs " + s->gameName + ", another game: its server may not take you." ).c_str(), "info" );
+	} else if ( s && s->kind == "other" ) {
 		Menu_Toast( ( s->name + " runs " + s->gameName + ": other mods may not play right." ).c_str(), "info" );
 	} else if ( s && !s->have ) {
 		Menu_Toast( ( s->gameName + " isn't in your game folder: the server hands its files over as you join, where it offers them." ).c_str(), "info" );
@@ -1010,7 +1083,8 @@ void Connect( const std::string &address, const Server *s, const std::string &pa
 	Joined( "server", address, s );
 	OzE_ExecuteNow( ( "set password \"" + password + "\"\n" ).c_str() );
 	CloseAllPages();
-	OzE_InsertText( ( "connect " + address + "\n" ).c_str() );
+	// a party leader's party follows them onto the server (PH step 3): the hub's party_follow, after the connect
+	OzE_InsertText( ( "connect " + address + "\n" + Social_FollowText( "server", address.c_str(), password.c_str() ) ).c_str() );
 }
 
 // the masters asked again, and the saved servers with them (those they don't list too: a private server, a LAN one)
@@ -1128,6 +1202,19 @@ void CardStatus( const std::string &status, const Server *s ) {
 		cJSON_Delete( list );
 	}
 	const int humans = (int)players.size() - bots;
+	const std::string engine = EngineTag( Value( kv, "version" ) );
+	if ( !engine.empty() && engines[card.address] != engine ) {
+		engines[card.address] = engine;	// the row's engine tag, from now on
+		for ( auto *list : { &servers, &answers, &lanServers } ) {
+			for ( Server &x : *list ) {
+				if ( x.address == card.address ) {
+					x.engine = engine;
+				}
+			}
+		}
+		builtWith.clear();
+	}
+	SetText( "servers.card.engine", engine );
 	SetText( "servers.card.version", CardText( kv, kind ) );
 	SetText( "servers.card.physics", CardPhysics( kv, kind ) );
 	SetText( "servers.card.who", players.empty() ? "Nobody's playing" : std::to_string( humans ) + ( humans == 1 ? " player" : " players" ) +
@@ -1160,6 +1247,8 @@ void CardOpen( const std::string &address ) {
 	SetText( "servers.card.map", s ? s->mapName + ( s->mapName != s->map ? " (" + s->map + ")" : "" ) : "" );
 	SetText( "servers.card.mode", s ? s->mode : "" );
 	SetText( "servers.card.ping", s ? std::to_string( s->ping ) + " ms" : "" );
+	SetText( "servers.card.engine", s ? s->engine : "" );
+	SetText( "servers.card.needs", s ? Needs( *s ) : "" );
 	SetText( "servers.card.version", "" );
 	SetText( "servers.card.physics", "" );
 	SetText( "servers.card.who", "" );
@@ -1347,8 +1436,8 @@ bool Servers_Action( const Rml::String &verb, const Rml::String &arg, Rml::Eleme
 		Menu_Set( "servers.card.open", "false" );
 		if ( join == "asking" || join == "connecting" ) {
 			Refuse( "Already joining a match. Cancel that first." );
-		} else if ( s && ( s->kind == "cpma" || s->kind == "defrag" ) && !s->have && arg.find( " anyway" ) == Rml::String::npos ) {
-			ModOpen( *s );
+		} else if ( s && !Needs( *s ).empty() && arg.find( " anyway" ) == Rml::String::npos ) {
+			ModOpen( *s );	// a mod the player doesn't have: the import flow first (PH step 1)
 		} else if ( ( s && s->password ) || locked ) {
 			SetText( "server_browser.ask.host", "" );
 			SetText( "server_browser.ask.address", address );
@@ -1426,6 +1515,20 @@ void Servers_JoinedMatch( const char *host, const char *name ) {
 std::string Servers_Name( const char *address ) {
 	const Server *s = Find( address );
 	return s ? s->name : "";
+}
+
+// the party leader joined a community server (oz_ui_social.cpp's net_follow, PH step 3): joined as from a row, with
+// the leader's password; a mod the player doesn't have asks about importing it first, in the browser
+void Servers_FollowServer( const char *address, const char *password ) {
+	const Server *s = Find( address );
+	if ( s && !Needs( *s ).empty() ) {
+		if ( strcmp( TopPageName(), "server_browser" ) ) {
+			OpenPageByName( "server_browser" );
+		}
+		ModOpen( *s );
+		return;
+	}
+	Connect( address, s, password );
 }
 
 // each frame while a page is open: the rows follow the sweep (at most every REBUILD_MS) and the filters (at once)

@@ -4327,7 +4327,7 @@ void Com_Init( char *commandLine ) {
 	Cmd_AddCommand( "game_restart", Com_GameRestart_f );
 
 	// Oz: the version keeps Quake3e's "Q3 1.32e" prefix (browsers and mods read it) and says what is connecting
-	s = va( "%s %s (%s) %s %s", Q3_VERSION, OZ_PRODUCT, OZ_BASE, PLATFORM_STRING, __DATE__ );
+	s = va( "%s %s %s (%s) %s %s", Q3_VERSION, OZ_PRODUCT, OZ_VERSION, OZ_BASE, PLATFORM_STRING, __DATE__ );
 	com_version = Cvar_Get( "version", s, CVAR_PROTECTED | CVAR_ROM | CVAR_SERVERINFO );
 	Cvar_SetDescription( com_version, "Read-only CVAR to see the version of the game." );
 

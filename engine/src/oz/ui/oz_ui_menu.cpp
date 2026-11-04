@@ -587,7 +587,7 @@ static void StartMatch( const char *path, bool online = false ) {
 	// in front of the buffer, in order (a test script's queued lines, a vstr loop, would hold them back);
 	// oz_host after the map: the server is up when it lists it; the party's follow after the listing (the
 	// hub sends it only to a listed match's party)
-	text += Rml::String( cmd ) + ( online ? "oz_host\n" + Social_FollowText( password ? password : "" ) : "" ) + "wait 30\n";
+	text += Rml::String( cmd ) + ( online ? "oz_host\n" + Social_FollowText( "host", "", password ? password : "" ) : "" ) + "wait 30\n";
 	cJSON *list = cJSON_GetObjectItem( m, "bots" );
 	for ( cJSON *b = list ? list->child : nullptr; b; b = b->next ) {
 		const char *name = cJSON_IsString( b ) ? b->valuestring : cJSON_GetStringValue( cJSON_GetObjectItem( b, "name" ) );
@@ -733,6 +733,7 @@ void Menu_Run( const Rml::String &commands, Rml::Element *element ) {
 		} else if ( Crosshair_Action( verb, arg ) ) {	// the crosshair editor's (oz_ui_crosshair.cpp)
 		} else if ( Profile_Action( verb, arg ) ) {	// the Profile and Campaign pages' (oz_ui_profile.cpp)
 		} else if ( Skirmish_Action( verb, arg ) ) {	// Skirmish's mods and races (oz_ui_skirmish.cpp)
+		} else if ( Mods_Action( verb, arg ) ) {	// the Mod Library (oz_ui_mods.cpp)
 		} else if ( Servers_Action( verb, arg, element ) ) {	// the Server Browser's community servers (oz_ui_servers.cpp)
 		} else if ( Social_Action( verb, arg, element ) ) {	// the Server Browser's and Friends' joins (oz_ui_social.cpp)
 		} else if ( !verb.empty() ) {
@@ -803,8 +804,11 @@ public:
 			if ( s && target != s && ( target->IsClassSet( "prev" ) || target->IsClassSet( "next" ) ) ) {
 				Spin( s, target->IsClassSet( "prev" ) ? -1 : 1 );
 				PlaySound( Sound::Move );
-			} else if ( s && target == s ) {
+			} else if ( s ) {	// the box or its value (a click on the value lands on its span)
 				Spin( s, 1 );
+				if ( target != s ) {
+					PlaySound( Sound::Move );	// the page's click sound is the box's own
+				}
 			}
 		}
 	}
@@ -893,6 +897,9 @@ bool Menu_Side( Rml::Element *target, int dir ) {
 // Escape, B, the right mouse button: true when the page handled it
 bool Menu_Back( const char *page ) {
 	if ( !strcmp( page, "server_browser" ) && Servers_Back() ) {	// its server card closes first
+		return true;
+	}
+	if ( !strcmp( page, "mods" ) && Mods_Back() ) {	// the Mod Library's import card or remove question closes first
 		return true;
 	}
 	if ( !strcmp( page, "menu" ) ) {
@@ -1007,6 +1014,7 @@ void Menu_Opened( const char *name ) {
 	Social_Opened( name );
 	Servers_Opened( name );
 	Skirmish_Opened( name );
+	Mods_Opened( name );
 	if ( !strcmp( name, "leaderboards" ) ) {	// both scopes from the online hub (P7); offline, "hub" says so in the console
 		const Rml::String tab = Menu_Get( "leaderboards.tab" );
 		OzE_ExecuteNow( ( "hub leaderboard board " + tab + " scope global" ).c_str() );	// one command a call
@@ -1337,6 +1345,7 @@ void Menu_Shutdown() {
 void Menu_Commands() {
 	Prog::Commands();
 	Skirmish_Commands();
+	Mods_Commands();
 	OzE_AddCommand( "ui_menu_get", []() {
 		Printf( "ui_menu_get: %s = %s\n", OzE_Argv( 1 ), Menu_Get( OzE_Argv( 1 ) ) );
 	} );

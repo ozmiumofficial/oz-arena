@@ -177,7 +177,8 @@ bool Crosshair_Action( const Rml::String &verb, const Rml::String &arg );	// xhw
 bool Social_Action( const Rml::String &verb, const Rml::String &arg, Rml::Element *element );	// browse, join, joinask, askcancel, unjoin, quick...
 void Social_Opened( const char *page );
 void Social_Frame();						// the Server Browser's refresh, the connection screen
-Rml::String Social_FollowText( const char *password );	// a party leader's hosted match: the hub's party_follow, else ""
+Rml::String Social_FollowText( const char *kind, const char *key, const char *password );	// a party leader's hosted match ("host")
+							// or the community server they join ("server", its address): the hub's party_follow, else ""
 
 // ---- oz_ui_servers.cpp (P8b): the Server Browser's community servers
 bool Servers_Action( const Rml::String &verb, const Rml::String &arg, Rml::Element *element );	// servers, serverjoin, serverinfo, sbsort...
@@ -187,16 +188,24 @@ bool Servers_Back();						// the server card was open: Back closed it
 void Servers_MatchesChanged();				// the hub's peer-to-peer rows came again
 void Servers_JoinedMatch( const char *host, const char *name );	// a peer-to-peer match joined: the history's
 std::string Servers_Name( const char *address );	// a server row's name, "" when it isn't one
+void Servers_FollowServer( const char *address, const char *password );	// the party leader joined a community server: join it too (net_follow)
 
 // ---- oz_ui_skirmish.cpp: Skirmish's mod picker, search and sorts, and Defrag's race maps
 bool Skirmish_Action( const Rml::String &verb, const Rml::String &arg );	// skimport, race, skmods
 void Skirmish_Opened( const char *page );
 void Skirmish_Commands();					// ui_skirmish, for tests
+void Skirmish_SetMod( const char *mod );	// the tab the page opens on next (the Mod Library's Play)
+
+// the Mod Library (oz_ui_mods.cpp, PH step 2)
+bool Mods_Action( const Rml::String &verb, const Rml::String &arg );	// modlib_import, modlib_go, modlib_play, modlib_remove...
+void Mods_Opened( const char *page );
+bool Mods_Back();							// the import card or the remove question was open: Back closed it
+void Mods_Commands();						// oz_modlib, for tests
 void Skirmish_Frame();						// the race maps looked for; the cards follow the mod, the search and the sort
 
 // ---- oz_progress.cpp (P12): the career, cards and campaign, ported from the Godot build
 namespace Prog {
-enum { NUM_SLOTS = 7, SHOWCASE = 3, RANKED_LEVEL = 30 };
+enum { NUM_SLOTS = 7, SHOWCASE = 3 };
 extern const char *const SLOTS[NUM_SLOTS][2];	// card slot, part kind
 struct LevelInfo { int level; long long into, next; };
 struct Arena { std::string map, name; int fraglimit; std::vector<std::string> bots; };

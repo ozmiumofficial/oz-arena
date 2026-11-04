@@ -826,7 +826,7 @@ cJSON *Ranked() {
 	const long long rating = Get( st, "ranked_rating" ) ? (long long)Stat( st, "ranked_rating" ) : Int( Get( cfg, "start" ), 1000 );
 	const long long placements = Int( Get( cfg, "placements" ), 10 );
 	cJSON *out = cJSON_CreateObject();
-	cJSON_AddBoolToObject( out, "open", LevelFor( TotalXp() ).level >= RANKED_LEVEL );
+	cJSON_AddBoolToObject( out, "open", true );	// ranked has no level gate (Ozmium, 2026-11-03)
 	cJSON_AddNumberToObject( out, "matches", (double)matches );
 	cJSON_AddBoolToObject( out, "placed", matches >= placements );
 	cJSON_AddNumberToObject( out, "rating", (double)rating );

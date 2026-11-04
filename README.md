@@ -87,6 +87,7 @@ Everything Oz adds to the look loads only in its own renderer. Pick the OpenGL o
 - **Every community server.** The Server Browser asks every master server and lists the vanilla, CPMA and Defrag servers that answer, with search, filters, favorites, history and LAN. **Join** switches to the server's mod by itself and back again when you leave.
 - **Pure servers stay playable.** A server that forces its own files is always joinable. Oz leaves its packs out there and keeps the engine's own upgrades: the lighting, the menus and the HUD.
 - **The server's rules.** Your game predicts movement with the server's own settings, so a server that runs id's original physics feels right.
+- **Lag compensation.** In matches running Oz's own game, an instant-hit shot (machine gun, shotgun, lightning gun, railgun, gauntlet) lands where you saw your target, whatever your ping, and your own rail, shotgun and machine gun shots show the moment you fire. It's Neil Toronto's Unlagged, fitted to Oz.
 - **With friends.** Friends, parties, Quick Play and peer-to-peer matches hosted from your own PC, through Oz's online service. Hide my IP sends a match through a relay.
 
 ---
@@ -207,7 +208,7 @@ The asset packs come from `tools/`, which rebuild them from your own copy's file
 
 ## Credits and legal
 
-Oz Arena is built on the work of: id Software's GPL source release; [Quake3e](https://github.com/ec-/Quake3e); [ioquake3](https://github.com/ioquake/ioq3) (rend2 and OpenAL); [oDFe](https://github.com/Defrag-racing/oDFe); [CNQ3](https://bitbucket.org/CPMADevs/cnq3); [RmlUi](https://github.com/mikke89/RmlUi); [Jolt Physics](https://github.com/jrouwe/JoltPhysics); [SDL2](https://www.libsdl.org/); [OpenAL Soft](https://github.com/kcat/openal-soft); [libjuice](https://github.com/paullouisageneau/libjuice); [libcurl](https://curl.se/); [Mbed TLS](https://github.com/Mbed-TLS/mbedtls); libtheora and libvorbis; AMD [FidelityFX FSR 1](https://github.com/GPUOpen-Effects/FidelityFX-FSR); [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN); and [NetRadiant-custom](https://github.com/Garux/netradiant-custom)'s q3map2, which the map editor runs.
+Oz Arena is built on the work of: id Software's GPL source release; [Quake3e](https://github.com/ec-/Quake3e); [ioquake3](https://github.com/ioquake/ioq3) (rend2 and OpenAL); [oDFe](https://github.com/Defrag-racing/oDFe); [CNQ3](https://bitbucket.org/CPMADevs/cnq3); Neil Toronto's [Unlagged](https://www.ra.is/unlagged/) (lag compensation); [RmlUi](https://github.com/mikke89/RmlUi); [Jolt Physics](https://github.com/jrouwe/JoltPhysics); [SDL2](https://www.libsdl.org/); [OpenAL Soft](https://github.com/kcat/openal-soft); [libjuice](https://github.com/paullouisageneau/libjuice); [libcurl](https://curl.se/); [Mbed TLS](https://github.com/Mbed-TLS/mbedtls); libtheora and libvorbis; AMD [FidelityFX FSR 1](https://github.com/GPUOpen-Effects/FidelityFX-FSR); [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN); and [NetRadiant-custom](https://github.com/Garux/netradiant-custom)'s q3map2, which the map editor runs.
 
 The code is **GPL-2.0** (see `LICENSE`).
 

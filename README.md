@@ -2,7 +2,7 @@
 
 # Oz Arena
 
-**A free, open-source arena shooter on its own id Tech 3 engine.** Oz Arena takes the game you already own, Quake III Arena, and remakes how it looks, sounds and plays on a PC today: remastered textures and relit arenas, rigged fighters with ragdolls, remade effects, new menus and HUD, a map editor, and a browser that joins any community server: vanilla, CPMA or Defrag.
+**A free, open-source mod for Quake III Arena.** Oz Arena is a heavily modified Quake III Arena client: it takes the game you already own and remakes how it looks, sounds and plays on a PC today: remastered textures and relit arenas, rigged fighters with ragdolls, remade effects, new menus and HUD, a map editor, and a browser that joins any community server: vanilla, CPMA or Defrag.
 
 ![q3dm7 in Oz Arena](docs/screenshots/hero.jpg)
 

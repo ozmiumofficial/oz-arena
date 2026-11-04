@@ -172,7 +172,7 @@ A map editor built into the game, from the main menu:
 
 ## How it works
 
-Oz Arena is a modified id Tech 3 engine: **Quake3e**'s core, with **ioquake3**'s rend2 renderer and OpenAL sound, **oDFe**'s Defrag support and **CNQ3**'s CPMA extensions. On top of it, Oz adds:
+Oz Arena runs on a modified build of Quake III Arena's own engine (id Tech 3, which id released under the GPL): **Quake3e**'s core, with **ioquake3**'s rend2 renderer and OpenAL sound, **oDFe**'s Defrag support and **CNQ3**'s CPMA extensions. On top of it, Oz adds:
 
 - **Three renderers.** `oz` (rend2, Oz's look), `opengl` and `vulkan` (Quake3e's, id's look). The menus and HUD draw through all three.
 - **Native menus and HUD** (`engine/src/oz/ui`, pages in `engine/ui`): RmlUi pages and an engine-drawn HUD that reads the match from the network snapshot, so they work the same under any mod's game code.
@@ -223,4 +223,4 @@ Oz Arena is built on the work of: id Software's GPL source release; [Quake3e](ht
 
 The code is **GPL-2.0** (see `LICENSE`).
 
-Oz Arena is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by or sponsored by id Software, Bethesda or ZeniMax. Quake and Quake III Arena are trademarks of ZeniMax Media, named here only to identify the game Oz Arena requires. You need your own copy of Quake III Arena to play; the remastered assets remain id Software's property.
+Oz Arena is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by or sponsored by id Software, Bethesda or ZeniMax. Quake and Quake III Arena are trademarks of ZeniMax Media, named here only to identify the game Oz Arena modifies and requires. You need your own copy of Quake III Arena to play; the remastered assets remain id Software's property.

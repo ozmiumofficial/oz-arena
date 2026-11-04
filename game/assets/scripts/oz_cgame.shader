@@ -42,6 +42,21 @@ oz/fx/beam
 	}
 }
 
+// oz/fx/beamDark: a dark Lightning color's core (cg_oz_fx.c OzDarkBeam), what's behind it times the
+// color, through the flare's falloff so it fades into the white glow around it; the cgame gives it
+// one less the color. After the additive layers, or they'd light it again.
+oz/fx/beamDark
+{
+	cull none
+	entityMergable
+	sort 11
+	{
+		map gfx/misc/flare
+		blendFunc GL_ZERO GL_ONE_MINUS_SRC_COLOR
+		rgbGen vertex
+	}
+}
+
 // Smoke left rising after blasts (Explosions "enhanced")
 oz/fx/smoke
 {

@@ -650,7 +650,7 @@ static void RB_SurfaceRailCore( void ) {
 	CrossProduct( v1, v2, right );
 	VectorNormalize( right );
 
-	DoRailCore( start, end, right, len, r_railCoreWidth->integer );
+	DoRailCore( start, end, right, len, e->radius > 0.0f ? e->radius : r_railCoreWidth->integer );	// Oz: Rail width through its radius
 }
 
 
@@ -686,7 +686,7 @@ static void RB_SurfaceLightningBolt( void ) {
 	for ( i = 0 ; i < 4 ; i++ ) {
 		vec3_t	temp;
 
-		DoRailCore( start, end, right, len, 8 );
+		DoRailCore( start, end, right, len, e->radius > 0.0f ? e->radius : 8 );	// Oz: the bolt's width from its radius (Lightning width), id's 8 without one
 		RotatePointAroundVector( temp, vec, right, 45 );
 		VectorCopy( temp, right );
 	}

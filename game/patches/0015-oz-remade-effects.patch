@@ -52,7 +52,7 @@ diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
  } localEntity_t;
  
  //======================================================================
-@@ -1396,8 +1408,47 @@ void	CG_ImpactMark( qhandle_t markShader,
+@@ -1396,8 +1408,49 @@ void	CG_ImpactMark( qhandle_t markShader,
  //
  void	CG_InitLocalEntities( void );
  localEntity_t	*CG_AllocLocalEntity( void );
@@ -69,9 +69,10 @@ diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
 +void	CG_OzFxUpdateCvars( void );
 +void	CG_OzFxRegisterMedia( void );
 +int		CG_OzRailStyle( void );
++float	CG_OzRailWidth( refEntity_t *core );
 +int		CG_OzBlood( void );
 +qhandle_t	CG_OzExplosionShader( int weapon, qhandle_t shader );
-+void	CG_OzRailTrail( clientInfo_t *ci, vec3_t start, vec3_t end );
++qboolean	CG_OzRailTrail( clientInfo_t *ci, vec3_t start, vec3_t end );
 +void	CG_OzRailCore( localEntity_t *le );
 +qboolean	CG_OzLightningBeam( refEntity_t *beam, qboolean hit );
 +void	CG_OzLightningBurn( int clientNum, const trace_t *tr );
@@ -85,6 +86,7 @@ diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
 +void	CG_OzHitSound( void );
 +void	CG_OzMuzzleFlash( centity_t *cent, int weapon, const refEntity_t *flash, const vec3_t color );
 +float	CG_OzFlashLight( float radius );
++qboolean	CG_OzSteadyFlash( int weapon );
 +const float	*CG_OzFlashColor( int weapon, const float *color );
 +void	CG_OzPlasmaBall( refEntity_t *ent );
 +void	CG_OzPlasmaRing( int weapon, refEntity_t *ent );
@@ -131,28 +133,39 @@ diff --git a/code/cgame/cg_main.c b/code/cgame/cg_main.c
 diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
 --- a/code/cgame/cg_weapons.c
 +++ b/code/cgame/cg_weapons.c
-@@ -226,6 +226,13 @@ void CG_RailTrail (clientInfo_t *ci, vec3_t start, vec3_t end) {
+@@ -214,7 +214,7 @@ CG_RailTrail
+ */
+ void CG_RailTrail (clientInfo_t *ci, vec3_t start, vec3_t end) {
+ 	vec3_t axis[36], move, move2, vec, temp;
+-	float  len;
++	float  len, w;	// Oz: w
+ 	int    i, j, skip;
+  
+ 	localEntity_t *le;
+@@ -226,6 +226,12 @@ void CG_RailTrail (clientInfo_t *ci, vec3_t start, vec3_t end) {
   
  	start[2] -= 4;
   
 +	// Oz: Graphics > Rail trail (cg_oz_fx.c): "glow" adds a halo beside id's core and spiral,
-+	// "ql" is one glowing beam instead of them, "core" leaves the spiral out
-+	CG_OzRailTrail( ci, start, end );
-+	if ( CG_OzRailStyle() == OZ_RAIL_QL ) {
++	// "ql" is one glowing beam instead of them, "core" leaves the spiral out; a dark color draws its own
++	if ( !CG_OzRailTrail( ci, start, end ) ) {
 +		return;
 +	}
 +
  	le = CG_AllocLocalEntity();
  	re = &le->refEntity;
   
-@@ -252,14 +259,22 @@ void CG_RailTrail (clientInfo_t *ci, vec3_t start, vec3_t end) {
+@@ -252,14 +258,24 @@ void CG_RailTrail (clientInfo_t *ci, vec3_t start, vec3_t end) {
  	le->color[3] = 1.0f;
  
  	AxisClear( re->axis );
 - 
+-	if (cg_oldRail.integer)
++	w = CG_OzRailWidth( re );	// Oz: Rail width (cg_oz_fx.c); 0 under id's effects
 +	CG_OzRailCore( le );	// Oz: under the glow, a beam coming up from the gun (cg_oz_fx.c)
 +
- 	if (cg_oldRail.integer)
++	// Oz: under the remade styles Rail trail draws the spiral (classic, glow) or not (core), not cg_oldRail
++	if (cg_oldRail.integer && !w)
  	{
  		// nudge down a bit so it isn't exactly in center
 -		re->origin[2] -= 8;
@@ -171,7 +184,25 @@ diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
  
  	VectorCopy (start, move);
  	VectorSubtract (end, start, vec);
-@@ -1034,7 +1049,11 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
+@@ -291,7 +307,7 @@ void CG_RailTrail (clientInfo_t *ci, vec3_t start, vec3_t end) {
+ 
+ 			re->shaderTime = cg.time / 1000.0f;
+ 			re->reType = RT_SPRITE;
+-			re->radius = 1.1f;
++			re->radius = 1.1f * ( w ? w : 1 );	// Oz: Rail width
+ 			re->customShader = cgs.media.railRingsShader;
+ 
+ 			re->shaderRGBA[0] = ci->color2[0] * 255;
+@@ -308,7 +324,7 @@ void CG_RailTrail (clientInfo_t *ci, vec3_t start, vec3_t end) {
+ 			le->pos.trTime = cg.time;
+ 
+ 			VectorCopy( move, move2);
+-			VectorMA(move2, RADIUS , axis[j], move2);
++			VectorMA(move2, RADIUS * ( w ? w : 1 ), axis[j], move2);	// Oz: Rail width
+ 			VectorCopy(move2, le->pos.trBase);
+ 
+ 			le->pos.trDelta[0] = axis[j][0]*6;
+@@ -1034,7 +1050,11 @@ static void CG_LightningBolt( centity_t *cent, vec3_t origin ) {
  
  	beam.reType = RT_LIGHTNING;
  	beam.customShader = cgs.media.lightningShader;
@@ -184,7 +215,7 @@ diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
  
  	// add the impact flare if it hit something
  	if ( trace.fraction < 1.0 ) {
-@@ -1229,6 +1248,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
+@@ -1229,6 +1249,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
  		else {
  			Byte4Copy( ci->c1RGBA, gun.shaderRGBA );
  		}
@@ -192,26 +223,40 @@ diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
  	}
  
  	gun.hModel = weapon->weaponModel;
-@@ -1333,6 +1353,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
+@@ -1296,7 +1317,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
+ 	}
+ 
+ 	// add the flash
+-	if ( ( weaponNum == WP_LIGHTNING || weaponNum == WP_GAUNTLET || weaponNum == WP_GRAPPLING_HOOK )
++	if ( ( weaponNum == WP_LIGHTNING || weaponNum == WP_GAUNTLET || weaponNum == WP_GRAPPLING_HOOK || CG_OzSteadyFlash( weaponNum ) )	// Oz
+ 		&& ( nonPredictedCent->currentState.eFlags & EF_FIRING ) ) 
+ 	{
+ 		// continuous flash
+@@ -1332,7 +1353,10 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
+ 	}
  
  	CG_PositionRotatedEntityOnTag( &flash, &gun, weapon->weaponModel, "tag_flash");
- 	trap_R_AddRefEntityToScene( &flash );
+-	trap_R_AddRefEntityToScene( &flash );
++	if ( !CG_OzSteadyFlash( weaponNum ) ) {
++		trap_R_AddRefEntityToScene( &flash );	// Oz: not the plasma gun's under the remade flare (cg_oz_fx.c)
++	}
 +	CG_OzMuzzleFlash( cent, weaponNum, &flash, CG_OzFlashColor( weaponNum, weapon->flashDlightColor ) );	// Oz: the remade flare
  
  	if ( ps || cg.renderingThirdPerson ||
  		cent->currentState.number != cg.predictedPlayerState.clientNum ) {
-@@ -1340,8 +1361,8 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
+@@ -1340,8 +1364,9 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
  		CG_LightningBolt( nonPredictedCent, flash.origin );
  
  		if ( weapon->flashDlightColor[0] || weapon->flashDlightColor[1] || weapon->flashDlightColor[2] ) {
 -			trap_R_AddLightToScene( flash.origin, 300 + (rand()&31), weapon->flashDlightColor[0],
 -				weapon->flashDlightColor[1], weapon->flashDlightColor[2] );
 +			const float *c = CG_OzFlashColor( weaponNum, weapon->flashDlightColor );	// Oz: Lightning color, Plasma color
-+			trap_R_AddLightToScene( flash.origin, CG_OzFlashLight( weaponNum == WP_LIGHTNING ? 130 + (rand()&15) : 300 + (rand()&31) ), c[0], c[1], c[2] );	// Oz
++			trap_R_AddLightToScene( flash.origin, CG_OzFlashLight( weaponNum == WP_LIGHTNING ? 130 + (rand()&15) :
++				CG_OzSteadyFlash( weaponNum ) ? 120 + (rand()&7) : 300 + (rand()&31) ), c[0], c[1], c[2] );	// Oz
  		}
  	}
  }
-@@ -1906,11 +1927,13 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
+@@ -1906,11 +1931,13 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
  	// create the explosion
  	//
  	if ( mod ) {
@@ -225,7 +270,7 @@ diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
  		if ( weapon == WP_RAILGUN ) {
  			// colorize with client color
  			VectorCopy( cgs.clientinfo[clientNum].color1, le->color );
-@@ -1931,9 +1954,15 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
+@@ -1931,9 +1958,15 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
  		// colorize with client color
  		color = cgs.clientinfo[clientNum].color1;
  		CG_ImpactMark( mark, origin, dir, random()*360, color[0],color[1], color[2],1, alphaFade, radius, qfalse );
@@ -373,7 +418,7 @@ diff --git a/code/cgame/cg_oz_fx.c b/code/cgame/cg_oz_fx.c
 new file mode 100644
 --- /dev/null
 +++ b/code/cgame/cg_oz_fx.c
-@@ -0,0 +1,1740 @@
+@@ -0,0 +1,1859 @@
 +/*
 +===========================================================================
 +Oz Arena: the remade effects (ENGINE_PLAN.md P3), after the Godot build's (scripts/fx/q3_fx.gd,
@@ -448,6 +493,8 @@ new file mode 100644
 +enum { PG_TRAIL, PG_GLOW, PG_EMBER, PG_EMBER_OUT, PG_FLASH, PG_PARTS };
 +static const vec3_t lgBlue[LG_PARTS] = { { 0.18f, 0.4f, 1.0f }, { 0.8f, 0.9f, 1.0f }, { 0.6f, 0.75f, 1.0f }, { 0.6f, 0.6f, 1.0f },
 +	{ 0.1f, 0.28f, 1.0f }, { 0.3f, 0.55f, 1.0f }, { 0.08f, 0.22f, 0.6f } };
++#define OZ_DARK			0.35f		// a color whose brightest channel is below this is drawn dark (OzDarkBeam)
++#define OzIsDark( c )	( MAX( ( c )[0], MAX( ( c )[1], ( c )[2] ) ) < OZ_DARK )
 +static const vec3_t pgBlue[PG_PARTS] = { { 0.35f, 0.5f, 1.0f }, { 0.45f, 0.6f, 1.0f }, { 0.9f, 0.95f, 1.0f }, { 0.1f, 0.15f, 0.6f },
 +	{ 0.6f, 0.6f, 1.0f } };
 +
@@ -470,6 +517,10 @@ new file mode 100644
 +	int		calm;				// Accessibility > Reduced flashing
 +	int		lgTint;				// Lightning color isn't the default: id's bolt is drawn in it too
 +	int		pgTint;				// Plasma color isn't: id's ball, ring and scorch too
++	int		lgDark;				// Lightning color is too dark to add as light: OzDarkBeam
++	vec3_t	lgPick;				// Lightning color as picked
++	int		pgDark;				// the same for Plasma color (CG_OzPlasmaBall)
++	vec3_t	pgPick;
 +	vec3_t	lg[LG_PARTS];		// lgBlue in Lightning color's hue
 +	vec3_t	pg[PG_PARTS];		// pgBlue in Plasma color's
 +	int		modCount;
@@ -478,6 +529,7 @@ new file mode 100644
 +static struct {
 +	qhandle_t	glow;			// gfx/misc/flare, added, colored by vertex
 +	qhandle_t	beam;			// the glow brighter, for beams' hot cores (more bloom on the oz renderer)
++	qhandle_t	beamDark;		// the glow multiplied in, for a dark Lightning color's core
 +	qhandle_t	lightningBolt;	// id's bolt brighter (scripts/oz_cgame.ozmtr; 0 elsewhere)
 +	qhandle_t	lightningTint;	// the same in the entity's color, for Lightning color (0 elsewhere)
 +	qhandle_t	plasmaBall;		// id's plasma ball, ring and scorch in the entity's color, for Plasma color (0 elsewhere)
@@ -591,13 +643,10 @@ new file mode 100644
 +
 +// a color setting ("#rrggbb") on the parts made in parts[0], which is the setting's default `made`:
 +// that, anything unreadable or `on` false leaves them as made; whether they changed
-+static qboolean OzColorSetting( const char *s, int made, const vec3_t *parts, int count, qboolean on, vec3_t *out ) {
-+	vec3_t pick;
++// a color setting's "#rrggbb" as a number, -1 if unreadable
++static int OzColorValue( const char *s ) {
 +	int i, d, n = 0;
 +
-+	for ( i = 0; i < count; i++ ) {
-+		VectorCopy( parts[i], out[i] );
-+	}
 +	if ( *s == '#' ) {
 +		s++;
 +	}
@@ -605,11 +654,29 @@ new file mode 100644
 +		d = s[i] >= '0' && s[i] <= '9' ? s[i] - '0' : s[i] >= 'a' && s[i] <= 'f' ? s[i] - 'a' + 10 :
 +			s[i] >= 'A' && s[i] <= 'F' ? s[i] - 'A' + 10 : -1;
 +		if ( d < 0 ) {
-+			return qfalse;
++			return -1;
 +		}
 +		n = n * 16 + d;
 +	}
-+	if ( !on || s[6] || n == made ) {
++	return s[6] ? -1 : n;
++}
++
++// a color setting as picked; whether it's dark (OZ_DARK)
++static qboolean OzPick3( const char *s, vec3_t pick ) {
++	int n = OzColorValue( s );
++
++	VectorSet( pick, ( n >> 16 & 255 ) / 255.0f, ( n >> 8 & 255 ) / 255.0f, ( n & 255 ) / 255.0f );
++	return n >= 0 && OzIsDark( pick );
++}
++
++static qboolean OzColorSetting( const char *s, int made, const vec3_t *parts, int count, qboolean on, vec3_t *out ) {
++	vec3_t pick;
++	int i, n = OzColorValue( s );
++
++	for ( i = 0; i < count; i++ ) {
++		VectorCopy( parts[i], out[i] );
++	}
++	if ( !on || n < 0 || n == made ) {
 +		return qfalse;
 +	}
 +	VectorSet( pick, ( n >> 16 & 255 ) / 255.0f, ( n >> 8 & 255 ) / 255.0f, ( n & 255 ) / 255.0f );
@@ -665,6 +732,8 @@ new file mode 100644
 +	oz.calm = oz_reducedFlashing.integer;
 +	oz.lgTint = OzColorSetting( oz_lightningColor.string, 0x2e66ff, lgBlue, LG_PARTS, oz.lightningStyle != OZ_LG_CLASSIC, oz.lg );
 +	oz.pgTint = OzColorSetting( oz_plasmaColor.string, 0x5980ff, pgBlue, PG_PARTS, oz.remade, oz.pg );
++	oz.lgDark = oz.lgTint && OzPick3( oz_lightningColor.string, oz.lgPick );
++	oz.pgDark = oz.pgTint && OzPick3( oz_plasmaColor.string, oz.pgPick );
 +}
 +
 +// a muzzle flash's light color (CG_AddPlayerWeapon): id's, or the lightning and plasma guns' in their color
@@ -710,9 +779,23 @@ new file mode 100644
 +
 +// the plasma ball (CG_Missile): id's sprite, in Plasma color
 +void CG_OzPlasmaBall( refEntity_t *ent ) {
++	refEntity_t core;
++	int i;
++
 +	if ( oz.pgTint && ozMedia.plasmaBall ) {
 +		ent->customShader = ozMedia.plasmaBall;
 +		OzTintBytes( oz.pg[PG_GLOW], pgBlue[PG_GLOW], PLASMA_WHITE, ent->shaderRGBA );
++	}
++	if ( oz.pgDark && ozMedia.beamDark ) {
++		// a dark Plasma color: id's ball (near white in it) around a dark core, as OzDarkBeam
++		core = *ent;
++		core.customShader = ozMedia.beamDark;
++		core.radius = ent->radius * 0.85f;
++		for ( i = 0; i < 3; i++ ) {
++			core.shaderRGBA[i] = (byte)( 255 * Com_Clamp( 0.0f, 1.0f, 1.0f - oz.pgPick[i] ) );
++		}
++		core.shaderRGBA[3] = 255;
++		trap_R_AddRefEntityToScene( &core );
 +	}
 +}
 +
@@ -746,6 +829,22 @@ new file mode 100644
 +	return oz.railStyle;
 +}
 +
++/*
++Rail width on id's core and spiral (CG_RailTrail) under the remade styles: the core as wide as the
++renderer draws it (r_railCoreWidth each side) times the width, through its radius (RB_SurfaceRailCore).
++Returns the width, or 0 under id's effects, where id's sizes and cg_oldRail's choice stay.
++*/
++float CG_OzRailWidth( refEntity_t *core ) {
++	char width[16];
++
++	if ( !oz.remade ) {
++		return 0.0f;
++	}
++	trap_Cvar_VariableStringBuffer( "r_railCoreWidth", width, sizeof( width ) );
++	core->radius = ( width[0] ? atoi( width ) : 6 ) * oz.railWidth;
++	return oz.railWidth;
++}
++
 +int CG_OzBlood( void ) {
 +	return oz.blood;
 +}
@@ -768,6 +867,16 @@ new file mode 100644
 +// a muzzle flash's light (CG_AddPlayerWeapon): half as big with Reduced flashing
 +float CG_OzFlashLight( float radius ) {
 +	return oz.calm ? radius * 0.5f : radius;
++}
++
++/*
++The plasma gun's flash under the remade effects (CG_AddPlayerWeapon): the remade flare held while it
++fires, as the lightning gun's, with a smaller steady light, and no flash model. id's flash came and
++went with each of its ten shots a second, and in first person its model, close to the eye, bloomed
++over the floor and walls for a frame each time: a 10 Hz strobe.
++*/
++qboolean CG_OzSteadyFlash( int weapon ) {
++	return oz.remade && weapon == WP_PLASMAGUN;
 +}
 +
 +// The rail gun's glow (id's rgbGen entity stages; brighter than white on the oz renderer,
@@ -822,6 +931,7 @@ new file mode 100644
 +
 +	ozMedia.glow = trap_R_RegisterShader( "oz/fx/glow" );		// scripts/oz_cgame.shader
 +	ozMedia.beam = trap_R_RegisterShader( "oz/fx/beam" );
++	ozMedia.beamDark = trap_R_RegisterShader( "oz/fx/beamDark" );
 +	ozMedia.smoke = trap_R_RegisterShader( "oz/fx/smoke" );
 +	ozMedia.blood = trap_R_RegisterShader( "oz/fx/blood" );
 +	// only the oz renderer has these (0 from the others, which keep id's)
@@ -1236,17 +1346,32 @@ new file mode 100644
 +
 +The remaster's rail: CG_RailTrail draws id's core and spiral for the classic, glow and core
 +styles (core leaves the spiral out) and calls this after; "glow" adds a halo in color1 that
-+outlasts the core, "ql" is Quake Live's single thick beam instead of id's.
++outlasts the core, "ql" is Quake Live's single thick beam instead of id's. Returns whether id's
++core and spiral draw.
 +=================
 +*/
-+void CG_OzRailTrail( clientInfo_t *ci, vec3_t start, vec3_t end ) {
-+	float w = oz.railWidth;
++qboolean CG_OzRailTrail( clientInfo_t *ci, vec3_t start, vec3_t end ) {
++	float w = oz.railWidth, k;
++	vec3_t c;
 +
++	if ( oz.remade && OzIsDark( ci->color1 ) && ozMedia.beamDark ) {
++		// a dark rail color: as a dark Lightning color, a dark beam in a soft white glow (OzDarkBeam), in
++		// place of id's core and spiral and the styles' glow, which add the color as light: black drew nothing
++		k = ( oz.railStyle == OZ_RAIL_QL ? 12.0f : 8.0f ) * w;
++		VectorSet( c, 0.3f, 0.3f, 0.3f );
++		OzBeam( start, end, 1000, k * 2.0f, k * ( oz.railStyle == OZ_RAIL_GLOW ? 5.0f : 2.0f ), c, 1.3f, ozMedia.glow, 0 );
++		VectorSet( c, 0.45f, 0.45f, 0.45f );
++		OzBeam( start, end, 1000, k, k, c, 1.3f, ozMedia.beam, 0 );
++		VectorSet( c, 1.0f - ci->color1[0], 1.0f - ci->color1[1], 1.0f - ci->color1[2] );
++		OzBeam( start, end, 1000, k * 0.5f, k * 0.5f, c, 1.3f, ozMedia.beamDark, 0 );
++		return qfalse;
++	}
 +	if ( oz.railStyle == OZ_RAIL_GLOW ) {
 +		OzGlowBeam( start, end, 1000, 14.0f * w, ci->color1, 0.22f, 1.0f, 0.55f, 2.5f, 1.3f );
 +	} else if ( oz.railStyle == OZ_RAIL_QL ) {
 +		OzGlowBeam( start, end, 700, 12.0f * w, ci->color1, 0.3f, 1.6f, 0.8f, 0.6f, 1.6f );
 +	}
++	return oz.railStyle != OZ_RAIL_QL;
 +}
 +
 +/*
@@ -1263,7 +1388,7 @@ new file mode 100644
 +	trap_Cvar_VariableStringBuffer( "r_railCoreWidth", width, sizeof( width ) );
 +	le->leType = LE_OZ_BEAM;
 +	le->ozFlags = OZB_TILE;
-+	le->radius = le->ozRadius = 2.0f * ( width[0] ? atoi( width ) : 6 );
++	le->radius = le->ozRadius = 2.0f * ( width[0] ? atoi( width ) : 6 ) * oz.railWidth;
 +	le->ozFade = 1.0f;
 +}
 +
@@ -1280,6 +1405,25 @@ new file mode 100644
 +
 +#define BOLT_WHITE		0.4f		// share of white in id's bolt drawn in Lightning color (its core is near white)
 +
++/*
++A dark Lightning color's core: light only adds, so a black beam can't be drawn as the other layers
++are (OzTint keeps their brightness, and black, without a hue, came out white). This one darkens
++what's behind it to the color, through the flare's falloff (oz/fx/beamDark), inside the layers'
++glow, which a dark color leaves near white: a dark beam with a soft white edge.
++*/
++static void OzDarkBeam( const vec3_t from, const vec3_t to, float width ) {
++	byte rgba[4];
++	int i;
++
++	for ( i = 0; i < 3; i++ ) {
++		rgba[i] = (byte)( 255 * Com_Clamp( 0.0f, 1.0f, 1.0f - oz.lgPick[i] ) );
++	}
++	rgba[3] = 255;
++	// coming up from the gun over a few units: over BEAM_FADE_IN, as the glow does, it began halfway
++	// down the screen in first person, where id's bolt draws the glow beam's first stretch
++	OzBeamStrip( from, to, width, ozMedia.beamDark, rgba, 0, BEAM_FADE_IN * 0.15f );
++}
++
 +// Lightning beam "glow" in another Lightning color: id's bolt as oz/fx/lightningBoltTint (OzTintBytes)
 +static void OzBoltTint( refEntity_t *beam ) {
 +	OzTintBytes( oz.lg[LG_GLOW], lgBlue[LG_GLOW], BOLT_WHITE, beam->shaderRGBA );
@@ -1294,7 +1438,9 @@ new file mode 100644
 +id's bolt brighter (oz/fx/lightningBolt, the oz renderer's) in a flickering blue halo three bolts
 +wide around a white-hot core; "straight" (after Quake Live's straight beams) is a steady line in
 +place of the bolt, a pale blue core in a deep blue glow, with no zigzag and no flicker. Where a glowing
-+beam hits something, a flare and a light. Returns whether id's bolt draws.
++beam hits something, a flare and a light. A dark Lightning color draws either as a dark beam in a
++soft white glow, without id's bolt (OzDarkBeam). id's bolt is Lightning width wide. Returns whether
++id's bolt draws.
 +=================
 +*/
 +qboolean CG_OzLightningBeam( refEntity_t *beam, qboolean hit ) {
@@ -1306,11 +1452,22 @@ new file mode 100644
 +	vec4_t c;
 +	refEntity_t flare;
 +
++	if ( oz.remade ) {
++		beam->radius = w;		// the renderers' 8 at 1 (RB_SurfaceLightningBolt)
++	}
 +	if ( oz.lightningStyle == OZ_LG_CLASSIC ) {
 +		return qtrue;
 +	}
 +	if ( oz.lightningStyle == OZ_LG_GLOW ) {
 +		f = 0.7f + 0.3f * OzFlicker( 1 );		// it flickers with the bolt
++	}
++	if ( oz.lgDark ) {
++		// a soft white glow, and the dark core narrow: a layer fades out near the eye by its width, and
++		// a wide core showed in first person only as a wedge far down the beam
++		OzBeamLayer( beam->origin, beam->oldorigin, w * 2.4f, ozMedia.glow, colorWhite, 0.35f * f );
++		OzBeamLayer( beam->origin, beam->oldorigin, w * 1.1f, ozMedia.beam, colorWhite, 0.5f * f );
++		OzDarkBeam( beam->origin, beam->oldorigin, w * 0.55f );
++	} else if ( oz.lightningStyle == OZ_LG_GLOW ) {
 +		if ( oz.lgTint && ozMedia.lightningTint ) {
 +			OzBoltTint( beam );
 +		} else if ( ozMedia.lightningBolt ) {
@@ -1342,7 +1499,7 @@ new file mode 100644
 +		trap_R_AddRefEntityToScene( &flare );
 +		trap_R_AddLightToScene( at, 100.0f * f * MAX( oz.gain, 0.1f ), halo[0], halo[1], halo[2] );
 +	}
-+	return oz.lightningStyle != OZ_LG_STRAIGHT;
++	return oz.lightningStyle == OZ_LG_GLOW && !oz.lgDark;
 +}
 +
 +/*
@@ -1935,7 +2092,7 @@ new file mode 100644
 +		VectorCopy( oz.pg[PG_EMBER_OUT], pl2 );
 +		pl0[3] = pl1[3] = 1.0f;
 +		pl2[3] = 0.0f;
-+		OzFlash( origin, dir, oz.pg[PG_GLOW], 30, 180, 160 );
++		OzFlash( origin, dir, oz.pg[PG_GLOW], 30, 180, 50 );	// a small light: ten hits a second pulsed a big one
 +		OzEmbers( origin, dir, 10, 48, 140, 0.45f, pl0, pl1, pl2 );
 +		break;
 +	case WP_RAILGUN:
@@ -1991,6 +2148,7 @@ new file mode 100644
 +	float radius, endRadius;
 +	vec4_t c0, c1, c2;
 +	vec3_t at;
++	qhandle_t shader = ozMedia.glow;
 +
 +	if ( es->weapon == WP_ROCKET_LAUNCHER && oz.heat && ozMedia.heat && es->pos.trType != TR_STATIONARY ) {
 +		// heat shimmer in the exhaust: a small disc 20 units behind, half the blast's bend
@@ -2016,7 +2174,13 @@ new file mode 100644
 +	switch ( es->weapon ) {
 +	case WP_ROCKET_LAUNCHER: step = 10; radius = 9; life = 170; VectorSet( c0, 1.0f, 0.55f, 0.2f ); break;
 +	case WP_GRENADE_LAUNCHER: step = 16; radius = 5; life = 220; VectorSet( c0, 1.0f, 0.4f, 0.12f ); break;
-+	case WP_PLASMAGUN: step = 6; radius = 6; life = 160; VectorCopy( oz.pg[PG_TRAIL], c0 ); break;
++	case WP_PLASMAGUN: step = 6; radius = 6; life = 160; VectorCopy( oz.pg[PG_TRAIL], c0 );
++		if ( oz.pgDark && ozMedia.beamDark ) {
++			// a dark Plasma color: a dark trail behind the dark ball (CG_OzPlasmaBall), multiplied in
++			VectorSet( c0, 1.0f - oz.pgPick[0], 1.0f - oz.pgPick[1], 1.0f - oz.pgPick[2] );
++			shader = ozMedia.beamDark;
++		}
++		break;
 +	case WP_BFG: step = 10; radius = 16; life = 320; VectorSet( c0, 0.3f, 1.0f, 0.3f ); break;
 +	default: return;
 +	}
@@ -2043,7 +2207,7 @@ new file mode 100644
 +	for ( t = step * ( ( cent->ozTrailTime + step ) / step ); t <= cg.time; t += step ) {
 +		localEntity_t *le;
 +		BG_EvaluateTrajectory( &es->pos, t, at );
-+		le = OzParticle( at, vec3_origin, life, radius, endRadius, c0, c1, c2, ozMedia.glow, OZP_ADD );
++		le = OzParticle( at, vec3_origin, life, radius, endRadius, c0, c1, c2, shader, OZP_ADD );
 +		le->ozGravity = 0.0f;
 +		le->startTime = t;
 +		le->endTime = t + life;
@@ -2140,7 +2304,24 @@ diff --git a/code/cgame/cg_event.c b/code/cgame/cg_event.c
 diff --git a/code/cgame/cg_players.c b/code/cgame/cg_players.c
 --- a/code/cgame/cg_players.c
 +++ b/code/cgame/cg_players.c
-@@ -1353,7 +1353,7 @@ static void CG_AddPainTwitch( centity_t *cent, vec3_t torsoAngles ) {
+@@ -623,6 +623,16 @@ static void CG_ColorFromString( const char *v, vec3_t color ) {
+ 
+ 	VectorClear( color );
+ 
++	// Oz: "#rrggbb", a color the original seven can't give (a dark one: Oz's menus send the player's
++	// color so when they'd make it white); id's cgame takes it as white
++	if ( v[0] == '#' && strlen( v ) == 7 ) {
++		val = Com_HexStrToInt( va( "0x%s", v + 1 ) );
++		if ( val >= 0 ) {
++			VectorSet( color, ( val >> 16 & 255 ) / 255.0f, ( val >> 8 & 255 ) / 255.0f, ( val & 255 ) / 255.0f );
++			return;
++		}
++	}
++
+ 	val = atoi( v );
+ 
+ 	if ( val < 1 || val > 7 ) {
+@@ -1353,7 +1363,7 @@ static void CG_AddPainTwitch( centity_t *cent, vec3_t torsoAngles ) {
  	float	f;
  
  	t = cg.time - cent->pe.painTime;

@@ -678,7 +678,9 @@ void SetModel( const std::string &model, const std::string &skin ) {
 }
 
 // q3_profile.gd rail_color1: the rail as the userinfo's color1, the nearest of the original game's
-// seven rail colors (4 red, 2 green, 1 blue); white under the team and rainbow rails
+// seven rail colors (4 red, 2 green, 1 blue); white under the team and rainbow rails. The white free
+// rail with a dark player color (which SetAccent gives it) is that color as "#rrggbb": Oz's cgame
+// draws a dark rail as a dark beam in a white glow (cg_oz_fx.c CG_OzRailTrail); id's takes it as white.
 void RailColor1( const std::string &rail ) {
 	static const char *const seven[][2] = { { "rail_blue", "1" }, { "rail_green", "2" }, { "rail_cyan", "3" }, { "rail_red", "4" },
 		{ "rail_magenta", "5" }, { "rail_yellow", "6" }, { "rail_white", "7" } };
@@ -693,6 +695,13 @@ void RailColor1( const std::string &rail ) {
 		const unsigned c = (unsigned)strtoul( v.c_str() + 1, nullptr, 16 );
 		const int k = ( ( c >> 16 & 255 ) > 127 ? 4 : 0 ) | ( ( c >> 8 & 255 ) > 127 ? 2 : 0 ) | ( ( c & 255 ) > 127 ? 1 : 0 );
 		n = std::to_string( k ? k : 7 );
+	}
+	if ( rail == "rail_white" ) {
+		const char *accent = OzE_CvarString( "oz_profile_team_color" );
+		const unsigned c = accent && accent[0] == '#' && strlen( accent ) == 7 ? (unsigned)strtoul( accent + 1, nullptr, 16 ) : 0xffffff;
+		if ( ( c >> 16 & 255 ) < 90 && ( c >> 8 & 255 ) < 90 && ( c & 255 ) < 90 ) {	// cg_oz_fx.c OZ_DARK
+			n = accent;
+		}
 	}
 	OzE_CvarSet( "color1", n.empty() ? "7" : n.c_str() );
 }

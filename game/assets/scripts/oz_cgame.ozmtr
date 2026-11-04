@@ -29,6 +29,20 @@ oz/fx/beam
 	}
 }
 
+// a dark Lightning color's core (oz_cgame.shader's note)
+oz/fx/beamDark
+{
+	cull none
+	entityMergable
+	sort 11
+	{
+		map gfx/misc/flare
+		blendFunc GL_ZERO GL_ONE_MINUS_SRC_COLOR
+		rgbGen vertex
+		ozSoft 4
+	}
+}
+
 oz/fx/smoke
 {
 	cull none

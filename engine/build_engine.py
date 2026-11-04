@@ -64,14 +64,27 @@ def fetch_game_code():
 
 
 def apply_patches(tree, folder):
-    """folder/*.patch (relative to the repo) onto a fetched checkout, in name order; already-applied ones are left alone."""
-    for patch in sorted(glob.glob(os.path.join(ROOT, folder, "*.patch"))):
-        if subprocess.run(["git", "apply", "--reverse", "--check", patch], cwd=tree, capture_output=True).returncode == 0:
-            continue   # already applied
+    """folder/*.patch (relative to the repo) onto a fetched checkout, in name order. The set applied is
+    fingerprinted in the checkout's .git (oz_patches): when any patch is added, edited or removed, the
+    checkout goes back to its pinned commit and every patch is applied again. Only skipping the ones
+    already applied, an edited patch (lg-width's 0015, 2026-11-03) never applied over its old version."""
+    patches = sorted(glob.glob(os.path.join(ROOT, folder, "*.patch")))
+    digest = hashlib.sha1()
+    for patch in patches:
+        digest.update(os.path.basename(patch).encode() + b"\0" + open(patch, "rb").read() + b"\0")
+    stamp = os.path.join(tree, ".git", "oz_patches")
+    if os.path.exists(stamp) and open(stamp).read().strip() == digest.hexdigest():
+        return
+    print("> patches changed: %s back to its pinned commit" % os.path.relpath(tree, ROOT))
+    run(["git", "checkout", "-q", "-f", "HEAD"], tree)
+    run(["git", "clean", "-q", "-fd"], tree)
+    for patch in patches:
         print("> patch", os.path.basename(patch))
         r = subprocess.run(["git", "apply", "--whitespace=nowarn", patch], cwd=tree, capture_output=True, text=True)
         if r.returncode != 0:
             sys.exit("patch %s doesn't apply to %s:\n%s" % (os.path.basename(patch), tree, r.stderr))
+    with open(stamp, "w") as f:
+        f.write(digest.hexdigest() + "\n")
 
 
 def fetch(d, url, commit, sparse=None):

@@ -10,18 +10,19 @@ and, where several id images share a stem (every fighter has a red.tga), by comp
 candidate: identical copies (within 1.0 mean error) all take it, else only the closest; a PNG further than
 --max-err from every candidate (the set's image is of something else) is left out and listed.
 
-For every DDS in pak_oz_world*, pak_oz_fighters, pak_oz_props and pak_oz_fx whose id image is matched:
+For every DDS in pak_oz_world*, pak_oz_fighters and pak_oz_props whose id image is matched (the effects pack
+stays the release's: the set's blood, marks and rings came out hard-edged, streaked or the wrong picture):
   <image>.dds        the set's color, brought to the DDS's size with make_textures' halo-free Lanczos (up) or an
-                     area filter (down); id's alpha, scaled the same way, wherever id's image holds one; for
-                     fighters and props the atlas gutters filled from the islands' edges first (make_textures.Islands)
+                     area filter (down), with the release texture's own alpha (its holes, cut-outs and masks
+                     exactly as shipped); for fighters and props the atlas gutters filled from the islands' edges
+                     first (make_textures.Islands)
   <image>_n.dds      make_textures.gentle_maps on that color (the normals come from the painting's shapes alone)
   <image>__glow.dds, __add.dds, __sky.dds   the set's color with id's black kept black (keep_black)
-  pak_oz_fx's        by the stage's blend in oz_fx.ozmtr: additive frames keep black, blended ones take id's alpha,
-                     darkening marks (GL_ZERO GL_ONE_MINUS_SRC_COLOR) take the color as it is
 The specular maps (_s.dds: roughness, metal, AO), the scripts, rigs, cubemaps and relights are kept as they are.
 Writes <out>/stage/<kind>/... (the new DDS, kept between runs: only a newer PNG is converted again) and
-<out>/oz/pak_oz_*.pk3, each the original with its textures replaced. --install moves the game's packs aside
-(<name>.pk3.orig, kept if already there) and copies the new ones in. Everything made is build output.
+<out>/oz/pak_oz_*.pk3, each the release's pack (<name>.pk3.orig when there) with its textures replaced. --install
+moves the game's packs aside (<name>.pk3.orig, kept if already there), copies the new ones in and puts the
+effects pack back as the release had it. Everything made is build output.
 """
 import os, io, re, sys, json, glob, time, struct, shutil, zipfile, argparse, collections
 import numpy as np
@@ -36,7 +37,15 @@ import q3shader
 from q3paks import find_baseq3, Paks
 
 SUFFIX = re.compile(r"^(.*?)(__glow|__add|__sky|_n|_s)?\.dds$")
-PAKS = ("pak_oz_world*.pk3", "pak_oz_fighters.pk3", "pak_oz_props.pk3", "pak_oz_fx.pk3")
+# The effects pack stays the release's: its blood, marks and rings were made for how each effect blends (soot
+# decals, soft alpha), and the set's versions came out hard-edged, streaked or the wrong picture (v0.7.7).
+PAKS = ("pak_oz_world*.pk3", "pak_oz_fighters.pk3", "pak_oz_props.pk3")
+FX_PAK = "pak_oz_fx.pk3"
+
+
+def source_pak(pk3):
+    """The pack as the release shipped it: <name>.orig beside it once --install moved it aside, else itself."""
+    return pk3 + ".orig" if os.path.isfile(pk3 + ".orig") else pk3
 TAG = "-wonder-4.png"
 
 
@@ -154,12 +163,14 @@ def convert(job):
         col = mt.q8(y)
         written = []
         if job["albedo"]:
-            alpha = rgba[..., 3]
-            if role == "blend" or role == "paint":
-                has_alpha = bool(alpha.min() < 255 and alpha.max() > 0)
-                a = mt.q8(mt.lanczos(alpha[..., None], (W, H), tile)[..., 0]) if has_alpha else np.full((H, W), 255, np.uint8)
-            else:
-                a = np.full((H, W), 255, np.uint8)
+            # the transparency the release shipped, exactly: the original texture's alpha (its holes, its cut-outs,
+            # its env-map masks); taking id's alpha instead lost the JPG grates' holes and the console's clear glass
+            with zipfile.ZipFile(job["orig_pak"]) as z:
+                orig = np.asarray(Image.open(io.BytesIO(z.read(job["albedo"]))).convert("RGBA"))
+            a = orig[..., 3]
+            if a.shape != (H, W):
+                a = np.asarray(Image.fromarray(a, "L").resize((W, H), Image.BILINEAR))
+            a = np.ascontiguousarray(a)
             out = os.path.join(job["stage"], job["albedo"])
             _encoder.write_dds(out + ".part", np.dstack([col[..., ::-1], a]), "bc7")
             os.replace(out + ".part", out)
@@ -210,6 +221,7 @@ def main():
         print("   left out: %-40s %s" % (f, "no id image with that stem" if c is None else "%.0f from %s" % (e, c)))
 
     pk3s = [p for pat in PAKS for p in sorted(glob.glob(os.path.join(a.paks, pat)))]
+    srcs = {p: source_pak(p) for p in pk3s}
     if not pk3s:
         sys.exit("no pak_oz_*.pk3 in " + a.paks)
     jobs, replaced, counts = [], {}, collections.Counter()
@@ -219,7 +231,7 @@ def main():
         modes = fx_modes(pk3) if kind == "fx" else {}
         stage = os.path.join(a.out, "stage", kind)
         groups = {}
-        with zipfile.ZipFile(pk3) as z:
+        with zipfile.ZipFile(srcs[pk3]) as z:
             names = {i.filename.lower() for i in z.infolist()}
             for info in z.infolist():
                 if not info.filename.endswith(".dds"):
@@ -247,7 +259,7 @@ def main():
                 continue
             size = g["size"]
             if size is None:      # a layer without an albedo: its own size
-                with zipfile.ZipFile(pk3) as z:
+                with zipfile.ZipFile(srcs[pk3]) as z:
                     size = dds_size(z.read(g["layers"][0][1])[:32])
             if kind == "fx":
                 role = modes.get(g["albedo"].lower() if g["albedo"] else "", "blend")
@@ -270,7 +282,7 @@ def main():
                     counts[name + " up to date"] += len(files)
                     continue
                 jobs.append(dict(image=base, png=png, size=size, tile=(kind == "world"), role=sub_role, albedo=alb,
-                                 normal=nrm, layers=lay, stage=stage))
+                                 normal=nrm, layers=lay, stage=stage, orig_pak=srcs[pk3]))
                 counts[name + " to convert"] += len(files)
     for k, v in sorted(counts.items()):
         print("  %-36s %d" % (k, v))
@@ -300,7 +312,7 @@ def main():
         name = os.path.basename(pk3)
         dst = os.path.join(a.out, "oz", name)
         n_swapped, n_missing = 0, 0
-        with zipfile.ZipFile(pk3) as zin, zipfile.ZipFile(dst + ".tmp", "w") as zout:
+        with zipfile.ZipFile(srcs[pk3]) as zin, zipfile.ZipFile(dst + ".tmp", "w") as zout:
             for info in zin.infolist():
                 src = replaced.get((name, info.filename))
                 if src and os.path.isfile(src):
@@ -314,6 +326,11 @@ def main():
         print("  %-26s %5d MB  %d textures swapped%s" % (name, os.path.getsize(dst) // 2 ** 20, n_swapped,
                                                        (", %d not made" % n_missing) if n_missing else ""))
     if a.install:
+        # the effects pack back as the release had it (an earlier run swapped it)
+        fx = os.path.join(a.install, FX_PAK)
+        if os.path.isfile(fx + ".orig"):
+            shutil.copyfile(fx + ".orig", fx)
+            print("restored", FX_PAK, "as the release had it")
         for pk3 in pk3s:
             name = os.path.basename(pk3)
             live = os.path.join(a.install, name)

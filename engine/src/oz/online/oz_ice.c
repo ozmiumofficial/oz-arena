@@ -1258,6 +1258,10 @@ static void OzJoin_f( void ) {
 		return;
 	}
 	Q_strncpyz( joinPassword, Cmd_Argv( 2 ), sizeof( joinPassword ) );
+	// the game connection carries it too: the host's game checks g_password against the joiner's
+	// "password" userinfo, so without it a locked match refuses every joiner the hub let through.
+	// Set (or cleared) on every join, so an earlier match's password never goes to another host.
+	Cvar_Set( "password", joinPassword );
 	m = Msg( "net_join" );
 	cJSON_AddStringToObject( m, "host", pid );
 	cJSON_AddStringToObject( m, "password", joinPassword );

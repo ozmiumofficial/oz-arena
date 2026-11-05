@@ -880,7 +880,7 @@ static std::string q3map2_exe() {
 	if (set && set[0]) {
 		return set;
 	}
-	return std::string(OzEd_EngineDir()) + "/tools/q3map2.exe";
+	return std::string(OzEd_EngineDir()) + "/tools/q3map2" OZ_ED_EXE;
 }
 
 bool Session::import_bsp(const std::string &map, std::string &error) {

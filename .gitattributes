@@ -1,0 +1,3 @@
+# Linux scripts keep LF line ends in every checkout (a CRLF one breaks bash)
+*.sh text eol=lf
+engine/installer/linux/oz-arena-launcher text eol=lf

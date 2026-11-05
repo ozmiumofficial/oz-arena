@@ -97,11 +97,12 @@ static std::string error_of(const std::string &log) {
 }
 
 // The map as compiled sits in a sky box: six sky brushes round everything in it (Sky and sun's sky: the
-// one picked, else the first painted on a brush, else id's grey-clouded hellsky2), and under the floor a
-// hurt trigger to fall into, as id's void. So a map open to the void shows sky there and seals, and builds
+// one picked, else the first painted on a brush, else id's grey-clouded hellsky2), and under the map a
+// hurt trigger to fall into, as id's void: it fills the box's bottom up to KILL_UNDER below the lowest
+// thing in the map, so falling off an edge kills within a moment (Ozmium 2026-11-04). So a map open to the void shows sky there and seals, and builds
 // with vis and the bots' file; a sealed map's box is outside it, and q3map2 drops it. The editor's map is
 // left as it is: the box is only in the copy written for q3map2.
-static const double SKY_SIDE = 512, SKY_TOP = 1024, SKY_BELOW = 512, SKY_THICK = 16;
+static const double SKY_SIDE = 512, SKY_TOP = 1024, SKY_BELOW = 512, SKY_THICK = 16, KILL_UNDER = 64;
 
 // Sky and sun: the map's worldspawn keys, each left out while it has its default. The sky's light is the
 // sun (its color, brightness, height over the horizon and direction, degrees as a light's angle) and the
@@ -219,7 +220,8 @@ static void add_sky_box(Doc &d, const Bounds &b) {
 	hurt->entity.set("classname", "trigger_hurt");
 	hurt->entity.set("dmg", "9999");
 	const Id h = d.add(hurt);
-	d.add(box_brush(d, lo, Vec3(hi.x, hi.y, lo.z + 64), shader_id("common/trigger"), h));
+	// from the box's floor to just under the lowest thing in the map: off the edge, a fall of a moment kills
+	d.add(box_brush(d, lo, Vec3(hi.x, hi.y, b.lo.z - KILL_UNDER), shader_id("common/trigger"), h));
 }
 
 // ed sky_sun opens the dialog; ed sky <field> <value> sets one (sky <material> | light_from own|editor |
@@ -350,7 +352,7 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 		say("A compile is under way: wait for it, or stop it");
 		return false;
 	}
-	const std::string q3map2 = tool_exe("q3map2.exe"), mbspc = tool_exe("mbspc.exe");
+	const std::string q3map2 = tool_exe("q3map2" OZ_ED_EXE), mbspc = tool_exe("mbspc" OZ_ED_EXE);
 	const std::string baseq3 = OzEd_BaseQ3();
 	if (!OzEd_FileExists(q3map2.c_str()) || baseq3.empty()) {
 		say(baseq3.empty() ? "The game's baseq3 folder wasn't found" : "q3map2 isn't there (" + q3map2 + ")", true);

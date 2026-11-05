@@ -18,6 +18,22 @@ OPTION(USE_RENDERER_DLOPEN "" ON)
 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 
+IF(UNIX AND NOT APPLE)
+	# Oz: the Linux client (2026-11-04). The renderer modules are shared objects with static libraries
+	# (Jolt) in them, so everything is position independent; the executables find the SDL2 and OpenAL
+	# Soft built beside them ($ORIGIN), and carry their own C++ runtime, for distros older than the build's.
+	SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+	SET(CMAKE_BUILD_RPATH "\$ORIGIN")
+	SET(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+	SET(CMAKE_INSTALL_RPATH "\$ORIGIN")
+	SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+ENDIF()
+IF(UNIX)
+	SET(THREADS_PREFER_PTHREAD_FLAG ON)
+	FIND_PACKAGE(Threads REQUIRED)
+ENDIF()
+
 AUX_SOURCE_DIRECTORY(code/qcommon QCOMMON_SRCS)
 # exclude platform-dependent QVM bytecode compilers
 list(FILTER QCOMMON_SRCS EXCLUDE REGEX ".*vm_[alpx].*.c")
@@ -150,11 +166,17 @@ IF(USE_CURL)
 	# missing. MSVC links Quake3e's bundled static libcurl (Schannel TLS) as its MSVC project does;
 	# elsewhere libcurl is loaded at run time as in its Makefile.
 	TARGET_COMPILE_DEFINITIONS(client PRIVATE USE_CURL)
-	IF(MSVC AND OZ_CURL_LIBRARY)
-		# Oz: libcurl 8.19 built by build_engine.py (thirdparty.json), for the online hub's WebSocket (P7)
+	IF(OZ_CURL_LIBRARY)
+		# Oz: libcurl 8.19 built by build_engine.py (thirdparty.json), for the online hub's WebSocket (P7);
+		# Schannel's TLS on Windows, the system's OpenSSL on Linux
 		TARGET_COMPILE_DEFINITIONS(client PRIVATE CURL_STATICLIB)
 		TARGET_INCLUDE_DIRECTORIES(client PRIVATE ${OZ_CURL_INCLUDE_DIR})
-		SET(CURL_LIBRARY ${OZ_CURL_LIBRARY} ws2_32 secur32 bcrypt iphlpapi)
+		IF(WIN32)
+			SET(CURL_LIBRARY ${OZ_CURL_LIBRARY} ws2_32 secur32 bcrypt iphlpapi crypt32)
+		ELSE()
+			FIND_PACKAGE(OpenSSL REQUIRED)
+			SET(CURL_LIBRARY ${OZ_CURL_LIBRARY} OpenSSL::SSL OpenSSL::Crypto Threads::Threads)
+		ENDIF()
 	ELSEIF(MSVC)
 		TARGET_COMPILE_DEFINITIONS(client PRIVATE CURL_STATICLIB)
 		TARGET_INCLUDE_DIRECTORIES(client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/code/libcurl/windows/include)
@@ -163,6 +185,7 @@ IF(USE_CURL)
 		ELSE()
 			SET(CURL_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/code/libcurl/windows/vs2017/lib32/libcurl_a.lib)
 		ENDIF()
+		LIST(APPEND CURL_LIBRARY crypt32)
 	ELSE()
 		TARGET_COMPILE_DEFINITIONS(client PRIVATE USE_CURL_DLOPEN)
 	ENDIF()
@@ -293,8 +316,9 @@ ENDIF(UNIX)
 
 ADD_LIBRARY(q3ui OBJECT ${Q3_UI_SRCS})
 
-IF(MSVC AND USE_SDL AND SDL2_LIBRARY)
+IF(USE_SDL AND SDL2_LIBRARY)	# Oz: build_engine.py's SDL2 on Windows and Linux
 	TARGET_INCLUDE_DIRECTORIES(q3ui PRIVATE ${SDL2_INCLUDE_DIRS})
+	TARGET_INCLUDE_DIRECTORIES(client PRIVATE ${SDL2_INCLUDE_DIRS})
 	TARGET_COMPILE_DEFINITIONS(q3ui PRIVATE USE_JOYSTICK)	# Oz: SDL game controllers (Quake3e never defined it)
 ELSEIF(NOT MSVC)
 	IF(USE_SDL)
@@ -339,18 +363,22 @@ IF(MBEDCRYPTO_LIBRARY AND OZ_CURL_LIBRARY AND RMLUI_LIBRARY)
 		TARGET_INCLUDE_DIRECTORIES(client PRIVATE ${JUICE_INCLUDE_DIR})
 		TARGET_COMPILE_DEFINITIONS(client PRIVATE USE_OZ_ICE JUICE_STATIC)
 		TARGET_COMPILE_DEFINITIONS(qcommon PRIVATE USE_OZ_ICE)
-		TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} ${JUICE_LIBRARY} ws2_32 bcrypt ole32 oleaut32)	# oleaut32: UPnP (oz_upnp.c)
+		IF(WIN32)
+			TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} ${JUICE_LIBRARY} ws2_32 bcrypt ole32 oleaut32)	# oleaut32: UPnP (oz_upnp.c)
+		ELSE()
+			TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} ${JUICE_LIBRARY} Threads::Threads)	# UPnP is Windows' only
+		ENDIF()
 	ENDIF()
 ENDIF()
 TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} qcommon botlib client q3ui)
-IF(MSVC AND USE_SDL AND SDL2_LIBRARY)
+IF(USE_SDL AND SDL2_LIBRARY)
 	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} ${SDL2_LIBRARY})	# Oz
 ENDIF()
 IF(PCRE2_LIBRARY)
 	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} ${PCRE2_LIBRARY})	# Oz: oDFe's console filters
 ENDIF()
 IF(CURL_LIBRARY)
-	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} ${CURL_LIBRARY} crypt32)	# Oz: map auto-download
+	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} ${CURL_LIBRARY})	# Oz: map auto-download
 ENDIF()
 #TARGET_LINK_OPTIONS(${CNAME} PRIVATE -fno-pie) # v3.13+
 
@@ -372,8 +400,8 @@ IF(WIN32)
 	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} winmm comctl32 ws2_32 iphlpapi)
 	TARGET_LINK_LIBRARIES(${DNAME}${BINEXT} winmm comctl32 ws2_32 iphlpapi)
 ELSE()
-	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} m ${CMAKE_DL_LIBS})
-	TARGET_LINK_LIBRARIES(${DNAME}${BINEXT} m ${CMAKE_DL_LIBS})
+	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} m ${CMAKE_DL_LIBS} Threads::Threads)
+	TARGET_LINK_LIBRARIES(${DNAME}${BINEXT} m ${CMAKE_DL_LIBS} Threads::Threads)
 ENDIF()
 
 # Oz: the native UI (ENGINE_PLAN.md P4): RmlUi and FreeType built by build_engine.py, the page logic
@@ -417,6 +445,9 @@ IF(JOLT_DIR AND TARGET ${RENDERER_PREFIX}_oz${RENDEXT})
 	TARGET_SOURCES(${RENDERER_PREFIX}_oz${RENDEXT} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src/oz/physics/oz_physics.cpp)
 	TARGET_INCLUDE_DIRECTORIES(${RENDERER_PREFIX}_oz${RENDEXT} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src/oz/physics)
 	TARGET_LINK_LIBRARIES(${RENDERER_PREFIX}_oz${RENDEXT} Jolt)
+	IF(UNIX)
+		TARGET_LINK_LIBRARIES(${RENDERER_PREFIX}_oz${RENDEXT} Threads::Threads)	# Jolt's job threads
+	ENDIF()
 	SET_TARGET_PROPERTIES(${RENDERER_PREFIX}_oz${RENDEXT} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 	TARGET_COMPILE_DEFINITIONS(${RENDERER_PREFIX}_oz${RENDEXT} PRIVATE USE_OZ_PHYSICS)
 ENDIF()

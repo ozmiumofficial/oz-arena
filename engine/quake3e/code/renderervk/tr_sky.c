@@ -553,7 +553,9 @@ static void FillCloudBox( void )
 			MIN_T = -HALF_SKY_SUBDIVISIONS;
 
 			// still don't want to draw the bottom, even if fullClouds
-			if ( i == 5 )
+			// Oz: unless the sky is clouds alone (no box images): nothing else draws there, and where a map
+			// is open to the void (the editor's sky box) looking down showed the frames before, smeared white
+			if ( i == 5 && tess.shader->sky.outerbox[0] && tess.shader->sky.outerbox[0] != tr.defaultImage )
 				continue;
 		}
 		else
@@ -731,6 +733,11 @@ void R_InitSkyTexCoords( float heightCloud )
 							( t - HALF_SKY_SUBDIVISIONS ) / ( float ) HALF_SKY_SUBDIVISIONS, 
 							i,
 							skyVec );
+
+				// Oz: below the horizon, the clouds above mirrored: id's layer is a dome over the view and
+				// came out pinched and streaked there, now drawn where a cloud sky has nothing under it
+				if ( skyVec[2] < 0 )
+					skyVec[2] = -skyVec[2];
 
 				// compute parametric value 'p' that intersects with cloud layer
 				p = ( 1.0f / ( 2 * DotProduct( skyVec, skyVec ) ) ) *

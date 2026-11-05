@@ -3278,6 +3278,42 @@ static qboolean Com_RunsGameConfig( const char *name ) {
 #endif
 
 
+#ifndef DEDICATED
+/*
+Oz: a saved q3config.cfg begins with unbindall, so binds added to Oz's defaults (default.cfg) after a
+player's config was written never reach that player. Each bind here is given once, by oz_bindsRev,
+and only if its key is free and nothing else has the command: a player who unbinds it keeps it unbound.
+*/
+static void Com_AddNewBinds( void ) {
+	static const struct { int rev; const char *key; const char *command; } newBinds[] = {
+		{ 1, "F1", "vote yes" },
+		{ 1, "F2", "vote no" },
+	};
+	cvar_t *rev;
+	int i, last = 0;
+
+	if ( Q_stricmp( FS_GetCurrentGameDir(), "oz" ) ) {
+		return;
+	}
+	rev = Cvar_Get( "oz_bindsRev", "0", CVAR_ARCHIVE );
+	for ( i = 0; i < ARRAY_LEN( newBinds ); i++ ) {
+		int key = Key_StringToKeynum( newBinds[i].key );
+		const char *b = Key_GetBinding( key );
+
+		last = MAX( last, newBinds[i].rev );
+		if ( newBinds[i].rev <= rev->integer || key < 0 || ( b && b[0] ) || Key_GetKey( newBinds[i].command ) >= 0 ) {
+			continue;
+		}
+		Key_SetBinding( key, newBinds[i].command );
+		Com_Printf( "New bind: %s \"%s\"\n", newBinds[i].key, newBinds[i].command );
+	}
+	if ( last > rev->integer ) {
+		Cvar_SetIntegerValue( "oz_bindsRev", last );
+	}
+}
+#endif
+
+
 static void Com_ExecuteCfg( void )
 {
 	Cbuf_ExecuteText(EXEC_NOW, "exec default.cfg\n");
@@ -3298,6 +3334,7 @@ static void Com_ExecuteCfg( void )
 		Cbuf_Execute();
 #ifndef DEDICATED
 		Com_ExecuteEngineConfig();	// Oz: one window, renderer and sound for every mod
+		Com_AddNewBinds();
 #endif
 	}
 }

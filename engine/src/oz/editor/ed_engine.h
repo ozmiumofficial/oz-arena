@@ -7,6 +7,13 @@ beside the native UI's (oz_ui_engine.h). Plain C types only.
 
 #include "../../../quake3e/code/renderercommon/tr_oz_editor.h"
 
+// the compile tools' file names (tools/q3map2.exe on Windows, tools/q3map2 on Linux)
+#ifdef _WIN32
+#define OZ_ED_EXE ".exe"
+#else
+#define OZ_ED_EXE ""
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

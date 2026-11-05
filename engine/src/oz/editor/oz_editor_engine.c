@@ -9,6 +9,12 @@ Compiled with the client (its defines and headers), so the editor's C++ only see
 #ifdef _WIN32
 #include <windows.h>
 #include <direct.h>
+#else
+#include <fcntl.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #endif
 
 const ozEdRender_t *OzEd_Renderer( void ) {
@@ -351,7 +357,18 @@ const char *OzEd_EngineDir( void ) {
 		*slash = '\0';
 	}
 #else
-	Q_strncpyz( dir, ".", sizeof( dir ) );
+	// Oz: the folder OzArena.x86_64 is in, as Windows' module path
+	const ssize_t n = readlink( "/proc/self/exe", dir, sizeof( dir ) - 1 );
+	char *slash;
+	if ( n > 0 ) {
+		dir[n] = '\0';
+		slash = strrchr( dir, '/' );
+		if ( slash ) {
+			*slash = '\0';
+		}
+	} else {
+		Q_strncpyz( dir, ".", sizeof( dir ) );
+	}
 #endif
 	return dir;
 }
@@ -387,6 +404,8 @@ static struct {
 	HANDLE	process;
 	HANDLE	out;
 } procs[4];
+#else
+static pid_t procs[4];	// Oz: Linux, through /bin/sh as Windows' command line
 #endif
 
 int OzEd_Start( const char *exe, const char *args, const char *dir, const char *log ) {
@@ -427,7 +446,44 @@ int OzEd_Start( const char *exe, const char *args, const char *dir, const char *
 	procs[slot].out = out;
 	return slot + 1;
 #else
-	return 0;
+	char cmd[8192];
+	pid_t pid;
+	int slot, fd;
+
+	for ( slot = 0; slot < (int)ARRAY_LEN( procs ) && procs[slot]; slot++ ) {
+	}
+	if ( slot == (int)ARRAY_LEN( procs ) ) {
+		return 0;
+	}
+	// args is a command line, quoted as Windows' is: the shell splits it the same way
+	Com_sprintf( cmd, sizeof( cmd ), "exec \"%s\" %s", exe, args );
+	OzEd_MakeDirs( log );
+	fd = open( log, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644 );
+	pid = fork();
+	if ( pid < 0 ) {
+		if ( fd >= 0 ) {
+			close( fd );
+		}
+		return 0;
+	}
+	if ( pid == 0 ) {
+		if ( fd >= 0 ) {
+			dup2( fd, STDOUT_FILENO );
+			dup2( fd, STDERR_FILENO );
+		}
+		if ( dir && *dir && chdir( dir ) != 0 ) {
+			_exit( 127 );
+		}
+		if ( nice( 5 ) == -1 ) {	// below the game, as BELOW_NORMAL_PRIORITY_CLASS
+		}
+		execl( "/bin/sh", "sh", "-c", cmd, (char *)NULL );
+		_exit( 127 );
+	}
+	if ( fd >= 0 ) {
+		close( fd );
+	}
+	procs[slot] = pid;
+	return slot + 1;
 #endif
 }
 
@@ -438,6 +494,8 @@ static void OzEd_Close( int slot ) {
 		CloseHandle( procs[slot].out );
 	}
 	Com_Memset( &procs[slot], 0, sizeof( procs[slot] ) );
+#else
+	procs[slot] = 0;
 #endif
 }
 
@@ -458,7 +516,20 @@ int OzEd_Poll( int handle, int *code ) {
 	OzEd_Close( slot );
 	return 0;
 #else
-	*code = -1;
+	const int slot = handle - 1;
+	int status = 0;
+	pid_t r;
+
+	if ( slot < 0 || slot >= (int)ARRAY_LEN( procs ) || !procs[slot] ) {
+		*code = -1;
+		return 0;
+	}
+	r = waitpid( procs[slot], &status, WNOHANG );
+	if ( r == 0 ) {
+		return 1;
+	}
+	*code = r == procs[slot] && WIFEXITED( status ) ? WEXITSTATUS( status ) : -1;
+	OzEd_Close( slot );
 	return 0;
 #endif
 }
@@ -470,6 +541,21 @@ void OzEd_Stop( int handle ) {
 	if ( slot >= 0 && slot < (int)ARRAY_LEN( procs ) && procs[slot].process ) {
 		TerminateProcess( procs[slot].process, 1 );
 		WaitForSingleObject( procs[slot].process, 2000 );
+		OzEd_Close( slot );
+	}
+#else
+	const int slot = handle - 1;
+
+	if ( slot >= 0 && slot < (int)ARRAY_LEN( procs ) && procs[slot] ) {
+		int i, status;
+		kill( procs[slot], SIGTERM );
+		for ( i = 0; i < 40 && waitpid( procs[slot], &status, WNOHANG ) == 0; i++ ) {	// up to 2 s, as Windows'
+			Sys_Sleep( 50 );
+		}
+		if ( i == 40 ) {
+			kill( procs[slot], SIGKILL );
+			waitpid( procs[slot], &status, 0 );
+		}
 		OzEd_Close( slot );
 	}
 #endif

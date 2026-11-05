@@ -14,14 +14,41 @@ python engine/build_engine.py [--debug] [--clean] [--jobs 4] [--skip-qvms]
 
 Run it with build/engine/OzArena.exe; the player's baseq3 comes from their Steam install
 (fs_steampath) or +set fs_basepath "<Quake 3 folder>".
+
+On Linux (WSL2 Ubuntu or a Linux PC: python3 engine/build_engine.py) the same libraries and engine build
+with gcc and Ninja into build/linux/: OzArena.x86_64, OzArena.ded.x86_64, OzArena_<renderer>_x86_64.so,
+libSDL2-2.0.so.0 and libopenal.so.1 (each executable looks beside itself, $ORIGIN). Its oz/ paks are the
+main build's (build/engine/oz, --paks-from), copied as they are: a pure server checks paks by checksum,
+so the Linux and Windows games must carry the same files. The world packs and Ozmium's local-only CZ45
+paks are left out. engine/tools/linux_deps.sh installs what the build needs (apt).
 """
-import os, sys, json, glob, shutil, hashlib, zipfile, argparse, subprocess
+import os, re, sys, json, glob, shutil, hashlib, zipfile, argparse, subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 SRC = os.path.join(HERE, "quake3e")
-OUT = os.path.join(ROOT, "build", "engine")
+LINUX = sys.platform.startswith("linux")
+OUT = os.path.join(ROOT, "build", "linux" if LINUX else "engine")
+MAIN_OZ = os.path.join(ROOT, "build", "engine", "oz")   # the Windows build's paks, which Linux carries as they are
 PINS = json.load(open(os.path.join(HERE, "thirdparty.json")))
+
+
+def for_platform(entry):
+    """A thirdparty.json lib or tool with its "linux" entry applied on Linux: its cmake definitions replace
+    the same-named ones, its engine_cmake entries and program replace those, its stage replaces the list."""
+    over = entry.get("linux") if LINUX else None
+    if not over:
+        return entry
+    e = dict(entry)
+    if "cmake" in over:
+        names = {d.split("=", 1)[0] for d in over["cmake"]}
+        e["cmake"] = [d for d in entry.get("cmake", []) if d.split("=", 1)[0] not in names] + over["cmake"]
+    if "engine_cmake" in over:
+        e["engine_cmake"] = dict(entry.get("engine_cmake", {}), **over["engine_cmake"])
+    for k in ("stage", "program"):
+        if k in over:
+            e[k] = over[k]
+    return e
 GAME = PINS["game_code"]
 GAME_TREE = os.path.join(ROOT, "thirdparty", "ioq3")
 VCVARS = r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
@@ -34,6 +61,7 @@ ap.add_argument("--jobs", type=int, default=4, help="compile jobs (4 is safe on 
 ap.add_argument("--skip-qvms", action="store_true", help="keep the QVMs from the last build")
 ap.add_argument("--libs-only", action="store_true", help="build the third-party libraries and stop")
 ap.add_argument("--ui-only", action="store_true", help="only restage oz/zz-oz-ui.pk3 from engine/ui")
+ap.add_argument("--paks-from", default=MAIN_OZ, help="Linux: the oz/ paks to carry (the Windows build's)")
 a = ap.parse_args()
 CONFIG = "Debug" if a.debug else "Release"
 
@@ -46,7 +74,13 @@ def run(cmd, cwd=ROOT, env=None):
 
 
 def msvc_env():
-    """The environment vcvars64.bat sets up (cl, link, the Windows SDK, VS's CMake and Ninja)."""
+    """The environment vcvars64.bat sets up (cl, link, the Windows SDK, VS's CMake and Ninja).
+    On Linux, this environment, once gcc, CMake and Ninja are found."""
+    if LINUX:
+        missing = [t for t in ("gcc", "g++", "cmake", "ninja", "git") if not shutil.which(t)]
+        if missing:
+            sys.exit("missing %s: run engine/tools/linux_deps.sh" % ", ".join(missing))
+        return dict(os.environ)
     if not os.path.exists(VCVARS):
         sys.exit("Visual Studio 2022 (Desktop C++) isn't installed: no " + VCVARS)
     out = subprocess.run('"%s" >nul && set' % VCVARS, shell=True, capture_output=True, text=True, check=True).stdout
@@ -80,7 +114,12 @@ def apply_patches(tree, folder):
     run(["git", "clean", "-q", "-fd"], tree)
     for patch in patches:
         print("> patch", os.path.basename(patch))
-        r = subprocess.run(["git", "apply", "--whitespace=nowarn", patch], cwd=tree, capture_output=True, text=True)
+        if LINUX:   # this checkout's CRLF patch onto Linux git's LF checkout
+            r = subprocess.run(["git", "apply", "--whitespace=nowarn", "-"], cwd=tree, capture_output=True,
+                               input=open(patch, "rb").read().replace(b"\r\n", b"\n"))
+            r.stderr = r.stderr.decode(errors="replace")
+        else:
+            r = subprocess.run(["git", "apply", "--whitespace=nowarn", patch], cwd=tree, capture_output=True, text=True)
         if r.returncode != 0:
             sys.exit("patch %s doesn't apply to %s:\n%s" % (os.path.basename(patch), tree, r.stderr))
     with open(stamp, "w") as f:
@@ -114,6 +153,7 @@ def build_libs(env):
     staged, defs = {}, []
     tp = os.path.join(OUT, "thirdparty")
     for name, lib in PINS.get("libs", {}).items():
+        lib = for_platform(lib)
         src = os.path.join(tp, name)
         fetch(src, lib["url"], lib["commit"], lib.get("sparse"))
         if lib.get("submodules"):   # mbedTLS configures only with its framework submodule
@@ -125,13 +165,21 @@ def build_libs(env):
         if "cmake" in lib:
             cmake(src, build, env, *[fill(d) for d in lib["cmake"]])
         for built, as_name in lib.get("stage", {}).items():
-            staged[as_name] = os.path.join(build, built)
+            p = os.path.join(build, fill(built))
+            if LINUX and "*" in p:   # a versioned .so: libopenal.so.1.24.3, libSDL2-2.0.so.0.3200.8
+                found = sorted(f for f in glob.glob(p) if not os.path.islink(f))
+                if not found:
+                    sys.exit("%s didn't build %s" % (name, p))
+                p = found[-1]
+            staged[as_name] = p
         for k, v in lib.get("engine_cmake", {}).items():
             defs.append("%s=%s" % (k, fill(v)))
     return staged, defs
 
 
 def cmake(src, build, env, *defs):
+    if LINUX:   # static libraries linked into the renderer modules' shared objects
+        defs = ("CMAKE_POSITION_INDEPENDENT_CODE=ON",) + defs
     run(["cmake", "-S", src, "-B", build, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=" + CONFIG] + ["-D" + d for d in defs], env=env)
     run(["cmake", "--build", build, "-j", str(a.jobs)], env=env)
 
@@ -144,10 +192,14 @@ def fsr_glsl(env):
     inc = os.path.join(OUT, "thirdparty", "fidelityfx-fsr", "ffx-fsr")
     out = os.path.join(OUT, "rend2_fsr")
     os.makedirs(out, exist_ok=True)
-    cl = shutil.which("cl", path=env.get("PATH") or env.get("Path"))
+    cl = None if LINUX else shutil.which("cl", path=env.get("PATH") or env.get("Path"))
     for src in sorted(glob.glob(os.path.join(SRC, "code", "renderer2", "glsl", "ozfsr", "*.in"))):
         name = os.path.splitext(os.path.basename(src))[0].replace("_", "")   # ozfsr_easu -> ozfsreasu
-        r = subprocess.run([cl, "/nologo", "/EP", "/I", inc, "/Tc", src], capture_output=True, text=True, env=env)
+        if LINUX:   # gcc's preprocessor, without line markers, as MSVC's /EP
+            cmd = ["gcc", "-E", "-P", "-x", "c", "-I", inc, src]
+        else:
+            cmd = [cl, "/nologo", "/EP", "/I", inc, "/Tc", src]
+        r = subprocess.run(cmd, capture_output=True, text=True, env=env)
         if r.returncode:
             sys.exit("FSR shader %s: %s" % (src, r.stderr))
         text = "\n".join(l.rstrip() for l in r.stdout.splitlines() if l.strip()) + "\n"
@@ -165,7 +217,7 @@ def vk_ui_shaders(env):
     shaders = os.path.join(SRC, "code", "renderervk", "shaders")
     srcs = sorted(glob.glob(os.path.join(shaders, "oz_ui", "*.vert")) + glob.glob(os.path.join(shaders, "oz_ui", "*.frag")))
     out = os.path.join(shaders, "spirv", "oz_ui_shader_data.c")
-    tool = PINS["tools"]["glslang"]
+    tool = for_platform(PINS["tools"]["glslang"])
     h = hashlib.sha1()
     for s in srcs:
         h.update(os.path.basename(s).encode())
@@ -190,6 +242,36 @@ def vk_ui_shaders(env):
     os.remove(spv)
     open(out, "w", encoding="utf-8", newline="\n").write("\n".join(text))
     print("vulkan UI shaders:", out)
+
+
+def stage_linux(engine_build, libs):
+    """build/linux/: the executables, the renderer modules and the two libraries they load, and the main
+    build's oz/ paks as they are (see the docstring), with the launcher and the LICENSE."""
+    os.makedirs(os.path.join(OUT, "oz"), exist_ok=True)
+    for as_name, built in libs.items():
+        shutil.copy2(built, os.path.join(OUT, as_name))
+    for exe in (NAME + ".x86_64", NAME + ".ded.x86_64"):
+        shutil.copy2(os.path.join(engine_build, exe), os.path.join(OUT, exe))
+    for f in glob.glob(os.path.join(engine_build, NAME + "_*_x86_64.so")):
+        shutil.copy2(f, OUT)
+    shutil.copy2(os.path.join(HERE, "installer", "linux", "oz-arena-launcher"), os.path.join(OUT, "oz-arena-launcher"))
+    shutil.copy2(os.path.join(ROOT, "LICENSE"), os.path.join(OUT, "LICENSE"))
+    shutil.copy2(os.path.join(HERE, "installer", "linux", "oz-arena.png"), os.path.join(OUT, "oz-arena.png"))   # the menu entry's icon
+    for f in ("oz-arena-launcher", NAME + ".x86_64", NAME + ".ded.x86_64"):
+        os.chmod(os.path.join(OUT, f), 0o755)
+    paks = sorted(glob.glob(os.path.join(a.paks_from, "*.pk3")))
+    if not any(os.path.basename(p) == "pak_oz_code.pk3" for p in paks):
+        sys.exit("no pak_oz_code.pk3 in %s: build the Windows game first (python engine/build_engine.py on Windows)" % a.paks_from)
+    for p in paks:
+        n = os.path.basename(p)
+        if re.match(r"pak_oz_world\d*\.pk3$", n) or n.startswith("pak_oz_zz_cz"):   # released apart / local only
+            continue
+        shutil.copy2(p, os.path.join(OUT, "oz", n))
+    print("staged", OUT, "(paks from %s)" % a.paks_from)
+    for f in sorted(os.listdir(OUT)) + ["oz/" + f for f in sorted(os.listdir(os.path.join(OUT, "oz")))]:
+        p = os.path.join(OUT, f)
+        if os.path.isfile(p):
+            print("  %-36s %9d" % (f, os.path.getsize(p)))
 
 
 def stage(engine_build, qvm_build, libs):
@@ -285,6 +367,8 @@ def stage_ui():
 
 
 if a.ui_only:
+    if LINUX:
+        sys.exit("--ui-only is the Windows build's: Linux carries the main build's zz-oz-ui.pk3")
     stage_ui()
     sys.exit(0)
 if a.clean and os.path.isdir(OUT):
@@ -299,6 +383,9 @@ vk_ui_shaders(env)
 fsr_dir = fsr_glsl(env)
 cmake(SRC, engine_build, env, "CNAME=" + NAME, "DNAME=" + NAME + ".ded", "USE_SDL=ON", "USE_VULKAN=ON", "USE_RENDERER_DLOPEN=ON",
       "OZ_FSR_GLSL_DIR=" + fsr_dir.replace("\\", "/"), *lib_defs)
+if LINUX:   # the QVMs and every pak are the main build's (see the docstring)
+    stage_linux(engine_build, libs)
+    sys.exit(0)
 if not a.skip_qvms:
     fetch_game_code()
     # The QVM build doesn't track headers: a .c compiled against an older struct layout kept its old

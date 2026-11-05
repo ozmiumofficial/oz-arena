@@ -1783,6 +1783,50 @@
    "preview": ""
   },
   {
+   "key": "controls/vote_yes",
+   "tab": "controls",
+   "label": "Vote yes",
+   "type": "bind",
+   "default": [
+    "F1",
+    "",
+    ""
+   ],
+   "tip": "Binds for vote yes: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "group": "Actions",
+   "wired": true,
+   "restart": false,
+   "command": "vote yes",
+   "binds": [
+    "F1",
+    "",
+    ""
+   ],
+   "preview": ""
+  },
+  {
+   "key": "controls/vote_no",
+   "tab": "controls",
+   "label": "Vote no",
+   "type": "bind",
+   "default": [
+    "F2",
+    "",
+    ""
+   ],
+   "tip": "Binds for vote no: two for keyboard/mouse, one for the controller. Click and press a key, mouse button, wheel or pad button.",
+   "group": "Actions",
+   "wired": true,
+   "restart": false,
+   "command": "vote no",
+   "binds": [
+    "F2",
+    "",
+    ""
+   ],
+   "preview": ""
+  },
+  {
    "key": "controls/replay_play",
    "tab": "controls",
    "label": "Play / pause",

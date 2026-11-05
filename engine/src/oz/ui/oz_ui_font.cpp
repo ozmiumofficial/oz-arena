@@ -715,16 +715,20 @@ const std::vector<unsigned char> &Font_MakeDisplay( Rml::String &how ) {
 ================
 Font_Emoji: Windows' own Segoe UI Emoji, for emoji in chat (oz_emoji.c); empty without it. Its color
 glyphs are layers (COLR), which FreeType draws. Read once: RmlUi reads it until it shuts down.
+On Linux, the first layered (COLRv0) emoji font a distro ships: Twemoji's. Noto Color Emoji is PNG
+bitmaps (CBDT), which Oz's FreeType leaves out (FT_DISABLE_PNG), so it isn't one of them.
 ================
 */
 const std::vector<unsigned char> &Font_Emoji( Rml::String &how ) {
 	static Bytes emoji;
 	static bool tried;
+	static Rml::String name;
 	if ( tried ) {
-		how = emoji.empty() ? "none" : "Segoe UI Emoji";
+		how = emoji.empty() ? "none" : name;
 		return emoji;
 	}
 	tried = true;
+	name = "Segoe UI Emoji";
 #ifdef _WIN32
 	const char *windows = getenv( "WINDIR" );
 	const std::string path = std::string( windows && *windows ? windows : "C:\\Windows" ) + "\\Fonts\\seguiemj.ttf";
@@ -742,7 +746,31 @@ const std::vector<unsigned char> &Font_Emoji( Rml::String &how ) {
 	}
 	how = emoji.empty() ? "no " + path + " (chat shows emoji codes)" : "Segoe UI Emoji";
 #else
-	how = "none";
+	static const char *paths[] = {
+		"/usr/share/fonts/truetype/twemoji/TwemojiMozilla.ttf",		// Debian, Ubuntu: fonts-twemoji
+		"/usr/share/fonts/twemoji/Twemoji.ttf",
+		"/usr/share/fonts/TTF/TwemojiMozilla.ttf",
+		"/usr/share/fonts/twitter-twemoji/Twemoji.ttf",				// Fedora
+		"/usr/share/fonts/truetype/twemoji/Twemoji.ttf" };
+	for ( const char *path : paths ) {
+		if ( FILE *f = fopen( path, "rb" ) ) {
+			fseek( f, 0, SEEK_END );
+			const long len = ftell( f );
+			fseek( f, 0, SEEK_SET );
+			if ( len > 0 ) {
+				emoji.resize( (size_t)len );
+				if ( fread( emoji.data(), 1, emoji.size(), f ) != emoji.size() ) {
+					emoji.clear();
+				}
+			}
+			fclose( f );
+			if ( !emoji.empty() ) {
+				name = path;
+				break;
+			}
+		}
+	}
+	how = emoji.empty() ? Rml::String( "no Twemoji font (chat shows emoji codes)" ) : name;
 #endif
 	return emoji;
 }

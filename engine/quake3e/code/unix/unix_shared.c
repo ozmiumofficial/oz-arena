@@ -419,9 +419,115 @@ const char *Sys_DefaultHomePath( void )
 Sys_SteamPath
 ================
 */
+#if !defined(MACOS_X) && defined(STEAMPATH_NAME)
+/*
+================
+Sys_SteamGameIn
+
+Oz: true when <library>/steamapps/common/<STEAMPATH_NAME>/baseq3 exists; writes that game folder to out.
+================
+*/
+static qboolean Sys_SteamGameIn( const char *library, char *out, int outSize )
+{
+	char gameDir[ MAX_OSPATH ];
+	struct stat st;
+
+	Com_sprintf( gameDir, sizeof( gameDir ), "%s/steamapps/common/" STEAMPATH_NAME, library );
+	if ( stat( va( "%s/" BASEGAME, gameDir ), &st ) != 0 || !S_ISDIR( st.st_mode ) )
+		return qfalse;
+
+	Q_strncpyz( out, gameDir, outSize );
+	return qtrue;
+}
+
+
+/*
+================
+Sys_SteamLibraryGame
+
+Oz: as win_shared.c's: Steam's own folder, then each "path" in its steamapps/libraryfolders.vdf. On
+Linux, Steam plays the Windows game through Proton, into the same steamapps/common folder.
+================
+*/
+static qboolean Sys_SteamLibraryGame( const char *steamRoot, char *out, int outSize )
+{
+	char vdfPath[ MAX_OSPATH ], library[ MAX_OSPATH ];
+	char *text, *p, *q;
+	FILE *f;
+	long len;
+	qboolean found = qfalse;
+
+	if ( Sys_SteamGameIn( steamRoot, out, outSize ) )
+		return qtrue;
+
+	Com_sprintf( vdfPath, sizeof( vdfPath ), "%s/steamapps/libraryfolders.vdf", steamRoot );
+	f = fopen( vdfPath, "rb" );
+	if ( !f )
+		return qfalse;
+	fseek( f, 0, SEEK_END );
+	len = ftell( f );
+	fseek( f, 0, SEEK_SET );
+	if ( len <= 0 || len > 1024 * 1024 ) {
+		fclose( f );
+		return qfalse;
+	}
+	text = malloc( len + 1 );
+	if ( !text ) {
+		fclose( f );
+		return qfalse;
+	}
+	len = (long)fread( text, 1, len, f );
+	text[ len ] = '\0';
+	fclose( f );
+
+	for ( p = text; !found && ( p = strstr( p, "\"path\"" ) ) != NULL; ) {
+		int n = 0;
+		p += 6;
+		while ( *p && *p != '"' && *p != '\n' )
+			p++;
+		if ( *p != '"' )
+			continue;
+		for ( q = p + 1; *q && *q != '"' && n < (int)sizeof( library ) - 1; q++ ) {
+			if ( q[0] == '\\' && q[1] == '\\' )
+				q++;
+			library[ n++ ] = *q;
+		}
+		library[ n ] = '\0';
+		p = q;
+		if ( n && Sys_SteamGameIn( library, out, outSize ) )
+			found = qtrue;
+	}
+
+	free( text );
+	return found;
+}
+#endif
+
+
 const char *Sys_SteamPath( void )
 {
 	static char steamPath[ MAX_OSPATH ];
+#if !defined(MACOS_X) && defined(STEAMPATH_NAME)
+	// Oz: Steam for Linux keeps Quake III Arena (played through Proton) in its libraries: the native
+	// package's folder, Flathub's and the Snap's. The launcher passes the folder it found as fs_basepath,
+	// so this is for the game started on its own.
+	static qboolean looked;
+	static const char *roots[] = { "/.steam/steam", "/.local/share/Steam", "/.steam/root",
+		"/.var/app/com.valvesoftware.Steam/.local/share/Steam", "/.var/app/com.valvesoftware.Steam/data/Steam",
+		"/snap/steam/common/.local/share/Steam" };
+	const char *home = getenv( "HOME" );
+	int i;
+
+	if ( !looked && home && *home ) {
+		looked = qtrue;
+		for ( i = 0; i < (int)ARRAY_LEN( roots ) && !steamPath[0]; i++ ) {
+			char root[ MAX_OSPATH ];
+			Com_sprintf( root, sizeof( root ), "%s%s", home, roots[i] );
+			if ( !Sys_SteamLibraryGame( root, steamPath, sizeof( steamPath ) ) )
+				steamPath[0] = '\0';
+		}
+	}
+#endif
 	// Disabled since Steam doesn't let you install Quake 3 on Mac/Linux
 #if 0
 	const char *p;

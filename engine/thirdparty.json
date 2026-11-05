@@ -1,5 +1,5 @@
 {
- "_note": "Pins for the Oz engine (engine/build_engine.py). game_code is the ioquake3 tree the QVMs build from (game/patches on a pinned commit). upstream holds the last synced commit of each engine the blend takes from (engine/tools/upstream_report.py reads and updates it). libs are built from source by build_engine.py; later phases add theirs when their phase starts. A lib without \"cmake\" is only fetched. {src}, {build}, {thirdparty} and {d} (\"d\" in Debug builds) are filled in.",
+ "_note": "Pins for the Oz engine (engine/build_engine.py). game_code is the ioquake3 tree the QVMs build from (game/patches on a pinned commit). upstream holds the last synced commit of each engine the blend takes from (engine/tools/upstream_report.py reads and updates it). libs are built from source by build_engine.py; later phases add theirs when their phase starts. A lib without \"cmake\" is only fetched. {src}, {build}, {thirdparty} and {d} (\"d\" in Debug builds) are filled in. A \"linux\" entry holds what differs on Linux (engine/build_engine.py run in WSL2 or on Linux): its \"cmake\" definitions replace the same-named ones, its \"engine_cmake\" entries and \"program\" replace those, and its \"stage\" replaces the list (a staged name may hold a glob, for the libraries' versioned .so files).",
  "libs": {
   "openal-soft": {
    "url": "https://github.com/kcat/openal-soft.git",
@@ -14,6 +14,11 @@
    ],
    "stage": {
     "OpenAL32.dll": "OpenAL64.dll"
+   },
+   "linux": {
+    "stage": {
+     "libopenal.so.1.*.*": "libopenal.so.1"
+    }
    }
   },
   "sdl2": {
@@ -34,6 +39,14 @@
    "engine_cmake": {
     "SDL2_INCLUDE_DIRS": "{src}/include;{build}/include;{build}/include-config-release",
     "SDL2_LIBRARY": "{build}/SDL2.lib"
+   },
+   "linux": {
+    "stage": {
+     "libSDL2-2.0{d}.so.0.*": "libSDL2-2.0.so.0"
+    },
+    "engine_cmake": {
+     "SDL2_LIBRARY": "{build}/libSDL2-2.0{d}.so"
+    }
    }
   },
   "pcre2": {
@@ -56,6 +69,11 @@
    "engine_cmake": {
     "PCRE2_INCLUDE_DIR": "{build}",
     "PCRE2_LIBRARY": "{build}/pcre2-8-static.lib"
+   },
+   "linux": {
+    "engine_cmake": {
+     "PCRE2_LIBRARY": "{build}/libpcre2-8{d}.a"
+    }
    }
   },
   "freetype": {
@@ -74,6 +92,11 @@
    ],
    "engine_cmake": {
     "FREETYPE_LIBRARY": "{build}/freetype{d}.lib"
+   },
+   "linux": {
+    "engine_cmake": {
+     "FREETYPE_LIBRARY": "{build}/libfreetype{d}.a"
+    }
    }
   },
   "rmlui": {
@@ -97,6 +120,14 @@
    "engine_cmake": {
     "RMLUI_INCLUDE_DIR": "{src}/Include",
     "RMLUI_LIBRARY": "{build}/rmlui{d}.lib;{build}/rmlui_debugger{d}.lib"
+   },
+   "linux": {
+    "cmake": [
+     "FREETYPE_LIBRARY={thirdparty}/freetype-build/libfreetype{d}.a"
+    ],
+    "engine_cmake": {
+     "RMLUI_LIBRARY": "{build}/librmlui{d}.a;{build}/librmlui_debugger{d}.a"
+    }
    }
   },
   "cjson": {
@@ -186,6 +217,18 @@
    "engine_cmake": {
     "OZ_CURL_INCLUDE_DIR": "{src}/include",
     "OZ_CURL_LIBRARY": "{build}/lib/libcurl{d}.lib"
+   },
+   "linux": {
+    "cmake": [
+     "CURL_USE_SCHANNEL=OFF",
+     "CURL_USE_OPENSSL=ON",
+     "CURL_CA_BUNDLE=none",
+     "CURL_CA_PATH=none",
+     "CURL_CA_FALLBACK=ON"
+    ],
+    "engine_cmake": {
+     "OZ_CURL_LIBRARY": "{build}/lib/libcurl{d}.a"
+    }
    }
   },
   "mbedtls": {
@@ -205,7 +248,12 @@
     "MBEDTLS_INCLUDE_DIR": "{src}/include",
     "MBEDCRYPTO_LIBRARY": "{build}/library/mbedcrypto.lib"
    },
-   "submodules": true
+   "submodules": true,
+   "linux": {
+    "engine_cmake": {
+     "MBEDCRYPTO_LIBRARY": "{build}/library/libmbedcrypto.a"
+    }
+   }
   },
   "jolt": {
    "url": "https://github.com/jrouwe/JoltPhysics.git",
@@ -238,6 +286,11 @@
    "engine_cmake": {
     "JUICE_INCLUDE_DIR": "{src}/include",
     "JUICE_LIBRARY": "{build}/juice.lib"
+   },
+   "linux": {
+    "engine_cmake": {
+     "JUICE_LIBRARY": "{build}/libjuice{d}.a"
+    }
    }
   },
   "fidelityfx-fsr": {
@@ -271,7 +324,10 @@
     "BUILD_SHARED_LIBS=OFF",
     "BUILD_EXTERNAL=OFF"
    ],
-   "program": "StandAlone/glslang.exe"
+   "program": "StandAlone/glslang.exe",
+   "linux": {
+    "program": "StandAlone/glslang"
+   }
   }
  },
  "game_code": {

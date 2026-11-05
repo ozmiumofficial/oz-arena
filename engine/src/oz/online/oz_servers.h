@@ -50,7 +50,7 @@ int		OzMods_Import( const char *source, const char *mod, char *message, int size
 						// <fs_homepath>/<mod>: how many files, or -1 (message says why; on success, what was taken)
 int		OzMods_InInstall( const char *mod, char *path, int size );	// a copy in the install the file system doesn't
 						// find (its paks in <mod>/<mod>, Defrag's bundle): 1 and its folder
-int		OzMods_Pick( int folder, char *path, int size );	// Windows' open dialog: a zip or pak, or a folder (0: cancelled)
+int		OzMods_Pick( int folder, char *path, int size );	// the system's open dialog (Windows', or zenity/kdialog on Linux): a zip or pak, or a folder (0: cancelled)
 int		OzMods_Ready( const char *mod );	// the mod's game code is where a switch to it finds it (a pak named for it
 						// in <mod> of the user folder, the base path or the Steam install)
 

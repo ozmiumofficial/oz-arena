@@ -44,6 +44,9 @@ mods table names each mod and the engine extensions it uses, and never holds a d
 #pragma comment( lib, "ole32.lib" )
 #pragma comment( lib, "uuid.lib" )
 #pragma comment( lib, "shell32.lib" )
+#else
+#include <dirent.h>
+#include <sys/stat.h>
 #endif
 
 #define MAX_IMPORT_FILES	4096
@@ -131,6 +134,69 @@ static qboolean WriteOut( const char *mod, const char *rel, const void *data, in
 	return qtrue;
 }
 
+// every file of an open zip under base (the mod's folder in it) into the mod's folder: how many
+static int UnzipInto( unzFile z, const char *base, const char *mod ) {
+	int i, n = 0;
+
+	for ( i = unzGoToFirstFile( z ); i == UNZ_OK; i = unzGoToNextFile( z ) ) {
+		unz_file_info info;
+		char name[MAX_OSPATH], *c;
+		const char *rel;
+		void *data;
+		unzGetCurrentFileInfo( z, &info, name, sizeof( name ), NULL, 0, NULL, 0 );
+		for ( c = name; *c; c++ ) {
+			*c = *c == '\\' ? '/' : *c;
+		}
+		rel = name + strlen( base );
+		if ( !name[0] || name[strlen( name ) - 1] == '/' || Q_stricmpn( name, base, strlen( base ) ) || Refused( rel ) ) {
+			continue;
+		}
+		data = Z_Malloc( info.uncompressed_size > 0 ? info.uncompressed_size : 1 );
+		if ( unzOpenCurrentFile( z ) == UNZ_OK ) {
+			const int len = unzReadCurrentFile( z, data, info.uncompressed_size );
+			unzCloseCurrentFile( z );
+			if ( len == (int)info.uncompressed_size && WriteOut( mod, rel, data, len ) ) {
+				n++;
+			}
+		}
+		Z_Free( data );
+	}
+	return n;
+}
+
+// the zip's files listed (folders' own entries left out)
+static void ListZip( unzFile z ) {
+	int i;
+
+	numFiles = 0;
+	for ( i = unzGoToFirstFile( z ); i == UNZ_OK && numFiles < MAX_IMPORT_FILES; i = unzGoToNextFile( z ) ) {
+		unz_file_info info;
+		char name[MAX_OSPATH], *c;
+		unzGetCurrentFileInfo( z, &info, name, sizeof( name ), NULL, 0, NULL, 0 );
+		for ( c = name; *c; c++ ) {
+			*c = *c == '\\' ? '/' : *c;
+		}
+		if ( name[0] && name[strlen( name ) - 1] != '/' ) {
+			Q_strncpyz( files[numFiles++].path, name, sizeof( files[0].path ) );
+		}
+	}
+}
+
+// a file read whole into the mod's folder as rel
+static qboolean CopyInto( FILE *f, const char *mod, const char *rel ) {
+	qboolean ok;
+	void *data;
+	long len;
+
+	fseek( f, 0, SEEK_END );
+	len = ftell( f );
+	fseek( f, 0, SEEK_SET );
+	data = Z_Malloc( len > 0 ? len : 1 );
+	ok = fread( data, 1, len, f ) == (size_t)len && WriteOut( mod, rel, data, (int)len );
+	Z_Free( data );
+	return ok;
+}
+
 #ifdef _WIN32
 static void Wide( const char *utf8, wchar_t *out, int size ) {
 	if ( !MultiByteToWideChar( CP_UTF8, MB_ERR_INVALID_CHARS, utf8, -1, out, size ) ) {
@@ -184,8 +250,6 @@ static int ImportFolder( const char *source, const char *mod, char *message, int
 		const char *rel = files[i].path + strlen( base );
 		wchar_t from[MAX_OSPATH * 2], relw[MAX_OSPATH];
 		FILE *f;
-		void *data;
-		long len;
 		if ( Q_stricmpn( files[i].path, base, strlen( base ) ) || Refused( rel ) ) {
 			continue;
 		}
@@ -195,14 +259,7 @@ static int ImportFolder( const char *source, const char *mod, char *message, int
 		if ( !f ) {
 			continue;
 		}
-		fseek( f, 0, SEEK_END );
-		len = ftell( f );
-		fseek( f, 0, SEEK_SET );
-		data = Z_Malloc( len > 0 ? len : 1 );
-		if ( fread( data, 1, len, f ) == (size_t)len && WriteOut( mod, rel, data, (int)len ) ) {
-			n++;
-		}
-		Z_Free( data );
+		n += CopyInto( f, mod, rel );
 		fclose( f );
 	}
 	return n;
@@ -214,7 +271,6 @@ static unzFile OpenZip( const char *source, const char *mod, wchar_t *to, int to
 	wchar_t from[MAX_OSPATH * 2];
 	const char *copy = FS_BuildOSPath( Cvar_VariableString( "fs_homepath" ), mod, "import.zip.tmp" );
 	unzFile z;
-	int i;
 
 	FS_CreatePath( copy );
 	Wide( source, from, ARRAY_LEN( from ) );
@@ -223,18 +279,7 @@ static unzFile OpenZip( const char *source, const char *mod, wchar_t *to, int to
 		DeleteFileW( to );
 		return NULL;
 	}
-	numFiles = 0;
-	for ( i = unzGoToFirstFile( z ); i == UNZ_OK && numFiles < MAX_IMPORT_FILES; i = unzGoToNextFile( z ) ) {
-		unz_file_info info;
-		char name[MAX_OSPATH], *c;
-		unzGetCurrentFileInfo( z, &info, name, sizeof( name ), NULL, 0, NULL, 0 );
-		for ( c = name; *c; c++ ) {
-			*c = *c == '\\' ? '/' : *c;
-		}
-		if ( name[0] && name[strlen( name ) - 1] != '/' ) {	// a folder's own entry is no file
-			Q_strncpyz( files[numFiles++].path, name, sizeof( files[0].path ) );
-		}
-	}
+	ListZip( z );
 	return z;
 }
 
@@ -242,7 +287,7 @@ static int ImportZip( const char *source, const char *mod, char *message, int si
 	wchar_t to[MAX_OSPATH * 2];
 	const char *base;
 	unzFile z;
-	int i, n = 0;
+	int n;
 
 	if ( !( z = OpenZip( source, mod, to, ARRAY_LEN( to ) ) ) ) {
 		Com_sprintf( message, size, "That file couldn't be read as a zip." );
@@ -254,31 +299,84 @@ static int ImportZip( const char *source, const char *mod, char *message, int si
 		DeleteFileW( to );
 		return -1;
 	}
-	for ( i = unzGoToFirstFile( z ); i == UNZ_OK; i = unzGoToNextFile( z ) ) {
-		unz_file_info info;
-		char name[MAX_OSPATH], *c;
-		const char *rel;
-		void *data;
-		unzGetCurrentFileInfo( z, &info, name, sizeof( name ), NULL, 0, NULL, 0 );
-		for ( c = name; *c; c++ ) {
-			*c = *c == '\\' ? '/' : *c;
-		}
-		rel = name + strlen( base );
-		if ( !name[0] || name[strlen( name ) - 1] == '/' || Q_stricmpn( name, base, strlen( base ) ) || Refused( rel ) ) {
-			continue;
-		}
-		data = Z_Malloc( info.uncompressed_size > 0 ? info.uncompressed_size : 1 );
-		if ( unzOpenCurrentFile( z ) == UNZ_OK ) {
-			const int len = unzReadCurrentFile( z, data, info.uncompressed_size );
-			unzCloseCurrentFile( z );
-			if ( len == (int)info.uncompressed_size && WriteOut( mod, rel, data, len ) ) {
-				n++;
-			}
-		}
-		Z_Free( data );
-	}
+	n = UnzipInto( z, base, mod );
 	unzClose( z );
 	DeleteFileW( to );
+	return n;
+}
+#else
+// Oz: Linux's: paths are UTF-8 bytes, so the zip opens where it is
+static void ListFolder( const char *root, const char *below ) {
+	char dir[MAX_OSPATH * 2];
+	struct dirent *e;
+	DIR *d;
+
+	Com_sprintf( dir, sizeof( dir ), "%s/%s", root, below );
+	if ( !( d = opendir( dir ) ) ) {
+		return;
+	}
+	while ( ( e = readdir( d ) ) != NULL && numFiles < MAX_IMPORT_FILES ) {
+		char rel[MAX_OSPATH], full[MAX_OSPATH * 2];
+		struct stat st;
+		if ( !strcmp( e->d_name, "." ) || !strcmp( e->d_name, ".." ) ) {
+			continue;
+		}
+		Com_sprintf( rel, sizeof( rel ), "%s%s", below, e->d_name );
+		Com_sprintf( full, sizeof( full ), "%s/%s", root, rel );
+		if ( stat( full, &st ) != 0 ) {
+			continue;
+		}
+		if ( S_ISDIR( st.st_mode ) ) {
+			Q_strcat( rel, sizeof( rel ), "/" );
+			ListFolder( root, rel );
+		} else if ( S_ISREG( st.st_mode ) ) {
+			Q_strncpyz( files[numFiles++].path, rel, sizeof( files[0].path ) );
+		}
+	}
+	closedir( d );
+}
+
+static int ImportFolder( const char *source, const char *mod, char *message, int size ) {
+	const char *base;
+	int i, n = 0;
+
+	numFiles = 0;
+	ListFolder( source, "" );
+	if ( !( base = ModBase( mod ) ) ) {
+		Com_sprintf( message, size, "There are no paks in that folder." );
+		return -1;
+	}
+	for ( i = 0; i < numFiles; i++ ) {
+		const char *rel = files[i].path + strlen( base );
+		FILE *f;
+		if ( Q_stricmpn( files[i].path, base, strlen( base ) ) || Refused( rel ) ) {
+			continue;
+		}
+		if ( ( f = fopen( va( "%s/%s", source, files[i].path ), "rb" ) ) != NULL ) {
+			n += CopyInto( f, mod, rel );
+			fclose( f );
+		}
+	}
+	return n;
+}
+
+static int ImportZip( const char *source, const char *mod, char *message, int size ) {
+	const char *base;
+	unzFile z;
+	int n;
+
+	if ( !( z = unzOpen( source ) ) ) {
+		Com_sprintf( message, size, "That file couldn't be read as a zip." );
+		return -1;
+	}
+	ListZip( z );
+	if ( !( base = ModBase( mod ) ) ) {
+		Com_sprintf( message, size, "There are no paks in that zip." );
+		unzClose( z );
+		return -1;
+	}
+	n = UnzipInto( z, base, mod );
+	unzClose( z );
 	return n;
 }
 #endif
@@ -333,7 +431,26 @@ int OzMods_Import( const char *source, const char *mod, char *message, int size 
 		}
 	}
 #else
-	Com_sprintf( message, size, "Importing a mod is for the Windows game." );
+	{
+		struct stat st;
+		if ( stat( source, &st ) != 0 ) {
+			Com_sprintf( message, size, "That file or folder isn't there." );
+		} else if ( S_ISDIR( st.st_mode ) ) {
+			n = ImportFolder( source, mod, message, size );
+		} else if ( Ext( source, ".pk3" ) ) {
+			const char *slash = strrchr( source, '/' );
+			FILE *f = fopen( source, "rb" );
+			if ( f ) {
+				n = CopyInto( f, mod, slash ? slash + 1 : source ) ? 1 : -1;
+				fclose( f );
+			}
+			if ( n < 0 ) {
+				Com_sprintf( message, size, "That pak couldn't be copied." );
+			}
+		} else {
+			n = ImportZip( source, mod, message, size );
+		}
+	}
 #endif
 	if ( n == 0 ) {
 		Com_sprintf( message, size, "Nothing in it could be taken." );
@@ -453,8 +570,31 @@ int OzMods_Pick( int folder, char *path, int size ) {
 	}
 	return ok;
 #else
+	// Oz: Linux's: the desktop's own file dialog, through zenity (GNOME, most desktops) or kdialog (KDE)
+	static const char *pickers[2][2] = {
+		{ "zenity --file-selection --title=\"The mod's zip\" --file-filter=\"A mod's zip or pak | *.zip *.pk3\" 2>/dev/null",
+		  "kdialog --title \"The mod's zip\" --getopenfilename \"$HOME\" \"*.zip *.pk3\" 2>/dev/null" },
+		{ "zenity --file-selection --directory --title=\"The mod's folder\" 2>/dev/null",
+		  "kdialog --title \"The mod's folder\" --getexistingdirectory \"$HOME\" 2>/dev/null" } };
+	int i;
+
 	path[0] = '\0';
-	return 0;
+	for ( i = 0; i < 2 && !path[0]; i++ ) {
+		const char *tool = i == 0 ? "zenity" : "kdialog";
+		FILE *p;
+		if ( system( va( "command -v %s >/dev/null 2>&1", tool ) ) != 0 ) {
+			continue;
+		}
+		if ( ( p = popen( pickers[folder ? 1 : 0][i], "r" ) ) == NULL ) {
+			continue;
+		}
+		if ( fgets( path, size, p ) ) {
+			path[strcspn( path, "\r\n" )] = '\0';
+		}
+		pclose( p );
+		break;	// the player answered this one, cancel included
+	}
+	return path[0] != '\0';
 #endif
 }
 

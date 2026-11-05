@@ -500,6 +500,11 @@ static const char *Folder( int i, char *buf, int size ) {
 		Com_sprintf( buf, size, "%s/Quake3/baseq3", getenv( "APPDATA" ) );	// ioquake3's user folder
 		return buf;
 	}
+#else
+	if ( ( i == 3 || i == 4 ) && getenv( "HOME" ) ) {	// Oz: on Linux, ioquake3's and Quake3e's (and id's) user folders
+		Com_sprintf( buf, size, i == 3 ? "%s/.q3a/baseq3" : "%s/.local/share/Quake3/baseq3", getenv( "HOME" ) );
+		return buf;
+	}
 #endif
 	return NULL;
 }

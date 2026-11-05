@@ -5570,6 +5570,9 @@ out, so Oz started with menus missing id's art.
 #define OZ_EXE		"OzArena.exe"
 #endif
 #define OZ_LOOKED	"It looked in your Steam libraries, among your GOG games, next to " OZ_EXE " and in the folder above it."
+#elif defined(__linux__) && !defined(DEDICATED)
+#define OZ_EXE		"OzArena.x86_64"
+#define OZ_LOOKED	"It looked in your Steam libraries (Proton's copy) and next to " OZ_EXE ". The launcher, oz-arena-launcher, also finds GOG, Heroic and Lutris copies."
 #else
 #define OZ_EXE		"the server"
 #define OZ_LOOKED	"It looked next to the server."

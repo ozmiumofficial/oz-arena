@@ -1,0 +1,29 @@
+{
+  "name": "doom",
+  "slot": "doom",
+  "source": "sources/doom/tripo_convert_fd8e7f0f-7bec-464c-9a74-b2c87e4750b2.fbx",
+  "texture": "sources/doom/tripo_convert_fd8e7f0f-7bec-464c-9a74-b2c87e4750b2.fbm/tripo_rgb_64340f83-7a54-4248-a319-dce8b8fbc988.jpg",
+  "locomotion": "walk",
+  "arms": {"stretch": 1.45, "ramp": [0.175, 0.215], "wrist_x": 0.385, "min_z": 0.62},
+  "left": {
+    "clavicle": [0.035, 0.010, 0.785],
+    "upperarm": [0.165, 0.015, 0.775],
+    "forearm": [0.270, 0.010, 0.757],
+    "hand": [0.385, 0.000, 0.753],
+    "fingers": [0.490, -0.020, 0.735],
+    "thigh": [0.085, -0.010, 0.465],
+    "calf": [0.082, -0.020, 0.275],
+    "foot": [0.095, 0.010, 0.080],
+    "toe": [0.100, -0.070, 0.030],
+    "toetip": [0.100, -0.125, 0.020]
+  },
+  "center": {
+    "root": [0.0, 0.0, 0.0],
+    "pelvis": [0.0, -0.010, 0.500],
+    "spine": [0.0, -0.005, 0.600],
+    "chest": [0.0, 0.000, 0.700],
+    "neck": [0.0, 0.005, 0.825],
+    "head": [0.0, -0.005, 0.860],
+    "headtop": [0.0, 0.000, 0.990]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "visor",
+  "slot": "visor",
+  "source": "sources/visor/tripo_convert_373e1979-d6ea-4e00-8277-f9066bcf98ae.fbx",
+  "texture": "sources/visor/tripo_convert_373e1979-d6ea-4e00-8277-f9066bcf98ae.fbm/tripo_rgb_e8a7931d-311c-482a-97de-edada146df09.jpg",
+  "locomotion": "walk",
+  "arms": {"stretch": 1.4, "ramp": [0.175, 0.215], "wrist_x": 0.400, "min_z": 0.62},
+  "left": {
+    "clavicle": [0.035, 0.000, 0.800],
+    "upperarm": [0.165, 0.005, 0.785],
+    "forearm": [0.270, 0.000, 0.752],
+    "hand": [0.400, 0.000, 0.742],
+    "fingers": [0.495, -0.010, 0.716],
+    "thigh": [0.085, -0.010, 0.470],
+    "calf": [0.082, -0.015, 0.285],
+    "foot": [0.088, 0.015, 0.085],
+    "toe": [0.090, -0.070, 0.030],
+    "toetip": [0.092, -0.120, 0.020]
+  },
+  "center": {
+    "root": [0.0, 0.0, 0.0],
+    "pelvis": [0.0, -0.010, 0.520],
+    "spine": [0.0, -0.010, 0.620],
+    "chest": [0.0, 0.000, 0.720],
+    "neck": [0.0, 0.000, 0.875],
+    "head": [0.0, -0.010, 0.905],
+    "headtop": [0.0, -0.010, 0.992]
+  }
+}

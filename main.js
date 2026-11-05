@@ -16,11 +16,30 @@
   });
 
   // before / after
-  document.querySelectorAll("[data-compare] .compare-frame").forEach(frame => {
+  document.querySelectorAll("[data-compare]").forEach(fig => {
+    const frame = fig.querySelector(".compare-frame");
     const input = frame.querySelector("input");
     const set = () => frame.style.setProperty("--pos", input.value + "%");
     input.addEventListener("input", set);
     set();
+    // the example picker: each button swaps in its pair, preloaded on hover so the swap is instant
+    const oz = fig.querySelector(".cmp-oz"), id = fig.querySelector(".cmp-id");
+    const name = fig.querySelector(".cmp-name"), map = fig.querySelector(".cmp-map");
+    const picks = [...fig.querySelectorAll(".cmp-picks button")];
+    const preload = b => ["oz", "id"].forEach(t => { new Image().src = "img/cmp_" + b.dataset.key + "_" + t + ".jpg"; });
+    picks.forEach(b => {
+      b.addEventListener("pointerenter", () => preload(b), { once: true });
+      b.addEventListener("focus", () => preload(b), { once: true });
+      b.addEventListener("click", () => {
+        const k = b.dataset.key;
+        oz.src = "img/cmp_" + k + "_oz.jpg"; id.src = "img/cmp_" + k + "_id.jpg";
+        oz.alt = b.dataset.name + " on " + b.dataset.map + " in Ozmium Arena";
+        id.alt = "The same " + b.dataset.name.toLowerCase() + " in the original game";
+        name.textContent = b.dataset.name; map.textContent = b.dataset.map;
+        picks.forEach(p => p.setAttribute("aria-pressed", p === b));
+        input.value = 50; set();
+      });
+    });
   });
 
   // reveal on scroll, and the nav's current section

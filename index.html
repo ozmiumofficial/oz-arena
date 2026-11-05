@@ -284,13 +284,21 @@
   </div>
   <figure class="compare" data-compare>
     <div class="compare-frame">
-      <img src="img/compare_oz.jpg" alt="A stone wall on The Camping Grounds in Ozmium Arena, sharp and pitted" loading="lazy">
-      <div class="compare-top"><img src="img/compare_id.jpg" alt="The same wall in the original game, blurred into blocks" loading="lazy"></div>
+      <img class="cmp-oz" src="img/cmp_wall_oz.jpg" alt="Stone wall on The Camping Grounds in Ozmium Arena" loading="lazy">
+      <div class="compare-top"><img class="cmp-id" src="img/cmp_wall_id.jpg" alt="The same stone wall in the original game" loading="lazy"></div>
       <div class="compare-handle" aria-hidden="true"><span></span></div>
       <input type="range" min="0" max="100" value="50" aria-label="Drag to compare the original and Ozmium Arena">
       <span class="compare-tag left">Original</span><span class="compare-tag right">Ozmium</span>
     </div>
-    <figcaption>The Camping Grounds, the same wall up close: drag across to see the original and Oz.</figcaption>
+    <figcaption><b class="cmp-name">Stone wall</b> · <span class="cmp-map">The Camping Grounds</span> · drag across to compare</figcaption>
+    <div class="cmp-picks" role="group" aria-label="Choose an example">
+      <button type="button" aria-pressed="true" data-key="wall" data-name="Stone wall" data-map="The Camping Grounds"><img src="img/cmp_wall_thumb.jpg" alt=""><span>Stone wall</span></button>
+      <button type="button" aria-pressed="false" data-key="blocks" data-name="Carved blocks" data-map="The Camping Grounds"><img src="img/cmp_blocks_thumb.jpg" alt="" loading="lazy"><span>Carved blocks</span></button>
+      <button type="button" aria-pressed="false" data-key="cracks" data-name="Cracked floor" data-map="The Proving Grounds"><img src="img/cmp_cracks_thumb.jpg" alt="" loading="lazy"><span>Cracked floor</span></button>
+      <button type="button" aria-pressed="false" data-key="flagstones" data-name="Flagstones" data-map="Lost World"><img src="img/cmp_flagstones_thumb.jpg" alt="" loading="lazy"><span>Flagstones</span></button>
+      <button type="button" aria-pressed="false" data-key="seams" data-name="Floor seams" data-map="Arena of Death"><img src="img/cmp_seams_thumb.jpg" alt="" loading="lazy"><span>Floor seams</span></button>
+      <button type="button" aria-pressed="false" data-key="tiles" data-name="Tiles" data-map="Temple of Retribution"><img src="img/cmp_tiles_thumb.jpg" alt="" loading="lazy"><span>Tiles</span></button>
+    </div>
   </figure>
 </section>
 

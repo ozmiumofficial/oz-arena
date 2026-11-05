@@ -170,3 +170,21 @@ h3 { text-shadow: 0 1px 0 #000; }
   background: linear-gradient(#050403f2, #030202), var(--iron); background-size: auto, 400px;
   border-top: 2px solid #000; box-shadow: 0 -1px 0 #3a2618;
 }
+
+/* the before/after examples: a row of iron-framed thumbnails under the slider */
+.compare figcaption b { color: var(--hot); font-weight: 600; }
+.cmp-picks { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 18px; }
+@media (max-width: 1100px) { .cmp-picks { grid-template-columns: repeat(3, 1fr); } }
+.cmp-picks button {
+  position: relative; padding: 0; cursor: pointer; background: #0a0706; border: 1px solid #000;
+  box-shadow: 0 0 0 3px #120d0b, 0 0 0 4px #4a3324; transition: box-shadow .2s, transform .2s;
+}
+.cmp-picks button:hover { transform: translateY(-2px); box-shadow: 0 0 0 3px #120d0b, 0 0 0 4px var(--bronze); }
+.cmp-picks button[aria-pressed="true"] { box-shadow: 0 0 0 3px #120d0b, 0 0 0 4px var(--glow), 0 0 18px -2px #ff4a1c99; }
+.cmp-picks img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; filter: saturate(.85) brightness(.75); transition: filter .2s; }
+.cmp-picks button:hover img, .cmp-picks button[aria-pressed="true"] img { filter: none; }
+.cmp-picks span {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 6px 5px;
+  font: 700 11px/1.1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--ink);
+  background: linear-gradient(transparent, #000000d9); text-align: left;
+}

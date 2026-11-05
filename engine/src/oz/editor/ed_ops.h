@@ -53,6 +53,21 @@ bool is_brush_class(const std::string &classname);     // func_*, trigger_*: the
 bool point_box(const Object &o, Vec3 &lo, Vec3 &hi);
 void entity_color(const std::string &classname, unsigned char rgba[4]);
 
+// A light's numbers as q3map2 reads them (NetRadiant-custom light.cpp, CreateEntityLights): its
+// intensity ("_light" or "light", 0 or none is 300) times "scale"; spawnflag 1 its linear falloff,
+// faded by "fade" (none is 1). Linear, it adds intensity * scale * 7500 / 8000 - distance * fade, so it
+// ends at range; else it falls off as the inverse square, reach then where it's about a sixteenth bright.
+struct LightNumbers {
+	std::string key = "light";  // the key its intensity is in
+	double intensity = 300, scale = 1, fade = 1;
+	bool linear = false;
+	double range = 0;  // where a linear light ends (0: inverse square)
+	double reach = 0;  // where it ends or nearly (the view's circle)
+};
+LightNumbers light_numbers(const Entity &e);
+// The fade a linear light of this intensity and scale needs to end at range.
+double light_fade_for(double intensity, double scale, double range);
+
 // Where q3map2 maps an object's faces from: its entity's model_origin (none for an entity itself).
 Vec3 origin_for(const Doc &doc, const Object &o);
 // ids and, for entities other than the world, their brushes and curves; never the world itself.

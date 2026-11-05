@@ -340,6 +340,10 @@ public:
 	bool previewing() const;
 	bool changed_since(Id id) const;  // since the compile the preview shows
 	int changes_since_compile() const;
+	// While it shows: a light changed, added or taken out since compiles again on its own, a moment
+	// after the last change (not mid-drag), so its color, intensity and range show as Play shows them.
+	void preview_tick();
+	bool lights_changed_since() const;
 	// Test hooks: modifiers as if held (-1: the keyboard's), a button at a spot.
 	void force_mods(int mods) { forced_mods_ = mods; }
 	enum { SHIFT = 1, CTRL = 2, ALT = 4 };
@@ -612,6 +616,8 @@ private:
 	std::unordered_map<Id, ObjectPtr> compiled_;  // the last good compile's document, and its name
 	std::string compiled_name_;
 	bool lit_ = false;
+	uint64_t preview_rev_ = 0;  // the revision the lit preview last looked at
+	int preview_due_ = 0;       // when it compiles again for a changed light (0: not waiting)
 	std::map<std::string, std::string> keymap_;  // action -> keys, the player's own
 	bool keymap_loaded_ = false;
 	void load_keymap();

@@ -178,6 +178,31 @@ bool point_box(const Object &o, Vec3 &lo, Vec3 &hi) {
 	return true;
 }
 
+// q3map2's pointScale (7500) and linearScale (1 / 8000)
+static const double LIGHT_LINEAR = 7500.0 / 8000.0;
+
+LightNumbers light_numbers(const Entity &e) {
+	LightNumbers n;
+	n.key = e.find("_light") ? "_light" : "light";
+	n.intensity = std::atof(e.get(n.key).c_str());
+	if (n.intensity == 0) {
+		n.intensity = 300;
+	}
+	const double s = std::atof(e.get("scale").c_str());
+	n.scale = s != 0 ? s : 1;
+	n.linear = (std::atoi(e.get("spawnflags", "0").c_str()) & 1) != 0;
+	const double f = std::atof(e.get("fade").c_str());
+	n.fade = n.linear && f != 0 ? f : 1;
+	const double i = std::fabs(n.intensity * n.scale);
+	n.range = n.linear ? i * LIGHT_LINEAR / std::fabs(n.fade) : 0;
+	n.reach = n.linear ? n.range : std::sqrt(i * 7500 / 16);
+	return n;
+}
+
+double light_fade_for(double intensity, double scale, double range) {
+	return std::fabs(intensity * scale) * LIGHT_LINEAR / std::max(1.0, range);
+}
+
 void entity_color(const std::string &cn, unsigned char rgba[4]) {
 	struct C {
 		unsigned char r, g, b;

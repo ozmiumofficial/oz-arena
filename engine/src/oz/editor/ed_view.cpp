@@ -1232,6 +1232,7 @@ void Session::frame(int x, int y, int w, int h) {
 	build_place_preview();
 	compile_poll();
 	import_poll();
+	preview_tick();
 	autosave_tick();
 	build_leak();
 	build_sun_lines();

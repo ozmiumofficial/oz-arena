@@ -236,6 +236,11 @@
 		/* a typed key's controls under its row: a color's swatch and palette, an angle's compass, ... */
 		.kt { margin-top: 0; }
 		.kt .nox { width: 1.4rem; margin-right: 0.3rem; }
+		/* a light's sliders: intensity, range, a spotlight's cone */
+		.lsl { flex-wrap: nowrap; }
+		.lsl .lbl { width: 4.4rem; }
+		.lsl input.slider { width: 9rem; }
+		.lsl .n { color: #e6ddd2; margin-left: 0.6rem; white-space: nowrap; }
 		.side .kt .tb { font-size: 0.62rem; padding: 0.18rem 0.3rem; margin: 0 0.12rem 0.15rem 0; letter-spacing: 0.04em; }
 		#ed-pick-rows { max-height: 30rem; overflow-y: auto; }
 		.csw { width: 1.5rem; height: 1.2rem; border: 1dp #ffffff40; margin-right: 0.4rem; }

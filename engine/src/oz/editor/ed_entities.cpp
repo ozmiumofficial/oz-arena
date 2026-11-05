@@ -483,15 +483,14 @@ void Session::build_links() {
 		}
 	}
 	// a selected light's reach: where it adds about a sixteenth of full brightness (q3map's
-	// inverse square: intensity times 7500 over the distance squared)
+	// inverse square: intensity times 7500 over the distance squared), or where a linear one ends
 	for (Id e : sel) {
 		const Object *o = doc.get(e);
 		Vec3 at;
 		if (!o || o->kind != Kind::Entity || o->entity.classname() != "light" || !parse_vec(o->entity.get("origin"), at)) {
 			continue;
 		}
-		const double l = std::fabs(std::atof(o->entity.get("light", "300").c_str()));
-		const double r = std::sqrt(l * 7500 / 16);
+		const double r = light_numbers(o->entity).reach;
 		Vec3 c;
 		if (!parse_vec(o->entity.get("_color", "1 1 1"), c)) {
 			c = Vec3(1, 1, 1);
@@ -1045,6 +1044,52 @@ bool Session::entities_action(const std::string &action, const std::vector<std::
 				set_key(doc, {e}, "spawnflags", std::to_string(next), "Flag");
 			} else {
 				remove_key(doc, {e}, "spawnflags", "Flag");
+			}
+		}
+		doc.end();
+	} else if (action == "light_intensity" || action == "light_range" || action == "light_cone") {
+		// the selected lights' intensity (a linear one keeps its range), range (0: back to the inverse
+		// square), or a spotlight's cone (its radius where it meets its target)
+		std::vector<Id> lights;
+		for (Id e : key_entities()) {
+			if (doc.get(e) && doc.get(e)->entity.classname() == "light") {
+				lights.push_back(e);
+			}
+		}
+		if (a.empty() || lights.empty()) {
+			say(lights.empty() ? "Select a light first" : "ed " + action + " <units>", true);
+			return true;
+		}
+		const double v = std::max(0.0, std::atof(a[0].c_str()));
+		char num[32];
+		auto put = [&](Id e, const char *key, double x) {
+			std::snprintf(num, sizeof num, "%.4g", x);
+			set_key(doc, {e}, key, num, "");
+		};
+		doc.begin(action == "light_intensity" ? "Light intensity " + a[0] : action == "light_range" ? (v > 0 ? "Light range " + a[0] : "Light range auto")
+			: "Spotlight cone " + a[0]);
+		for (Id e : lights) {
+			const LightNumbers n = light_numbers(doc.get(e)->entity);
+			if (action == "light_intensity") {
+				put(e, n.key.c_str(), std::max(1.0, v));
+				if (n.linear) {
+					put(e, "fade", light_fade_for(std::max(1.0, v), n.scale, n.range));
+				}
+			} else if (action == "light_cone") {
+				put(e, "radius", std::max(1.0, v));
+			} else {
+				const int flags = std::atoi(doc.get(e)->entity.get("spawnflags", "0").c_str());
+				const int next = v > 0 ? flags | 1 : flags & ~1;
+				if (next) {
+					set_key(doc, {e}, "spawnflags", std::to_string(next), "");
+				} else {
+					remove_key(doc, {e}, "spawnflags", "");
+				}
+				if (v > 0) {
+					put(e, "fade", light_fade_for(n.intensity, n.scale, v));
+				} else {
+					remove_key(doc, {e}, "fade", "");
+				}
 			}
 		}
 		doc.end();

@@ -632,6 +632,88 @@ Rml::String TypedControls( const std::string &k, const oz::ed::KeyDef &kd, const
 	return "<div class=\"row kt\"><span class=\"nox\"></span>" + out + "</div>";
 }
 
+// ---------------------------------------------------------------- a light's sliders
+
+// A selected light's intensity and range (a spotlight's cone too), as sliders: each shows its number
+// as it moves and sets the key once let go (one undo step), q3map2's keys (oz::ed::light_numbers)
+struct LightSlide {
+	std::string what;	// "" none waiting
+	double value = 0;
+	int at = 0;
+} lightSlide;
+
+Rml::String LightSlideText( const std::string &what, double v, const oz::ed::LightNumbers &n ) {
+	if ( what == "range" && v <= 0 ) {
+		const double i = std::fabs( n.intensity * n.scale );
+		return "Auto, about " + Num( std::round( std::sqrt( i * 7500 / 16 ) ) );
+	}
+	return Num( std::round( v ) ) + ( what == "intensity" ? "" : " units" );
+}
+
+Rml::String LightSliders( const oz::ed::Object *o ) {
+	if ( !o || o->kind != oz::ed::Kind::Entity || o->entity.classname() != "light" ) {
+		return "";
+	}
+	const oz::ed::LightNumbers n = oz::ed::light_numbers( o->entity );
+	const bool spot = !o->entity.get( "target" ).empty();
+	Rml::String out = "<div class=\"sub\">LIGHT</div>";
+	auto slider = [&]( const char *what, const char *label, double lo, double hi, double step, double v, const std::string &hint ) {
+		const Rml::String w = what;
+		out += "<div class=\"row lsl\"><span class=\"lbl\">" + Rml::String( label ) + "</span><input type=\"range\" class=\"slider\" id=\"ed-ls-" + w +
+			"\" min=\"" + Num( lo ) + "\" max=\"" + Num( hi ) + "\" step=\"" + Num( step ) + "\" value=\"" + Num( std::clamp( v, lo, hi ) ) + "\" data-hint=\"" +
+			Enc( hint ) + "\" data-slide=\"" + w + "\"/><span class=\"n\" id=\"ed-ls-" + w + "-n\">" + LightSlideText( what, v, n ) +
+			"</span></div>";
+	};
+	slider( "intensity", "Intensity", 25, 2500, 25, n.intensity, "Intensity: how bright the light is (the \"light\" key, 300 by default)" +
+		std::string( n.linear ? "; it keeps its range" : "; it also reaches further" ) );
+	slider( "range", "Range", 0, 2048, 16, n.range, "Range: how far it reaches, fading evenly to nothing there (linear falloff and its \"fade\" key). "
+		"All the way left is Auto: it fades as real light does, further the brighter it is" );
+	if ( spot ) {
+		slider( "cone", "Cone", 8, 512, 8, atof( o->entity.get( "radius", "64" ).c_str() ),
+			"Cone: the spotlight's radius where it meets its target (the \"radius\" key, 64 by default)" );
+	}
+	return out;
+}
+
+// A slider let go (the mouse up, a moment after its last move): the lights' key set, unless it's
+// what they have already
+void LightSlideTick() {
+	if ( lightSlide.what.empty() || OzE_KeyDown( K_MOUSE1 ) || OzE_Milliseconds() - lightSlide.at < 150 ) {
+		return;
+	}
+	const std::string what = lightSlide.what;
+	lightSlide.what.clear();
+	oz::ed::Session &s = session();
+	const std::vector<oz::ed::Id> ents = s.key_entities();
+	const oz::ed::Object *o = ents.empty() ? nullptr : s.doc.get( ents[0] );
+	if ( !o ) {
+		return;
+	}
+	const oz::ed::LightNumbers n = oz::ed::light_numbers( o->entity );
+	const double now = what == "intensity" ? n.intensity : what == "range" ? n.range : atof( o->entity.get( "radius", "64" ).c_str() );
+	if ( std::fabs( now - lightSlide.value ) < 0.5 ) {
+		return;
+	}
+	s.notify = Notify;
+	s.run( "light_" + what, { Num( lightSlide.value ) } );
+}
+
+// A light's slider moved (a change on the page, dragged, clicked or stepped with the keys): straight
+// to ed panel light_slide, not through the console's buffer, which a script's waits would hold up
+bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::Element *field );
+
+class SlideListener : public Rml::EventListener {
+public:
+	void ProcessEvent( Rml::Event &e ) override {
+		Rml::Element *t = e.GetTargetElement();
+		const Rml::String what = t ? t->GetAttribute<Rml::String>( "data-slide", "" ) : "";
+		if ( !what.empty() ) {
+			Typed( "panel", { "light_slide", what, Num( e.GetParameter<float>( "value", 0 ) ) }, nullptr );
+		}
+	}
+};
+SlideListener slideListener;
+
 // ---------------------------------------------------------------- the inspector
 
 void BuildInspector( Rml::ElementDocument *doc ) {
@@ -980,7 +1062,8 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		}
 		Show( doc, "ed-toworld", owned );
 
-		Rml::String rml;
+		// a light: its sliders over its keys
+		Rml::String rml = cn == "light" && !ents.empty() ? LightSliders( d.get( ents[0] ) ) : Rml::String();
 		shownKeys = order;
 		for ( size_t i = 0; i < order.size(); i++ ) {
 			const std::string &k = order[i];
@@ -2680,6 +2763,20 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		lastInspect.clear();	// the key rows made again with the grid, or without
 	} else if ( a == "rgb" && args.size() > 4 ) {
 		s.run( "key_set", { args[1], args[2] + " " + args[3] + " " + args[4] } );
+	} else if ( a == "light_slide" && args.size() > 1 ) {
+		// a light's slider moved: its number shows now, the key is set once it's let go (LightSlideTick)
+		const std::string what = args[1];
+		const Rml::String id = "ed-ls-" + what;
+		const std::vector<oz::ed::Id> ents = s.key_entities();
+		const oz::ed::Object *o = ents.empty() ? nullptr : s.doc.get( ents[0] );
+		if ( !o || !doc->GetElementById( id ) ) {
+			return true;
+		}
+		const double v = args.size() > 2 ? atof( args[2].c_str() ) : atof( InputValue( doc, id.c_str() ).c_str() );
+		SetRml( doc, ( id + "-n" ).c_str(), LightSlideText( what, v, oz::ed::light_numbers( o->entity ) ) );
+		lightSlide.what = what;
+		lightSlide.value = v;
+		lightSlide.at = OzE_Milliseconds();
 	} else if ( a == "step" && args.size() > 2 ) {
 		// a number key a step up or down, from what it is (or the game's default)
 		const std::vector<oz::ed::Id> ents = s.key_entities();
@@ -3559,6 +3656,8 @@ bool Editor_Draw( int width, int height ) {
 	}
 	ShowKeyHelp( doc );
 
+	LightSlideTick();
+
 	// the panel
 	ShowPanel( doc );
 	if ( panel == "inspect" ) {
@@ -3600,6 +3699,7 @@ void Editor_Opened( Rml::ElementDocument *doc ) {
 	lastMenu.clear();
 	tipFor = nullptr;
 	session().binding.clear();
+	doc->AddEventListener( Rml::EventId::Change, &slideListener );
 	if ( Rml::Element *v = doc->GetElementById( "ed-uv-view" ) ) {
 		for ( Rml::EventId id : { Rml::EventId::Dragstart, Rml::EventId::Drag, Rml::EventId::Dragend, Rml::EventId::Mousescroll } ) {
 			v->AddEventListener( id, &uvListener );

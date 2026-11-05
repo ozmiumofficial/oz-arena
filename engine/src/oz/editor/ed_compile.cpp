@@ -1024,6 +1024,43 @@ void Session::toggle_preview() {
 	}
 }
 
+bool Session::lights_changed_since() const {
+	for (Id id : doc.ids_of(Kind::Entity)) {
+		if (changed_since(id) && doc.get(id)->entity.classname() == "light") {
+			return true;
+		}
+	}
+	for (const auto &kv : compiled_) {
+		const Object *was = kv.second.get();
+		if (!doc.get(kv.first) && was && was->kind == Kind::Entity && was->entity.classname() == "light") {
+			return true;  // taken out since
+		}
+	}
+	return false;
+}
+
+void Session::preview_tick() {
+	if (!previewing()) {
+		preview_due_ = 0;
+		preview_rev_ = doc.revision;
+		return;
+	}
+	const int now = OzE_Milliseconds();
+	if (doc.revision != preview_rev_) {
+		preview_rev_ = doc.revision;
+		preview_due_ = lights_changed_since() ? now + 400 : 0;
+	}
+	// a moment after the last change, not mid-drag, one compile at a time (a change during one waits for it)
+	if (!preview_due_ || now < preview_due_ || dragging() || job_.running || import_.proc) {
+		return;
+	}
+	preview_due_ = 0;
+	if (lights_changed_since() && compile(false, false, false)) {
+		job_.preview = true;
+		say("The lights changed: compiling the lit preview again");
+	}
+}
+
 void Session::compile_stop() {
 	if (!job_.running) {
 		return;

@@ -30,18 +30,36 @@ public:
 	void size(const std::string &shader, int &w, int &h);
 	size_t count() const { return images_.size(); }
 	Look look(const std::string &shader);
+	// A material players pass through though it's drawn like a wall (surfaceparm nonsolid: id's
+	// killtrim_trans, vines, decals): q3map2 gives a brush its non-solid face's contents, so one such face
+	// takes the whole brush's collision away. Tool materials (their own looks) aren't counted.
+	bool nonsolid(const std::string &shader);
 	// Every material a map can use, id's own first, then the map packs', each by folder and name: the
 	// scripts' shaders under textures/, the images there without one, and the editor's tool shaders
 	// (caulk, clip, hint ...: id's common.shader was an editor file, never in the paks).
 	const std::vector<Material> &materials();
-	// The image q3map2 and the browser show a shader by, and whether there is one (a .tga, .jpg or .png).
+	// The image q3map2 and the browser show a shader by, and whether there is one (a .tga, .jpg, .png or
+	// .dds): its editor image, its first stage's, any later stage's, a sky's box or the name's own.
 	std::string image(const std::string &shader);
 	bool found(const std::string &shader);
+	// A map pack's material as its script defines it ("" for id's, a bare image's or an unknown one), and
+	// every image it names: what a compile hands q3map2, which reads only id's paks.
+	std::string pack_script(const std::string &shader);
+	std::string script(const std::string &shader);  // any material's script text, "" for a bare image
+	std::string oz_script(const std::string &shader);  // its scripts/*.ozmtr text (the oz renderer's), "" none
+	std::vector<std::string> stage_images(const std::string &shader);
+	// Any of its images is there (by name, without reading it): false for a shader that draws nothing.
+	bool drawable(const std::string &shader);
 
 private:
 	bool image_size(const std::string &image, int &w, int &h);
 	std::unordered_map<std::string, std::string> images_;  // lowercase shader name -> image path (q3map2's)
 	std::unordered_map<std::string, std::string> firsts_;  // its first stage's image, for a missing editor image
+	std::unordered_map<std::string, std::vector<std::string>> stages_;  // every stage's image, a sky's box sides
+	std::unordered_map<std::string, std::string> blocks_;  // every shader's script text
+	std::unordered_map<std::string, bool> packs_;           // a map pack's shaders (not id's)
+	std::unordered_map<std::string, std::string> oz_blocks_;  // the .ozmtr scripts' text
+	std::unordered_map<std::string, bool> exists_;          // an image (without extension): a file has it
 	std::unordered_map<std::string, std::string> scripts_; // the scripts/ file that defines it
 	std::unordered_map<std::string, int> parms_;           // lowercase shader name -> PARM_* bits
 	std::unordered_map<std::string, std::pair<int, int>> sizes_;

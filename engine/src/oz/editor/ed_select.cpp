@@ -12,6 +12,8 @@
 
 #include "ed_view.h"
 #include "ed_engine.h"
+#include "ed_entdefs.h"
+#include "ed_shaders.h"
 
 #include <algorithm>
 #include <cmath>
@@ -117,6 +119,31 @@ bool Session::pick(double sx, double sy, Hit &hit, bool entities) const {
 	return true;
 }
 
+bool Session::pick_floor(double sx, double sy, Hit &hit, bool entities) const {
+	for (const Hit &h : pick_all(sx, sy, entities)) {
+		const Object *o = doc.get(h.id);
+		if (!o) {
+			continue;
+		}
+		if (o->kind == Kind::Brush) {
+			const Object *owner = doc.get(o->owner);
+			if (owner && owner->entity.classname().compare(0, 8, "trigger_") == 0) {
+				continue;
+			}
+			if (h.face >= 0 && h.face < int(o->brush.faces.size())) {
+				const std::string sh = shader_name(o->brush.faces[size_t(h.face)].shader);
+				const Look l = shaders_lib().look(sh);
+				if (l == Look::Trigger || l == Look::Hint || l == Look::Fog || l == Look::Origin || l == Look::Portal || is_nocollide(*o)) {
+					continue;
+				}
+			}
+		}
+		hit = h;
+		return true;
+	}
+	return false;
+}
+
 // ---------------------------------------------------------------- the selection
 
 std::vector<Id> Session::group_of(Id id) const {
@@ -130,6 +157,18 @@ std::vector<Id> Session::group_of(Id id) const {
 	}
 	std::vector<Id> out = doc.owned(ent);
 	out.push_back(ent);
+	// a jump pad's pieces (its pad's group, its trigger, its target) go together
+	const std::string tag = doc.get(ent)->entity.get(JUMPPAD_KEY);
+	if (!tag.empty()) {
+		for (Id e : doc.ids_of(Kind::Entity)) {
+			if (e != ent && doc.get(e)->entity.get(JUMPPAD_KEY) == tag) {
+				for (Id b : doc.owned(e)) {
+					out.push_back(b);
+				}
+				out.push_back(e);
+			}
+		}
+	}
 	return out;
 }
 
@@ -693,7 +732,7 @@ void Session::click(int m, bool twice) {
 		sel.count(hits[size_t(cycle_)].id);
 	cycle_ = again ? (cycle_ + 1) % int(hits.size()) : 0;
 	const Hit &hit = hits[size_t(cycle_)];
-	std::vector<Id> ids = twice || (m & CTRL) ? std::vector<Id>{hit.id} : group_of(hit.id);
+	std::vector<Id> ids = twice || (m & ALT) ? std::vector<Id>{hit.id} : group_of(hit.id);
 	if (!m) {
 		corners.clear();
 	}

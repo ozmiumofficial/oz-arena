@@ -219,7 +219,9 @@ void Report( const std::string &error ) {
 void Notify( const std::string &text, bool error ) {
 	note = text;
 	noteError = error;
-	noteUntil = OzE_Milliseconds() + ( error ? 5000 : 3000 );
+	// long enough to read: a second for every 15 characters past the first 45 (a warning of two lines ~12 s)
+	const int reading = int( std::max<size_t>( text.size(), 45 ) - 45 ) * 1000 / 15;
+	noteUntil = OzE_Milliseconds() + ( error ? 5000 : 3000 ) + std::min( reading, 9000 );
 }
 
 void Editor_f() {
@@ -229,7 +231,7 @@ void Editor_f() {
 	if ( !Rml::StringUtilities::ToLower( a ).compare( "new" ) ) {
 		session().new_map();
 	} else if ( !Rml::StringUtilities::ToLower( a ).compare( "import" ) && OzE_Argc() > 2 ) {
-		if ( !session().import_bsp( OzE_Argv( 2 ), err ) ) {
+		if ( !session().import_bsp( OzE_Argv( 2 ), err, true ) ) {
 			Report( err );
 		}
 	} else if ( a[0] ) {
@@ -324,6 +326,34 @@ std::vector<std::string> MapMaterials() {
 	return std::vector<std::string>( names.begin(), names.end() );
 }
 
+// What a tool material does, for its tile's hint (the generic "paints the selection" says nothing of it)
+std::string ToolHelp( const std::string &name ) {
+	static const std::map<std::string, const char *> help = {
+		{ "caulk", "solid but never drawn: for faces nobody sees (the compile and the game skip them)" },
+		{ "clip", "an invisible wall players can't pass (shots go through)" },
+		{ "weapclip", "an invisible wall that stops shots (and players)" },
+		{ "botclip", "an invisible wall for bots only" },
+		{ "fullclip", "an invisible wall for players and shots alike" },
+		{ "nodraw", "solid and never drawn" },
+		{ "nodrawnonsolid", "neither drawn nor solid: a helper volume" },
+		{ "trigger", "a trigger's volume: invisible, players pass through" },
+		{ "hint", "guides how the compile splits the map for visibility (invisible, not solid)" },
+		{ "skip", "a hint brush's faces that shouldn't split anything" },
+		{ "origin", "a door's, a mover's or a rotating entity's center" },
+		{ "areaportal", "lets a door's two sides be hidden from each other while it's shut" },
+		{ "clusterportal", "divides the bots' areas" },
+		{ "donotenter", "bots keep out" },
+		{ "nodrop", "what falls in vanishes: items and bodies (a pit's bottom)" },
+		{ "slick", "players slide on it (ice)" },
+		{ "lightgrid", "the light grid's bounds" },
+	};
+	if ( name.compare( 0, 7, "common/" ) != 0 ) {
+		return "";
+	}
+	auto it = help.find( name.substr( 7 ) );
+	return it != help.end() ? it->second : "";
+}
+
 void BuildMaterials( Rml::ElementDocument *doc ) {
 	const std::string search = Lower( InputValue( doc, "ed-msearch" ) );
 	const std::string current = Lower( session().shader );
@@ -392,7 +422,7 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 		for ( const oz::ed::Material &m : all ) {
 			const bool in = search.size() ? true
 				: inFolder ? m.folder == folder || ( folder == "(top)" && m.folder.empty() )
-				: matView == "packs" ? !m.stock : m.stock;
+				: matView == "packs" ? !m.stock : true;
 			if ( in ) {
 				names.push_back( m.name );
 			}
@@ -411,9 +441,12 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 		Rml::String style;
 		const Rml::String sw = SwatchRml( n, 5.4, style, true );
 		const bool tool = style.find( "background" ) != Rml::String::npos;
-		rml += "<div class=\"mat" + Rml::String( Lower( n ) == current ? " on" : "" ) + "\" data-hint=\"" + Enc( n ) +
-			": click paints the selection with it, and new brushes use it\" onclick=\"append ed paint " + Enc( n ) + "\"><div class=\"sw" +
-			( tool ? " tool" : "" ) + "\"" + ( style.empty() ? "" : " style=\"" + style + "\"" ) + ">" + sw + "</div><span class=\"mn\">" +
+		const std::string toolHelp = ToolHelp( n );
+		const std::string hint = n + ( !toolHelp.empty() ? ": " + toolHelp + "." : "" ) + " Click paints the selection with it, and new brushes use it";
+		rml += "<div class=\"mat" + Rml::String( Lower( n ) == current ? " on" : "" ) + "\" data-hint=\"" + Enc( hint ) +
+			"\" onclick=\"append ed paint " + Enc( n ) + "\"><div class=\"sw" +
+			( tool ? " tool" : "" ) + "\"" + ( style.empty() ? "" : " style=\"" + style + "\"" ) + ">" + sw + "</div>" +
+			"<span class=\"mn\">" +
 			Enc( slash == std::string::npos ? n : n.substr( slash + 1 ) ) + "</span></div>";
 	}
 	if ( names.empty() ) {
@@ -531,7 +564,8 @@ Rml::String TypedControls( const std::string &k, const oz::ed::KeyDef &kd, const
 		out += "<span class=\"csw\" style=\"background-color: " + HexColor( v.empty() ? "1 1 1" : v ) + ";\"></span>";
 		for ( size_t i = 0; i < sizeof( PALETTE ) / sizeof( PALETTE[0] ); i++ ) {
 			out += "<button class=\"cchip" + Rml::String( v == PALETTE[i].rgb ? " on" : "" ) + "\" style=\"background-color: " + HexColor( PALETTE[i].rgb ) +
-				";\" data-hint=\"" + Enc( k + ": " + PALETTE[i].name + " (" + PALETTE[i].rgb + ")" ) + "\" onclick=\"append ed panel swatch " + key + " " +
+				";\" data-hint=\"" + Enc( k + ": " + PALETTE[i].name + " (" + PALETTE[i].rgb + ")" + ( k == "_color" ? ". The hue only: how bright it is, is the light's own number" : "" ) ) +
+				"\" onclick=\"append ed panel swatch " + key + " " +
 				std::to_string( i ) + "\"></button>";
 		}
 		out += "<button class=\"tb\" data-hint=\"" + Enc( k + ": every hue, " + ( colorGridKey == k ? "hidden again" : "in three strengths" ) ) +
@@ -585,6 +619,13 @@ Rml::String TypedControls( const std::string &k, const oz::ed::KeyDef &kd, const
 	case oz::ed::KeyType::Target:
 		button( "PICK", "pick " + key + " target", Enc( "Pick what " + k + " names from the map's names" ), false );
 		break;
+	case oz::ed::KeyType::Number: {
+		const double step = k == "light" ? 50 : k == "radius" ? 16 : k == "speed" ? 50 : k == "wait" || k == "random" ? 0.5 : k == "ambient" ? 5
+			: k == "dmg" ? 5 : k == "lip" ? 4 : 8;
+		button( "-", "step " + key + " " + Num( -step ), Enc( k + " " + Num( step ) + " less" ), false );
+		button( "+", "step " + key + " " + Num( step ), Enc( k + " " + Num( step ) + " more" ), false );
+		break;
+	}
 	default:
 		return "";
 	}
@@ -628,6 +669,32 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		add( e, "entity", "entities" );
 		what = "Selected: " + what;
 	}
+	// the selected brushes all detail: the button lit; their collision ticked unless every one is off
+	{
+		int brushes = 0, detail = 0, off = 0;
+		for ( oz::ed::Id id : s.sel ) {
+			const oz::ed::Object *o = d.get( id );
+			if ( o && o->kind == oz::ed::Kind::Brush ) {
+				brushes++;
+				detail += oz::ed::is_detail( *o );
+				off += oz::ed::is_nocollide( *o );
+			}
+		}
+		if ( Rml::Element *e = doc->GetElementById( "ed-detail" ) ) {
+			e->SetClass( "on", brushes && detail == brushes );
+		}
+		if ( Rml::Element *e = doc->GetElementById( "ed-collide" ) ) {
+			e->SetClass( "ticked", brushes && off < brushes );
+			e->SetClass( "mixed", off && off < brushes );
+		}
+		SetRml( doc, "ed-collide-note", !brushes ? Rml::String()
+			: off == 0 ? Rml::String( "Players stand on it and bump into it" )
+			: off == brushes ? Rml::String( "Off: players and shots pass through (washed blue in the view)" )
+			: Rml::String( std::to_string( off ) + " of " + std::to_string( brushes ) + " off: a click turns them all on" ) );
+		if ( brushes && detail ) {
+			what += detail == brushes ? " (detail)" : " (" + std::to_string( detail ) + " detail)";
+		}
+	}
 	SetRml( doc, "ed-what", Enc( what ) );
 
 	// the material on what's selected
@@ -639,6 +706,45 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		on.insert( oz::ed::shader_name( d.get( id )->patch.shader ) );
 	}
 	Show( doc, "sec-material", !on.empty() );
+	// Color: the faces' own when they share one; a dot for each of the palette's, the hues, none
+	{
+		std::set<int> tints;
+		for ( const oz::ed::FaceRef &r : faces ) {
+			unsigned char rgb[3];
+			const oz::ed::Face &f = d.get( r.first )->brush.faces[size_t( r.second )];
+			tints.insert( oz::ed::face_tint( f, rgb ) ? ( rgb[0] << 16 ) | ( rgb[1] << 8 ) | rgb[2] : -1 );
+		}
+		const int now = tints.size() == 1 ? *tints.begin() : -2;  // -1 none, -2 mixed
+		auto dot = [&]( double r, double g, double b, const Rml::String &name ) {
+			const int v = ( int( std::round( r * 255 ) ) << 16 ) | ( int( std::round( g * 255 ) ) << 8 ) | int( std::round( b * 255 ) );
+			char rgb[48], hex[16];
+			snprintf( rgb, sizeof rgb, "%g %g %g", std::round( r * 100 ) / 100, std::round( g * 100 ) / 100, std::round( b * 100 ) / 100 );
+			snprintf( hex, sizeof hex, "#%06x", v );
+			return "<button class=\"cchip" + Rml::String( now == v ? " on" : "" ) + "\" style=\"background-color: " + hex + ";\" data-hint=\"Color: " +
+				name + " (" + rgb + "): the texture is multiplied by it\" onclick=\"append ed tint " + rgb + "\"></button>";
+		};
+		Rml::String rml = "<button class=\"cchip none" + Rml::String( now == -1 ? " on" : "" ) +
+			"\" data-hint=\"No color: the texture as it is\" onclick=\"append ed tint none\"></button>";
+		for ( double sat : { 0.75, 0.45, 0.2 } ) {
+			for ( int h = 0; h < 360; h += 30 ) {
+				const double c = sat, x = c * ( 1 - std::fabs( std::fmod( h / 60.0, 2 ) - 1 ) ), m = 1 - c;
+				double r = 0, g = 0, b = 0;
+				switch ( h / 60 ) {
+				case 0: r = c, g = x; break;
+				case 1: r = x, g = c; break;
+				case 2: g = c, b = x; break;
+				case 3: g = x, b = c; break;
+				case 4: r = x, b = c; break;
+				default: r = c, b = x; break;
+				}
+				rml += dot( r + m, g + m, b + m, std::to_string( h ) + " degrees" );
+			}
+		}
+		for ( double v : { 0.75, 0.5, 0.3 } ) {
+			rml += dot( v, v, v, "gray" );
+		}
+		SetRml( doc, "ed-tints", faces.empty() ? Rml::String( "<p>Pick faces or select brushes to color them</p>" ) : rml );
+	}
 	if ( !on.empty() ) {
 		SetRml( doc, "ed-face-mat", Enc( on.size() == 1 ? *on.begin() : std::to_string( on.size() ) + " materials" ) );
 		SetSwatch( doc, "ed-face-sw", on.size() == 1 ? *on.begin() : "", 3.8 );
@@ -760,13 +866,41 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		}
 		const oz::ed::EntityDef *def = cn == "*" ? nullptr : oz::ed::entity_def( cn );
 		SetRml( doc, "ed-ent-help", def ? Enc( def->help + ( def->mod.empty() ? "" : " (" + def->mod + ")" ) ) : Rml::String() );
-		// a jump pad's throw, in numbers
-		double speed = 0, up = 0, across = 0, secs = 0;
-		const bool pusher = one && ( cn == "trigger_push" || cn == "target_push" ) && s.push_flight( ents[0], speed, up, across, secs );
-		Show( doc, "ed-push", pusher );
-		if ( pusher ) {
-			SetRml( doc, "ed-push-text", Enc( "The throw: " + Num( std::round( speed ) ) + " a second, " + Num( std::round( up ) ) + " up, " +
-				Num( std::round( across ) ) + " across, " + Num( std::round( secs * 10 ) / 10 ) + " s in the air" ) );
+		// a jump pad's throw, in numbers, or why it does nothing: the pad's own (its pieces, or its target, selected)
+		oz::ed::Id pad = 0;
+		for ( oz::ed::Id e : ents ) {
+			const std::string c = d.get( e ) ? d.get( e )->entity.classname() : "";
+			if ( c == "trigger_push" || c == "target_push" ) {
+				pad = e;
+				break;
+			}
+		}
+		for ( size_t i = 0; !pad && i < ents.size(); i++ ) {
+			const std::string *n = d.get( ents[i] ) ? d.get( ents[i] )->entity.find( "targetname" ) : nullptr;
+			const std::vector<oz::ed::Id> ps = n ? s.pushers_at( *n ) : std::vector<oz::ed::Id>{};
+			pad = ps.empty() ? 0 : ps[0];
+		}
+		Show( doc, "ed-push", pad != 0 );
+		if ( pad ) {
+			double speed = 0, up = 0, across = 0, secs = 0;
+			const std::string problem = s.push_problem( pad );
+			if ( !problem.empty() ) {
+				SetRml( doc, "ed-push-text", "<span class=\"bad\">" + Enc( problem ) + "</span>" );
+			} else if ( s.push_flight( pad, speed, up, across, secs ) ) {
+				SetRml( doc, "ed-push-text", Enc( "The throw: " + Num( std::round( speed ) ) + " a second, " + Num( std::round( up ) ) + " up, " +
+					Num( std::round( across ) ) + " across, " + Num( std::round( secs * 10 ) / 10 ) + " s in the air" ) );
+			} else {
+				SetRml( doc, "ed-push-text", "" );
+			}
+		}
+		// a jump pad's pieces selected together: named as one thing
+		bool padGroup = ents.size() > 1;
+		for ( oz::ed::Id e : ents ) {
+			padGroup &= d.get( e ) && !d.get( e )->entity.get( oz::ed::JUMPPAD_KEY ).empty();
+		}
+		if ( padGroup ) {
+			SetRml( doc, "ed-ent-title", "JUMP PAD" );
+			SetRml( doc, "ed-ent-help", Enc( "Its pad, trigger and target, moved and copied together. A double-click takes one piece alone (its keys, or the target to drag)." ) );
 		}
 		Rml::String flags;
 		if ( def && ents[0] != d.worldspawn() ) {
@@ -904,7 +1038,15 @@ void BuildEntities( Rml::ElementDocument *doc ) {
 			style = c;
 			sw = "<span>" + Enc( Rml::StringUtilities::ToUpper( d.brush ? "brush" : "point" ) ) + "</span>";
 		}
-		const std::string shortName = d.name.substr( d.name.find( '_' ) == std::string::npos ? 0 : d.name.find( '_' ) + 1 );
+		// the name past its prefix (item_armor_body: armor_body), but whole where the prefix is what tells two
+		// apart (trigger_push and target_push, func_door, misc_model), with a space for the underscore
+		const size_t us = d.name.find( '_' );
+		const std::string prefix = us == std::string::npos ? "" : d.name.substr( 0, us );
+		std::string shortName = prefix == "trigger" || prefix == "target" || prefix == "func" || prefix == "misc" || prefix == "shooter"
+			? d.name : d.name.substr( us == std::string::npos ? 0 : us + 1 );
+		if ( prefix == "trigger" || prefix == "target" || prefix == "func" || prefix == "misc" || prefix == "shooter" ) {
+			shortName[us] = ' ';
+		}
 		const bool on = s.tool == oz::ed::Tool::Place && s.place_class == d.name;
 		rml += "<div class=\"mat" + Rml::String( on ? " on" : "" ) + "\" data-hint=\"" + Enc( d.name + ": " + d.help + ( d.mod.empty() ? "" : " (" + d.mod + ")" ) +
 			( d.brush ? ". Click, then click in the view for a 64-unit brush of it; with brushes selected, makes them one" : ". Click, then where it goes" ) ) +
@@ -976,6 +1118,19 @@ void BuildObjects( Rml::ElementDocument *doc ) {
 	const oz::ed::Session &s = session();
 	const oz::ed::Doc &d = s.doc;
 	const std::string filter = Lower( InputValue( doc, "ed-ofilter" ) );
+	// the selection changed: its first object's owner opened, its page shown, its row scrolled to
+	static uint64_t followed = ~0ull;
+	oz::ed::Id follow = 0;
+	if ( s.sel_rev != followed ) {
+		followed = s.sel_rev;
+		if ( !s.sel.empty() ) {
+			follow = *s.sel.begin();
+			const oz::ed::Object *o = d.get( follow );
+			if ( o && o->kind != oz::ed::Kind::Entity ) {
+				expanded.insert( o->owner );
+			}
+		}
+	}
 	Rml::String key = std::to_string( d.revision ) + "|" + std::to_string( s.sel_rev ) + "|" + std::to_string( s.show_rev ) + "|" + filter + "|" +
 		std::to_string( objPage ) + "|";
 	for ( int e : expanded ) {
@@ -1051,6 +1206,12 @@ void BuildObjects( Rml::ElementDocument *doc ) {
 		picked.insert( f.first );
 	}
 	const int pages = std::max( 1, int( ( rows.size() + OBJ_PAGE - 1 ) / OBJ_PAGE ) );
+	for ( size_t i = 0; follow && i < rows.size(); i++ ) {
+		if ( rows[i].id == follow ) {
+			objPage = int( i / OBJ_PAGE );
+			break;
+		}
+	}
 	objPage = std::min( objPage, pages - 1 );
 	Rml::String rml;
 	for ( size_t i = size_t( objPage ) * OBJ_PAGE; i < rows.size() && i < size_t( objPage + 1 ) * OBJ_PAGE; i++ ) {
@@ -1060,7 +1221,7 @@ void BuildObjects( Rml::ElementDocument *doc ) {
 		// hidden or locked: dimmed, marked
 		const bool shown = isWorld || s.visible( r.id ), free = isWorld || s.pickable( r.id );
 		const Rml::String badge = !shown ? "HIDDEN" : !free ? "LOCKED" : "";
-		rml += "<div class=\"orow" + Rml::String( picked.count( r.id ) ? " on" : "" ) + ( shown ? "" : " hid" ) + "\" data-hint=\"" +
+		rml += "<div class=\"orow" + Rml::String( picked.count( r.id ) ? " on" : "" ) + ( shown ? "" : " hid" ) + "\" id=\"ed-orow-" + id + "\" data-hint=\"" +
 			( isWorld ? Rml::String( "The world's brushes and curves: click to show or hide them" ) : Rml::String( "Click selects (Shift adds, Ctrl toggles); a double-click frames it" ) ) +
 			"\" onclick=\"append ed " + ( isWorld ? "panel expand " + id : "row " + id ) + "\"" + ( isWorld ? "" : " ondblclick=\"append ed frame_ids " + id + "\"" ) + ">";
 		for ( int k = 0; k < r.depth; k++ ) {
@@ -1075,6 +1236,11 @@ void BuildObjects( Rml::ElementDocument *doc ) {
 		rml = "<p>Nothing matches.</p>";
 	}
 	SetRml( doc, "ed-objects", rml );
+	if ( follow ) {
+		if ( Rml::Element *row = doc->GetElementById( "ed-orow-" + std::to_string( follow ) ) ) {
+			row->ScrollIntoView( Rml::ScrollIntoViewOptions( Rml::ScrollAlignment::Nearest ) );
+		}
+	}
 	Rml::String pager;
 	if ( pages > 1 ) {
 		pager = "<button class=\"tb\" onclick=\"append ed panel opage -1\">PREVIOUS</button><span>" + std::to_string( objPage + 1 ) + " / " +
@@ -1408,7 +1574,9 @@ void BuildSky( Rml::ElementDocument *doc ) {
 	char rgb[64];
 	snprintf( rgb, sizeof rgb, "%g %g %g", ss.color[0], ss.color[1], ss.color[2] );
 	const Rml::String key = ss.sky + "|" + ss.painted + "|" + std::to_string( ss.chosen ) + std::to_string( ss.own ) + "|" + rgb + "|" +
-		Num( ss.brightness ) + " " + Num( ss.height ) + " " + Num( ss.direction ) + " " + Num( ss.sky_light );
+		Num( ss.brightness ) + " " + Num( ss.height ) + " " + Num( ss.direction ) + " " + Num( ss.sky_light ) + "|" + Num( ss.glow[0] ) + " " +
+		Num( ss.glow[1] ) + " " + Num( ss.glow[2] ) + " " + Num( ss.ambient ) + " " + Num( ss.ambient_color[0] ) + " " + Num( ss.ambient_color[1] ) + " " +
+		Num( ss.ambient_color[2] );
 	if ( key == lastSky ) {
 		return;
 	}
@@ -1455,15 +1623,22 @@ void BuildSky( Rml::ElementDocument *doc ) {
 		"onclick=\"append ed sky light_from own\">THE SKY'S OWN</button>"
 		"<span class=\"sh\">" + Rml::String( ss.own ? "The sky's own sun and glow light the map; the settings below wait." : "The sun and the sky's glow below light the map." ) +
 		"</span></div>";
-	rml += "<div class=\"srow col\"><span class=\"sl\">Sun color</span>";
-	for ( const auto &p : PALETTE ) {
-		const bool on = Rml::String( p.rgb ) == rgb;
-		rml += "<button class=\"dot" + Rml::String( on ? " on" : "" ) + "\" style=\"background-color: " + HexColor( p.rgb ) + ";\" data-hint=\"" + Enc( p.name ) +
-			" (" + p.rgb + ")\" onclick=\"append ed sky color " + p.rgb + "\"></button>";
-	}
-	rml += "<input type=\"text\" class=\"text rgb\" id=\"ed-sky-color\" value=\"" + Rml::String( rgb ) +
-		"\" data-apply=\"sky_typed\" data-sky-field=\"color\" data-hint=\"Red, green and blue, 0 to 1 each: Enter sets it\"/>"
-		"<span class=\"sh\">The sun's and the sky's light</span></div>";
+	// a color: the palette's dots, a swatch of what it is, the numbers to type
+	auto colorRow = [&]( const char *field, const char *label, const double c[3], const char *help ) {
+		char v[64];
+		snprintf( v, sizeof v, "%g %g %g", c[0], c[1], c[2] );
+		rml += "<div class=\"srow col\"><span class=\"sl\">" + Rml::String( label ) + "</span>";
+		for ( const auto &p : PALETTE ) {
+			const bool on = Rml::String( p.rgb ) == v;
+			rml += "<button class=\"dot" + Rml::String( on ? " on" : "" ) + "\" style=\"background-color: " + HexColor( p.rgb ) + ";\" data-hint=\"" + Enc( p.name ) +
+				" (" + p.rgb + ")\" onclick=\"append ed sky " + field + " " + p.rgb + "\"></button>";
+		}
+		rml += "<input type=\"text\" class=\"text rgb\" id=\"ed-sky-" + Rml::String( field ) + "\" value=\"" + Rml::String( v ) +
+			"\" data-apply=\"sky_typed\" data-sky-field=\"" + field + "\" data-hint=\"Red, green and blue, 0 to 1 each: Enter sets it\"/>"
+			"<span class=\"sh\">" + Rml::String( help ) + "</span></div>";
+	};
+	colorRow( "color", "Sun color", ss.color, ss.glow_set ? "The sun's light" : "The sun's light, and the sky's glow unless that has its own" );
+	colorRow( "glow_color", "Sky glow color", ss.glow, ss.glow_set ? "The sky's own glow" : "The sun's for now: a color here sets it apart" );
 	const struct {
 		const char *field, *label, *help;
 		double value, step;
@@ -1472,6 +1647,7 @@ void BuildSky( Rml::ElementDocument *doc ) {
 		{ "height", "Sun height", "Degrees over the horizon: 90 straight down, low for long shadows", ss.height, 5 },
 		{ "direction", "Sun direction", "Degrees, as a light's angle: 0 from +X (east), 90 from +Y", ss.direction, 15 },
 		{ "sky_light", "Sky light", "How much the sky itself glows onto the map (0: the sun alone)", ss.sky_light, 10 },
+		{ "ambient", "Ambient light", "Light everywhere, before any lamp or the sun: lifts the darkest corners (0: none, 5 to 20 is subtle)", ss.ambient, 5 },
 	};
 	for ( const auto &n : nums ) {
 		const Rml::String f = n.field;
@@ -1482,6 +1658,7 @@ void BuildSky( Rml::ElementDocument *doc ) {
 			"<button class=\"tb\" id=\"ed-sky-" + f + "-more\" onclick=\"append ed sky " + f + " " + Num( n.value + n.step ) + "\">+</button>"
 			"<span class=\"sh\">" + Enc( n.help ) + "</span></div>";
 	}
+	colorRow( "ambient_color", "Ambient color", ss.ambient_color, "The ambient light's tint (it lights with or without the sky's settings)" );
 	SetRml( doc, "ed-sky-light", rml );
 	if ( Rml::Element *e = doc->GetElementById( "ed-sky-light" ) ) {
 		e->SetClass( "own", ss.own );
@@ -1550,8 +1727,54 @@ const std::vector<std::string> &PickFiles( const std::string &type ) {
 }
 
 // The maps Open map offers: the .map files in the editor's maps folder, by name
+// The maps opened last (recent.txt beside the maps folder), newest first: a .map anywhere, by its full path
+std::string RecentFile() {
+	return std::string( OzEd_HomePath() ) + "/oz/editor/recent.txt";
+}
+
+std::vector<std::string> RecentMaps() {
+	std::vector<std::string> out;
+	char *text = nullptr;
+	const int len = OzEd_ReadOSFile( RecentFile().c_str(), &text );
+	const std::string all = len > 0 ? std::string( text, size_t( len ) ) : std::string();
+	OzEd_Free( text );
+	for ( size_t at = 0; at < all.size(); ) {
+		size_t eol = all.find( '\n', at );
+		std::string line = all.substr( at, eol == std::string::npos ? std::string::npos : eol - at );
+		at = eol == std::string::npos ? all.size() : eol + 1;
+		while ( !line.empty() && ( line.back() == '\r' || line.back() == ' ' ) ) {
+			line.pop_back();
+		}
+		if ( !line.empty() && OzEd_FileExists( line.c_str() ) && std::find( out.begin(), out.end(), line ) == out.end() && out.size() < 8 ) {
+			out.push_back( line );
+		}
+	}
+	return out;
+}
+
+void NoteRecent( const std::string &path ) {
+	if ( path.empty() ) {
+		return;
+	}
+	std::vector<std::string> list = RecentMaps();
+	list.erase( std::remove( list.begin(), list.end(), path ), list.end() );
+	list.insert( list.begin(), path );
+	std::string text;
+	for ( size_t i = 0; i < list.size() && i < 8; i++ ) {
+		text += list[i] + "\n";
+	}
+	OzEd_WriteOSFile( RecentFile().c_str(), text.data(), int( text.size() ) );
+}
+
+// The Open list: the recent maps first (by name in the maps folder, else by full path), then the folder's
 std::vector<std::string> MyMaps() {
 	std::vector<std::string> out;
+	const std::string dir = session().maps_dir() + "/";
+	for ( const std::string &r : RecentMaps() ) {
+		const bool here = r.compare( 0, dir.size(), dir ) == 0 && r.size() > dir.size() + 4 && r.find( '/', dir.size() ) == std::string::npos;
+		out.push_back( here ? r.substr( dir.size(), r.size() - dir.size() - 4 ) : r );
+	}
+	const size_t recent = out.size();
 	int n = 0;
 	char **files = OzEd_ListOSFiles( session().maps_dir().c_str(), "map", &n );
 	for ( int i = 0; i < n; i++ ) {
@@ -1561,7 +1784,15 @@ std::vector<std::string> MyMaps() {
 		}
 	}
 	OzEd_FreeList( files );
-	std::sort( out.begin(), out.end() );
+	std::sort( out.begin() + long( recent ), out.end() );
+	// a recent one isn't listed twice
+	for ( size_t i = recent; i < out.size(); ) {
+		if ( std::find( out.begin(), out.begin() + long( recent ), out[i] ) != out.begin() + long( recent ) ) {
+			out.erase( out.begin() + long( i ) );
+		} else {
+			i++;
+		}
+	}
 	return out;
 }
 
@@ -1688,7 +1919,23 @@ void ClosePick( Rml::ElementDocument *doc ) {
 	}
 }
 
-void RunPick( Rml::ElementDocument *doc, int i ) {
+void RunPick( Rml::ElementDocument *doc, int i, bool entered = false ) {
+	// Open with a path typed and Enter (a .map anywhere: Radiant's, TrenchBroom's): that file, unless a row
+	// is that very name (a recent map's full path)
+	const std::string typed = InputValue( doc, "ed-pick-text" );
+	const bool aRow = std::find( pickFound.begin(), pickFound.end(), typed ) != pickFound.end();
+	if ( entered && !aRow && pickType == "open" && ( typed.find( '/' ) != std::string::npos || typed.find( '\\' ) != std::string::npos || typed.find( ':' ) != std::string::npos ) ) {
+		std::string file = typed;
+		file.erase( std::remove( file.begin(), file.end(), '"' ), file.end() );
+		ClosePick( doc );
+		session().notify = Notify;
+		if ( !OzEd_FileExists( file.c_str() ) ) {
+			Notify( "There's no file " + file, true );
+			return;
+		}
+		session().run( "open", { file } );
+		return;
+	}
 	if ( i < 0 || i >= int( pickFound.size() ) ) {
 		return;
 	}
@@ -1696,7 +1943,9 @@ void RunPick( Rml::ElementDocument *doc, int i ) {
 	ClosePick( doc );
 	session().notify = Notify;
 	if ( type == "open" ) {
-		session().run( "open", { session().maps_dir() + "/" + v + ".map" } );
+		// a name in the maps folder, or a full path (a recent map from elsewhere)
+		const bool full = v.find( '/' ) != std::string::npos || v.find( '\\' ) != std::string::npos || v.find( ':' ) != std::string::npos;
+		session().run( "open", { full ? v : session().maps_dir() + "/" + v + ".map" } );
 	} else if ( type == "import" ) {
 		session().run( "import", { v } );
 	} else {
@@ -1861,15 +2110,15 @@ const struct {
 		"-", "show_objects" } },
 	{ "view", { "views", "view_next", "-", "frame_selection", "frame_all", "-", "#SHOW", "filter_tools", "filter_triggers", "filter_sky", "filter_entities",
 		"filter_curves", "-", "preview", "-", "#PANEL", "show_inspect", "show_materials", "show_entities", "show_objects", "show_history" } },
-	{ "brush", { "create", "clip", "faces", "-", "hollow", "subtract", "merge", "-", "rotate_left", "rotate_right", "rotate_left_15", "rotate_right_15",
+	{ "brush", { "create", "clip", "faces", "-", "collision", "detail", "-", "hollow", "subtract", "merge", "-", "rotate_left", "rotate_right", "rotate_left_15", "rotate_right_15",
 		"-", "flip_x", "flip_y", "flip_z" } },
 	{ "curve", { "#FROM THE SELECTED BRUSHES", "curve_cylinder", "curve_cone", "curve_arch", "curve_bevel", "curve_plane", "-", "#THE SELECTED CURVES",
 		"curve_more_columns", "curve_fewer_columns", "curve_more_rows", "curve_fewer_rows", "curve_invert", "curve_caps", "curve_thicken" } },
 	{ "texture", { "show_materials", "pick_material", "paint", "-", "uv", "tex_fit", "tex_left", "tex_right", "tex_top", "tex_bottom", "tex_center",
 		"-", "tex_flip_s", "tex_flip_t", "tex_rotate_left", "tex_rotate_right", "tex_scale_up", "tex_scale_down", "tex_reset" } },
-	{ "entity", { "show_entities", "light", "jump_pad", "teleporter", "-", "to_world", "-", "#DEFRAG", "defrag_start", "defrag_checkpoint", "defrag_finish",
+	{ "entity", { "show_entities", "light", "jump_pad", "push_land", "teleporter", "-", "to_world", "-", "#DEFRAG", "defrag_start", "defrag_checkpoint", "defrag_finish",
 		"defrag_speed", "defrag_shooter", "defrag_check", "play_defrag" } },
-	{ "build", { "play", "play_here", "play_defrag", "-", "sky_sun", "-", "compile", "compile_stop", "preview", "-", "frame_leak", "warnings" } },
+	{ "build", { "play", "play_here", "play_defrag", "-", "sky_sun", "-", "compile", "compile_stop", "preview", "-", "check_map", "frame_leak", "warnings" } },
 	{ "help", { "guide", "keymap", "search" } },
 };
 
@@ -2055,6 +2304,7 @@ void TrackMenu( Rml::ElementDocument *doc ) {
 
 void CloseSaveAs( Rml::ElementDocument *doc ) {
 	saveAsOpen = false;
+	session().save_as_cancelled();  // closed without saving: nothing waits on it any more
 	Show( doc, "ed-saveas", false );
 	if ( TypingInside( doc->GetElementById( "ed-saveas" ) ) ) {
 		TypingIn()->Blur();
@@ -2074,10 +2324,18 @@ void OpenSaveAs( Rml::ElementDocument *doc ) {
 
 // what the name typed saves as: where, and a map already there that it replaces
 void SaveAsNote( Rml::ElementDocument *doc ) {
-	std::string n = InputValue( doc, "ed-saveas-name" );
+	const std::string typed = InputValue( doc, "ed-saveas-name" );
+	// the name as Save As keeps it (letters, digits, - _ and .), so the note checks the file it will write
+	std::string n = typed;
+	if ( n.size() > 4 && n.compare( n.size() - 4, 4, ".map" ) == 0 ) {
+		n.resize( n.size() - 4 );
+	}
+	n.erase( std::remove_if( n.begin(), n.end(), []( unsigned char c ) { return !isalnum( c ) && c != '_' && c != '-' && c != '.'; } ), n.end() );
 	const std::string file = session().maps_dir() + "/" + n + ".map";
 	const bool there = !n.empty() && file != session().path && OzEd_FileExists( file.c_str() );
+	const bool cut = !n.empty() && n != typed && n + ".map" != typed;
 	SetText( doc, "ed-saveas-note", there ? n + ".map is there already: Save replaces it."
+		: cut ? "Saves as " + n + ".map: a name keeps letters, digits, - and _ only."
 		: "Saved in your maps (oz/editor/maps in your Oz Arena folder). Letters, digits, - and _.", lastSaveAsNote );
 }
 
@@ -2087,7 +2345,11 @@ void RunSaveAs( Rml::ElementDocument *doc ) {
 		Notify( "Type a name for the map first", true );
 		return;
 	}
-	CloseSaveAs( doc );
+	saveAsOpen = false;
+	Show( doc, "ed-saveas", false );
+	if ( TypingInside( doc->GetElementById( "ed-saveas" ) ) ) {
+		TypingIn()->Blur();
+	}
 	session().notify = Notify;
 	session().run( "save_as", { n } );
 }
@@ -2278,7 +2540,7 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		return true;
 	}
 	if ( what == "pick_run" ) {
-		RunPick( doc, pickAt );
+		RunPick( doc, pickAt, true );
 		return true;
 	}
 	if ( what == "saveas_run" ) {
@@ -2379,6 +2641,14 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		lastInspect.clear();	// the key rows made again with the grid, or without
 	} else if ( a == "rgb" && args.size() > 4 ) {
 		s.run( "key_set", { args[1], args[2] + " " + args[3] + " " + args[4] } );
+	} else if ( a == "step" && args.size() > 2 ) {
+		// a number key a step up or down, from what it is (or the game's default)
+		const std::vector<oz::ed::Id> ents = s.key_entities();
+		const oz::ed::Object *o = ents.empty() ? nullptr : s.doc.get( ents[0] );
+		const oz::ed::KeyDef *kd = o ? oz::ed::key_def( o->entity.classname(), args[1] ) : nullptr;
+		const std::string now = o ? o->entity.get( args[1], kd ? kd->def : "0" ) : "0";
+		const double v = std::max( 0.0, atof( now.c_str() ) + atof( args[2].c_str() ) );
+		s.run( "key_set", { args[1], Num( v ) } );
 	} else if ( a == "bool" && args.size() > 1 ) {
 		// on is "1"; off takes the key out (the game reads a missing one as off)
 		const std::vector<oz::ed::Id> ents = s.key_entities();
@@ -2476,7 +2746,7 @@ void Import_f() {
 	std::string err;
 	if ( OzE_Argc() < 2 ) {
 		Printf( "ed_import <map>: a map in the game's files, decompiled by q3map2, in the map editor\n" );
-	} else if ( !session().import_bsp( OzE_Argv( 1 ), err ) ) {
+	} else if ( !session().import_bsp( OzE_Argv( 1 ), err, true ) ) {
 		Report( err );
 	}
 }
@@ -2571,8 +2841,8 @@ void Stats_f() {
 	if ( course != "no course" ) {
 		Printf( "ed_stats course: %s\n", course.c_str() );
 	}
-	if ( !s.compile_warnings().empty() ) {
-		const oz::ed::Session::CompileWarning &w = s.compile_warnings()[0];
+	for ( size_t i = 0; i < s.compile_warnings().size(); i++ ) {
+		const oz::ed::Session::CompileWarning &w = s.compile_warnings()[i];
 		std::string ids;
 		for ( oz::ed::Id id : w.ids ) {
 			ids += " " + std::to_string( id );
@@ -2728,6 +2998,8 @@ Rml::String HoverHint() {
 
 namespace OzUI {
 
+bool EditorShortcut( int key );
+
 void Editor_Commands() {
 	OzE_CvarCreate( "ed_q3map2", "", 0, "the q3map2.exe the map editor runs (empty: tools/q3map2.exe beside the game)",
 		nullptr, nullptr, 0 );
@@ -2804,6 +3076,20 @@ bool Editor_Key( int key, bool down ) {
 				CloseSky( doc );
 			}
 			return true;
+		}
+		// the left button: the dialog's own controls, else nothing (the menus and panels around wait)
+		if ( key == K_MOUSE1 ) {
+			for ( Rml::Element *e = doc->GetContext()->GetHoverElement(); e; e = e->GetParentNode() ) {
+				if ( e->IsClassSet( "box" ) ) {
+					return false;
+				}
+			}
+			return true;
+		}
+		// the view beside the dialog: the right button looks around (the sun's arrow), the wheel moves
+		const bool viewMouse = key == K_MOUSE2 || key == K_MOUSE3 || key == K_MWHEELUP || key == K_MWHEELDOWN;
+		if ( viewMouse && ( OverView( doc ) || session().looking() || session().dragging() ) ) {
+			return session().key( key, down, OverView( doc ) );
 		}
 		if ( key == K_ESCAPE || key == K_PAD0_B || key == K_MOUSE2 ) {
 			return true;
@@ -2892,9 +3178,22 @@ bool Editor_Key( int key, bool down ) {
 				CloseSaveAs( doc );
 			}
 			return true;
+		} else if ( down && !saveAsOpen && !searchOpen && !pickOpen && EditorShortcut( key ) ) {
+			// Ctrl+S, Ctrl+Z, F5 ... still work after typing in a field: it lets go of the keyboard, the
+			// editor takes the key
+			field->Blur();
+			return session().key( key, down, over );
 		} else {
 			return false;
 		}
+	}
+	if ( down && key == K_F10 ) {
+		OpenMenu( doc, "file" );	// the menus from the keyboard (the arrows and Enter work them)
+		return true;
+	}
+	if ( uvOpen && down && ( key == K_ESCAPE || ( key == 'u' && !OzE_KeyDown( K_CTRL ) && !OzE_KeyDown( K_ALT ) ) ) ) {
+		CloseUv( doc );	// Escape closes the UV editor, U toggles it
+		return true;
 	}
 	if ( session().key( key, down, over ) ) {
 		return true;
@@ -2902,6 +3201,24 @@ bool Editor_Key( int key, bool down ) {
 	// what the pages take as Back or a tab switch never leaves the editor: it has its own Main Menu
 	return key == K_MOUSE2 || key == K_ESCAPE || key == K_BACKSPACE || key == 'q' || key == 'e' || key == 'f' ||
 		key == K_PAD0_B || key == K_PAD0_LEFTSHOULDER || key == K_PAD0_RIGHTSHOULDER;
+}
+
+// A key the editor takes even from a text field: the F keys, and Ctrl with a key no text field uses
+// (Ctrl+A, C, V, X and the arrows, Backspace, Delete, Home and End edit the text)
+bool EditorShortcut( int key ) {
+	if ( key >= K_F1 && key <= K_F12 ) {
+		return key != K_F10;
+	}
+	if ( !OzE_KeyDown( K_CTRL ) ) {
+		return false;
+	}
+	switch ( key ) {
+	case 'a': case 'c': case 'v': case 'x': case K_LEFTARROW: case K_RIGHTARROW: case K_UPARROW: case K_DOWNARROW:
+	case K_BACKSPACE: case K_DEL: case K_HOME: case K_END: case K_SHIFT: case K_CTRL: case K_ALT:
+		return false;
+	default:
+		return key < K_MOUSE1 || key > K_MOUSE5;
+	}
 }
 
 void Editor_Mouse( int x, int y ) {
@@ -3145,6 +3462,12 @@ bool Editor_Draw( int width, int height ) {
 	}
 	if ( saveAsOpen ) {
 		SaveAsNote( doc );
+	}
+	// the map's file, opened or saved: the first of the recent maps
+	static std::string notedPath;
+	if ( s.path != notedPath ) {
+		notedPath = s.path;
+		NoteRecent( s.path );
 	}
 	UpdateTip( doc, width, height );
 	if ( uvOpen ) {

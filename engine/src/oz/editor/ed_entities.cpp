@@ -23,9 +23,15 @@ namespace oz::ed {
 
 static const double PI = 3.14159265358979323846;
 static const double PAD = 64;  // the jump pad and teleporter tools' footprint
+// A jump pad's throw, as the arc shows it: from the trigger's middle (AimAtTarget), down to the floor
+// clicked. The player stands 10 units above the trigger's middle (its origin 24 over the pad's 4-unit
+// top, the trigger's middle 18 up), so the arc that brings the player's origin to 24 over the floor
+// brings the middle to 14 over it.
+static const double PAD_MIDDLE = 18, LAND_MIDDLE = 14;
 
 static const unsigned char C_LINK[4] = {255, 214, 90, 130}, C_LINK_HIDDEN[4] = {255, 214, 90, 34}, C_LINK_ON[4] = {255, 250, 210, 255},
-	C_ARC[4] = {110, 255, 150, 230}, C_ARC_HIDDEN[4] = {110, 255, 150, 60}, C_GHOST_EDGE[4] = {255, 170, 90, 255};
+	C_ARC[4] = {110, 255, 150, 230}, C_ARC_HIDDEN[4] = {110, 255, 150, 60}, C_GHOST_EDGE[4] = {255, 170, 90, 255},
+	C_BAD[4] = {255, 60, 50, 255};  // a jump pad aiming at a target it can't throw to
 
 static double arg(const std::vector<std::string> &a, size_t i, double fallback) {
 	return i < a.size() && !a[i].empty() ? std::atof(a[i].c_str()) : fallback;
@@ -199,8 +205,8 @@ static bool solid_hit(const Doc &doc, const Vec3 &a, const Vec3 &b, double &frac
 	for (Id id : doc.ids_of(Kind::Brush)) {
 		const Object *o = doc.get(id);
 		const Object *owner = doc.get(o->owner);
-		if (owner && owner->entity.classname().compare(0, 8, "trigger_") == 0) {
-			continue;
+		if ((owner && owner->entity.classname().compare(0, 8, "trigger_") == 0) || is_nocollide(*o)) {
+			continue;  // a trigger, or a brush with its collision off: thrown players go through
 		}
 		const Bounds bb = bounds_of(doc, id);
 		if (bb.empty() || !bb.overlaps(seg, 1)) {
@@ -229,6 +235,7 @@ const std::vector<Vec3> &Session::push_arc(Id id) {
 	}
 	cached.first = doc.revision + 1;
 	cached.second.clear();
+	arc_lands_[id] = false;
 	const Object *o = doc.get(id);
 	Vec3 from, to;
 	if (!o || !entity_center(doc, id, from)) {
@@ -257,6 +264,7 @@ const std::vector<Vec3> &Session::push_arc(Id id) {
 		double frac;
 		if (solid_hit(doc, last, p, frac)) {
 			cached.second.push_back(last + (p - last) * frac);
+			arc_lands_[id] = true;
 			break;
 		}
 		cached.second.push_back(p);
@@ -287,36 +295,134 @@ bool Session::push_flight(Id id, double &speed, double &height, double &across, 
 	return true;
 }
 
-void Session::push_height(double dz) {
-	// the selected pushers' targets (target_position, info_notnull): up or down by dz
-	std::set<std::string> names;
-	for (Id id : key_entities()) {
-		const Entity &e = doc.get(id)->entity;
-		if ((e.classname() == "trigger_push" || e.classname() == "target_push") && !e.get("target").empty()) {
-			names.insert(e.get("target"));
+bool Session::push_lands(Id id) {
+	push_arc(id);
+	return arc_lands_[id];
+}
+
+std::vector<Id> Session::pushers_at(const std::string &targetname) const {
+	std::vector<Id> out;
+	for (Id e : doc.ids_of(Kind::Entity)) {
+		const Entity &en = doc.get(e)->entity;
+		if ((en.classname() == "trigger_push" || en.classname() == "target_push") && !targetname.empty() && en.get("target") == targetname) {
+			out.push_back(e);
 		}
 	}
-	std::vector<Id> targets;
+	return out;
+}
+
+// The selected pushers, and those aiming at a selected target.
+static std::vector<Id> selected_pushers(Session &s) {
+	std::set<Id> out;
+	for (Id id : s.key_entities()) {
+		const Entity &e = s.doc.get(id)->entity;
+		if (e.classname() == "trigger_push" || e.classname() == "target_push") {
+			out.insert(id);
+		} else if (const std::string *n = e.find("targetname")) {
+			for (Id p : s.pushers_at(*n)) {
+				out.insert(p);
+			}
+		}
+	}
+	return std::vector<Id>(out.begin(), out.end());
+}
+
+static Id entity_named(const Doc &doc, const std::string &name) {
 	for (Id e : doc.ids_of(Kind::Entity)) {
 		const std::string *n = doc.get(e)->entity.find("targetname");
+		if (n && *n == name) {
+			return e;
+		}
+	}
+	return 0;
+}
+
+void Session::push_height(double dz) {
+	// each selected pad's target up or down by dz, moved across so the throw still comes down where it did
+	std::set<Id> targets;
+	std::map<Id, Id> pusher_of;
+	for (Id p : selected_pushers(*this)) {
+		const Id t = entity_named(doc, doc.get(p)->entity.get("target"));
 		Vec3 o;
-		if (n && names.count(*n) && parse_vec(doc.get(e)->entity.get("origin"), o)) {
-			targets.push_back(e);
+		if (t && parse_vec(doc.get(t)->entity.get("origin"), o) && targets.insert(t).second) {
+			pusher_of[t] = p;
 		}
 	}
 	if (targets.empty()) {
-		say("Select a jump pad (its trigger_push) with a target to throw at");
+		say("Select a jump pad with a target to throw at (LAND HERE gives it one)");
 		return;
 	}
+	const double g = map_gravity(doc);
+	int refused = 0;
 	doc.begin(dz > 0 ? "Jump higher" : "Jump lower");
 	for (Id e : targets) {
 		auto o = doc.edit(e);
-		Vec3 at;
+		Vec3 at, from;
 		parse_vec(o->entity.get("origin"), at);
-		o->entity.set("origin", number(at.x) + " " + number(at.y) + " " + number(at.z + dz));
+		Vec3 next = at + Vec3(0, 0, dz);
+		const Id p = pusher_of[e];
+		const std::vector<Vec3> arc = push_arc(p);
+		if (doc.get(p)->entity.classname() == "trigger_push" && arc.size() >= 2 && entity_center(doc, p, from)) {
+			const Vec3 land = arc.back();
+			if (next.z < std::max(from.z, land.z + LAND_MIDDLE) + 16) {
+				refused++;
+				continue;  // a throw this low wouldn't clear where it lands
+			}
+			next = apex_at(from, land + Vec3(0, 0, LAND_MIDDLE), g, next.z);
+		}
+		o->entity.set("origin", vec_key(Vec3(std::round(next.x), std::round(next.y), std::round(next.z))));
 		doc.put(e, o);
 	}
 	doc.end();
+	if (refused) {
+		say("The throw can't go any lower and still land there", true);
+	}
+}
+
+void Session::push_land() {
+	land_pushers_.clear();
+	for (Id p : selected_pushers(*this)) {
+		if (doc.get(p)->entity.classname() == "trigger_push") {
+			land_pushers_.push_back(p);
+		}
+	}
+	if (land_pushers_.empty()) {
+		say("Select a jump pad first, then LAND HERE and click where players should come down");
+		return;
+	}
+	set_tool(Tool::Place);
+	place_class = "jump_land";
+	place_step_ = 0;
+}
+
+std::string Session::push_problem(Id id) {
+	const Object *o = doc.get(id);
+	if (!o || o->kind != Kind::Entity) {
+		return "";
+	}
+	const std::string cn = o->entity.classname();
+	if (cn != "trigger_push" && cn != "target_push") {
+		return "";
+	}
+	const std::string target = o->entity.get("target");
+	if (target.empty()) {
+		return cn == "trigger_push" ? "It has no target, so it does nothing in the game: LAND HERE gives it one" : "";
+	}
+	const Id t = entity_named(doc, target);
+	if (!t) {
+		return "Its target \"" + target + "\" isn't in the map, so it does nothing in the game: LAND HERE gives it a new one";
+	}
+	if (cn != "trigger_push") {
+		return "";
+	}
+	Vec3 from, to;
+	if (entity_center(doc, id, from) && entity_center(doc, t, to) && to.z <= from.z) {
+		return "Its target is no higher than the pad, so the game can't aim the throw: raise the target, or LAND HERE";
+	}
+	if (push_arc(id).size() >= 2 && !arc_lands_[id]) {
+		return "Its throw never comes down on anything: LAND HERE aims it at a floor";
+	}
+	return "";
 }
 
 void Session::build_links() {
@@ -340,6 +446,7 @@ void Session::build_links() {
 			continue;
 		}
 		const std::string cn = en.classname();
+		bool bad = false;
 		if (cn == "trigger_push" || cn == "target_push") {
 			// a pusher shows the throw it makes, not a line to the top of it
 			const std::vector<Vec3> &arc = push_arc(e);
@@ -350,6 +457,7 @@ void Session::build_links() {
 			if (arc.size() > 1) {
 				continue;
 			}
+			bad = cn == "trigger_push";  // a target it can't throw at: the line to it in red
 		}
 		for (Id to : named[*t]) {
 			Vec3 at;
@@ -357,7 +465,7 @@ void Session::build_links() {
 				continue;
 			}
 			const bool on = sel.count(e) || sel.count(to);
-			links_.line(from, at, on ? C_LINK_ON : C_LINK);
+			links_.line(from, at, bad ? C_BAD : on ? C_LINK_ON : C_LINK);
 			links_.line(from, at, C_LINK_HIDDEN, "$oz_ed_lines_xray");
 			// an arrowhead past the middle, the way the link goes
 			const Vec3 d = at - from;
@@ -390,6 +498,32 @@ void Session::build_links() {
 		}
 		const double m = std::max({c.x, c.y, c.z, 1e-6});
 		const unsigned char col[4] = {(unsigned char)(255 * c.x / m), (unsigned char)(255 * c.y / m), (unsigned char)(255 * c.z / m), 150};
+		// a spotlight (a light with a target): its cone, out to the radius it has where it meets the target
+		Vec3 aim;
+		const std::string *tn = o->entity.find("target");
+		if (tn && !tn->empty() && named.count(*tn) && entity_center(doc, named[*tn][0], aim) && (aim - at).length() > 1) {
+			const Vec3 dir = (aim - at).normalized();
+			Vec3 u = dir.cross(Vec3(0, 0, 1));
+			if (u.length() < 1e-3) {
+				u = dir.cross(Vec3(1, 0, 0));
+			}
+			u = u.normalized();
+			const Vec3 v = dir.cross(u);
+			const double rad = std::max(1.0, std::atof(o->entity.get("radius", "64").c_str()));
+			Vec3 prev;
+			for (int i = 0; i <= 32; i++) {
+				const double a = i * 2 * PI / 32;
+				const Vec3 p = aim + u * (std::cos(a) * rad) + v * (std::sin(a) * rad);
+				if (i) {
+					links_.line(prev, p, col);
+				}
+				if (i % 8 == 0) {
+					links_.line(at, p, col);
+				}
+				prev = p;
+			}
+			continue;  // a spotlight's reach is its cone
+		}
 		for (int ring = 0; ring < 3; ring++) {
 			Vec3 prev;
 			for (int i = 0; i <= 48; i++) {
@@ -469,6 +603,7 @@ Id Session::place_entity(const std::string &cls, const Vec3 &origin, const char 
 	}
 	if (cls == "light") {
 		o->entity.set("light", "300");
+		o->entity.set("_color", "1 1 1");  // its color control shows at once (white, as q3map2's default)
 	}
 	doc.begin(label);
 	const Id id = doc.add(o);
@@ -497,9 +632,22 @@ double Session::ceiling_over(const Vec3 &a, const Vec3 &b) const {
 	return low;
 }
 
+// The tools that take two clicks on the floor (a jump pad, a teleporter, Defrag's lines) and LAND HERE: their
+// clicks go through entities, triggers and tool volumes to the floor under them.
+static bool floor_tool(const std::string &cls) {
+	return cls == "jump_pad" || cls == "teleporter" || cls == "jump_land" || cls.compare(0, 7, "defrag_") == 0;
+}
+
+// A jump pad's throw, as the arc shows it: from the trigger's middle (AimAtTarget), down to the floor
+// clicked. The player stands 10 units above the trigger's middle (its origin 24 over the pad's 4-unit
+// top, the trigger's middle 18 up), so the arc that brings the player's origin to 24 over the floor
+// brings the middle to 14 over it.
+
 void Session::place_click(int m) {
 	Hit h;
-	auto pick_fn = [&](Hit &out) { return pick(mx_, my_, out); };
+	const std::string cls = place_class;
+	const bool through = floor_tool(cls);
+	auto pick_fn = [&](Hit &out) { return pick_floor(mx_, my_, out, !through); };
 	auto ground_fn = [&](Vec3 &out) { return plane_point(mx_, my_, Vec3(0, 0, 0), Vec3(0, 0, 1), out); };
 	if (!place_hit(*this, pick_fn, ground_fn, h)) {
 		return;
@@ -508,7 +656,55 @@ void Session::place_click(int m) {
 		select(group_of(h.id), (m & SHIFT) ? SelMode::Add : SelMode::Set);  // an entity clicked: taken, not built on
 		return;
 	}
-	const std::string cls = place_class;
+	if (cls == "jump_land") {
+		// the selected pads' targets moved (or made) so their throws come down here
+		const double g = map_gravity(doc);
+		std::vector<Id> pads;
+		doc.begin("Land here");
+		for (Id p : land_pushers_) {
+			Vec3 from;
+			if (!doc.get(p) || !entity_center(doc, p, from)) {
+				continue;
+			}
+			const Vec3 top = apex_for(from, h.point + Vec3(0, 0, LAND_MIDDLE), g, ceiling_over(from, h.point));
+			const std::string at = vec_text(Vec3(std::round(top.x), std::round(top.y), std::round(top.z)));
+			const std::string name = doc.get(p)->entity.get("target");
+			Id t = name.empty() ? 0 : entity_named(doc, name);
+			if (t && pushers_at(name).size() > 1) {
+				t = 0;  // shared with another pad: this one gets a target of its own
+			}
+			if (t) {
+				auto o = doc.edit(t);
+				o->entity.set("origin", at);
+				doc.put(t, o);
+			} else {
+				const std::string tag = doc.get(p)->entity.get(JUMPPAD_KEY);
+				const std::string fresh = unique_targetname(doc, "pad");
+				auto o = std::make_shared<Object>();
+				o->kind = Kind::Entity;
+				o->entity.keys = {{"classname", "target_position"}, {"targetname", fresh}, {"origin", at}};
+				if (!tag.empty()) {
+					o->entity.set(JUMPPAD_KEY, tag);
+				}
+				doc.add(o);
+				auto pe = doc.edit(p);
+				pe->entity.set("target", fresh);
+				doc.put(p, pe);
+			}
+			pads.push_back(p);
+		}
+		doc.end();
+		land_pushers_.clear();
+		set_tool(Tool::Select);
+		std::vector<Id> again;
+		for (Id p : pads) {
+			for (Id id : group_of(p)) {
+				again.push_back(id);
+			}
+		}
+		select(again, SelMode::Set);
+		return;
+	}
 	if (cls.compare(0, 7, "defrag_") == 0) {
 		// Defrag's lines: one side of the course, then the other; a speed pad where clicked; a shooter
 		// where it shoots from, then the zone that fires it
@@ -548,17 +744,25 @@ void Session::place_click(int m) {
 		doc.begin(cls == "jump_pad" ? "Jump pad" : "Teleporter");
 		Id made;
 		if (cls == "jump_pad") {
-			// a 4-unit pad under a 36-unit trigger, its target the top of the arc down to the second click
-			// (the player rides 24 above the floor; AimAtTarget throws from the trigger's middle)
-			doc.add(box_brush(doc, a + Vec3(-PAD / 2, -PAD / 2, 0), a + Vec3(PAD / 2, PAD / 2, 4), shader_id(shader), doc.worldspawn()));
+			// a 4-unit pad (a bounce pad's material, in a group of its own) under a 36-unit trigger, its
+			// target the top of the arc down to the second click; the three tied by JUMPPAD_KEY
+			static const char *const PAD_MATERIAL = "sfx/bouncepad01_block17";
+			const std::string mat = shaders_lib().found(PAD_MATERIAL) ? PAD_MATERIAL : shader;
+			auto grp = std::make_shared<Object>();
+			grp->kind = Kind::Entity;
+			grp->entity.keys = {{"classname", "func_group"}, {JUMPPAD_KEY, name}};
+			const Id g = doc.add(grp);
+			doc.add(box_brush(doc, a + Vec3(-PAD / 2, -PAD / 2, 0), a + Vec3(PAD / 2, PAD / 2, 4), shader_id(mat), g));
 			const Id trig = place_brush_entity("trigger_push", a + Vec3(-PAD / 2, -PAD / 2, 0), a + Vec3(PAD / 2, PAD / 2, 36), "common/trigger");
 			auto t = doc.edit(trig);
 			t->entity.set("target", name);
+			t->entity.set(JUMPPAD_KEY, name);
 			doc.put(trig, t);
-			const Vec3 top = apex_for(a + Vec3(0, 0, 18), h.point + Vec3(0, 0, 14), map_gravity(doc), ceiling_over(a, h.point));
+			const Vec3 top = apex_for(a + Vec3(0, 0, PAD_MIDDLE), h.point + Vec3(0, 0, LAND_MIDDLE), map_gravity(doc), ceiling_over(a, h.point));
 			auto p = std::make_shared<Object>();
 			p->kind = Kind::Entity;
-			p->entity.keys = {{"classname", "target_position"}, {"targetname", name}, {"origin", vec_text(Vec3(std::round(top.x), std::round(top.y), std::round(top.z)))}};
+			p->entity.keys = {{"classname", "target_position"}, {"targetname", name}, {"origin", vec_text(Vec3(std::round(top.x), std::round(top.y), std::round(top.z)))},
+				{JUMPPAD_KEY, name}};
 			made = doc.add(p);
 		} else {
 			const Id trig = place_brush_entity("trigger_teleport", a + Vec3(-PAD / 2, -PAD / 2, 0), a + Vec3(PAD / 2, PAD / 2, PAD), "common/trigger");
@@ -575,7 +779,12 @@ void Session::place_click(int m) {
 			made = doc.add(dst);
 		}
 		doc.end();
-		select({made}, SelMode::Set);
+		if (cls == "jump_pad") {
+			select(group_of(made), SelMode::Set);
+			say("Jump pad made: drag it to move it all, LAND HERE (Inspect) re-aims it, HIGHER and LOWER keep where it lands");
+		} else {
+			select({made}, SelMode::Set);
+		}
 		return;
 	}
 	const EntityDef *d = entity_def(cls);
@@ -599,9 +808,33 @@ void Session::build_place_preview() {
 	place_preview_.begin();
 	if (tool == Tool::Place && over_ && !looking_) {
 		Hit h;
-		auto pick_fn = [&](Hit &out) { return pick(mx_, my_, out); };
+		const bool through = floor_tool(place_class);
+		auto pick_fn = [&](Hit &out) { return pick_floor(mx_, my_, out, !through); };
 		auto ground_fn = [&](Vec3 &out) { return plane_point(mx_, my_, Vec3(0, 0, 0), Vec3(0, 0, 1), out); };
-		if (place_hit(*this, pick_fn, ground_fn, h)) {
+		if (place_class == "jump_land" && place_hit(*this, pick_fn, ground_fn, h)) {
+			// each pad's new throw, down to the pointer
+			const double g = map_gravity(doc);
+			for (Id p : land_pushers_) {
+				Vec3 from, v;
+				if (!doc.get(p) || !entity_center(doc, p, from)) {
+					continue;
+				}
+				const Vec3 top = apex_for(from, h.point + Vec3(0, 0, LAND_MIDDLE), g, ceiling_over(from, h.point));
+				Vec3 last = from;
+				if (push_velocity(from, top, g, v)) {
+					for (int i = 1; i <= 160; i++) {
+						const double t = i * 0.04;
+						const Vec3 q = from + v * t - Vec3(0, 0, 0.5 * g * t * t);
+						place_preview_.line(last, q, C_ARC);
+						last = q;
+						if (q.z < h.point.z && v.z - g * t < 0) {
+							break;
+						}
+					}
+				}
+			}
+			place_preview_.box_edges(h.point - Vec3(16, 16, 0), h.point + Vec3(16, 16, 2), C_GHOST_EDGE);
+		} else if (place_hit(*this, pick_fn, ground_fn, h)) {
 			const std::string cls = place_class == "jump_pad" ? "trigger_push" : place_class == "teleporter" ? "trigger_teleport"
 				: place_class.compare(0, 7, "defrag_") == 0 ? "trigger_multiple" : place_class;
 			unsigned char col[4];
@@ -626,7 +859,7 @@ void Session::build_place_preview() {
 				if (place_step_ && place_class == "jump_pad") {
 					// the throw the pad will make, down to the pointer
 					const double g = map_gravity(doc);
-					const Vec3 from = a + Vec3(0, 0, 18), top = apex_for(from, h.point + Vec3(0, 0, 14), g, ceiling_over(a, h.point));
+					const Vec3 from = a + Vec3(0, 0, PAD_MIDDLE), top = apex_for(from, h.point + Vec3(0, 0, LAND_MIDDLE), g, ceiling_over(a, h.point));
 					Vec3 v, last = from;
 					if (push_velocity(from, top, g, v)) {
 						for (int i = 1; i <= 120; i++) {
@@ -714,7 +947,10 @@ std::string Session::place_hint() const {
 	}
 	if (place_class == "jump_pad") {
 		return place_step_ ? "Jump pad: click where the player lands (the arc shows the throw) \xc2\xb7 Esc cancels"
-			: "Jump pad: click where the pad goes, then where the player lands \xc2\xb7 Esc: back to select";
+			: "Jump pad: click the floor where the pad goes, then where the player lands \xc2\xb7 Esc: back to select";
+	}
+	if (place_class == "jump_land") {
+		return "Land here: click where players should come down (the arc shows the throw) \xc2\xb7 Esc cancels";
 	}
 	if (place_class == "teleporter") {
 		return place_step_ ? "Teleporter: click where the player comes out (facing the way the camera faces) \xc2\xb7 Esc cancels"
@@ -752,6 +988,8 @@ bool Session::entities_action(const std::string &action, const std::vector<std::
 	} else if (action == "push_height") {
 		// ed push_height <units>: the selected jump pads' targets up (or down)
 		push_height(arg(a, 0, 32));
+	} else if (action == "push_land") {
+		push_land();
 	} else if (action == "to_world") {
 		// the selected brushes back into the world; an entity left without brushes goes
 		std::set<Id> was;

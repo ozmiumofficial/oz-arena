@@ -23,6 +23,7 @@ static const double PATCH_TOLERANCE = 4;    // units a curve may stray from its 
 
 // the selection's look: a warm tint on its faces, its edges bright, dim where something hides them
 static const unsigned char SEL_TINT[4] = {255, 80, 30, 52};
+static const unsigned char NONSOLID_TINT[4] = {60, 215, 255, 52};  // a brush whose collision is off: players pass through
 static const unsigned char SEL_EDGE[4] = {255, 120, 50, 255};
 static const unsigned char SEL_EDGE_HIDDEN[4] = {255, 120, 50, 64};
 static const unsigned char WIRE_EDGE[4] = {205, 196, 184, 255};    // a 2D view's world brushes
@@ -174,6 +175,17 @@ const Mesher::Material &Mesher::material(ShaderId s) {
 	};
 	const Look look = shaders_lib().look(name);
 	m.shader = 0;
+	if (look == Look::Sky && r) {
+		// a sky's own shader draws only as the sky around a map, never on a brush: its picture instead
+		const std::string img = shaders_lib().image(name);
+		if (shaders_lib().found(name)) {
+			const size_t dot = img.find_last_of('.');
+			m.shader = r->RegisterShader((dot == std::string::npos ? img : img.substr(0, dot)).c_str());
+			if (m.shader) {
+				return materials_[s] = m;
+			}
+		}
+	}
 	for (const Tool &t : tools) {
 		if (t.look == look) {
 			m.shader = r ? r->RegisterShader(t.shader) : 0;
@@ -250,20 +262,22 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 	}
 	std::map<int, Batch> batches;  // shader handle -> geometry
 	Batch tint;
+	Batch mul;  // faces with a color: drawn again over themselves, multiplying ($oz_ed_mul)
 	std::vector<ozEdVertex_t> edges;  // pairs
 	auto edge = [&](const Vec3 &a, const Vec3 &b) {
 		static const Vec3 n(0, 0, 1);
 		edges.push_back(vertex(a, 0, 0, n, Vec3(1, 0, 0), 1, SEL_EDGE));
 		edges.push_back(vertex(b, 0, 0, n, Vec3(1, 0, 0), 1, SEL_EDGE));
 	};
-	auto add_tint = [&](const Batch &from, size_t first_vert, size_t first_index) {
-		if (!overlay || tint.verts.size() + (from.verts.size() - first_vert) > 65535) {
+	// the selection's tint (overlay), or a non-solid face's wash (any mesher that draws materials)
+	auto add_tint = [&](const Batch &from, size_t first_vert, size_t first_index, const unsigned char *color = nullptr) {
+		if (!(overlay || color) || tint.verts.size() + (from.verts.size() - first_vert) > 65535) {
 			return;
 		}
 		unsigned short base = (unsigned short)tint.verts.size();
 		for (size_t k = first_vert; k < from.verts.size(); k++) {
 			ozEdVertex_t v = from.verts[k];
-			std::memcpy(v.color, SEL_TINT, 4);
+			std::memcpy(v.color, color ? color : SEL_TINT, 4);
 			tint.verts.push_back(v);
 		}
 		for (size_t k = first_index; k < from.indexes.size(); k++) {
@@ -279,6 +293,7 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 		const bool mats = !materials || materials(id);
 		if (o->kind == Kind::Brush) {
 			const auto &ws = doc.windings(id);
+			const bool nocollide = is_nocollide(*o);
 			for (size_t i = 0; i < o->brush.faces.size() && i < ws.size(); i++) {
 				const Face &f = o->brush.faces[i];
 				const q3map::Winding &w = ws[i];
@@ -307,6 +322,21 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 					b.indexes.push_back((unsigned short)(base + k - 1));
 				}
 				add_tint(b, fv, fi);
+				if (mats && nocollide) {
+					add_tint(b, fv, fi, NONSOLID_TINT);
+				}
+				unsigned char rgb[3];
+				if (mats && face_tint(f, rgb) && mul.verts.size() + (b.verts.size() - fv) <= 65535) {
+					const unsigned short mb = (unsigned short)mul.verts.size();
+					for (size_t k = fv; k < b.verts.size(); k++) {
+						ozEdVertex_t v = b.verts[k];
+						v.color[0] = rgb[0], v.color[1] = rgb[1], v.color[2] = rgb[2], v.color[3] = 255;
+						mul.verts.push_back(v);
+					}
+					for (size_t k = fi; k < b.indexes.size(); k++) {
+						mul.indexes.push_back((unsigned short)(b.indexes[k] - fv + mb));
+					}
+				}
 				if (overlay) {
 					for (size_t k = 0; k < w.size(); k++) {
 						const Vec3 &a = w[k], &c = w[(k + 1) % w.size()];
@@ -369,7 +399,10 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 			}
 		}
 	}
-	if (overlay && !tint.indexes.empty()) {
+	if (!mul.indexes.empty()) {
+		batches[shader_handle("$oz_ed_mul")] = std::move(mul);
+	}
+	if (!tint.indexes.empty()) {
 		batches[shader_handle("$oz_ed_tint")] = std::move(tint);
 	}
 
@@ -883,7 +916,11 @@ static std::string q3map2_exe() {
 	return std::string(OzEd_EngineDir()) + "/tools/q3map2" OZ_ED_EXE;
 }
 
-bool Session::import_bsp(const std::string &map, std::string &error) {
+bool Session::import_bsp(const std::string &map, std::string &error, bool wait) {
+	if (import_.proc) {
+		error = "A map is being opened already: " + import_.map;
+		return false;
+	}
 	std::string exe = q3map2_exe();
 	if (!OzEd_FileExists(exe.c_str())) {
 		error = "q3map2 isn't there (" + exe + ")";
@@ -923,8 +960,49 @@ bool Session::import_bsp(const std::string &map, std::string &error) {
 	// brush primitives count in texture repeats: no image sizes needed, which q3map2 can't always find
 	args += " -convert -format map_bp \"" + src + "\"";
 	std::string log = dir + "/" + map + "_convert.log";
-	int code = OzEd_Run(exe.c_str(), args.c_str(), dir.c_str(), log.c_str());
 	std::string out = dir + "/maps/" + map + "_converted.map";
+	std::remove(out.c_str());  // what an earlier run left mustn't pass for this one's
+	if (!wait) {
+		import_.proc = OzEd_Start(exe.c_str(), args.c_str(), dir.c_str(), log.c_str());
+		if (!import_.proc) {
+			error = "q3map2 didn't start (" + exe + ")";
+			return false;
+		}
+		import_.map = map, import_.out = out, import_.log = log;
+		import_.t0 = OzE_Milliseconds();
+		import_.rev = doc.revision;
+		return true;
+	}
+	const int code = OzEd_Run(exe.c_str(), args.c_str(), dir.c_str(), log.c_str());
+	return import_finish(map, out, log, code, error);
+}
+
+void Session::import_poll() {
+	if (!import_.proc) {
+		return;
+	}
+	int code = -1;
+	if (OzEd_Poll(import_.proc, &code)) {
+		return;  // still converting
+	}
+	if (drag_ != Drag::None || looking_) {
+		return;  // converted: it opens when the drag or the look is done (it would take their objects)
+	}
+	const ImportJob j = import_;
+	import_ = ImportJob();
+	std::string err;
+	if (doc.revision != j.rev && doc.dirty) {
+		say("Not opening " + j.map + ": the map changed while it converted. Open it again once this one is saved", true);
+		return;
+	}
+	if (import_finish(j.map, j.out, j.log, code, err)) {
+		say("Opened " + j.map + ": save it under a name of your own to keep your changes");
+	} else {
+		say(err, true);
+	}
+}
+
+bool Session::import_finish(const std::string &map, const std::string &out, const std::string &log, int code, std::string &error) {
 	if (code != 0 || !OzEd_FileExists(out.c_str())) {
 		error = "q3map2 couldn't convert " + map + " (" + log + ")";
 		return false;
@@ -1073,7 +1151,7 @@ void Session::frame(int x, int y, int w, int h) {
 		if (OzE_KeyDown('d')) move = move - l;
 		if (OzE_KeyDown('e')) move = move + Vec3(0, 0, 1);
 		if (OzE_KeyDown('q')) move = move - Vec3(0, 0, 1);
-		double speed = 640 * (OzE_KeyDown(K_SHIFT) ? 3 : 1) * (OzE_KeyDown(K_CTRL) ? 0.25 : 1);
+		double speed = 640 * fly_scale * (OzE_KeyDown(K_SHIFT) ? 3 : 1) * (OzE_KeyDown(K_CTRL) ? 0.25 : 1);
 		if (move.length() > 0) {
 			cam.origin = cam.origin + move.normalized() * (speed * dt);
 		}
@@ -1152,6 +1230,7 @@ void Session::frame(int x, int y, int w, int h) {
 	build_links();
 	build_place_preview();
 	compile_poll();
+	import_poll();
 	autosave_tick();
 	build_leak();
 	build_sun_lines();

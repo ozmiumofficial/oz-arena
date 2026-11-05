@@ -160,6 +160,7 @@ public:
 	std::string name;   // as shown ("untitled")
 	Camera cam;
 	double grid = 16;                             // any power of two, 1/8 to 4096
+	double fly_scale = 1;                         // the fly keys' speed, times 640 a second (the wheel while looking)
 	static constexpr double MAP_LIMIT = 8192;     // a map stays within this of the middle every way
 	Tool tool = Tool::Select;
 	bool texture_lock = true;                     // moves, turns and mirrors carry the textures along
@@ -186,8 +187,11 @@ public:
 
 	bool open(const std::string &file, std::string &error);
 	bool save(const std::string &file, std::string &error);
-	// A map in the player's paks, decompiled by q3map2 into the editor's import folder, then opened.
-	bool import_bsp(const std::string &map, std::string &error);
+	// A map in the player's paks, decompiled by q3map2 into the editor's import folder, then opened. In
+	// the background (the window keeps drawing, the status line counts): true when it started; wait
+	// (the console's, the tests'): done before it returns.
+	bool import_bsp(const std::string &map, std::string &error, bool wait = false);
+	bool importing() const { return import_.proc != 0; }
 	void new_map();
 	void frame_all();       // the camera onto the whole map
 	void frame_selection();
@@ -244,6 +248,9 @@ public:
 	double units_per_pixel(const Vec3 &at) const;
 	bool pick(double sx, double sy, Hit &hit, bool entities = true) const;
 	std::vector<Hit> pick_all(double sx, double sy, bool entities = true) const;  // nearest first
+	// What a placement lands on: the nearest face a player could stand on, passing through triggers, tool
+	// volumes (hint, fog ...) and non-solid materials; entities too unless asked for.
+	bool pick_floor(double sx, double sy, Hit &hit, bool entities) const;
 
 	std::string status() const;        // the status line's right side
 	std::string hint() const;          // its left side: what the pointer and the tool can do now
@@ -300,6 +307,10 @@ public:
 		bool own = false;     // lit as the sky's own script lights it, not by the settings below
 		double color[3] = {1, 1, 1};
 		double brightness = 100, height = 60, direction = 30, sky_light = 80;
+		double glow[3] = {1, 1, 1};     // the sky's glow: the sun's color unless set apart
+		bool glow_set = false;
+		double ambient = 0;             // light everywhere before the lights (worldspawn "ambient")
+		double ambient_color[3] = {1, 1, 1};  // its color (worldspawn "_color")
 	};
 	static constexpr const char *DEFAULT_SKY = "skies/hellsky2";
 	SkySun sky_sun() const;
@@ -320,6 +331,8 @@ public:
 	std::string asking;                         // the action waiting on the answer ("new", "open\t<file>", "import\t<map>"), "" none
 	std::string maps_dir() const;               // <fs_homepath>/oz/editor/maps, where Save puts a new map
 	void load(const std::string &asked);        // "open\t<file>" or "import\t<map>": opened, or why not said
+	bool saved_as(const std::string &name);     // Save As under that name (the maps folder); then what waited on it
+	void save_as_cancelled() { after_save_.clear(); }
 
 	// The lit preview (F6): the last compile drawn as the world, its light and all; what changed since
 	// is drawn by the editor over it. Compiles first when the map changed since.
@@ -411,8 +424,21 @@ public:
 	// A pusher's throw (trigger_push, target_push): its launch speed, how high it goes over where it
 	// starts, how far across it lands, and its time in the air; false without a target to throw at.
 	bool push_flight(Id id, double &speed, double &height, double &across, double &seconds);
-	void push_height(double dz);  // the selected pushers' targets raised (lower: negative)
+	bool push_lands(Id id);       // its throw comes down on a brush (not into the void, nor past 6 s)
+	// The selected pushers' targets raised (lower: negative), the throw still landing where it did.
+	void push_height(double dz);
+	// Why a pusher does nothing (or harm) in the game, "" when it's fine: no target, a target that isn't
+	// there, a target under it, a throw that never lands.
+	std::string push_problem(Id id);
+	std::vector<Id> pushers_at(const std::string &targetname) const;  // the pushers aiming at it
+	void push_land();             // the place tool: the next click is where the selected pads' throws land
+	// What would trouble the map in the game, found before it's compiled: brushes left without collision
+	// by a non-solid face, jump pads that do nothing, targets that name nothing. Each with what it's about.
+	std::vector<CompileWarning> map_problems();
+	void check_map();             // map_problems into the warnings' list, said
 private:
+	std::vector<Id> land_pushers_;  // push_land's pads
+	std::unordered_map<Id, bool> arc_lands_;
 	const std::vector<Vec3> &push_arc(Id entity);
 	bool place_point(const Hit &hit, const std::string &cls, Vec3 &origin) const;
 	void place_click(int mods);
@@ -568,9 +594,21 @@ private:
 	const Action *action_for(const std::string &combo);
 	uint64_t autosave_rev_ = 0;  // the revision written aside
 	int autosave_due_ = 0;
+	// The map an earlier session left in the autosave, moved aside (recovered.map) the first time this
+	// session looks, so this session's own autosaves never write over it; kept until answered.
+	bool recovery_looked_ = false, recovery_kept_ = false;
+	std::string recovery_what_;
+	std::string after_save_;  // the action an unsaved map's question waits on while Save As asks the name
 	void autosave_write();
 	void autosave_clear();
 	CompileJob job_;
+	struct ImportJob {
+		int proc = 0, t0 = 0;
+		std::string map, out, log;
+		uint64_t rev = 0;  // the map's revision when it started: changed since, it isn't opened over them
+	} import_;
+	void import_poll();
+	bool import_finish(const std::string &map, const std::string &out, const std::string &log, int code, std::string &error);
 	std::string compile_report_;
 	std::vector<Vec3> leak_;  // q3map2's line from an entity out to the void
 	uint64_t leak_rev_ = 0, leak_built_ = ~0ull;
@@ -591,5 +629,43 @@ private:
 };
 
 Session &session();
+
+// q3map2's detail flag, in a face's contents number: a detail brush doesn't split the BSP for visibility.
+inline constexpr int32_t CONTENTS_DETAIL = 0x8000000;
+// The editor's own: the brush has no collision (its switch in Inspect). Every material collides by default,
+// liquids aside; the compile draws such a brush with its materials but makes it non-solid.
+inline constexpr int32_t CONTENTS_OZ_NOCOLLIDE = 0x4;
+// A face's color (Color in Inspect): its value number holds 0x01rrggbb; the texture is multiplied by it, in
+// the view and in the game (the compile writes a copy of the material with a last stage of that color).
+inline constexpr int32_t TINT_MARK = 0x01000000;
+inline bool face_tint(const Face &f, unsigned char rgb[3]) {
+	if (!f.has_flags || (f.value & 0x7f000000) != TINT_MARK) {
+		return false;
+	}
+	rgb[0] = (unsigned char)((f.value >> 16) & 255), rgb[1] = (unsigned char)((f.value >> 8) & 255), rgb[2] = (unsigned char)(f.value & 255);
+	return true;
+}
+inline bool is_nocollide(const Object &o) {
+	if (o.kind != Kind::Brush || o.brush.faces.empty()) {
+		return false;
+	}
+	for (const Face &f : o.brush.faces) {
+		if (!(f.contents & CONTENTS_OZ_NOCOLLIDE)) {
+			return false;
+		}
+	}
+	return true;
+}
+inline bool is_detail(const Object &o) {
+	if (o.kind != Kind::Brush || o.brush.faces.empty()) {
+		return false;
+	}
+	for (const Face &f : o.brush.faces) {
+		if (!(f.contents & CONTENTS_DETAIL)) {
+			return false;
+		}
+	}
+	return true;
+}
 
 }  // namespace oz::ed

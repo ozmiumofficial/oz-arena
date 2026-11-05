@@ -7,7 +7,10 @@
 #include "ed_engine.h"
 #include "ed_mapfile.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <ctime>
 
 extern "C" {
@@ -62,12 +65,30 @@ void Session::autosave_clear() {
 }
 
 bool Session::recovery_offer(std::string &what) {
-	// only into a session that hasn't touched a map yet: else the autosave is this session's own
-	if (doc.dirty || doc.can_undo() || !OzEd_FileExists((autosave_dir() + "/autosave.map").c_str())) {
+	if (!recovery_looked_) {
+		// the first look of a session: what an earlier one left (it closed or crashed unsaved) is moved aside,
+		// so this session's autosaves, 20 s after its first change, can't write over it
+		recovery_looked_ = true;
+		const std::string from = autosave_dir() + "/autosave", to = autosave_dir() + "/recovered";
+		if (!doc.dirty && !doc.can_undo() && OzEd_FileExists((from + ".map").c_str())) {
+			std::remove((to + ".map").c_str());
+			std::remove((to + ".txt").c_str());
+			std::rename((from + ".map").c_str(), (to + ".map").c_str());
+			std::rename((from + ".txt").c_str(), (to + ".txt").c_str());
+		}
+		recovery_kept_ = OzEd_FileExists((to + ".map").c_str()) != 0;
+		recovery_what_.clear();
+	}
+	// offered into a session that hasn't touched a map yet (the file stays for the next one meanwhile)
+	if (!recovery_kept_ || doc.dirty || doc.can_undo()) {
 		return false;
 	}
+	if (!recovery_what_.empty()) {
+		what = recovery_what_;
+		return true;
+	}
 	char *text = nullptr;
-	const int len = OzEd_ReadOSFile((autosave_dir() + "/autosave.txt").c_str(), &text);
+	const int len = OzEd_ReadOSFile((autosave_dir() + "/recovered.txt").c_str(), &text);
 	std::string about = len > 0 ? std::string(text, size_t(len)) : std::string();
 	OzEd_Free(text);
 	const size_t a = about.find('\n'), b = a == std::string::npos ? a : about.find('\n', a + 1);
@@ -83,31 +104,39 @@ bool Session::recovery_offer(std::string &what) {
 		std::snprintf(when, sizeof when, ", %lld hours ago", ago / 3600);
 	}
 	what = was + when;
+	recovery_what_ = what;  // read once: the banner asks every frame
 	return true;
 }
 
 bool Session::recover() {
 	std::string err;
 	char *text = nullptr;
-	const int len = OzEd_ReadOSFile((autosave_dir() + "/autosave.txt").c_str(), &text);
+	const int len = OzEd_ReadOSFile((autosave_dir() + "/recovered.txt").c_str(), &text);
 	std::string about = len > 0 ? std::string(text, size_t(len)) : std::string();
 	OzEd_Free(text);
-	if (!open(autosave_dir() + "/autosave.map", err)) {
+	if (!open(autosave_dir() + "/recovered.map", err)) {
 		say(err, true);
 		return false;
 	}
+	// open now, it's this session's map: its own autosave keeps it from here
+	std::remove((autosave_dir() + "/recovered.map").c_str());
+	std::remove((autosave_dir() + "/recovered.txt").c_str());
+	recovery_kept_ = false;
 	// it goes back where it came from, unsaved
 	const size_t a = about.find('\n'), b = a == std::string::npos ? a : about.find('\n', a + 1);
 	path = a == std::string::npos ? "" : about.substr(0, a);
 	name = b == std::string::npos ? "recovered" : about.substr(a + 1, b - a - 1);
 	doc.dirty = true;
-	autosave_rev_ = ~0ull;  // written aside again at the next change's turn
+	autosave_rev_ = ~0ull;
+	autosave_write();  // its file was the only copy: written aside again now
 	say("Recovered " + name + ": save it to keep it");
 	return true;
 }
 
 void Session::discard_recovery() {
-	autosave_clear();
+	std::remove((autosave_dir() + "/recovered.map").c_str());
+	std::remove((autosave_dir() + "/recovered.txt").c_str());
+	recovery_kept_ = false;
 	say("The kept map was thrown away");
 }
 
@@ -128,13 +157,18 @@ void Session::answer(const std::string &choice) {
 		return;
 	}
 	if (choice == "save") {
+		if (path.empty()) {
+			// never saved: Save As asks its name, and what waited goes on once it's saved
+			after_save_ = action;
+			want_page = "save_as";
+			return;
+		}
 		std::string err;
-		const std::string file = !path.empty() ? path : maps_dir() + "/" + name + ".map";
-		if (!save(file, err)) {
+		if (!save(path, err)) {
 			say(err, true);
 			return;  // nothing lost: the question goes, the map stays
 		}
-		say("Saved " + file);
+		say("Saved " + name);
 	} else {
 		autosave_clear();  // thrown away as asked
 	}
@@ -143,6 +177,35 @@ void Session::answer(const std::string &choice) {
 	} else {
 		load(action);
 	}
+}
+
+bool Session::saved_as(const std::string &typed) {
+	std::string n = typed;
+	if (n.size() > 4 && n.compare(n.size() - 4, 4, ".map") == 0) {
+		n.resize(n.size() - 4);
+	}
+	n.erase(std::remove_if(n.begin(), n.end(), [](unsigned char c) { return !std::isalnum(c) && c != '_' && c != '-' && c != '.'; }), n.end());
+	if (n.empty()) {
+		say("A name of letters, digits, - and _", true);
+		return false;
+	}
+	std::string err;
+	const std::string file = maps_dir() + "/" + n + ".map", was = name;
+	name = n;  // the file's title and the .defi take the new name
+	if (!save(file, err)) {
+		name = was;
+		say(err, true);
+		return false;
+	}
+	say(n == typed || n + ".map" == typed ? "Saved " + n : "Saved as " + n + " (a name of letters, digits, - and _)");
+	const std::string next = after_save_;
+	after_save_.clear();
+	if (next == "new") {
+		new_map();
+	} else if (!next.empty()) {
+		load(next);
+	}
+	return true;
 }
 
 std::string Session::maps_dir() const {
@@ -156,7 +219,13 @@ void Session::load(const std::string &asked) {
 	}
 	const std::string how = asked.substr(0, tab), what = asked.substr(tab + 1);
 	std::string err;
-	if (how == "open" ? open(what, err) : how == "import" && import_bsp(what, err)) {
+	if (how == "import") {
+		if (import_bsp(what, err)) {
+			say("Opening " + what + ": q3map2 makes it editable, a few seconds");  // done in the background
+		} else {
+			say(err, true);
+		}
+	} else if (open(what, err)) {
 		say("Opened " + name);
 	} else if (!err.empty()) {
 		say(err, true);

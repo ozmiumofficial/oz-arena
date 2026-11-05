@@ -491,6 +491,9 @@ void write_brush(Out &out, const Doc &doc, Id id, const Object &o, const Vec3 &o
 	out.raw(bp ? "{\nbrushDef\n{\n" : "{\n");
 	for (size_t i = 0; i < conv.size(); i++) {
 		const Face &f = conv[i];
+		if (!f.pts_valid && (i >= ws.size() || ws[i].size() < 3)) {
+			continue;  // a face with no shape and no points of its own: three zeros would be a broken plane
+		}
 		Vec3 pts[3];
 		doc.plane_points(f, i < ws.size() ? ws[i] : q3map::Winding{}, pts);
 		out.vec(pts[0]), out.raw(" "), out.vec(pts[1]), out.raw(" "), out.vec(pts[2]), out.raw(" ");

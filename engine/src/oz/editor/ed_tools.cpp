@@ -28,7 +28,7 @@ const std::vector<Action> &actions() {
 		{"create", "Create brush", "B", "Drag a footprint on a surface or the grid, then move the mouse to set the height"},
 		{"clip", "Clipper", "C", "Click two points on a brush to cut through them (a third tilts the cut); Tab: the side kept; Enter cuts"},
 		{"faces", "Faces tool", "T", "Click faces to pick them (Shift adds, Ctrl toggles, double-click: the brush's), drag to push; the arrows move their texture, the panel maps it"},
-		{"jump_pad", "Jump pad", "J", "Click where the pad goes, then where the player lands: a pad, its trigger_push and the target at the top of the arc"},
+		{"jump_pad", "Jump pad", "J", "Click the floor where the pad goes, then where the player lands: a bounce pad, its trigger and target, one object (a click takes it all, a double-click one piece)"},
 		{"teleporter", "Teleporter", "K", "Click the entrance, then the exit: a trigger_teleport and its misc_teleporter_dest, linked"},
 		{"light", "Light", "L", "Click a surface: a light a grid step off it"},
 		{"place", "Place", "", "ed place <class>: the place tool puts that down where you click (the Entities panel picks it)"},
@@ -59,8 +59,9 @@ const std::vector<Action> &actions() {
 		{"tex_rotate", "Turn texture", "", "ed tex_rotate <degrees>: turns the texture on each face"},
 		{"tex_scale", "Scale texture", "", "ed tex_scale <s> [t]: the scale numbers times these"},
 		{"tex_set", "Mapping number", "", "ed tex_set shift_s|shift_t|rotate|scale_s|scale_t <value>: one number of the mapping, on each face"},
-		{"delete", "Delete", "Del, Backspace", "Deletes the selection, or its selected corners"},
-		{"duplicate", "Duplicate", "Ctrl+D", "A copy of the selection, one grid step to the right"},
+		{"delete", "Delete", "Del, Backspace", "Deletes the selection"},
+		{"delete_corners", "Delete corners", "Shift+Del", "Deletes the picked corners of the selected brushes: each brush reshaped without them"},
+		{"duplicate", "Duplicate", "Ctrl+D, Space", "A copy of the selection beside it, to the right as the camera sees it"},
 		{"copy", "Copy", "Ctrl+C", "Copies the selection"},
 		{"cut", "Cut", "Ctrl+X", "Copies the selection and deletes it"},
 		{"paste", "Paste", "Ctrl+V", "Pastes where the pointer is, on the grid"},
@@ -74,8 +75,11 @@ const std::vector<Action> &actions() {
 		{"flip_y", "Mirror left to right", "Shift+M", "Mirrors the selection along Y"},
 		{"flip_z", "Mirror upside down", "Ctrl+M", "Mirrors the selection along Z"},
 		{"subtract", "CSG subtract", "Ctrl+Shift+X", "Carves the selected brushes out of every brush they overlap, then deletes them"},
-		{"hollow", "Hollow", "Ctrl+Shift+H", "Makes each selected brush a room: walls one grid step thick around its inside"},
+		{"hollow", "Hollow", "Ctrl+Shift+H", "Makes each selected brush a room: walls one grid step thick (8 units at least) around its inside; ed hollow <units> for any"},
 		{"merge", "Merge", "Ctrl+J", "Makes the selected brushes one: the convex shape around them all"},
+		{"tint", "Color", "", "ed tint <r g b> | none: colors the picked faces (or every face of the selected brushes): the texture is multiplied by it, in the view and the game"},
+		{"collision", "Collision", "", "The selected brushes' collision on or off: off, players and shots pass through them (they still draw, and still block light). Every brush collides at first, liquids aside"},
+		{"detail", "Detail", "Ctrl+Shift+D", "Marks the selected brushes detail, or structural again: detail (trim, pillars, props) doesn't cut the map up for visibility, so it compiles faster and runs smoother; walls that hold the map in stay structural"},
 		{"texture_lock", "Texture lock", "Ctrl+T", "On: textures move, turn and mirror with their brushes. Off: they stay put in the world"},
 		{"grid_smaller", "Smaller grid", "[", "Halves the grid"},
 		{"grid_bigger", "Bigger grid", "]", "Doubles the grid"},
@@ -86,7 +90,7 @@ const std::vector<Action> &actions() {
 		{"compile_stop", "Stop compiling", "", "Stops the compile under way"},
 		{"frame_leak", "Show the leak", "", "The camera onto the leak's line: from an entity out to the void through the gap"},
 		{"sky_sun", "Sky and sun", "", "The map's sky and its light: the sky around the map, the sun's color, brightness, height and direction"},
-		{"warnings", "Compile warnings", "", "The last compile's warnings: pick one to select and frame what it's about"},
+		{"warnings", "Warnings", "", "The last compile's or check's warnings, a failed compile first: pick one to select and frame what it's about"},
 		{"warning", "Frame a warning", "", "ed warning <n>: selects and frames what the last compile's warning n is about"},
 		{"hide", "Hide", "H", "Hides the selection from every view (the map keeps it: it compiles and saves)"},
 		{"hide_others", "Hide the rest", "Alt+H", "Hides everything but the selection"},
@@ -103,7 +107,9 @@ const std::vector<Action> &actions() {
 		{"defrag_start", "Start line", "", "Defrag: click one side of the course, then the other: a trigger across it fires Defrag's start timer"},
 		{"defrag_checkpoint", "Checkpoint line", "", "Defrag: a trigger across the course firing a checkpoint (two clicks, side to side)"},
 		{"defrag_finish", "Finish line", "", "Defrag: a trigger across the course firing Defrag's stop timer (two clicks, side to side)"},
-		{"push_height", "Jump higher", "", "ed push_height <units>: the selected jump pads' target raised (negative: lowered), their throw with it"},
+		{"push_height", "Jump higher", "", "ed push_height <units>: the selected jump pads' throw made higher (negative: lower), still landing where it did"},
+		{"push_land", "Land here", "", "The selected jump pads: click where players should come down, and their throw is aimed there"},
+		{"check_map", "Check the map", "", "Looks for what would go wrong in the game: brushes without collision, jump pads that do nothing, targets naming nothing"},
 		{"defrag_speed", "Speed pad", "", "Defrag: a pad on the floor launching the player the way the view faces (Defrag's target_speed)"},
 		{"defrag_shooter", "Shooter", "", "Defrag: a rocket shooter aimed at the player (two clicks: where it shoots from, the zone that sets it off)"},
 		{"brush", "Brush by numbers", "", "ed brush <x0 y0 z0 x1 y1 z1>: a brush of the current material filling that box"},
@@ -212,6 +218,13 @@ bool Session::key(int key, bool down, bool over) {
 		return over;
 	}
 	if (looking_) {
+		if (down && (key == K_MWHEELUP || key == K_MWHEELDOWN)) {
+			// the wheel while flying sets the speed, as in Radiant and TrenchBroom
+			fly_scale = std::max(0.125, std::min(8.0, fly_scale * (key == K_MWHEELUP ? 1.25 : 0.8)));
+			char buf[48];
+			std::snprintf(buf, sizeof buf, "Fly speed: %d%%", int(std::round(fly_scale * 100)));
+			say(buf);
+		}
 		return true;  // the fly keys, polled in frame()
 	}
 	if (key == K_MOUSE1 || key == K_MOUSE3) {
@@ -258,10 +271,7 @@ bool Session::key(int key, bool down, bool over) {
 		return true;
 	}
 	if (key == K_ESCAPE && !m) {
-		// the tools' cancel; with nothing to cancel, the File menu, where Exit to main menu is
-		if (!cancel()) {
-			want_page = "menu file";
-		}
+		cancel();  // the tools' cancel, then the selection's; nothing else (the menus are on the top bar, F10)
 		return true;
 	}
 	if (const Action *a = action_for(combo(key, m))) {
@@ -338,7 +348,16 @@ void Session::duplicate() {
 		say("Nothing is selected");
 		return;
 	}
-	std::vector<Id> made = oz::ed::paste(doc, copy_of(doc, selected()), camera_axis(true) * grid, "Duplicate");
+	// beside the original along the camera's right, by the selection's own width (on the grid): a copy one
+	// grid step over hid inside the original and compiled as two overlapping brushes
+	const Vec3 axis = camera_axis(true);
+	const Bounds b = selection_bounds();
+	double step = grid;
+	if (!b.empty()) {
+		const Vec3 size = b.hi - b.lo;
+		step = std::max(grid, std::ceil((std::fabs(axis.x) * size.x + std::fabs(axis.y) * size.y + std::fabs(axis.z) * size.z) / grid) * grid);
+	}
+	std::vector<Id> made = oz::ed::paste(doc, copy_of(doc, selected()), axis * step, "Duplicate");
 	corners.clear();
 	select(made, SelMode::Set);
 }
@@ -403,10 +422,7 @@ void Session::paste_clip(const Clip &clip, const std::string &label) {
 }
 
 void Session::remove_selection() {
-	if (!corners.empty()) {
-		delete_corners();
-		return;
-	}
+	corners.clear();  // a corner picked by a stray click never turns Delete into a reshape (Shift+Delete does that)
 	if (sel.empty()) {
 		say("Nothing is selected");
 		return;
@@ -467,7 +483,7 @@ bool Session::cancel() {
 		return true;
 	}
 	if (tool == Tool::Faces && !faces.empty()) {
-		select_faces({}, SelMode::Set);
+		set_tool(Tool::Select);  // back to selecting, the picked faces' brushes selected
 		return true;
 	}
 	if (tool != Tool::Select) {
@@ -511,6 +527,10 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 	}
 	if (action == "compile_stop") {
 		compile_stop();
+		return true;
+	}
+	if (action == "check_map") {
+		check_map();
 		return true;
 	}
 	if (action == "preview") {
@@ -645,6 +665,9 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 		return true;
 	}
 	if (action == "leave" || action == "guide") {
+		if (action == "leave") {
+			autosave_write();  // the session keeps the map, but quitting the game from the menu would lose it
+		}
 		want_page = action;
 		return true;
 	}
@@ -664,27 +687,11 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 	if (action == "save_as" || (action == "save" && a.empty() && path.empty())) {
 		// ed save_as <name>: into the editor's maps folder under that name; alone (or a map never saved), the page asks for it
 		if (a.empty()) {
+			after_save_.clear();  // asked for plainly: nothing waits on it
 			want_page = "save_as";
 			return true;
 		}
-		std::string n = a[0];
-		if (n.size() > 4 && n.compare(n.size() - 4, 4, ".map") == 0) {
-			n.resize(n.size() - 4);
-		}
-		n.erase(std::remove_if(n.begin(), n.end(), [](unsigned char c) { return !std::isalnum(c) && c != '_' && c != '-' && c != '.'; }), n.end());
-		if (n.empty()) {
-			say("A name of letters, digits, - and _", true);
-			return true;
-		}
-		std::string err;
-		const std::string file = maps_dir() + "/" + n + ".map", was = name;
-		name = n;  // the file's title and the .defi take the new name
-		if (!save(file, err)) {
-			name = was;
-			say(err, true);
-		} else {
-			say("Saved " + file);
-		}
+		saved_as(a[0]);
 		return true;
 	}
 	if (action == "bind_start") {
@@ -738,6 +745,12 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 		set_tool(tool == Tool::Clip ? Tool::Select : Tool::Clip);
 	} else if (action == "delete") {
 		remove_selection();
+	} else if (action == "delete_corners") {
+		if (corners.empty()) {
+			say("Pick corners of a selected brush first (click them; Shift adds)");
+		} else {
+			delete_corners();
+		}
 	} else if (action == "duplicate") {
 		duplicate();
 	} else if (action == "copy") {
@@ -775,8 +788,104 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 			select_none();
 		}
 		say(note, made.empty());
+	} else if (action == "tint") {
+		std::vector<FaceRef> t = target_faces();
+		if (t.empty()) {
+			say("Select brushes, or pick faces with the faces tool (T), to color them");
+			return true;
+		}
+		int32_t value = 0;
+		const bool none = a.empty() || a[0] == "none" || a[0] == "white";
+		if (!none) {
+			double c[3] = {arg(a, 0, 1), arg(a, 1, 1), arg(a, 2, 1)};
+			const double m = std::max({c[0], c[1], c[2]}) > 1 ? 255 : 1;
+			int b[3];
+			for (int i = 0; i < 3; i++) {
+				b[i] = int(std::round(std::max(0.0, std::min(1.0, c[i] / m)) * 255));
+			}
+			value = TINT_MARK | (b[0] << 16) | (b[1] << 8) | b[2];
+			if (b[0] == 255 && b[1] == 255 && b[2] == 255) {
+				value = 0;  // white is no color
+			}
+		}
+		std::map<Id, std::vector<int>> by;
+		for (const FaceRef &r : t) {
+			by[r.first].push_back(r.second);
+		}
+		doc.begin(value ? "Color" : "No color");
+		for (auto &kv : by) {
+			auto o = doc.edit(kv.first);
+			for (int i : kv.second) {
+				if (i >= 0 && i < int(o->brush.faces.size())) {
+					Face &f = o->brush.faces[size_t(i)];
+					if (value) {
+						f.has_flags = true;
+						f.value = value;
+					} else if ((f.value & 0x7f000000) == TINT_MARK) {
+						f.value = 0;
+					}
+				}
+			}
+			doc.put(kv.first, o);
+		}
+		doc.end();
+	} else if (action == "collision") {
+		// on unless every selected brush is off: the click turns them all the other way
+		std::vector<Id> brushes;
+		bool off = true;
+		for (Id id : sel) {
+			const Object *o = doc.get(id);
+			if (o && o->kind == Kind::Brush) {
+				brushes.push_back(id);
+				off &= is_nocollide(*o);
+			}
+		}
+		if (brushes.empty()) {
+			say("Select brushes to turn their collision on or off");
+			return true;
+		}
+		doc.begin(off ? "Collision on" : "Collision off");
+		for (Id id : brushes) {
+			auto o = doc.edit(id);
+			for (Face &f : o->brush.faces) {
+				f.has_flags = true;
+				f.contents = off ? f.contents & ~CONTENTS_OZ_NOCOLLIDE : f.contents | CONTENTS_OZ_NOCOLLIDE;
+			}
+			doc.put(id, o);
+		}
+		doc.end();
+		say(std::to_string(brushes.size()) + (brushes.size() == 1 ? " brush: " : " brushes: ") + (off ? "collision on, players stand on it and bump into it"
+			: "collision off, players and shots pass through (shown washed in blue)"));
+	} else if (action == "detail") {
+		// q3map2 reads CONTENTS_DETAIL from a face's contents number; every face of a brush the same
+		std::vector<Id> brushes;
+		bool all = true;
+		for (Id id : sel) {
+			const Object *o = doc.get(id);
+			if (o && o->kind == Kind::Brush) {
+				brushes.push_back(id);
+				all &= is_detail(*o);
+			}
+		}
+		if (brushes.empty()) {
+			say("Select brushes to mark detail (or structural)");
+			return true;
+		}
+		doc.begin(all ? "Structural" : "Detail");
+		for (Id id : brushes) {
+			auto o = doc.edit(id);
+			for (Face &f : o->brush.faces) {
+				f.has_flags = true;
+				f.contents = all ? f.contents & ~CONTENTS_DETAIL : f.contents | CONTENTS_DETAIL;
+			}
+			doc.put(id, o);
+		}
+		doc.end();
+		say(std::to_string(brushes.size()) + (brushes.size() == 1 ? " brush " : " brushes ") + (all ? "structural again: it cuts the map up for visibility"
+			: "marked detail: it doesn't cut the map up for visibility (never use it for walls that seal the map)"));
 	} else if (action == "hollow") {
-		std::vector<Id> made = oz::ed::hollow(doc, selected(), grid, note);
+		const double thick = !a.empty() ? std::max(1.0, arg(a, 0, grid)) : std::max(grid, 8.0);
+		std::vector<Id> made = oz::ed::hollow(doc, selected(), thick, note);
 		if (!made.empty()) {
 			select(made, SelMode::Set);
 		}
@@ -805,6 +914,8 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 		if (redo ? doc.redo() : doc.undo()) {
 			corners.clear();
 			say((redo ? "Redo " : "Undo ") + label);
+		} else {
+			say(redo ? "Nothing to redo" : "Nothing to undo");
 		}
 	} else if (action == "save") {
 		std::string err;
@@ -844,8 +955,13 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 			create_commit();
 		} else if (tool == Tool::Clip) {
 			clip_apply();
+		} else {
+			say("Enter makes the brush (create tool, B) or cuts (clipper, C)");
 		}
 	} else if (action == "clip_side") {
+		if (tool != Tool::Clip) {
+			return true;  // Tab is the clipper's alone
+		}
 		clip_keep_ = (clip_keep_ + 1) % 3;
 		say(clip_keep_ == 2 ? "The clipper keeps both sides" : clip_keep_ == 1 ? "The clipper keeps the near side" : "The clipper keeps the far side");
 	} else if (action == "move") {

@@ -248,8 +248,15 @@ Vec3 apex_for(const Vec3 &from, const Vec3 &landing, double gravity, double ceil
 	const double high = std::max(from.z, landing.z);
 	double top = high + 64 + flat / 3;
 	top = std::max(std::min(top, ceiling - 40), high + 16);
-	const double up = std::sqrt(2 * (top - from.z) / gravity), down = std::sqrt(2 * (top - landing.z) / gravity);
-	const double f = up / (up + down);
+	return apex_at(from, landing, gravity, top);
+}
+
+Vec3 apex_at(const Vec3 &from, const Vec3 &landing, double gravity, double top) {
+	// up to the top over the first part of the way, down to the landing over the rest: the split of the
+	// distance is the split of the time
+	const double fx = landing.x - from.x, fy = landing.y - from.y;
+	const double up = std::sqrt(std::max(0.0, 2 * (top - from.z) / gravity)), down = std::sqrt(std::max(0.0, 2 * (top - landing.z) / gravity));
+	const double f = up + down > 0 ? up / (up + down) : 0.5;
 	return Vec3(from.x + fx * f, from.y + fy * f, top);
 }
 

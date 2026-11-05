@@ -571,7 +571,18 @@ std::shared_ptr<Object> pushed(const Doc &doc, const Object &brush, const std::v
 			}
 		}
 	}
-	return q3map::brush_valid(planes_of(out->brush)) ? out : nullptr;
+	if (!q3map::brush_valid(planes_of(out->brush))) {
+		return nullptr;
+	}
+	// a push that swallows a face (pushed past another, or another past it) is refused: the face would
+	// stay in the brush with no shape, written as three zero points
+	const std::vector<q3map::Winding> before = q3map::brush_windings(planes_of(brush.brush)), after = q3map::brush_windings(planes_of(out->brush));
+	for (size_t i = 0; i < before.size() && i < after.size(); i++) {
+		if (!before[i].empty() && after[i].empty()) {
+			return nullptr;
+		}
+	}
+	return out;
 }
 
 std::shared_ptr<Object> from_points(const Doc &doc, const Object &brush, const std::vector<Vec3> &points, const Vec3 &origin) {
@@ -778,12 +789,8 @@ std::vector<Id> clip(Doc &doc, const std::vector<Id> &ids, const Plane &plane, i
 		const Object *o = doc.get(id);
 		Pieces p = clipped(doc, *o, plane, origin_for(doc, *o));
 		if (p.whole) {
-			// the plane misses it: it stays whole on a kept side, else it goes
-			if (keep == 2 || (keep == 1) == (p.front != nullptr)) {
-				kept.push_back(id);
-			} else {
-				doc.remove(id);
-			}
+			// the plane misses it: it stays whole, whichever side it's on (a cut deletes nothing it doesn't cut)
+			kept.push_back(id);
 			continue;
 		}
 		cut++;
@@ -1025,6 +1032,22 @@ std::vector<Id> paste(Doc &doc, const Clip &clip, const Vec3 &offset, const std:
 			taken.insert(renamed[*n]);
 		}
 	}
+	// each jump pad tie in the clip the map already has: a new one (shared by that pad's copied pieces)
+	std::map<std::string, std::string> ties;
+	for (const auto &c : clip) {
+		const std::string *t = c.second->kind == Kind::Entity ? c.second->entity.find(JUMPPAD_KEY) : nullptr;
+		if (!t || t->empty() || ties.count(*t)) {
+			continue;
+		}
+		bool there = false;
+		for (Id e : doc.ids_of(Kind::Entity)) {
+			there |= doc.get(e)->entity.get(JUMPPAD_KEY) == *t;
+		}
+		if (there) {
+			ties[*t] = renamed.count(*t) ? renamed[*t] : unique_targetname(doc, "pad", taken);
+			taken.insert(ties[*t]);
+		}
+	}
 	doc.begin(label);
 	for (const auto &c : clip) {
 		if (c.second->kind == Kind::Entity && !(c.first == doc.worldspawn() && doc.get(c.first))) {
@@ -1034,6 +1057,9 @@ std::vector<Id> paste(Doc &doc, const Clip &clip, const Vec3 &offset, const std:
 				if (v && renamed.count(*v)) {
 					copy->entity.set(k, renamed[*v]);
 				}
+			}
+			if (const std::string *t = copy->entity.find(JUMPPAD_KEY); t && ties.count(*t)) {
+				copy->entity.set(JUMPPAD_KEY, ties[*t]);
 			}
 			Id n = doc.add(copy);
 			ents[c.first] = n;

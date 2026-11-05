@@ -78,7 +78,8 @@
 			white-space: nowrap;
 		}
 		.tools .tb { font-size: 0.74rem; letter-spacing: 0.08em; padding: 0.34rem 0.6rem; margin-right: 0.2rem; flex-shrink: 0; }
-		.tb:hover, .tb:focus { background-color: #db241033; border-color: #db241099; color: #fff3e6; }
+		.tb:hover { background-color: #db241033; border-color: #db241099; color: #fff3e6; }
+		.tb:focus { border-color: #db241099; color: #fff3e6; }	/* a clicked button keeps the focus: its edge only, never lit like one that's on */
 		.tb:active { background-color: #db241066; }
 		.tb.on { background-color: #db24104d; border-color: #ff4a1c; color: #fff3e6; }
 		.tb.quiet { color: #8d847c; }
@@ -167,6 +168,7 @@
 		.side kbd { margin-right: 0.6rem; min-width: 3.4rem; flex-shrink: 0; }
 		.side p { font-size: 0.85rem; color: #8d847c; margin: 0.35rem 0; }
 		.side .what { color: #e6ddd2; font-size: 0.9rem; margin-top: 0.6rem; }
+		.side .what .bad { color: #ff7a66; }
 		.side .sub { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.12em; color: #8d847c; margin: 0.5rem 0 0.25rem 0; }
 		.steps .row { align-items: flex-start; flex-wrap: nowrap; margin: 0.35rem 0; }
 		.steps .n { width: 1.3rem; flex-shrink: 0; color: #ff4a1c; font-weight: 600; }
@@ -192,6 +194,17 @@
 		.mat .mn { display: block; font-size: 0.66rem; color: #8d847c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 5.65rem; margin-top: 0.12rem; }
 		.mat.on .mn { color: #fff3e6; }
 		.mat .badge { position: absolute; top: 0.2rem; right: 0.45rem; font-size: 0.55rem; font-weight: 600; letter-spacing: 0.08em; color: #0a0807; background-color: #ffa53ccc; padding: 0 0.2rem; }
+		.tints { flex-wrap: wrap; }
+		.tints .cchip.none { background-color: #ffffff; border: 1dp #8d847c; }
+		.check { display: flex; align-items: center; padding: 0.3rem 0.6rem 0.3rem 0.35rem; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; color: #e6ddd2;
+			border: 1dp #ffffff2e; background-color: #ffffff0a; margin-right: 0.6rem; }
+		.check:hover { border-color: #db241099; }
+		.check .tick { display: block; flex-shrink: 0; width: 0.9rem; height: 0.9rem; border: 2dp #c9bfb4; margin-right: 0.45rem; }
+		.check .lbl2 { display: block; white-space: nowrap; }
+		.check.ticked .tick { background-color: #6ee68c; border-color: #6ee68c; }
+		.check.mixed .tick { background-color: #6ee68c66; }
+		#sec-shape .note { font-size: 0.8rem; color: #8d847c; align-self: center; }
+		.bad { color: #ff7a66; }
 		.mat { position: relative; }
 		.esec { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; color: #a59a90; margin: 0.7rem 0 0.3rem 0; }
 		.chip.flag.on { color: #fff3e6; border-color: #6ee68c; background-color: #6ee68c33; }
@@ -294,7 +307,8 @@
 		.krow .tb { font-size: 0.68rem; padding: 0.22rem 0.6rem; margin: 0; letter-spacing: 0.1em; }
 
 		/* Sky and sun: the sky's tiles, then the light's settings */
-		.ask.skyask { background-color: #00000040; justify-content: flex-start; }	/* the view shows beside it: the sun's arrow */
+		.ask.skyask { background-color: #00000040; justify-content: flex-start; pointer-events: none; }	/* the view shows beside it, and takes the mouse there: look around at the sun's arrow */
+		.ask.skyask .box { pointer-events: auto; }
 		.ask .box.sky { width: 50rem; height: 44rem; margin-left: 5.5rem; display: flex; flex-direction: column; }
 		.sky p { flex-shrink: 0; }
 		.sky h3 { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.1em; color: #a59a90; margin: 0.2rem 0 0.35rem 0; flex-shrink: 0; }
@@ -386,8 +400,8 @@
 			font-size: 0.88rem;
 		}
 		.status #ed-hint { color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-		.status #ed-hint.note { color: #ffd28a; }
-		.status #ed-hint.err { color: #ff6a4a; }
+		.status #ed-hint.note { color: #ffd28a; white-space: normal; font-size: 0.8rem; line-height: 1.05rem; }
+		.status #ed-hint.err { color: #ff6a4a; white-space: normal; font-size: 0.8rem; line-height: 1.05rem; }	/* a warning wraps rather than being cut off */
 		.status #ed-status { margin-left: auto; padding-left: 1.5rem; color: #8d847c; letter-spacing: 0.04em; white-space: nowrap; }
 
 		/* the d-pad: the menus down to the tool strip and the panel's tabs, then the open panel top to bottom
@@ -497,7 +511,7 @@
 					<div class="row"><span class="n">3</span><span class="k">Click to select, drag to move; Shift+drag a face pushes or pulls it</span></div>
 					<div class="row"><span class="n">4</span><span class="k">Materials tab: click one to paint what's selected</span></div>
 					<div class="row"><span class="n">5</span><span class="k">Entities tab: click a pickup or spawn, then where it goes</span></div>
-					<div class="row"><span class="n">6</span><span class="k">Play <kbd data-keys="play">F5</kbd> runs around in it; Esc there comes back</span></div>
+					<div class="row"><span class="n">6</span><span class="k">Play <kbd data-keys="play">F5</kbd> runs around in it; Esc, then Back to the map editor, comes back</span></div>
 				</div>
 				<div class="row">
 					<button class="tb" data-action="guide" onclick="append ed guide">THE GUIDE</button>
@@ -519,6 +533,8 @@
 					<button class="tb" data-action="paint" onclick="append ed paint">PAINT CURRENT</button>
 					<button class="tb" data-action="show_materials" onclick="append ed panel materials">BROWSE</button>
 				</div>
+				<div class="sub">COLOR</div>
+				<div class="row tints" id="ed-tints"></div>
 			</div>
 
 			<div id="sec-mapping">
@@ -603,11 +619,16 @@
 			</div>
 
 			<div id="sec-shape">
+				<div class="row">
+					<button class="check" id="ed-collide" data-action="collision" onclick="append ed collision"><span class="tick"></span><span class="lbl2">COLLISION</span></button>
+					<span class="note" id="ed-collide-note"></span>
+				</div>
 				<h2>SHAPE</h2>
 				<div class="row">
 					<button class="tb" data-action="hollow" onclick="append ed hollow">HOLLOW</button>
 					<button class="tb" data-action="subtract" onclick="append ed subtract">SUBTRACT</button>
 					<button class="tb" data-action="merge" onclick="append ed merge">MERGE</button>
+					<button class="tb" id="ed-detail" data-action="detail" onclick="append ed detail">DETAIL</button>
 				</div>
 				<div class="sub">MAKE A CURVE OF EACH BRUSH</div>
 				<div class="row">
@@ -640,6 +661,7 @@
 				<div class="hidden" id="ed-push">
 					<p class="what" id="ed-push-text"></p>
 					<div class="row">
+						<button class="tb" data-action="push_land" onclick="append ed push_land">LAND HERE</button>
 						<button class="tb" data-action="push_height" onclick="append ed push_height 32">HIGHER</button>
 						<button class="tb" data-action="push_height" onclick="append ed push_height -32">LOWER</button>
 					</div>
@@ -676,7 +698,7 @@
 					<div class="row"><kbd data-keys="views">V</kbd><span class="k">four views: 3D, top, front, side</span></div>
 					<div class="row"><kbd data-keys="undo">Ctrl+Z</kbd><span class="k">undo</span></div>
 					<div class="row"><kbd data-keys="search">F3</kbd><span class="k">search every action by name</span></div>
-					<div class="row"><kbd>Esc</kbd><span class="k">cancel; with nothing to cancel, the File menu</span></div>
+					<div class="row"><kbd>Esc</kbd><span class="k">cancel, then deselect; F10 opens the menus</span></div>
 				</div>
 			</div>
 		</div>

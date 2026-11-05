@@ -11,6 +11,7 @@
 #include "ed_mapfile.h"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -112,7 +113,20 @@ static const double SKY_SIDE = 512, SKY_TOP = 1024, SKY_BELOW = 512, SKY_THICK =
 // id's cloud skies are red or orange, and toxicsky lit play-tests piss yellow (Ozmium 2026-11-04).
 static const char *const K_SKY = "_oz_sky", *const K_LIGHT_FROM = "_oz_sky_light_from", *const K_COLOR = "_oz_sun_color",
 	*const K_BRIGHT = "_oz_sun_brightness", *const K_HEIGHT = "_oz_sun_height", *const K_DIR = "_oz_sun_direction",
-	*const K_GLOW = "_oz_sky_light";
+	*const K_GLOW = "_oz_sky_light", *const K_GLOW_COLOR = "_oz_sky_light_color";
+
+// "r g b", 0 to 1 each (0 to 255 read as such), into out; false when it isn't three numbers
+static bool read_rgb(const std::string &v, double out[3]) {
+	double c[3];
+	if (sscanf(v.c_str(), "%lf %lf %lf", &c[0], &c[1], &c[2]) != 3) {
+		return false;
+	}
+	const double m = std::max({c[0], c[1], c[2]}) > 1 ? 255 : 1;
+	for (int i = 0; i < 3; i++) {
+		out[i] = std::max(0.0, std::min(1.0, c[i] / m));
+	}
+	return true;
+}
 
 static const struct {
 	const char *name, *key;
@@ -173,6 +187,12 @@ static Session::SkySun sky_sun_of(const Doc &d) {
 		}
 	}
 	s.own = from == "own" || (!any && !s.painted.empty());
+	for (int i = 0; i < 3; i++) {
+		s.glow[i] = s.color[i];
+	}
+	s.glow_set = read_rgb(e.get(K_GLOW_COLOR), s.glow);
+	s.ambient = std::max(0.0, std::atof(e.get("ambient", "0").c_str()));
+	read_rgb(e.get("_color"), s.ambient_color);
 	return s;
 }
 
@@ -194,7 +214,7 @@ static std::string sky_light_shaders(const Doc &d) {
 	}
 	char light[200];
 	std::snprintf(light, sizeof light, "\tq3map_surfacelight %g\n\tq3map_lightRGB %g %g %g\n\tq3map_sun %g %g %g %g %g %g\n", s.sky_light,
-		s.color[0], s.color[1], s.color[2], s.color[0], s.color[1], s.color[2], s.brightness, s.direction, s.height);
+		s.glow[0], s.glow[1], s.glow[2], s.color[0], s.color[1], s.color[2], s.brightness, s.direction, s.height);
 	std::string out = "// Sky and sun's light for q3map2\n";
 	for (const std::string &n : skies) {
 		// an image q3map2 finds (id's), or it warns "Couldn't find image" for each
@@ -244,7 +264,7 @@ bool Session::sky_action(const std::string &action, const std::vector<std::strin
 	}
 	if (a[0] == "reset") {
 		doc.begin("Sky and sun: defaults");
-		for (const char *k : {K_SKY, K_LIGHT_FROM, K_COLOR, K_BRIGHT, K_HEIGHT, K_DIR, K_GLOW}) {
+		for (const char *k : {K_SKY, K_LIGHT_FROM, K_COLOR, K_BRIGHT, K_HEIGHT, K_DIR, K_GLOW, K_GLOW_COLOR, "ambient", "_color"}) {
 			remove_key(doc, world, k, "");
 		}
 		doc.end();
@@ -279,20 +299,33 @@ bool Session::sky_action(const std::string &action, const std::vector<std::strin
 		}
 		put(K_LIGHT_FROM, v, "Sky light from");
 		say(sky_sun().own ? "The sky's own script lights the map" : "Sky and sun's settings light the map");
-	} else if (a[0] == "color") {
+	} else if (a[0] == "color" || a[0] == "glow_color" || a[0] == "ambient_color") {
 		double c[3];
-		if (!clear && sscanf(v.c_str(), "%lf %lf %lf", &c[0], &c[1], &c[2]) != 3) {
-			say("ed sky color <r g b>: 0 to 1 each", true);
+		if (!clear && !read_rgb(v, c)) {
+			say("ed sky " + a[0] + " <r g b>: 0 to 1 each", true);
 			return true;
 		}
-		put(K_COLOR, v, "Sun color");
+		char norm[64] = "";
+		if (!clear) {
+			std::snprintf(norm, sizeof norm, "%g %g %g", c[0], c[1], c[2]);
+		}
+		put(a[0] == "color" ? K_COLOR : a[0] == "glow_color" ? K_GLOW_COLOR : "_color", clear ? v : std::string(norm),
+			a[0] == "color" ? "Sun color" : a[0] == "glow_color" ? "Sky glow color" : "Ambient color");
+	} else if (a[0] == "ambient") {
+		char buf[32];
+		std::snprintf(buf, sizeof buf, "%g", std::max(0.0, std::min(500.0, std::atof(v.c_str()))));
+		if (clear || std::atof(v.c_str()) <= 0) {
+			remove_key(doc, world, "ambient", "Ambient light");
+		} else {
+			set_key(doc, world, "ambient", buf, "Ambient light");
+		}
 	} else {
 		int i = 0;
 		while (i < 4 && a[0] != SKY_NUMBERS[i].name) {
 			i++;
 		}
 		if (i == 4) {
-			say("ed sky <sky | light_from | color | brightness | height | direction | sky_light> <value>, or ed sky reset", true);
+			say("ed sky <sky | light_from | color | brightness | height | direction | sky_light | glow_color | ambient | ambient_color> <value>, or ed sky reset", true);
 			return true;
 		}
 		char buf[32];
@@ -347,6 +380,84 @@ void Session::build_sun_lines() {
 	sun_lines_.end();
 }
 
+// A shader's script without its "surfaceparm nonsolid": every material collides unless its brush says not
+static std::string without_nonsolid(const std::string &block) {
+	std::string out;
+	size_t at = 0;
+	while (at < block.size()) {
+		size_t eol = block.find('\n', at);
+		const std::string line = block.substr(at, eol == std::string::npos ? std::string::npos : eol + 1 - at);
+		at = eol == std::string::npos ? block.size() : eol + 1;
+		std::string low = line;
+		std::transform(low.begin(), low.end(), low.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+		const size_t p = low.find("surfaceparm");
+		if (p != std::string::npos && low.find("nonsolid", p) != std::string::npos && low.find("//") > p) {
+			continue;
+		}
+		out += line;
+	}
+	return out;
+}
+
+// A non-solid copy of a material for a brush whose collision is off: the material's own script with
+// surfaceparm nonsolid, renamed oz_nonsolid/<name>, written to the BSP as the material itself
+// (q3map_remapShader), so the game draws it as it is and lets players through.
+static std::string nonsolid_copy(const std::string &name, const std::map<std::string, std::string> &made) {
+	ShaderLib &lib = shaders_lib();
+	auto own = made.find(name);
+	const std::string block = own != made.end() ? own->second : lib.script(name);
+	const size_t open = block.find('{');
+	const std::string body = open != std::string::npos ? block.substr(open + 1) : "\n\tqer_editorimage " + lib.image(name) + "\n}\n";
+	return "textures/oz_nonsolid/" + name + "\n{\n\tsurfaceparm nonsolid\n\tq3map_remapShader textures/" + name + body + "\n";
+}
+
+// A colored copy of a material (a face's Color): its script (the oz renderer's version, with the remastered
+// images, when there is one), made solid as every material is, with a last stage multiplying it by the color;
+// a bare image gets the script the renderer would make for it. The name is textures/oz_tint/<rrggbb>/<material>
+// (or a hash of it, past the engine's 63 characters).
+static std::string tint_name(const std::string &material, const unsigned char rgb[3]) {
+	char hex[8];
+	std::snprintf(hex, sizeof hex, "%02x%02x%02x", rgb[0], rgb[1], rgb[2]);
+	std::string n = std::string("oz_tint/") + hex + "/" + material;
+	if (n.size() + 9 > 63) {
+		uint32_t h = 2166136261u;
+		for (char c : material) {
+			h = (h ^ (unsigned char)c) * 16777619u;
+		}
+		char tail[12];
+		std::snprintf(tail, sizeof tail, "%08x", h);
+		n = std::string("oz_tint/") + hex + "/" + tail;
+	}
+	return n;
+}
+
+static std::string tint_script(const std::string &material, const unsigned char rgb[3], const std::string &as) {
+	ShaderLib &lib = shaders_lib();
+	std::string block = lib.oz_script(material);
+	if (block.empty()) {
+		block = lib.script(material);
+	}
+	char stage[160];
+	std::snprintf(stage, sizeof stage, "\t{\n\t\tmap $whiteimage\n\t\tblendFunc GL_DST_COLOR GL_ZERO\n\t\trgbGen const ( %g %g %g )\n\t}\n",
+		rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0);
+	std::string body;
+	if (!block.empty()) {
+		block = without_nonsolid(block);
+		const size_t open = block.find('{'), close = block.rfind('}');
+		if (open == std::string::npos || close == std::string::npos || close < open) {
+			return "";
+		}
+		body = block.substr(open, close - open) + stage + "}\n";
+	} else {
+		std::string img = lib.image(material);
+		const size_t dot = img.find_last_of('.'), slash = img.find_last_of('/');
+		const std::string bare = dot != std::string::npos && (slash == std::string::npos || dot > slash) ? img.substr(0, dot) : img;
+		body = "{\n\tqer_editorimage " + img + "\n\t{\n\t\tmap $lightmap\n\t\trgbGen identity\n\t}\n\t{\n\t\tmap " + bare +
+			"\n\t\tblendFunc GL_DST_COLOR GL_ZERO\n\t\trgbGen identity\n\t}\n" + stage + "}\n";
+	}
+	return "textures/" + as + "\n" + body;
+}
+
 bool Session::compile(bool full, bool play, bool here, bool defrag) {
 	if (job_.running) {
 		say("A compile is under way: wait for it, or stop it");
@@ -381,6 +492,61 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 	boxed.set_selection = nullptr;
 	boxed.clear_history();
 	add_sky_box(boxed, all.empty() ? Bounds{Vec3(-256, -256, -64), Vec3(256, 256, 256)} : all);
+	// faces with a color: a colored copy of their material each (written below with the scripts, and for the
+	// game beside the map), then brushes with their collision off: their materials' non-solid copies
+	std::map<std::string, std::string> tint_scripts;
+	boxed.begin("tint");
+	for (Id id : boxed.ids_of(Kind::Brush)) {
+		const Object *o = boxed.get(id);
+		bool any = false;
+		unsigned char rgb[3];
+		for (const Face &f : o->brush.faces) {
+			any |= face_tint(f, rgb);
+		}
+		if (!any) {
+			continue;
+		}
+		auto e = boxed.edit(id);
+		for (Face &f : e->brush.faces) {
+			if (!face_tint(f, rgb)) {
+				continue;
+			}
+			f.value = 0;
+			const std::string sh = shader_name(f.shader);
+			if (shaders_lib().look(sh) != Look::Normal) {
+				continue;  // a tool material, a sky: never drawn as a wall
+			}
+			const std::string as = tint_name(sh, rgb);
+			if (!tint_scripts.count(as)) {
+				const std::string text = tint_script(sh, rgb, as);
+				if (text.empty()) {
+					continue;
+				}
+				tint_scripts[as] = text;
+			}
+			f.shader = shader_id(as);
+		}
+		boxed.put(id, e);
+	}
+	boxed.end();
+	std::set<std::string> nonsolid_copies;
+	boxed.begin("collision");
+	for (Id id : boxed.ids_of(Kind::Brush)) {
+		const Object *o = boxed.get(id);
+		if (!is_nocollide(*o)) {
+			continue;
+		}
+		auto e = boxed.edit(id);
+		for (Face &f : e->brush.faces) {
+			const std::string sh = shader_name(f.shader);
+			if (shaders_lib().look(sh) == Look::Normal) {  // tool materials (clip, hint ...) keep their own
+				nonsolid_copies.insert(sh);
+				f.shader = shader_id("oz_nonsolid/" + sh);
+			}
+		}
+		boxed.put(id, e);
+	}
+	boxed.end();
 	const std::string text = write_map(boxed, wo);
 	const std::string shaders = j.dir + "/home/baseq3/scripts/oz_editor_tools.shader";
 	const std::string tool_shaders = std::string(TOOL_SHADERS) + sky_light_shaders(doc);
@@ -392,6 +558,82 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 	}
 	for (const char *ext : {".bsp", ".lin", ".aas", ".prt", ".srf"}) {
 		std::remove((j.dir + "/maps/" + j.out + ext).c_str());  // a stage that fails leaves nothing of the last run
+	}
+	// the materials the map uses that q3map2 reads id's paks only for (below): a map pack's script blocks and
+	// images go into the compile's own folder, where it finds them; without them a pack's water, lava or
+	// glass compiled as a plain solid wall
+	{
+		std::set<std::string> used;
+		const bool lit_here = !sky_sun().own;  // the settings light the skies: sky_light_shaders' scripts must win
+		std::vector<const Object *> objects;  // what's written (sky box, copies) and what they were made from
+		for (Id id : boxed.ids()) {
+			objects.push_back(boxed.get(id));
+		}
+		for (Id id : doc.ids()) {
+			objects.push_back(doc.get(id));
+		}
+		for (const Object *o : objects) {
+			if (o->kind == Kind::Brush) {
+				for (const Face &f : o->brush.faces) {
+					used.insert(shader_name(f.shader));
+				}
+			} else if (o->kind == Kind::Patch) {
+				used.insert(shader_name(o->patch.shader));
+			}
+		}
+		std::string scripts = "// this map's materials as q3map2 is to read them: a map pack's, the non-solid ones made solid,\n"
+			"// the non-solid copies of brushes with their collision off (the Oz Arena map editor)\n";
+		const std::string home = j.dir + "/home/baseq3/";
+		for (const std::string &u : used) {
+			// every material collides: a non-solid one (id's killtrim_trans, vines, decals) goes in solid
+			// (q3map2 takes the first script that names it: these come before the paks')
+			std::string block = shaders_lib().nonsolid(u) ? without_nonsolid(shaders_lib().script(u)) : shaders_lib().pack_script(u);
+			if (lit_here && shaders_lib().look(u) == Look::Sky) {
+				block.clear();  // its images still go along, its script is the editor's lit one
+			}
+			scripts += block.empty() ? "" : block + "\n";
+			for (const std::string &img : shaders_lib().stage_images(u)) {
+				std::string base = img;
+				const size_t dot = base.find_last_of('.'), slash = base.find_last_of('/');
+				if (dot != std::string::npos && (slash == std::string::npos || dot > slash)) {
+					base.resize(dot);
+				}
+				for (const char *ext : {".tga", ".jpg", ".png", ".dds"}) {
+					const std::string file = base + ext;
+					void *buf = nullptr;
+					if (OzE_InIdPak(file.c_str()) || !OzE_FileExists(file.c_str())) {
+						continue;
+					}
+					const int len = OzE_ReadFile(file.c_str(), &buf);
+					if (len > 0) {
+						OzEd_MakeDirs((home + file).c_str());
+						OzEd_WriteOSFile((home + file).c_str(), buf, len);
+						OzE_FreeFile(buf);
+					}
+				}
+			}
+		}
+		std::string tints;
+		std::map<std::string, std::string> made;
+		for (const auto &kv : tint_scripts) {
+			tints += kv.second + "\n";
+			const size_t nl = kv.second.find('\n');
+			made[kv.first] = nl == std::string::npos ? kv.second : kv.second.substr(nl + 1);
+		}
+		scripts += tints;
+		for (const std::string &n : nonsolid_copies) {
+			scripts += nonsolid_copy(n, made);
+		}
+		// the colored copies for the game too: a script of the player's own beside the map, read when it loads
+		const std::string game_scripts = std::string(OzEd_HomePath()) + "/oz/scripts/" + j.out + "_colors.shader";
+		if (tints.empty()) {
+			std::remove(game_scripts.c_str());
+		} else {
+			const std::string text = "// " + j.out + "'s face colors (the Oz Arena map editor)\n" + tints;
+			OzEd_MakeDirs(game_scripts.c_str());
+			OzEd_WriteOSFile(game_scripts.c_str(), text.data(), int(text.size()));
+		}
+		OzEd_WriteOSFile((home + "scripts/oz_editor_packs.shader").c_str(), scripts.data(), int(scripts.size()));
 	}
 	// id's paks only: a map pack's broken shader script stops q3map2
 	std::string common = "-game quake3 -fs_basepath \"" + baseq3.substr(0, baseq3.find_last_of("/\\")) + "\" -fs_homepath \"" + j.dir + "/home\"";
@@ -437,7 +679,7 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 		}
 		j.order.push_back(std::move(one));
 	}
-	warnings_.clear();
+	warnings_ = map_problems();  // what the compile won't say: brushes without collision, pads that do nothing
 	j.cam = cam;
 	j.t0 = OzE_Milliseconds();
 	j.running = true;
@@ -464,6 +706,11 @@ void Session::compile_done(bool ok, const std::string &why) {
 	const double secs = (OzE_Milliseconds() - j.t0) / 1000.0;
 	if (!ok) {
 		compile_report_ = "failed: " + why;
+		// kept at the top of the warnings' list, which opens: a status note alone was gone in 5 seconds
+		CompileWarning w;
+		w.text = "The compile failed: " + why;
+		warnings_.insert(warnings_.begin(), w);
+		want_warnings = true;
 		say(why, true);
 		return;
 	}
@@ -672,6 +919,73 @@ void Session::collect_warnings(const std::string &log, const std::string &stage)
 	}
 }
 
+std::vector<Session::CompileWarning> Session::map_problems() {
+	std::vector<CompileWarning> out;
+	// brushes stacked exactly on another (a duplicate never moved: q3map2 cuts both)
+	std::map<std::vector<std::array<long long, 4>>, Id> seen;
+	std::vector<Id> doubled;
+	for (Id id : doc.ids_of(Kind::Brush)) {
+		const Object *o = doc.get(id);
+		const Object *owner = doc.get(o->owner);
+		const std::string cn = owner ? owner->entity.classname() : "";
+		if (o->owner != doc.worldspawn() && cn.compare(0, 5, "func_") != 0) {
+			continue;  // triggers and the like aren't meant to be solid
+		}
+		std::vector<std::array<long long, 4>> key;  // its planes, each whole (a corner's two walls share numbers, not planes)
+		for (const Face &f : o->brush.faces) {
+			key.push_back({std::llround(f.plane.n.x * 1e4), std::llround(f.plane.n.y * 1e4), std::llround(f.plane.n.z * 1e4), std::llround(f.plane.d * 16)});
+		}
+		std::sort(key.begin(), key.end());
+		auto it = seen.find(key);
+		if (it != seen.end() && doc.get(it->second)) {
+			doubled.push_back(id);
+		} else {
+			seen[key] = id;
+		}
+	}
+	if (!doubled.empty()) {
+		CompileWarning w;
+		w.text = std::to_string(doubled.size()) + (doubled.size() == 1 ? " brush sits" : " brushes sit") +
+			" exactly on another (a copy never moved): delete " + (doubled.size() == 1 ? "it" : "them");
+		w.ids = doubled;
+		out.push_back(std::move(w));
+	}
+	// jump pads, and targets that name nothing
+	std::set<std::string> names;
+	for (Id e : doc.ids_of(Kind::Entity)) {
+		if (const std::string *n = doc.get(e)->entity.find("targetname")) {
+			names.insert(*n);
+		}
+	}
+	for (Id e : doc.ids_of(Kind::Entity)) {
+		const Entity &en = doc.get(e)->entity;
+		const std::string cn = en.classname();
+		std::string why = push_problem(e);
+		if (!why.empty()) {
+			why = "A jump pad (" + cn + "): " + why;
+		} else if (cn != "trigger_push" && cn != "target_push" && !en.get("target").empty() && !names.count(en.get("target"))) {
+			why = "A " + cn + "'s target \"" + en.get("target") + "\" names nothing in the map";
+		}
+		if (!why.empty()) {
+			CompileWarning w;
+			w.text = why;
+			w.ids = group_of(e);
+			out.push_back(std::move(w));
+		}
+	}
+	return out;
+}
+
+void Session::check_map() {
+	warnings_ = map_problems();
+	if (warnings_.empty()) {
+		say("Nothing found: every jump pad throws, every target is there, no brush is doubled");
+		return;
+	}
+	want_warnings = true;
+	say(std::to_string(warnings_.size()) + (warnings_.size() == 1 ? " thing to look at" : " things to look at") + " (each framed when picked)", true);
+}
+
 bool Session::previewing() const {
 	return OzEd_World()[0] != 0;
 }
@@ -727,6 +1041,9 @@ void Session::compile_wait() {
 }
 
 std::string Session::compile_status() const {
+	if (import_.proc) {
+		return "Opening " + import_.map + " (q3map2 makes it editable), " + std::to_string((OzE_Milliseconds() - import_.t0) / 1000) + " s";
+	}
 	if (!job_.running) {
 		return "";
 	}

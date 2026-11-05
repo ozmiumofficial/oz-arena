@@ -148,7 +148,7 @@ D("item_armor_jacket", "Armor", "CPMA", "Green Armor (CPMA)", false, false, {-16
   {{1, "Suspended (floats in the air)"}}),
 D("worldspawn", "", "", "Map settings: message, music, gravity, ambient light", false, false, {-8, -8, -8}, {8, 8, 8}, {0.4, 1, 0.3},
   {}, "", 1, false,
-  {{"message", KeyType::Text, "", "The text it shows"}, {"music", KeyType::Sound, "", "Music, an intro and a loop: \"music/x.wav music/y.wav\""}, {"gravity", KeyType::Number, "800", "Gravity in units a second squared (800)"}, {"ambient", KeyType::Number, "", "Light everywhere, before the lights"}, {"_color", KeyType::Color, "", "Its color, red green blue from 0 to 1"}},
+  {{"message", KeyType::Text, "", "The text it shows"}, {"music", KeyType::Sound, "", "Music, an intro and a loop: \"music/x.wav music/y.wav\""}, {"gravity", KeyType::Number, "800", "Gravity in units a second squared (800)"}, {"ambient", KeyType::Number, "", "Light everywhere, before the lights"}, {"_color", KeyType::Color, "1 1 1", "The ambient light's color, red green blue from 0 to 1"}},
   {}),
 D("info_player_start", "Spawns", "", "Player spawn (old name, same as info_player_deathmatch)", false, true, {-16, -16, -24}, {16, 16, 32}, {1, 0.3, 0.95},
   {}, "", 1, false,

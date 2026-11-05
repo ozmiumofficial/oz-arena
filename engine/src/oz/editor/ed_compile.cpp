@@ -96,6 +96,255 @@ static std::string error_of(const std::string &log) {
 	return "";
 }
 
+// The map as compiled sits in a sky box: six sky brushes round everything in it (Sky and sun's sky: the
+// one picked, else the first painted on a brush, else id's grey-clouded hellsky2), and under the floor a
+// hurt trigger to fall into, as id's void. So a map open to the void shows sky there and seals, and builds
+// with vis and the bots' file; a sealed map's box is outside it, and q3map2 drops it. The editor's map is
+// left as it is: the box is only in the copy written for q3map2.
+static const double SKY_SIDE = 512, SKY_TOP = 1024, SKY_BELOW = 512, SKY_THICK = 16;
+
+// Sky and sun: the map's worldspawn keys, each left out while it has its default. The sky's light is the
+// sun (its color, brightness, height over the horizon and direction, degrees as a light's angle) and the
+// sky's own glow (q3map_surfacelight), in the sun's color. A map with a sky painted on its brushes and no
+// settings (a stock map imported) keeps the sky's own light, as its script has it; any other is lit by
+// the settings, whose defaults are a white sun. The default sky is id's hellsky2, grey clouds: most of
+// id's cloud skies are red or orange, and toxicsky lit play-tests piss yellow (Ozmium 2026-11-04).
+static const char *const K_SKY = "_oz_sky", *const K_LIGHT_FROM = "_oz_sky_light_from", *const K_COLOR = "_oz_sun_color",
+	*const K_BRIGHT = "_oz_sun_brightness", *const K_HEIGHT = "_oz_sun_height", *const K_DIR = "_oz_sun_direction",
+	*const K_GLOW = "_oz_sky_light";
+
+static const struct {
+	const char *name, *key;
+	double lo, hi;
+} SKY_NUMBERS[] = {
+	{"brightness", K_BRIGHT, 0, 1000},
+	{"height", K_HEIGHT, 1, 90},
+	{"direction", K_DIR, 0, 359},
+	{"sky_light", K_GLOW, 0, 1000},
+};
+
+// every skies/ material on the map's brushes and curves, in the order met
+static std::vector<std::string> painted_skies(const Doc &d) {
+	std::vector<std::string> out;
+	auto note = [&](ShaderId id) {
+		const std::string &n = shader_name(id);
+		if (n.compare(0, 6, "skies/") == 0 && std::find(out.begin(), out.end(), n) == out.end()) {
+			out.push_back(n);
+		}
+	};
+	for (Id id : d.ids_of(Kind::Brush)) {
+		for (const Face &f : d.get(id)->brush.faces) {
+			note(f.shader);
+		}
+	}
+	for (Id id : d.ids_of(Kind::Patch)) {
+		note(d.get(id)->patch.shader);
+	}
+	return out;
+}
+
+static Session::SkySun sky_sun_of(const Doc &d) {
+	Session::SkySun s;
+	const ObjectPtr w = d.ptr(d.worldspawn());
+	const Entity empty;
+	const Entity &e = w ? w->entity : empty;
+	const std::vector<std::string> painted = painted_skies(d);
+	s.painted = painted.empty() ? "" : painted.front();
+	const std::string chosen = e.get(K_SKY);
+	s.chosen = !chosen.empty();
+	s.sky = s.chosen ? chosen : !s.painted.empty() ? s.painted : Session::DEFAULT_SKY;
+	const std::string from = e.get(K_LIGHT_FROM);
+	bool any = s.chosen || !from.empty();
+	double c[3];
+	if (sscanf(e.get(K_COLOR).c_str(), "%lf %lf %lf", &c[0], &c[1], &c[2]) == 3) {
+		any = true;
+		const double m = std::max({c[0], c[1], c[2]}) > 1 ? 255 : 1;  // 0 to 255 read as such
+		for (int i = 0; i < 3; i++) {
+			s.color[i] = std::max(0.0, std::min(1.0, c[i] / m));
+		}
+	}
+	double *num[4] = {&s.brightness, &s.height, &s.direction, &s.sky_light};
+	for (int i = 0; i < 4; i++) {
+		const std::string v = e.get(SKY_NUMBERS[i].key);
+		if (!v.empty()) {
+			any = true;
+			*num[i] = std::max(SKY_NUMBERS[i].lo, std::min(SKY_NUMBERS[i].hi, std::atof(v.c_str())));
+		}
+	}
+	s.own = from == "own" || (!any && !s.painted.empty());
+	return s;
+}
+
+Session::SkySun Session::sky_sun() const {
+	return sky_sun_of(doc);
+}
+
+// The sky's light as q3map2 reads it for this compile: each sky the map uses, the box's among them, as
+// its script but lit by the settings. Only q3map2 reads these (the compile's own scripts come before
+// id's paks); the game draws the skies as their own scripts have them.
+static std::string sky_light_shaders(const Doc &d) {
+	const Session::SkySun s = sky_sun_of(d);
+	if (s.own) {
+		return "";
+	}
+	std::vector<std::string> skies = painted_skies(d);
+	if (std::find(skies.begin(), skies.end(), s.sky) == skies.end()) {
+		skies.push_back(s.sky);
+	}
+	char light[200];
+	std::snprintf(light, sizeof light, "\tq3map_surfacelight %g\n\tq3map_lightRGB %g %g %g\n\tq3map_sun %g %g %g %g %g %g\n", s.sky_light,
+		s.color[0], s.color[1], s.color[2], s.color[0], s.color[1], s.color[2], s.brightness, s.direction, s.height);
+	std::string out = "// Sky and sun's light for q3map2\n";
+	for (const std::string &n : skies) {
+		// an image q3map2 finds (id's), or it warns "Couldn't find image" for each
+		out += "textures/" + n + "\n{\n\tqer_editorimage textures/skies/dimclouds.tga\n\tsurfaceparm noimpact\n\tsurfaceparm nolightmap\n\tsurfaceparm sky\n" +
+			light + "\tskyparms - 512 -\n}\n";
+	}
+	return out;
+}
+
+static void add_sky_box(Doc &d, const Bounds &b) {
+	const ShaderId s = shader_id(sky_sun_of(d).sky);
+	const Vec3 lo = b.lo - Vec3(SKY_SIDE, SKY_SIDE, SKY_BELOW), hi = b.hi + Vec3(SKY_SIDE, SKY_SIDE, SKY_TOP);
+	const Vec3 t(SKY_THICK, SKY_THICK, SKY_THICK);
+	const Id w = d.worldspawn();
+	d.add(box_brush(d, Vec3(lo.x - t.x, lo.y - t.y, lo.z - t.z), Vec3(hi.x + t.x, hi.y + t.y, lo.z), s, w));  // floor
+	d.add(box_brush(d, Vec3(lo.x - t.x, lo.y - t.y, hi.z), Vec3(hi.x + t.x, hi.y + t.y, hi.z + t.z), s, w));  // top
+	d.add(box_brush(d, Vec3(lo.x - t.x, lo.y - t.y, lo.z), Vec3(lo.x, hi.y + t.y, hi.z), s, w));
+	d.add(box_brush(d, Vec3(hi.x, lo.y - t.y, lo.z), Vec3(hi.x + t.x, hi.y + t.y, hi.z), s, w));
+	d.add(box_brush(d, Vec3(lo.x, lo.y - t.y, lo.z), Vec3(hi.x, lo.y, hi.z), s, w));
+	d.add(box_brush(d, Vec3(lo.x, hi.y, lo.z), Vec3(hi.x, hi.y + t.y, hi.z), s, w));
+	auto hurt = std::make_shared<Object>();
+	hurt->kind = Kind::Entity;
+	hurt->entity.set("classname", "trigger_hurt");
+	hurt->entity.set("dmg", "9999");
+	const Id h = d.add(hurt);
+	d.add(box_brush(d, lo, Vec3(hi.x, hi.y, lo.z + 64), shader_id("common/trigger"), h));
+}
+
+// ed sky_sun opens the dialog; ed sky <field> <value> sets one (sky <material> | light_from own|editor |
+// color <r g b> | brightness | height | direction | sky_light <n>; an empty value or "default" puts the
+// default back), ed sky reset puts them all back. Each is one undo step on the map's own keys.
+bool Session::sky_action(const std::string &action, const std::vector<std::string> &a) {
+	if (action == "sky_sun") {
+		want_sky = true;
+		return true;
+	}
+	const std::vector<Id> world = {doc.worldspawn()};
+	if (a.empty()) {
+		const SkySun s = sky_sun();
+		char buf[300];
+		std::snprintf(buf, sizeof buf, "Sky %s%s; light %s: sun %g %g %g, brightness %g, height %g, direction %g, sky light %g", s.sky.c_str(),
+			s.chosen ? "" : s.painted.empty() ? " (default)" : " (painted)", s.own ? "the sky's own" : "the editor's", s.color[0], s.color[1],
+			s.color[2], s.brightness, s.height, s.direction, s.sky_light);
+		say(buf);
+		return true;
+	}
+	if (a[0] == "reset") {
+		doc.begin("Sky and sun: defaults");
+		for (const char *k : {K_SKY, K_LIGHT_FROM, K_COLOR, K_BRIGHT, K_HEIGHT, K_DIR, K_GLOW}) {
+			remove_key(doc, world, k, "");
+		}
+		doc.end();
+		say("Sky and sun: back to the defaults");
+		return true;
+	}
+	std::string v;
+	for (size_t i = 1; i < a.size(); i++) {
+		v += (i > 1 ? " " : "") + a[i];
+	}
+	v.erase(std::remove(v.begin(), v.end(), '"'), v.end());
+	const bool clear = v.empty() || v == "default";
+	auto put = [&](const char *key, const std::string &value, const std::string &label) {
+		if (clear) {
+			remove_key(doc, world, key, label);
+		} else {
+			set_key(doc, world, key, value, label);
+		}
+	};
+	if (a[0] == "sky") {
+		std::string n = v.compare(0, 9, "textures/") == 0 ? v.substr(9) : v;
+		if (!clear && (n.compare(0, 6, "skies/") != 0 || shaders_lib().look(n) != Look::Sky)) {
+			say(n + " isn't a sky: pick one of the skies/ materials whose script makes it one", true);
+			return true;
+		}
+		put(K_SKY, n, "Sky");
+		say("Sky: " + sky_sun().sky);
+	} else if (a[0] == "light_from") {
+		if (!clear && v != "own" && v != "editor") {
+			say("ed sky light_from own|editor", true);
+			return true;
+		}
+		put(K_LIGHT_FROM, v, "Sky light from");
+		say(sky_sun().own ? "The sky's own script lights the map" : "Sky and sun's settings light the map");
+	} else if (a[0] == "color") {
+		double c[3];
+		if (!clear && sscanf(v.c_str(), "%lf %lf %lf", &c[0], &c[1], &c[2]) != 3) {
+			say("ed sky color <r g b>: 0 to 1 each", true);
+			return true;
+		}
+		put(K_COLOR, v, "Sun color");
+	} else {
+		int i = 0;
+		while (i < 4 && a[0] != SKY_NUMBERS[i].name) {
+			i++;
+		}
+		if (i == 4) {
+			say("ed sky <sky | light_from | color | brightness | height | direction | sky_light> <value>, or ed sky reset", true);
+			return true;
+		}
+		char buf[32];
+		double n = std::atof(v.c_str());
+		if (a[0] == "direction") {
+			n = std::fmod(std::fmod(n, 360.0) + 360.0, 360.0);
+		}
+		n = std::max(SKY_NUMBERS[i].lo, std::min(SKY_NUMBERS[i].hi, n));
+		std::snprintf(buf, sizeof buf, "%g", n);
+		put(SKY_NUMBERS[i].key, buf, std::string("Sun ") + SKY_NUMBERS[i].name);
+	}
+	return true;
+}
+
+// The sun's arrow while the dialog is open: from above the map's middle, along the light, to it
+static const unsigned char C_SUN[4] = {255, 214, 120, 255}, C_SUN_HIDDEN[4] = {255, 214, 120, 120};
+
+void Session::build_sun_lines() {
+	if (!sky_open) {  // the map isn't looked through each frame while the dialog is closed
+		if (!sun_built_.empty()) {
+			sun_built_.clear();
+			sun_lines_.begin();
+			sun_lines_.end();
+		}
+		return;
+	}
+	const SkySun s = sky_sun();
+	const Bounds b = bounds_of(doc, doc.ids());
+	const Vec3 mid = b.empty() ? Vec3(0, 0, 0) : (b.lo + b.hi) * 0.5;
+	char key[200];
+	std::snprintf(key, sizeof key, "on %d %g %g %g %g %g %g", int(s.own), s.height, s.direction, mid.x, mid.y, mid.z,
+		b.empty() ? 0.0 : (b.hi - b.lo).length());
+	if (sun_built_ == key) {
+		return;
+	}
+	sun_built_ = key;
+	sun_lines_.begin();
+	if (!s.own) {
+		const double pi = 3.14159265358979323846, yaw = s.direction * pi / 180, pitch = s.height * pi / 180;
+		const Vec3 to_sun(std::cos(pitch) * std::cos(yaw), std::cos(pitch) * std::sin(yaw), std::sin(pitch));
+		const double len = std::max(256.0, b.empty() ? 0.0 : (b.hi - b.lo).length() * 0.6);
+		const Vec3 from = mid + to_sun * len;
+		sun_lines_.line(from, mid, C_SUN);
+		sun_lines_.line(from, mid, C_SUN_HIDDEN, "$oz_ed_lines_xray");
+		// the head at the middle, and the sun as a box where the light comes from
+		const Vec3 side = std::fabs(to_sun.z) > 0.99 ? Vec3(1, 0, 0) : Vec3(-to_sun.y, to_sun.x, 0).normalized();
+		const Vec3 head = mid + to_sun * 32;
+		sun_lines_.line(mid, head + side * 14, C_SUN, "$oz_ed_lines_xray");
+		sun_lines_.line(mid, head - side * 14, C_SUN, "$oz_ed_lines_xray");
+		sun_lines_.box_edges(from - Vec3(12, 12, 12), from + Vec3(12, 12, 12), C_SUN, "$oz_ed_lines_xray");
+	}
+	sun_lines_.end();
+}
+
 bool Session::compile(bool full, bool play, bool here, bool defrag) {
 	if (job_.running) {
 		say("A compile is under way: wait for it, or stop it");
@@ -107,6 +356,15 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 		say(baseq3.empty() ? "The game's baseq3 folder wasn't found" : "q3map2 isn't there (" + q3map2 + ")", true);
 		return false;
 	}
+	// the editor's limit: everything within MAP_LIMIT of the middle every way
+	const Bounds all = bounds_of(doc, doc.ids());
+	if (!all.empty() && (std::max({-all.lo.x, -all.lo.y, -all.lo.z, all.hi.x, all.hi.y, all.hi.z}) > MAP_LIMIT)) {
+		char buf[200];
+		std::snprintf(buf, sizeof buf, "The map reaches past the editor's limit, %g units from the middle every way (its box: %g %g %g to %g %g %g): move it in",
+			MAP_LIMIT, all.lo.x, all.lo.y, all.lo.z, all.hi.x, all.hi.y, all.hi.z);
+		say(buf, true);
+		return false;
+	}
 	CompileJob j;
 	j.out = compile_name();
 	j.dir = std::string(OzEd_HomePath()) + "/oz/editor/compile";
@@ -115,11 +373,18 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 	// the map as it is now, and q3map2's tool shaders
 	WriteOptions wo;
 	wo.title = "compiled by the Oz Arena map editor";
-	const std::string text = write_map(doc, wo);
+	Doc boxed = doc;
+	boxed.on_change = nullptr;
+	boxed.get_selection = nullptr;
+	boxed.set_selection = nullptr;
+	boxed.clear_history();
+	add_sky_box(boxed, all.empty() ? Bounds{Vec3(-256, -256, -64), Vec3(256, 256, 256)} : all);
+	const std::string text = write_map(boxed, wo);
 	const std::string shaders = j.dir + "/home/baseq3/scripts/oz_editor_tools.shader";
+	const std::string tool_shaders = std::string(TOOL_SHADERS) + sky_light_shaders(doc);
 	OzEd_MakeDirs(j.map.c_str());
 	OzEd_MakeDirs(shaders.c_str());
-	if (!OzEd_WriteOSFile(j.map.c_str(), text.data(), int(text.size())) || !OzEd_WriteOSFile(shaders.c_str(), TOOL_SHADERS, int(std::strlen(TOOL_SHADERS)))) {
+	if (!OzEd_WriteOSFile(j.map.c_str(), text.data(), int(text.size())) || !OzEd_WriteOSFile(shaders.c_str(), tool_shaders.data(), int(tool_shaders.size()))) {
 		say("Can't write " + j.map, true);
 		return false;
 	}

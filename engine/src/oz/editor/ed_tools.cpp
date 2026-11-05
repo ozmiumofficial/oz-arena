@@ -85,6 +85,7 @@ const std::vector<Action> &actions() {
 		{"preview", "Lit preview", "F6", "The map lit by its own lights, as the last compile made it (a quick compile first when the map changed); F6 again leaves it"},
 		{"compile_stop", "Stop compiling", "", "Stops the compile under way"},
 		{"frame_leak", "Show the leak", "", "The camera onto the leak's line: from an entity out to the void through the gap"},
+		{"sky_sun", "Sky and sun", "", "The map's sky and its light: the sky around the map, the sun's color, brightness, height and direction"},
 		{"warnings", "Compile warnings", "", "The last compile's warnings: pick one to select and frame what it's about"},
 		{"warning", "Frame a warning", "", "ed warning <n>: selects and frames what the last compile's warning n is about"},
 		{"hide", "Hide", "H", "Hides the selection from every view (the map keeps it: it compiles and saves)"},
@@ -160,6 +161,7 @@ const std::vector<Action> &actions() {
 		{"size", "Size", "", "ed size <width> <depth> <height>: resizes the selection, on its floor"},
 		{"grid", "Grid", "1 - 9", "ed grid <units>: the grid, any power of two"},
 		{"material", "Material", "", "ed material <shader>: what new brushes are made of"},
+		{"sky", "Sky and sun setting", "", "ed sky <sky | light_from | color | brightness | height | direction | sky_light> <value>, or ed sky reset: the map's sky and its light"},
 		{"key_set", "Set key", "", "ed key_set <key> <value>: on the selected entities (nothing selected: the map's own keys)"},
 		{"key_remove", "Remove key", "", "ed key_remove <key>: from the selected entities"},
 		{"key_rename", "Rename key", "", "ed key_rename <key> <new name>: on the selected entities"},
@@ -635,6 +637,9 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 		}
 		return true;
 	}
+	if (action == "sky_sun" || action == "sky") {
+		return sky_action(action, a);
+	}
 	if (action == "search" || action == "keymap") {
 		(action == "search" ? want_search : want_keymap) = true;  // the page opens them
 		return true;
@@ -959,6 +964,12 @@ static void set_comp(Vec3 &v, int i, double x) {
 	(i == 0 ? v.x : i == 1 ? v.y : v.z) = x;
 }
 
+// a point kept within the editor's limit (Session::MAP_LIMIT), where the ground grid ends
+static Vec3 in_limit(const Vec3 &p) {
+	const double m = Session::MAP_LIMIT;
+	return Vec3(std::clamp(p.x, -m, m), std::clamp(p.y, -m, m), std::clamp(p.z, -m, m));
+}
+
 static int main_axis(const Vec3 &n) {
 	const double a = std::fabs(n.x), b = std::fabs(n.y), c = std::fabs(n.z);
 	return a >= b && a >= c ? 0 : b >= c ? 1 : 2;
@@ -992,7 +1003,8 @@ void Session::create_press(int m) {
 			return;
 		}
 	}
-	create_a_ = snap_vec(at);
+	create_a_ = in_limit(snap_vec(at));
+	create_plane_ = std::clamp(create_plane_, -MAP_LIMIT, MAP_LIMIT);
 	set_comp(create_a_, create_axis_, create_plane_);
 	create_b_ = create_a_;
 	create_state_ = 1;
@@ -1004,7 +1016,7 @@ void Session::create_motion() {
 	if (create_state_ == 1) {
 		Vec3 p;
 		if (plane_point(mx_, my_, create_a_, n, p)) {
-			create_b_ = snap_vec(p);
+			create_b_ = in_limit(snap_vec(p));
 			set_comp(create_b_, create_axis_, create_plane_);
 		}
 		return;
@@ -1039,7 +1051,10 @@ void Session::create_motion() {
 		return;
 	}
 	const double t = (dd * e.dot(w) - b * d.dot(w)) / denom;
-	const double h = snap(t * create_sign_);
+	double h = snap(t * create_sign_);
+	// the top stays within the limit too
+	const double top = std::clamp(create_plane_ + create_sign_ * h, -MAP_LIMIT, MAP_LIMIT);
+	h = (top - create_plane_) * create_sign_;
 	if (std::fabs(h) >= 1) {
 		create_height_ = h;
 	}

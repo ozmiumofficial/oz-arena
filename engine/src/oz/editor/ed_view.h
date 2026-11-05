@@ -160,6 +160,7 @@ public:
 	std::string name;   // as shown ("untitled")
 	Camera cam;
 	double grid = 16;                             // any power of two, 1/8 to 4096
+	static constexpr double MAP_LIMIT = 8192;     // a map stays within this of the middle every way
 	Tool tool = Tool::Select;
 	bool texture_lock = true;                     // moves, turns and mirrors carry the textures along
 	std::string shader = "base_wall/concrete";    // what new brushes are made of
@@ -290,6 +291,19 @@ public:
 	std::string binding;               // the action waiting for its new keys, "" none
 	int keymap_rev = 0;                // counts the keymap's changes (the page shows keys anew)
 	bool want_search = false, want_keymap = false;  // the page opens them
+	// Sky and sun (the map's worldspawn keys, _oz_sky ...; ed_compile.cpp): the sky the compile boxes the
+	// map in, and the light q3map2 gives it. The page's dialog shows them while sky_open.
+	struct SkySun {
+		std::string sky;      // the sky box's: chosen, else the first sky painted on a brush, else DEFAULT_SKY
+		bool chosen = false;  // the map's _oz_sky
+		std::string painted;  // the first skies/ material on a brush, "" none
+		bool own = false;     // lit as the sky's own script lights it, not by the settings below
+		double color[3] = {1, 1, 1};
+		double brightness = 100, height = 60, direction = 30, sky_light = 80;
+	};
+	static constexpr const char *DEFAULT_SKY = "skies/hellsky2";
+	SkySun sky_sun() const;
+	bool want_sky = false, sky_open = false;
 	bool want_uv = false;                           // the UV editor (the page's)
 	// What the page does for an action of its own: "open" and "import" (their lists), "save_as" (the
 	// name), "leave" (the main menu), "guide", "menu file" (Escape with nothing to cancel), "panel <name>"
@@ -561,6 +575,10 @@ private:
 	std::vector<Vec3> leak_;  // q3map2's line from an entity out to the void
 	uint64_t leak_rev_ = 0, leak_built_ = ~0ull;
 	Overlay leak_lines_;
+	Overlay sun_lines_;  // while the Sky and sun dialog is open: an arrow from the sun to the map's middle
+	std::string sun_built_;
+	void build_sun_lines();
+	bool sky_action(const std::string &action, const std::vector<std::string> &a);
 	void compile_stage();
 	void compile_done(bool ok, const std::string &why);
 	void collect_warnings(const std::string &log, const std::string &stage);

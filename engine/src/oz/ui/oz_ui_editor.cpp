@@ -473,9 +473,10 @@ void ToggleFavorite( const std::string &name ) {
 	Notify( had ? name + ": no longer a favorite" : name + ": a favorite (the Favorites view keeps it at hand)", false );
 }
 
-// A few of the tiles' thumbnails a frame, so a page of them never stalls a frame long.
-void LoadThumbs( Rml::ElementDocument *doc ) {
-	Rml::Element *mats = doc->GetElementById( "ed-mats" );
+// A few of the tiles' thumbnails a frame, so a page of them never stalls a frame long: the Materials
+// tab's, or Sky and sun's
+void LoadThumbs( Rml::ElementDocument *doc, const char *id = "ed-mats" ) {
+	Rml::Element *mats = doc->GetElementById( id );
 	if ( !mats ) {
 		return;
 	}
@@ -794,6 +795,10 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 				adds += "<button class=\"chip\" data-hint=\"" + Enc( k.name + ": " + k.help + ( k.def.empty() ? "" : " (the game's default: " + k.def + ")" ) ) +
 					"\" onclick=\"append ed key_new " + Enc( k.name ) + "\">+ " + Enc( Rml::StringUtilities::ToUpper( k.name ) ) + "</button>";
 			}
+		}
+		if ( ents.size() == 1 && ents[0] == d.worldspawn() ) {
+			// the map's own keys: its sky and light have a dialog of their own
+			adds = "<button class=\"chip on\" data-action=\"sky_sun\" onclick=\"append ed sky_sun\">SKY AND SUN</button>" + adds;
 		}
 		SetRml( doc, "ed-addkeys", adds );
 		bool owned = false;
@@ -1390,6 +1395,120 @@ void CloseKeymap( Rml::ElementDocument *doc ) {
 	}
 }
 
+// ---------------------------------------------------------------- Sky and sun
+
+// The dialog over the view (Build > Sky and sun, the map's keys): id's skies as tiles, then the light.
+// Everything in it runs ed sky ..., one undo step each on the map's own keys.
+bool skyOpen;
+Rml::String lastSky;
+
+void BuildSky( Rml::ElementDocument *doc ) {
+	oz::ed::Session &s = session();
+	const oz::ed::Session::SkySun ss = s.sky_sun();
+	char rgb[64];
+	snprintf( rgb, sizeof rgb, "%g %g %g", ss.color[0], ss.color[1], ss.color[2] );
+	const Rml::String key = ss.sky + "|" + ss.painted + "|" + std::to_string( ss.chosen ) + std::to_string( ss.own ) + "|" + rgb + "|" +
+		Num( ss.brightness ) + " " + Num( ss.height ) + " " + Num( ss.direction ) + " " + Num( ss.sky_light );
+	if ( key == lastSky ) {
+		return;
+	}
+	lastSky = key;
+
+	// the skies: id's own (q3map2 sees only id's paks) sky shaders, not the bare cloud images in the same
+	// folder (a wall of clouds); the map's own sky among them if it's a pack's
+	std::vector<std::string> skies;
+	oz::ed::ShaderLib &lib = oz::ed::shaders_lib();
+	for ( const oz::ed::Material &m : lib.materials() ) {
+		if ( m.stock && m.script && m.name.compare( 0, 6, "skies/" ) == 0 && lib.look( m.name ) == oz::ed::Look::Sky ) {
+			skies.push_back( m.name );
+		}
+	}
+	std::sort( skies.begin(), skies.end() );
+	if ( std::find( skies.begin(), skies.end(), ss.sky ) == skies.end() ) {
+		skies.insert( skies.begin(), ss.sky );
+	}
+	const std::string def = oz::ed::Session::DEFAULT_SKY;
+	if ( std::find( skies.begin(), skies.end(), def ) != skies.end() ) {
+		skies.erase( std::find( skies.begin(), skies.end(), def ) );
+		skies.insert( skies.begin(), def );
+	}
+	Rml::String tiles;
+	for ( size_t i = 0; i < skies.size(); i++ ) {
+		const std::string &n = skies[i];
+		Rml::String style;
+		const Rml::String sw = SwatchRml( n, 5.4, style, true );
+		const bool on = n == ss.sky;
+		const Rml::String badge = n == def ? "DEFAULT" : n == ss.painted ? "PAINTED" : "";
+		tiles += "<div class=\"mat" + Rml::String( on ? " on" : "" ) + "\" id=\"ed-sky-t-" + std::to_string( i ) + "\" data-hint=\"" + Enc( n ) +
+			": the sky around the map\" onclick=\"append ed sky sky " + Enc( n ) + "\"><div class=\"sw\"" + ( style.empty() ? "" : " style=\"" + style + "\"" ) +
+			">" + sw + "</div>" + ( badge.empty() ? "" : "<span class=\"badge\">" + badge + "</span>" ) + "<span class=\"mn\">" + Enc( n.substr( 6 ) ) + "</span></div>";
+	}
+	SetRml( doc, "ed-sky-tiles", tiles );
+	const std::string why = ss.chosen ? "picked here" : !ss.painted.empty() && ss.sky == ss.painted ? "painted on the map's brushes" : "the default";
+	SetRml( doc, "ed-sky-now", Enc( "SKY: " + Rml::StringUtilities::ToUpper( ss.sky.substr( 6 ) ) + " (" + why + ")" ) );
+
+	// the light
+	Rml::String rml = "<div class=\"srow\"><span class=\"sl\">Light from</span>"
+		"<button class=\"chip" + Rml::String( ss.own ? "" : " on" ) + "\" id=\"ed-sky-editor\" data-hint=\"The sun and sky light below light the map\" "
+		"onclick=\"append ed sky light_from editor\">THESE SETTINGS</button>"
+		"<button class=\"chip" + Rml::String( ss.own ? " on" : "" ) + "\" id=\"ed-sky-own\" data-hint=\"The sky's own script lights the map, as id's maps with it are lit\" "
+		"onclick=\"append ed sky light_from own\">THE SKY'S OWN</button>"
+		"<span class=\"sh\">" + Rml::String( ss.own ? "The sky's own sun and glow light the map; the settings below wait." : "The sun and the sky's glow below light the map." ) +
+		"</span></div>";
+	rml += "<div class=\"srow col\"><span class=\"sl\">Sun color</span>";
+	for ( const auto &p : PALETTE ) {
+		const bool on = Rml::String( p.rgb ) == rgb;
+		rml += "<button class=\"dot" + Rml::String( on ? " on" : "" ) + "\" style=\"background-color: " + HexColor( p.rgb ) + ";\" data-hint=\"" + Enc( p.name ) +
+			" (" + p.rgb + ")\" onclick=\"append ed sky color " + p.rgb + "\"></button>";
+	}
+	rml += "<input type=\"text\" class=\"text rgb\" id=\"ed-sky-color\" value=\"" + Rml::String( rgb ) +
+		"\" data-apply=\"sky_typed\" data-sky-field=\"color\" data-hint=\"Red, green and blue, 0 to 1 each: Enter sets it\"/>"
+		"<span class=\"sh\">The sun's and the sky's light</span></div>";
+	const struct {
+		const char *field, *label, *help;
+		double value, step;
+	} nums[] = {
+		{ "brightness", "Sun brightness", "How strong the sun is (100: about id's outdoor maps)", ss.brightness, 10 },
+		{ "height", "Sun height", "Degrees over the horizon: 90 straight down, low for long shadows", ss.height, 5 },
+		{ "direction", "Sun direction", "Degrees, as a light's angle: 0 from +X (east), 90 from +Y", ss.direction, 15 },
+		{ "sky_light", "Sky light", "How much the sky itself glows onto the map (0: the sun alone)", ss.sky_light, 10 },
+	};
+	for ( const auto &n : nums ) {
+		const Rml::String f = n.field;
+		rml += "<div class=\"srow num\"><span class=\"sl\">" + Rml::String( n.label ) + "</span>"
+			"<button class=\"tb\" id=\"ed-sky-" + f + "-less\" onclick=\"append ed sky " + f + " " + Num( n.value - n.step ) + "\">-</button>"
+			"<input type=\"text\" class=\"text\" id=\"ed-sky-" + f + "\" value=\"" + Num( n.value ) + "\" data-apply=\"sky_typed\" data-sky-field=\"" + f +
+			"\" data-hint=\"" + Enc( n.help ) + ": Enter sets it\"/>"
+			"<button class=\"tb\" id=\"ed-sky-" + f + "-more\" onclick=\"append ed sky " + f + " " + Num( n.value + n.step ) + "\">+</button>"
+			"<span class=\"sh\">" + Enc( n.help ) + "</span></div>";
+	}
+	SetRml( doc, "ed-sky-light", rml );
+	if ( Rml::Element *e = doc->GetElementById( "ed-sky-light" ) ) {
+		e->SetClass( "own", ss.own );
+	}
+}
+
+void OpenSky( Rml::ElementDocument *doc ) {
+	skyOpen = true;
+	session().sky_open = true;
+	lastSky.clear();
+	Show( doc, "ed-sky", true );
+	BuildSky( doc );
+	doc->UpdateDocument();
+	if ( Rml::Element *b = doc->GetElementById( "ed-sky-done" ) ) {
+		b->Focus();
+	}
+}
+
+void CloseSky( Rml::ElementDocument *doc ) {
+	skyOpen = false;
+	session().sky_open = false;
+	Show( doc, "ed-sky", false );
+	if ( TypingInside( doc->GetElementById( "ed-sky" ) ) ) {
+		TypingIn()->Blur();
+	}
+}
+
 // The KEYS help's keys as the player has them: each kbd's data-keys names its action (its first keys)
 void ShowKeyHelp( Rml::ElementDocument *doc ) {
 	const Rml::String key = std::to_string( session().keymap_rev );
@@ -1750,7 +1869,7 @@ const struct {
 		"-", "tex_flip_s", "tex_flip_t", "tex_rotate_left", "tex_rotate_right", "tex_scale_up", "tex_scale_down", "tex_reset" } },
 	{ "entity", { "show_entities", "light", "jump_pad", "teleporter", "-", "to_world", "-", "#DEFRAG", "defrag_start", "defrag_checkpoint", "defrag_finish",
 		"defrag_speed", "defrag_shooter", "defrag_check", "play_defrag" } },
-	{ "build", { "play", "play_here", "play_defrag", "-", "compile", "compile_stop", "preview", "-", "frame_leak", "warnings" } },
+	{ "build", { "play", "play_here", "play_defrag", "-", "sky_sun", "-", "compile", "compile_stop", "preview", "-", "frame_leak", "warnings" } },
 	{ "help", { "guide", "keymap", "search" } },
 };
 
@@ -2010,7 +2129,7 @@ void UpdateTip( Rml::ElementDocument *doc, int width, int height ) {
 	Rml::Element *target = nullptr;
 	bool strip = false;
 	// none over a menu, a list or a question: those say what they do themselves
-	const bool covered = !menuOpen.empty() || searchOpen || pickOpen || saveAsOpen || guideOpen || keymapOpen || warnsOpen || !session().asking.empty();
+	const bool covered = !menuOpen.empty() || searchOpen || pickOpen || saveAsOpen || guideOpen || keymapOpen || skyOpen || warnsOpen || !session().asking.empty();
 	if ( !covered && !session().looking() && !session().dragging() ) {
 		for ( Rml::Element *e = GetContext()->GetHoverElement(); e && e != doc; e = e->GetParentNode() ) {
 			const Rml::String &id = e->GetId();
@@ -2133,6 +2252,11 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 	}
 	if ( what == "fit_typed" ) {
 		return s.run( "tex_fit", { InputValue( doc, "ed-fit-s" ), InputValue( doc, "ed-fit-t" ) } );
+	}
+	if ( what == "sky_typed" ) {
+		const std::string f = field ? field->GetAttribute<Rml::String>( "data-sky-field", "" ) : "";
+		lastSky.clear();	// shown again as it is, the value refused or not
+		return f.empty() || s.run( "sky", { f, value() } );
 	}
 	if ( what == "key_typed" ) {
 		const std::string k = fieldKey();
@@ -2287,6 +2411,8 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		SetInput( doc, "ed-pick-text", text );
 	} else if ( a == "keymap_close" ) {
 		CloseKeymap( doc );
+	} else if ( a == "sky_close" ) {
+		CloseSky( doc );
 	} else if ( a == "menu" && args.size() > 1 ) {
 		// a menu's title clicked: it opens, or closes when it's the one open
 		if ( menuOpen == args[1] ) {
@@ -2415,6 +2541,9 @@ void Stats_f() {
 	}
 	if ( warnsOpen ) {
 		Printf( "ed_stats page: warnings\n" );
+	}
+	if ( skyOpen ) {
+		Printf( "ed_stats page: sky and sun\n" );
 	}
 	if ( pickOpen ) {
 		Printf( "ed_stats page: pick %s %s \"%s\" %d; at %d\n", pickKey.c_str(), pickType.c_str(), pickQuery.c_str(), (int)pickFound.size(), pickAt );
@@ -2656,6 +2785,31 @@ bool Editor_Key( int key, bool down ) {
 		}
 		return !TypingIn() && ( key == K_BACKSPACE || key == 'q' || key == 'e' || key == 'f' || key == K_PAD0_LEFTSHOULDER || key == K_PAD0_RIGHTSHOULDER );
 	}
+	if ( skyOpen ) {
+		// Sky and sun is the page's: Enter sets a typed value, Escape leaves a field, then closes it
+		Rml::Element *field = TypingIn();
+		if ( down && field && ( key == K_ENTER || key == K_KP_ENTER ) ) {
+			const Rml::String apply = field->GetAttribute<Rml::String>( "data-apply", "" );
+			if ( !apply.empty() ) {
+				session().notify = Notify;
+				Typed( apply, {}, field );
+			}
+			field->Blur();
+			return true;
+		}
+		if ( down && ( key == K_ESCAPE || key == K_PAD0_B ) ) {
+			if ( field ) {
+				field->Blur();
+			} else {
+				CloseSky( doc );
+			}
+			return true;
+		}
+		if ( key == K_ESCAPE || key == K_PAD0_B || key == K_MOUSE2 ) {
+			return true;
+		}
+		return !field && ( key == K_BACKSPACE || key == 'q' || key == 'e' || key == 'f' || key == K_PAD0_LEFTSHOULDER || key == K_PAD0_RIGHTSHOULDER );
+	}
 	if ( warnsOpen && down && key == K_ESCAPE ) {
 		CloseWarnings( doc );
 		return true;
@@ -2783,7 +2937,8 @@ bool Editor_Draw( int width, int height ) {
 		lastPanes.clear();
 		lastFilters = ~0u;
 		lastSel = ~0ull;
-		searchOpen = keymapOpen = warnsOpen = pickOpen = uvOpen = false;	// hidden in the page as made
+		searchOpen = keymapOpen = warnsOpen = pickOpen = uvOpen = skyOpen = false;	// hidden in the page as made
+		session().sky_open = false;
 		saveAsOpen = guideOpen = tipShown = false;
 		menuOpen.clear();
 		lastMenu.clear();
@@ -2950,6 +3105,10 @@ bool Editor_Draw( int width, int height ) {
 		s.want_keymap = false;
 		OpenKeymap( doc );
 	}
+	if ( s.want_sky ) {
+		s.want_sky = false;
+		OpenSky( doc );
+	}
 	if ( s.want_uv ) {
 		s.want_uv = false;
 		OpenUv( doc );
@@ -3021,6 +3180,10 @@ bool Editor_Draw( int width, int height ) {
 	if ( keymapOpen ) {
 		BuildKeymap( doc );
 	}
+	if ( skyOpen && !TypingInside( doc->GetElementById( "ed-sky" ) ) ) {
+		BuildSky( doc );	// as undo and redo change it too; not under a field being typed in
+		LoadThumbs( doc, "ed-sky-tiles" );
+	}
 	if ( pickOpen ) {
 		bool inside = false;
 		for ( Rml::Element *f = GetContext()->GetFocusElement(); f; f = f->GetParentNode() ) {
@@ -3068,7 +3231,8 @@ void Editor_Opened( Rml::ElementDocument *doc ) {
 	lastKeyHelp.clear();
 	lastPanes.clear();
 	lastFilters = ~0u;
-	searchOpen = keymapOpen = warnsOpen = pickOpen = uvOpen = false;
+	searchOpen = keymapOpen = warnsOpen = pickOpen = uvOpen = skyOpen = false;
+	session().sky_open = false;
 	saveAsOpen = guideOpen = tipShown = false;
 	menuOpen.clear();
 	lastMenu.clear();

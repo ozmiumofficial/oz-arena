@@ -461,12 +461,13 @@ struct Out {
 	}
 };
 
-void write_brush(Out &out, const Doc &doc, Id id, const Object &o, const Vec3 &origin) {
+void write_brush(Out &out, const Doc &doc, Id id, const Object &o, const Vec3 &origin, bool all_bp) {
 	const std::vector<q3map::Winding> &ws = doc.windings(id);
 	const std::vector<Face> &faces = o.brush.faces;
-	// brushDef when its faces came that way, or when the file's plain form can't hold a mapping
+	// brushDef when its faces came that way, or when the file's plain form can't hold a mapping, or when
+	// any brush in the file is one: q3map2 reads every brush in the form of the file's first
 	std::vector<Face> conv(faces);
-	bool bp = false;
+	bool bp = all_bp;
 	for (const Face &f : faces) {
 		bp |= f.raw_valid && f.form == TexForm::Primitives;
 	}
@@ -561,6 +562,19 @@ std::string write_map(const Doc &doc, const WriteOptions &opts) {
 			}
 		}
 	}
+	// brushDef for all once any brush is one (an imported stock map with brushes made since)
+	bool all_bp = false;
+	for (Id pid : doc.ids_of(Kind::Brush)) {
+		if (opts.only && !opts.only(pid)) {
+			continue;
+		}
+		for (const Face &f : doc.get(pid)->brush.faces) {
+			all_bp |= f.raw_valid && f.form == TexForm::Primitives;
+		}
+		if (all_bp) {
+			break;
+		}
+	}
 	int n = 0;
 	for (Id eid : ents) {
 		if (opts.only && eid != world && !opts.only(eid)) {
@@ -584,7 +598,7 @@ std::string write_map(const Doc &doc, const WriteOptions &opts) {
 			const Object *o = doc.get(pid);
 			out.raw("// brush " + std::to_string(b++) + "\n");
 			if (o->kind == Kind::Brush) {
-				write_brush(out, doc, pid, *o, origin);
+				write_brush(out, doc, pid, *o, origin, all_bp);
 			} else {
 				write_patch(out, *o);
 			}

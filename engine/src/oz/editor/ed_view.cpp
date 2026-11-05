@@ -1035,7 +1035,7 @@ void Session::frame(int x, int y, int w, int h) {
 		chosen_.reset();
 		wire_.reset();
 		wire_sel_.reset();
-		for (Overlay *o : {&ents_, &ents_sel_, &hover_lines_, &preview_, &faces_lines_, &links_, &place_preview_, &leak_lines_}) {
+		for (Overlay *o : {&ents_, &ents_sel_, &hover_lines_, &preview_, &faces_lines_, &links_, &place_preview_, &leak_lines_, &sun_lines_}) {
 			o->reset();
 		}
 		for (Overlay &o : pane_handles_) {
@@ -1154,6 +1154,7 @@ void Session::frame(int x, int y, int w, int h) {
 	compile_poll();
 	autosave_tick();
 	build_leak();
+	build_sun_lines();
 
 	// draw each pane, then back to the active one's view for the tools
 	static const float seam[4] = {0.16f, 0.15f, 0.14f, 1.0f};
@@ -1214,6 +1215,7 @@ void Session::draw_pane(Pane p, int now) {
 	links_.draw(zero, ident);
 	place_preview_.draw(zero, ident);
 	leak_lines_.draw(zero, ident);
+	sun_lines_.draw(zero, ident);
 	hover_lines_.draw(zero, ident);
 	preview_.draw(zero, ident);
 	handles.draw(zero, ident);

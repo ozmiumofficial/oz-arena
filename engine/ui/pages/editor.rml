@@ -293,6 +293,25 @@
 		.krow .kk .none { color: #5d554f; }
 		.krow .tb { font-size: 0.68rem; padding: 0.22rem 0.6rem; margin: 0; letter-spacing: 0.1em; }
 
+		/* Sky and sun: the sky's tiles, then the light's settings */
+		.ask.skyask { background-color: #00000040; justify-content: flex-start; }	/* the view shows beside it: the sun's arrow */
+		.ask .box.sky { width: 50rem; height: 44rem; margin-left: 5.5rem; display: flex; flex-direction: column; }
+		.sky p { flex-shrink: 0; }
+		.sky h3 { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.1em; color: #a59a90; margin: 0.2rem 0 0.35rem 0; flex-shrink: 0; }
+		.skies { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-wrap: wrap; align-content: flex-start; margin-bottom: 0.6rem; }
+		.sunset { flex-shrink: 0; margin-bottom: 0.6rem; }
+		.sunset.own .srow.num, .sunset.own .srow.col { opacity: 0.4; }
+		.srow { display: flex; align-items: center; margin-bottom: 0.3rem; }
+		.srow .sl { width: 8.5rem; flex-shrink: 0; font-size: 0.8rem; color: #e6ddd2; }
+		.srow .sh { flex: 1; font-size: 0.74rem; color: #8d847c; margin-left: 0.6rem; }
+		.srow .tb { font-size: 0.7rem; padding: 0.22rem 0.55rem; margin: 0 0.25rem 0 0; letter-spacing: 0.06em; }
+		.srow .chip { margin: 0 0.25rem 0 0; }
+		.ask .srow input.text { width: 5.5rem; height: 1.9rem; margin: 0 0.25rem 0 0; padding: 0.2rem 0.45rem; font-size: 0.88rem; }
+		.ask .srow input.text.rgb { width: 8.5rem; }
+		.srow .dot { width: 1.6rem; height: 1.6rem; margin: 0 0.25rem 0 0; border: 1dp #ffffff40; }
+		.srow .dot:hover, .srow .dot:focus { border-color: #ff4a1c; }
+		.srow .dot.on { border: 2dp #ff4a1c; }
+
 		/* a menu: its actions, their keys, a mark on what's on; greyed where it needs a selection */
 		.menu {
 			position: absolute;
@@ -847,6 +866,20 @@
 				<button class="tb" id="ed-keymap-radiant" data-hint="Radiant's keys where the editor has the same action (Space copies, X clips, Shift+U subtracts, Shift+arrows move textures); Oz's for the rest"
 					onclick="append ed keymap_preset radiant">RADIANT KEYS</button>
 				<button class="tb quiet" id="ed-keymap-done" data-hint="Close (Esc)" onclick="append ed panel keymap_close">DONE</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="ask skyask hidden" id="ed-sky">
+		<div class="box sky">
+			<h2>SKY AND SUN</h2>
+			<p class="dim" id="ed-sky-note">Saved with the map. Play and Compile put the map in this sky and light it so.</p>
+			<h3 id="ed-sky-now">SKY</h3>
+			<div class="skies" id="ed-sky-tiles"></div>
+			<div class="sunset" id="ed-sky-light"></div>
+			<div class="row">
+				<button class="tb" id="ed-sky-done" data-hint="Close (Esc): Play or Compile lights the map with these" onclick="append ed panel sky_close">DONE</button>
+				<button class="tb quiet" id="ed-sky-reset" data-hint="Every setting back to its default: grey clouds, a white sun" onclick="append ed sky reset">DEFAULTS</button>
 			</div>
 		</div>
 	</div>

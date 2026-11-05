@@ -1047,6 +1047,52 @@ bool Session::entities_action(const std::string &action, const std::vector<std::
 			}
 		}
 		doc.end();
+	} else if (action == "spotlight" || action == "point_light") {
+		// the selected lights made spotlights: an aim point (info_null) where they shine down onto the
+		// floor, linked by name; or point lights again, their aim point gone when nothing else uses it
+		std::vector<Id> lights;
+		for (Id e : key_entities()) {
+			if (doc.get(e) && doc.get(e)->entity.classname() == "light") {
+				lights.push_back(e);
+			}
+		}
+		if (lights.empty()) {
+			say("Select a light first", true);
+			return true;
+		}
+		doc.begin(action == "spotlight" ? "Make spotlight" : "Back to a point light");
+		for (Id e : lights) {
+			const Entity &en = doc.get(e)->entity;
+			const std::string name = en.get("target");
+			Vec3 at;
+			if (action == "spotlight") {
+				if (!name.empty() || !parse_vec(en.get("origin"), at)) {
+					continue;
+				}
+				double frac = 1;
+				const Vec3 down = at - Vec3(0, 0, 1024);
+				const Vec3 aim = solid_hit(doc, at, down, frac) ? at + (down - at) * frac : at - Vec3(0, 0, 128);
+				const std::string fresh = unique_targetname(doc, "spot");
+				auto o = std::make_shared<Object>();
+				o->kind = Kind::Entity;
+				o->entity.keys = {{"classname", "info_null"}, {"targetname", fresh},
+					{"origin", vec_text(Vec3(std::round(aim.x), std::round(aim.y), std::round(aim.z)))}};
+				doc.add(o);
+				set_key(doc, {e}, "target", fresh, "");
+			} else if (!name.empty()) {
+				remove_key(doc, {e}, "target", "");
+				remove_key(doc, {e}, "radius", "");
+				const Id t = entity_named(doc, name);
+				int users = 0;
+				for (Id other : doc.ids_of(Kind::Entity)) {
+					users += doc.get(other)->entity.get("target") == name;
+				}
+				if (t && users == 0 && doc.get(t)->entity.classname() == "info_null") {
+					doc.remove(t);
+				}
+			}
+		}
+		doc.end();
 	} else if (action == "light_intensity" || action == "light_range" || action == "light_cone") {
 		// the selected lights' intensity (a linear one keeps its range), range (0: back to the inverse
 		// square), or a spotlight's cone (its radius where it meets its target)

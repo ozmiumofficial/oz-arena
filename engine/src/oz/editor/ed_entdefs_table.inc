@@ -317,7 +317,7 @@ D("target_location", "Markers", "", "Named location for team chat", false, false
 D("light", "Lights and sound", "", "Light, baked by the map compiler", false, false, {-8, -8, -8}, {8, 8, 8}, {0.4, 1, 0.3},
   {}, "", 1, false,
   {{"target", KeyType::Target, "", "The targetname of what this fires or aims at"}, {"targetname", KeyType::Name, "", "The name other entities' target uses for this one"}, {"light", KeyType::Number, "300", "Brightness (300 by default)"}, {"_color", KeyType::Color, "1 1 1", "Its color, red green blue from 0 to 1"}, {"radius", KeyType::Number, "64", "A spotlight's radius where it meets its target"}},
-  {{1, "Linear falloff"}, {2, "No angle"}}),
+  {{1, "Linear falloff"}, {2, "Even on slanted walls"}}),
 D("misc_model", "Models and portals", "", "Static model placed in the map (models/mapobjects)", false, true, {-16, -16, -16}, {16, 16, 16}, {0.8, 0.7, 0.55},
   {}, "", 1, false,
   {{"model", KeyType::Model, "", "The model, a path under models/"}, {"modelscale", KeyType::Number, "1", "Its size times this"}, {"angle", KeyType::Angle, "", "The way it faces, degrees (-1 up, -2 down)"}},

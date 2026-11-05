@@ -96,6 +96,7 @@ int foundAt;						// the highlighted row: Enter does it
 Rml::String lastSearch, lastKeymap, lastKeymapNote, lastKeyHelp;
 Rml::String lastPanes;	// the panes' names as last shown
 std::string colorGridKey;	// the color key whose full grid of colors shows
+bool advancedOpen;			// a light's raw keys shown (Advanced: all keys)
 // the materials the player keeps at hand (<fs_homepath>/oz/editor/favorites.txt, a name a line)
 std::vector<std::string> favorites;
 bool favoritesLoaded;
@@ -642,6 +643,66 @@ struct LightSlide {
 	int at = 0;
 } lightSlide;
 
+// What an entity is, in words, for its panel's title: a light with a target is a spotlight, an
+// info_null a light aims at is its aim point, a pickup goes by its name; else by its class
+Rml::String EntityTitle( const oz::ed::Doc &d, oz::ed::Id id ) {
+	static const std::map<std::string, std::string> names = { { "info_player_start", "PLAYER SPAWN" }, { "info_player_deathmatch", "PLAYER SPAWN" },
+		{ "info_player_intermission", "INTERMISSION CAMERA" }, { "info_null", "AIM POINT" }, { "info_notnull", "TARGET POINT" },
+		{ "item_botroam", "BOT ROAM SPOT" }, { "info_camp", "BOT CAMP SPOT" }, { "path_corner", "TRAIN STOP" }, { "target_position", "TARGET POINT" },
+		{ "misc_teleporter_dest", "TELEPORTER EXIT" }, { "trigger_teleport", "TELEPORTER TRIGGER" }, { "target_teleporter", "TELEPORTER ACTION" },
+		{ "trigger_push", "JUMP PAD TRIGGER" }, { "target_push", "PUSHER" }, { "func_door", "DOOR" }, { "func_button", "BUTTON" }, { "func_plat", "LIFT" },
+		{ "func_rotating", "SPINNING BRUSH" }, { "func_bobbing", "BOBBING BRUSH" }, { "func_pendulum", "PENDULUM" }, { "func_train", "TRAIN" },
+		{ "func_static", "STILL BRUSH MODEL" }, { "func_timer", "TIMER" }, { "func_group", "GROUP" }, { "trigger_always", "AT MAP START" },
+		{ "trigger_multiple", "TRIGGER" }, { "trigger_hurt", "HURT ZONE" }, { "target_give", "GIVE ITEMS" }, { "target_remove_powerups", "TAKE POWERUPS" },
+		{ "target_delay", "DELAY" }, { "target_relay", "RELAY" }, { "target_kill", "KILL" }, { "target_speaker", "SPEAKER" }, { "target_print", "MESSAGE" },
+		{ "target_laser", "LASER" }, { "target_score", "SCORE" }, { "target_location", "LOCATION NAME" }, { "light", "LIGHT" }, { "misc_model", "MODEL" },
+		{ "misc_portal_surface", "MIRROR OR PORTAL" }, { "misc_portal_camera", "PORTAL CAMERA" }, { "shooter_rocket", "ROCKET SHOOTER" },
+		{ "shooter_grenade", "GRENADE SHOOTER" }, { "shooter_plasma", "PLASMA SHOOTER" } };
+	const oz::ed::Object *o = d.get( id );
+	if ( !o ) {
+		return "KEYS";
+	}
+	const std::string cn = o->entity.classname();
+	if ( cn == "light" && !o->entity.get( "target" ).empty() ) {
+		return "SPOTLIGHT";
+	}
+	if ( cn == "info_null" ) {
+		const std::string name = o->entity.get( "targetname" );
+		for ( oz::ed::Id e : d.ids_of( oz::ed::Kind::Entity ) ) {
+			const oz::ed::Entity &en = d.get( e )->entity;
+			if ( !name.empty() && en.classname() == "light" && en.get( "target" ) == name ) {
+				return "SPOTLIGHT AIM POINT";
+			}
+		}
+	}
+	const auto it = names.find( cn );
+	if ( it != names.end() ) {
+		return it->second;
+	}
+	const oz::ed::EntityDef *def = oz::ed::entity_def( cn );
+	if ( def && def->item ) {
+		return Rml::StringUtilities::ToUpper( def->help );	// a pickup's help is its name
+	}
+	if ( def && def->section == "Spawns" ) {
+		return "PLAYER SPAWN (" + Rml::StringUtilities::ToUpper( cn ) + ")";
+	}
+	return Rml::StringUtilities::ToUpper( cn );
+}
+
+// The match filters every spawned entity takes (ed_entdefs.cpp common_keys)
+bool MatchFilter( const std::string &k ) {
+	return k == "gametype" || k == "not_gametype" || k == "notfree" || k == "notteam" || k == "notsingle";
+}
+
+// An add-key chip's words: what a key does for the common ones, else its name
+Rml::String ChipLabel( const std::string &k ) {
+	static const std::map<std::string, std::string> labels = { { "target", "LINK TO" }, { "targetname", "NAME" },
+		{ "gametype", "ONLY IN THESE GAME TYPES" }, { "not_gametype", "NOT IN THESE GAME TYPES (CPMA)" }, { "notfree", "NOT IN FREE FOR ALL" },
+		{ "notteam", "NOT IN TEAM GAMES" }, { "notsingle", "NOT IN SINGLE PLAYER" } };
+	const auto it = labels.find( k );
+	return it != labels.end() ? Rml::String( it->second ) : Rml::StringUtilities::ToUpper( k );
+}
+
 Rml::String LightSlideText( const std::string &what, double v, const oz::ed::LightNumbers &n ) {
 	if ( what == "range" && v <= 0 ) {
 		const double i = std::fabs( n.intensity * n.scale );
@@ -657,6 +718,16 @@ Rml::String LightSliders( const oz::ed::Object *o ) {
 	const oz::ed::LightNumbers n = oz::ed::light_numbers( o->entity );
 	const bool spot = !o->entity.get( "target" ).empty();
 	Rml::String out = "<div class=\"sub\">LIGHT</div>";
+	// its color: the palette that's under the key's row, here with a name
+	if ( const oz::ed::KeyDef *kd = oz::ed::key_def( "light", "_color" ) ) {
+		Rml::String c = TypedControls( "_color", *kd, o->entity.get( "_color", "1 1 1" ) );
+		const Rml::String nox = "<span class=\"nox\"></span>";
+		const size_t at = c.find( nox );
+		if ( at != Rml::String::npos ) {
+			c.replace( at, nox.size(), "<span class=\"lbl\">Color</span>" );
+		}
+		out += c;
+	}
 	auto slider = [&]( const char *what, const char *label, double lo, double hi, double step, double v, const std::string &hint ) {
 		const Rml::String w = what;
 		out += "<div class=\"row lsl\"><span class=\"lbl\">" + Rml::String( label ) + "</span><input type=\"range\" class=\"slider\" id=\"ed-ls-" + w +
@@ -670,8 +741,14 @@ Rml::String LightSliders( const oz::ed::Object *o ) {
 		"All the way left is Auto: it fades as real light does, further the brighter it is" );
 	if ( spot ) {
 		slider( "cone", "Cone", 8, 512, 8, atof( o->entity.get( "radius", "64" ).c_str() ),
-			"Cone: the spotlight's radius where it meets its target (the \"radius\" key, 64 by default)" );
+			"Cone: how wide the spotlight is where it meets its aim point (the \"radius\" key, 64 by default)" );
 	}
+	// a point light shines every way, a spotlight one way: at its aim point, a marker to drag
+	out += "<div class=\"row\">" + Rml::String( spot
+		? "<button class=\"tb\" data-action=\"point_light\" onclick=\"append ed point_light\">BACK TO A POINT LIGHT</button>"
+		  "<span class=\"lnote\">A spotlight: drag its aim point (" + Enc( o->entity.get( "target" ) ) + ") to aim it</span>"
+		: "<button class=\"tb\" data-action=\"spotlight\" onclick=\"append ed spotlight\">MAKE SPOTLIGHT</button>"
+		  "<span class=\"lnote\">Shines every way. A spotlight shines one way, at a point you drag</span>" ) + "</div>";
 	return out;
 }
 
@@ -935,9 +1012,6 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 			}
 		}
 		const oz::ed::Object *one = ents.size() == 1 ? d.get( ents[0] ) : nullptr;
-		Rml::String title = ents.size() > 1 ? "KEYS OF " + std::to_string( ents.size() ) + " ENTITIES"
-			: ents.size() == 1 && ents[0] == d.worldspawn() ? Rml::String( "MAP KEYS" ) : one ? Rml::StringUtilities::ToUpper( one->entity.classname() ) : "KEYS";
-		SetRml( doc, "ed-ent-title", Enc( title ) );
 
 		// the class, when they share one: what it is, its spawnflags, the keys it takes that aren't set
 		std::string cn = one ? one->entity.classname() : "";
@@ -947,7 +1021,13 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 			}
 		}
 		const oz::ed::EntityDef *def = cn == "*" ? nullptr : oz::ed::entity_def( cn );
-		SetRml( doc, "ed-ent-help", def ? Enc( def->help + ( def->mod.empty() ? "" : " (" + def->mod + ")" ) ) : Rml::String() );
+		// the title in words (the class name leads the line under it, for those who know them)
+		Rml::String title = ents.size() > 1 ? ( cn == "*" ? "KEYS OF " + std::to_string( ents.size() ) + " ENTITIES"
+			: std::to_string( ents.size() ) + " x " + EntityTitle( d, ents[0] ) )
+			: ents.size() == 1 && ents[0] == d.worldspawn() ? Rml::String( "MAP KEYS" ) : one ? EntityTitle( d, ents[0] ) : "KEYS";
+		SetRml( doc, "ed-ent-title", Enc( title ) );
+		SetRml( doc, "ed-ent-help", def ? Enc( ( cn == "worldspawn" || Rml::StringUtilities::ToUpper( cn ) == title ? "" : cn + ": " ) + def->help + ( def->mod.empty() ? "" : " (" + def->mod + ")" ) )
+			: Rml::String() );
 		// a jump pad's throw, in numbers, or why it does nothing: the pad's own (its pieces, or its target, selected)
 		oz::ed::Id pad = 0;
 		for ( oz::ed::Id e : ents ) {
@@ -1025,11 +1105,15 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		Rml::String flags;
 		if ( def && ents[0] != d.worldspawn() ) {
 			for ( const oz::ed::FlagDef &f : def->flags ) {
+				if ( cn == "light" && f.bit == 1 ) {
+					continue;	// linear falloff: the Range slider's own
+				}
 				bool on = true;
 				for ( oz::ed::Id e : ents ) {
 					on &= ( atoi( d.get( e )->entity.get( "spawnflags", "0" ).c_str() ) & f.bit ) != 0;
 				}
-				flags += "<button class=\"chip flag" + Rml::String( on ? " on" : "" ) + "\" data-hint=\"Spawnflag " + std::to_string( f.bit ) +
+				const std::string what = cn == "light" && f.bit == 2 ? "Walls the light meets at a slant are lit as brightly as walls facing it. " : "";
+				flags += "<button class=\"chip flag" + Rml::String( on ? " on" : "" ) + "\" data-hint=\"" + Enc( what ) + "Spawnflag " + std::to_string( f.bit ) +
 					": click turns it " + ( on ? "off" : "on" ) + "\" onclick=\"append ed flag " + std::to_string( f.bit ) + "\">" +
 					Enc( Rml::StringUtilities::ToUpper( f.label ) ) + "</button>";
 			}
@@ -1041,13 +1125,32 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 			if ( ents[0] != d.worldspawn() ) {
 				known.insert( known.end(), oz::ed::common_keys().begin(), oz::ed::common_keys().end() );
 			}
+			// a light: its sliders and spotlight button stand for its own keys, and the match filters never
+			// reach it (the compile bakes it into the map; the game never spawns it)
+			const bool light = cn == "light";
+			const bool baked = light || cn == "info_null" || cn == "misc_model";	// the compile takes these out of the map
 			std::set<std::string> listed;
+			Rml::String filters;
 			for ( const oz::ed::KeyDef &k : known ) {
 				if ( count.count( k.name ) || !listed.insert( k.name ).second ) {
 					continue;
 				}
-				adds += "<button class=\"chip\" data-hint=\"" + Enc( k.name + ": " + k.help + ( k.def.empty() ? "" : " (the game's default: " + k.def + ")" ) ) +
-					"\" onclick=\"append ed key_new " + Enc( k.name ) + "\">+ " + Enc( Rml::StringUtilities::ToUpper( k.name ) ) + "</button>";
+				const bool filter = MatchFilter( k.name );
+				if ( ents[0] == d.worldspawn() && ( k.name == "ambient" || k.name == "_color" ) ) {
+					continue;	// Sky and sun's ambient light and its color
+				}
+				if ( ( baked && filter ) || ( cn == "info_null" && k.name == "target" ) ) {
+					continue;
+				}
+				if ( light && ( filter || k.name == "light" || k.name == "_color" || k.name == "radius" || k.name == "target" || k.name == "targetname" ) ) {
+					continue;
+				}
+				( filter ? filters : adds ) += "<button class=\"chip\" data-hint=\"" + Enc( k.name + ": " + k.help +
+					( k.def.empty() ? "" : " (the game's default: " + k.def + ")" ) ) + "\" onclick=\"append ed key_new " + Enc( k.name ) + "\">+ " +
+					Enc( ChipLabel( k.name ) ) + "</button>";
+			}
+			if ( !filters.empty() ) {
+				adds += "<div class=\"chipsub\">ONLY IN SOME MATCHES</div><p class=\"chipnote\">Leave it out of some game types, or keep it to some</p>" + filters;
 			}
 		}
 		if ( ents.size() == 1 && ents[0] == d.worldspawn() ) {
@@ -1063,9 +1166,19 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		Show( doc, "ed-toworld", owned );
 
 		// a light: its sliders over its keys
-		Rml::String rml = cn == "light" && !ents.empty() ? LightSliders( d.get( ents[0] ) ) : Rml::String();
+		// a light: its controls over its keys, which fold away under Advanced (all of them, with Add key)
+		const bool fold = cn == "light" && !ents.empty();
+		Rml::String rml = fold ? LightSliders( d.get( ents[0] ) ) : Rml::String();
+		if ( fold ) {
+			rml += "<div class=\"row\"><button class=\"tb adv\" id=\"ed-advanced\" data-hint=\"" +
+				Rml::String( advancedOpen ? "Hides the light's keys again" : "Every key the light has, as the .map file writes them, to change by hand" ) +
+				"\" onclick=\"append ed panel advanced\">" + ( advancedOpen ? "- " : "+ " ) + "ADVANCED: ALL KEYS (" + std::to_string( order.size() ) + ")</button></div>";
+		}
+		const bool rawKeys = !fold || advancedOpen;
+		Show( doc, "ed-addrow", rawKeys );
+		Show( doc, "ed-addrow2", rawKeys );
 		shownKeys = order;
-		for ( size_t i = 0; i < order.size(); i++ ) {
+		for ( size_t i = 0; rawKeys && i < order.size(); i++ ) {
 			const std::string &k = order[i];
 			const bool mixed = differ.count( k ) || count[k] < int( ents.size() );
 			const Rml::String idx = std::to_string( i );
@@ -1079,7 +1192,7 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 				"\" data-apply=\"key_name_typed\" data-key-index=\"" + idx + "\" data-action=\"key_rename\"/><input type=\"text\" class=\"text val\" id=\"ed-v-" + idx +
 				"\"" + hint + " value=\"" + ( mixed ? "" : Enc( value[k] ) ) + "\"" + ( mixed ? " placeholder=\"(differs)\"" : "" ) + " data-apply=\"key_typed\" data-key-index=\"" + idx +
 				"\" data-action=\"key_set\"/></div>";
-			if ( kd ) {
+			if ( kd && !( fold && k == "_color" ) ) {	// a light's color is with its controls
 				rml += TypedControls( k, *kd, mixed ? "" : value[k] );
 			}
 		}
@@ -2758,6 +2871,9 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		UvApply( atof( args[1].c_str() ) * uvScale, atof( args[2].c_str() ) * uvScale );
 	} else if ( a == "uv_zoom" && args.size() > 1 ) {
 		uvScale = std::clamp( uvScale * atof( args[1].c_str() ), 8.0, 4000.0 );
+	} else if ( a == "advanced" ) {
+		advancedOpen = !advancedOpen;
+		lastInspect.clear();
 	} else if ( a == "colors" && args.size() > 1 ) {
 		colorGridKey = colorGridKey == args[1] ? "" : args[1];
 		lastInspect.clear();	// the key rows made again with the grid, or without

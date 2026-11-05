@@ -27,6 +27,7 @@ server_t		sv;					// local server
 vm_t			*gvm = NULL;		// game virtual machine
 
 cvar_t	*sv_fps;				// time rate for running non-clients
+cvar_t	*sv_ozEqDelays;		// Oz: Ratmod's ping equalizer (the game's g_pingEqualizer sets it)
 cvar_t	*sv_timeout;			// seconds without any message
 cvar_t	*sv_zombietime;			// seconds to sink messages after disconnect
 cvar_t	*sv_rconPassword;		// password for remote server commands
@@ -1644,6 +1645,28 @@ void SV_Frame( int msec ) {
 
 	// reset current and build new snapshot on first query
 	SV_IssueNewSnapshot();
+
+	// Oz: Ratmod's ping equalizer: the game's delay for each client's packets (g_pingEqualizer)
+	if ( sv_ozEqDelays->modified ) {
+		const char	*s = sv_ozEqDelays->string;
+		int			i;
+		sv_ozEqDelays->modified = qfalse;
+		for ( i = 0; i < sv.maxclients; i++ ) {
+			svs.clients[i].ozEqDelay = 0;
+			while ( *s == ' ' ) {
+				s++;
+			}
+			if ( *s ) {
+				svs.clients[i].ozEqDelay = atoi( s );
+				if ( svs.clients[i].ozEqDelay < 0 || svs.clients[i].ozEqDelay > 500 ) {
+					svs.clients[i].ozEqDelay = 0;
+				}
+				while ( *s && *s != ' ' ) {
+					s++;
+				}
+			}
+		}
+	}
 
 	// send messages back to the clients
 	SV_SendClientMessages();

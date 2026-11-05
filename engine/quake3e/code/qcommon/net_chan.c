@@ -679,6 +679,8 @@ void NET_FlushPacketQueue( int time_diff )
 }
 
 
+int net_ozSendDelay;	// Oz: Ratmod's ping equalizer (sv_net_chan.c sets it around a client's sends)
+
 void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t *to ) {
 
 	// sequenced packets are shown in netchan, so just show oob
@@ -697,8 +699,8 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t
 		NET_QueuePacket( sock, length, data, to, cl_packetdelay->integer );
 	} else
 #endif
-	if ( sock == NS_SERVER && sv_packetdelay->integer > 0 ) {
-		NET_QueuePacket( sock, length, data, to, sv_packetdelay->integer );
+	if ( sock == NS_SERVER && sv_packetdelay->integer + net_ozSendDelay > 0 ) {
+		NET_QueuePacket( sock, length, data, to, sv_packetdelay->integer + net_ozSendDelay );
 	}
 #ifndef DEDICATED
 	else if ( to->type == NA_LOOPBACK ) {

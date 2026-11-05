@@ -1,0 +1,2190 @@
+Oz: Ratmod's lag compensation (ratmod.github.io, rdntcntrl/ratoa_gamecode, GPL-2.0) on top of patch 0029's Unlagged,
+fitted to Oz's game. Projectiles are delagged: a rocket, plasma ball, grenade or BFG shot starts at the shooter's
+command time (less g_delagMissileBaseNudge, 10 ms), at most g_delagMissileMaxLatency (500) ms back, and its flight up
+to the last server frame runs a frame at a time with the others where the shooter saw them (G_MissileRunDelag), then
+at his next command (g_delagMissileImmediateRun 2). The shooter's cgame draws his own missile the moment he fires,
+where the server has it, until the server's comes and takes over by launch time (cg_unlagged.c), and draws its
+explosion at once (cg_predictExplosions), dropping the server's event for it; a wrong one is taken back. An exploded
+missile stays a missile for its event (s.time2, origin2, otherEntityNum2) while every player's cgame knows that
+(cg_ozDelagVersion in the userinfo), else it turns into an event entity as id's did. Others' missiles are drawn ahead
+by cg_projectileNudge or the ping they came at (cg_projectileNudgeAuto). Teleporters with one destination tell the
+clients where they go (G_SetTeleporterDestinations), and the cgame moves the player through them as he steps in
+(cg_predictTeleport). The scoreboard shows the true ping (g_truePing). g_pingEqualizer 1 holds every player's
+packets so all play at the highest ping (the engine's sv_ozEqDelays; a peer-to-peer host loses his zero ping),
+g_lagLightning 1 gives the lightning gun 50 ms, g_allowTimenudge 0 turns cl_timeNudge and cg_cmdTimeNudge off,
+g_delagAllowHitsAfterTele 0 keeps patch 0029's history reset at a teleport, cg_predictItemsNearPlayers 0 (the
+default) predicts no pickup with someone else within 192 units, and cg_predictWeapons draws the weapon bar from the
+prediction. The server tells the cgame its frame rate (g_svFps) and its missile speeds (g_ozMissileSpeeds, classic or
+Quake Live's). Left out: Ratmod's optimized prediction (it only saves time, and Oz's prediction is its own), its
+gametypes and everything else that isn't lag. Debug lines: g_delagMissileDebug 1 on the server, cg_debugDelag 1 in
+the cgame.
+
+diff --git a/code/cgame/cg_ents.c b/code/cgame/cg_ents.c
+index 5a68ea8..520b8c6 100644
+--- a/code/cgame/cg_ents.c
++++ b/code/cgame/cg_ents.c
+@@ -417,6 +417,11 @@ static void CG_Missile( centity_t *cent ) {
+ 	const weaponInfo_t		*weapon;
+ //	int	col;
+ 
++	// Oz: Ratmod's predicted missiles: the server's takes over from the predicted one, and a wrongly
++	// predicted explosion is taken back (cg_unlagged.c)
++	CG_RemovePredictedMissile( cent );
++	CG_RecoverMissile( cent );
++
+ 	s1 = &cent->currentState;
+ 	if ( s1->weapon >= WP_NUM_WEAPONS ) {
+ 		s1->weapon = 0;
+@@ -426,12 +431,25 @@ static void CG_Missile( centity_t *cent ) {
+ 	// calculate the axis
+ 	VectorCopy( s1->angles, cent->lerpAngles);
+ 
++	if ( cent->missileStatus.missileFlags & MF_TRAILFINISHED ) {
++		return;	// Oz: its explosion was drawn, and its trail up to it
++	}
++
+ 	// add trails
+ 	if ( weapon->missileTrailFunc ) 
+ 	{
+ 		weapon->missileTrailFunc( cent, weapon );
+ 	}
+ 	CG_OzMissileTrail( cent );	// Oz: the remade glowing trails
++
++	// Oz: Ratmod's: a missile whose explosion was drawn, or that the server says went off, isn't drawn any more
++	if ( cent->missileStatus.missileFlags & MF_EXPLODED ) {
++		cent->missileStatus.missileFlags |= MF_TRAILFINISHED;
++		return;
++	}
++	if ( CG_MissileExploded( s1 ) ) {
++		return;
++	}
+ /*
+ 	if ( cent->currentState.modelindex == TEAM_RED ) {
+ 		col = 1;
+diff --git a/code/cgame/cg_event.c b/code/cgame/cg_event.c
+index 921945e..2442078 100644
+--- a/code/cgame/cg_event.c
++++ b/code/cgame/cg_event.c
+@@ -966,22 +966,45 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
+ 	//
+ 	// missile impacts
+ 	//
++	// Oz: Ratmod's predicted explosions: one drawn already about there isn't drawn again, and a missile's
++	// explosion is kept with it (cg_unlagged.c)
+ 	case EV_MISSILE_HIT:
+ 		DEBUGNAME("EV_MISSILE_HIT");
++		if ( CG_ExplosionPredicted( cent, MF_HITPLAYER, position, es->otherEntityNum ) ) {
++			CG_UpdateMissileStatus( &cent->missileStatus, MF_EXPLOSIONCONFIRMED | MF_EXPLODED | MF_HITPLAYER, position, es->otherEntityNum );
++			break;
++		}
+ 		ByteToDir( es->eventParm, dir );
+-		CG_MissileHitPlayer( es->weapon, position, dir, es->otherEntityNum );
++		CG_MissileHitPlayerEx( es->weapon, position, dir, es->otherEntityNum, CG_EventMissileStatus( cent ) );
++		if ( es->eType == ET_MISSILE ) {
++			CG_UpdateMissileStatus( &cent->missileStatus, MF_EXPLOSIONCONFIRMED | MF_EXPLODED | MF_HITPLAYER, position, es->otherEntityNum );
++		}
+ 		break;
+ 
+ 	case EV_MISSILE_MISS:
+ 		DEBUGNAME("EV_MISSILE_MISS");
++		if ( CG_ExplosionPredicted( cent, MF_HITWALL, position, ENTITYNUM_WORLD ) ) {
++			CG_UpdateMissileStatus( &cent->missileStatus, MF_EXPLOSIONCONFIRMED | MF_EXPLODED | MF_HITWALL, position, ENTITYNUM_WORLD );
++			break;
++		}
+ 		ByteToDir( es->eventParm, dir );
+-		CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_DEFAULT );
++		CG_MissileHitWallEx( es->weapon, 0, position, dir, IMPACTSOUND_DEFAULT, CG_EventMissileStatus( cent ) );
++		if ( es->eType == ET_MISSILE ) {
++			CG_UpdateMissileStatus( &cent->missileStatus, MF_EXPLOSIONCONFIRMED | MF_EXPLODED | MF_HITWALL, position, ENTITYNUM_WORLD );
++		}
+ 		break;
+ 
+ 	case EV_MISSILE_MISS_METAL:
+ 		DEBUGNAME("EV_MISSILE_MISS_METAL");
++		if ( CG_ExplosionPredicted( cent, MF_HITWALLMETAL, position, ENTITYNUM_WORLD ) ) {
++			CG_UpdateMissileStatus( &cent->missileStatus, MF_EXPLOSIONCONFIRMED | MF_EXPLODED | MF_HITWALLMETAL, position, ENTITYNUM_WORLD );
++			break;
++		}
+ 		ByteToDir( es->eventParm, dir );
+-		CG_MissileHitWall( es->weapon, 0, position, dir, IMPACTSOUND_METAL );
++		CG_MissileHitWallEx( es->weapon, 0, position, dir, IMPACTSOUND_METAL, CG_EventMissileStatus( cent ) );
++		if ( es->eType == ET_MISSILE ) {
++			CG_UpdateMissileStatus( &cent->missileStatus, MF_EXPLOSIONCONFIRMED | MF_EXPLODED | MF_HITWALLMETAL, position, ENTITYNUM_WORLD );
++		}
+ 		break;
+ 
+ 	case EV_RAILTRAIL:
+@@ -1289,8 +1312,13 @@ void CG_CheckEvents( centity_t *cent ) {
+ 		}
+ 	}
+ 
+-	// calculate the position at exactly the frame time
+-	BG_EvaluateTrajectory( &cent->currentState.pos, cg.snap->serverTime, cent->lerpOrigin );
++	if ( CG_MissileExploded( &cent->currentState ) ) {
++		// Oz: Ratmod's: an exploded missile's event, where the server says it went off
++		VectorCopy( cent->currentState.origin2, cent->lerpOrigin );
++	} else {
++		// calculate the position at exactly the frame time
++		BG_EvaluateTrajectory( &cent->currentState.pos, cg.snap->serverTime, cent->lerpOrigin );
++	}
+ 	CG_SetEntitySoundPosition( cent );
+ 
+ 	CG_EntityEvent( cent, cent->lerpOrigin );
+diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
+index f91772d..6526ca1 100644
+--- a/code/cgame/cg_local.h
++++ b/code/cgame/cg_local.h
+@@ -161,6 +161,24 @@ typedef struct {
+ 
+ // centity_t have a direct corespondence with gentity_t in the game, but
+ // only the entityState_t is directly communicated to the cgame
++// Oz: Ratmod's predicted missiles (cg_unlagged.c): what became of a missile, predicted or confirmed
++#define MF_EXPLODED				1
++#define MF_HITPLAYER			2
++#define MF_HITWALL				4
++#define MF_HITWALLMETAL			8
++#define MF_DISAPPEARED			16
++#define MF_REMOVEDPMISSILE		32
++#define MF_TRAILFINISHED		64
++#define MF_EXPLOSIONCONFIRMED	128
++
++typedef struct predictedMissileStatus_s {
++	int		missileFlags;
++	int		explosionTime;
++	vec3_t	explosionPos;
++	int		hitEntity;
++	int		expLEntityID;		// the local entity drawing its explosion
++} predictedMissileStatus_t;
++
+ typedef struct centity_s {
+ 	entityState_t	currentState;	// from cg.frame
+ 	entityState_t	nextState;		// from cg.nextFrame, if available
+@@ -195,6 +213,10 @@ typedef struct centity_s {
+ 	// exact interpolated position of entity on this frame
+ 	vec3_t			lerpOrigin;
+ 	vec3_t			lerpAngles;
++
++	// Oz: Ratmod's predicted missiles
++	int				projectileNudge;	// the ping as a missile came (cg_projectileNudgeAuto)
++	predictedMissileStatus_t	missileStatus;
+ } centity_t;
+ 
+ 
+@@ -288,8 +310,22 @@ typedef struct localEntity_s {
+ 	float			ozGravity;		// units/s^2 down (up when negative)
+ 	float			ozDrag;			// units/s lost each second
+ 	float			ozFade;			// beams: above 1, they fade faster
++
++	int				id;				// Oz: Ratmod's: a wrongly predicted explosion is removed by it
+ } localEntity_t;
+ 
++// Oz: Ratmod's predicted missiles: the player's own, drawn from the moment he fires until the server's comes
++#define MAX_PREDICTED_MISSILES	32
++
++typedef struct predictedMissile_s {
++	struct predictedMissile_s	*prev, *next;
++	int				weapon;
++	trajectory_t	pos;
++	int				removeTime;		// gone by then even if the server's never came
++	predictedMissileStatus_t	status;
++	refEntity_t		refEntity;
++} predictedMissile_t;
++
+ //======================================================================
+ 
+ 
+@@ -513,6 +549,7 @@ typedef struct {
+ 
+ 	// prediction state
+ 	qboolean	hyperspace;				// true if prediction has hit a trigger_teleport
++	int			predictedTeleports;		// Oz: Ratmod's: teleports predicted (one a prediction until the server confirms)
+ 	playerState_t	predictedPlayerState;
+ 	centity_t		predictedPlayerEntity;
+ 	qboolean	validPPS;				// clear until the first call to CG_PredictPlayerState
+@@ -1115,6 +1152,13 @@ typedef struct {
+ 	int acceptLeader;
+ 	char acceptVoice[MAX_NAME_LENGTH];
+ 
++	// Oz: Ratmod's lag compensation, from the serverinfo
++	int				sv_fps;					// g_svFps (20 when it isn't there)
++	qboolean		predictMissiles;		// g_delagMissiles and g_predictMissiles
++	int				delagMissileMaxLatency;
++	int				predictedMissileNudge;	// g_delagMissileBaseNudge
++	qboolean		allowTimenudge;
++
+ 	// media
+ 	cgMedia_t		media;
+ 
+@@ -1191,6 +1235,15 @@ extern	vmCvar_t		cg_delag;
+ extern	vmCvar_t		cg_cmdTimeNudge;
+ extern	vmCvar_t		cg_projectileNudge;
+ extern	vmCvar_t		cg_debugDelag;
++extern	vmCvar_t		cg_ratPredictMissiles;	// Oz: Ratmod's (cg_unlagged.c)
++extern	vmCvar_t		cg_predictExplosions;
++extern	vmCvar_t		cg_predictPlayerExplosions;
++extern	vmCvar_t		cg_delagProjectileTrail;
++extern	vmCvar_t		cg_projectileNudgeAuto;
++extern	vmCvar_t		cg_predictItemsNearPlayers;
++extern	vmCvar_t		cg_predictTeleport;
++extern	vmCvar_t		cg_predictWeapons;
++extern	vmCvar_t		cg_ozDelagVersion;
+ extern	vmCvar_t		cg_teamChatTime;
+ extern	vmCvar_t		cg_teamChatHeight;
+ extern	vmCvar_t		cg_stats;
+@@ -1412,6 +1465,8 @@ void CG_RegisterItemVisuals( int itemNum );
+ 
+ void CG_FireWeapon( centity_t *cent );
+ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, impactSound_t soundType );
++void CG_MissileHitWallEx( int weapon, int clientNum, vec3_t origin, vec3_t dir, impactSound_t soundType, predictedMissileStatus_t *missileStatus );
++void CG_MissileHitPlayerEx( int weapon, vec3_t origin, vec3_t dir, int entityNum, predictedMissileStatus_t *missileStatus );
+ void CG_MissileHitPlayer( int weapon, vec3_t origin, vec3_t dir, int entityNum );
+ void CG_ShotgunFire( entityState_t *es );
+ void CG_Bullet( vec3_t origin, int sourceEntityNum, vec3_t normal, qboolean flesh, int fleshEntityNum );
+@@ -1424,6 +1479,22 @@ void CG_RailTrail( clientInfo_t *ci, vec3_t start, vec3_t end );
+ qboolean CG_UnlaggedPredicted( const entityState_t *es, int shooter, int weapon );
+ void CG_PredictWeaponEffects( centity_t *cent );
+ void CG_ProjectileNudge( centity_t *cent );
++// Oz: Ratmod's predicted missiles
++void CG_InitPMissiles( void );
++void CG_AddPredictedMissiles( void );
++void CG_RemovePredictedMissile( centity_t *missile );
++void CG_RecoverMissile( centity_t *missile );
++qboolean CG_ExplosionPredicted( centity_t *cent, int checkFlags, vec3_t realExpOrigin, int realHitEnt );
++void CG_UpdateMissileStatus( predictedMissileStatus_t *pms, int addedFlags, vec3_t explosionOrigin, int hitEntity );
++void CG_RemoveOldMissileExplosion( predictedMissileStatus_t *pms );
++void CG_PredictedExplosion( trace_t *tr, int weapon, predictedMissile_t *predMissile, centity_t *missileEnt );
++int CG_MissileOwner( centity_t *missile );
++int CG_ProjectileNudgeTimeshift( centity_t *cent );
++int CG_ReliablePing( void );
++void CG_ParseRatServerinfo( const char *info );
++qboolean CG_MissileExploded( const entityState_t *es );
++int CG_MissileTrailTime( centity_t *cent );
++predictedMissileStatus_t *CG_EventMissileStatus( centity_t *cent );
+ 
+ void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi );
+ void CG_AddViewWeapon (playerState_t *ps);
+@@ -1450,6 +1521,7 @@ void	CG_ImpactMark( qhandle_t markShader,
+ void	CG_InitLocalEntities( void );
+ localEntity_t	*CG_AllocLocalEntity( void );
+ void	CG_FreeLocalEntity( localEntity_t *le );
++void	CG_FreeLocalEntityById( int id );	// Oz: Ratmod's
+ void	CG_AddLocalEntities( void );
+ 
+ //
+diff --git a/code/cgame/cg_localents.c b/code/cgame/cg_localents.c
+index 34d5b8b..b6d3c4d 100644
+--- a/code/cgame/cg_localents.c
++++ b/code/cgame/cg_localents.c
+@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ localEntity_t	cg_localEntities[MAX_LOCAL_ENTITIES];
+ localEntity_t	cg_activeLocalEntities;		// double linked list
+ localEntity_t	*cg_freeLocalEntities;		// single linked list
++static int		cg_localEntityId;			// Oz: Ratmod's: each local entity's id, never 0
+ 
+ /*
+ ===================
+@@ -48,6 +49,7 @@ void	CG_InitLocalEntities( void ) {
+ 	for ( i = 0 ; i < MAX_LOCAL_ENTITIES - 1 ; i++ ) {
+ 		cg_localEntities[i].next = &cg_localEntities[i+1];
+ 	}
++	CG_InitPMissiles();	// Oz: Ratmod's predicted missiles go with them
+ }
+ 
+ 
+@@ -65,6 +67,7 @@ void CG_FreeLocalEntity( localEntity_t *le ) {
+ 	le->prev->next = le->next;
+ 	le->next->prev = le->prev;
+ 
++	le->id = 0;
+ 	// the free list is only singly linked
+ 	le->next = cg_freeLocalEntities;
+ 	cg_freeLocalEntities = le;
+@@ -96,9 +99,29 @@ localEntity_t	*CG_AllocLocalEntity( void ) {
+ 	le->prev = &cg_activeLocalEntities;
+ 	cg_activeLocalEntities.next->prev = le;
+ 	cg_activeLocalEntities.next = le;
++	if ( ++cg_localEntityId == 0 ) {
++		++cg_localEntityId;
++	}
++	le->id = cg_localEntityId;
+ 	return le;
+ }
+ 
++// Oz: Ratmod's: frees the active local entity with this id (a wrongly predicted explosion), if it's still there
++void CG_FreeLocalEntityById( int id ) {
++	localEntity_t	*le, *next;
++
++	if ( !id ) {
++		return;
++	}
++	for ( le = cg_activeLocalEntities.next; le != &cg_activeLocalEntities; le = next ) {
++		next = le->next;
++		if ( le->id == id ) {
++			CG_FreeLocalEntity( le );
++			return;
++		}
++	}
++}
++
+ 
+ /*
+ ====================================================================================
+diff --git a/code/cgame/cg_main.c b/code/cgame/cg_main.c
+index 3ff3036..00d5919 100644
+--- a/code/cgame/cg_main.c
++++ b/code/cgame/cg_main.c
+@@ -300,6 +300,19 @@ static cvarTable_t cvarTable[] = {
+ 	{ &cg_cmdTimeNudge, "cg_cmdTimeNudge", "0", CVAR_ARCHIVE | CVAR_USERINFO },
+ 	{ &cg_projectileNudge, "cg_projectileNudge", "0", CVAR_ARCHIVE },
+ 	{ &cg_debugDelag, "cg_debugDelag", "0", 0 },
++	// Oz: Ratmod's (cg_unlagged.c, cg_predict.c): the player's own missiles and their explosions drawn as he fires
++	// (hits on players: 1 himself, 2 others too), trails drawn to where the missile is drawn, the others' missiles
++	// ahead by the ping they came at (1, or half of it with 2), items picked up near others predicted too,
++	// teleporters predicted and the weapon bar from the prediction
++	{ &cg_ratPredictMissiles, "cg_ratPredictMissiles", "1", CVAR_ARCHIVE },
++	{ &cg_predictExplosions, "cg_predictExplosions", "1", CVAR_ARCHIVE },
++	{ &cg_predictPlayerExplosions, "cg_predictPlayerExplosions", "0", CVAR_ARCHIVE },
++	{ &cg_delagProjectileTrail, "cg_delagProjectileTrail", "1", CVAR_ARCHIVE },
++	{ &cg_projectileNudgeAuto, "cg_projectileNudgeAuto", "0", CVAR_ARCHIVE },
++	{ &cg_predictItemsNearPlayers, "cg_predictItemsNearPlayers", "0", CVAR_ARCHIVE },
++	{ &cg_predictTeleport, "cg_predictTeleport", "1", CVAR_ARCHIVE },
++	{ &cg_predictWeapons, "cg_predictWeapons", "1", CVAR_ARCHIVE },
++	{ &cg_ozDelagVersion, "cg_ozDelagVersion", "1", CVAR_USERINFO | CVAR_ROM },
+ #ifdef MISSIONPACK
+ 	{ &cg_redTeamName, "g_redteam", DEFAULT_REDTEAM_NAME, CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_USERINFO },
+ 	{ &cg_blueTeamName, "g_blueteam", DEFAULT_BLUETEAM_NAME, CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_USERINFO },
+diff --git a/code/cgame/cg_oz_fx.c b/code/cgame/cg_oz_fx.c
+index 4ff0095..7653c82 100644
+--- a/code/cgame/cg_oz_fx.c
++++ b/code/cgame/cg_oz_fx.c
+@@ -1722,6 +1722,7 @@ plasma and the BFG, beside id's smoke.
+ =================
+ */
+ void CG_OzMissileTrail( centity_t *cent ) {
++	const int	now = CG_MissileTrailTime( cent );	// Oz: Ratmod's: to the explosion, or drawn ahead
+ 	entityState_t *es = &cent->currentState;
+ 	int step, life, t;
+ 	float radius, endRadius;
+@@ -1734,7 +1735,7 @@ void CG_OzMissileTrail( centity_t *cent ) {
+ 		refEntity_t re;
+ 		vec3_t back;
+ 		memset( &re, 0, sizeof( re ) );
+-		BG_EvaluateTrajectory( &es->pos, cg.time, re.origin );
++		BG_EvaluateTrajectory( &es->pos, now, re.origin );
+ 		VectorCopy( es->pos.trDelta, back );
+ 		if ( VectorNormalize( back ) > 0.0f && !( CG_PointContents( re.origin, -1 ) & CONTENTS_WATER ) ) {
+ 			VectorMA( re.origin, -20.0f, back, re.origin );
+@@ -1747,7 +1748,7 @@ void CG_OzMissileTrail( centity_t *cent ) {
+ 		}
+ 	}
+ 	if ( !oz.trails || es->pos.trType == TR_STATIONARY ) {
+-		cent->ozTrailTime = cg.time;
++		cent->ozTrailTime = now;
+ 		return;
+ 	}
+ 	switch ( es->weapon ) {
+@@ -1772,18 +1773,18 @@ void CG_OzMissileTrail( centity_t *cent ) {
+ 		VectorSet( c1, 0.22f, 0.07f, 0.02f );
+ 		endRadius = 3.0f;
+ 	}
+-	BG_EvaluateTrajectory( &es->pos, cg.time, at );
++	BG_EvaluateTrajectory( &es->pos, now, at );
+ 	if ( CG_PointContents( at, -1 ) & ( CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA ) ) {
+-		cent->ozTrailTime = cg.time;
++		cent->ozTrailTime = now;
+ 		return;
+ 	}
+-	if ( cent->ozTrailTime < cg.time - 500 || cent->ozTrailTime > cg.time ) {
+-		cent->ozTrailTime = cg.time - step;		// a missile just seen: start here, not at its launch
++	if ( cent->ozTrailTime < now - 500 || cent->ozTrailTime > now ) {
++		cent->ozTrailTime = now - step;		// a missile just seen: start here, not at its launch
+ 	}
+ 	c0[3] = c1[3] = 1.0f;
+ 	VectorCopy( c1, c2 );
+ 	c2[3] = 0.0f;
+-	for ( t = step * ( ( cent->ozTrailTime + step ) / step ); t <= cg.time; t += step ) {
++	for ( t = step * ( ( cent->ozTrailTime + step ) / step ); t <= now; t += step ) {
+ 		localEntity_t *le;
+ 		BG_EvaluateTrajectory( &es->pos, t, at );
+ 		le = OzParticle( at, vec3_origin, life, radius, endRadius, c0, c1, c2, shader, OZP_ADD );
+@@ -1791,7 +1792,7 @@ void CG_OzMissileTrail( centity_t *cent ) {
+ 		le->startTime = t;
+ 		le->endTime = t + life;
+ 	}
+-	cent->ozTrailTime = cg.time;
++	cent->ozTrailTime = now;
+ }
+ 
+ /*
+diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
+index ea5b367..7da2562 100644
+--- a/code/cgame/cg_predict.c
++++ b/code/cgame/cg_predict.c
+@@ -339,6 +339,21 @@ static void CG_TouchItem( centity_t *cent ) {
+ 		return;		// can't hold it
+ 	}
+ 
++	// Oz: Ratmod's: someone else within 192 units of it may get there first on the server, so it isn't predicted
++	// then (cg_predictItemsNearPlayers 1 predicts it anyway)
++	if ( !cg_predictItemsNearPlayers.integer ) {
++		int		i;
++		for ( i = 0; i < MAX_CLIENTS; i++ ) {
++			const centity_t *player = &cg_entities[i];
++			if ( i == cg.clientNum || !player->currentValid || player->currentState.eType != ET_PLAYER ) {
++				continue;
++			}
++			if ( Distance( cent->currentState.origin, player->lerpOrigin ) <= 192 ) {
++				return;
++			}
++		}
++	}
++
+ 	item = &bg_itemlist[ cent->currentState.modelindex ];
+ 
+ 	// Special case for flags.  
+@@ -372,7 +387,9 @@ static void CG_TouchItem( centity_t *cent ) {
+ 	// if it's a weapon, give them some predicted ammo so the autoswitch will work
+ 	if ( item->giType == IT_WEAPON ) {
+ 		cg.predictedPlayerState.stats[ STAT_WEAPONS ] |= 1 << item->giTag;
+-		if ( !cg.predictedPlayerState.ammo[ item->giTag ] ) {
++		if ( cg_predictWeapons.integer && cg.predictedPlayerState.ammo[ item->giTag ] < item->quantity ) {
++			cg.predictedPlayerState.ammo[ item->giTag ] = item->quantity;	// Oz: Ratmod's: the weapon's ammo, as the bar shows it
++		} else if ( !cg.predictedPlayerState.ammo[ item->giTag ] ) {
+ 			cg.predictedPlayerState.ammo[ item->giTag ] = 1;
+ 		}
+ 	}
+@@ -431,7 +448,32 @@ static void CG_TouchTriggerPrediction( void ) {
+ 		}
+ 
+ 		if ( ent->eType == ET_TELEPORT_TRIGGER ) {
+-			cg.hyperspace = qtrue;
++			// Oz: Ratmod's teleporter prediction: one with a single destination (the server's
++			// G_SetTeleporterDestinations) moves the player through it now, as TeleportPlayer will; one teleport a
++			// prediction until the server confirms it
++			if ( cg_predictTeleport.integer && ent->generic1 && !cg.predictedTeleports && !spectator ) {
++				int		j;
++
++				cg.predictedTeleports++;
++				if ( cg_debugDelag.integer ) {
++					CG_Printf( "delag: predicted teleport at %d to %.0f %.0f %.0f\n", cg_pmove.cmd.serverTime, ent->origin2[0], ent->origin2[1], ent->origin2[2] );
++				}
++				VectorCopy( ent->origin2, cg.predictedPlayerState.origin );
++				cg.predictedPlayerState.origin[2] += 1;
++				if ( ent->angles2[0] <= 999999.0f ) {
++					// spit the player out
++					AngleVectors( ent->angles2, cg.predictedPlayerState.velocity, NULL, NULL );
++					VectorScale( cg.predictedPlayerState.velocity, 400, cg.predictedPlayerState.velocity );
++					cg.predictedPlayerState.pm_time = 160;
++					cg.predictedPlayerState.pm_flags |= PMF_TIME_KNOCKBACK;
++					for ( j = 0; j < 3; j++ ) {
++						cg.predictedPlayerState.delta_angles[j] = ANGLE2SHORT( ent->angles2[j] ) - cg_pmove.cmd.angles[j];
++					}
++					VectorCopy( ent->angles2, cg.predictedPlayerState.viewangles );
++				}
++			} else {
++				cg.hyperspace = qtrue;
++			}
+ 		} else if ( ent->eType == ET_PUSH_TRIGGER ) {
+ 			BG_TouchJumpPad( &cg.predictedPlayerState, ent );
+ 		}
+@@ -505,6 +547,7 @@ void CG_PredictPlayerState( void ) {
+ 	qboolean	checked;
+ 
+ 	cg.hyperspace = qfalse;	// will be set if touching a trigger_teleport
++	cg.predictedTeleports = 0;	// Oz: Ratmod's teleporter prediction
+ 
+ 	// Oz: the last frame drew the player between two fixed steps: predict from where it really was
+ 	if ( cg.ozStepShift ) {
+diff --git a/code/cgame/cg_servercmds.c b/code/cgame/cg_servercmds.c
+index beb7739..c22f579 100644
+--- a/code/cgame/cg_servercmds.c
++++ b/code/cgame/cg_servercmds.c
+@@ -202,6 +202,7 @@ void CG_ParseServerinfo( void ) {
+ 	cgs.capturelimit = atoi( Info_ValueForKey( info, "capturelimit" ) );
+ 	cgs.timelimit = atoi( Info_ValueForKey( info, "timelimit" ) );
+ 	cgs.maxclients = atoi( Info_ValueForKey( info, "sv_maxclients" ) );
++	CG_ParseRatServerinfo( info );	// Oz: Ratmod's lag compensation
+ 	mapname = Info_ValueForKey( info, "mapname" );
+ 	Com_sprintf( cgs.mapname, sizeof( cgs.mapname ), "maps/%s.bsp", mapname );
+ 	Q_strncpyz( cgs.redTeam, Info_ValueForKey( info, "g_redTeam" ), sizeof(cgs.redTeam) );
+diff --git a/code/cgame/cg_snapshot.c b/code/cgame/cg_snapshot.c
+index ce5faca..d5a966b 100644
+--- a/code/cgame/cg_snapshot.c
++++ b/code/cgame/cg_snapshot.c
+@@ -40,6 +40,15 @@ static void CG_ResetEntity( centity_t *cent ) {
+ 	}
+ 
+ 	cent->trailTime = cg.snap->serverTime;
++	if ( cent->currentState.eType == ET_MISSILE ) {
++		// Oz: Ratmod's: a missile's trail from its launch (it may start before this snapshot), its own ping,
++		// and nothing predicted about it yet
++		if ( cgs.predictMissiles && cent->currentState.pos.trTime + cgs.predictedMissileNudge < cent->trailTime ) {
++			cent->trailTime = cent->currentState.pos.trTime + cgs.predictedMissileNudge;
++		}
++		cent->projectileNudge = CG_ReliablePing();
++		memset( &cent->missileStatus, 0, sizeof( cent->missileStatus ) );
++	}
+ 
+ 	VectorCopy (cent->currentState.origin, cent->lerpOrigin);
+ 	VectorCopy (cent->currentState.angles, cent->lerpAngles);
+diff --git a/code/cgame/cg_unlagged.c b/code/cgame/cg_unlagged.c
+index bebe264..2faf8b8 100644
+--- a/code/cgame/cg_unlagged.c
++++ b/code/cgame/cg_unlagged.c
+@@ -31,10 +31,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ //	  own prediction then, so the server's events draw the shots. The lightning gun is game patch 0023's.
+ //	- cg_projectileNudge draws the others' missiles that many ms ahead, so a high ping sees them nearer where
+ //	  the server has them; the player's own aren't moved (Unlagged moved them a server frame ahead to make up
+-//	  for its missile pass, which g_unlagged.c leaves out).
++//	  for its missile pass, which g_unlagged.c leaves out). On a server with Ratmod's delagged projectiles
++//	  (game patch 0031, below) Ratmod's nudge takes over: the player's own a server frame ahead, as his
++//	  predicted ones are, and the others' optionally by the ping each came at (cg_projectileNudgeAuto).
+ //	- Left out: Unlagged's lag simulation, its optimized prediction (Oz's prediction is game patches 0022,
+-//	  0025 and 0027), its early transitioning and timenudge extrapolation, the bounding boxes and the debug
+-//	  prints.
++//	  0025 and 0027; Ratmod's copy of it is left out too, it only saves time), its early transitioning and
++//	  timenudge extrapolation, the bounding boxes and the debug prints.
+ //
+ #include "cg_local.h"
+ 
+@@ -42,6 +44,17 @@ vmCvar_t	cg_delag;
+ vmCvar_t	cg_cmdTimeNudge;
+ vmCvar_t	cg_projectileNudge;
+ vmCvar_t	cg_debugDelag;
++vmCvar_t	cg_ratPredictMissiles;		// Oz: Ratmod's (below)
++vmCvar_t	cg_predictExplosions;
++vmCvar_t	cg_predictPlayerExplosions;
++vmCvar_t	cg_delagProjectileTrail;
++vmCvar_t	cg_projectileNudgeAuto;
++vmCvar_t	cg_predictItemsNearPlayers;
++vmCvar_t	cg_predictTeleport;
++vmCvar_t	cg_predictWeapons;
++vmCvar_t	cg_ozDelagVersion;
++
++static void CG_PredictMissileWeapon( centity_t *cent, const vec3_t muzzle, vec3_t forward );
+ 
+ // g_weapon.c's
+ #define MACHINEGUN_SPREAD	200
+@@ -164,6 +177,19 @@ void CG_PredictWeaponEffects( centity_t *cent ) {
+ 	usercmd_t		cmd;
+ 	int				seed;
+ 
++	// Oz: Ratmod's predicted missiles: the player's own projectile drawn as he fires it
++	if ( cent->currentState.number == self && ( weapon == WP_PLASMAGUN || weapon == WP_ROCKET_LAUNCHER
++			|| weapon == WP_GRENADE_LAUNCHER || weapon == WP_BFG ) ) {
++		VectorCopy( cg.predictedPlayerState.origin, muzzle );
++		SnapVector( muzzle );
++		muzzle[2] += cg.predictedPlayerState.viewheight;
++		AngleVectors( cg.predictedPlayerState.viewangles, forward, right, up );
++		VectorMA( muzzle, 14, forward, muzzle );
++		SnapVector( muzzle );
++		CG_PredictMissileWeapon( cent, muzzle, forward );
++		return;
++	}
++
+ 	// if the client isn't us, forget it
+ 	if ( cent->currentState.number != self || !CG_UnlaggedFor( self, weapon ) ) {
+ 		return;
+@@ -257,12 +283,37 @@ void CG_ProjectileNudge( centity_t *cent ) {
+ 	const entityState_t	*s = &cent->currentState;
+ 	vec3_t				ahead;
+ 	trace_t				tr;
++	int					shift;
++
++	if ( s->eType != ET_MISSILE || s->weapon == WP_GRAPPLING_HOOK ) {
++		return;
++	}
++
++	// Oz: Ratmod's: on a server that delags missiles, every missile is drawn ahead (CG_ProjectileNudgeTimeshift),
++	// never through a wall, and one that the shift takes into a wall shows its explosion there at once
++	if ( cgs.predictMissiles ) {
++		if ( CG_MissileExploded( s ) ) {
++			return;		// drawn no more; its event plays at the explosion
++		}
++		shift = CG_ProjectileNudgeTimeshift( cent );
++		if ( shift <= 0 ) {
++			return;
++		}
++		BG_EvaluateTrajectory( &s->pos, cg.time + shift, ahead );
++		CG_Trace( &tr, cent->lerpOrigin, vec3_origin, vec3_origin, ahead, CG_MissileOwner( cent ), MASK_SHOT );
++		VectorCopy( tr.endpos, cent->lerpOrigin );
++		if ( tr.fraction < 1.0f ) {
++			CG_PredictedExplosion( &tr, s->weapon, NULL, cent );
++			cent->missileStatus.missileFlags |= MF_DISAPPEARED;
++		}
++		return;
++	}
+ 
+-	if ( cg_projectileNudge.integer <= 0 || s->eType != ET_MISSILE ) {
++	if ( cg_projectileNudge.integer <= 0 ) {
+ 		return;
+ 	}
+-	// not a grapple, nor a bouncing grenade, nor one of the player's own (only an Unlagged server says whose)
+-	if ( s->weapon == WP_GRAPPLING_HOOK || s->weapon == WP_GRENADE_LAUNCHER || !*CG_UnlaggedServer()
++	// not a bouncing grenade, nor one of the player's own (only an Unlagged server says whose)
++	if ( s->weapon == WP_GRENADE_LAUNCHER || !*CG_UnlaggedServer()
+ 			|| s->otherEntityNum == cg.predictedPlayerState.clientNum ) {
+ 		return;
+ 	}
+@@ -271,3 +322,586 @@ void CG_ProjectileNudge( centity_t *cent ) {
+ 	CG_Trace( &tr, cent->lerpOrigin, vec3_origin, vec3_origin, ahead, s->number, MASK_SHOT );
+ 	VectorCopy( tr.endpos, cent->lerpOrigin );
+ }
++
++/*
++==============================================================================
++
++Oz: Ratmod's predicted missiles (ratmod.github.io, rdntcntrl/ratoa_gamecode cg_unlagged.c, GPL-2.0)
++
++On a server that delags projectiles (g_delagMissiles, g_predictMissiles: game patch 0031's g_missile.c), the
++player's own plasma, grenades, rockets and BFG shots are drawn from the moment he fires, where the server will
++have them (they start at his command's time there too), until the server's own missile comes in a snapshot and
++takes over (CG_RemovePredictedMissile, matched by weapon and launch time). Explosions are predicted too
++(cg_predictExplosions): the player's own missile hitting a wall shows its explosion at once, and the server's
++event for it is then dropped (CG_ExplosionPredicted); one predicted wrongly (the missile still flies a frame
++after the explosion was due) is taken back and the missile drawn again (CG_RecoverMissile). Hits on players
++are predicted with cg_predictPlayerExplosions 1 (himself) or 2 (others too), off by default as they're less
++sure. The others' missiles are drawn ahead by cg_projectileNudge ms, or by the ping each came at
++(cg_projectileNudgeAuto 1, or half of it with 2), so a rocket on the screen is where it is on the server.
++
++An exploded missile stays a missile on the server for its event (s.time2: when, s.origin2: where,
++s.otherEntityNum2: whose), so its predicted status lives on until the explosion is confirmed.
++
++==============================================================================
++*/
++
++static predictedMissile_t	cg_predictedMissiles[MAX_PREDICTED_MISSILES];
++static predictedMissile_t	cg_activePMissiles;		// double linked list
++static predictedMissile_t	*cg_freePMissiles;		// single linked list
++
++// how far apart a predicted missile's launch and the server's may be to match: a frame and a half (Ratmod's; at
++// Oz's sv_fps 125 that's 12 ms, the commands' own spacing at 1000 fps and more)
++#define PMISSILE_WINDOWTIME		( 1500 / cgs.sv_fps )
++// how much longer than the player's round trip a predicted missile waits for the server's: Ratmod's frame and a
++// half (75 ms at its sv_fps 20), at least 100 ms here, as Oz's server frames are much shorter than the snapshot
++// interpolation and jitter a missile also waits through
++#define PMISSILE_WAITTIME		( PMISSILE_WINDOWTIME > 100 ? PMISSILE_WINDOWTIME : 100 )
++
++#define PMISSILE_DOUBLE_EXPLOSION_DISTANCE	128
++
++
++/*
++===================
++CG_ParseRatServerinfo
++
++The serverinfo's lag compensation settings (CG_ParseServerinfo)
++===================
++*/
++void CG_ParseRatServerinfo( const char *info ) {
++	const char	*allow;
++	char		nudge[16];
++
++	cgs.sv_fps = atoi( Info_ValueForKey( info, "g_svFps" ) );
++	if ( cgs.sv_fps <= 0 ) {
++		cgs.sv_fps = 20;
++	}
++	cgs.predictMissiles = atoi( Info_ValueForKey( info, "g_delagMissiles" ) ) && atoi( Info_ValueForKey( info, "g_predictMissiles" ) );
++	cgs.delagMissileMaxLatency = atoi( Info_ValueForKey( info, "g_delagMissileMaxLatency" ) );
++	if ( cgs.delagMissileMaxLatency <= 0 ) {
++		cgs.delagMissileMaxLatency = 500;
++	}
++	cgs.predictedMissileNudge = atoi( Info_ValueForKey( info, "g_delagMissileBaseNudge" ) );
++	allow = Info_ValueForKey( info, "g_allowTimenudge" );
++	cgs.allowTimenudge = !*allow || atoi( allow );
++	trap_Cvar_VariableStringBuffer( "cl_timeNudge", nudge, sizeof( nudge ) );
++	if ( !cgs.allowTimenudge && atoi( nudge ) != 0 ) {
++		trap_Cvar_Set( "cl_timeNudge", "0" );	// Ratmod's g_allowTimenudge 0
++	}
++}
++
++
++/*
++===================
++CG_MissileSpeed
++
++The speed the server gives this weapon's missiles (its g_ozMissileSpeeds: plasma, grenade, rocket, BFG)
++===================
++*/
++static float CG_MissileSpeed( int weapon ) {
++	int		pg = 2000, gl = 700, rl = 900, bfg = 2000;
++	const char *s = Info_ValueForKey( CG_ConfigString( CS_SERVERINFO ), "g_ozMissileSpeeds" );
++
++	if ( *s ) {
++		sscanf( s, "%i %i %i %i", &pg, &gl, &rl, &bfg );
++	}
++	switch ( weapon ) {
++	case WP_PLASMAGUN:			return pg;
++	case WP_GRENADE_LAUNCHER:	return gl;
++	case WP_ROCKET_LAUNCHER:	return rl;
++	case WP_BFG:				return bfg;
++	default:					return 0;
++	}
++}
++
++
++/*
++===================
++CG_InitPMissiles
++
++At startup and each restart (CG_InitLocalEntities)
++===================
++*/
++void CG_InitPMissiles( void ) {
++	int		i;
++
++	memset( cg_predictedMissiles, 0, sizeof( cg_predictedMissiles ) );
++	cg_activePMissiles.next = &cg_activePMissiles;
++	cg_activePMissiles.prev = &cg_activePMissiles;
++	cg_freePMissiles = cg_predictedMissiles;
++	for ( i = 0 ; i < MAX_PREDICTED_MISSILES - 1 ; i++ ) {
++		cg_predictedMissiles[i].next = &cg_predictedMissiles[i+1];
++	}
++}
++
++
++static void CG_FreePMissile( predictedMissile_t *pm ) {
++	if ( !pm->prev ) {
++		CG_Error( "CG_FreePMissile: not active" );
++	}
++	CG_RemoveOldMissileExplosion( &pm->status );
++
++	// remove from the doubly linked active list
++	pm->prev->next = pm->next;
++	pm->next->prev = pm->prev;
++
++	// the free list is only singly linked
++	pm->next = cg_freePMissiles;
++	cg_freePMissiles = pm;
++}
++
++
++static predictedMissile_t *CG_AllocPMissile( void ) {
++	predictedMissile_t	*pm;
++
++	if ( !cg_freePMissiles ) {
++		CG_FreePMissile( cg_activePMissiles.prev );		// none free: the oldest goes
++	}
++	pm = cg_freePMissiles;
++	cg_freePMissiles = cg_freePMissiles->next;
++	memset( pm, 0, sizeof( *pm ) );
++
++	pm->next = cg_activePMissiles.next;
++	pm->prev = &cg_activePMissiles;
++	cg_activePMissiles.next->prev = pm;
++	cg_activePMissiles.next = pm;
++	return pm;
++}
++
++
++/*
++===================
++CG_ReliablePing
++
++The player's ping, from the snapshot (it caps around 250 there: then from the commands the snapshots answer)
++===================
++*/
++int CG_ReliablePing( void ) {
++	int		ping = 999;
++
++	if ( cg.snap ) {
++		ping = cg.snap->ping;
++		if ( ping >= 999 && cg.nextSnap && cg.nextSnap != cg.snap ) {
++			ping = cg.snap->serverTime - cg.nextSnap->ps.commandTime;
++		}
++	}
++	if ( ping > 999 ) {
++		ping = 999;
++	} else if ( ping < 0 ) {
++		ping = 0;
++	}
++	return ping;
++}
++
++
++// an explosion event's missile status: the missile's own, if it's still one (Ratmod's exploded missiles)
++predictedMissileStatus_t *CG_EventMissileStatus( centity_t *cent ) {
++	if ( cent->currentState.eType == ET_MISSILE ) {
++		return &cent->missileStatus;
++	}
++	return NULL;
++}
++
++
++// whether the server says this missile already exploded (it stays a missile for its event)
++qboolean CG_MissileExploded( const entityState_t *es ) {
++	return es->eType == ET_MISSILE && es->time2 > 0 && cgs.predictMissiles;
++}
++
++
++int CG_MissileOwner( centity_t *missile ) {
++	if ( CG_MissileExploded( &missile->currentState ) ) {
++		return missile->currentState.otherEntityNum2;	// otherEntityNum is who it hit then
++	}
++	return missile->currentState.otherEntityNum;
++}
++
++
++static qboolean CG_IsOwnMissile( centity_t *missile ) {
++	return CG_MissileOwner( missile ) == cg.clientNum;
++}
++
++
++/*
++===================
++CG_ProjectileNudgeTimeshift
++
++How far ahead a missile is drawn on a server that delags them: the player's own a server frame (as his predicted
++missiles are), so are grenades (their bounces aren't predicted) and everything while following someone; the
++others' by the ping they came at (cg_projectileNudgeAuto 1, half with 2) or cg_projectileNudge, plus the frame
++===================
++*/
++int CG_ProjectileNudgeTimeshift( centity_t *cent ) {
++	const int	frame = 1000 / cgs.sv_fps;
++
++	if ( CG_IsOwnMissile( cent ) || ( cg.snap && ( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) || cg.demoPlayback
++			|| cent->currentState.weapon == WP_GRENADE_LAUNCHER ) {
++		return frame;
++	}
++	switch ( cg_projectileNudgeAuto.integer ) {
++	case 1:
++		return cent->projectileNudge + frame;
++	case 2:
++		return cent->projectileNudge / 2 + frame;
++	default:
++		return cg_projectileNudge.integer + frame;
++	}
++}
++
++
++/*
++===================
++CG_MissileTrailTime
++
++Where a missile's trail ends this frame: at its explosion, or as far ahead as the missile is drawn
++(cg_delagProjectileTrail)
++===================
++*/
++int CG_MissileTrailTime( centity_t *cent ) {
++	if ( CG_MissileExploded( &cent->currentState ) ) {
++		if ( cent->currentState.time2 < cg.time ) {
++			return cent->currentState.time2;
++		}
++		return cg.time;
++	}
++	if ( cgs.predictMissiles && cg_delagProjectileTrail.integer && cent->currentState.eType == ET_MISSILE ) {
++		int shift = CG_ProjectileNudgeTimeshift( cent ) - 10;
++		if ( shift < 0 ) {
++			shift = 0;
++		}
++		return cg.time + shift;
++	}
++	return cg.time;
++}
++
++
++/*
++===================
++CG_RemoveOldMissileExplosion
++
++Takes back an explosion drawn for a missile (a wrong prediction, or one the server's replaces)
++===================
++*/
++void CG_RemoveOldMissileExplosion( predictedMissileStatus_t *pms ) {
++	if ( pms->expLEntityID ) {
++		CG_FreeLocalEntityById( pms->expLEntityID );
++	}
++	pms->expLEntityID = 0;
++}
++
++
++/*
++===================
++CG_RecoverMissile
++
++A missile whose explosion was predicted, still flying a frame after the server would have said so: the
++prediction was wrong, so it's drawn again (CG_Missile)
++===================
++*/
++void CG_RecoverMissile( centity_t *missile ) {
++	predictedMissileStatus_t *pms = &missile->missileStatus;
++
++	if ( !( pms->missileFlags & ( MF_EXPLODED | MF_DISAPPEARED ) ) || ( pms->missileFlags & MF_EXPLOSIONCONFIRMED ) ) {
++		return;
++	}
++	if ( pms->explosionTime && pms->explosionTime + 1000 / cgs.sv_fps + CG_ProjectileNudgeTimeshift( missile ) < cg.time
++			&& !CG_MissileExploded( &missile->currentState ) ) {
++		pms->missileFlags &= ~( MF_EXPLODED | MF_DISAPPEARED | MF_HITPLAYER | MF_HITWALLMETAL | MF_HITWALL | MF_TRAILFINISHED );
++		CG_RemoveOldMissileExplosion( pms );
++	}
++}
++
++
++/*
++===================
++CG_RemovePredictedMissile
++
++The server's missile came: the predicted one it matches (the player's own, the same weapon, launched within a
++frame and a half) goes, its explosion carried over so it isn't drawn twice
++===================
++*/
++void CG_RemovePredictedMissile( centity_t *missile ) {
++	predictedMissile_t	*pm, *next;
++
++	if ( missile->missileStatus.missileFlags & MF_REMOVEDPMISSILE ) {
++		return;
++	}
++	missile->missileStatus.missileFlags |= MF_REMOVEDPMISSILE;
++
++	if ( !cg_ratPredictMissiles.integer || !CG_IsOwnMissile( missile ) ) {
++		return;
++	}
++	if ( cg_debugDelag.integer ) {
++		CG_Printf( "delag: own missile %d (weapon %d, launch %d) came; window %d\n", missile->currentState.number,
++			missile->currentState.weapon, missile->currentState.pos.trTime, PMISSILE_WINDOWTIME );
++	}
++	for ( pm = cg_activePMissiles.next; pm != &cg_activePMissiles; pm = next ) {
++		next = pm->next;
++		if ( pm->weapon != missile->currentState.weapon ) {
++			continue;
++		}
++		if ( missile->currentState.pos.trTime - PMISSILE_WINDOWTIME > pm->pos.trTime
++				|| missile->currentState.pos.trTime + PMISSILE_WINDOWTIME < pm->pos.trTime ) {
++			continue;
++		}
++		if ( pm->status.missileFlags & MF_EXPLODED ) {
++			// its explosion was drawn already: the server's missile takes that over
++			missile->missileStatus = pm->status;
++			missile->missileStatus.missileFlags |= MF_REMOVEDPMISSILE;
++			pm->status.expLEntityID = 0;
++		}
++		if ( cg_debugDelag.integer ) {
++			CG_Printf( "delag: server missile %d took over the predicted one (launch %d vs %d)\n", missile->currentState.number,
++				missile->currentState.pos.trTime, pm->pos.trTime );
++		}
++		CG_FreePMissile( pm );
++		return;
++	}
++}
++
++
++static qboolean CG_ShouldPredictExplosion( void ) {
++	// near the server's delag limit the prediction may be off
++	return CG_ReliablePing() + 20 <= cgs.delagMissileMaxLatency;
++}
++
++
++/*
++===================
++CG_ExplosionPredicted
++
++The server's explosion event for a missile whose explosion was drawn already, about there: it's dropped
++(CG_EntityEvent)
++===================
++*/
++qboolean CG_ExplosionPredicted( centity_t *cent, int checkFlags, vec3_t realExpOrigin, int realHitEnt ) {
++	int		flags = checkFlags;
++
++	if ( cent->currentState.eType != ET_MISSILE || cg_ratPredictMissiles.integer <= 0 || !cgs.predictMissiles
++			|| !cg_predictExplosions.integer ) {
++		return qfalse;
++	}
++	CG_RemovePredictedMissile( cent );
++
++	// what it hit isn't compared: a missile that kills its target makes a miss event, not a hit
++	flags &= ~( MF_HITPLAYER | MF_HITWALL | MF_HITWALLMETAL );
++	flags |= MF_EXPLODED;
++	if ( ( cent->missileStatus.missileFlags & flags ) != flags ) {
++		return qfalse;
++	}
++	if ( Distance( realExpOrigin, cent->missileStatus.explosionPos ) > PMISSILE_DOUBLE_EXPLOSION_DISTANCE ) {
++		return qfalse;
++	}
++	if ( ( checkFlags & MF_HITPLAYER ) && ( cent->missileStatus.missileFlags & MF_HITPLAYER )
++			&& realHitEnt != cent->missileStatus.hitEntity ) {
++		return qfalse;
++	}
++	if ( cg_debugDelag.integer ) {
++		CG_Printf( "delag: server explosion %d matched the predicted one (%.0f units off)\n", cent->currentState.number,
++			Distance( realExpOrigin, cent->missileStatus.explosionPos ) );
++	}
++	return qtrue;
++}
++
++
++void CG_UpdateMissileStatus( predictedMissileStatus_t *pms, int addedFlags, vec3_t explosionOrigin, int hitEntity ) {
++	pms->missileFlags |= addedFlags;
++	VectorCopy( explosionOrigin, pms->explosionPos );
++	pms->explosionTime = cg.time + 1000 / cgs.sv_fps;
++	pms->hitEntity = hitEntity;
++}
++
++
++/*
++===================
++CG_PredictedExplosion
++
++A missile drawn into something (a predicted one, or the server's drawn ahead): its explosion drawn now
++===================
++*/
++void CG_PredictedExplosion( trace_t *tr, int weapon, predictedMissile_t *predMissile, centity_t *missileEnt ) {
++	predictedMissileStatus_t	*pms;
++	centity_t					*hitEnt;
++
++	if ( missileEnt ) {
++		CG_RemovePredictedMissile( missileEnt );
++	}
++	if ( !cg_predictExplosions.integer || cg_ratPredictMissiles.integer <= 0 || !cgs.predictMissiles
++			|| ( tr->surfaceFlags & SURF_NOIMPACT ) || !( predMissile || missileEnt ) ) {
++		return;
++	}
++	if ( weapon == WP_GRENADE_LAUNCHER || weapon == WP_GRAPPLING_HOOK ) {
++		return;		// grenades bounce, which isn't predicted
++	}
++#ifdef MISSIONPACK
++	if ( weapon == WP_PROX_LAUNCHER || weapon == WP_NAILGUN ) {
++		return;
++	}
++#endif
++
++	if ( predMissile ) {
++		if ( !CG_ShouldPredictExplosion() ) {
++			return;
++		}
++		pms = &predMissile->status;
++	} else {
++		if ( cg_projectileNudgeAuto.integer != 1 && !CG_IsOwnMissile( missileEnt ) ) {
++			return;		// the others' aren't where the server has them without the automatic nudge
++		}
++		pms = &missileEnt->missileStatus;
++	}
++	if ( pms->missileFlags & ( MF_EXPLODED | MF_DISAPPEARED ) ) {
++		return;		// predicted already: the server says the rest
++	}
++
++	if ( cg_debugDelag.integer ) {
++		if ( predMissile ) {
++			CG_Printf( "delag: predicted explosion of own predicted missile at %.0f %.0f %.0f\n", tr->endpos[0], tr->endpos[1], tr->endpos[2] );
++		} else {
++			CG_Printf( "delag: predicted explosion of missile %d at %.0f %.0f %.0f\n", missileEnt->currentState.number, tr->endpos[0], tr->endpos[1], tr->endpos[2] );
++		}
++	}
++	hitEnt = &cg_entities[tr->entityNum];
++	if ( tr->entityNum < MAX_CLIENTS && hitEnt->currentState.eType == ET_PLAYER ) {
++		if ( !cg_predictPlayerExplosions.integer ) {
++			return;
++		}
++		if ( missileEnt && CG_MissileOwner( missileEnt ) == tr->entityNum ) {
++			return;		// never its owner
++		}
++		if ( tr->entityNum != cg.clientNum && cg_predictPlayerExplosions.integer <= 1 ) {
++			return;		// someone else: only with 2, it's less sure
++		}
++		CG_MissileHitPlayerEx( weapon, tr->endpos, tr->plane.normal, tr->entityNum, pms );
++		CG_UpdateMissileStatus( pms, MF_EXPLODED | MF_HITPLAYER, tr->endpos, tr->entityNum );
++	} else if ( tr->surfaceFlags & SURF_METALSTEPS ) {
++		CG_MissileHitWallEx( weapon, 0, tr->endpos, tr->plane.normal, IMPACTSOUND_METAL, pms );
++		CG_UpdateMissileStatus( pms, MF_EXPLODED | MF_HITWALLMETAL, tr->endpos, tr->entityNum );
++	} else {
++		CG_MissileHitWallEx( weapon, 0, tr->endpos, tr->plane.normal, IMPACTSOUND_DEFAULT, pms );
++		CG_UpdateMissileStatus( pms, MF_EXPLODED | MF_HITWALL, tr->endpos, tr->entityNum );
++	}
++}
++
++
++/*
++===================
++CG_RunPredictedMissile
++
++A frame of a predicted missile: moved a server frame ahead, as the server's own is drawn, and its explosion
++predicted when it reaches something
++===================
++*/
++static void CG_RunPredictedMissile( predictedMissile_t *pm ) {
++	const weaponInfo_t	*weapon = &cg_weapons[pm->weapon];
++	vec3_t				newOrigin;
++	trace_t				trace;
++
++	if ( pm->removeTime < cg.time ) {
++		CG_FreePMissile( pm );
++		return;
++	}
++	if ( pm->status.missileFlags & ( MF_EXPLODED | MF_DISAPPEARED ) ) {
++		return;
++	}
++
++	BG_EvaluateTrajectory( &pm->pos, cg.time + 1000 / cgs.sv_fps, newOrigin );
++	CG_Trace( &trace, pm->refEntity.origin, NULL, NULL, newOrigin, cg.predictedPlayerState.clientNum, MASK_SHOT );
++	if ( trace.fraction < 1.0f ) {
++		CG_PredictedExplosion( &trace, pm->weapon, pm, NULL );
++		pm->status.missileFlags |= MF_DISAPPEARED;
++		return;
++	}
++
++	VectorCopy( newOrigin, pm->refEntity.origin );
++	VectorCopy( newOrigin, pm->refEntity.oldorigin );
++	if ( weapon->missileDlight ) {
++		trap_R_AddLightToScene( newOrigin, weapon->missileDlight,
++			weapon->missileDlightColor[0], weapon->missileDlightColor[1], weapon->missileDlightColor[2] );
++	}
++	if ( pm->weapon == WP_PLASMAGUN ) {
++		refEntity_t	ball = pm->refEntity;
++		CG_OzPlasmaBall( &ball );	// Oz: in Plasma color, as CG_Missile draws it
++		trap_R_AddRefEntityToScene( &ball );
++		return;
++	}
++	if ( VectorNormalize2( pm->pos.trDelta, pm->refEntity.axis[0] ) == 0 ) {
++		pm->refEntity.axis[0][2] = 1;
++	}
++	if ( pm->pos.trType != TR_STATIONARY ) {
++		RotateAroundDirection( pm->refEntity.axis, cg.time / 4 );
++	}
++	pm->refEntity.skinNum = cg.clientFrame & 1;
++	trap_R_AddRefEntityToScene( &pm->refEntity );
++}
++
++
++// each frame (CG_DrawActiveFrame), newest last so a missile fired this frame is drawn this frame
++void CG_AddPredictedMissiles( void ) {
++	predictedMissile_t	*pm, *next;
++
++	for ( pm = cg_activePMissiles.prev; pm != &cg_activePMissiles; pm = next ) {
++		next = pm->prev;
++		CG_RunPredictedMissile( pm );
++	}
++}
++
++
++/*
++===================
++CG_PredictMissileWeapon
++
++The player fired a projectile weapon (CG_PredictWeaponEffects): its missile, as fire_plasma, fire_grenade,
++fire_rocket and fire_bfg make it from the server's muzzle point, starting at this command's time less the
++server's base nudge
++===================
++*/
++static void CG_PredictMissileWeapon( centity_t *cent, const vec3_t muzzle, vec3_t forward ) {
++	predictedMissile_t	*pm;
++	refEntity_t			*bolt;
++	usercmd_t			cmd;
++	const int			weapon = cent->currentState.weapon;
++
++	if ( cg_ratPredictMissiles.integer <= 0 || !cgs.predictMissiles ) {
++		return;
++	}
++	if ( cg.demoPlayback || cg_nopredict.integer || cg_synchronousClients.integer || !cg.snap
++			|| ( cg.snap->ps.pm_flags & PMF_FOLLOW ) ) {
++		return;
++	}
++	if ( CG_ReliablePing() > cgs.delagMissileMaxLatency ) {
++		return;		// the server won't take it back that far
++	}
++
++	trap_GetUserCmd( trap_GetCurrentCmdNumber(), &cmd );
++	pm = CG_AllocPMissile();
++	pm->removeTime = cg.time + CG_ReliablePing() + PMISSILE_WAITTIME;
++	pm->weapon = weapon;
++	VectorCopy( muzzle, pm->pos.trBase );
++	pm->pos.trTime = cmd.serverTime - cgs.predictedMissileNudge;
++	if ( weapon == WP_GRENADE_LAUNCHER ) {
++		forward[2] += 0.2f;		// weapon_grenadelauncher_fire's extra vertical velocity
++		VectorNormalize( forward );
++		pm->pos.trType = TR_GRAVITY;
++	} else {
++		pm->pos.trType = TR_LINEAR;
++	}
++	VectorScale( forward, CG_MissileSpeed( weapon ), pm->pos.trDelta );
++	SnapVector( pm->pos.trDelta );
++
++	if ( cg_debugDelag.integer ) {
++		CG_Printf( "delag: predicted missile weapon %d launched %d (cg.time %d, ping %d)\n", weapon, pm->pos.trTime, cg.time, CG_ReliablePing() );
++	}
++	bolt = &pm->refEntity;
++	VectorCopy( muzzle, bolt->origin );
++	VectorCopy( muzzle, bolt->oldorigin );
++	if ( weapon == WP_PLASMAGUN ) {
++		bolt->reType = RT_SPRITE;
++		bolt->radius = 16;
++		bolt->rotation = 0;
++		bolt->customShader = cgs.media.plasmaBallShader;
++		return;
++	}
++	bolt->reType = RT_MODEL;
++	bolt->hModel = cg_weapons[weapon].missileModel;
++	bolt->renderfx = cg_weapons[weapon].missileRenderfx | RF_NOSHADOW;
++}
+diff --git a/code/cgame/cg_view.c b/code/cgame/cg_view.c
+index 05b95b5..95cb407 100644
+--- a/code/cgame/cg_view.c
++++ b/code/cgame/cg_view.c
+@@ -844,6 +844,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
+ 		CG_AddMarks();
+ 		CG_AddParticles ();
+ 		CG_AddLocalEntities();
++		CG_AddPredictedMissiles();	// Oz: Ratmod's (cg_unlagged.c)
+ 	}
+ 	CG_AddViewWeapon( &cg.predictedPlayerState );
+ 
+diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
+index 5cd7888..d7df875 100644
+--- a/code/cgame/cg_weapons.c
++++ b/code/cgame/cg_weapons.c
+@@ -23,6 +23,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ // cg_weapons.c -- events and effects dealing with weapons
+ #include "cg_local.h"
+ 
++// Oz: Ratmod's cg_predictWeapons: the weapon bar and switching from the prediction (a weapon or ammo just
++// picked up is there at once), else from the last snapshot
++static const playerState_t *CG_WeaponsPS( void ) {
++	if ( cg_predictWeapons.integer ) {
++		return &cg.predictedPlayerState;
++	}
++	return &cg.snap->ps;
++}
++
+ /*
+ ==========================
+ CG_MachineGunEjectBrass
+@@ -344,6 +353,7 @@ CG_RocketTrail
+ ==========================
+ */
+ static void CG_RocketTrail( centity_t *ent, const weaponInfo_t *wi ) {
++	const int	now = CG_MissileTrailTime( ent );	// Oz: Ratmod's: to the explosion, or drawn ahead
+ 	int		step;
+ 	vec3_t	origin, lastPos;
+ 	int		t;
+@@ -367,19 +377,19 @@ static void CG_RocketTrail( centity_t *ent, const weaponInfo_t *wi ) {
+ 	startTime = ent->trailTime;
+ 	t = step * ( (startTime + step) / step );
+ 
+-	BG_EvaluateTrajectory( &es->pos, cg.time, origin );
++	BG_EvaluateTrajectory( &es->pos, now, origin );
+ 	contents = CG_PointContents( origin, -1 );
+ 
+ 	// if object (e.g. grenade) is stationary, don't toss up smoke
+ 	if ( es->pos.trType == TR_STATIONARY ) {
+-		ent->trailTime = cg.time;
++		ent->trailTime = now;
+ 		return;
+ 	}
+ 
+ 	BG_EvaluateTrajectory( &es->pos, ent->trailTime, lastPos );
+ 	lastContents = CG_PointContents( lastPos, -1 );
+ 
+-	ent->trailTime = cg.time;
++	ent->trailTime = now;
+ 
+ 	if ( contents & ( CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA ) ) {
+ 		if ( contents & lastContents & CONTENTS_WATER ) {
+@@ -412,6 +422,7 @@ CG_NailTrail
+ ==========================
+ */
+ static void CG_NailTrail( centity_t *ent, const weaponInfo_t *wi ) {
++	const int	now = CG_MissileTrailTime( ent );	// Oz: Ratmod's: to the explosion, or drawn ahead
+ 	int		step;
+ 	vec3_t	origin, lastPos;
+ 	int		t;
+@@ -435,19 +446,19 @@ static void CG_NailTrail( centity_t *ent, const weaponInfo_t *wi ) {
+ 	startTime = ent->trailTime;
+ 	t = step * ( (startTime + step) / step );
+ 
+-	BG_EvaluateTrajectory( &es->pos, cg.time, origin );
++	BG_EvaluateTrajectory( &es->pos, now, origin );
+ 	contents = CG_PointContents( origin, -1 );
+ 
+ 	// if object (e.g. grenade) is stationary, don't toss up smoke
+ 	if ( es->pos.trType == TR_STATIONARY ) {
+-		ent->trailTime = cg.time;
++		ent->trailTime = now;
+ 		return;
+ 	}
+ 
+ 	BG_EvaluateTrajectory( &es->pos, ent->trailTime, lastPos );
+ 	lastContents = CG_PointContents( lastPos, -1 );
+ 
+-	ent->trailTime = cg.time;
++	ent->trailTime = now;
+ 
+ 	if ( contents & ( CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA ) ) {
+ 		if ( contents & lastContents & CONTENTS_WATER ) {
+@@ -1530,7 +1541,7 @@ void CG_DrawWeaponSelect( void ) {
+ 	cg.itemPickupTime = 0;
+ 
+ 	// count the number of weapons owned
+-	bits = cg.snap->ps.stats[ STAT_WEAPONS ];
++	bits = CG_WeaponsPS()->stats[ STAT_WEAPONS ];
+ 	count = 0;
+ 	for ( i = 1 ; i < MAX_WEAPONS ; i++ ) {
+ 		if ( bits & ( 1 << i ) ) {
+@@ -1557,7 +1568,7 @@ void CG_DrawWeaponSelect( void ) {
+ 		}
+ 
+ 		// no ammo cross on top
+-		if ( !cg.snap->ps.ammo[ i ] ) {
++		if ( !CG_WeaponsPS()->ammo[ i ] ) {
+ 			CG_DrawPic( x, y, 32, 32, cgs.media.noammoShader );
+ 		}
+ 
+@@ -1584,10 +1595,10 @@ CG_WeaponSelectable
+ ===============
+ */
+ static qboolean CG_WeaponSelectable( int i ) {
+-	if ( !cg.snap->ps.ammo[i] ) {
++	if ( !CG_WeaponsPS()->ammo[i] ) {
+ 		return qfalse;
+ 	}
+-	if ( ! (cg.snap->ps.stats[ STAT_WEAPONS ] & ( 1 << i ) ) ) {
++	if ( ! (CG_WeaponsPS()->stats[ STAT_WEAPONS ] & ( 1 << i ) ) ) {
+ 		return qfalse;
+ 	}
+ 
+@@ -1689,7 +1700,7 @@ void CG_Weapon_f( void ) {
+ 
+ 	cg.weaponSelectTime = cg.time;
+ 
+-	if ( ! ( cg.snap->ps.stats[STAT_WEAPONS] & ( 1 << num ) ) ) {
++	if ( ! ( cg.snap->ps.stats[STAT_WEAPONS] & ( 1 << num ) ) && ! ( CG_WeaponsPS()->stats[STAT_WEAPONS] & ( 1 << num ) ) ) {
+ 		return;		// don't have the weapon
+ 	}
+ 
+@@ -1800,6 +1811,12 @@ Caused by an EV_MISSILE_MISS event, or directly by local bullet tracing
+ =================
+ */
+ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, impactSound_t soundType ) {
++	CG_MissileHitWallEx( weapon, clientNum, origin, dir, soundType, NULL );
++}
++
++// Oz: Ratmod's: with a missile's status, its explosion's local entity is kept there, so a wrongly predicted one
++// can be taken back (cg_unlagged.c)
++void CG_MissileHitWallEx( int weapon, int clientNum, vec3_t origin, vec3_t dir, impactSound_t soundType, predictedMissileStatus_t *missileStatus ) {
+ 	qhandle_t		mod;
+ 	qhandle_t		mark;
+ 	qhandle_t		shader;
+@@ -1971,6 +1988,11 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, im
+ 		le = CG_MakeExplosion( origin, dir, 
+ 							   mod,	shader,
+ 							   duration, isSprite );
++		if ( missileStatus ) {
++			// Oz: Ratmod's: this explosion replaces a wrongly predicted one
++			CG_RemoveOldMissileExplosion( missileStatus );
++			missileStatus->expLEntityID = le->id;
++		}
+ 		le->light = light;
+ 		VectorCopy( lightColor, le->lightColor );
+ 		CG_OzPlasmaRing( weapon, &le->refEntity );	// Oz: in Plasma color (cg_oz_fx.c)
+@@ -2012,6 +2034,10 @@ CG_MissileHitPlayer
+ =================
+ */
+ void CG_MissileHitPlayer( int weapon, vec3_t origin, vec3_t dir, int entityNum ) {
++	CG_MissileHitPlayerEx( weapon, origin, dir, entityNum, NULL );
++}
++
++void CG_MissileHitPlayerEx( int weapon, vec3_t origin, vec3_t dir, int entityNum, predictedMissileStatus_t *missileStatus ) {
+ 	CG_Bleed( origin, entityNum );
+ 
+ 	// some weapons will make an explosion with the blood, while
+@@ -2024,7 +2050,7 @@ void CG_MissileHitPlayer( int weapon, vec3_t origin, vec3_t dir, int entityNum )
+ 	case WP_CHAINGUN:
+ 	case WP_PROX_LAUNCHER:
+ #endif
+-		CG_MissileHitWall( weapon, 0, origin, dir, IMPACTSOUND_FLESH );
++		CG_MissileHitWallEx( weapon, 0, origin, dir, IMPACTSOUND_FLESH, missileStatus );
+ 		break;
+ 	default:
+ 		break;
+diff --git a/code/game/g_active.c b/code/game/g_active.c
+index 330dfb7..f56d1c5 100644
+--- a/code/game/g_active.c
++++ b/code/game/g_active.c
+@@ -1019,6 +1019,9 @@ void ClientThink_real( gentity_t *ent ) {
+ 	// touch other objects
+ 	ClientImpacts( ent, &pm );
+ 
++	// Oz: Ratmod's delagged projectiles: his projectiles waiting for this command run now
++	G_ImmediateRunClientMissiles( ent );
++
+ 	// save results of triggers and client events
+ 	if (ent->client->ps.eventSequence != oldEventSequence) {
+ 		ent->eventTime = level.time;
+diff --git a/code/game/g_cmds.c b/code/game/g_cmds.c
+index 135ac76..b1d8f5f 100644
+--- a/code/game/g_cmds.c
++++ b/code/game/g_cmds.c
+@@ -69,7 +69,10 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
+ 		if ( cl->pers.connected == CON_CONNECTING ) {
+ 			ping = -1;
+ 		} else {
+-			ping = cl->ps.ping < 999 ? cl->ps.ping : 999;
++			ping = G_RealPing( &g_entities[cl - level.clients] );	// Oz: Ratmod's true ping
++			if ( ping > 999 ) {
++				ping = 999;
++			}
+ 		}
+ 
+ 		if( cl->accuracy_shots ) {
+diff --git a/code/game/g_local.h b/code/game/g_local.h
+index 010236f..7519285 100644
+--- a/code/game/g_local.h
++++ b/code/game/g_local.h
+@@ -174,6 +174,11 @@ struct gentity_s {
+ 	float		random;
+ 
+ 	gitem_t		*item;			// for bonus items
++
++	// Oz: Ratmod's delagged projectiles (g_missile.c)
++	qboolean	needsDelag;		// the flight from launchTime to the last frame is still to be run, time shifted
++	int			launchTime;		// the shooter's command time, less g_delagMissileBaseNudge
++	int			missileRan;		// 1: run since launch; < 0: the shooter's commands to wait before running it
+ };
+ 
+ 
+@@ -750,6 +755,20 @@ extern	vmCvar_t	g_proxMineTimeout;
+ extern	vmCvar_t	g_localTeamPref;
+ extern	vmCvar_t	g_delagHitscan;
+ extern	vmCvar_t	g_delagMax;
++extern	vmCvar_t	g_lagLightning;				// Oz: Ratmod's lag options
++extern	vmCvar_t	g_delagMissiles;
++extern	vmCvar_t	g_delagMissileMaxLatency;
++extern	vmCvar_t	g_delagMissileBaseNudge;
++extern	vmCvar_t	g_delagMissileImmediateRun;
++extern	vmCvar_t	g_delagMissileNudgeOnly;
++extern	vmCvar_t	g_delagMissileDebug;
++extern	vmCvar_t	g_predictMissiles;
++extern	vmCvar_t	g_delagAllowHitsAfterTele;
++extern	vmCvar_t	g_truePing;
++extern	vmCvar_t	g_teleporterPrediction;
++extern	vmCvar_t	g_allowTimenudge;
++extern	vmCvar_t	g_pingEqualizer;
++extern	vmCvar_t	g_pingEqualizerMax;
+ 
+ //
+ // g_unlagged.c (Oz: Unlagged 2.01's lag compensation)
+@@ -763,6 +782,24 @@ void G_ResetHistory( gentity_t *ent );
+ void G_DoTimeShiftFor( gentity_t *ent );
+ void G_UndoTimeShiftFor( gentity_t *ent );
+ void G_UnTimeShiftClient( gentity_t *ent );
++void G_TimeShiftAllClients( int time, gentity_t *skip );	// Oz: Ratmod's delagged projectiles use these
++void G_UnTimeShiftAllClients( gentity_t *skip );
++int G_UnlaggedAttackTime( gentity_t *ent );
++int G_UnlaggedFrameOffset( gentity_t *ent );
++int G_RealPing( gentity_t *ent );
++qboolean G_AllClientsOzDelag( void );
++void G_PingEqualizer( void );
++void G_UnlaggedPing( gentity_t *ent, int serverTime );
++
++// g_missile.c: Ratmod's delagged projectiles
++#define	DELAG_MAX_BACKTRACK	( g_delagMissileMaxLatency.integer + 1000 / g_ozSvFps * 2 )	// g_ozSvFps is never 0
++extern int	g_ozSvFps;
++void G_SetMissileLaunchTime( gentity_t *self, gentity_t *bolt );
++void G_MissileRunDelag( gentity_t *ent, int stepmsec );
++void G_ImmediateLaunchMissile( gentity_t *ent );
++void G_ImmediateRunClientMissiles( gentity_t *client );
++void G_SetTeleporterDestinations( void );	// g_trigger.c: Ratmod's teleporter prediction
++void G_OzMissileSpeeds( void );			// g_ql.c: the speeds the cgame predicts missiles with
+ 
+ void	trap_Print( const char *text );
+ void	trap_Error( const char *text ) Q_NO_RETURN;
+diff --git a/code/game/g_main.c b/code/game/g_main.c
+index c486b8b..3146960 100644
+--- a/code/game/g_main.c
++++ b/code/game/g_main.c
+@@ -85,6 +85,23 @@ vmCvar_t	g_listEntity;
+ vmCvar_t	g_localTeamPref;
+ vmCvar_t	g_delagHitscan;		// Oz: Unlagged's lag compensation (g_unlagged.c)
+ vmCvar_t	g_delagMax;
++vmCvar_t	g_lagLightning;		// Oz: Ratmod's lag options (g_unlagged.c, g_missile.c)
++vmCvar_t	g_delagMissiles;
++vmCvar_t	g_delagMissileMaxLatency;
++vmCvar_t	g_delagMissileBaseNudge;
++vmCvar_t	g_delagMissileImmediateRun;
++vmCvar_t	g_delagMissileNudgeOnly;
++vmCvar_t	g_delagMissileDebug;
++vmCvar_t	g_predictMissiles;
++vmCvar_t	g_delagAllowHitsAfterTele;
++vmCvar_t	g_truePing;
++vmCvar_t	g_teleporterPrediction;
++vmCvar_t	g_allowTimenudge;
++vmCvar_t	g_pingEqualizer;
++vmCvar_t	g_pingEqualizerMax;
++int			g_ozSvFps = 20;		// sv_fps, read each frame
++vmCvar_t	g_svFps;			// its copy in the serverinfo, for the cgame's predicted missiles
++vmCvar_t	g_ozMissileSpeeds;	// G_OzMissileSpeeds's
+ #ifdef MISSIONPACK
+ vmCvar_t	g_obeliskHealth;
+ vmCvar_t	g_obeliskRegenPeriod;
+@@ -187,7 +204,27 @@ static cvarTable_t		gameCvarTable[] = {
+ 
+ 	// Oz: Unlagged's lag compensation: instant hits where the shooter saw them, no further back than g_delagMax ms
+ 	{ &g_delagHitscan, "g_delagHitscan", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
+-	{ &g_delagMax, "g_delagMax", "500", CVAR_ARCHIVE, 0, qfalse }
++	{ &g_delagMax, "g_delagMax", "500", CVAR_ARCHIVE, 0, qfalse },
++	// Oz: Ratmod's (ratmod.github.io) lag compensation on top: projectiles fired from the shooter's command time
++	// and their first flight run with the others where he saw them (g_missile.c), the shooter's cgame drawing his
++	// own missiles and their explosions at once (cg_unlagged.c), teleporters predicted, the true ping, and an
++	// equalizer that delays the lower pinged duel player's packets to match the other's (the engine's sv_eqping)
++	{ &g_lagLightning, "g_lagLightning", "0", CVAR_ARCHIVE, 0, qtrue },
++	{ &g_delagMissiles, "g_delagMissiles", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
++	{ &g_delagMissileMaxLatency, "g_delagMissileMaxLatency", "500", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qfalse },
++	{ &g_delagMissileBaseNudge, "g_delagMissileBaseNudge", "10", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qfalse },
++	{ &g_delagMissileImmediateRun, "g_delagMissileImmediateRun", "2", CVAR_ARCHIVE, 0, qfalse },
++	{ &g_delagMissileNudgeOnly, "g_delagMissileNudgeOnly", "0", CVAR_ARCHIVE, 0, qfalse },
++	{ &g_delagMissileDebug, "g_delagMissileDebug", "0", 0, 0, qfalse },
++	{ &g_predictMissiles, "g_predictMissiles", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qfalse },
++	{ &g_delagAllowHitsAfterTele, "g_delagAllowHitsAfterTele", "1", CVAR_ARCHIVE, 0, qfalse },
++	{ &g_truePing, "g_truePing", "1", CVAR_ARCHIVE, 0, qtrue },
++	{ &g_teleporterPrediction, "g_teleporterPrediction", "1", 0, 0, qfalse },
++	{ &g_allowTimenudge, "g_allowTimenudge", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qfalse },
++	{ &g_svFps, "g_svFps", "20", CVAR_SERVERINFO | CVAR_ROM, 0, qfalse },
++	{ &g_ozMissileSpeeds, "g_ozMissileSpeeds", "2000 700 900 2000", CVAR_SERVERINFO | CVAR_ROM, 0, qfalse },
++	{ &g_pingEqualizer, "g_pingEqualizer", "0", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
++	{ &g_pingEqualizerMax, "g_pingEqualizerMax", "200", CVAR_ARCHIVE, 0, qfalse }
+ 
+ };
+ 
+@@ -497,6 +534,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
+ 	// parse the key/value pairs and spawn gentities
+ 	G_SpawnEntitiesFromString();
+ 
++	G_SetTeleporterDestinations();	// Oz: Ratmod's teleporter prediction
++
+ 	// general initialization
+ 	G_FindTeams();
+ 
+@@ -1195,7 +1234,10 @@ void LogExit( const char *string ) {
+ 			continue;
+ 		}
+ 
+-		ping = cl->ps.ping < 999 ? cl->ps.ping : 999;
++		ping = G_RealPing( &g_entities[cl - level.clients] );	// Oz: Ratmod's true ping
++		if ( ping > 999 ) {
++			ping = 999;
++		}
+ 
+ 		G_LogPrintf( "score: %i  ping: %i  client: %i %s\n", cl->ps.persistant[PERS_SCORE], ping, level.sortedClients[i],	cl->pers.netname );
+ #ifdef MISSIONPACK
+@@ -1843,6 +1885,15 @@ void G_RunFrame( int levelTime ) {
+ 	level.previousTime = level.time;
+ 	level.time = levelTime;
+ 	G_UnlaggedFrameStart();	// Oz: Unlagged's lag compensation (g_unlagged.c)
++	g_ozSvFps = trap_Cvar_VariableIntegerValue( "sv_fps" );	// Oz: Ratmod's DELAG_MAX_BACKTRACK
++	if ( g_ozSvFps <= 0 ) {
++		g_ozSvFps = 20;
++	}
++	G_OzMissileSpeeds();
++	G_PingEqualizer();	// Oz: Ratmod's (g_unlagged.c)
++	if ( g_ozSvFps > 0 && g_ozSvFps != g_svFps.integer ) {
++		trap_Cvar_Set( "g_svFps", va( "%i", g_ozSvFps ) );
++	}
+ 
+ 	// get any cvar changes
+ 	G_UpdateCvars();
+@@ -1888,6 +1939,12 @@ void G_RunFrame( int levelTime ) {
+ 		}
+ 
+ 		if ( ent->s.eType == ET_MISSILE ) {
++			// Oz: Ratmod's delagged projectiles: a new one's flight from its launch to the last frame first,
++			// with the others where its shooter saw them
++			G_MissileRunDelag( ent, level.time - level.previousTime );
++			if ( !ent->inuse || ent->freeAfterEvent ) {
++				continue;
++			}
+ 			G_RunMissile( ent );
+ 			continue;
+ 		}
+diff --git a/code/game/g_misc.c b/code/game/g_misc.c
+index 169022d..782da04 100644
+--- a/code/game/g_misc.c
++++ b/code/game/g_misc.c
+@@ -124,7 +124,10 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
+ 
+ 	// Oz: Unlagged's history starts again past the teleporter, so no shot takes him back through it
+ 	// (Unlagged reset it before he moved)
+-	G_ResetHistory( player );
++	// Ratmod's g_delagAllowHitsAfterTele 1 (its default) keeps it: what the shooter saw before the teleport counts
++	if ( !g_delagAllowHitsAfterTele.integer ) {
++		G_ResetHistory( player );
++	}
+ }
+ 
+ 
+diff --git a/code/game/g_missile.c b/code/game/g_missile.c
+index 76278dc..9dad55e 100644
+--- a/code/game/g_missile.c
++++ b/code/game/g_missile.c
+@@ -24,6 +24,138 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ 
+ #define	MISSILE_PRESTEP_TIME	50
+ 
++
++/*
++==============================================================================
++
++Oz: Ratmod's delagged projectiles (ratmod.github.io, rdntcntrl/ratoa_gamecode g_missile.c, GPL-2.0)
++
++A projectile starts at the shooter's command time (when he saw what he fired at, less g_delagMissileBaseNudge
++ms), no further back than g_delagMissileMaxLatency ms, instead of id's 50 ms ahead of the server's frame. The
++flight from then to the last frame (G_MissileRunDelag) is run a server frame at a time with the other players
++moved to where they were at each step (Unlagged's history, g_unlagged.c), so a rocket hits where the shooter's
++screen said it would. g_delagMissileImmediateRun 2 runs it at the shooter's next command, so it's in the next
++snapshot already where it is; 1 runs it as it's fired; 0 at the server's next frame. g_delagMissiles 0 is id's
++game; g_delagMissileNudgeOnly 1 keeps the earlier start without the time shifted flight.
++
++==============================================================================
++*/
++
++void G_SetMissileLaunchTime( gentity_t *self, gentity_t *bolt ) {
++	bolt->needsDelag = qfalse;
++	bolt->missileRan = 0;
++	if ( !self || !self->client ) {
++		bolt->s.pos.trTime = level.time;
++		bolt->launchTime = bolt->s.pos.trTime;
++		return;
++	}
++	if ( !g_delagMissiles.integer ) {
++		bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;
++		bolt->launchTime = bolt->s.pos.trTime;
++		return;
++	}
++
++	bolt->s.pos.trTime = G_UnlaggedAttackTime( self ) - g_delagMissileBaseNudge.integer;
++
++	if ( bolt->s.pos.trTime < level.time - g_delagMissileMaxLatency.integer ) {
++		if ( g_delagMissileDebug.integer ) {
++			Com_Printf( "delag: client %i's projectile from %i ms back limited to %i (true ping %i)\n", self->s.number,
++				level.time - bolt->s.pos.trTime, g_delagMissileMaxLatency.integer, G_RealPing( self ) );
++		}
++		bolt->s.pos.trTime = level.time - g_delagMissileMaxLatency.integer;
++	} else if ( bolt->s.pos.trTime > level.time ) {
++		// no projectiles from the future: evaluated at level.time it would move backwards from its launch
++		bolt->s.pos.trTime = level.time;
++	}
++
++	// the true launch time, for the delag if it bounces or teleports before it runs
++	bolt->launchTime = bolt->s.pos.trTime;
++	bolt->needsDelag = qtrue;
++}
++
++
++void G_MissileRunDelag( gentity_t *ent, int stepmsec ) {
++	int		prevTimeSaved, levelTimeSaved, t;
++
++	if ( !ent->inuse || ent->freeAfterEvent || ent->s.eType != ET_MISSILE || !ent->needsDelag ) {
++		return;
++	}
++	ent->needsDelag = qfalse;
++	if ( g_delagMissileNudgeOnly.integer || level.previousTime <= DELAG_MAX_BACKTRACK || stepmsec <= 0 ) {
++		return;
++	}
++
++	// the flight since it was launched, a frame at a time, with the others where the shooter saw them
++	prevTimeSaved = level.previousTime;
++	levelTimeSaved = level.time;
++	for ( t = level.previousTime - ( DELAG_MAX_BACKTRACK / stepmsec ) * stepmsec; t < prevTimeSaved; t += stepmsec ) {
++		if ( !ent->inuse || ent->freeAfterEvent || ent->s.eType != ET_MISSILE ) {
++			break;		// it went off
++		}
++		if ( t < ent->launchTime ) {
++			continue;
++		}
++		G_TimeShiftAllClients( t, ent->parent );
++		level.time = t + stepmsec;
++		level.previousTime = t;
++		G_RunMissile( ent );
++		level.time = levelTimeSaved;
++		level.previousTime = prevTimeSaved;
++		G_UnTimeShiftAllClients( ent->parent );
++	}
++	if ( g_delagMissileDebug.integer ) {
++		Com_Printf( "delag: projectile %i ran from %i ms back\n", ent->s.number, levelTimeSaved - ent->launchTime );
++	}
++}
++
++
++static void G_ImmediateRunMissile( gentity_t *ent ) {
++	if ( ent->missileRan == 1 ) {
++		return;		// ran already
++	}
++	G_MissileRunDelag( ent, level.time - level.previousTime );
++	if ( !ent->inuse || ent->freeAfterEvent ) {
++		return;
++	}
++	if ( ent->s.eType == ET_MISSILE ) {
++		G_RunMissile( ent );
++	}
++}
++
++
++// a projectile just fired (the weapon's fire function)
++void G_ImmediateLaunchMissile( gentity_t *ent ) {
++	if ( !ent || !g_delagMissiles.integer ) {
++		return;
++	}
++	if ( g_delagMissileImmediateRun.integer == 1 ) {
++		G_ImmediateRunMissile( ent );
++	} else if ( g_delagMissileImmediateRun.integer >= 2 ) {
++		ent->missileRan = -g_delagMissileImmediateRun.integer + 1;
++	}
++}
++
++
++// after each command of a player (ClientThink_real): runs his projectiles waiting for it
++void G_ImmediateRunClientMissiles( gentity_t *client ) {
++	gentity_t	*ent;
++	int			i;
++
++	if ( g_delagMissileImmediateRun.integer <= 1 ) {
++		return;
++	}
++	for ( i = MAX_CLIENTS, ent = &g_entities[MAX_CLIENTS]; i < level.num_entities; i++, ent++ ) {
++		if ( !ent->inuse || ent->freeAfterEvent || ent->s.eType != ET_MISSILE || ent->parent != client ) {
++			continue;
++		}
++		if ( ent->missileRan < 0 ) {
++			ent->missileRan++;		// run at a later command
++			continue;
++		}
++		G_ImmediateRunMissile( ent );
++	}
++}
++
+ /*
+ ================
+ G_BounceMissile
+@@ -420,12 +552,24 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
+ 
+ 	ent->freeAfterEvent = qtrue;
+ 
+-	// change over to a normal entity right at the point of impact
+-	ent->s.eType = ET_GENERAL;
+-
+ 	SnapVectorTowards( trace->endpos, ent->s.pos.trBase );	// save net bandwidth
+ 
+-	G_SetOrigin( ent, trace->endpos );
++	if ( g_delagMissiles.integer && g_predictMissiles.integer && G_AllClientsOzDelag() ) {
++		// Oz: Ratmod's: it stays a missile for its event, so the cgames that drew it ahead or predicted its
++		// explosion keep what they know of it: when it went off (time2), where (origin2) and whose it was
++		// (otherEntityNum2, as otherEntityNum is who it hit now). Only when every player's cgame knows this
++		ent->s.time2 = level.time;
++		if ( ent->s.time2 <= 0 ) {
++			ent->s.time2 = 1;
++		}
++		VectorCopy( trace->endpos, ent->s.origin2 );
++		ent->s.otherEntityNum2 = ent->r.ownerNum;
++		VectorCopy( trace->endpos, ent->r.currentOrigin );
++	} else {
++		// change over to a normal entity right at the point of impact
++		ent->s.eType = ET_GENERAL;
++		G_SetOrigin( ent, trace->endpos );
++	}
+ 
+ 	// splash damage (doesn't apply to person directly hit)
+ 	if ( ent->splashDamage ) {
+@@ -450,6 +594,11 @@ void G_RunMissile( gentity_t *ent ) {
+ 	trace_t		tr;
+ 	int			passent;
+ 
++	ent->missileRan = 1;	// Oz: Ratmod's delagged projectiles: it ran
++	if ( ent->freeAfterEvent ) {
++		return;		// exploded (Ratmod's stay missiles for their event)
++	}
++
+ 	// get current position
+ 	BG_EvaluateTrajectory( &ent->s.pos, level.time, origin );
+ 
+@@ -492,7 +641,7 @@ void G_RunMissile( gentity_t *ent ) {
+ 			return;
+ 		}
+ 		G_MissileImpact( ent, &tr );
+-		if ( ent->s.eType != ET_MISSILE ) {
++		if ( ent->s.eType != ET_MISSILE || ent->freeAfterEvent ) {	// Oz: Ratmod's exploded missiles stay missiles
+ 			return;		// exploded
+ 		}
+ 	}
+@@ -543,7 +692,7 @@ gentity_t *fire_plasma (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->target_ent = NULL;
+ 
+ 	bolt->s.pos.trType = TR_LINEAR;
+-	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
++	G_SetMissileLaunchTime( self, bolt );	// Oz: Ratmod's delagged projectiles (id's: 50 ms ahead)
+ 	VectorCopy( start, bolt->s.pos.trBase );
+ 	G_QLMissile( bolt, WP_PLASMAGUN, dir, 2000 );	// q3core: Quake Live's numbers
+ 	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
+@@ -586,7 +735,7 @@ gentity_t *fire_grenade (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->target_ent = NULL;
+ 
+ 	bolt->s.pos.trType = TR_GRAVITY;
+-	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
++	G_SetMissileLaunchTime( self, bolt );	// Oz: Ratmod's delagged projectiles (id's: 50 ms ahead)
+ 	VectorCopy( start, bolt->s.pos.trBase );
+ 	G_QLMissile( bolt, WP_GRENADE_LAUNCHER, dir, 700 );	// q3core: Quake Live's numbers
+ 	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
+@@ -628,7 +777,7 @@ gentity_t *fire_bfg (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->target_ent = NULL;
+ 
+ 	bolt->s.pos.trType = TR_LINEAR;
+-	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
++	G_SetMissileLaunchTime( self, bolt );	// Oz: Ratmod's delagged projectiles (id's: 50 ms ahead)
+ 	VectorCopy( start, bolt->s.pos.trBase );
+ 	G_QLMissile( bolt, WP_BFG, dir, 2000 );	// q3core: Quake Live's numbers
+ 	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
+@@ -669,7 +818,7 @@ gentity_t *fire_rocket (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	bolt->target_ent = NULL;
+ 
+ 	bolt->s.pos.trType = TR_LINEAR;
+-	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
++	G_SetMissileLaunchTime( self, bolt );	// Oz: Ratmod's delagged projectiles (id's: 50 ms ahead)
+ 	VectorCopy( start, bolt->s.pos.trBase );
+ 	G_QLMissile( bolt, WP_ROCKET_LAUNCHER, dir, 900 );	// q3core: Quake Live's numbers
+ 	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
+@@ -702,7 +851,7 @@ gentity_t *fire_grapple (gentity_t *self, vec3_t start, vec3_t dir) {
+ 	hook->target_ent = NULL;
+ 
+ 	hook->s.pos.trType = TR_LINEAR;
+-	hook->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
++	G_SetMissileLaunchTime( self, hook );	// Oz: Ratmod's delagged projectiles (id's: 50 ms ahead)
+ 	hook->s.otherEntityNum = self->s.number; // use to match beam in client
+ 	VectorCopy( start, hook->s.pos.trBase );
+ 	VectorScale( dir, 800, hook->s.pos.trDelta );
+@@ -745,7 +894,7 @@ gentity_t *fire_nail( gentity_t *self, vec3_t start, vec3_t forward, vec3_t righ
+ 	bolt->target_ent = NULL;
+ 
+ 	bolt->s.pos.trType = TR_LINEAR;
+-	bolt->s.pos.trTime = level.time;
++	G_SetMissileLaunchTime( self, bolt );	// Oz: Ratmod's delagged projectiles
+ 	VectorCopy( start, bolt->s.pos.trBase );
+ 
+ 	r = random() * M_PI * 2.0f;
+@@ -803,7 +952,7 @@ gentity_t *fire_prox( gentity_t *self, vec3_t start, vec3_t dir ) {
+ 	bolt->s.generic1 = self->client->sess.sessionTeam;
+ 
+ 	bolt->s.pos.trType = TR_GRAVITY;
+-	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
++	G_SetMissileLaunchTime( self, bolt );	// Oz: Ratmod's delagged projectiles (id's: 50 ms ahead)
+ 	VectorCopy( start, bolt->s.pos.trBase );
+ 	VectorScale( dir, 700, bolt->s.pos.trDelta );
+ 	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
+diff --git a/code/game/g_ql.c b/code/game/g_ql.c
+index c52603b..6cf0b84 100644
+--- a/code/game/g_ql.c
++++ b/code/game/g_ql.c
+@@ -328,3 +328,31 @@ void G_QLSpawnLoadout( gentity_t *ent ) {
+ 		client->ps.stats[STAT_MAX_HEALTH] * g_startingHealth.integer / 100 + g_startingHealthBonus.integer;
+ 	client->ps.stats[STAT_ARMOR] = g_startingArmor.integer;
+ }
++
++
++/*
++==================
++G_OzMissileSpeeds
++
++Oz: Ratmod's predicted missiles: the speeds G_QLMissile gives the plasma, grenade, rocket and BFG (classic or
++Quake Live's), in the serverinfo as "g_ozMissileSpeeds" so the shooter's cgame draws his own as fast as the
++server flies them
++==================
++*/
++void G_OzMissileSpeeds( void ) {
++	static char	last[64];
++	const char	*now;
++	int			pg = 2000, gl = 700, rl = 900, bfg = 2000;
++
++	if ( G_QL() ) {
++		pg = g_velocity_pg.integer;
++		gl = g_velocity_gl.integer;
++		rl = g_velocity_rl.integer;
++		bfg = g_velocity_bfg.integer;
++	}
++	now = va( "%i %i %i %i", pg, gl, rl, bfg );
++	if ( strcmp( now, last ) ) {
++		Q_strncpyz( last, now, sizeof( last ) );
++		trap_Cvar_Set( "g_ozMissileSpeeds", last );
++	}
++}
+diff --git a/code/game/g_trigger.c b/code/game/g_trigger.c
+index f43163a..c08ce50 100644
+--- a/code/game/g_trigger.c
++++ b/code/game/g_trigger.c
+@@ -294,6 +294,45 @@ void trigger_teleporter_touch (gentity_t *self, gentity_t *other, trace_t *trace
+ }
+ 
+ 
++/*
++==============
++G_SetTeleporterDestinations
++
++Oz: Ratmod's teleporter prediction: a teleporter with one destination tells the clients where it goes (origin2,
++angles2, generic1 1), so the player's own cgame moves him through it as he touches it instead of a round trip
++later (cg_predictTeleport). g_teleporterPrediction 0 leaves them unknown.
++==============
++*/
++void G_SetTeleporterDestinations( void ) {
++	gentity_t	*ent, *target, *unique;
++	int			i;
++
++	for ( i = 0, ent = g_entities; i < level.num_entities; i++, ent++ ) {
++		if ( !ent->inuse || ent->s.eType != ET_TELEPORT_TRIGGER ) {
++			continue;
++		}
++		ent->s.generic1 = 0;
++		if ( ( ent->spawnflags & 1 ) || !ent->target || !g_teleporterPrediction.integer ) {
++			continue;		// spectators only, or off
++		}
++		unique = NULL;
++		target = NULL;
++		while ( ( target = G_Find( target, FOFS( targetname ), ent->target ) ) != NULL ) {
++			if ( unique ) {
++				unique = NULL;		// a random one of several: the server picks
++				break;
++			}
++			unique = target;
++		}
++		if ( unique ) {
++			VectorCopy( unique->s.origin, ent->s.origin2 );
++			VectorCopy( unique->s.angles, ent->s.angles2 );
++			ent->s.generic1 = 1;
++		}
++	}
++}
++
++
+ /*QUAKED trigger_teleport (.5 .5 .5) ? SPECTATOR
+ Allows client side prediction of teleportation events.
+ Must point at a target_position, which will be the teleport destination.
+diff --git a/code/game/g_unlagged.c b/code/game/g_unlagged.c
+index 83f183d..6879936 100644
+--- a/code/game/g_unlagged.c
++++ b/code/game/g_unlagged.c
+@@ -63,6 +63,11 @@ static struct {
+ 	int				historyHead;
+ 	clientHistory_t	history[NUM_CLIENT_HISTORY];
+ 	clientHistory_t	saved;				// where he was before a time shift
++	int				pingSamples[16];	// Oz: Ratmod's true ping: his commands' age as they come
++	int				pingSampleCount;
++	int				realPing;
++	qboolean		ozDelag;			// his cgame knows Ratmod's exploded missiles (cg_ozDelagVersion)
++	int				eqDelay;			// the ping equalizer's hold on his packets (sv_ozEqDelays)
+ } ul[MAX_CLIENTS];
+ 
+ static int	frameStartTime;		// trap_Milliseconds() as this server frame began
+@@ -86,6 +91,10 @@ void G_UnlaggedUserinfo( gentity_t *ent, const char *userinfo ) {
+ 	ul[n].delag = *s ? atoi( s ) : 1;
+ 	// negative values would let people shoot others *long* after they had left the area, on purpose
+ 	ul[n].cmdTimeNudge = Com_Clamp( 0, 999, atoi( Info_ValueForKey( userinfo, "cg_cmdTimeNudge" ) ) );
++	ul[n].ozDelag = atoi( Info_ValueForKey( userinfo, "cg_ozDelagVersion" ) ) >= 1;
++	if ( !g_allowTimenudge.integer ) {
++		ul[n].cmdTimeNudge = 0;	// Oz: Ratmod's g_allowTimenudge 0
++	}
+ }
+ 
+ 
+@@ -106,6 +115,130 @@ void G_UnlaggedClientThink( gentity_t *ent, int serverTime ) {
+ 	ul[n].attackTime = serverTime;
+ 	// keep track of this for later - we'll use this to decide whether or not to extrapolate this client
+ 	ul[n].lastUpdateFrame = level.framenum;
++	// Oz: Ratmod's true ping (Unlagged's): how old his commands are as they come, averaged over the last 16,
++	// from the last frame (the 50 ms the server's frame adds aren't his connection's)
++	{
++		int	i, num, sum = 0;
++		ul[n].pingSamples[ul[n].pingSampleCount % 16] = level.previousTime + ul[n].frameOffset - serverTime;
++		ul[n].pingSampleCount++;
++		num = ul[n].pingSampleCount;
++		if ( num > 16 ) {
++			num = 16;
++		}
++		for ( i = 0; i < num; i++ ) {
++			sum += ul[n].pingSamples[i];
++		}
++		sum /= num;
++		if ( sum < 0 ) {
++			sum = 0;
++		}
++		ul[n].realPing = sum;
++	}
++}
++
++
++/*
++============
++Oz: what Ratmod's projectiles and true ping read
++============
++*/
++int G_UnlaggedAttackTime( gentity_t *ent ) {
++	return ul[ent - g_entities].attackTime;
++}
++
++int G_UnlaggedFrameOffset( gentity_t *ent ) {
++	return ul[ent - g_entities].frameOffset;
++}
++
++// whether every connected player's cgame knows Ratmod's exploded missiles (bots have none)
++qboolean G_AllClientsOzDelag( void ) {
++	int		i;
++
++	for ( i = 0; i < level.maxclients; i++ ) {
++		if ( level.clients[i].pers.connected == CON_CONNECTED && !( g_entities[i].r.svFlags & SVF_BOT ) && !ul[i].ozDelag ) {
++			return qfalse;
++		}
++	}
++	return qtrue;
++}
++
++/*
++=====================
++G_PingEqualizer
++
++Oz: Ratmod's ping equalizer (g_pingEqualizer 1, off by default): every player's packets are held so they all play
++at the highest ping among them, as Ratmod's server engine does (its sv_eqping; here the engine's sv_ozEqDelays,
++the ms to hold each client's snapshots). A peer-to-peer match's host has no ping of his own, so this takes away
++his edge too. Once a second, in 5 ms steps, changed only by 20 ms or more (pings wander that much) so the
++snapshots don't jitter; at most g_pingEqualizerMax ms
++=====================
++*/
++void G_PingEqualizer( void ) {
++	static int	nextTime;
++	char		list[MAX_CLIENTS * 4 + 1];
++	int			i, base[MAX_CLIENTS], highest = 0, changed = 0;
++
++	if ( level.time < nextTime ) {
++		return;
++	}
++	nextTime = level.time + 1000;
++
++	for ( i = 0; i < level.maxclients; i++ ) {
++		gclient_t	*cl = &level.clients[i];
++		base[i] = -1;
++		if ( cl->pers.connected != CON_CONNECTED || ( g_entities[i].r.svFlags & SVF_BOT )
++				|| cl->sess.sessionTeam == TEAM_SPECTATOR || !ul[i].pingSampleCount ) {
++			continue;
++		}
++		// his own connection's ping: what he has now, less what the equalizer adds
++		base[i] = ul[i].realPing - ul[i].eqDelay;
++		if ( base[i] < 0 ) {
++			base[i] = 0;
++		}
++		if ( base[i] > highest ) {
++			highest = base[i];
++		}
++	}
++
++	list[0] = '\0';
++	for ( i = 0; i < level.maxclients; i++ ) {
++		int	want = 0;
++		if ( g_pingEqualizer.integer && base[i] >= 0 ) {
++			want = ( ( highest - base[i] ) / 5 ) * 5;
++			if ( want > g_pingEqualizerMax.integer ) {
++				want = g_pingEqualizerMax.integer;
++			}
++			if ( want < 0 ) {
++				want = 0;
++			}
++			if ( abs( want - ul[i].eqDelay ) < 20 && want ) {
++				want = ul[i].eqDelay;		// close enough: no jitter
++			}
++		}
++		if ( want != ul[i].eqDelay ) {
++			changed = 1;
++			if ( g_delagMissileDebug.integer ) {
++				Com_Printf( "eqping: client %i (ping %i) held %i ms (was %i)\n", i, base[i], want, ul[i].eqDelay );
++			}
++		}
++		ul[i].eqDelay = want;
++		Q_strcat( list, sizeof( list ), va( "%i ", want ) );
++	}
++	if ( changed ) {
++		trap_Cvar_Set( "sv_ozEqDelays", list );
++	}
++}
++
++// the ping the scoreboard shows: the true ping (g_truePing 1), else the engine's
++int G_RealPing( gentity_t *ent ) {
++	const int n = ent - g_entities;
++	if ( !ent->client || n < 0 || n >= MAX_CLIENTS ) {
++		return 0;
++	}
++	if ( !g_truePing.integer || !ul[n].pingSampleCount || ( ent->r.svFlags & SVF_BOT ) ) {
++		return ent->client->ps.ping;
++	}
++	return ul[n].realPing;
+ }
+ 
+ 
+@@ -261,7 +394,7 @@ G_TimeShiftAllClients
+ Move ALL clients back to where they were at the specified "time", except for "skip"
+ =====================
+ */
+-static void G_TimeShiftAllClients( int time, gentity_t *skip ) {
++void G_TimeShiftAllClients( int time, gentity_t *skip ) {
+ 	gentity_t	*ent;
+ 	int			i;
+ 
+@@ -300,6 +433,10 @@ void G_DoTimeShiftFor( gentity_t *ent ) {
+ 	if ( ( ul[n].delag & 1 ) || ( ul[n].delag & flag ) ) {
+ 		// do the full lag compensation, except what the client nudges
+ 		time = ul[n].attackTime + ul[n].cmdTimeNudge;
++		// Oz: Ratmod's g_lagLightning: the lightning gun 50 ms behind (lag was part of its balance in VQ3)
++		if ( ent->client->ps.weapon == WP_LIGHTNING && g_lagLightning.integer ) {
++			time += 50;
++		}
+ 		// Oz: no further back than g_delagMax
+ 		if ( time < level.time - g_delagMax.integer ) {
+ 			time = level.time - g_delagMax.integer;
+@@ -344,7 +481,7 @@ G_UnTimeShiftAllClients
+ Move ALL the clients back to where they were before the time shift, except for "skip"
+ =======================
+ */
+-static void G_UnTimeShiftAllClients( gentity_t *skip ) {
++void G_UnTimeShiftAllClients( gentity_t *skip ) {
+ 	gentity_t	*ent;
+ 	int			i;
+ 
+diff --git a/code/game/g_weapon.c b/code/game/g_weapon.c
+index 8a3accd..5696eae 100644
+--- a/code/game/g_weapon.c
++++ b/code/game/g_weapon.c
+@@ -261,6 +261,7 @@ void BFG_Fire ( gentity_t *ent ) {
+ 	m = fire_bfg (ent, muzzle, forward);
+ 	m->damage *= s_quadFactor;
+ 	m->splashDamage *= s_quadFactor;
++	G_ImmediateLaunchMissile( m );	// Oz: Ratmod's delagged projectiles
+ 
+ //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
+ }
+@@ -408,6 +409,7 @@ void weapon_grenadelauncher_fire (gentity_t *ent) {
+ 	m = fire_grenade (ent, muzzle, forward);
+ 	m->damage *= s_quadFactor;
+ 	m->splashDamage *= s_quadFactor;
++	G_ImmediateLaunchMissile( m );	// Oz: Ratmod's delagged projectiles
+ 
+ //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
+ }
+@@ -426,6 +428,7 @@ void Weapon_RocketLauncher_Fire (gentity_t *ent) {
+ 	m = fire_rocket (ent, muzzle, forward);
+ 	m->damage *= s_quadFactor;
+ 	m->splashDamage *= s_quadFactor;
++	G_ImmediateLaunchMissile( m );	// Oz: Ratmod's delagged projectiles
+ 
+ //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
+ }
+@@ -445,6 +448,7 @@ void Weapon_Plasmagun_Fire (gentity_t *ent) {
+ 	m = fire_plasma (ent, muzzle, forward);
+ 	m->damage *= s_quadFactor;
+ 	m->splashDamage *= s_quadFactor;
++	G_ImmediateLaunchMissile( m );	// Oz: Ratmod's delagged projectiles
+ 
+ //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
+ }
+@@ -725,6 +729,7 @@ void Weapon_Nailgun_Fire (gentity_t *ent) {
+ 		m = fire_nail (ent, muzzle, forward, right, up );
+ 		m->damage *= s_quadFactor;
+ 		m->splashDamage *= s_quadFactor;
++		G_ImmediateLaunchMissile( m );	// Oz: Ratmod's delagged projectiles
+ 	}
+ 
+ //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
+@@ -749,6 +754,7 @@ void weapon_proxlauncher_fire (gentity_t *ent) {
+ 	m = fire_prox (ent, muzzle, forward);
+ 	m->damage *= s_quadFactor;
+ 	m->splashDamage *= s_quadFactor;
++	G_ImmediateLaunchMissile( m );	// Oz: Ratmod's delagged projectiles
+ 
+ //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
+ }

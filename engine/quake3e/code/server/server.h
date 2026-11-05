@@ -230,6 +230,7 @@ typedef struct client_s {
 	char			tld[3]; // "XX\0"
 	const char		*country;
 
+	int				ozEqDelay;		// Oz: ms the ping equalizer holds this client's packets (sv_ozEqDelays)
 } client_t;
 
 //=============================================================================
@@ -283,6 +284,7 @@ extern	server_t		sv;					// cleared each map
 extern	vm_t			*gvm;				// game virtual machine
 
 extern	cvar_t	*sv_fps;
+extern	cvar_t	*sv_ozEqDelays;	// Oz: the game's ping equalizer: ms to hold each client's packets, "<n> <n> ..."
 extern	cvar_t	*sv_timeout;
 extern	cvar_t	*sv_zombietime;
 extern	cvar_t	*sv_rconPassword;

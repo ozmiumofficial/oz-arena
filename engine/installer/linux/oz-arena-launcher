@@ -253,7 +253,7 @@ remote_size() {   # url: Content-Length after redirects
 	fi
 }
 
-# The latest release: REL_VERSION, and REL_ASSETS ("name url" lines: the Linux tarball and every .pk3).
+# The latest release: REL_VERSION, and REL_ASSETS ("name url sha256" lines, - when GitHub gives none: the Linux tarball and every .pk3).
 REL_VERSION=""; REL_ASSETS=""; REL_OFFLINE=0
 fetch_release() {
 	local json
@@ -270,10 +270,17 @@ $(basename "$t") file://$t"; done
 	fi
 	json="$(http_get "https://api.github.com/repos/$REPO/releases/latest")" || return 1
 	REL_VERSION="$(printf '%s' "$json" | grep -o '"tag_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n 1 | sed 's/.*"\([^"]*\)"$/\1/')"
-	REL_ASSETS="$(printf '%s' "$json" | grep -o '"browser_download_url"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/' |
-		while IFS= read -r u; do
-			n="${u##*/}"
-			case "$n" in OzArena-*-linux.tar.gz|*.pk3) echo "$n $u" ;; esac
+	# each asset's digest comes before its browser_download_url in GitHub's JSON: "name url sha256" lines
+	REL_ASSETS="$(printf '%s' "$json" | grep -o '"\(digest\|browser_download_url\)"[[:space:]]*:[[:space:]]*\("[^"]*"\|null\)' |
+		sed 's/^"\([a-z_]*\)"[[:space:]]*:[[:space:]]*"\{0,1\}\([^"]*\)"\{0,1\}$/\1 \2/' |
+		while read -r k v; do
+			if [ "$k" = "digest" ]; then
+				case "$v" in sha256:*) d="${v#sha256:}" ;; *) d="" ;; esac
+				continue
+			fi
+			n="${v##*/}"
+			case "$n" in OzArena-*-linux.tar.gz|*.pk3) echo "$n $v ${d:--}" ;; esac
+			d=""
 		done)"
 	[ -n "$REL_VERSION" ] || return 1
 	REL_VERSION="${REL_VERSION#v}"   # the tag's v0.7.5-beta is the tarball's 0.7.5-beta
@@ -285,6 +292,14 @@ tarball_asset() { printf '%s\n' "$REL_ASSETS" | awk '$1 ~ /^OzArena-.*-linux\.ta
 installed_version() { [ -f "$DIR/$MANIFEST" ] && sed -n 's/^version=v\{0,1\}//p' "$DIR/$MANIFEST" | head -n 1; }
 
 file_size() { stat -c %s "$1" 2>/dev/null || echo 0; }
+
+# A pak already in place as the release has it: its size, and its SHA-256 when the release gives one (a texture
+# pack remade at the same size, v0.7.7, is fetched anew). Without sha256sum, the size alone.
+pak_current() {   # dest, size, sha256 or -
+	[ -f "$1" ] && [ "$2" -gt 0 ] && [ "$(file_size "$1")" = "$2" ] || return 1
+	[ -n "$3" ] && [ "$3" != "-" ] && command -v sha256sum >/dev/null 2>&1 || return 0
+	[ "$(sha256sum "$1" | awk '{print $1}')" = "$3" ]
+}
 
 # One file into part, resumed from what part holds; prints "percent" and "# text" lines for ui_progress.
 # done_before/total are the bytes of the whole install, for one bar over every file.
@@ -342,11 +357,11 @@ do_install() {
 	list="$stage/assets"
 	: > "$list"
 	# what this run fetches: the tarball, and each pak not already in place at its size
-	while read -r name url; do
+	while read -r name url sha; do
 		[ -n "$name" ] || continue
 		size="$(case "$url" in file://*) file_size "${url#file://}" ;; *) remote_size "$url" ;; esac)"
 		dest="$DIR/oz/$name"
-		case "$name" in OzArena-*) ;; *) [ -f "$dest" ] && [ "$size" -gt 0 ] && [ "$(file_size "$dest")" = "$size" ] && continue ;; esac
+		case "$name" in OzArena-*) ;; *) pak_current "$dest" "$size" "${sha:--}" && continue ;; esac
 		echo "$name $url $size" >> "$list"
 		total=$((total + size))
 	done <<< "$REL_ASSETS"

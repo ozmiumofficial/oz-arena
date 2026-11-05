@@ -147,6 +147,7 @@ namespace OzSetup
     {
         public string Name, Url, Local;
         public long Size;
+        public string Sha256;  // GitHub's digest of the file (lowercase hex), null when it has none
         public bool IsZip => Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -178,7 +179,8 @@ namespace OzSetup
             {
                 if (!ZipName.IsMatch(a.name) && !a.name.EndsWith(".pk3", StringComparison.OrdinalIgnoreCase))
                     continue;
-                rel.Assets.Add(new Asset { Name = a.name, Url = a.browser_download_url, Size = a.size });
+                rel.Assets.Add(new Asset { Name = a.name, Url = a.browser_download_url, Size = a.size,
+                    Sha256 = a.digest != null && a.digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) ? a.digest.Substring(7).ToLowerInvariant() : null });
             }
             if (rel.Zip == null)
                 throw new Exception("The latest release on GitHub has no game zip yet. Try again in a little while.");
@@ -215,6 +217,7 @@ namespace OzSetup
         [DataMember] public string name;
         [DataMember] public string browser_download_url;
         [DataMember] public long size;
+        [DataMember] public string digest;  // "sha256:<hex>"
     }
 #pragma warning restore CS0649
 
@@ -306,8 +309,39 @@ namespace OzSetup
             catch { return null; }
         }
 
-        /// <summary>The paks already in place at the release's size: Setup doesn't download those again.</summary>
-        public static bool Have(string dir, Asset a) => !a.IsZip && SameSize(Path.Combine(dir, "oz", a.Name), a.Size);
+        /// <summary>The paks already in place as the release has them (its size, and its checksum when the release
+        /// gives one, or the offline file's): Setup doesn't download those again. A pak of the same size but other
+        /// contents (a texture pack remade, v0.7.7) is fetched anew.</summary>
+        public static bool Have(string dir, Asset a)
+        {
+            string path = Path.Combine(dir, "oz", a.Name);
+            if (a.IsZip || !SameSize(path, a.Size))
+                return false;
+            if (a.Sha256 == null && a.Local != null)
+                a.Sha256 = Sha256Of(a.Local);
+            return a.Sha256 == null || Sha256Of(path) == a.Sha256;
+        }
+
+        // a file's SHA-256 (lowercase hex), kept per file, size and time: a pak is read once a run
+        static readonly Dictionary<string, string> hashes = new Dictionary<string, string>();
+
+        static string Sha256Of(string path)
+        {
+            var fi = new FileInfo(path);
+            string key = fi.FullName + "|" + fi.Length + "|" + fi.LastWriteTimeUtc.Ticks;
+            lock (hashes)
+            {
+                if (hashes.TryGetValue(key, out var have))
+                    return have;
+            }
+            string hex;
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            using (var f = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20))
+                hex = BitConverter.ToString(sha.ComputeHash(f)).Replace("-", "").ToLowerInvariant();
+            lock (hashes)
+                hashes[key] = hex;
+            return hex;
+        }
 
         static bool SameSize(string path, long size)
         {

@@ -55,7 +55,7 @@ Settings, saved matches and your career live in `%APPDATA%\Oz Arena`. To play CP
 
 ![The arenas](docs/screenshots/world_q3dm1.jpg)
 
-- **Every texture remade.** The world, the fighters, the weapons and items, and the effects: each of id's images upscaled four times by Real-ESRGAN, with id's own colors kept and the model's invented detail held back to what id painted. Each comes with normal, roughness and specular maps, and every surface stays matte.
+- **Every texture remade.** The world, the fighters, the weapons and items, and the effects: each of id's images remade at high resolution, with id's own colors kept (a new, sharper set since v0.7.7). Each comes with normal, roughness and specular maps, and every surface stays matte.
 - **35 arenas relit.** All of id's maps are lit again with q3map2 as id's own compiler lit them, now with directional (deluxe) light maps, so the new normal maps catch the light. Shadows are softer and light bounces, matched to each map's original brightness.
 - **A modern renderer.** ioquake3's physically based rend2 renderer, with tone mapping, bloom and AMD FSR 1 upscaling.
 - **New level shots and cinematics.** The arenas' pictures are shot in the new look, and the original movies play from a higher-quality pack.
@@ -163,6 +163,11 @@ A map editor built into the game, from the main menu:
 - **Open any map you own.** Stock maps open through q3map2, ready to change.
 - **Compile and play** without leaving: Play drops you in, and Esc brings you back.
 - **Maps for Defrag and CPMA** too, with Defrag's timers and entities. Maps are saved as standard `.map` files.
+- **Doors, lifts and movers** as id builds them: a door or a double door from a brush, opening when a player comes near, when shot or from a button; lifts, trains, bobbing, rotating and swinging brushes, with where each moves shown and played in the view.
+- **Jump pads in two clicks:** the pad, its trigger and its target as one object, re-aimed by clicking where players should land.
+- **Collision is yours:** every block collides, whatever its material, until you untick it.
+- **Color any face,** and prototype with Oz's grid textures in a dozen colors before the real materials go on.
+- **Check the map** before you compile: jump pads that do nothing, doors nothing opens, targets that name nothing.
 
 | | |
 |---|---|

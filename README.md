@@ -166,6 +166,7 @@ A map editor built into the game, from the main menu:
 - **Doors, lifts and movers** as id builds them: a door or a double door from a brush, opening when a player comes near, when shot or from a button; lifts, trains, bobbing, rotating and swinging brushes, with where each moves shown and played in the view.
 - **Jump pads in two clicks:** the pad, its trigger and its target as one object, re-aimed by clicking where players should land.
 - **Collision is yours:** every block collides, whatever its material, until you untick it.
+- **Light it your way:** pick a light's color, then slide its intensity and how far it reaches. The lit preview (F6) shows the map lit by its own lights and lights it again as you change one.
 - **Color any face,** and prototype with Oz's grid textures in a dozen colors before the real materials go on.
 - **Check the map** before you compile: jump pads that do nothing, doors nothing opens, targets that name nothing.
 

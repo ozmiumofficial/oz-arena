@@ -65,6 +65,10 @@ def aim(rest_d, rest_u, d, u):
     return frame(d, u) @ frame(rest_d, rest_u).T
 
 
+def matrix_quat(m):
+    return mf.matrix_quat(m)
+
+
 def ik2(S, T, a, b, pole):
     v = T - S
     dist = np.linalg.norm(v)
@@ -181,6 +185,13 @@ def pose(lo, up):
         hinge = nrm(hinge) if np.linalg.norm(hinge) > 1e-2 else nrm(np.cross(E - S, pole))
         Ru = aim(REST["upperarm_" + s], hr, E - S, hinge)
         Rfa = aim(REST["forearm_" + s], hr, W2 - E, hinge)
+        # the hand's roll about the forearm (pronation) is shared: half in the forearm, half at the wrist, so
+        # neither the wrist nor the elbow wrings
+        ax = nrm(REST["forearm_" + s])
+        q = matrix_quat(Rfa.T @ Rh)
+        twist = 2 * math.degrees(math.atan2(float(q[:3] @ ax), q[3]))
+        twist = (twist + 180) % 360 - 180
+        Rfa = Rfa @ rot(ax, twist * 0.5)
         put("clavicle_" + s, Rcl, pcl)
         put("upperarm_" + s, Ru, S)
         put("forearm_" + s, Rfa, E)
@@ -527,6 +538,60 @@ for c0 in range(0, len(P), 400):
     iw = 1.0 / np.maximum(dn, 0.05) ** 2
     iw /= iw.sum(1, keepdims=True)
     dense[c0:c0 + 400][:, dcols] = np.einsum("vk,vkj->vj", iw, QW[nn])
+dense /= np.maximum(dense.sum(1, keepdims=True), 1e-9)
+
+
+# crisp joints: heat weights spread a limb's bend over most of its length, so arms and legs bend like hoses. Within
+# each limb the weight is shared out again by where the vertex lies along the limb: all on one segment, with a short
+# blend across the elbow, wrist, knee or ankle (half-widths in id units). What the limb shares with the torso stays.
+def smooth01(x):
+    x = np.clip(x, 0.0, 1.0)
+    return x * x * (3 - 2 * x)
+
+
+JOINT_BLEND = [("upperarm_%s", "forearm_%s", "hand_%s", 1.2, 0.8), ("thigh_%s", "calf_%s", "foot_%s", 1.6, 1.0)]
+for s in "LR":
+    for b0, b1, b2, w1, w2 in JOINT_BLEND:
+        i0, i1, i2 = ix[b0 % s], ix[b1 % s], ix[b2 % s]
+        cw = dense[:, [i0, i1, i2]].sum(1)
+        m = cw > 0
+        f1 = smooth01(((P - BP[b1 % s]) @ nrm(REST[b0 % s]) + w1) / (2 * w1))
+        f2 = smooth01(((P - BP[b2 % s]) @ nrm(REST[b1 % s]) + w2) / (2 * w2))
+        dense[m, i0] = cw[m] * (1 - f1[m])
+        dense[m, i1] = cw[m] * f1[m] * (1 - f2[m])
+        dense[m, i2] = cw[m] * f1[m] * f2[m]
+# shoulder pads: armor above the shoulder joint rides the collarbone, not the arm, so it stays on the shoulder
+Pb = d["co"]
+for s, sg in (("L", 1), ("R", -1)):
+    sx, _, sz = next(j[3] for j in JOINTS if j[0] == "upperarm_" + s)
+    near = (sg * Pb[:, 0] > abs(sx) - 0.09) & (sg * Pb[:, 0] < abs(sx) + 0.07)
+    lift = smooth01((Pb[:, 2] - sz - 0.015) / 0.03) * near
+    iu, ic = ix["upperarm_" + s], ix["clavicle_" + s]
+    move = dense[:, iu] * 0.75 * lift
+    dense[:, iu] -= move
+    dense[:, ic] += move
+# a shoulder pad that is its own piece of the mesh (compact, over a shoulder joint) moves as one rigid plate: 70% with
+# the collarbone, 30% with the arm, so it tips a little as the arm swings instead of bending
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
+_e = np.concatenate([d["tri_verts"][:, [0, 1]], d["tri_verts"][:, [1, 2]], d["tri_verts"][:, [2, 0]]])
+_, island = connected_components(coo_matrix((np.ones(len(_e)), (_e[:, 0], _e[:, 1])), shape=(len(Pb),) * 2),
+                                 directed=False)
+pads = 0
+for k in np.unique(island):
+    sel = island == k
+    p = Pb[sel]
+    if sel.sum() > 4000 or np.ptp(p, axis=0).max() > 0.24:
+        continue
+    c = p.mean(0)
+    for s in "LR":
+        sh = np.array(next(j[3] for j in JOINTS if j[0] == "upperarm_" + s))
+        if np.linalg.norm(c - sh) < 0.09 and c[2] > sh[2]:
+            dense[sel] = 0
+            dense[np.ix_(sel, [ix["clavicle_" + s]])] = 0.7
+            dense[np.ix_(sel, [ix["upperarm_" + s]])] = 0.3
+            pads += 1
+print("rigid shoulder pads:", pads)
 dense[dense < 0.02] = 0
 top = np.argsort(-dense, axis=1)[:, :4]
 topw = np.take_along_axis(dense, top, 1)

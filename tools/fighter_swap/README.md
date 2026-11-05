@@ -40,6 +40,7 @@ its joints in the model's T-pose (Blender coordinates: x is his left, -y his fro
 
 - `pose_preview.py <rig> <pak0> <dir> <weapon> <slot>` writes OBJs of a dozen poses with a real weapon model in the
   hand, and `render_hold.py <dir> <texture> full|close` renders them.
+- `render_arms.py <dir> <texture>` renders the shoulders, elbows and wrists of those poses up close.
 - `clip_check.py` counts how far body parts sink into each other across the animations.
 - `freecam.ps1 -bot visor -out <dir>` runs the game unattended. It freezes that fighter as a bot on q3dm17, circles it
   with a free camera (`edpos`, `oz_aimat`), then lets it fight, and saves the screenshots.

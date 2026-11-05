@@ -57,8 +57,17 @@ std::string Base64( const unsigned char *data, size_t len ) {
 	return out;
 }
 
+// a path's file, by its wide name on Windows (any characters), its bytes elsewhere
+FILE *OpenPath( const std::filesystem::path &p, bool write ) {
+#ifdef _WIN32
+	return _wfopen( p.c_str(), write ? L"wb" : L"rb" );
+#else
+	return fopen( p.c_str(), write ? "wb" : "rb" );
+#endif
+}
+
 bool ReadFile( const std::filesystem::path &p, std::string &out ) {
-	FILE *f = _wfopen( p.c_str(), L"rb" );
+	FILE *f = OpenPath( p, false );
 	if ( !f ) {
 		return false;
 	}
@@ -75,7 +84,7 @@ bool ReadFile( const std::filesystem::path &p, std::string &out ) {
 bool WriteFile( const std::filesystem::path &p, const std::string &data ) {
 	std::error_code ec;
 	std::filesystem::create_directories( p.parent_path(), ec );
-	FILE *f = _wfopen( p.c_str(), L"wb" );
+	FILE *f = OpenPath( p, true );
 	if ( !f ) {
 		return false;
 	}

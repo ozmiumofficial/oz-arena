@@ -2752,6 +2752,21 @@
    "preview": "crosshair"
   },
   {
+   "key": "crosshair/hit_marker",
+   "tab": "crosshair",
+   "label": "Hit marker",
+   "type": "bool",
+   "default": true,
+   "tip": "A marker flashes around the crosshair in the hit color each time you damage an enemy.",
+   "group": "Hit flash",
+   "wired": true,
+   "restart": false,
+   "cvar": "oz_crosshair_hit_marker",
+   "create": true,
+   "cvar_default": "1",
+   "preview": "crosshair"
+  },
+  {
    "key": "crosshair/per_weapon",
    "tab": "crosshair",
    "label": "Per-weapon crosshairs",

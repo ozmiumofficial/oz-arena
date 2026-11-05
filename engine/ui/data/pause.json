@@ -55,6 +55,7 @@
     "hit_flash": true,
     "hit_color": "#ff3326",
     "hit_time": 220,
+    "hit_marker": true,
     "per_weapon": false,
     "shapes": [
       { "id": "none", "label": "None" },

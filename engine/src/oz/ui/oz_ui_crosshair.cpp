@@ -27,13 +27,13 @@ const int numWeapons = sizeof( weaponKeys ) / sizeof( weaponKeys[0] );
 
 // the settings the page shows, as crosshair.<name>
 const char *const shownValues[] = { "shape", "size", "thickness", "gap", "dot", "color", "opacity", "health_color", "outline",
-	"outline_width", "outline_opacity", "hit_flash", "hit_color", "hit_time", "per_weapon" };
+	"outline_width", "outline_opacity", "hit_flash", "hit_color", "hit_time", "hit_marker", "per_weapon" };
 
 // what the HUD draws the crosshair from: a <crosshair> makes its geometry again when one changes
 const char *const drawnCvars[] = { "oz_crosshair_shape", "cg_crosshairSize", "oz_crosshair_thickness", "oz_crosshair_gap",
 	"oz_crosshair_dot", "oz_crosshair_color", "oz_crosshair_opacity", "oz_crosshair_health", "oz_crosshair_outline",
 	"oz_crosshair_outline_width", "oz_crosshair_outline_opacity", "oz_crosshair_hit_flash", "oz_crosshair_hit_color",
-	"oz_crosshair_hit_time", "oz_crosshair_per_weapon" };
+	"oz_crosshair_hit_time", "oz_crosshair_hit_marker", "oz_crosshair_per_weapon" };
 
 Rml::String drawnKey;			// the cvars above and the weapons' own crosshairs, this frame
 int testHit = -100000;			// Test hit's time (OzE_Milliseconds): the previews flash the hit color

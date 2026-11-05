@@ -550,8 +550,13 @@ std::string When( long long at ) {
 	}
 	const time_t t = (time_t)at, now = time( nullptr );
 	struct tm when, today;
+#ifdef _WIN32
 	localtime_s( &when, &t );
 	localtime_s( &today, &now );
+#else
+	localtime_r( &t, &when );
+	localtime_r( &now, &today );
+#endif
 	char buf[32];
 	const long long beforeToday = (long long)now - ( today.tm_hour * 3600 + today.tm_min * 60 + today.tm_sec ) - at;
 	if ( beforeToday < 0 ) {

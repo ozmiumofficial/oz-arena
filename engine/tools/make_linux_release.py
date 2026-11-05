@@ -4,7 +4,8 @@ python engine/tools/make_linux_release.py [--stage build/linux] [--out <tar.gz>]
 
 Runs on Windows or Linux. What goes in: OzArena.x86_64, OzArena.ded.x86_64, the renderer modules
 (OzArena_<renderer>_x86_64.so), libSDL2-2.0.so.0, libopenal.so.1, oz/*.pk3, oz-arena-launcher,
-oz-arena.png and the LICENSE, under one OzArena/ folder (as the Windows zip), with the programs
+oz-arena.png, the LICENSE and the map editor's tools/ (q3map2 and mbspc with what they load, from
+engine/tools/linux_editor_tools.py), under one OzArena/ folder (as the Windows zip), with the programs
 executable whatever disk they were staged on. The world packs go up as release files of their own,
 as for Windows; the launcher fetches them beside this.
 
@@ -51,6 +52,12 @@ def main():
             sys.exit("%s isn't staged in %s: python3 engine/build_engine.py on Linux" % (name, stage))
         files.append(name)
     files += sorted(f for f in os.listdir(stage) if re.match(r"^OzArena_\w+_x86_64\.so$", f))
+    # the map editor's compile tools (linux_editor_tools.py): the editor can't compile maps without them
+    tools = os.path.join(stage, "tools")
+    for t in ("q3map2", "mbspc", "bin/q3map2.x86_64", "bin/mbspc.x86_64", "lib/ld-linux-x86-64.so.2"):
+        if not os.path.isfile(os.path.join(tools, t)):
+            sys.exit("tools/%s isn't staged: python engine/build_engine.py --linux" % t)
+    files += sorted(os.path.relpath(os.path.join(d, f), stage).replace("\\", "/") for d, _, fs in os.walk(tools) for f in fs)
     if not any(f.endswith(".so") and f.startswith("OzArena_oz_") for f in files):
         sys.exit("the oz renderer (OzArena_oz_x86_64.so) isn't staged")
     for f in sorted(os.listdir(os.path.join(stage, "oz"))):
@@ -68,7 +75,7 @@ def main():
     if os.path.isdir(os.path.join(stage, "baseq3")):
         sys.exit("a baseq3 folder is in %s: the release never carries the game's own files" % stage)
     exe = open(os.path.join(stage, "OzArena.x86_64"), "rb").read()
-    if ("Oz Arena %s (" % v).encode() not in exe:
+    if b"\0" + v.encode() + b"\0" not in exe:   # OZ_VERSION, a string of its own (common.c puts the line together)
         sys.exit("the staged OzArena.x86_64 doesn't say %s: rebuild it on Linux" % v)
 
     out = os.path.abspath(a.out or os.path.join(ROOT, "build", "release", "OzArena-%s-linux.tar.gz" % v))
@@ -77,7 +84,8 @@ def main():
     def norm(info, name):
         info.uid = info.gid = 0
         info.uname = info.gname = ""
-        info.mode = 0o755 if name in PROGRAMS or name.endswith(".so") or ".so." in name else 0o644
+        program = name in PROGRAMS or name.endswith(".so") or ".so." in name or (name.startswith("tools/") and not name.endswith(".txt"))
+        info.mode = 0o755 if program else 0o644
         return info
 
     with tarfile.open(out + ".tmp", "w:gz", compresslevel=6) as t:

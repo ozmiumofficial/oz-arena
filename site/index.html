@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ozmium Arena</title>
+<meta name="description" content="Ozmium Arena: a free, open-source mod for Quake III Arena. Remastered textures, relit arenas, rigged fighters with ragdolls, remade effects, a new HUD and menus, a map editor, and a browser for every community server.">
+<meta name="theme-color" content="#db2410">
+<link rel="canonical" href="https://ozmiumofficial.github.io/oz-arena/">
+<!-- link previews (Discord, Steam, X, Facebook...): absolute URLs, or the image never loads -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ozmium Arena">
+<meta property="og:url" content="https://ozmiumofficial.github.io/oz-arena/">
+<meta property="og:title" content="Ozmium Arena: the arena you remember, remade">
+<meta property="og:description" content="A free, open-source mod for Quake III Arena: remastered textures, 35 relit arenas, rigged fighters with ragdolls, remade effects, a new HUD, a map editor and every community server. Windows and Linux.">
+<meta property="og:image" content="https://ozmiumofficial.github.io/oz-arena/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Ozmium Arena logo over a dark arena">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ozmium Arena: the arena you remember, remade">
+<meta name="twitter:description" content="A free, open-source mod for Quake III Arena. Windows and Linux.">
+<meta name="twitter:image" content="https://ozmiumofficial.github.io/oz-arena/img/og.jpg">
+<link rel="icon" href="img/icon-64.png" type="image/png">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Cinzel:wght@600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="grit.css">
+</head>
+<body>
+
+<a class="skip" href="#features">Skip to the features</a>
+
+<header class="nav" id="top">
+  <a class="brand" href="#top" aria-label="Ozmium Arena, back to top">
+    <img src="img/icon-64.png" alt="" width="32" height="32">
+    <span class="brand-word">OZMIUM</span><span class="brand-sub">arena</span>
+  </a>
+  <nav aria-label="Sections">
+    <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
+    <ul id="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#look">The look</a></li>
+      <li><a href="#fighters">Fighters</a></li>
+      <li><a href="#online">Online</a></li>
+      <li><a href="#solo">Solo</a></li>
+      <li><a href="#hud">HUD</a></li>
+      <li><a href="#editor">Editor</a></li>
+      <li><a href="#install" class="nav-cta">Install</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============================================================ hero -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-bg" style="--shot: url('img/hero.jpg')" aria-hidden="true"></div>
+  <div class="fog" aria-hidden="true"></div>
+  <canvas class="embers" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <p class="eyebrow">A free mod for Quake III Arena</p>
+    <h1 id="hero-title"><img class="hero-logo" src="img/logo.png" alt="Ozmium Arena" width="1323" height="516"></h1>
+    <p class="hero-line">The arena you remember, remade. Every texture redrawn, every map relit, every fighter rigged, and your own copy of the game underneath it all.</p>
+    <div class="hero-actions">
+      <a class="btn btn-blood" href="https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16"/></svg>
+        Download for Windows
+      </a>
+      <a class="btn btn-ghost" href="#install">Linux and other ways in</a>
+    </div>
+    <p class="hero-meta">v0.7.5 beta · Windows 10/11 and Linux, 64-bit · you need your own copy of Quake III Arena</p>
+  </div>
+  <a class="scroll-cue" href="#features" aria-label="Scroll to the features"><span></span></a>
+</section>
+
+<!-- ============================================================ marquee of numbers -->
+<section class="tally" aria-label="Ozmium Arena in numbers">
+  <ul>
+    <li><b>2,855</b><span>textures remade</span></li>
+    <li><b>35</b><span>arenas relit</span></li>
+    <li><b>29</b><span>rigged fighters</span></li>
+    <li><b>3</b><span>mods, one client</span></li>
+    <li><b>64</b><span>players on the board</span></li>
+    <li><b>8 ms</b><span>steps at any frame rate</span></li>
+  </ul>
+</section>
+
+<!-- ============================================================ features grid -->
+<section class="section" id="features" aria-labelledby="features-title">
+  <header class="section-head">
+    <p class="kicker"><span class="rune">I</span> What Oz brings</p>
+    <h2 id="features-title">Everything it adds</h2>
+    <p class="lede">It's still the game you own, on id's own engine, with id's rules. Oz changes how it looks, sounds and plays on a PC today.</p>
+  </header>
+
+  <div class="sigils">
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120">
+          <g class="px">
+            <rect x="40" y="22" width="19" height="19" fill="#4d3a2c"/><rect x="59" y="22" width="19" height="19" fill="#6b5240"/><rect x="78" y="22" width="19" height="19" fill="#3a2b20"/><rect x="97" y="22" width="19" height="19" fill="#5e4836"/>
+            <rect x="40" y="41" width="19" height="19" fill="#6b5240"/><rect x="59" y="41" width="19" height="19" fill="#2e221a"/><rect x="78" y="41" width="19" height="19" fill="#5e4836"/><rect x="97" y="41" width="19" height="19" fill="#7a5f4a"/>
+            <rect x="40" y="60" width="19" height="19" fill="#3a2b20"/><rect x="59" y="60" width="19" height="19" fill="#5e4836"/><rect x="78" y="60" width="19" height="19" fill="#7a5f4a"/><rect x="97" y="60" width="19" height="19" fill="#4d3a2c"/>
+            <rect x="40" y="79" width="19" height="19" fill="#5e4836"/><rect x="59" y="79" width="19" height="19" fill="#4d3a2c"/><rect x="78" y="79" width="19" height="19" fill="#3a2b20"/><rect x="97" y="79" width="19" height="19" fill="#6b5240"/>
+          </g>
+          <defs><linearGradient id="hd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8a6a50"/><stop offset=".5" stop-color="#4a3627"/><stop offset="1" stop-color="#6b5240"/></linearGradient></defs>
+          <rect x="124" y="22" width="76" height="76" fill="url(#hd)"/>
+          <path d="M124 47h76M124 72h76M150 22v25M176 47v25M140 72v26M186 72v26" stroke="#1c140f" stroke-width="2.5"/>
+          <path d="M124 48h76M124 73h76" stroke="#b58c66" stroke-width="1" opacity=".6"/>
+          <path d="M120 16v92" stroke="var(--glow)" stroke-width="2"/><circle cx="120" cy="60" r="7" fill="var(--glow)"/>
+        </svg>
+      </div>
+      <h3>Every texture remade</h3>
+      <p>All of id's images upscaled four times, id's own colors kept, with normal, roughness and specular maps. Up close, walls keep their detail instead of turning to blocks.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120">
+          <defs><radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffad33" stop-opacity=".75"/><stop offset="1" stop-color="#ff4a1c" stop-opacity="0"/></radialGradient></defs>
+          <path d="M20 100h200" stroke="var(--metal)" stroke-width="2"/>
+          <ellipse cx="120" cy="100" rx="70" ry="12" fill="url(#pool)"/>
+          <circle cx="120" cy="30" r="9" fill="var(--amber)"/>
+          <g stroke="var(--amber)" stroke-width="1.5" opacity=".55"><path d="M114 38 70 98M120 39v59M126 38l44 60M110 36 40 96M130 36l70 60"/></g>
+          <rect x="150" y="70" width="22" height="30" fill="#2a211d" stroke="var(--metal)"/>
+          <path d="M172 100l26 0-26-30z" fill="#000" opacity=".45"/>
+        </svg>
+      </div>
+      <h3>35 arenas relit</h3>
+      <p>Every map lit again the way id's compiler lit it, now with directional light maps, so the new surfaces catch the light. Softer shadows, light that bounces, and the same brightness id chose.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120" class="bones">
+          <circle cx="120" cy="22" r="9"/>
+          <path d="M120 31v34M120 40l-22 14-6 20M120 40l22 14 8 18M120 65l-14 22-2 22M120 65l14 22 6 22"/>
+          <g class="joint"><circle cx="120" cy="40" r="3.5"/><circle cx="98" cy="54" r="3.5"/><circle cx="142" cy="54" r="3.5"/><circle cx="120" cy="65" r="3.5"/><circle cx="106" cy="87" r="3.5"/><circle cx="134" cy="87" r="3.5"/><circle cx="92" cy="74" r="3"/><circle cx="150" cy="72" r="3"/></g>
+          <path class="skin" d="M104 36q16-8 32 0l8 32h-48z"/>
+        </svg>
+      </div>
+      <h3>29 rigged fighters</h3>
+      <p>Every character rebuilt as a skinned, skeletal model with smooth animation, shown on every server and mod, CPMA and Defrag included.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120" class="bones fall">
+          <path d="M30 104h180" stroke="var(--metal)" stroke-width="2"/>
+          <path class="trail" d="M48 30q40-20 80 10t60 50" />
+          <g transform="translate(150 78) rotate(64)">
+            <circle cx="0" cy="-26" r="8"/>
+            <path d="M0-18v30M0-10l-18 10-4 16M0-10l18 6 10 14M0 12l-12 18M0 12l14 16"/>
+          </g>
+          <path class="rail" d="M10 70h88"/>
+        </svg>
+      </div>
+      <h3>Ragdolls</h3>
+      <p>Bodies fall with Jolt Physics and muscle tone in the joints. A rail throws them with the hit, and moving platforms carry them.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120">
+          <defs><filter id="glw" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+          <path d="M14 60H226" stroke="#5ab0ff" stroke-width="10" filter="url(#glw)" opacity=".8"/>
+          <path d="M14 60H226" stroke="#e8f6ff" stroke-width="2.5"/>
+          <path class="spiral" d="M14 60c8-16 16 16 24 0s16 16 24 0 16 16 24 0 16 16 24 0 16 16 24 0 16 16 24 0 16 16 24 0 16 16 24 0" stroke="#7fd0ff" stroke-width="1.6" fill="none"/>
+          <g fill="var(--amber)"><circle cx="222" cy="52" r="2"/><circle cx="214" cy="70" r="1.6"/><circle cx="230" cy="66" r="1.3"/></g>
+        </svg>
+      </div>
+      <h3>Remade effects</h3>
+      <p>Glowing rail trails, layered lightning, sparks, smoke and scorch marks. Pick your own lightning and plasma colors, or switch back to id's effects.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120">
+          <path d="M108 30c-18 0-28 14-28 30 0 10 4 16 4 24h20c0-6 6-8 12-10 6-2 8-8 6-14l6-2-6-12c0-10-6-16-14-16z" fill="#2a211d" stroke="var(--metal)" stroke-width="2"/>
+          <g fill="none" stroke="var(--glow)" stroke-width="2.2" stroke-linecap="round" class="waves">
+            <path d="M146 46q10 14 0 28"/><path d="M158 38q16 22 0 44" opacity=".7"/><path d="M170 30q22 30 0 60" opacity=".45"/>
+            <path d="M70 46q-10 14 0 28" opacity=".5"/><path d="M58 38q-16 22 0 44" opacity=".3"/>
+          </g>
+        </svg>
+      </div>
+      <h3>3D sound</h3>
+      <p>OpenAL Soft with HRTF, so you hear where a shot came from, and hit sounds pitched by how hard you hit.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120">
+          <path d="M20 96h200" stroke="var(--metal)" stroke-width="2"/>
+          <g fill="none" stroke-width="2.2">
+            <path d="M34 96q36-80 72 0" stroke="var(--dim)"/>
+            <path d="M34 96q36-80 72 0" stroke="var(--glow)" stroke-dasharray="3 5" transform="translate(68 0)"/>
+            <path d="M34 96q36-80 72 0" stroke="var(--amber)" stroke-dasharray="1 3" transform="translate(136 0)" opacity=".9"/>
+          </g>
+          <g class="fps"><text x="70" y="114">60</text><text x="138" y="114">125</text><text x="206" y="114">1000</text></g>
+        </svg>
+      </div>
+      <h3>Same at every frame rate</h3>
+      <p>Oz's own game moves in fixed 8 ms steps, so jumps, footsteps and fire rates are the same at 60 fps as at 1000.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120" class="tabs">
+          <rect x="22" y="28" width="62" height="22" rx="2" class="on"/><text x="53" y="43">OZ</text>
+          <rect x="89" y="28" width="62" height="22" rx="2"/><text x="120" y="43">CPMA</text>
+          <rect x="156" y="28" width="62" height="22" rx="2"/><text x="187" y="43">DEFRAG</text>
+          <g class="rows"><rect x="22" y="60" width="196" height="10"/><rect x="22" y="76" width="196" height="10"/><rect x="22" y="92" width="196" height="10"/></g>
+          <g fill="#5ccf4a"><circle cx="30" cy="65" r="2.5"/><circle cx="30" cy="81" r="2.5"/><circle cx="30" cy="97" r="2.5"/></g>
+        </svg>
+      </div>
+      <h3>Every community server</h3>
+      <p>One browser for vanilla, CPMA and Defrag servers. Join switches to the server's mod by itself and back again when you leave. Pure servers always let you in.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120">
+          <g class="ghost" opacity=".35"><circle cx="92" cy="40" r="8"/><path d="M92 48v30m-12-20h24m-12 20-8 22m8-22 8 22"/></g>
+          <g class="ghost" opacity=".6"><circle cx="128" cy="40" r="8"/><path d="M128 48v30m-12-20h24m-12 20-8 22m8-22 8 22"/></g>
+          <g class="ghost now"><circle cx="164" cy="40" r="8"/><path d="M164 48v30m-12-20h24m-12 20-8 22m8-22 8 22"/></g>
+          <path d="M20 58H92" stroke="#e8f6ff" stroke-width="2"/>
+          <g stroke="var(--glow)" stroke-width="2"><circle cx="92" cy="58" r="10" fill="none"/><path d="M92 42v8m0 16v8m-16-16h8m16 0h8"/></g>
+          <path d="M98 108h60" stroke="var(--dim)" stroke-width="1.5" marker-end="url(#ar)"/>
+          <defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0l10 5-10 5z" fill="var(--dim)"/></marker></defs>
+        </svg>
+      </div>
+      <h3>Lag compensation</h3>
+      <p>In Oz's own game every instant-hit shot lands where you saw your target, whatever your ping, and your own shots show the moment you fire. Neil Toronto's Unlagged, fitted to Oz.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120" class="hudart">
+          <rect x="16" y="12" width="208" height="96" rx="3"/>
+          <path d="M120 52v16M112 60h16" stroke="var(--ink)" stroke-width="2"/>
+          <text x="30" y="98" class="big">125</text><text x="30" y="80" class="lbl">HEALTH</text>
+          <text x="190" y="98" class="big amber" text-anchor="end">100</text><text x="190" y="80" class="lbl" text-anchor="end">ARMOR</text>
+          <g class="feed"><rect x="150" y="22" width="62" height="5"/><rect x="164" y="31" width="48" height="5"/></g>
+          <text x="120" y="32" class="time" text-anchor="middle">4:21</text>
+        </svg>
+      </div>
+      <h3>One HUD everywhere</h3>
+      <p>Oz's HUD, scoreboard and results on every server and every mod, pure servers included, with four presets or every part set by hand.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120" class="quad">
+          <rect x="24" y="10" width="94" height="48"/><rect x="122" y="10" width="94" height="48"/><rect x="24" y="62" width="94" height="48"/><rect x="122" y="62" width="94" height="48"/>
+          <path class="grid" d="M122 22h94M122 34h94M122 46h94M146 10v48M170 10v48M194 10v48"/>
+          <rect class="brush" x="148" y="24" width="44" height="20"/>
+          <path class="brush" d="M46 50l26-14 26 10-26 10z M46 50v-14l26-12 26 8v14"/>
+          <rect class="brush" x="148" y="76" width="44" height="22"/><rect class="brush" x="50" y="80" width="40" height="18"/>
+        </svg>
+      </div>
+      <h3>A map editor, built in</h3>
+      <p>Brushes, curves and entities in one view or four. Open any map you own, then compile and play it without leaving the game. Maps for Defrag and CPMA too.</p>
+    </article>
+
+    <article class="sigil">
+      <div class="sigil-art" aria-hidden="true">
+        <svg viewBox="0 0 240 120" class="card">
+          <rect x="74" y="10" width="92" height="100" rx="4"/>
+          <path d="M120 24l14 10v18l-14 10-14-10V34z" class="crest"/>
+          <text x="120" y="48" text-anchor="middle" class="lv">27</text>
+          <rect x="88" y="76" width="64" height="6" class="bar"/><rect x="88" y="76" width="42" height="6" class="fill"/>
+          <rect x="88" y="90" width="40" height="4" class="line"/><rect x="88" y="98" width="52" height="4" class="line"/>
+        </svg>
+      </div>
+      <h3>A career of your own</h3>
+      <p>XP and levels, achievements, records and a player card built from what you've earned, across a campaign, training, skirmish and online play.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ============================================================ the look -->
+<section class="chapter" id="look" aria-labelledby="look-title">
+  <div class="chapter-text">
+    <p class="kicker"><span class="rune">II</span> The look</p>
+    <h2 id="look-title">The arenas, as you remember them</h2>
+    <p>From across a room Oz keeps id's look on purpose: the same colors, the same brightness, the same arenas. The difference shows up close, where id's textures turn to blurred blocks and Oz's keep their detail.</p>
+    <ul class="ticks">
+      <li><b>Every texture remade:</b> the world, the fighters, the weapons, the items and the effects, each with its own normal, roughness and specular maps. Every surface stays matte.</li>
+      <li><b>35 arenas relit</b> with q3map2 as id's own compiler lit them, now with directional light maps and light that bounces.</li>
+      <li><b>A modern renderer:</b> ioquake3's physically based rend2, with tone mapping, bloom and AMD FSR 1 upscaling.</li>
+      <li><b>New level shots and cinematics:</b> the arenas' pictures shot in the new look, and the original movies in higher quality.</li>
+      <li><b>Id's look whenever you want it:</b> pick the OpenGL or Vulkan renderer and nothing Oz adds loads.</li>
+    </ul>
+  </div>
+  <figure class="compare" data-compare>
+    <div class="compare-frame">
+      <img class="cmp-oz" src="img/cmp_wall_oz.jpg" alt="Stone wall on The Camping Grounds in Ozmium Arena" loading="lazy">
+      <div class="compare-top"><img class="cmp-id" src="img/cmp_wall_id.jpg" alt="The same stone wall in the original game" loading="lazy"></div>
+      <div class="compare-handle" aria-hidden="true"><span></span></div>
+      <input type="range" min="0" max="100" value="50" aria-label="Drag to compare the original and Ozmium Arena">
+      <span class="compare-tag left">Original</span><span class="compare-tag right">Ozmium</span>
+    </div>
+    <figcaption><b class="cmp-name">Stone wall</b> · <span class="cmp-map">The Camping Grounds</span> · drag across to compare</figcaption>
+    <div class="cmp-picks" role="group" aria-label="Choose an example">
+      <button type="button" aria-pressed="true" data-key="wall" data-name="Stone wall" data-map="The Camping Grounds"><img src="img/cmp_wall_thumb.jpg" alt=""><span>Stone wall</span></button>
+      <button type="button" aria-pressed="false" data-key="blocks" data-name="Carved blocks" data-map="The Camping Grounds"><img src="img/cmp_blocks_thumb.jpg" alt="" loading="lazy"><span>Carved blocks</span></button>
+      <button type="button" aria-pressed="false" data-key="cracks" data-name="Cracked floor" data-map="The Proving Grounds"><img src="img/cmp_cracks_thumb.jpg" alt="" loading="lazy"><span>Cracked floor</span></button>
+      <button type="button" aria-pressed="false" data-key="flagstones" data-name="Flagstones" data-map="Lost World"><img src="img/cmp_flagstones_thumb.jpg" alt="" loading="lazy"><span>Flagstones</span></button>
+      <button type="button" aria-pressed="false" data-key="seams" data-name="Floor seams" data-map="Arena of Death"><img src="img/cmp_seams_thumb.jpg" alt="" loading="lazy"><span>Floor seams</span></button>
+      <button type="button" aria-pressed="false" data-key="tiles" data-name="Tiles" data-map="Temple of Retribution"><img src="img/cmp_tiles_thumb.jpg" alt="" loading="lazy"><span>Tiles</span></button>
+    </div>
+  </figure>
+</section>
+
+<section class="gallery" aria-label="The arenas in Ozmium Arena">
+  <figure><img src="img/world_1.jpg" alt="An arena in Ozmium Arena" loading="lazy"><figcaption>The Stronghold</figcaption></figure>
+  <figure><img src="img/world_2.jpg" alt="An arena in Ozmium Arena" loading="lazy"><figcaption>The Longest Yard</figcaption></figure>
+  <figure><img src="img/world_3.jpg" alt="An arena in Ozmium Arena" loading="lazy"><figcaption>Arena Gate</figcaption></figure>
+  <figure><img src="img/world_4.jpg" alt="An arena in Ozmium Arena" loading="lazy"><figcaption>Temple of Retribution</figcaption></figure>
+</section>
+
+<!-- ============================================================ fighters, effects, sound -->
+<section class="chapter flip" id="fighters" aria-labelledby="fighters-title">
+  <div class="chapter-text">
+    <p class="kicker"><span class="rune">III</span> Fighters, effects and sound</p>
+    <h2 id="fighters-title">Flesh, bone and fire</h2>
+    <ul class="ticks">
+      <li><b>29 rigged fighters</b> with smooth skeletal animation in place of the original's vertex-animated models, on every server and mod.</li>
+      <li><b>Ragdolls</b> on Jolt Physics, with muscle tone in the joints. The map's brushes and moving platforms are solid to them.</li>
+      <li><b>Remade effects:</b> glowing rail trails, layered lightning, sparks, smoke and scorch marks, with your own lightning and plasma colors.</li>
+      <li><b>3D sound</b> through OpenAL Soft with HRTF, and a choice of hit sounds pitched by damage.</li>
+      <li><b>Your gun, your way:</b> the gun editor moves, turns and scales the weapon in your view, with presets and widescreen placement.</li>
+    </ul>
+  </div>
+  <div class="shots-stack">
+    <figure class="shot tilt-l"><img src="img/fighters.jpg" alt="Rigged fighters in Ozmium Arena" loading="lazy"></figure>
+    <figure class="shot tilt-r"><img src="img/effects.jpg" alt="The remade railgun and lightning effects" loading="lazy"></figure>
+  </div>
+</section>
+
+<!-- ============================================================ online -->
+<section class="chapter" id="online" aria-labelledby="online-title">
+  <div class="chapter-text">
+    <p class="kicker"><span class="rune">IV</span> Playing online</p>
+    <h2 id="online-title">Every server, one client</h2>
+    <ul class="ticks">
+      <li><b>The Server Browser</b> asks every master server and lists the vanilla, CPMA and Defrag servers that answer, with search, filters, favorites, history and LAN.</li>
+      <li><b>Mods switch by themselves:</b> join a CPMA or Defrag server and Oz switches to it, then back again when you leave. Their own code decides movement and rules.</li>
+      <li><b>Pure servers stay playable.</b> A server that forces its own files always lets you in. Oz leaves its packs out there and keeps the lighting, the menus and the HUD.</li>
+      <li><b>The server's rules:</b> your game predicts with the server's own settings, so a server on id's physics feels right.</li>
+      <li><b>Lag compensation</b> in Oz's own game: instant-hit shots land where you saw your target.</li>
+      <li><b>With friends:</b> friends, parties, Quick Play and peer-to-peer matches hosted from your own PC. Hide my IP sends a match through a relay.</li>
+      <li><b>Joining without the map:</b> Oz fetches a missing map from the server or the map archives as you join.</li>
+    </ul>
+  </div>
+  <figure class="shot framed ui"><img src="img/server_browser.jpg" alt="The Server Browser listing community servers" loading="lazy"></figure>
+</section>
+
+<!-- ============================================================ solo -->
+<section class="chapter flip" id="solo" aria-labelledby="solo-title">
+  <div class="chapter-text">
+    <p class="kicker"><span class="rune">V</span> Playing alone</p>
+    <h2 id="solo-title">The arena never sleeps</h2>
+    <ul class="ticks">
+      <li><b>Campaign:</b> the original's tiers of arenas, up to the final duel.</li>
+      <li><b>Skirmish and Custom Match:</b> bots on any arena, in any mode, with your rules and modifiers, under Oz's own game, CPMA or Defrag.</li>
+      <li><b>Defrag races</b> on any map you own, with search and Oz's estimate of each course's difficulty.</li>
+      <li><b>Training</b> for movement, aim and duels.</li>
+      <li><b>Your career:</b> XP and levels, achievements, records and a player card you build from what you've earned.</li>
+      <li><b>Replays:</b> every match recorded, watched from any player's view, seeking both ways.</li>
+    </ul>
+  </div>
+  <div class="shots-stack">
+    <figure class="shot tilt-r ui"><img src="img/campaign.jpg" alt="The Campaign page" loading="lazy"></figure>
+    <figure class="shot tilt-l ui"><img src="img/profile.jpg" alt="The Profile page with a player card" loading="lazy"></figure>
+  </div>
+</section>
+
+<section class="gallery three" aria-label="Skirmish, Training and Replays">
+  <figure class="ui"><img src="img/skirmish.jpg" alt="Skirmish: picking an arena and bots" loading="lazy"><figcaption>Skirmish</figcaption></figure>
+  <figure class="ui"><img src="img/training.jpg" alt="Training: movement, aim and duels" loading="lazy"><figcaption>Training</figcaption></figure>
+  <figure class="ui"><img src="img/replays.jpg" alt="Replays: your recorded matches" loading="lazy"><figcaption>Replays</figcaption></figure>
+</section>
+
+<!-- ============================================================ hud -->
+<section class="chapter" id="hud" aria-labelledby="hud-title">
+  <div class="chapter-text">
+    <p class="kicker"><span class="rune">VI</span> The HUD</p>
+    <h2 id="hud-title">One HUD on every server</h2>
+    <ul class="ticks">
+      <li><b>Drawn by the engine itself,</b> so it's the same on every server and every mod, pure servers included.</li>
+      <li><b>Presets:</b> Modern, Classic, Competitive and Minimal, or set each part yourself.</li>
+      <li><b>A scoreboard and results</b> with each player's weapons, accuracy and damage, for up to 64 players. Right-click under Tab to open a player's card and add them as a friend.</li>
+      <li><b>The crosshair editor:</b> shapes, size, color and outline, previewed exactly as the match draws them.</li>
+      <li><b>A speedometer, chat with emoji,</b> and item timers for spectators.</li>
+    </ul>
+  </div>
+  <figure class="shot framed"><img src="img/hud.jpg" alt="The HUD in a match" loading="lazy"></figure>
+</section>
+
+<section class="gallery three" aria-label="The scoreboard, results and crosshair editor">
+  <figure><img src="img/scoreboard.jpg" alt="The scoreboard" loading="lazy"><figcaption>Scoreboard</figcaption></figure>
+  <figure><img src="img/results.jpg" alt="The results screen" loading="lazy"><figcaption>Results</figcaption></figure>
+  <figure class="ui"><img src="img/crosshair.jpg" alt="The crosshair editor" loading="lazy"><figcaption>Crosshair editor</figcaption></figure>
+</section>
+
+<!-- ============================================================ menus -->
+<section class="chapter flip" id="menus" aria-labelledby="menus-title">
+  <div class="chapter-text">
+    <p class="kicker"><span class="rune">VII</span> Menus and settings</p>
+    <h2 id="menus-title">Every screen is Oz's</h2>
+    <ul class="ticks">
+      <li><b>New menus throughout:</b> the main menu, pause menu, connection screen and error dialogs replace id's and the mods' screens. Mouse, keyboard and controller all work.</li>
+      <li><b>Settings</b> for video, graphics, audio, controls, mouse, crosshair, HUD, gameplay, network and accessibility.</li>
+      <li><b>Accessibility:</b> menu and text size, high contrast and reduced flashing.</li>
+      <li><b>Bring your old config:</b> your Quake III binds and settings come over on first run, if you want them.</li>
+      <li><b>A Mod Library</b> for the mods you have installed.</li>
+    </ul>
+  </div>
+  <div class="shots-stack">
+    <figure class="shot tilt-l"><img src="img/menu_main.jpg" alt="The main menu" loading="lazy"></figure>
+    <figure class="shot tilt-r ui"><img src="img/settings.jpg" alt="The Settings page" loading="lazy"></figure>
+  </div>
+</section>
+
+<section class="gallery three" aria-label="The gun editor, accessibility settings and Custom Match">
+  <figure><img src="img/gun.jpg" alt="The gun editor over a match" loading="lazy"><figcaption>Gun editor</figcaption></figure>
+  <figure class="ui"><img src="img/accessibility.jpg" alt="Accessibility settings" loading="lazy"><figcaption>Accessibility</figcaption></figure>
+  <figure class="ui"><img src="img/custom_match.jpg" alt="Custom Match: rules and modifiers" loading="lazy"><figcaption>Custom Match</figcaption></figure>
+</section>
+
+<!-- ============================================================ editor -->
+<section class="chapter" id="editor" aria-labelledby="editor-title">
+  <div class="chapter-text">
+    <p class="kicker"><span class="rune">VIII</span> The map editor</p>
+    <h2 id="editor-title">Build your own arena</h2>
+    <ul class="ticks">
+      <li><b>Brushes, curves and entities</b> with select, brush, clip and faces tools, hollow, subtract, merge and texture lock.</li>
+      <li><b>One view or four:</b> 3D, top, front and side.</li>
+      <li><b>Materials and entities</b> from your own install and its map packs, with search and favorites.</li>
+      <li><b>Open any map you own:</b> stock maps open ready to change.</li>
+      <li><b>Compile and play</b> without leaving: Play drops you in, Esc brings you back.</li>
+      <li><b>Maps for Defrag and CPMA</b> too, saved as standard <code>.map</code> files.</li>
+    </ul>
+  </div>
+  <figure class="shot framed"><img src="img/editor.jpg" alt="The map editor with The Longest Yard open and lit" loading="lazy"></figure>
+</section>
+
+<section class="gallery three" aria-label="The map editor's views, entities and play-testing">
+  <figure><img src="img/editor_views.jpg" alt="The editor's four views on a stock arena" loading="lazy"><figcaption>Four views</figcaption></figure>
+  <figure><img src="img/editor_entities.jpg" alt="Jump pads, teleporters and items placed in a room" loading="lazy"><figcaption>Entities</figcaption></figure>
+  <figure><img src="img/editor_play.jpg" alt="Play-testing a compiled room" loading="lazy"><figcaption>Compile and play</figcaption></figure>
+</section>
+
+<!-- ============================================================ install -->
+<section class="section rite" id="install" aria-labelledby="install-title">
+  <header class="section-head center">
+    <p class="kicker"><span class="rune">IX</span> Getting in</p>
+    <h2 id="install-title">Four steps to the arena</h2>
+    <p class="lede">Oz reads the game from your own copy and never ships or changes id's files. You need Quake III Arena: <a href="https://store.steampowered.com/app/2200/Quake_III_Arena/">buy it on Steam</a> if you don't have it.</p>
+  </header>
+
+  <ol class="steps">
+    <li>
+      <span class="step-n">01</span>
+      <h3>Download Setup</h3>
+      <p>A 1 MB installer for Windows 10 or 11.</p>
+      <a class="btn btn-blood small" href="https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe">OzArenaSetup.exe</a>
+    </li>
+    <li>
+      <span class="step-n">02</span>
+      <h3>Let it find the game</h3>
+      <p>Setup finds Quake III Arena in your Steam libraries, among your GOG games, or in the usual folders. If it doesn't, press <b>Locate</b>.</p>
+    </li>
+    <li>
+      <span class="step-n">03</span>
+      <h3>Install</h3>
+      <p>About 4 GB, into a folder of its own inside your game's, so the two never mix. A stopped download carries on where it left off.</p>
+    </li>
+    <li>
+      <span class="step-n">04</span>
+      <h3>Play</h3>
+      <p>From the Start Menu or your desktop. Run Setup again to update; it skips the world packs you already have.</p>
+    </li>
+  </ol>
+
+  <div class="platforms">
+    <article class="plat">
+      <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5l8-1v8H3zm9-1 9-1v9h-9zM3 13h8v8l-8-1zm9 0h9v9l-9-1z"/></svg> Windows</h3>
+      <p>Setup above, or by hand: the release's zip and its two world packs.</p>
+      <a href="https://github.com/ozmiumofficial/oz-arena/releases/latest">All release files</a>
+    </article>
+    <article class="plat">
+      <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c-2.5 0-3.5 2.2-3.5 4.5 0 1.5.4 2.5-.6 4.2C6.5 13 5 15 5 17.5 5 20 7 22 12 22s7-2 7-4.5c0-2.5-1.5-4.5-2.9-6.8-1-1.7-.6-2.7-.6-4.2C15.5 4.2 14.5 2 12 2z"/></svg> Linux</h3>
+      <p>A native x86_64 client. The launcher finds the game in Steam, Flatpak Steam, GOG, Heroic or Lutris, installs, adds a menu entry and plays.</p>
+      <a href="https://github.com/ozmiumofficial/oz-arena/releases/latest">Linux launcher and build</a>
+    </article>
+    <article class="plat">
+      <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 2.9.8.1-.6.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.5 9.5 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg> From source</h3>
+      <p>GPL-2.0, all of it. Visual Studio 2022 and Python on Windows, gcc in WSL2 for Linux.</p>
+      <a href="https://github.com/ozmiumofficial/oz-arena">The code on GitHub</a>
+    </article>
+  </div>
+  <p class="mods-note">To play CPMA or Defrag, install them into your Quake III Arena folder as usual. Oz finds them there and never downloads them for you.</p>
+</section>
+
+<!-- ============================================================ under the hood -->
+<section class="section" id="engine" aria-labelledby="engine-title">
+  <header class="section-head">
+    <p class="kicker"><span class="rune">X</span> Under the hood</p>
+    <h2 id="engine-title">id Tech 3, rebuilt</h2>
+    <p class="lede">Oz runs on a modified build of the game's own engine, which id released under the GPL.</p>
+  </header>
+  <div class="hood">
+    <div><h3>Quake3e</h3><p>The engine's core: fast, current, and kept in step with upstream.</p></div>
+    <div><h3>ioquake3</h3><p>The rend2 renderer and OpenAL sound, extended with Oz's look.</p></div>
+    <div><h3>oDFe and CNQ3</h3><p>Defrag's tools and CPMA's extensions, so both mods play at their best.</p></div>
+    <div><h3>Three renderers</h3><p><code>oz</code> for the new look, <code>opengl</code> and <code>vulkan</code> for id's. Menus and HUD draw through all three.</p></div>
+    <div><h3>Jolt Physics</h3><p>The ragdolls, with the map's brushes and moving platforms as colliders.</p></div>
+    <div><h3>RmlUi</h3><p>The native menus and the HUD, drawn from the network snapshot under any mod.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ call to arms -->
+<section class="summon" aria-labelledby="summon-title">
+  <h2 id="summon-title">Enter the arena</h2>
+  <p>Questions, matches, bug reports and screenshots: come find us.</p>
+  <div class="hero-actions">
+    <a class="btn btn-discord" href="https://discord.gg/HbrAUzkEbJ">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.3 5.3A16.5 16.5 0 0 0 15.2 4l-.5 1a15 15 0 0 0-5.4 0L8.8 4a16.4 16.4 0 0 0-4.1 1.3C2.1 9.2 1.4 13 1.8 16.7A16.6 16.6 0 0 0 6.8 19l1-1.6c-.6-.2-1.1-.5-1.6-.8l.4-.3a11.8 11.8 0 0 0 10.8 0l.4.3c-.5.3-1 .6-1.6.8l1 1.6a16.5 16.5 0 0 0 5-2.4c.5-4.3-.8-8-3-11.3zM8.7 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z"/></svg>
+      Join the Discord
+    </a>
+    <a class="btn btn-ghost" href="https://github.com/ozmiumofficial/oz-arena">Star it on GitHub</a>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot-brand"><img src="img/icon-64.png" alt="" width="40" height="40"><span>Ozmium Arena</span></div>
+  <div class="foot-cols">
+    <div><h4>Play</h4><ul>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe">Download for Windows</a></li>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena/releases/latest">Linux and all releases</a></li>
+      <li><a href="#install">How to install</a></li>
+    </ul></div>
+    <div><h4>The game</h4><ul>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#look">The look</a></li>
+      <li><a href="#online">Online</a></li>
+      <li><a href="#editor">Map editor</a></li>
+    </ul></div>
+    <div><h4>Community</h4><ul>
+      <li><a href="https://discord.gg/HbrAUzkEbJ">Discord</a></li>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena">Source code</a></li>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena/issues">Report a bug</a></li>
+    </ul></div>
+  </div>
+  <div class="foot-rule"></div>
+  <p class="credits">Built on id Software's GPL source release, <a href="https://github.com/ec-/Quake3e">Quake3e</a>, <a href="https://github.com/ioquake/ioq3">ioquake3</a>, <a href="https://github.com/Defrag-racing/oDFe">oDFe</a>, <a href="https://bitbucket.org/CPMADevs/cnq3">CNQ3</a>, Neil Toronto's <a href="https://www.ra.is/unlagged/">Unlagged</a>, <a href="https://github.com/mikke89/RmlUi">RmlUi</a>, <a href="https://github.com/jrouwe/JoltPhysics">Jolt Physics</a>, SDL2, OpenAL Soft, libjuice, libcurl, Mbed TLS, libtheora and libvorbis, AMD FidelityFX FSR 1, <a href="https://github.com/xinntao/Real-ESRGAN">Real-ESRGAN</a> and <a href="https://github.com/Garux/netradiant-custom">NetRadiant-custom</a>'s q3map2.</p>
+  <p class="legal">Ozmium Arena is an unofficial, non-commercial fan project, not affiliated with, endorsed by or sponsored by id Software, Bethesda or ZeniMax. Quake and Quake III Arena are trademarks of ZeniMax Media, named here only to identify the game Ozmium Arena modifies and requires. The code is GPL-2.0; the remastered assets remain id Software's property.</p>
+  <a class="to-top" href="#top">Back to the top</a>
+</footer>
+
+<script src="main.js" defer></script>
+</body>
+</html>

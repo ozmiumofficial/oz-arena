@@ -275,12 +275,13 @@ $(basename "$t") file://$t"; done
 			case "$n" in OzArena-*-linux.tar.gz|*.pk3) echo "$n $u" ;; esac
 		done)"
 	[ -n "$REL_VERSION" ] || return 1
+	REL_VERSION="${REL_VERSION#v}"   # the tag's v0.7.5-beta is the tarball's 0.7.5-beta
 	return 0
 }
 
 tarball_asset() { printf '%s\n' "$REL_ASSETS" | awk '$1 ~ /^OzArena-.*-linux\.tar\.gz$/ {print; exit}'; }
 
-installed_version() { [ -f "$DIR/$MANIFEST" ] && sed -n 's/^version=//p' "$DIR/$MANIFEST" | head -n 1; }
+installed_version() { [ -f "$DIR/$MANIFEST" ] && sed -n 's/^version=v\{0,1\}//p' "$DIR/$MANIFEST" | head -n 1; }
 
 file_size() { stat -c %s "$1" 2>/dev/null || echo 0; }
 

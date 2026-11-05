@@ -1,0 +1,190 @@
+/* Ozmium Arena: the grit. Iron plates, black stone, rust, grime and the old ones watching.
+   Loaded after style.css; the textures are site/tools/make_textures.py's. */
+
+:root {
+  --iron: url("img/tex-iron.jpg");
+  --stone: url("img/tex-stone.jpg");
+  --grime: url("img/tex-grime.png");
+  --rivet: radial-gradient(circle at 38% 34%, #cdb69a 0 1px, #6b5a4c 2px, #2a211d 3.4px, #0000 4px);
+}
+
+body {
+  background-color: #060504;
+  background-image:
+    radial-gradient(ellipse 90% 60% at 50% 0%, #2a0c0644, transparent 70%),
+    var(--grime),
+    var(--stone);
+  background-size: auto, 700px, 512px;
+}
+
+/* a fixed vignette and moving film grain over the whole page */
+body::before, body::after { content: ""; position: fixed; pointer-events: none; z-index: 90; }
+body::before { inset: 0; background: radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, #000000b0 100%); }
+/* static grain: an animated, blended full-screen layer stalled the page's painting */
+body::after { inset: 0; opacity: .05; background-image: url("img/grain.png"); background-size: 128px; }
+
+/* the nav: an iron strip with a rusted lower lip */
+.nav {
+  background: linear-gradient(#0c0908ee, #070605f2), var(--iron);
+  background-size: auto, 400px;
+  border-bottom: 2px solid #1a110d;
+  box-shadow: 0 1px 0 #3a2618, 0 2px 0 #000, 0 14px 30px -18px #ff4a1c44;
+}
+
+/* iron plates: the steel tile under a dark wash, grime over it, a beveled edge and four rivets */
+.sigil, .steps li, .plat, .hood div, .tally {
+  background:
+    var(--rivet) left 8px top 8px / 10px 10px no-repeat,
+    var(--rivet) right 8px top 8px / 10px 10px no-repeat,
+    var(--rivet) left 8px bottom 8px / 10px 10px no-repeat,
+    var(--rivet) right 8px bottom 8px / 10px 10px no-repeat,
+    linear-gradient(180deg, #ffffff0a, transparent 18%, transparent 80%, #0000004d),
+    var(--grime),
+    linear-gradient(#0d0a09d9, #0a0807e6),
+    var(--iron);
+  background-size: 10px 10px, 10px 10px, 10px 10px, 10px 10px, auto, 520px, auto, 380px;
+  border: 1px solid #000;
+  box-shadow: inset 0 1px 0 #ffffff14, inset 0 0 0 1px #2a1d16, inset 0 -2px 6px #00000099, 0 10px 30px -12px #000;
+}
+.sigil::after { display: none; }
+.sigil:hover {
+  border-color: #000;
+  box-shadow: inset 0 1px 0 #ffffff1c, inset 0 0 0 1px #6b3a1f, inset 0 -2px 6px #00000099, 0 22px 50px -18px #ff4a1c77;
+}
+.sigil-art {
+  background: radial-gradient(ellipse 70% 85% at 50% 65%, #3a0e0699, transparent 70%), #050403;
+  border-bottom: 1px solid #000; box-shadow: inset 0 -1px 0 #3a2618, inset 0 8px 24px #000;
+}
+.sigil:hover .sigil-art { background: radial-gradient(ellipse 70% 85% at 50% 65%, #5a160acc, transparent 70%), #050403; }
+.tally { border-inline: 0; }
+.steps li { border-top: 2px solid #7d0f06; }
+.hood { background: #000; border-color: #000; gap: 2px; }
+
+/* headings: worn bronze lettering, smoldering */
+h2 {
+  background: linear-gradient(180deg, #fff3e6 0%, #e9d6bd 38%, #b08a63 62%, #6b4a2c 100%), var(--grime);
+  background-blend-mode: multiply;
+  background-size: 100% 100%, 300px;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 0 #000) drop-shadow(0 0 18px #ff4a1c40);
+}
+h3 { text-shadow: 0 1px 0 #000; }
+.kicker { text-shadow: 0 0 12px #ff4a1c88; }
+
+/* iron dividers between chapters: a riveted bar, a red seal in the middle */
+.chapter::before {
+  width: min(760px, 86%); height: 10px; top: -5px;
+  background:
+    var(--rivet) left 14px center / 10px 10px no-repeat,
+    var(--rivet) right 14px center / 10px 10px no-repeat,
+    linear-gradient(#ffffff12, transparent 40%, #00000080),
+    linear-gradient(#141010cc, #141010cc),
+    var(--iron);
+  background-size: 10px 10px, 10px 10px, auto, auto, 260px;
+  border: 1px solid #000; box-shadow: 0 1px 0 #3a2618, 0 6px 18px -4px #000, 0 10px 30px -10px #7d0f0666;
+}
+.chapter::after {
+  top: -11px; width: 22px; height: 22px; background: #0a0706; border: 2px solid #6b4a2c;
+  box-shadow: inset 0 0 0 3px #0a0706, inset 0 0 0 6px #b3170a, 0 0 16px #ff4a1c88;
+}
+
+/* screenshots in iron frames */
+.shot img, .gallery img {
+  border: 6px solid transparent;
+  background:
+    linear-gradient(#0b0807, #0b0807) padding-box,
+    linear-gradient(135deg, #8a6a50, #2a1d16 30%, #4a3324 55%, #1a110d 80%, #6b4a2c) border-box;
+  box-shadow: 0 0 0 1px #000, 0 26px 50px -18px #000, 0 0 50px -24px #ff4a1c66;
+}
+.gallery figure:hover img { box-shadow: 0 0 0 1px #000, 0 26px 50px -16px #000, 0 0 50px -16px #ff4a1caa; }
+.shot.framed::before, .shot.framed::after { display: none; }
+.shot.framed {
+  padding: 10px;
+  background:
+    var(--rivet) left 6px top 6px / 10px 10px no-repeat,
+    var(--rivet) right 6px top 6px / 10px 10px no-repeat,
+    var(--rivet) left 6px bottom 6px / 10px 10px no-repeat,
+    var(--rivet) right 6px bottom 6px / 10px 10px no-repeat,
+    linear-gradient(#120d0bcc, #0a0706d9), var(--iron);
+  background-size: 10px 10px, 10px 10px, 10px 10px, 10px 10px, auto, 300px;
+  border: 1px solid #000; box-shadow: inset 0 1px 0 #ffffff12, 0 30px 60px -20px #000;
+}
+.shot.framed img { border-width: 2px; }
+.compare-frame {
+  border: 2px solid #000;
+  box-shadow: 0 0 0 8px #120d0b, 0 0 0 9px #6b4a2c, 0 0 0 10px #000, 0 30px 60px -20px #000, 0 0 60px -20px #ff4a1c55;
+}
+
+/* buttons: the ghost one is an iron plate, the blood one is grimy */
+.btn-ghost {
+  background: linear-gradient(#ffffff0d, #0000004d), var(--iron); background-size: auto, 260px;
+  box-shadow: inset 0 0 0 1px #6b4a2c, inset 0 1px 0 #ffffff22, 0 6px 20px -8px #000;
+}
+.btn-ghost:hover { box-shadow: inset 0 0 0 1px var(--bronze), inset 0 1px 0 #ffffff33, 0 8px 26px -8px #ff4a1c77; }
+.btn-blood {
+  background: linear-gradient(180deg, #e0301add 0%, #b3170add 45%, #5a0a04 100%), var(--grime), #7d0f06;
+  background-size: auto, 260px, auto;
+}
+
+/* the hero: fog drifting through the arena */
+.fog { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.fog::before, .fog::after {
+  content: ""; position: absolute; left: -50%; width: 200%; height: 60%; bottom: -10%;
+  background:
+    radial-gradient(ellipse 18% 40% at 20% 60%, #5a2a1a40, transparent 70%),
+    radial-gradient(ellipse 22% 50% at 55% 70%, #3a1a124d, transparent 70%),
+    radial-gradient(ellipse 16% 36% at 85% 55%, #5a2a1a38, transparent 70%);
+  filter: blur(18px);
+  animation: fog 38s linear infinite;
+}
+.fog::after { bottom: 12%; opacity: .7; animation-duration: 60s; animation-direction: reverse; }
+@keyframes fog { from { transform: translateX(0); } to { transform: translateX(25%); } }
+@media (prefers-reduced-motion: reduce) { .fog::before, .fog::after { animation: none; } }
+
+/* the sigil, watching from behind the features, the install steps and the closing call */
+#features, .summon, #install { position: relative; isolation: isolate; overflow-x: clip; }
+.summon { overflow: hidden; }
+#features::before, .summon::before, #install::after {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  width: 760px; height: 760px; left: 50%; top: 50%; translate: -50% -50%;
+  background: url("img/sigil.svg") center / contain no-repeat;
+  animation: watch 240s linear infinite;
+}
+#features::before { top: 300px; left: 88%; opacity: .05; }
+#install::after { top: 140px; left: 8%; width: 520px; height: 520px; opacity: .045; animation-direction: reverse; }
+.summon::before { width: 620px; height: 620px; opacity: .1; filter: drop-shadow(0 0 30px #ff4a1c); }
+@keyframes watch { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { #features::before, .summon::before, #install::after { animation: none; } }
+@media (max-width: 700px) { #features::before, #install::after { display: none; } }
+
+/* the closing call: an iron gate's glow; the footer: dark iron */
+.summon {
+  background:
+    radial-gradient(ellipse 45% 70% at 50% 100%, #b3170a66, transparent 70%),
+    linear-gradient(180deg, transparent, #1a0806 100%),
+    var(--grime);
+  background-size: auto, auto, 600px;
+}
+.foot {
+  background: linear-gradient(#050403f2, #030202), var(--iron); background-size: auto, 400px;
+  border-top: 2px solid #000; box-shadow: 0 -1px 0 #3a2618;
+}
+
+/* the before/after examples: a row of iron-framed thumbnails under the slider */
+.compare figcaption b { color: var(--hot); font-weight: 600; }
+.cmp-picks { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 18px; }
+@media (max-width: 1100px) { .cmp-picks { grid-template-columns: repeat(3, 1fr); } }
+.cmp-picks button {
+  position: relative; padding: 0; cursor: pointer; background: #0a0706; border: 1px solid #000;
+  box-shadow: 0 0 0 3px #120d0b, 0 0 0 4px #4a3324; transition: box-shadow .2s, transform .2s;
+}
+.cmp-picks button:hover { transform: translateY(-2px); box-shadow: 0 0 0 3px #120d0b, 0 0 0 4px var(--bronze); }
+.cmp-picks button[aria-pressed="true"] { box-shadow: 0 0 0 3px #120d0b, 0 0 0 4px var(--glow), 0 0 18px -2px #ff4a1c99; }
+.cmp-picks img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; filter: saturate(.85) brightness(.75); transition: filter .2s; }
+.cmp-picks button:hover img, .cmp-picks button[aria-pressed="true"] img { filter: none; }
+.cmp-picks span {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 6px 5px;
+  font: 700 11px/1.1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--ink);
+  background: linear-gradient(transparent, #000000d9); text-align: left;
+}

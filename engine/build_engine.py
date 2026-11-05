@@ -1,6 +1,6 @@
 """Build the Oz engine: Quake3e's core with the blend's parts (ENGINE_PLAN.md P0).
 
-python engine/build_engine.py [--debug] [--clean] [--jobs 4] [--skip-qvms]
+python engine/build_engine.py [--debug] [--clean] [--jobs 4] [--skip-qvms] [--linux]
 
 1. Fetches the game code into thirdparty/ioq3: ioquake3 at the commit pinned in
    thirdparty.json "game_code", with game/patches/*.patch applied (already-applied ones are left alone).
@@ -21,22 +21,31 @@ libSDL2-2.0.so.0 and libopenal.so.1 (each executable looks beside itself, $ORIGI
 main build's (build/engine/oz, --paks-from), copied as they are: a pure server checks paks by checksum,
 so the Linux and Windows games must carry the same files. The world packs and Ozmium's local-only CZ45
 paks are left out. engine/tools/linux_deps.sh installs what the build needs (apt).
+
+On Windows, python engine/build_engine.py --linux cross-builds the same Linux game into build/linux/,
+without a Linux PC: zig is the compiler (glibc 2.31, so Ubuntu 20.04, Debian 11 and later), with a
+sysroot of Debian's X11, ALSA and PulseAudio headers and libraries (engine/tools/linux_cross.py fetches
+both into build/cross, pinned in thirdparty.json "cross"); VS's CMake, Ninja and cl do the rest.
 """
 import os, re, sys, json, glob, shutil, hashlib, zipfile, argparse, subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 SRC = os.path.join(HERE, "quake3e")
-LINUX = sys.platform.startswith("linux")
+HOST_LINUX = sys.platform.startswith("linux")
+CROSS = "--linux" in sys.argv[1:] and not HOST_LINUX   # Windows cross-building the Linux game
+LINUX = HOST_LINUX or CROSS   # the game built is Linux's
 OUT = os.path.join(ROOT, "build", "linux" if LINUX else "engine")
+CROSS_DIR = os.path.join(ROOT, "build", "cross")
 MAIN_OZ = os.path.join(ROOT, "build", "engine", "oz")   # the Windows build's paks, which Linux carries as they are
 PINS = json.load(open(os.path.join(HERE, "thirdparty.json")))
 
 
-def for_platform(entry):
+def for_platform(entry, linux=None):
     """A thirdparty.json lib or tool with its "linux" entry applied on Linux: its cmake definitions replace
-    the same-named ones, its engine_cmake entries and program replace those, its stage replaces the list."""
-    over = entry.get("linux") if LINUX else None
+    the same-named ones, its engine_cmake entries and program replace those, its stage replaces the list.
+    linux: whether to (the game's platform by default; a build tool's is the host's)."""
+    over = entry.get("linux") if (LINUX if linux is None else linux) else None
     if not over:
         return entry
     e = dict(entry)
@@ -45,7 +54,7 @@ def for_platform(entry):
         e["cmake"] = [d for d in entry.get("cmake", []) if d.split("=", 1)[0] not in names] + over["cmake"]
     if "engine_cmake" in over:
         e["engine_cmake"] = dict(entry.get("engine_cmake", {}), **over["engine_cmake"])
-    for k in ("stage", "program"):
+    for k in ("stage", "program", "after"):
         if k in over:
             e[k] = over[k]
     return e
@@ -62,6 +71,7 @@ ap.add_argument("--skip-qvms", action="store_true", help="keep the QVMs from the
 ap.add_argument("--libs-only", action="store_true", help="build the third-party libraries and stop")
 ap.add_argument("--ui-only", action="store_true", help="only restage oz/zz-oz-ui.pk3 from engine/ui")
 ap.add_argument("--paks-from", default=MAIN_OZ, help="Linux: the oz/ paks to carry (the Windows build's)")
+ap.add_argument("--linux", action="store_true", help="on Windows: cross-build the Linux game into build/linux with zig")
 a = ap.parse_args()
 CONFIG = "Debug" if a.debug else "Release"
 
@@ -76,7 +86,7 @@ def run(cmd, cwd=ROOT, env=None):
 def msvc_env():
     """The environment vcvars64.bat sets up (cl, link, the Windows SDK, VS's CMake and Ninja).
     On Linux, this environment, once gcc, CMake and Ninja are found."""
-    if LINUX:
+    if HOST_LINUX:
         missing = [t for t in ("gcc", "g++", "cmake", "ninja", "git") if not shutil.which(t)]
         if missing:
             sys.exit("missing %s: run engine/tools/linux_deps.sh" % ", ".join(missing))
@@ -114,7 +124,7 @@ def apply_patches(tree, folder):
     run(["git", "clean", "-q", "-fd"], tree)
     for patch in patches:
         print("> patch", os.path.basename(patch))
-        if LINUX:   # this checkout's CRLF patch onto Linux git's LF checkout
+        if HOST_LINUX:   # this checkout's CRLF patch onto Linux git's LF checkout
             r = subprocess.run(["git", "apply", "--whitespace=nowarn", "-"], cwd=tree, capture_output=True,
                                input=open(patch, "rb").read().replace(b"\r\n", b"\n"))
             r.stderr = r.stderr.decode(errors="replace")
@@ -152,8 +162,16 @@ def build_libs(env):
     the folder holding every library, and {d} for MSVC's Debug suffix."""
     staged, defs = {}, []
     tp = os.path.join(OUT, "thirdparty")
-    for name, lib in PINS.get("libs", {}).items():
+    order = []
+    for name, lib in PINS.get("libs", {}).items():   # a lib's "after" moves it behind the one it names
         lib = for_platform(lib)
+        order.append((name, lib))
+    for name, lib in list(order):
+        if lib.get("after"):
+            order.remove((name, lib))
+            at = next(i for i, (n, _) in enumerate(order) if n == lib["after"])
+            order.insert(at + 1, (name, lib))
+    for name, lib in order:
         src = os.path.join(tp, name)
         fetch(src, lib["url"], lib["commit"], lib.get("sparse"))
         if lib.get("submodules"):   # mbedTLS configures only with its framework submodule
@@ -163,7 +181,8 @@ def build_libs(env):
         build = os.path.join(tp, name + "-build")
         fill = lambda v: v.format(src=src, build=build, thirdparty=tp, d="d" if a.debug else "").replace("\\", "/")
         if "cmake" in lib:
-            cmake(src, build, env, *[fill(d) for d in lib["cmake"]])
+            # on Linux no search path into this PC's folders (the cross build's sysroot): $ORIGIN is the engine's
+            cmake(src, build, env, *(["CMAKE_SKIP_BUILD_RPATH=ON"] if LINUX else []) + [fill(d) for d in lib["cmake"]])
         for built, as_name in lib.get("stage", {}).items():
             p = os.path.join(build, fill(built))
             if LINUX and "*" in p:   # a versioned .so: libopenal.so.1.24.3, libSDL2-2.0.so.0.3200.8
@@ -177,9 +196,57 @@ def build_libs(env):
     return staged, defs
 
 
-def cmake(src, build, env, *defs):
-    if LINUX:   # static libraries linked into the renderer modules' shared objects
+def cross_toolchain():
+    """build/cross/zig.cmake: CMake's toolchain for the Linux game on Windows, zig's cc, c++, ar and
+    ranlib through .cmd wrappers, with the sysroot's headers and libraries (linux_cross.py fetches both)."""
+    subprocess.run([sys.executable, "-I", os.path.join(HERE, "tools", "linux_cross.py")], check=True)
+    z = PINS["cross"]["zig"]
+    zig = os.path.join(CROSS_DIR, "zig-" + z["version"], "zig.exe")
+    sysroot = os.path.join(CROSS_DIR, "sysroot").replace("\\", "/")
+    tools = {}
+    for tool, args in (("cc", "cc -target " + z["target"]), ("c++", "c++ -target " + z["target"]), ("ar", "ar"), ("ranlib", "ranlib")):
+        w = os.path.join(CROSS_DIR, "zig-%s.cmd" % tool)
+        text = '@"%s" %s %%*\r\n' % (zig, args)
+        if not os.path.exists(w) or open(w, newline="").read() != text:
+            open(w, "w", newline="").write(text)
+        tools[tool] = w.replace("\\", "/")
+    lib = sysroot + "/usr/lib/x86_64-linux-gnu"
+    text = "\n".join([
+        "# made by engine/build_engine.py --linux: the Linux game on Windows, with zig",
+        "set(CMAKE_SYSTEM_NAME Linux)",
+        "set(CMAKE_SYSTEM_PROCESSOR x86_64)",
+        'set(CMAKE_C_COMPILER "%s")' % tools["cc"],
+        'set(CMAKE_CXX_COMPILER "%s")' % tools["c++"],
+        'set(CMAKE_AR "%s" CACHE FILEPATH "" FORCE)' % tools["ar"],
+        'set(CMAKE_RANLIB "%s" CACHE FILEPATH "" FORCE)' % tools["ranlib"],
+        'set(CMAKE_FIND_ROOT_PATH "%s")' % sysroot,
+        "set(CMAKE_LIBRARY_ARCHITECTURE x86_64-linux-gnu)",
+        "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)",
+        "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)",
+        "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)",
+        "set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)",
+        'set(CMAKE_C_FLAGS_INIT "-isystem %s/usr/include -Wno-error=date-time -Wno-error=incompatible-function-pointer-types")' % sysroot,
+        'set(CMAKE_CXX_FLAGS_INIT "-isystem %s/usr/include -Wno-error=date-time -Wno-error=incompatible-function-pointer-types")' % sysroot,
+        'set(CMAKE_EXE_LINKER_FLAGS_INIT "-L%s")' % lib,
+        'set(CMAKE_SHARED_LINKER_FLAGS_INIT "-L%s")' % lib,
+        'set(CMAKE_MODULE_LINKER_FLAGS_INIT "-L%s")' % lib,
+        "set(THREADS_PTHREAD_ARG 0)", ""])
+    out = os.path.join(CROSS_DIR, "zig.cmake")
+    if not os.path.exists(out) or open(out).read() != text:
+        open(out, "w", newline="\n").write(text)
+    return out.replace("\\", "/")
+
+
+TOOLCHAIN = None
+
+
+def cmake(src, build, env, *defs, host=False):
+    """host: a build tool, for this PC (glslang), never the cross build's"""
+    if LINUX and not host:   # static libraries linked into the renderer modules' shared objects
         defs = ("CMAKE_POSITION_INDEPENDENT_CODE=ON",) + defs
+    if CROSS and not host:
+        # zig makes no precompiled headers (Jolt's): they only save build time
+        defs = ("CMAKE_TOOLCHAIN_FILE=" + TOOLCHAIN, "CMAKE_DISABLE_PRECOMPILE_HEADERS=ON") + defs
     run(["cmake", "-S", src, "-B", build, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=" + CONFIG] + ["-D" + d for d in defs], env=env)
     run(["cmake", "--build", build, "-j", str(a.jobs)], env=env)
 
@@ -192,10 +259,10 @@ def fsr_glsl(env):
     inc = os.path.join(OUT, "thirdparty", "fidelityfx-fsr", "ffx-fsr")
     out = os.path.join(OUT, "rend2_fsr")
     os.makedirs(out, exist_ok=True)
-    cl = None if LINUX else shutil.which("cl", path=env.get("PATH") or env.get("Path"))
+    cl = None if HOST_LINUX else shutil.which("cl", path=env.get("PATH") or env.get("Path"))
     for src in sorted(glob.glob(os.path.join(SRC, "code", "renderer2", "glsl", "ozfsr", "*.in"))):
         name = os.path.splitext(os.path.basename(src))[0].replace("_", "")   # ozfsr_easu -> ozfsreasu
-        if LINUX:   # gcc's preprocessor, without line markers, as MSVC's /EP
+        if HOST_LINUX:   # gcc's preprocessor, without line markers, as MSVC's /EP
             cmd = ["gcc", "-E", "-P", "-x", "c", "-I", inc, src]
         else:
             cmd = [cl, "/nologo", "/EP", "/I", inc, "/Tc", src]
@@ -217,7 +284,7 @@ def vk_ui_shaders(env):
     shaders = os.path.join(SRC, "code", "renderervk", "shaders")
     srcs = sorted(glob.glob(os.path.join(shaders, "oz_ui", "*.vert")) + glob.glob(os.path.join(shaders, "oz_ui", "*.frag")))
     out = os.path.join(shaders, "spirv", "oz_ui_shader_data.c")
-    tool = for_platform(PINS["tools"]["glslang"])
+    tool = for_platform(PINS["tools"]["glslang"], HOST_LINUX)
     h = hashlib.sha1()
     for s in srcs:
         h.update(os.path.basename(s).encode())
@@ -228,7 +295,7 @@ def vk_ui_shaders(env):
     src = os.path.join(OUT, "thirdparty", "glslang")
     build = src + "-build"
     fetch(src, tool["url"], tool["commit"])
-    cmake(src, build, env, *tool["cmake"])
+    cmake(src, build, env, *tool["cmake"], host=True)
     spv = os.path.join(build, "oz_ui.spv")
     text = ["// Oz: the native UI's shaders for the vulkan renderer (tr_oz_ui.c), compiled from shaders/oz_ui",
             "// by engine/build_engine.py; don't edit", stamp, ""]
@@ -248,12 +315,27 @@ def stage_linux(engine_build, libs):
     """build/linux/: the executables, the renderer modules and the two libraries they load, and the main
     build's oz/ paks as they are (see the docstring), with the launcher and the LICENSE."""
     os.makedirs(os.path.join(OUT, "oz"), exist_ok=True)
-    for as_name, built in libs.items():
-        shutil.copy2(built, os.path.join(OUT, as_name))
-    for exe in (NAME + ".x86_64", NAME + ".ded.x86_64"):
-        shutil.copy2(os.path.join(engine_build, exe), os.path.join(OUT, exe))
-    for f in glob.glob(os.path.join(engine_build, NAME + "_*_x86_64.so")):
-        shutil.copy2(f, OUT)
+    programs = [(built, as_name) for as_name, built in libs.items()]
+    programs += [(os.path.join(engine_build, exe), exe) for exe in (NAME + ".x86_64", NAME + ".ded.x86_64")]
+    programs += [(f, os.path.basename(f)) for f in glob.glob(os.path.join(engine_build, NAME + "_*_x86_64.so"))]
+    for built, as_name in programs:
+        # without their debug info (the client's is most of its 95 MB); a Debug build keeps it
+        dest = os.path.join(OUT, as_name)
+        if a.debug:
+            shutil.copy2(built, dest)
+        elif CROSS:
+            zig = os.path.join(CROSS_DIR, "zig-" + PINS["cross"]["zig"]["version"], "zig.exe")
+            subprocess.run([zig, "objcopy", "--strip-all", built, dest], check=True)
+        else:
+            subprocess.run(["strip", "--strip-all", "-o", dest, built], check=True)
+    # the map editor's q3map2 and mbspc, made to run on any x86_64 Linux (linux_editor_tools.py)
+    subprocess.run([sys.executable, os.path.join(HERE, "tools", "linux_editor_tools.py")], check=True)
+    tools = glob.glob(os.path.join(ROOT, "build", "tools", "netradiant-custom-" + PINS["cross"]["editor_tools"]["netradiant"]["release"], "linux-app"))[0]
+    shutil.rmtree(os.path.join(OUT, "tools"), ignore_errors=True)
+    shutil.copytree(tools, os.path.join(OUT, "tools"), ignore=shutil.ignore_patterns(".oz_pins"))
+    for d, _, files in os.walk(os.path.join(OUT, "tools")):
+        for f in files:
+            os.chmod(os.path.join(d, f), 0o644 if f.endswith(".txt") else 0o755)
     shutil.copy2(os.path.join(HERE, "installer", "linux", "oz-arena-launcher"), os.path.join(OUT, "oz-arena-launcher"))
     shutil.copy2(os.path.join(ROOT, "LICENSE"), os.path.join(OUT, "LICENSE"))
     shutil.copy2(os.path.join(HERE, "installer", "linux", "oz-arena.png"), os.path.join(OUT, "oz-arena.png"))   # the menu entry's icon
@@ -374,6 +456,8 @@ if a.ui_only:
 if a.clean and os.path.isdir(OUT):
     shutil.rmtree(OUT)
 env = msvc_env()
+if CROSS:
+    TOOLCHAIN = cross_toolchain()
 libs, lib_defs = build_libs(env)
 if a.libs_only:
     sys.exit(0)

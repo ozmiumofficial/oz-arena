@@ -146,6 +146,8 @@ same as Settings' Crosshair tab); a weapon tab edits that weapon's own crosshair
 					<input id="xh_hit_color_text" class="text mouseonly" type="text" maxlength="7" data-value="crosshair.hit_color" setting="crosshair/hit_color"/>
 					<button id="xh_test_hit" class="btn small" onclick="xhhit">Test hit</button></div>
 				<div class="field" data-class-dim="!crosshair.hit_flash"><span class="l">Flash length</span><input id="xh_hit_time" class="slider" type="range" min="50" max="1000" step="10" data-value="crosshair.hit_time" setting="crosshair/hit_time"/><span class="q3 value">{{ crosshair.hit_time }} ms</span></div>
+				<div class="field"><span class="l">Hit marker</span>
+					<div id="xh_hit_marker" class="toggle" data-class-on="crosshair.hit_marker" onclick="toggle crosshair.hit_marker crosshair/hit_marker"><span class="track"><span class="knob"/></span><span class="state">{{ crosshair.hit_marker ? 'On' : 'Off' }}</span></div></div>
 
 				<div class="section"><span class="t">Per weapon</span><span class="rule"/></div>
 				<div class="field"><span class="l">Per-weapon crosshairs</span>

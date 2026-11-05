@@ -1,5 +1,5 @@
 {
- "_note": "Pins for the Oz engine (engine/build_engine.py). game_code is the ioquake3 tree the QVMs build from (game/patches on a pinned commit). upstream holds the last synced commit of each engine the blend takes from (engine/tools/upstream_report.py reads and updates it). libs are built from source by build_engine.py; later phases add theirs when their phase starts. A lib without \"cmake\" is only fetched. {src}, {build}, {thirdparty} and {d} (\"d\" in Debug builds) are filled in. A \"linux\" entry holds what differs on Linux (engine/build_engine.py run in WSL2 or on Linux): its \"cmake\" definitions replace the same-named ones, its \"engine_cmake\" entries and \"program\" replace those, and its \"stage\" replaces the list (a staged name may hold a glob, for the libraries' versioned .so files).",
+ "_note": "Pins for the Oz engine (engine/build_engine.py). game_code is the ioquake3 tree the QVMs build from (game/patches on a pinned commit). upstream holds the last synced commit of each engine the blend takes from (engine/tools/upstream_report.py reads and updates it). libs are built from source by build_engine.py; later phases add theirs when their phase starts. A lib without \"cmake\" is only fetched. {src}, {build}, {thirdparty} and {d} (\"d\" in Debug builds) are filled in. A \"linux\" entry holds what differs on Linux (engine/build_engine.py run in WSL2 or on Linux): its \"cmake\" definitions replace the same-named ones, its \"engine_cmake\" entries and \"program\" replace those, and its \"stage\" replaces the list, its \"after\" builds it after the lib named (a staged name may hold a glob, for the libraries' versioned .so files).",
  "libs": {
   "openal-soft": {
    "url": "https://github.com/kcat/openal-soft.git",
@@ -16,6 +16,16 @@
     "OpenAL32.dll": "OpenAL64.dll"
    },
    "linux": {
+    "cmake": [
+     "ALSOFT_REQUIRE_ALSA=ON",
+     "ALSOFT_REQUIRE_PULSEAUDIO=ON",
+     "ALSOFT_BACKEND_PIPEWIRE=OFF",
+     "ALSOFT_BACKEND_JACK=OFF",
+     "ALSOFT_BACKEND_SNDIO=OFF",
+     "ALSOFT_BACKEND_PORTAUDIO=OFF",
+     "ALSOFT_UPDATE_BUILD_VERSION=OFF",
+     "ALSOFT_NO_CONFIG_UTIL=ON"
+    ],
     "stage": {
      "libopenal.so.1.*.*": "libopenal.so.1"
     }
@@ -41,6 +51,27 @@
     "SDL2_LIBRARY": "{build}/SDL2.lib"
    },
    "linux": {
+    "_note": "X11 (Wayland desktops run it through XWayland), ALSA and PulseAudio (PipeWire's pulse too), linked rather than loaded: the cross build has no pkg-config or wayland-scanner, and every desktop has these libraries",
+    "cmake": [
+     "SDL_WAYLAND=OFF",
+     "SDL_KMSDRM=OFF",
+     "SDL_X11_SHARED=OFF",
+     "SDL_ALSA_SHARED=OFF",
+     "SDL_PULSEAUDIO_SHARED=OFF",
+     "SDL_PIPEWIRE=OFF",
+     "SDL_JACK=OFF",
+     "SDL_SNDIO=OFF",
+     "SDL_NAS=OFF",
+     "SDL_ESD=OFF",
+     "SDL_ARTS=OFF",
+     "SDL_DBUS=OFF",
+     "SDL_IBUS=OFF",
+     "SDL_FCITX=OFF",
+     "SDL_LIBUDEV=OFF",
+     "SDL_RPATH=OFF",
+     "SDL_LIBSAMPLERATE=OFF",
+     "SDL2_DISABLE_INSTALL=ON"
+    ],
     "stage": {
      "libSDL2-2.0{d}.so.0.*": "libSDL2-2.0.so.0"
     },
@@ -219,15 +250,22 @@
     "OZ_CURL_LIBRARY": "{build}/lib/libcurl{d}.lib"
    },
    "linux": {
+    "_note": "mbedTLS (built above) for TLS, so the game needs no particular libssl; the system's certificates from /etc/ssl/certs, which every distro has (Fedora's links to /etc/pki/tls/certs)",
     "cmake": [
      "CURL_USE_SCHANNEL=OFF",
-     "CURL_USE_OPENSSL=ON",
+     "CURL_USE_MBEDTLS=ON",
+     "CURL_USE_OPENSSL=OFF",
+     "MBEDTLS_INCLUDE_DIR={thirdparty}/mbedtls/include",
+     "MBEDTLS_LIBRARY={thirdparty}/mbedtls-build/library/libmbedtls.a",
+     "MBEDX509_LIBRARY={thirdparty}/mbedtls-build/library/libmbedx509.a",
+     "MBEDCRYPTO_LIBRARY={thirdparty}/mbedtls-build/library/libmbedcrypto.a",
      "CURL_CA_BUNDLE=none",
-     "CURL_CA_PATH=none",
-     "CURL_CA_FALLBACK=ON"
+     "CURL_CA_PATH=/etc/ssl/certs",
+     "CURL_CA_FALLBACK=OFF"
     ],
+    "after": "mbedtls",
     "engine_cmake": {
-     "OZ_CURL_LIBRARY": "{build}/lib/libcurl{d}.a"
+     "OZ_CURL_LIBRARY": "{build}/lib/libcurl{d}.a;{thirdparty}/mbedtls-build/library/libmbedtls.a;{thirdparty}/mbedtls-build/library/libmbedx509.a;{thirdparty}/mbedtls-build/library/libmbedcrypto.a"
     }
    }
   },
@@ -371,6 +409,280 @@
    "commit": "ef32da8cf471cd25e246acc0e0528aaefa437e1d",
    "how": "reimplement from GPL source (CPMA's extensions)",
    "branch": "master"
+  }
+ },
+ "cross": {
+  "_note": "The Linux game's cross build on Windows (build_engine.py --linux; engine/tools/linux_cross.py fetches these into build/cross). zig is the compiler for Linux x86_64 with glibc at the version named; Debian's packages are the sysroot SDL2 and OpenAL Soft build their back ends against (headers, and the .so files SDL links).",
+  "zig": {
+   "version": "0.14.1",
+   "url": "https://ziglang.org/download/0.14.1/zig-x86_64-windows-0.14.1.zip",
+   "sha256": "554f5378228923ffd558eac35e21af020c73789d87afeabf4bfd16f2e6feed2c",
+   "target": "x86_64-linux-gnu.2.31",
+   "license": "MIT (a build tool)"
+  },
+  "debian": {
+   "suite": "bookworm",
+   "snapshot": "20251101T000000Z",
+   "packages": [
+    {
+     "package": "libx11-dev",
+     "version": "2:1.8.4-2+deb12u2",
+     "file": "pool/main/libx/libx11/libx11-dev_1.8.4-2+deb12u2_amd64.deb",
+     "sha256": "8493220d4309af1907a1f2f6eeb204c8103dafcc368394fbc4a0858c28612ff9"
+    },
+    {
+     "package": "libx11-6",
+     "version": "2:1.8.4-2+deb12u2",
+     "file": "pool/main/libx/libx11/libx11-6_1.8.4-2+deb12u2_amd64.deb",
+     "sha256": "d88c973e79fd9b65838d77624142952757e47a6eb1a58602acf0911cf35989f4"
+    },
+    {
+     "package": "x11proto-dev",
+     "version": "2022.1-1",
+     "file": "pool/main/x/xorgproto/x11proto-dev_2022.1-1_all.deb",
+     "sha256": "3cab66a6591774188a568f9b54c4e7956f18da76e0e0fc4a779db5f6bcc3f148"
+    },
+    {
+     "package": "libxext-dev",
+     "version": "2:1.3.4-1+b1",
+     "file": "pool/main/libx/libxext/libxext-dev_1.3.4-1+b1_amd64.deb",
+     "sha256": "591456aba90eeed7a1c1b044d469fd7704bf7d83af9dc574bbe2efc4a2fd1dba"
+    },
+    {
+     "package": "libxext6",
+     "version": "2:1.3.4-1+b1",
+     "file": "pool/main/libx/libxext/libxext6_1.3.4-1+b1_amd64.deb",
+     "sha256": "504b7be9d7df4f6f4519e8dd4d6f9d03a9fb911a78530fa23a692fba3058cba6"
+    },
+    {
+     "package": "libxrandr-dev",
+     "version": "2:1.5.2-2+b1",
+     "file": "pool/main/libx/libxrandr/libxrandr-dev_1.5.2-2+b1_amd64.deb",
+     "sha256": "a0048d088226403419d9b0856e2d6d29a4facdd1708b6ceda095d7190f819ff3"
+    },
+    {
+     "package": "libxrandr2",
+     "version": "2:1.5.2-2+b1",
+     "file": "pool/main/libx/libxrandr/libxrandr2_1.5.2-2+b1_amd64.deb",
+     "sha256": "e2e10b672085ddf1d294cd689ed21bde5899325fd13626c2614b7d7b2d49a808"
+    },
+    {
+     "package": "libxrender-dev",
+     "version": "1:0.9.10-1.1",
+     "file": "pool/main/libx/libxrender/libxrender-dev_0.9.10-1.1_amd64.deb",
+     "sha256": "51be2e92b7bb9a81f8dbcad7a0086a58c779761c17f8aa13893b843bced0ae9b"
+    },
+    {
+     "package": "libxrender1",
+     "version": "1:0.9.10-1.1",
+     "file": "pool/main/libx/libxrender/libxrender1_0.9.10-1.1_amd64.deb",
+     "sha256": "b2a6d160578f359220101947c8d67059b44704a251e688de1d0b744fefedfd1a"
+    },
+    {
+     "package": "libxcursor-dev",
+     "version": "1:1.2.1-1",
+     "file": "pool/main/libx/libxcursor/libxcursor-dev_1.2.1-1_amd64.deb",
+     "sha256": "9f9eb5d01049b81f13f34d2c54aa474cc649853c752eaa53aba5dcd846d18b1b"
+    },
+    {
+     "package": "libxcursor1",
+     "version": "1:1.2.1-1",
+     "file": "pool/main/libx/libxcursor/libxcursor1_1.2.1-1_amd64.deb",
+     "sha256": "49e167048661be4c614fff81429e9eaef38e54ef1d2150a5d2a8c53919217529"
+    },
+    {
+     "package": "libxi-dev",
+     "version": "2:1.8-1+b1",
+     "file": "pool/main/libx/libxi/libxi-dev_1.8-1+b1_amd64.deb",
+     "sha256": "80cd30f783e90a46b0190990d6194dc83d9c24d67a81cc2346f69b8e2ddc9590"
+    },
+    {
+     "package": "libxi6",
+     "version": "2:1.8-1+b1",
+     "file": "pool/main/libx/libxi/libxi6_1.8-1+b1_amd64.deb",
+     "sha256": "6c2fb5f241b311788990122c6e693915867cd8ed9d6da2e3524aec7ed3cdb4c0"
+    },
+    {
+     "package": "libxfixes-dev",
+     "version": "1:6.0.0-2",
+     "file": "pool/main/libx/libxfixes/libxfixes-dev_6.0.0-2_amd64.deb",
+     "sha256": "75fd16d0f67f5d4eb718d81bfa15d0b2163637293e48f1e24e2c11f9af590dda"
+    },
+    {
+     "package": "libxfixes3",
+     "version": "1:6.0.0-2",
+     "file": "pool/main/libx/libxfixes/libxfixes3_6.0.0-2_amd64.deb",
+     "sha256": "1cd616396ff2ecae77e6e8b5b7695d414f0146de2d147837a2a02165f99e1a2c"
+    },
+    {
+     "package": "libxss-dev",
+     "version": "1:1.2.3-1",
+     "file": "pool/main/libx/libxss/libxss-dev_1.2.3-1_amd64.deb",
+     "sha256": "11968b1ac7a10de3731be164b343a3c960633a003ee5629770e06927222ef36b"
+    },
+    {
+     "package": "libxss1",
+     "version": "1:1.2.3-1",
+     "file": "pool/main/libx/libxss/libxss1_1.2.3-1_amd64.deb",
+     "sha256": "85cce16368f08a878fa892fbc54520fc654d00769cde6d300b8b802734a993c0"
+    },
+    {
+     "package": "libxcb1-dev",
+     "version": "1.15-1",
+     "file": "pool/main/libx/libxcb/libxcb1-dev_1.15-1_amd64.deb",
+     "sha256": "c078c024114fdada06d3158af1771d7ed8763ab434cfbcbe6a334aa8a9cae358"
+    },
+    {
+     "package": "libxcb1",
+     "version": "1.15-1",
+     "file": "pool/main/libx/libxcb/libxcb1_1.15-1_amd64.deb",
+     "sha256": "fdc61332a3892168f3cc9cfa1fe9cf11a91dc3e0acacbc47cbc50ebaa234cc71"
+    },
+    {
+     "package": "libxau-dev",
+     "version": "1:1.0.9-1",
+     "file": "pool/main/libx/libxau/libxau-dev_1.0.9-1_amd64.deb",
+     "sha256": "d1a7f5d484e0879b3b2e8d512894744505e53d078712ce65903fef2ecfd824bb"
+    },
+    {
+     "package": "libxau6",
+     "version": "1:1.0.9-1",
+     "file": "pool/main/libx/libxau/libxau6_1.0.9-1_amd64.deb",
+     "sha256": "679db1c4579ec7c61079adeaae8528adeb2e4bf5465baa6c56233b995d714750"
+    },
+    {
+     "package": "libxdmcp-dev",
+     "version": "1:1.1.2-3",
+     "file": "pool/main/libx/libxdmcp/libxdmcp-dev_1.1.2-3_amd64.deb",
+     "sha256": "c6733e5f6463afd261998e408be6eb37f24ce0a64b63bed50a87ddb18ebc1699"
+    },
+    {
+     "package": "libxdmcp6",
+     "version": "1:1.1.2-3",
+     "file": "pool/main/libx/libxdmcp/libxdmcp6_1.1.2-3_amd64.deb",
+     "sha256": "ecb8536f5fb34543b55bb9dc5f5b14c9dbb4150a7bddb3f2287b7cab6e9d25ef"
+    },
+    {
+     "package": "libxxf86vm-dev",
+     "version": "1:1.1.4-1+b2",
+     "file": "pool/main/libx/libxxf86vm/libxxf86vm-dev_1.1.4-1+b2_amd64.deb",
+     "sha256": "2fb753a7c2c2fd6b74b8429d180b259af9c2b4201f8c777621ac88c63d43cea7"
+    },
+    {
+     "package": "libxxf86vm1",
+     "version": "1:1.1.4-1+b2",
+     "file": "pool/main/libx/libxxf86vm/libxxf86vm1_1.1.4-1+b2_amd64.deb",
+     "sha256": "6f4ca916aaec26d7000fa7f58de3f71119309ab7590ce1f517abfe1825a676c7"
+    },
+    {
+     "package": "libxkbcommon-dev",
+     "version": "1.5.0-1",
+     "file": "pool/main/libx/libxkbcommon/libxkbcommon-dev_1.5.0-1_amd64.deb",
+     "sha256": "48a360a789e19277814f0c86887e629c3fc787645f94abe89b4e427c7bcc3a80"
+    },
+    {
+     "package": "libasound2-dev",
+     "version": "1.2.8-1+b1",
+     "file": "pool/main/a/alsa-lib/libasound2-dev_1.2.8-1+b1_amd64.deb",
+     "sha256": "6eddd5b43c03cdd769f6b6f4506abcbc84c19d4bada2b3036d1fd921a9875d7a"
+    },
+    {
+     "package": "libasound2",
+     "version": "1.2.8-1+b1",
+     "file": "pool/main/a/alsa-lib/libasound2_1.2.8-1+b1_amd64.deb",
+     "sha256": "44c77b076a7b11ae99712439022d822245b1994c435da564ebd320bb676faf4c"
+    },
+    {
+     "package": "libpulse-dev",
+     "version": "16.1+dfsg1-2+b1",
+     "file": "pool/main/p/pulseaudio/libpulse-dev_16.1+dfsg1-2+b1_amd64.deb",
+     "sha256": "835c3b0bb4353830cbede89c5827423d081c8c70617e2747beb6be2bf793e07f"
+    },
+    {
+     "package": "libpulse0",
+     "version": "16.1+dfsg1-2+b1",
+     "file": "pool/main/p/pulseaudio/libpulse0_16.1+dfsg1-2+b1_amd64.deb",
+     "sha256": "7b2c5403cb726312219aad678becc6d6adcee1d8694fdffce0b6ec15ae010831"
+    },
+    {
+     "package": "libgl-dev",
+     "version": "1.6.0-1",
+     "file": "pool/main/libg/libglvnd/libgl-dev_1.6.0-1_amd64.deb",
+     "sha256": "ebc12df48ae53924e114d9358ef3da4306d7ef8f7179300af52f1faef8b5db3e"
+    },
+    {
+     "package": "libglx-dev",
+     "version": "1.6.0-1",
+     "file": "pool/main/libg/libglvnd/libglx-dev_1.6.0-1_amd64.deb",
+     "sha256": "be1aa9b3a316aff17b912d473a8b2cba62620c9fcaa0102945f641981c3e2d5e"
+    },
+    {
+     "package": "libegl-dev",
+     "version": "1.6.0-1",
+     "file": "pool/main/libg/libglvnd/libegl-dev_1.6.0-1_amd64.deb",
+     "sha256": "0ec9bffb024527dfb61eaeae44966e2b5b3114b3dc315b4117b0df95b1c96ef8"
+    },
+    {
+     "package": "libgles-dev",
+     "version": "1.6.0-1",
+     "file": "pool/main/libg/libglvnd/libgles-dev_1.6.0-1_amd64.deb",
+     "sha256": "901b06c4a5223560617e9362d26ab349f9d9dd3d79e7d87d6ce0b06a7c7128f4"
+    },
+    {
+     "package": "libopengl-dev",
+     "version": "1.6.0-1",
+     "file": "pool/main/libg/libglvnd/libopengl-dev_1.6.0-1_amd64.deb",
+     "sha256": "43d5cd7de2f591e27f95996f8484767f46b0bbc1b8a0ac58cc64987b99fb9369"
+    }
+   ]
+  },
+  "editor_tools": {
+   "_note": "The map editor's q3map2 and mbspc for Linux (engine/tools/linux_editor_tools.py): NetRadiant-custom's Linux AppImage, its tools with the libraries they load, and Ubuntu 24.04's glibc, libgcc, libstdc++ and zlib to start them with, so they run on any x86_64 Linux. readers: what reads the .7z, the squashfs and Ubuntu's zstd packages, in a venv of their own.",
+   "readers": [
+    "py7zr==1.1.4",
+    "PySquashfsImage==0.9.0",
+    "zstandard==0.25.0"
+   ],
+   "netradiant": {
+    "release": "20260114",
+    "url": "https://github.com/Garux/netradiant-custom/releases/download/20260114/netradiant-custom-20260114-linux-x86_64.7z",
+    "sha256": "f48f6f1d0db2b910ef9cb5dc5d8a722852510f3c5c278dc17615c0466b8a7a3d",
+    "appimage": "NetRadiant-Custom-x86_64.AppImage",
+    "license": "GPL-2.0"
+   },
+   "ubuntu": {
+    "mirror": "http://archive.ubuntu.com/ubuntu/",
+    "suites": [
+     "noble",
+     "noble-updates"
+    ],
+    "packages": [
+     {
+      "package": "libc6",
+      "version": "2.39-0ubuntu8.9",
+      "file": "pool/main/g/glibc/libc6_2.39-0ubuntu8.9_amd64.deb",
+      "sha256": "ff5557d99b51f761c4b7c92368b9cc45565eda17df9bf9eb4b134d09825008be"
+     },
+     {
+      "package": "libgcc-s1",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "file": "pool/main/g/gcc-14/libgcc-s1_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+      "sha256": "aa7fadbe33b78bcf99885318040601c550c208929565b179891d9a3cc2aa68cd"
+     },
+     {
+      "package": "libstdc++6",
+      "version": "14.2.0-4ubuntu2~24.04.1",
+      "file": "pool/main/g/gcc-14/libstdc++6_14.2.0-4ubuntu2~24.04.1_amd64.deb",
+      "sha256": "a51f8de7829211db961a31f02158058ad1a95f92ac6d0a5dff6350e2821c54c0"
+     },
+     {
+      "package": "zlib1g",
+      "version": "1:1.3.dfsg-3.1ubuntu2.3",
+      "file": "pool/main/z/zlib/zlib1g_1.3.dfsg-3.1ubuntu2.3_amd64.deb",
+      "sha256": "376249c8de139568221dbb242318cc8cb8f02299e3a62b7432948e1754fbddf9"
+     }
+    ]
+   }
   }
  }
 }

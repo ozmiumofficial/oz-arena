@@ -1,0 +1,238 @@
+Oz: the player's own predicted events play once, whatever the server numbers them. id's cgame numbered
+the server's events and the predicted ones in one sequence and played any slot whose event changed, so
+where the server's game had an event the prediction didn't (A51's: a footstep as a running jump lands
+and takes off again), or one a step earlier or later, every event after it moved a slot and played
+again: jumps and shots heard twice on community servers whose game moves the player a little
+differently. Each predicted event is kept with the command time it ran at (CG_PredictPlayerState): one
+of the server's plays only if no predicted event of its kind and parm from about then played, and one
+the prediction runs again plays only if it didn't run at about that time before. cg_ozEventOnce 0 is
+id's way, for comparing; cg_showmiss 1 prints "event <n> (seq <n>) played already".
+
+diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
+--- a/code/cgame/cg_local.h
++++ b/code/cgame/cg_local.h
+@@ -460,6 +460,17 @@
+ // occurs, and they will have visible effects for #define STEP_TIME or whatever msec after
+ 
+ #define MAX_PREDICTED_EVENTS	16
++
++// Oz: predicted events kept to tell one the server numbers differently (CG_OzEventPlayed)
++#define OZ_EVENT_TIMES			64
++#define OZ_PLAYED_EVENTS		32
++
++typedef struct {
++	int			event;				// without EV_EVENT_BITS; 0 for an empty entry
++	int			parm;
++	int			time;				// the command time the prediction ran it at
++	qboolean	confirmed;			// the server's snapshot had it
++} ozPlayedEvent_t;
+  
+ typedef struct {
+ 	int			clientFrame;		// incremented each frame
+@@ -654,6 +665,16 @@
+ 	//qboolean cameraMode;		// if rendering from a loaded camera
+ 
+ 
++	// Oz: the player's own predicted events, so one the server numbers differently plays once
++	// (CG_OzEventPlayed in cg_playerstate.c)
++	int			ozEventTime[OZ_EVENT_TIMES];	// the command time of each predicted event, by sequence
++	int			ozTimedSeq;						// the events before this one have their time
++	int			ozPredictBaseSeq;				// the snapshot the prediction started from: its eventSequence
++	int			ozPredictBaseTime;				// and its commandTime
++	int			ozServerSeq;					// the server's events before this one are accounted for
++	ozPlayedEvent_t	ozPlayed[OZ_PLAYED_EVENTS];	// the predicted events played lately
++	int			ozPlayedNext;
++
+ 	// development tool
+ 	refEntity_t		testModelEntity;
+ 	char			testModelName[MAX_QPATH];
+@@ -1548,6 +1569,8 @@
+ void CG_Respawn( void );
+ void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops );
+ void CG_CheckChangedPredictableEvents( playerState_t *ps );
++void CG_OzEventBase( void );
++void CG_OzEventTimes( void );
+ 
+ 
+ //===============================================
+diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
+--- a/code/cgame/cg_predict.c
++++ b/code/cgame/cg_predict.c
+@@ -604,6 +604,7 @@
+ 		trap_Cvar_Set("pmove_msec", "33");
+ 		trap_Cvar_Update(&pmove_msec);
+ 	}
++	CG_OzEventBase();	// Oz: the events up to here are the server's
+ 
+ 	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
+ 	cg_pmove.pmove_msec = pmove_msec.integer;
+@@ -655,6 +656,7 @@
+ 
+ 		// add push trigger movement effects
+ 		CG_TouchTriggerPrediction();
++		CG_OzEventTimes();	// Oz: when the new events ran
+ 
+ 		// check for predictable events that changed from previous predictions
+ 		//CG_CheckChangedPredictableEvents(&cg.predictedPlayerState);
+diff --git a/code/cgame/cg_playerstate.c b/code/cgame/cg_playerstate.c
+--- a/code/cgame/cg_playerstate.c
++++ b/code/cgame/cg_playerstate.c
+@@ -205,9 +205,128 @@
+ extern char *eventnames[];
+ 
+ /*
+-==============
++==================
++CG_OzEventBase
++
++Oz: the prediction starts from the snapshot's state: the events before its eventSequence are the
++server's, those after it the prediction's
++==================
++*/
++void CG_OzEventBase( void ) {
++	cg.ozPredictBaseSeq = cg.ozTimedSeq = cg.predictedPlayerState.eventSequence;
++	cg.ozPredictBaseTime = cg.predictedPlayerState.commandTime;
++}
++
++/*
++==================
++CG_OzEventTimes
++
++Oz: after each command the prediction ran, the command time of the events it added
++==================
++*/
++void CG_OzEventTimes( void ) {
++	for ( ; cg.ozTimedSeq < cg.predictedPlayerState.eventSequence; cg.ozTimedSeq++ ) {
++		cg.ozEventTime[cg.ozTimedSeq & ( OZ_EVENT_TIMES - 1 )] = cg.predictedPlayerState.commandTime;
++	}
++}
++
++/*
++==================
++CG_OzFindPlayed
++
++Oz: the oldest predicted event played of this kind run between from and to, or NULL; one the server's
++snapshot has had already only if confirmed is qtrue
++==================
++*/
++static ozPlayedEvent_t *CG_OzFindPlayed( int event, int parm, int from, int to, qboolean confirmed ) {
++	ozPlayedEvent_t	*p, *best;
++	int				i;
++
++	best = NULL;
++	for ( i = 0, p = cg.ozPlayed ; i < OZ_PLAYED_EVENTS ; i++, p++ ) {
++		if ( p->event == event && p->parm == parm && p->time >= from && p->time <= to
++				&& ( confirmed || !p->confirmed ) && ( !best || p->time < best->time ) ) {
++			best = p;
++		}
++	}
++	return best;
++}
++
++/*
++==================
++CG_OzEventPlayed
++
++Oz: whether the predicted state's event seq, which id's code would play (new, or changed from the last
++frame's), is one the player's own prediction played already. id's numbered the server's events and the
++predicted ones in one sequence and played any slot whose event changed, so wherever the server's game
++had one event more or less than the prediction, or one a step earlier or later, every event after it
++moved a slot and played again: the jump and the shot heard twice on community servers whose game moves
++the player a little differently (A51's: a prediction miss at most landings), and a pickup at 1000 fps
++(game patch 0026). Each predicted event is kept with the command time it ran at: one of the server's
++plays only if no predicted event of its kind and parm from about that time played, and one the
++prediction runs again plays only if it didn't run at about that time before.
++
++play: qfalse for a slot id's code wouldn't play, which is only accounted for
++==================
++*/
++static qboolean CG_OzEventOnce( void ) {
++	static vmCvar_t	once;
++	static qboolean	registered;
++
++	if ( !registered ) {
++		trap_Cvar_Register( &once, "cg_ozEventOnce", "1", 0 );	// 0: id's way, for comparing
++		registered = qtrue;
++	}
++	trap_Cvar_Update( &once );
++	return once.integer != 0;
++}
++
++#define OZ_EVENT_SLACK		30		// ms either way: the same event a step or two off (the guns refire 50 ms on)
++#define OZ_EVENT_LATE		250		// ms the server's snapshot can be past one of its events
++
++static qboolean CG_OzEventPlayed( int seq, int event, int parm, qboolean play ) {
++	ozPlayedEvent_t	*p;
++	int				time;
++
++	event &= ~EV_EVENT_BITS;
++	if ( !event ) {
++		return qfalse;
++	}
++	if ( seq < cg.ozPredictBaseSeq ) {
++		// the server's: the first time it shows, take the oldest unconfirmed one played of its kind
++		if ( seq < cg.ozServerSeq && seq >= cg.ozServerSeq - OZ_EVENT_TIMES ) {
++			return play && CG_OzFindPlayed( event, parm, cg.ozPredictBaseTime - OZ_EVENT_LATE,
++				cg.ozPredictBaseTime + OZ_EVENT_SLACK, qtrue ) != NULL;
++		}
++		cg.ozServerSeq = seq + 1;
++		p = CG_OzFindPlayed( event, parm, cg.ozPredictBaseTime - OZ_EVENT_LATE, cg.ozPredictBaseTime + OZ_EVENT_SLACK, qfalse );
++		if ( p ) {
++			p->confirmed = qtrue;
++			return qtrue;
++		}
++		return qfalse;
++	}
++
++	// the prediction's
++	time = cg.ozEventTime[seq & ( OZ_EVENT_TIMES - 1 )];
++	if ( !play ) {
++		return qfalse;
++	}
++	if ( CG_OzFindPlayed( event, parm, time - OZ_EVENT_SLACK, time + OZ_EVENT_SLACK, qtrue ) ) {
++		return qtrue;
++	}
++	p = &cg.ozPlayed[cg.ozPlayedNext++ & ( OZ_PLAYED_EVENTS - 1 )];
++	p->event = event;
++	p->parm = parm;
++	p->time = time;
++	p->confirmed = qfalse;
++	return qfalse;
++}
++
++/*
++==================
+ CG_CheckPlayerstateEvents
+-==============
++==================
+ */
+ void CG_CheckPlayerstateEvents( playerState_t *ps, playerState_t *ops ) {
+ 	int			i;
+@@ -231,6 +350,17 @@
+ 			|| (i > ops->eventSequence - MAX_PS_EVENTS && ps->events[i & (MAX_PS_EVENTS-1)] != ops->events[i & (MAX_PS_EVENTS-1)]) ) {
+ 
+ 			event = ps->events[ i & (MAX_PS_EVENTS-1) ];
++			// Oz: not again if the prediction played it already (only the player's own predicted state)
++			if ( ps == &cg.predictedPlayerState && CG_OzEventOnce()
++					&& CG_OzEventPlayed( i, event, ps->eventParms[ i & (MAX_PS_EVENTS-1) ], qtrue ) ) {
++				if ( cg_showmiss.integer ) {
++					CG_Printf( "event %i (seq %i) played already\n", event & ~EV_EVENT_BITS, i );
++				}
++				cg.predictableEvents[ i & (MAX_PREDICTED_EVENTS-1) ] = event;
++				cg.eventSequence++;
++				continue;
++			}
++
+ 			cent->currentState.event = event;
+ 			cent->currentState.eventParm = ps->eventParms[ i & (MAX_PS_EVENTS-1) ];
+ 			CG_EntityEvent( cent, cent->lerpOrigin );
+@@ -238,6 +368,9 @@
+ 			cg.predictableEvents[ i & (MAX_PREDICTED_EVENTS-1) ] = event;
+ 
+ 			cg.eventSequence++;
++		} else if ( ps == &cg.predictedPlayerState && CG_OzEventOnce() ) {
++			// Oz: the server's event in the slot the prediction had it in: it confirms that one
++			CG_OzEventPlayed( i, ps->events[ i & (MAX_PS_EVENTS-1) ], ps->eventParms[ i & (MAX_PS_EVENTS-1) ], qfalse );
+ 		}
+ 	}
+ }

@@ -718,7 +718,7 @@ bool Social_Action( const Rml::String &verb, const Rml::String &arg, Rml::Elemen
 				const std::string fit = Str( md, "fit" );
 				const cJSON *map = cJSON_GetArrayItem( Menu_Node( "maps" ), atoi( Menu_Get( "create_match_pick.custom.mapi" ) ) ), *t;
 				bool fits = false;
-				cJSON_ArrayForEach( t, map ? cJSON_GetObjectItemCaseSensitive( map, "types" ) : nullptr ) {
+				cJSON_ArrayForEach( t, ( map ? cJSON_GetObjectItemCaseSensitive( map, "types" ) : nullptr ) ) {
 					fits = fits || ( cJSON_IsString( t ) && fit == t->valuestring );
 				}
 				Menu_Set( "create_match.custom.mi", std::to_string( i ).c_str() );

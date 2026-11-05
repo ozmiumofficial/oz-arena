@@ -642,7 +642,7 @@ static cvar_t	*oz_hud_chat_emoji;
 static cvar_t	*oz_crosshair_shape, *oz_crosshair_thickness, *oz_crosshair_gap, *oz_crosshair_dot, *oz_crosshair_color;
 static cvar_t	*oz_crosshair_outline, *oz_crosshair_hit_color, *oz_crosshair_per_weapon;
 static cvar_t	*oz_crosshair_health, *oz_crosshair_opacity, *oz_crosshair_outline_width, *oz_crosshair_outline_opacity;
-static cvar_t	*oz_crosshair_hit_flash, *oz_crosshair_hit_time;
+static cvar_t	*oz_crosshair_hit_flash, *oz_crosshair_hit_time, *oz_crosshair_hit_marker;
 static cvar_t	*oz_crosshair_weapon[WP_NUM_WEAPONS];
 static cvar_t	*oz_accessibility_subtitles, *oz_accessibility_subtitle_size;
 static cvar_t	*oz_accessibility_reduced_flashing;	// no pulses or blinks, softer hit flashes
@@ -691,6 +691,7 @@ static const hudCvar_t hudCvars[] = {
 	{ &oz_crosshair_outline_opacity, "oz_crosshair_outline_opacity", "0.6", CVAR_ARCHIVE },
 	{ &oz_crosshair_hit_flash, "oz_crosshair_hit_flash", "1", CVAR_ARCHIVE },
 	{ &oz_crosshair_hit_time, "oz_crosshair_hit_time", "220", CVAR_ARCHIVE },
+	{ &oz_crosshair_hit_marker, "oz_crosshair_hit_marker", "1", CVAR_ARCHIVE },
 	{ &oz_accessibility_subtitles, "oz_accessibility_subtitles", "0", CVAR_ARCHIVE },
 	{ &oz_accessibility_reduced_flashing, "oz_accessibility_reduced_flashing", "0", CVAR_ARCHIVE },
 	{ &oz_accessibility_subtitle_size, "oz_accessibility_subtitle_size", "medium", CVAR_ARCHIVE },
@@ -2453,14 +2454,58 @@ The crosshair centered at (cx, cy), k screen pixels to a 1080p pixel, sz across 
 (armor counted) for Color by health, hitT seconds since a hit. The HUD's and the editors' previews
 (OzHud_CrosshairPreview), so a preview is what the match shows.
 */
+#define HIT_MARKER_TIME	0.3f	// the hit marker's shortest fade (a short Flash length still shows it)
+#define HIT_MARKER_POP	0.08f	// it starts a little wider and settles in this long
+
+/*
+The hit marker: four short strokes on the diagonals around the crosshair, in the hit color, each time
+you hurt an enemy (PERS_HITS going up, as the hit flash). It stands outside the crosshair (sz across)
+and shows with no crosshair too.
+*/
+static void HitMarker( float cx, float cy, float k, float sz, float hitT ) {
+	const float	life = CrossHitTime() > HIT_MARKER_TIME ? CrossHitTime() : HIT_MARKER_TIME;
+	const float	d = 0.70710678f;
+	float		hit[4], outline[4], a, r0, r1, w, ow;
+	int			i, pass;
+
+	if ( !oz_crosshair_hit_marker->integer || hitT < 0 || hitT >= life ) {
+		return;
+	}
+	a = 1.0f - hitT / life;
+	a = a * ( 2.0f - a );	// eases out: full a while, then gone
+	r0 = sz * 0.5f + 4 * k;
+	if ( r0 < 9 * k ) {
+		r0 = 9 * k;
+	}
+	if ( hitT < HIT_MARKER_POP ) {
+		r0 += 5 * k * ( 1.0f - hitT / HIT_MARKER_POP );
+	}
+	r1 = r0 + 9 * k;
+	w = 2.5f * k > 1.5f ? 2.5f * k : 1.5f;
+	ow = k > 1 ? k : 1;
+	ParseColor( oz_crosshair_hit_color->string, hit );
+	hit[3] *= a;
+	Col( outline, BLACK, 0.6f * a );
+	for ( pass = 0; pass < 2; pass++ ) {
+		for ( i = 0; i < 4; i++ ) {
+			const float sx = ( i & 1 ) ? d : -d, sy = ( i & 2 ) ? d : -d;
+			const float e = pass ? 0 : ow;
+			Line( cx + sx * ( r0 - e ), cy + sy * ( r0 - e ), cx + sx * ( r1 + e ), cy + sy * ( r1 + e ),
+				pass ? w : w + 2 * ow, pass ? hit : outline );
+		}
+	}
+}
+
 static void CrosshairAt( float cx, float cy, float k, const char *shape, float sz, int health, float hitT ) {
 	float		color[4], hit[4], outline[4], t, gap, arm, ow, oa;
 	const float	saved = hudAlpha;
 
+	hudAlpha = 1.0f;
+	HitMarker( cx, cy, k, sz, hitT );
 	if ( !shape[0] || !Q_stricmp( shape, "none" ) ) {
+		hudAlpha = saved;
 		return;
 	}
-	hudAlpha = 1.0f;
 	ParseColor( oz_crosshair_color->string, color );
 	if ( oz_crosshair_health->integer ) {
 		HealthColor( health, color );

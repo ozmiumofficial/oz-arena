@@ -104,21 +104,24 @@ The main column on the left; a submenu opens beside it (Right, or Enter); the pa
 		<div class="line"/>
 	</div>
 
-	<!-- a newer release (UpdatePrompt.tsx): the updater comes with P14 -->
+	<!-- a newer release (UpdatePrompt.tsx), offered at launch (oz_update.c, UpdateFrame in oz_ui_menu.cpp):
+	Update now runs Setup's update mode (Windows) or the launcher (Linux), else opens the release's page;
+	Later asks again next launch; Skip this version doesn't offer this one again. Escape is Later. -->
 	<div class="update" data-if="state.update &amp;&amp; state.sub == '' &amp;&amp; !state.wide">
-		<div class="dialog">
+		<div class="dialog modal">
 			<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
 			<banner text="Update available"/>
 			<div class="q3 version">{{ update.version }}</div>
-			<div class="when">Beta · {{ update.published }}</div>
-			<div class="notes">
+			<div class="when">{{ update.channel }} · {{ update.published }}</div>
+			<div class="notes" data-if="update.notes.size > 0">
 				<div class="q3 nh">What's new</div>
-				<div class="note" data-for="n : update.notes"><span class="b">•</span>{{ n }}</div>
+				<div class="note" data-for="n : update.notes"><span class="b">•</span><span>{{ n }}</span></div>
 			</div>
+			<div class="status" data-if="update.status != ''"><span>{{ update.status }}</span></div>
 			<div class="buttons">
-				<button class="btn primary" onclick="soon update">Update now</button>
-				<button class="btn" onclick="set state.update false; sound out">Later</button>
-				<button class="btn" onclick="set state.update false; sound out">Skip this version</button>
+				<button id="update_now" class="btn primary" onclick="cmd oz_update now">Update now</button>
+				<button id="update_later" class="btn" onclick="set state.update false; sound out">Later</button>
+				<button id="update_skip" class="btn" onclick="cmd oz_update skip; set state.update false; sound out">Skip this version</button>
 			</div>
 		</div>
 	</div>

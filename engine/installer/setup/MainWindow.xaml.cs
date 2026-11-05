@@ -26,6 +26,9 @@ namespace OzSetup
         readonly Options opts = new Options();
         string gameDir, gameHow, uninstallDir;
         bool dirPicked, autoStart, working, closeWhenStopped;
+        /// <summary>/update: the game's Update now (oz_update.c) started Setup and is closing. Setup waits for it,
+        /// updates the folder with the choices it was installed with, and starts the game again.</summary>
+        bool updateMode;
         Release release;
         Progress prog;
         CancellationTokenSource cts;
@@ -46,6 +49,7 @@ namespace OzSetup
                 else if (a.StartsWith("/desktop=")) opts.Desktop = a.EndsWith("1");
                 else if (a.StartsWith("/links=")) opts.Links = a.EndsWith("1");
                 else if (a == "/go") autoStart = true;
+                else if (a == "/update") updateMode = true;
             }
             ticker.Tick += (s, e) => Tick();
             Loaded += OnLoaded;
@@ -173,11 +177,12 @@ namespace OzSetup
             string installed = Game.Installed();
             if (!dirPicked)
                 opts.Dir = installed ?? Game.DefaultDir(gameDir);
-            // an earlier install's choices
-            if (installed != null && !dirPicked)
+            // an earlier install's choices (an update keeps the ones of the folder it updates)
+            string earlier = updateMode ? opts.Dir : dirPicked ? null : installed;
+            if (earlier != null)
                 try
                 {
-                    foreach (var l in File.ReadLines(Path.Combine(installed, Installer.Manifest)))
+                    foreach (var l in File.ReadLines(Path.Combine(earlier, Installer.Manifest)))
                     {
                         if (l == "desktop=0") opts.Desktop = false;
                         if (l == "links=0") opts.Links = false;
@@ -210,7 +215,9 @@ namespace OzSetup
                 }
                 release = t.Result;
                 RefreshHome();
-                if (autoStart)
+                if (autoStart && updateMode)
+                    UpdateWhenClosed();
+                else if (autoStart)
                     Install_Click(null, null);
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
@@ -321,11 +328,17 @@ namespace OzSetup
             }
             if (!Installer.Writable(opts.Dir) && !Installer.IsAdmin)
             {
-                Elevate("/dir=" + opts.Dir, "/desktop=" + (opts.Desktop ? 1 : 0), "/links=" + (opts.Links ? 1 : 0), "/go");
+                var up = new[] { "/dir=" + opts.Dir, "/desktop=" + (opts.Desktop ? 1 : 0), "/links=" + (opts.Links ? 1 : 0), "/go" };
+                Elevate(updateMode ? up.Concat(new[] { "/update" }).ToArray() : up);
                 return;
             }
-            Work("INSTALLING " + release.Version.ToUpperInvariant(), ct => Installer.Install(release, opts, prog, ct), () =>
+            Work((updateMode ? "UPDATING TO " : "INSTALLING ") + release.Version.ToUpperInvariant(), ct => Installer.Install(release, opts, prog, ct), () =>
             {
+                if (updateMode)
+                {
+                    Play_Click(null, null); // updated: back into the game
+                    return;
+                }
                 InstallSteps(3);
                 Message(After.Play, After.Close, "INSTALLED", "READY TO FIGHT", "Green",
                     "Oz Arena " + release.Version + " is in " + opts.Dir + ".",
@@ -333,6 +346,28 @@ namespace OzSetup
                     "PLAY", "CLOSE");
             });
             InstallSteps(2);
+        }
+
+        /// <summary>The update: once the game that started Setup has closed (it quits as Setup starts), or
+        /// straight back into the game when the folder already has this release.</summary>
+        void UpdateWhenClosed()
+        {
+            if (Installer.InstalledVersion(opts.Dir) == release.Version && File.Exists(Path.Combine(opts.Dir, "OzArena.exe")))
+            {
+                Play_Click(null, null);
+                return;
+            }
+            relInfo.Text = "Waiting for Oz Arena to close...";
+            btnInstall.IsEnabled = false;
+            Task.Run(() =>
+            {
+                for (int i = 0; i < 150 && Installer.GameRunning(opts.Dir); i++)
+                    Thread.Sleep(200);
+            }).ContinueWith(_ =>
+            {
+                RefreshHome();
+                Install_Click(null, null); // still running after 30 s: Install says so, and the player closes it
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         /// <summary>Setup again with administrator rights, for a folder that needs them; this one closes.</summary>

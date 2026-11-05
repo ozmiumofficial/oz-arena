@@ -57,6 +57,8 @@
     "name": "v0.7.0-beta: the native engine",
     "size": "1.2 GB",
     "published": "2026-10-25",
+    "channel": "Beta",
+    "status": "",
     "notes": ["Oz Arena on its own engine", "The native menus", "The world look: matte PBR, ambient occlusion and bloom"]
   }
 }

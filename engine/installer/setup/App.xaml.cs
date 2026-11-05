@@ -39,6 +39,9 @@ namespace OzSetup
             }
             if (args.Contains("/fromtemp"))
                 tempSelf = self;
+            // the game's Update now downloads Setup into a %TEMP% folder of its own: it goes as Setup exits
+            if (args.Contains("/update") && Path.GetFileName(Path.GetDirectoryName(self)).StartsWith("OzArenaUpdate-", StringComparison.OrdinalIgnoreCase))
+                tempSelf = self;
             base.OnStartup(e);
             new MainWindow().Show();
         }
@@ -48,7 +51,9 @@ namespace OzSetup
             if (tempSelf != null)
                 try
                 {
-                    Process.Start(new ProcessStartInfo("cmd.exe", "/c ping 127.0.0.1 -n 3 > nul & del /f /q \"" + tempSelf + "\"")
+                    string folder = Path.GetDirectoryName(tempSelf);
+                    string rmdir = Path.GetFileName(folder).StartsWith("OzArenaUpdate-", StringComparison.OrdinalIgnoreCase) ? " & rmdir \"" + folder + "\"" : "";
+                    Process.Start(new ProcessStartInfo("cmd.exe", "/c ping 127.0.0.1 -n 3 > nul & del /f /q \"" + tempSelf + "\"" + rmdir)
                     { CreateNoWindow = true, UseShellExecute = false, WindowStyle = ProcessWindowStyle.Hidden });
                 }
                 catch { }

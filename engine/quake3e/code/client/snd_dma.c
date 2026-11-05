@@ -1405,7 +1405,7 @@ static void S_UpdateBackgroundTrack( void ) {
 	}
 
 	// don't bother playing anything if musicvolume is 0
-	if ( s_musicVolume->value == 0.0f ) {
+	if ( s_musicVolume->value * s_volume->value == 0.0f ) {	// Oz: master scales music too
 		return;
 	}
 
@@ -1442,7 +1442,7 @@ static void S_UpdateBackgroundTrack( void ) {
 		{
 			// add to raw buffer
 			S_Base_RawSamples( fileSamples, s_backgroundStream->info.rate,
-				s_backgroundStream->info.width, s_backgroundStream->info.channels, raw, s_musicVolume->value );
+				s_backgroundStream->info.width, s_backgroundStream->info.channels, raw, s_musicVolume->value * s_volume->value );
 		}
 		else
 		{

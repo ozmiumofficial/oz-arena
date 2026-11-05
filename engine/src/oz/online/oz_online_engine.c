@@ -44,6 +44,10 @@ qboolean	OzIce_HubMessage( const char *type, const cJSON *m );
 const char	*OzIce_JoinString( void );
 #endif
 
+void OzUpdate_Init( void );					// oz_update.c: the update check
+void OzUpdate_Frame( void );
+void OzUpdate_ClientShutdown( qboolean quit );
+
 static cvar_t	*oz_online, *oz_online_import, *oz_online_debug;
 static cvar_t	*oz_network_online, *oz_network_online_server;		// the Settings page's (engine/ui/settings.json)
 static int		lastStatus = -1;
@@ -595,6 +599,7 @@ void CL_OzOnlineFrame( void ) {
 #ifdef USE_OZ_ICE
 	OzIce_Frame();	// the peer-to-peer links run whether or not the hub is there
 #endif
+	OzUpdate_Frame();	// GitHub's latest release, asked once a run
 
 	if ( oz_online->modified || oz_network_online->modified || oz_network_online_server->modified ) {
 		oz_online->modified = oz_network_online->modified = oz_network_online_server->modified = qfalse;
@@ -793,6 +798,7 @@ void CL_OzOnlineInit( void ) {
 	OzIce_Init();
 #endif
 	OzStats_Init();
+	OzUpdate_Init();
 	Cmd_AddCommand( "online", CL_Online_f );
 	Cmd_AddCommand( "hub", CL_Hub_f );
 	Cmd_AddCommand( "party_accept", CL_PartyAccept_f );
@@ -805,6 +811,7 @@ void CL_OzOnlineShutdown( qboolean quit ) {
 	OzIce_Shutdown( quit );
 #endif
 	Stop();
+	OzUpdate_ClientShutdown( quit );
 	Cmd_RemoveCommand( "online" );
 	Cmd_RemoveCommand( "hub" );
 	Cmd_RemoveCommand( "party_accept" );

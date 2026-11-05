@@ -220,6 +220,85 @@ static void Replace( cJSON *dst, cJSON *src ) {
 
 /*
 ================
+The update offer (oz_update.c): GitHub's latest release, newer than this build, in menu.rml's Update
+available over the main menu. It comes from the engine's thread whenever it's answered, so it's kept
+here and shown once the main menu is up (after the splash and the first run's import question).
+================
+*/
+static Rml::ElementDocument *menuDoc, *pauseDoc;
+static bool focusFirst;	// the main menu's first item, once its items exist (after the next update)
+
+static struct {
+	bool			pending, shown;
+	Rml::String		version, name, published, channel;
+	std::vector<Rml::String>	notes;
+} update;
+
+extern "C" void OzUI_UpdateOffer( const char *version, const char *name, const char *published, const char *channel,
+		const char notes[][160], int numNotes ) {
+	update.version = version;
+	update.name = name;
+	update.published = published;
+	update.channel = channel;
+	update.notes.clear();
+	for ( int i = 0; i < numNotes; i++ ) {
+		update.notes.push_back( notes[i] );
+	}
+	update.pending = true;
+	update.shown = false;
+}
+
+extern "C" void OzUI_UpdateStatus( const char *text, int failed ) {
+	Menu_Set( "update.status", text );
+	if ( failed ) {
+		PlaySound( Sound::Buzz );
+		Menu_Toast( text, "warn" );
+	}
+}
+
+static bool Menu_UpdateShown() {
+	return *Menu_Get( "state.update" ) == 't';	// "true"
+}
+
+static void Menu_UpdateClose() {
+	Menu_Set( "state.update", "false" );
+	PlaySound( Sound::Out );
+	focusFirst = true;	// back on the main menu's first item
+}
+
+static void UpdateFrame() {
+	if ( !update.pending || strcmp( TopPageName(), "menu" ) || !menuDoc ) {
+		return;	// shown over the main menu only: never over a match, the splash or a question
+	}
+	update.pending = false;
+	Menu_Set( "update.version", update.version.c_str() );
+	Menu_Set( "update.name", update.name.c_str() );
+	Menu_Set( "update.published", update.published.c_str() );
+	Menu_Set( "update.channel", update.channel.c_str() );
+	Menu_Set( "update.status", "" );
+	cJSON *notes = cJSON_CreateArray();
+	for ( const Rml::String &n : update.notes ) {
+		cJSON_AddItemToArray( notes, cJSON_CreateString( n.c_str() ) );
+	}
+	if ( cJSON *dst = Menu_Node( "update.notes" ) ) {
+		Replace( dst, notes );
+	} else {
+		cJSON_Delete( notes );
+	}
+	Menu_Dirty( "update" );
+	Menu_Set( "state.sub", "" );
+	Menu_Set( "state.update", "true" );
+	update.shown = true;
+	GetContext()->Update();
+	if ( Rml::Element *b = menuDoc->GetElementById( "update_now" ) ) {
+		FocusQuietly( b );
+		focusFirst = false;
+	}
+	Printf( "UI: update offered: %s\n", update.version.c_str() );
+}
+
+/*
+================
 What the engine knows: the arenas and bots from the game's scripts (scripts/arenas.txt and *.arena,
 scripts/bots.txt and *.bot), the characters
 ================
@@ -854,7 +933,6 @@ bool Menu_Tab( Rml::ElementDocument *doc, int dir ) {
 The main menu: its submenus (MenuApp.tsx's SubMenu), and the shell's state while pages are over it
 ================
 */
-static Rml::ElementDocument *menuDoc, *pauseDoc;
 
 void Menu_OpenSub( const char *name ) {
 	if ( !menuDoc ) {
@@ -906,7 +984,9 @@ bool Menu_Back( const char *page ) {
 		return true;
 	}
 	if ( !strcmp( page, "menu" ) ) {
-		if ( *Menu_Get( "state.sub" ) ) {
+		if ( Menu_UpdateShown() ) {
+			Menu_UpdateClose();	// the update offer: Later
+		} else if ( *Menu_Get( "state.sub" ) ) {
 			CloseSub();
 		}
 		return true;	// the main menu stays
@@ -1042,7 +1122,6 @@ void Menu_Attach( const char *name, Rml::ElementDocument *doc ) {
 	}
 }
 
-static bool focusFirst;	// the main menu's first item, once its items exist (after the next update)
 
 void Menu_Opened( const char *name ) {
 	FillPlayer();
@@ -1227,6 +1306,7 @@ static void PauseFrame() {
 }
 
 void Menu_Frame() {
+	UpdateFrame();
 	RotateNews();
 	PauseFrame();
 	Social_Frame();

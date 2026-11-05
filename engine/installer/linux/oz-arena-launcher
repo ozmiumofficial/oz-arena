@@ -4,6 +4,7 @@
 #   oz-arena-launcher                 install, update or play (whichever is next)
 #   oz-arena-launcher --play [args]   play now, with the game's own arguments (+connect host, +devmap q3dm17)
 #   oz-arena-launcher --install       install or update from GitHub's latest release
+#   oz-arena-launcher --update        the game's Update now: update without asking again, then play
 #   oz-arena-launcher --locate        choose the Quake III Arena folder again
 #   oz-arena-launcher --uninstall     take Oz Arena out (your settings, career and maps stay in ~/.ozarena)
 #   oz-arena-launcher --link URL      an ozarena:// link (the menu entry hands these on)
@@ -447,7 +448,7 @@ EOF
 	return 0
 }
 
-install_or_update() {   # quiet=1: only when there's something newer, and say nothing when offline
+install_or_update() {   # quiet=1: only when there's something newer, and say nothing when offline; 2: update without asking (--update)
 	local quiet="${1:-0}" have size total=0 name url
 	if ! fetch_release; then
 		[ "$quiet" = 1 ] && return 0
@@ -463,7 +464,7 @@ install_or_update() {   # quiet=1: only when there's something newer, and say no
 		while read -r name url; do [ -n "$name" ] && [ ! -f "$DIR/oz/$name" ] && case "$name" in pak_oz_world*) total=$((total + 2)) ;; esac; done <<< "$REL_ASSETS"
 	fi
 	if [ -n "$have" ]; then
-		ui_question "$APP" "$APP $REL_VERSION is out (you have $have). Update now?" "Update" "Not now" || return 0
+		[ "$quiet" = 2 ] || ui_question "$APP" "$APP $REL_VERSION is out (you have $have). Update now?" "Update" "Not now" || return 0
 	else
 		ui_question "$APP" "Install $APP $REL_VERSION?
 
@@ -493,7 +494,8 @@ play() {
 	log="$USER_DIR/launcher.log"
 	cd "$DIR" || die "Can't open $DIR."
 	# the game's own folder first, for its SDL2 and OpenAL Soft; then Steam's runtime can't shadow them
-	LD_LIBRARY_PATH="$DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "./$GAME_EXE" +set fs_steampath "$Q3" "$@" 2> >(tee "$log" >&2)
+	# the launcher asks about updates itself (install_or_update 1), so the game doesn't ask again
+	LD_LIBRARY_PATH="$DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "./$GAME_EXE" +set fs_steampath "$Q3" +set oz_update_check 0 "$@" 2> >(tee "$log" >&2)
 	rc=$?
 	if [ "$rc" -ne 0 ]; then
 		sleep 0.2
@@ -539,7 +541,8 @@ ARGS=()
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--play) MODE=play; shift; ARGS=("$@"); break ;;
-	--install|--update) MODE=install ;;
+	--install) MODE=install ;;
+	--update) MODE=update ;;
 	--locate) MODE=locate ;;
 	--uninstall) MODE=uninstall ;;
 	--link) MODE=link; LINK="${2:-}"; shift ;;
@@ -563,6 +566,11 @@ Q3="$(q3_dir)" || exit 0
 
 case "$MODE" in
 install) install_or_update 0; exit 0 ;;
+update)
+	# from the game's Update now (oz_update.c), which quits as this starts: let it close first
+	for _ in $(seq 1 50); do pgrep -f "$DIR/$GAME_EXE" >/dev/null 2>&1 || break; sleep 0.2; done
+	install_or_update 2
+	play; exit $? ;;
 play) play "${ARGS[@]}"; exit $? ;;
 link)
 	[ -x "$DIR/$GAME_EXE" ] || install_or_update 0

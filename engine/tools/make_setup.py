@@ -16,7 +16,9 @@ Apps & features whose uninstaller ("Uninstall Oz Arena.exe" in the install) remo
 there and nothing of the player's (Maps, %APPDATA%\\Oz Arena). A folder Setup can't write (Program
 Files) makes it start again with administrator rights.
 
-The setup never changes with a release: upload it to each release beside the zip and the world packs.
+Upload it to each release beside the zip and the world packs. The game's Update now (oz_update.c)
+downloads the latest release's copy and starts it as /update "/dir=<the install>" /go: it waits for the
+game to close, updates the folder with the choices it was installed with, and starts the game again.
 engine/installer/OzArena.iss (make_installer.py) is the older all-in-one Inno Setup installer, too big
 for a GitHub release asset (2 GB each).
 

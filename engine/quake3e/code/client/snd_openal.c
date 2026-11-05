@@ -2152,7 +2152,7 @@ void S_AL_StartBackgroundTrack( const char *intro, const char *loop )
 	qalSourceQueueBuffers(musicSource, NUM_MUSIC_BUFFERS, musicBuffers);
 
 	// Set the initial gain property
-	S_AL_Gain(musicSource, s_alGain->value * s_musicVolume->value);
+	S_AL_Gain(musicSource, s_alGain->value * s_musicVolume->value * s_volume->value);	// Oz: master scales music too
 	
 	// Start playing
 	qalSourcePlay(musicSource);
@@ -2195,7 +2195,7 @@ void S_AL_MusicUpdate( void )
 	}
 
 	// Set the gain property
-	S_AL_Gain(musicSource, s_alGain->value * s_musicVolume->value);
+	S_AL_Gain(musicSource, s_alGain->value * s_musicVolume->value * s_volume->value);	// Oz: master scales music too
 }
 
 

@@ -391,7 +391,10 @@ body.shown .mainnav .mitem { animation: 0.45s cubic-out 1 item-in; }
 .update .note { font-size: 0.85rem; color: #e6ddd2; }
 .update .note .b { color: #db2410; margin-right: 0.5rem; }
 
+.update .status { display: block; width: 100%; margin-top: 1.25rem; font-size: 0.85rem; color: #c8a67a; }
 .update .buttons { display: flex; margin-top: 1.5rem; }
+.update .buttons button { nav-up: none; nav-down: none; white-space: nowrap; flex-shrink: 0; }
+.update .dialog { width: 40rem; background-color: #0a0807f7; }	/* over the showcase's fighter: it mustn't show through */
 .update .buttons button { margin-right: 0.6rem; }
 
 /* ---------------------------------------------------------------- bottom bar */

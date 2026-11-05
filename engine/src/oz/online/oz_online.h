@@ -67,6 +67,30 @@ int			OzOnline_Relation( const char *id );		// OZ_REL_*
 void		OzOnline_AddFriend( const char *id );		// a friend request, or yes to theirs
 int			OzOnline_Notice( char *out, int size );		// the hub's last notice, and how long ago in ms (-1: none)
 
+// The update check (update.cpp): GitHub's latest release, asked on a thread at launch; the client
+// (oz_online_engine.c) compares its tag with OZ_VERSION and offers it in the main menu.
+enum { OZ_UPDATE_IDLE, OZ_UPDATE_BUSY, OZ_UPDATE_DONE, OZ_UPDATE_FAILED };
+#define OZ_UPDATE_NOTES		6
+
+typedef struct {
+	char		tag[64];			// v0.7.6-beta
+	char		name[128];			// the release's title
+	char		published[16];		// 2026-11-05
+	char		page[256];			// its page on GitHub
+	char		setup[512];			// OzArenaSetup.exe's download, "" without one
+	long long	setupSize, size;	// the installer's bytes; every asset's
+	char		notes[OZ_UPDATE_NOTES][160];	// the body's top-level bullets, plain
+	int			numNotes;
+	char		error[128];			// why the check failed
+} ozRelease_t;
+
+void		OzUpdate_Check( const char *url );				// releases/latest's JSON, on a thread
+int			OzUpdate_Checked( ozRelease_t *out );			// OZ_UPDATE_*; out filled once DONE or FAILED
+void		OzUpdate_Download( const char *url, const char *path );	// a file, on a thread
+int			OzUpdate_Downloaded( long long *done, long long *total, char *error, int size );	// OZ_UPDATE_*
+int			OzUpdate_Compare( const char *a, const char *b );	// versions ("v0.7.6-beta", "0.7.5-beta"): -1, 0, 1
+void		OzUpdate_Shutdown( void );						// stops a download, waits for the threads
+
 #ifdef __cplusplus
 }
 #endif

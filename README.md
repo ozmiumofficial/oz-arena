@@ -206,7 +206,7 @@ build/engine/OzArena.exe
 
 For the map editor's import and compile, unpack a [NetRadiant-custom](https://github.com/Garux/netradiant-custom/releases) Windows release into `build/tools/` (so its programs are in `build/tools/netradiant-custom-<date>/app`); the build stages its q3map2 and mbspc beside the game.
 
-The asset packs come from `tools/`, which rebuild them from your own copy's files: `make_textures.py` (the texture library, on the GPU with PyTorch and CUDA), `make_pk3s.py` and `q3relight.py` (the world and the relit maps, with q3map2), `make_fighters.py`, `make_props.py`, `make_fx_pk3.py` and `make_levelshots.py`. The release has them all prebuilt.
+The asset packs come from `tools/`, which rebuild them from your own copy's files: `make_textures.py` (the texture library, on the GPU with PyTorch and CUDA), `make_pk3s.py` and `q3relight.py` (the world and the relit maps, with q3map2), `make_fighters.py`, `make_props.py`, `make_fx_pk3.py` and `make_levelshots.py`; the modern fighters (Settings > Experimental) come from `fighter_swap/build_fighter.py`, with Blender. The release has them all prebuilt.
 
 The installer is `engine/installer/setup`: `python engine/tools/make_setup.py` builds `build/installer/OzArenaSetup.exe` (it needs the .NET SDK).
 

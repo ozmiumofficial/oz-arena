@@ -95,7 +95,7 @@ Marked `Oz:` in the code. The world library and its scripts come from `tools/mak
 
 The rigs come from `tools/make_fighters.py` (`oz_rig.iqm` beside id's player md3s, its comment block describing the parts, the spine and the ragdoll).
 - `tr_oz_rig.c`, `tr_oz_rig.h` (new): the fighters under any cgame.
-  - `R_RegisterMD3` calls `R_OzRigRegister`: a `lower`, `upper` or `head.md3` with `oz_rig.iqm` in its folder gets `model_t.ozRig` and `ozRigPart` (only with `r_ozRigs 1`, latched).
+  - `R_RegisterMD3` calls `R_OzRigRegister`: a `lower`, `upper` or `head.md3` with `oz_rig.iqm` in its folder gets `model_t.ozRig` and `ozRigPart` (only with `r_ozRigs 1`, latched). With `r_ozModernFighters 1` (latched; Settings > Experimental > Modern player models) an `oz_rig_modern.iqm` beside it comes first: the modern fighters of `pak_oz_modern_fighters.pk3` (`tools/fighter_swap`).
   - `RE_RenderScene` calls `R_OzRigPrepareScene` after `RE_BeginScene`. It matches each torso to the legs whose `tag_torso` it sits on and each head to its torso's `tag_head`, poses one skeleton per fighter (spreading the torso turn along the spine), and gives every part entity `ozBones` (skinning matrices relative to that entity), `ozDissolve` and `ozCenter`.
   - `R_AddEntitySurfaces` draws a `MOD_MESH` entity with `ozBones` through `R_AddOzRigSurfaces`: that part's IQM meshes, shaders from its skin by surface name, culled and fogged at `ozCenter`.
   - `R_LerpTag` answers `tag_torso`, `tag_head` and `tag_weapon` from the rig (`R_OzRigLerpTag`); any other tag still comes from the md3.

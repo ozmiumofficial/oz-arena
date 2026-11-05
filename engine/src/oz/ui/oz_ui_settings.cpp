@@ -2,7 +2,8 @@
 Oz: the settings schema and the generated Settings page (ENGINE_PLAN.md P4 step 4).
 
 ui/settings.json is the Godot build's schema.gd, exported once by
-engine/tools/export_settings_schema.py: 178 entries (130 settings and 48 key binds) in ten tabs
+engine/tools/export_settings_schema.py: 178 entries (130 settings and 48 key binds) in ten tabs, and since then the
+Experimental tab (by hand)
 plus the profile. At startup the engine creates the entries' cvars (archived) and generates the
 Settings page from them: tabs, groups, a control per entry, search, the description panel, the
 crosshair and cm/360 previews, reset (R) and share codes in the Godot build's format.

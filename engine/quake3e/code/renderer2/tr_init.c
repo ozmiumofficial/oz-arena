@@ -140,6 +140,7 @@ cvar_t  *r_ozColorblind;
 cvar_t  *r_ozRenderScale;
 cvar_t  *r_ozUpscaler;
 cvar_t  *r_ozRigs;
+cvar_t  *r_ozModernFighters;
 cvar_t  *r_ozCorpseBurn;
 cvar_t  *r_ozRagdollTest;
 cvar_t  *r_ozRagdollTone;
@@ -1307,6 +1308,8 @@ static void R_Register( void )
 	ri.Cvar_SetDescription( r_ozUpscaler, "How a scaled-down 3D view is scaled up:\n 0 - bilinear\n 1 - AMD FSR 1 (needs GL 4-class GLSL; bilinear without it)" );
 	r_ozRigs = ri.Cvar_Get( "r_ozRigs", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	ri.Cvar_SetDescription( r_ozRigs, "Draw players with the remastered rigged fighters where the server allows the remastered paks:\n 0 - id's models\n 1 - the rigged fighters" );
+	r_ozModernFighters = ri.Cvar_Get( "r_ozModernFighters", "0", CVAR_ARCHIVE | CVAR_LATCH );
+	ri.Cvar_SetDescription( r_ozModernFighters, "Experimental: draw the fighters that have an upgraded model (oz_rig_modern.iqm, pak_oz_modern_fighters.pk3) with it, in place of the remastered rig (needs r_ozRigs 1):\n 0 - the remastered fighters\n 1 - the modern models" );
 	r_ozCorpseBurn = ri.Cvar_Get( "r_ozCorpseBurn", "10", CVAR_ARCHIVE );
 	ri.Cvar_SetDescription( r_ozCorpseBurn, "Seconds before a fighter's ragdoll burns away, if the server hasn't removed the body (0: never)." );
 	r_ozRagdollTest = ri.Cvar_Get( "r_ozRagdollTest", "0", CVAR_CHEAT );

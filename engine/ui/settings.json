@@ -40,6 +40,10 @@
   [
    "accessibility",
    "Accessibility"
+  ],
+  [
+   "experimental",
+   "Experimental"
   ]
  ],
  "presets": {
@@ -4619,6 +4623,21 @@
    "cvar": "oz_accessibility_subtitle_size",
    "create": true,
    "cvar_default": "medium",
+   "preview": ""
+  },
+  {
+   "key": "experimental/modern_models",
+   "tab": "experimental",
+   "label": "Modern player models",
+   "type": "bool",
+   "default": false,
+   "tip": "Draws the fighters that have a new high-detail model with it: Doom, Visor and Anarki so far, on their own skeletons and animations. Experimental. Applies when Settings closes (the renderer restarts).",
+   "group": "Fighters",
+   "wired": true,
+   "restart": false,
+   "cvar": "oz_experimental_modern_models",
+   "create": true,
+   "cvar_default": "0",
    "preview": ""
   },
   {

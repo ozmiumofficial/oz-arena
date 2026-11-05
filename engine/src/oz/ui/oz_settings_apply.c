@@ -166,6 +166,9 @@ static void AmbientOcclusion( const char *v ) {
 
 static void Bloom( const char *v ) { Set( "r_ozBloom", atoi( v ) ? "1" : "0" ); }
 
+// Experimental: the upgraded fighters' models (tr_oz_rig.c loads them as their rigs register: at the next vid_restart)
+static void ModernModels( const char *v ) { SetLatched( "r_ozModernFighters", atoi( v ) ? "1" : "0" ); }
+
 static void Antialiasing( const char *v ) {
 	static const char *const names[] = { "off", "fxaa", "msaa2", "msaa4", "msaa8", NULL };
 	static const char *const samples[] = { "0", "0", "2", "4", "8" };
@@ -284,6 +287,7 @@ static ozSetting_t settings[] = {
 	{ "oz_network_rate", Rate },
 	{ "oz_gameplay_intro", Intro },
 	{ "oz_accessibility_colorblind", Colorblind },
+	{ "oz_experimental_modern_models", ModernModels },
 };
 
 /*

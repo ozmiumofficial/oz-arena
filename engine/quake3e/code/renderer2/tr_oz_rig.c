@@ -423,14 +423,25 @@ static ozRig_t *RigFor( model_t *iqm ) {
 R_OzRigRegister
 
 A player part (<folder>/lower.md3, upper.md3 or head.md3) gets the rig in <folder>/oz_rig.iqm, if there is one.
+With r_ozModernFighters (Settings, Experimental), <folder>/oz_rig_modern.iqm comes first: the upgraded fighters
+(pak_oz_modern_fighters.pk3, tools/fighter_swap), a new model on its own skeleton in the fighter's frame slots.
 =================
 */
+static qboolean RigPath( const char *folder, int len, const char *rig, char *path ) {
+	if ( len + strlen( rig ) >= MAX_QPATH ) {
+		return qfalse;
+	}
+	Q_strncpyz( path, folder, len + 1 );
+	Q_strcat( path, MAX_QPATH, rig );
+	return ri.FS_ReadFile( path, NULL ) > 0;
+}
+
 void R_OzRigRegister( model_t *mod ) {
 	char path[MAX_QPATH];
 	const char *file;
 	model_t *iqm;
 	qhandle_t h;
-	int part;
+	int part, len;
 
 	mod->ozRig = NULL;
 	file = strrchr( mod->name, '/' );
@@ -447,12 +458,9 @@ void R_OzRigRegister( model_t *mod ) {
 	} else {
 		return;
 	}
-	if ( file - mod->name + strlen( "oz_rig.iqm" ) >= MAX_QPATH ) {
-		return;
-	}
-	Q_strncpyz( path, mod->name, file - mod->name + 1 );
-	Q_strcat( path, sizeof( path ), "oz_rig.iqm" );
-	if ( ri.FS_ReadFile( path, NULL ) <= 0 ) {
+	len = (int)( file - mod->name );
+	if ( !( r_ozModernFighters->integer && RigPath( mod->name, len, "oz_rig_modern.iqm", path ) ) &&
+		 !RigPath( mod->name, len, "oz_rig.iqm", path ) ) {
 		return;
 	}
 	h = RE_RegisterModel( path );

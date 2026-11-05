@@ -1,8 +1,11 @@
-# Upgraded fighters (experimental)
+# Modern fighters (experimental)
 
-New high-detail models in place of id's fighters, each on its own skeleton with its own animations. They load
+New high-detail models for id's fighters, each on its own skeleton with its own animations, turned on in
+**Settings > Experimental > Modern player models** (`r_ozModernFighters 1`, applied when Settings closes). They load
 through the same path as the remastered fighters: the `oz` renderer swaps a fighter's `lower/upper/head.md3` for
-`models/players/<slot>/oz_rig.iqm` (`engine/quake3e/code/renderer2/tr_oz_rig.c`), so they show on any server and mod.
+`models/players/<slot>/oz_rig_modern.iqm` in place of the remastered `oz_rig.iqm`
+(`engine/quake3e/code/renderer2/tr_oz_rig.c`), so they show on any server and mod that allows Oz's packs. A fighter
+without a modern model keeps its remastered rig.
 
 | Fighter | Replaces | Notes |
 |---|---|---|
@@ -13,13 +16,13 @@ through the same path as the remastered fighters: the `oz` renderer swaps a figh
 ## Build
 
 ```
-python tools/fighter_swap/build_fighter.py doom visor anarki --install
+python tools/fighter_swap/build_fighter.py doom visor anarki
 ```
 
 Needs Blender 4.2 or later (`BLENDER`, or `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`) and your
 `baseq3` (found as the other tools find it). It writes `build/fighter_swap/<name>/` and
-`build/fighter_swap/zz-oz-experimental-fighters.pk3`, and `--install` copies the pack to `%APPDATA%\Oz Arena\oz`.
-Delete it there to get id's fighters back. `--from anim` (or `stretch`, `weights`, `pack`) reruns only the later steps.
+`build/engine/oz/pak_oz_modern_fighters.pk3`, beside the other packs, so the installer and the Linux release carry it
+(`--out` puts it elsewhere). `--from anim` (or `stretch`, `weights`, `pack`) reruns only the later steps.
 
 For each fighter, `fighters/<name>.json` names its source model and texture (`sources/`), the slot it replaces, and
 its joints in the model's T-pose (Blender coordinates: x is his left, -y his front, z up, about 1 tall).

@@ -1853,6 +1853,7 @@ extern  cvar_t  *r_ozColorblind;
 extern  cvar_t  *r_ozRenderScale;
 extern  cvar_t  *r_ozUpscaler;
 extern  cvar_t  *r_ozRigs;
+extern  cvar_t  *r_ozModernFighters;
 extern  cvar_t  *r_ozCorpseBurn;
 extern  cvar_t  *r_ozRagdollTest;
 extern  cvar_t  *r_ozRagdollTone;

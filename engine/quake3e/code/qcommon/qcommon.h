@@ -1094,6 +1094,7 @@ extern	qboolean com_protocolCompat;
 // both client and server must agree to pause
 extern	cvar_t	*sv_paused;
 extern	cvar_t	*sv_packetdelay;
+extern	int		net_ozSendDelay;	// Oz: the server's packets to the client being sent now wait this long (the ping equalizer)
 extern	cvar_t	*com_sv_running;
 
 #ifndef DEDICATED

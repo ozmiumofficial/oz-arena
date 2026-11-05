@@ -164,7 +164,9 @@ static void SV_Netchan_TransmitNextInQueue(client_t *client)
 	if( client->compat )
 		SV_Netchan_Encode(client, &netbuf->msg, netbuf->clientCommandString);
 
+	net_ozSendDelay = client->ozEqDelay;	// Oz: the ping equalizer
 	Netchan_Transmit(&client->netchan, netbuf->msg.cursize, netbuf->msg.data);
+	net_ozSendDelay = 0;
 
 	// pop from queue
 	client->netchan_start_queue = netbuf->next;
@@ -192,7 +194,9 @@ int SV_Netchan_TransmitNextFragment(client_t *client)
 {
 	if(client->netchan.unsentFragments)
 	{
+		net_ozSendDelay = client->ozEqDelay;	// Oz: the ping equalizer
 		Netchan_TransmitNextFragment(&client->netchan);
+		net_ozSendDelay = 0;
 		return SV_RateMsec(client);
 	}
 	else if(client->netchan_start_queue)
@@ -241,7 +245,9 @@ void SV_Netchan_Transmit( client_t *client, msg_t *msg)
 	{
 		if ( client->compat )
 			SV_Netchan_Encode(client, msg, client->lastClientCommandString);
+		net_ozSendDelay = client->ozEqDelay;	// Oz: the ping equalizer
 		Netchan_Transmit( &client->netchan, msg->cursize, msg->data );
+		net_ozSendDelay = 0;
 	}
 }
 

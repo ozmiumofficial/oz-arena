@@ -950,6 +950,7 @@ std::vector<Session::CompileWarning> Session::map_problems() {
 		w.ids = doubled;
 		out.push_back(std::move(w));
 	}
+	mover_problems(out);
 	// jump pads, and targets that name nothing
 	std::set<std::string> names;
 	for (Id e : doc.ids_of(Kind::Entity)) {

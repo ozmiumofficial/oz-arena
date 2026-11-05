@@ -635,7 +635,8 @@ double Session::ceiling_over(const Vec3 &a, const Vec3 &b) const {
 // The tools that take two clicks on the floor (a jump pad, a teleporter, Defrag's lines) and LAND HERE: their
 // clicks go through entities, triggers and tool volumes to the floor under them.
 static bool floor_tool(const std::string &cls) {
-	return cls == "jump_pad" || cls == "teleporter" || cls == "jump_land" || cls.compare(0, 7, "defrag_") == 0;
+	return cls == "jump_pad" || cls == "teleporter" || cls == "jump_land" || cls == "door_button" || cls == "train_path" ||
+		cls.compare(0, 7, "defrag_") == 0;
 }
 
 // A jump pad's throw, as the arc shows it: from the trigger's middle (AimAtTarget), down to the floor
@@ -654,6 +655,9 @@ void Session::place_click(int m) {
 	}
 	if (h.id && doc.get(h.id) && doc.get(h.id)->kind == Kind::Entity) {
 		select(group_of(h.id), (m & SHIFT) ? SelMode::Add : SelMode::Set);  // an entity clicked: taken, not built on
+		return;
+	}
+	if (mover_click(h)) {
 		return;
 	}
 	if (cls == "jump_land") {
@@ -796,6 +800,7 @@ void Session::place_click(int m) {
 		const bool trigger = cls.compare(0, 8, "trigger_") == 0;
 		made = place_brush_entity(cls, origin - Vec3(PAD / 2, PAD / 2, PAD / 2), origin + Vec3(PAD / 2, PAD / 2, PAD / 2),
 			trigger ? "common/trigger" : shader);
+		add_pivot(made);
 		doc.end();
 		select(group_of(made), SelMode::Set);
 		return;
@@ -928,6 +933,7 @@ void Session::make_brush_entity(const std::string &cls) {
 			doc.remove(w);  // an entity left without brushes would compile to nothing
 		}
 	}
+	add_pivot(ent);
 	doc.end();
 	select(group_of(ent), SelMode::Set);
 }
@@ -951,6 +957,9 @@ std::string Session::place_hint() const {
 	}
 	if (place_class == "jump_land") {
 		return "Land here: click where players should come down (the arc shows the throw) \xc2\xb7 Esc cancels";
+	}
+	if (place_class == "door_button" || place_class == "train_path") {
+		return mover_hint();
 	}
 	if (place_class == "teleporter") {
 		return place_step_ ? "Teleporter: click where the player comes out (facing the way the camera faces) \xc2\xb7 Esc cancels"

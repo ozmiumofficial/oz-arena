@@ -432,12 +432,37 @@ public:
 	std::string push_problem(Id id);
 	std::vector<Id> pushers_at(const std::string &targetname) const;  // the pushers aiming at it
 	void push_land();             // the place tool: the next click is where the selected pads' throws land
+	// ---- movers (ed_movers.cpp): doors, lifts, buttons, trains, rotating, bobbing and swinging brushes as
+	// id's maps have them; where each moves is drawn for the selected ones, and played with mover_play
+	struct DoorState {
+		bool any = false, near = false, shot = false, near_mixed = false, shot_mixed = false;
+		std::string team;
+		int buttons = 0;  // what fires them besides their own zone
+	};
+	DoorState door_state();               // the selected doors'
+	void make_door(bool pair);            // the selected brushes a door, or cut in two a pair sliding apart
+	void make_lift();                     // the selected brushes a func_plat
+	void door_opens(int near, int shot);  // 1 on, 0 off, -1 as it is
+	bool mover_play = false;
 	// What would trouble the map in the game, found before it's compiled: brushes left without collision
 	// by a non-solid face, jump pads that do nothing, targets that name nothing. Each with what it's about.
 	std::vector<CompileWarning> map_problems();
 	void check_map();             // map_problems into the warnings' list, said
 private:
 	std::vector<Id> land_pushers_;  // push_land's pads
+	Id make_mover(const std::vector<Id> &brushes, const std::string &cls, const Keys &keys);
+	void add_pivot(Id ent);
+	bool movers_action(const std::string &action, const std::vector<std::string> &a);
+	bool mover_click(const Hit &h);
+	std::string mover_hint() const;
+	void mover_problems(std::vector<CompileWarning> &out);
+	void build_movers();
+	Overlay movers_;
+	uint64_t movers_doc_ = ~0ull, movers_sel_ = ~0ull;
+	int mover_t0_ = 0;
+	std::vector<Id> path_corners_;  // the train path tool's corners so far
+	Id path_train_ = 0;
+	std::string mover_target_;      // the button tool's door
 	std::unordered_map<Id, bool> arc_lands_;
 	const std::vector<Vec3> &push_arc(Id entity);
 	bool place_point(const Hit &hit, const std::string &cls, Vec3 &origin) const;

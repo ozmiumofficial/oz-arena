@@ -203,7 +203,7 @@
 		.check .lbl2 { display: block; white-space: nowrap; }
 		.check.ticked .tick { background-color: #6ee68c; border-color: #6ee68c; }
 		.check.mixed .tick { background-color: #6ee68c66; }
-		#sec-shape .note { font-size: 0.8rem; color: #8d847c; align-self: center; }
+		#sec-shape .note, #ed-mover .note { font-size: 0.8rem; color: #8d847c; align-self: center; margin-left: 0.4rem; }
 		.bad { color: #ff7a66; }
 		.mat { position: relative; }
 		.esec { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; color: #a59a90; margin: 0.7rem 0 0.3rem 0; }
@@ -630,6 +630,12 @@
 					<button class="tb" data-action="merge" onclick="append ed merge">MERGE</button>
 					<button class="tb" id="ed-detail" data-action="detail" onclick="append ed detail">DETAIL</button>
 				</div>
+				<div class="sub">MAKE A MOVER OF IT</div>
+				<div class="row">
+					<button class="tb" data-action="door" onclick="append ed door">DOOR</button>
+					<button class="tb" data-action="door_pair" onclick="append ed door_pair">DOUBLE DOOR</button>
+					<button class="tb" data-action="lift" onclick="append ed lift">LIFT</button>
+				</div>
 				<div class="sub">MAKE A CURVE OF EACH BRUSH</div>
 				<div class="row">
 					<button class="tb" data-action="curve_cylinder" onclick="append ed curve_cylinder">CYLINDER</button>
@@ -658,6 +664,7 @@
 			<div id="sec-entity">
 				<h2 id="ed-ent-title">MAP KEYS</h2>
 				<p id="ed-ent-help"></p>
+				<div class="hidden" id="ed-mover"></div>
 				<div class="hidden" id="ed-push">
 					<p class="what" id="ed-push-text"></p>
 					<div class="row">

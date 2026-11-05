@@ -1228,6 +1228,7 @@ void Session::frame(int x, int y, int w, int h) {
 	build_preview();
 	build_faces();
 	build_links();
+	build_movers();
 	build_place_preview();
 	compile_poll();
 	import_poll();
@@ -1292,6 +1293,7 @@ void Session::draw_pane(Pane p, int now) {
 	ents_sel_.draw(moved, ident);
 	faces_lines_.draw(zero, ident);
 	links_.draw(zero, ident);
+	movers_.draw(zero, ident);
 	place_preview_.draw(zero, ident);
 	leak_lines_.draw(zero, ident);
 	sun_lines_.draw(zero, ident);

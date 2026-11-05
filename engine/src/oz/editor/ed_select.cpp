@@ -157,6 +157,21 @@ std::vector<Id> Session::group_of(Id id) const {
 	}
 	std::vector<Id> out = doc.owned(ent);
 	out.push_back(ent);
+	// a door's other halves (its team), and its own zone trigger, go with it
+	const Entity &me = doc.get(ent)->entity;
+	if (me.classname() == "func_door") {
+		const std::string team = me.get("team"), zone = me.get("_oz_door");
+		for (Id e : doc.ids_of(Kind::Entity)) {
+			const Entity &en = doc.get(e)->entity;
+			if (e != ent && ((!team.empty() && en.classname() == "func_door" && en.get("team") == team) ||
+					(!zone.empty() && en.classname() == "trigger_multiple" && en.get("_oz_door") == zone))) {
+				for (Id b : doc.owned(e)) {
+					out.push_back(b);
+				}
+				out.push_back(e);
+			}
+		}
+	}
 	// a jump pad's pieces (its pad's group, its trigger, its target) go together
 	const std::string tag = doc.get(ent)->entity.get(JUMPPAD_KEY);
 	if (!tag.empty()) {

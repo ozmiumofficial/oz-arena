@@ -109,6 +109,15 @@ const std::vector<Action> &actions() {
 		{"defrag_finish", "Finish line", "", "Defrag: a trigger across the course firing Defrag's stop timer (two clicks, side to side)"},
 		{"push_height", "Jump higher", "", "ed push_height <units>: the selected jump pads' throw made higher (negative: lower), still landing where it did"},
 		{"push_land", "Land here", "", "The selected jump pads: click where players should come down, and their throw is aimed there"},
+		{"door", "Door", "", "The selected brushes become a sliding door (it opens when a player comes near, or when shot; Inspect sets which way and how)"},
+		{"door_pair", "Double door", "", "The selected brush cut in two: a pair of doors sliding apart, opening together (id's doors)"},
+		{"lift", "Lift", "", "The selected brushes become a lift: build it at the top; it starts lowered by its travel and rises when stepped on"},
+		{"door_near", "Door opens near", "", "The selected doors open when a player comes near, or not (ed door_near 1|0)"},
+		{"door_shot", "Door opens when shot", "", "The selected doors open when shot, or not (ed door_shot 1|0)"},
+		{"door_button", "Add a button", "", "Click a wall: a button there that opens the selected doors (pressed, or shot with health)"},
+		{"train_path", "Lay a path", "", "The selected train: click where it goes, corner by corner; the first corner again closes the loop"},
+		{"mover_play", "Play movers", "", "The selected doors, lifts, bobbing, rotating and swinging brushes and trains move in the view as in the game"},
+		{"lift_travel", "Lift travel", "", "ed lift_travel <units>|+n|-n: how far the selected lifts go down"},
 		{"check_map", "Check the map", "", "Looks for what would go wrong in the game: brushes without collision, jump pads that do nothing, targets naming nothing"},
 		{"defrag_speed", "Speed pad", "", "Defrag: a pad on the floor launching the player the way the view faces (Defrag's target_speed)"},
 		{"defrag_shooter", "Shooter", "", "Defrag: a rocket shooter aimed at the player (two clicks: where it shoots from, the zone that sets it off)"},
@@ -531,6 +540,9 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 	}
 	if (action == "check_map") {
 		check_map();
+		return true;
+	}
+	if (movers_action(action, a)) {
 		return true;
 	}
 	if (action == "preview") {

@@ -893,6 +893,44 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 				SetRml( doc, "ed-push-text", "" );
 			}
 		}
+		// a mover: how a door opens, a lift's travel, a train's path, played
+		{
+			std::string mover;
+			for ( oz::ed::Id e : ents ) {
+				const std::string c = d.get( e ) ? d.get( e )->entity.classname() : "";
+				if ( c == "func_door" || c == "func_plat" || c == "func_button" || c == "func_train" || c == "func_rotating" || c == "func_bobbing" ||
+						c == "func_pendulum" ) {
+					mover = mover.empty() || mover == c ? c : "*";
+				}
+			}
+			Rml::String m;
+			auto check = [&]( const char *id, const Rml::String &label, bool on, bool mixed, const char *verb, const Rml::String &hint ) {
+				m += "<button class=\"check" + Rml::String( on ? " ticked" : "" ) + ( mixed ? " mixed" : "" ) + "\" id=\"" + id + "\" data-hint=\"" + hint +
+					"\" onclick=\"append ed " + verb + "\"><span class=\"tick\"></span><span class=\"lbl2\">" + label + "</span></button>";
+			};
+			if ( mover == "func_door" ) {
+				const oz::ed::Session::DoorState ds = s.door_state();
+				m += "<div class=\"sub\">OPENS WHEN</div><div class=\"row\">";
+				check( "ed-door-near", "A PLAYER COMES NEAR", ds.near, ds.near_mixed, "door_near",
+					"A trigger around the doorway, 120 units out each side: walking up to it opens it" );
+				check( "ed-door-shot", "IT'S SHOT", ds.shot, ds.shot_mixed, "door_shot", "Any shot that hits it opens it" );
+				m += "</div><div class=\"row\"><button class=\"tb\" data-action=\"door_button\" onclick=\"append ed door_button\">ADD BUTTON</button>";
+				m += "<span class=\"note\">" + Enc( ds.buttons ? std::to_string( ds.buttons ) + ( ds.buttons == 1 ? " button or trigger fires it" : " buttons or triggers fire it" )
+					: !ds.team.empty() ? "Its halves open together (team " + ds.team + ")" : "The arrows above: which way it slides" ) + "</span></div>";
+			} else if ( mover == "func_plat" ) {
+				m += "<div class=\"sub\">TRAVEL</div><div class=\"row\"><button class=\"tb\" onclick=\"append ed lift_travel -16\">-</button>"
+					"<button class=\"tb\" onclick=\"append ed lift_travel +16\">+</button><span class=\"note\">Built at its top: the outline shows its bottom</span></div>";
+			} else if ( mover == "func_train" ) {
+				m += "<div class=\"row\"><button class=\"tb\" data-action=\"train_path\" onclick=\"append ed train_path\">LAY PATH</button>"
+					"<span class=\"note\">Click its corners in order; the first again closes the loop</span></div>";
+			}
+			if ( !mover.empty() ) {
+				m += "<div class=\"row\"><button class=\"tb" + Rml::String( s.mover_play ? " on" : "" ) + "\" data-action=\"mover_play\" onclick=\"append ed mover_play\">" +
+					( s.mover_play ? "STOP" : "PLAY MOTION" ) + "</button><span class=\"note\">The outline shows where it moves to</span></div>";
+			}
+			SetRml( doc, "ed-mover", m );
+			Show( doc, "ed-mover", !m.empty() );
+		}
 		// a jump pad's pieces selected together: named as one thing
 		bool padGroup = ents.size() > 1;
 		for ( oz::ed::Id e : ents ) {
@@ -2116,7 +2154,8 @@ const struct {
 		"curve_more_columns", "curve_fewer_columns", "curve_more_rows", "curve_fewer_rows", "curve_invert", "curve_caps", "curve_thicken" } },
 	{ "texture", { "show_materials", "pick_material", "paint", "-", "uv", "tex_fit", "tex_left", "tex_right", "tex_top", "tex_bottom", "tex_center",
 		"-", "tex_flip_s", "tex_flip_t", "tex_rotate_left", "tex_rotate_right", "tex_scale_up", "tex_scale_down", "tex_reset" } },
-	{ "entity", { "show_entities", "light", "jump_pad", "push_land", "teleporter", "-", "to_world", "-", "#DEFRAG", "defrag_start", "defrag_checkpoint", "defrag_finish",
+	{ "entity", { "show_entities", "light", "jump_pad", "push_land", "teleporter", "-", "#MOVERS", "door", "door_pair", "lift", "door_button",
+		"train_path", "mover_play", "-", "to_world", "-", "#DEFRAG", "defrag_start", "defrag_checkpoint", "defrag_finish",
 		"defrag_speed", "defrag_shooter", "defrag_check", "play_defrag" } },
 	{ "build", { "play", "play_here", "play_defrag", "-", "sky_sun", "-", "compile", "compile_stop", "preview", "-", "check_map", "frame_leak", "warnings" } },
 	{ "help", { "guide", "keymap", "search" } },

@@ -3,8 +3,11 @@
     blender -b --python dump_final.py -- rocket_launcher.blend rocket_launcher final.npz
     python rocketl_to_game.py final.npz <textures folder> build/engine/oz/pak_oz_remodeled_weapons.pk3
 
-rocket_launcher.blend and its textures are the sealed, retextured Tripo model (holes capped, voxel remesh, xatlas
-UVs, baked PBR maps; the scripts in tools/weapon_swap). Settings > Experimental > Remodeled weapons draws it in
+rocket_launcher.blend and its textures are the sealed, retextured Tripo model: Tripo's own surface sealed by
+geo_seal.py (every hole capped, inside-out pieces turned), xatlas UVs and baked PBR maps (tools/weapon_swap's bake,
+segment and texture steps). Not the voxel remesh: at this size it softened the slotted rail into jagged steps and
+fused the thin gap beside it. The shader draws both sides, so the narrow gaps between Tripo's parts show the parts
+underneath, dark, instead of holes. Settings > Experimental > Remodeled weapons draws it in
 place of id's models/weapons2/rocketl/rocketl.md3 (renderer2/tr_model.c RE_RegisterModel).
 
 models/weapons2/rocketl/rocketl_remodel.iqm   the mesh in id's weapon space (x forward, y left, z up, origin at the
@@ -57,7 +60,12 @@ N = cn[L[first]]
 N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
 UV = uv[L[first]]
 T = inv.reshape(-1, 3)[:, ::-1]                # Blender's counter-clockwise front faces -> id's clockwise
-TAN = mf.tangents(P, N, UV, T)
+bad = np.linalg.norm(N, axis=1) < 0.5             # a cap's degenerate corner: no normal
+N[bad] = [0.0, 0.0, 1.0]
+with np.errstate(invalid="ignore", divide="ignore"):
+    TAN = mf.tangents(P, N, UV, T)
+TAN[~np.isfinite(TAN).all(axis=1)] = [1.0, 0.0, 0.0, 1.0]
+print("corners without a normal", int(bad.sum()))
 print("verts %d tris %d  bounds %s %s" % (len(P), len(T), P.min(0).round(1), P.max(0).round(1)))
 prim = dict(pos=P, nrm=N, uv=UV, tan=TAN, jw=np.ones((len(P), 1)), ji=np.zeros((len(P), 1), int))
 meshes = []
@@ -100,6 +108,7 @@ shader = """// Settings > Experimental > Remodeled weapons: the remodeled rocket
 
 %s
 {
+	cull disable	// through the narrow gaps between Tripo's parts the backs of the parts underneath show: drawn dark, not as holes
 	{
 		map %s.dds
 		rgbGen lightingDiffuse

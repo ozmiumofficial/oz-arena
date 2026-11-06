@@ -1,14 +1,13 @@
 """The remodeled rocket launcher as Oz's game files, into the remodeled weapons' pak.
 
-    blender -b --python dump_final.py -- rocket_launcher.blend rocket_launcher final.npz
+    blender -b --python dump_final.py -- rocket_launcher_rebuild.blend rocket_launcher final.npz
     python rocketl_to_game.py final.npz <textures folder> build/engine/oz/pak_oz_remodeled_weapons.pk3
 
-rocket_launcher.blend and its textures are the sealed, retextured Tripo model: Tripo's own surface sealed by
-geo_seal.py (every hole capped, inside-out pieces turned), xatlas UVs and baked PBR maps (tools/weapon_swap's bake,
-segment and texture steps). Not the voxel remesh: at this size it softened the slotted rail into jagged steps and
-fused the thin gap beside it. The shader draws both sides, so the narrow gaps between Tripo's parts show the parts
-underneath, dark, instead of holes. Settings > Experimental > Remodeled weapons draws it in
-place of id's models/weapons2/rocketl/rocketl.md3 (renderer2/tr_model.c RE_RegisterModel).
+The rocket launcher is the rebuild (rebuild/README.md): modeled part by part over Tripo's model in its space and
+scale (1.0 long, muzzle at -x), every part a closed shell facing out, so the shader culls back faces like any other
+model. Its textures are the rebuild's 4K bakes (basecolor, tangent-space normal with Blender's green up, ORM).
+Settings > Experimental > Remodeled weapons draws it in place of id's models/weapons2/rocketl/rocketl.md3
+(renderer2/tr_model.c RE_RegisterModel).
 
 models/weapons2/rocketl/rocketl_remodel.iqm   the mesh in id's weapon space (x forward, y left, z up, origin at the
                                               hand: tag_weapon), in pieces under SHADER_MAX_VERTEXES; joints
@@ -38,7 +37,7 @@ SHADER_FILE = "scripts/oz_remodeled_weapons_rocketl.ozmtr"
 LENGTH = 40.0                               # id's launcher is 35 long; this one has a shoulder stock
 GRIP_SRC = np.array([-0.40, 0.0, 0.08])     # Tripo space (muzzle turned to +x): where the hand wraps the pistol grip
 GRIP_Q3 = np.array([-4.5, 0.0, -3.0])       # where id's weapons put the grip, from tag_weapon (tools/fighter_swap)
-MUZZLE_Z = 0.18                             # the bore's height in Tripo space
+MUZZLE_Z = 0.2206                           # the bore's axis in Tripo space (rebuild/rl_lib.py BORE_Z)
 
 d = np.load(src)
 flip = np.array([-1.0, -1.0, 1.0])          # the model's muzzle is at -x: half a turn about z
@@ -108,7 +107,6 @@ shader = """// Settings > Experimental > Remodeled weapons: the remodeled rocket
 
 %s
 {
-	cull disable	// through the narrow gaps between Tripo's parts the backs of the parts underneath show: drawn dark, not as holes
 	{
 		map %s.dds
 		rgbGen lightingDiffuse

@@ -157,7 +157,7 @@ Every screen is Oz's own: the menus, the pause menu, the connection screen and e
 
 A map editor built into the game, from the main menu:
 
-- **Brushes, curves and entities** with select, brush, clip and faces tools, hollow, subtract and merge, and texture lock.
+- **Brushes, curves and entities** with select, brush, clip and faces tools, hollow, subtract and merge, and texture lock. Select several brushes and drag a side of the group to make them all longer at once.
 - **One view or four:** 3D, top, front and side.
 - **Materials and entities** from your own install and its map packs, with search and favorites.
 - **Open any map you own.** Stock maps open through q3map2, ready to change.

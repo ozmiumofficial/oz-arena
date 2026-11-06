@@ -133,7 +133,7 @@ struct Hit {
 // A handle on the selection, drawn over the view: a brush's corner, an edge's middle, a face's diamond
 // on its stem, or one of the clipper's points.
 struct Handle {
-	enum Kind { None, Corner, Edge, Face, ClipPoint } kind = None;
+	enum Kind { None, Corner, Edge, Face, ClipPoint, GroupFace } kind = None;  // GroupFace: a side of a group's box
 	Id id = 0;
 	int a = -1, b = -1;  // the corner, the edge's two corners, the face, the clip point
 	Vec3 at;             // where it's drawn (a face's: the diamond's tip)
@@ -381,6 +381,9 @@ private:
 	void start_move(const Hit &hit, int mods);
 	void move_plane(bool vertical);
 	void start_push(const std::vector<std::pair<Id, int>> &faces, const Vec3 &grab, const Vec3 &n, const char *label);
+	// A group's side dragged: every selected brush's face that way pushed out (or in) together, as one face's push
+	void start_group_push(const Handle &h);
+	bool group_handles() const;  // two brushes selected or more: one diamond per side of their box, not each brush's handles
 	void start_corners(const Handle &h, int mods);
 	void drag_corners(const Vec3 &d);
 	void reselect_corners(const Vec3 &d);

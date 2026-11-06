@@ -411,7 +411,9 @@ static void IN_ActivateMouse( void )
 	{
 		IN_GobbleMouseEvents();
 
-		SDL_SetRelativeMouseMode( in_mouse->integer == 1 ? SDL_TRUE : SDL_FALSE );
+		// Oz: always raw (relative) mouse in a match. in_mouse -1 (the system cursor, from old Quake III
+		// configs and setup guides) left the cursor showing and stopped every turn at the screen's edge
+		SDL_SetRelativeMouseMode( SDL_TRUE );
 		SDL_SetWindowGrab( SDL_window, SDL_TRUE );
 
 		if ( glw_state.isFullscreen )
@@ -433,7 +435,7 @@ static void IN_ActivateMouse( void )
 				SDL_SetRelativeMouseMode( SDL_FALSE );
 				SDL_SetWindowGrab( SDL_window, SDL_FALSE );
 			} else {
-				SDL_SetRelativeMouseMode( in_mouse->integer == 1 ? SDL_TRUE : SDL_FALSE );
+				SDL_SetRelativeMouseMode( SDL_TRUE );	// Oz: always raw, as above
 				SDL_SetWindowGrab( SDL_window, SDL_TRUE );
 			}
 
@@ -1541,8 +1543,8 @@ void IN_Init( void )
 	Cvar_SetDescription( in_mouse,
 		"Mouse data input source:\n" \
 		"  0 - disable mouse input\n" \
-		"  1 - di/raw mouse\n" \
-		" -1 - win32 mouse" );
+		"  1 - raw mouse\n" \
+		" -1 - raw mouse too (Oz: the system cursor stopped turns at the screen's edge)" );
 
 #ifdef USE_JOYSTICK
 	in_joystick = Cvar_Get( "in_joystick", "1", CVAR_ARCHIVE|CVAR_LATCH );	// Oz: a controller works when it's plugged in

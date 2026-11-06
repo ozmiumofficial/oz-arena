@@ -37,13 +37,18 @@ if len(sys.argv) > 2 and sys.argv[2] == "flat":
     # detail; a soft AO keeps the crevices' gradient. Colors are rl_materials.PAINTS' (measured on the v2-sharp maps).
     out = sys.argv[3]
     os.makedirs(out, exist_ok=True)
-    FLAT = {   # material id color: (sRGB base color, roughness, metalness)
-        (1, 0, 0): ((0.300, 0.318, 0.334), 0.34, 1.0),    # gunmetal
-        (1, 0, 1): ((0.430, 0.448, 0.466), 0.27, 1.0),    # steel
-        (0, 1, 0): ((0.170, 0.182, 0.195), 0.45, 0.8),    # dark metal
-        (0, 0, 1): ((0.384, 0.188, 0.224), 0.45, 0.0),    # red paint
-        (0, 1, 1): ((0.165, 0.172, 0.180), 0.80, 0.0),    # rubber
-        (1, 1, 0): ((0.090, 0.470, 0.440), 0.08, 0.0),    # teal glass
+    # material id color: (sRGB base color, roughness, metalness, reflection). In rend2 (lightall_fp.glsl) a metal's
+    # cubemap reflection is (1 - max(roughness, N.E))^3 + F0, untinted and strongest at grazing angles, times the
+    # AO channel; a round barrel is mostly grazing angles, so at full strength it mirrors the map's bright cubemap and
+    # reads silver. Scaling that channel down keeps the direct-light highlights (still shiny) and lets the dark base
+    # show: the shiny black barrel Tony likes. Steel stays silver.
+    FLAT = {
+        (1, 0, 0): ((0.240, 0.252, 0.265), 0.34, 1.0, 0.32),    # gunmetal: shiny black
+        (1, 0, 1): ((0.430, 0.448, 0.466), 0.27, 1.0, 1.00),    # steel: silver
+        (0, 1, 0): ((0.170, 0.182, 0.195), 0.45, 0.8, 0.45),    # dark metal
+        (0, 0, 1): ((0.384, 0.188, 0.224), 0.45, 0.0, 1.00),    # red paint
+        (0, 1, 1): ((0.165, 0.172, 0.180), 0.80, 0.0, 1.00),    # rubber
+        (1, 1, 0): ((0.090, 0.470, 0.440), 0.08, 0.0, 1.00),    # teal glass
     }
     mid = rd("matid.png")
     keys = np.array(list(FLAT.keys()), np.float32)
@@ -52,7 +57,8 @@ if len(sys.argv) > 2 and sys.argv[2] == "flat":
     base = np.array([v[0] for v in vals], np.float32)[cls]
     rough = np.array([v[1] for v in vals], np.float32)[cls]
     metal = np.array([v[2] for v in vals], np.float32)[cls]
-    ao = np.clip(rd("ao_geo.png", "L"), 0, 1) ** 0.4
+    refl = np.array([v[3] for v in vals], np.float32)[cls]
+    ao = np.clip(rd("ao_geo.png", "L"), 0, 1) ** 0.4 * refl
     wr(base, os.path.join(out, "rocket_launcher_basecolor.png"))
     wr(np.dstack([ao, rough, metal]), os.path.join(out, "rocket_launcher_orm.png"))
     flat_n = np.zeros(base.shape, np.float32); flat_n[..., :2] = 0.5; flat_n[..., 2] = 1.0

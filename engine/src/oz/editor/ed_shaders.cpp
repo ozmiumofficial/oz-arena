@@ -477,11 +477,28 @@ const std::vector<Material> &ShaderLib::materials() {
 		add(kv.first, kv.second.empty() ? kv.first : lower(kv.second), true);
 	}
 	// the images under textures/ that no script names (loose files on disk too, and .dds)
-	for (const char *ext : {".tga", ".jpg", ".png", ".dds"}) {
+	// (OzE_ListTree takes the extension without its dot and names files from the game's root: with
+	// ".png" the filter was "textures/*..png", so none of these were ever listed, oz_dev's included)
+	auto layer = [](const std::string &stem) {  // Oz's remastered layers beside id's images, not materials
+		for (const char *s : {"_n", "_s", "__glow", "__add", "__sky"}) {
+			const size_t n = strlen(s);
+			if (stem.size() > n && stem.compare(stem.size() - n, n, s) == 0) {
+				return true;
+			}
+		}
+		return false;
+	};
+	for (const char *ext : {"tga", "jpg", "png", "dds"}) {
 		int count = 0;
 		char **files = OzE_ListTree("textures", ext, &count);
 		for (int i = 0; i < count; i++) {
-			const std::string file = lower(std::string("textures/") + files[i]);
+			std::string file = lower(files[i]);
+			if (file.compare(0, 9, "textures/") != 0) {
+				file = "textures/" + file;
+			}
+			if (ext[0] == 'd' && layer(strip_ext(file))) {
+				continue;
+			}
 			add(strip_ext(file), file, false);
 		}
 		OzE_FreeFileList(files);

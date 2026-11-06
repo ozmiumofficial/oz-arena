@@ -11,6 +11,10 @@ fighters' hands and on the floor. Off, everyone sees id's weapons. Each weapon b
 |---|---|---|
 | `railgun` | `models/weapons2/railgun/railgun.md3` | red parts in the player's rail color; trim pulses, cells breathe |
 
+The railgun that ships is now the rebuilt one (`tools/remodeled_weapons/rebuild_railgun`: modeled from scratch over
+this Tripo model, 33k triangles, packed with this folder's `export_iqm.py` and `pack.py` and that folder's
+`railgun.json`). `build_weapon.py railgun` still makes the sealed Tripo version, into the same pak.
+
 ## Build
 
 ```

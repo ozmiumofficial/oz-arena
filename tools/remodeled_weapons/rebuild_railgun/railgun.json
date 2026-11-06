@@ -1,0 +1,13 @@
+{
+  "source": "tools/remodeled_weapons/rebuild_railgun (rebuilt part by part over Tripo's model)",
+  "model": "models/weapons2/railgun/railgun",
+  "surface": "railgun",
+  "shader": "models/weapons2/railgun/railgun_remodel",
+  "forward": "-x",
+  "up": "+z",
+  "scale": 30.5,
+  "grip": [0.172, 0.0, 0.065],
+  "tags": {"tag_flash": [-0.4985, 0.0, 0.3200]},
+  "texture": 4096,
+  "_notes": "The rebuild's work frame (study.py): Tripo's railgun turned a quarter turn about z, so forward is -x; grip and tag_flash are weapons/railgun.json's turned the same way, tag_flash moved onto the rebuilt nozzle's tip (rg_parts.py emitter, BORE_Z)."
+}

@@ -2,10 +2,12 @@
 
     python rg_post.py <bake dir>                masks: ao.png, edge.png (from ao_geo.png, edge_geo.png) and
                                                 detail_normal.png (the normal map the materials read)
-    python rg_post.py <bake dir> pack <pbr dir> the game's maps, as weapon_swap/pack.py reads them:
-        basecolor.png   the pbr bake, the red parts neutral gray at their brightness (the shader tints them)
-        normal.png      detail_normal.png as 16 bit, Blender's green up (pack.py flips it for rend2)
-        orm.png         R AO, G roughness, B metalness
+    python rg_post.py <bake dir> flat <pbr dir> what ships: the game's maps as weapon_swap/pack.py reads them, one
+                                                flat color per material (needs only matid, ao_geo, refcolor/refhit):
+        basecolor.png   flat colors; the red parts neutral gray at their brightness (the shader tints them)
+        normal.png      flat (16 bit; pack.py flips green for rend2)
+        orm.png         R AO (soft, scaled down on shiny black metal), G roughness, B metalness
+    python rg_post.py <bake dir> pack <pbr dir> the same files from the worn PBR bake and the detail normal map
         tint.png        the red parts: light strips, cells, vent glow (rgbGen entity: the rail color)
         glow_trim.png   the light strips (the trim's pulse)
         glow_cell.png   the cells (their veins brighter) and the vents' glow (the cells' breathing)
@@ -42,22 +44,22 @@ def srgb_from_L(L):
     return np.where(Y <= 0.0031308, 12.92 * Y, 1.055 * np.power(np.maximum(Y, 0), 1 / 2.4) - 0.055)
 
 
-if len(sys.argv) > 2 and sys.argv[2] == "pack":
-    out = sys.argv[3]
-    os.makedirs(out, exist_ok=True)
-    base = rd("basecolor.png")
-    S = base.shape[0]
+def red_parts():
+    """The parts that take the rail color, from the material ids: light strips, cells, the vents' glow. Returns their
+    gray (what the base color stores there), how much of each texel is a red part, the tint mask and the two glows.
+
+    The cells are the gun's energy tanks: Tripo's own pattern cast onto the rebuilt cells (refcolor), filled in where
+    the cast found nothing from what it found nearby. As in the shipped Tripo railgun (weapon_swap/texture.py) their
+    red takes the rail color (the tint follows the red's saturation, so pale vein nodes stay out of it) and the gray
+    is the pattern's brightness, kept sharp (a light blur only, for Tripo's chart seams); their glow is 0.7 + 0.3 of
+    the veins."""
+    S = rd("matid.png").shape[0]
     k = S / 4096.0
     mid = rd("matid.png")
     near = lambda c: (np.abs(mid - np.array(c, np.float32)).max(2) < 0.2).astype(np.float32)
     trim, cell, vent = near((0, 0, 1)), near((1, 1, 0)), near((1, 1, 1))
     aa = lambda m: ndimage.gaussian_filter(m, 0.7 * k)
     trim_m, cell_m, vent_m = aa(trim), aa(cell), aa(vent)
-    ao = rd("ao.png", "L")
-    # the cells' energy: Tripo's own pattern, cast onto the rebuilt cells (refcolor), filled in where the cast found
-    # nothing from what it found nearby. As in the shipped railgun (weapon_swap/texture.py), its red takes the rail
-    # color (the tint mask follows the red's saturation) while the white veins stay out of the tint and read as
-    # bright filaments; the gray is the pattern's brightness, kept sharp (only a light blur for Tripo's chart seams).
     ref = rd("refcolor.png")
     hit = (rd("refhit.png", "L") > 0.5).astype(np.float32)
     cm = (cell > 0.5)
@@ -65,7 +67,7 @@ if len(sys.argv) > 2 and sys.argv[2] == "pack":
     refc = np.where(hit[..., None] > 0.5, ref, fill)
     refc = np.dstack([ndimage.gaussian_filter(refc[..., i], 0.6 * k * CELL_DENSITY) for i in range(3)])
     V = refc.max(2)
-    sat = 1 - refc.min(2) / np.maximum(V, 1e-3)              # the red ~0.85, the pale veins ~0.2
+    sat = 1 - refc.min(2) / np.maximum(V, 1e-3)              # the red ~0.85, the pale vein nodes ~0.2
     redness = np.clip((sat - 0.30) / (0.65 - 0.30), 0, 1)
     redness = redness * redness * (3 - 2 * redness)
     cell_gray = np.clip(V, 0.25, 0.95)
@@ -74,20 +76,69 @@ if len(sys.argv) > 2 and sys.argv[2] == "pack":
           % (100 * cell.mean(), 100 * (hit * cell).sum() / max(cell.sum(), 1),
              100 * (redness * cell).sum() / max(cell.sum(), 1), float(np.median(V[cm])) if cm.any() else 0))
     gray = cell_m * cell_gray + trim_m * 0.82 + vent_m * 0.62
-    red_parts = np.clip(cell_m + trim_m + vent_m, 0, 1)                   # stored gray in the base color
-    red = np.clip(cell_m * redness + trim_m + vent_m, 0, 1)              # what the rail color tints
-    base = base * (1 - red_parts[..., None]) + gray[..., None] * red_parts[..., None]
+    share = np.clip(cell_m + trim_m + vent_m, 0, 1)                     # stored gray in the base color
+    tint = np.clip(cell_m * redness + trim_m + vent_m, 0, 1)            # what the rail color tints
+    glow_cell = np.clip(cell_m * (0.7 + 0.3 * cell_v) + vent_m * 0.6, 0, 1)
+    return gray, share, tint, trim_m, glow_cell
+
+
+def write_red(out, base, gray, share, tint, glow_trim, glow_cell):
+    base = base * (1 - share[..., None]) + gray[..., None] * share[..., None]
     wr(base, os.path.join(out, "basecolor.png"))
-    nm = np.asarray(Image.open(os.path.join(D, "detail_normal.png")).convert("RGB")).astype(np.uint16) * 257
+    wr(tint, os.path.join(out, "tint.png"))
+    wr(glow_trim, os.path.join(out, "glow_trim.png"))
+    wr(glow_cell, os.path.join(out, "glow_cell.png"))
+
+
+def write_normal16(out, rgb):
     import cv2
+    nm = (np.clip(rgb, 0, 1) * 65535 + 0.5).astype(np.uint16)
     cv2.imwrite(os.path.join(out, "normal.png"), nm[..., ::-1])
-    r = rd("roughness.png", "L"); m = rd("metallic.png", "L")
-    wr(np.dstack([ao, r, m]), os.path.join(out, "orm.png"))
-    wr(red, os.path.join(out, "tint.png"))
-    wr(trim_m, os.path.join(out, "glow_trim.png"))
-    wr(np.clip(cell_m * (0.7 + 0.3 * cell_v) + vent_m * 0.6, 0, 1), os.path.join(out, "glow_cell.png"))
-    for n in ("roughness.png", "metallic.png", "ao.png"):
-        shutil.copy(os.path.join(D, n), os.path.join(out, n))
+
+
+if len(sys.argv) > 2 and sys.argv[2] == "flat":
+    # Tony's pick (2026-11-06, the rocket launcher's review; hard-surface-detail memory): the clean look of Blender's
+    # solid view, one flat color per material with the lighting doing the shading, metal still metallic and
+    # reflective, a soft AO; no wear, grime, scratches or patterned normal detail. As the rocket launcher's
+    # rl_post.py flat: (sRGB base, roughness, metalness, reflection). In rend2 a metal's cubemap reflection is
+    # scaled by the specular map's occlusion channel, so a lower `reflection` keeps the highlights (still shiny) and
+    # lets the dark base show: the shiny black gunmetal Tony likes. The red parts are rg's usual gray + masks.
+    out = sys.argv[3]
+    os.makedirs(out, exist_ok=True)
+    FLAT = {
+        (0, 0, 0): ((0.165, 0.170, 0.180), 0.42, 0.0, 1.00),        # the body's charcoal coating
+        (1, 0, 0): ((0.240, 0.252, 0.265), 0.34, 1.0, 0.32),        # gunmetal: shiny black
+        (1, 0, 1): ((0.430, 0.448, 0.466), 0.27, 1.0, 1.00),        # steel: silver
+        (0, 1, 0): ((0.170, 0.182, 0.195), 0.45, 0.8, 0.45),        # dark metal
+        (0, 1, 1): ((0.095, 0.098, 0.105), 0.80, 0.0, 1.00),        # rubber
+        (0.5, 0.5, 0.5): ((0.120, 0.124, 0.132), 0.30, 0.0, 1.00),  # carbon (the weave left out: no pattern)
+        (1, 1, 0): ((0.800, 0.800, 0.800), 0.25, 0.0, 1.00),        # cells (gray replaced by their pattern)
+        (0, 0, 1): ((0.820, 0.820, 0.820), 0.35, 0.0, 1.00),        # light strips
+        (1, 1, 1): ((0.620, 0.620, 0.620), 0.40, 0.0, 1.00),        # the vents' glow
+    }
+    mid = rd("matid.png")
+    keys = np.array(list(FLAT.keys()), np.float32)
+    cls = np.argmin(((mid[..., None, :] - keys[None, None]) ** 2).sum(-1), axis=-1)
+    vals = list(FLAT.values())
+    base = np.array([v[0] for v in vals], np.float32)[cls]
+    rough = np.array([v[1] for v in vals], np.float32)[cls]
+    metal = np.array([v[2] for v in vals], np.float32)[cls]
+    refl = np.array([v[3] for v in vals], np.float32)[cls]
+    ao = np.clip(rd("ao_geo.png", "L"), 0, 1) ** 0.4 * refl
+    write_red(out, base, *red_parts())
+    wr(np.dstack([ao, rough, metal]), os.path.join(out, "orm.png"))
+    flat_n = np.zeros(base.shape, np.float32); flat_n[..., :2] = 0.5; flat_n[..., 2] = 1.0
+    write_normal16(out, flat_n)
+    print("flat maps into", out)
+    sys.exit(0)
+
+if len(sys.argv) > 2 and sys.argv[2] == "pack":
+    # the worn, detailed set (rg_materials.py's pbr bake and the baked detail normal), kept for comparison
+    out = sys.argv[3]
+    os.makedirs(out, exist_ok=True)
+    write_red(out, rd("basecolor.png"), *red_parts())
+    write_normal16(out, rd("detail_normal.png"))
+    wr(np.dstack([rd("ao.png", "L"), rd("roughness.png", "L"), rd("metallic.png", "L")]), os.path.join(out, "orm.png"))
     print("packed into", out)
     sys.exit(0)
 

@@ -9,5 +9,7 @@
   "grip": [0.172, 0.0, 0.065],
   "tags": {"tag_flash": [-0.4985, 0.0, 0.3200]},
   "texture": 4096,
-  "_notes": "The rebuild's work frame (study.py): Tripo's railgun turned a quarter turn about z, so forward is -x; grip and tag_flash are weapons/railgun.json's turned the same way, tag_flash moved onto the rebuilt nozzle's tip (rg_parts.py emitter, BORE_Z)."
+  "roughness_floor": 0.0,
+  "metal_scale": 1.0,
+  "_notes": "The rebuild's work frame (study.py): Tripo's railgun turned a quarter turn about z, so forward is -x; grip and tag_flash are weapons/railgun.json's turned the same way, tag_flash moved onto the rebuilt nozzle's tip (rg_parts.py emitter, BORE_Z). roughness_floor and metal_scale: the flat-color maps' metal stays shiny and metallic (pack.py's matte rule off), as the rocket launcher's."
 }

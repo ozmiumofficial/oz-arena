@@ -112,7 +112,7 @@ def head():
                                     w0=-0.2, w1=0.2)], "INTERSECT")
              for xc in (-0.4515, -0.4390, -0.4265, -0.4140)]
     trims = [HEAD_TRIM_L, HEAD_TRIM_BRACKET]
-    grooves = [channel(bell, -0.480, -0.385, t, 0.0034, 0.0016) for t in trims]
+    grooves = [channel(bell, -0.480, -0.385, t, 0.0034, 0.0022) for t in trims]
     slots = [bulb_taper(b) for b in slots]
     grooves = [bulb_taper(b) for b in grooves]
     shell = boolean(shell, [seat, pocket] + slots + grooves)
@@ -123,7 +123,7 @@ def head():
          cuts=hi)
     # the light strip in the seat's outer channel, below the lip
     ring_o, ring_i = offset_poly(bell, 0.0056), offset_poly(bell, 0.0086)
-    strips = [bulb_taper(inlay(bell, -0.480, -0.385, t, 0.0034, 0.0016)) for t in trims]
+    strips = [bulb_taper(inlay(bell, -0.480, -0.385, t, 0.0034, 0.0022)) for t in trims]
     part("face_trim", join(prism(ring_o, [ccw(ring_i)], plane="YZ", w0=X_FACE + 0.0062, w1=X_FACE + 0.0032),
                            *strips), "trim", bevel=0, uv_axis="x")
     # the skids under the head: two runners, their tops buried in the shell
@@ -159,17 +159,18 @@ def head():
 def head_rear():
     # the neck's armor and the body under it, from the band at x -0.416 back to the lower cell's socket
     sec = half(HEAD_REAR_HALF)
+    plain = half([pt for pt in HEAD_REAR_HALF if pt not in ((0.0622, 0.3036), (0.0622, 0.3006))])
     rear = boolean(prism(sec, plane="YZ", w0=X_BULB - 0.0040, w1=X_NECK),
-                   [prism(ccw(clip(sec, 1, 0.2850, "above")), plane="YZ", w0=-0.4160, w1=X_BULB - 0.0020)], "UNION")
+                   [prism(ccw(clip(plain, 1, 0.2960, "above")), plane="YZ", w0=-0.4160, w1=X_BULB - 0.0020)], "UNION")
     lights = [[(x0, 0.1700), (x0 + 0.0100, 0.1700)] for x0 in (-0.3560, -0.3400, -0.3240)]
-    cuts = [channel(sec, -0.42, -0.28, NECK_TRIM, 0.0034, 0.0016)]
+    cuts = [channel(sec, -0.42, -0.28, NECK_TRIM, 0.0034, 0.0022)]
     cuts += [boolean(shell_band(sec, -0.40, -0.28, 0.01, 0.0015),
                      [prism(ccw(rrect(-0.3620, 0.1530, -0.3000, 0.1860, 0.003)), plane="XZ", w0=-0.2, w1=0.2)],
                      "INTERSECT")]
-    cuts += [channel(sec, -0.42, -0.28, l, 0.0040, 0.0030) for l in lights]
+    cuts += [channel(sec, -0.42, -0.28, l, 0.0040, 0.0040) for l in lights]
     part("head_rear", boolean(rear, cuts), "paint", bevel=0.0012, rim=(cap_rim(0), 0.0030, 3), uv_axis="x")
-    part("neck_trim", join(inlay(sec, -0.42, -0.28, NECK_TRIM, 0.0034, 0.0016),
-                           *[inlay(sec, -0.42, -0.28, l, 0.0040, 0.0030, below=0.0020) for l in lights]), "trim", bevel=0,
+    part("neck_trim", join(inlay(sec, -0.42, -0.28, NECK_TRIM, 0.0034, 0.0022),
+                           *[inlay(sec, -0.42, -0.28, l, 0.0040, 0.0040, below=0.0026) for l in lights]), "trim", bevel=0,
          uv_axis="x")
     # the armor plate: a skin 1.6 mm proud over the neck's top, its lower edge sloping down and running back
     plate = boolean(shell_band(sec, -0.4130, X_NECK - 0.0015, 0.0016, 0.0020),
@@ -185,7 +186,7 @@ def head_rear():
 # ---------------------------------------------------------------- the upper housing, its hoops and top cells
 
 def housing():
-    h = prism(half(HOUSING_HALF), plane="YZ", w0=X_NECK - 0.002, w1=X_RECV + 0.004)
+    h = prism(half(HOUSING_HALF), plane="YZ", w0=X_NECK, w1=X_RECV + 0.004)
     cuts = []
     for a, b in WINDOWS:
         win = fillet([(a, 0.3145), (b, 0.3145), (b, 0.40), (a, 0.40)], [0.006, 0.006, 0, 0], 4)
@@ -194,21 +195,27 @@ def housing():
                               for v in e.verts) and sharp_over(30)(e)
     hi = [channel(half(HOUSING_HALF), X_NECK, X_RECV, [(X_NECK - 0.01, z), (X_RECV + 0.01, z)], 0.0009, 0.0006)
           for z in (0.3110,)] if HI else None
-    part("housing", boolean(h, cuts), "paint", bevel=0.0010, rim=(in_window, 0.0022, 2), uv_axis="x", cuts=hi)
+    part("housing", boolean(h, cuts), "paint", bevel=0.0010, rim=(in_window, 0.0012, 2), uv_axis="x", cuts=hi)
     # clamp rings over the roof: one at each end of the cells, one between them; round-profiled bands
     sec = half(HOUSING_HALF)
     rings = [shell_band(sec, a, b, 0.0030, 0.0040) for a, b in
-             ((X_NECK - 0.0010, X_NECK + 0.0060), (WINDOWS[0][1] + 0.0014, WINDOWS[1][0] - 0.0014),
-              (X_RECV - 0.0070, X_RECV + 0.0010))]
-    part("hoops", join(*rings), "gunmetal", bevel=0, rim=(outer_rim(sec), 0.0045, 3), uv_axis="x")
+             ((X_NECK - 0.0010, X_NECK + 0.0042), (WINDOWS[0][1] + 0.0014, WINDOWS[1][0] - 0.0014),
+              (X_RECV - 0.0080, X_RECV - 0.0008))]
+    part("hoops", join(*rings), "gunmetal", bevel=0, rim=(outer_rim(sec), 0.0020, 3), uv_axis="x")
+    covered = [(X_NECK - 0.0010, X_NECK + 0.0042), (WINDOWS[0][1] + 0.0014, WINDOWS[1][0] - 0.0014),
+               (X_RECV - 0.0080, 0.2)]           # under the rings and inside the receiver: no frame there
     frames = []
     for a, b in WINDOWS:
-        c = 0.0020      # the frame's centreline: 2 mm outside the window's edge
+        c = 0.0035      # the frame's centreline: its inner edge 1.5 mm outside the window's edge and sill
         path = ([(a - c, 0.4000), (a - c, 0.3145 + 0.006)] + arc(a + 0.006, 0.3145 + 0.006, 0.006 + c, 180, 270, 3)[1:] +
                 arc(b - 0.006, 0.3145 + 0.006, 0.006 + c, 270, 360, 3) + [(b + c, 0.4000)])
         rib, _ = ribbon(dedupe(path), 0.0040)
-        frames.append(boolean(shell_band(sec, a - 0.01, b + 0.01, 0.0022, 0.0020),
-                              [prism(rib, plane="XZ", w0=-0.2, w1=0.2)], "INTERSECT"))
+        fr = boolean(shell_band(sec, a - 0.01, b + 0.01, 0.0022, 0.0020),
+                     [prism(rib, plane="XZ", w0=-0.2, w1=0.2)], "INTERSECT")
+        # the rings cover the windows' ends: the frame runs along the sill and stops 1.5 mm short of each ring
+        cut = [box(x0 - 0.0015, x1 + 0.0015, -0.2, 0.2, 0.0, 0.5) for x0, x1 in covered
+               if x1 + 0.0015 > a - 0.01 and x0 - 0.0015 < b + 0.01]
+        frames.append(boolean(fr, cut) if cut else fr)
     part("window_frames", join(*frames), "gunmetal", bevel=0, rim=(sharp_over(40), 0.0016, 1), uv_axis="x")
 
 
@@ -261,17 +268,17 @@ RECV_LOW_SIDE = [(-0.1150, 0.2900), (-0.1106, 0.2725), (-0.1023, 0.2603), (-0.06
 RECV_LOW_R = [0, 0.004, 0.004, 0.008, 0.010, 0.012, 0.020, 0.012, 0.006, 0.006, 0]
 RECV_LOW_HALF = [(0.0, 0.2950), (0.0700, 0.2950), (0.0700, 0.2640), (0.0686, 0.2050), (0.0668, 0.1600),
                  (0.0620, 0.1150), (0.0, 0.1100)]
-RECV_CORE_SIDE = [(0.0000, 0.2900), (0.0000, 0.1500), (0.0450, 0.1500), (0.0900, 0.1550), (0.1400, 0.1727),
+RECV_CORE_SIDE = [(0.0000, 0.2900), (0.0000, 0.1750), (0.0420, 0.1750), (0.0470, 0.1470), (0.0900, 0.1490), (0.1400, 0.1727),
                   (0.1936, 0.1919), (0.2039, 0.2017), (0.2092, 0.2178), (0.2092, 0.2222), (0.2019, 0.2456),
                   (0.1882, 0.2734), (0.1794, 0.2905), (0.1580, 0.2950)]
-RECV_CORE_R = [0, 0, 0, 0.02, 0.02, 0.006, 0.006, 0.004, 0.004, 0.010, 0.010, 0.006, 0]
+RECV_CORE_R = [0, 0, 0.003, 0.003, 0.02, 0.02, 0.006, 0.006, 0.004, 0.004, 0.010, 0.010, 0.006, 0]
 VENT = (-0.0605, 0.0890, 0.2135, 0.2600)        # the side vent window: x0 x1 z0 z1
 # the light strip round the side armor: down the front, along the bottom, up the back diagonal (side view)
-SIDE_PLATE = [(-0.0835, 0.2700), (-0.0815, 0.2080), (-0.0705, 0.1530), (-0.0610, 0.1385), (-0.0400, 0.1355),
+SIDE_PLATE = [(-0.0835, 0.2700), (-0.0815, 0.2080), (-0.0670, 0.1530), (-0.0570, 0.1400), (-0.0400, 0.1355),
               (0.0400, 0.1655), (0.0680, 0.1795), (0.0915, 0.2075), (0.1210, 0.2700)]
 UPPER_PLATE = [(-0.1080, 0.3640), (-0.0880, 0.3040), (0.0980, 0.3040), (0.1360, 0.3380), (0.1360, 0.3560),
                (0.1180, 0.3700), (-0.1000, 0.3720)]
-RECV_TRIM = [(-0.0860, 0.2080), (-0.0745, 0.1500), (-0.0640, 0.1330), (-0.0400, 0.1300), (0.0400, 0.1600),
+RECV_TRIM = [(-0.0860, 0.2080), (-0.0715, 0.1500), (-0.0610, 0.1360), (-0.0400, 0.1300), (0.0400, 0.1600),
              (0.0700, 0.1740), (0.0950, 0.2050), (0.1260, 0.2700)]
 CORE_Y = 0.0408
 
@@ -299,13 +306,19 @@ def receiver():
     pockets = [slab(win, plane="XZ", w0=s * 0.09, w1=s * 0.0502, inset=0.0) for s in (-1, 1)]
     lsec = half(RECV_LOW_HALF)
     path = smooth_path(RECV_TRIM, 3)
-    part("recv_lower", boolean(low, pockets + [channel(lsec, -0.13, 0.16, path, 0.0034, 0.0016)]), "paint",
+    part("recv_lower", boolean(low, pockets + [channel(lsec, -0.13, 0.16, path, 0.0034, 0.0022)]), "paint",
          bevel=0.0012, rim=(side_silhouette(0.060), 0.0030, 3), uv_axis="y")
-    screws = [bolt((x, s * 0.0688, z), (0, s, 0), r=0.0030, h=0.0012, sides=12)
-              for x, z in ((-0.0850, 0.2450), (-0.0590, 0.1420), (0.0420, 0.1720), (0.1180, 0.2500)) for s in (-1, 1)]
+    screws = []
+    for x, z in ((-0.0765, 0.2550), (-0.0560, 0.1460), (0.0380, 0.1735), (0.1080, 0.2560)):
+        y = interp([(b_, a_) for a_, b_ in reversed(RECV_LOW_HALF[1:-1])], z) + 0.0018      # the plate's face
+        dz = 0.002
+        dy = (interp([(b_, a_) for a_, b_ in reversed(RECV_LOW_HALF[1:-1])], z + dz) -
+              interp([(b_, a_) for a_, b_ in reversed(RECV_LOW_HALF[1:-1])], z - dz)) / (2 * dz)
+        for s in (-1, 1):
+            screws.append(bolt((x, s * y, z), (0, s, -dy), r=0.0030, h=0.0012, sides=12))
     screws += [bolt((x, s * 0.0690, 0.3200), (0, s, 0), r=0.0028, h=0.0010, sides=12)
                for x in (-0.1060, 0.1430) for s in (-1, 1)]
-    part("recv_trim", inlay(lsec, -0.13, 0.16, path, 0.0034, 0.0016), "trim", bevel=0, uv_axis="y")
+    part("recv_trim", inlay(lsec, -0.13, 0.16, path, 0.0034, 0.0022), "trim", bevel=0, uv_axis="y")
     # the side armor: a plate 1.8 mm proud inside the strip, the vent window through it
     plate_out = ccw(fillet(SIDE_PLATE, [0.004, 0.006, 0.008, 0.010, 0.012, 0.010, 0.006, 0.004, 0], 3))
     plate = boolean(shell_band(lsec, -0.12, 0.15, 0.0018, 0.0020),
@@ -322,10 +335,10 @@ def receiver():
     part("spine_plate", spine, "paint", bevel=0, rim=(sharp_over(50), 0.0010, 1), uv_axis="z")
     part("recv_screws", join(*screws), "steel", bevel=0, angle=35, uv_axis="y")
     # the latch on the upper flank: a block standing off the roof's curve
-    latch = slab(ccw(rrect(0.0450, 0.3400, 0.1150, 0.3640, 0.004)), plane="XZ", w0=-0.0500, w1=-0.0672, inset=0.0012)
+    latch = slab(ccw(rrect(0.0450, 0.3400, 0.1150, 0.3640, 0.004)), plane="XZ", w0=-0.0500, w1=-0.0728, inset=0.0012)
     part("latch", latch, "gunmetal", bevel=0.0006, mirror=True, uv_axis="y")
     # the trigger well's lip under the core
-    lip = prism(ccw(rrect(0.0520, -0.0110, 0.1000, 0.0110, 0.004)), [ccw(rrect(0.0562, -0.0077, 0.0958, 0.0077, 0.002))],
+    lip = prism(ccw(rrect(0.0520, -0.0110, 0.1000, 0.0110, 0.004)), [ccw(rrect(0.0548, -0.0087, 0.0972, 0.0087, 0.002))],
                 plane="XY", w0=0.1440, w1=0.1530)
     part("trigger_lip", lip, "dark_metal", bevel=0.0006, uv_axis="z")
     # the grill in the window: five uprights, two rails, set back from the shell's face
@@ -335,7 +348,7 @@ def receiver():
     grill = boolean(join(*bars), [prism(ccw(offset_poly(win, -0.0005)), plane="XZ", w0=-0.09, w1=0.0)],
                     "INTERSECT", self_=True)
     part("vent_grill", grill, "gunmetal", bevel=0, mirror=True, uv_axis="y")
-    part("vent_glow", prism(offset_poly(win, 0.0015), plane="XZ", w0=-0.0512, w1=-0.0490), "vent_glow", bevel=0,
+    part("vent_glow", prism(offset_poly(win, 0.0015), plane="XZ", w0=-0.0525, w1=-0.0496), "vent_glow", bevel=0,
          mirror=True, uv_axis="y")
     # the core behind it: the trigger housing, the grip's socket, the rounded back under the stock
     core = prism(ccw(fillet(RECV_CORE_SIDE, RECV_CORE_R, 3)), plane="XZ", w0=-CORE_Y, w1=CORE_Y)
@@ -355,7 +368,7 @@ def receiver():
 
 
 def sight():
-    base = prism(ccw(rrect(-0.0081, 0.3800, 0.0471, 0.3852, 0.003)), plane="XZ", w0=-0.0200, w1=0.0200)
+    base = prism(ccw(rrect(-0.0081, 0.3800, 0.0471, 0.3875, 0.003)), plane="XZ", w0=-0.0200, w1=0.0200)
     blk = boolean(prism(ccw([(-0.0002, 0.3800), (0.0393, 0.3800), (0.0393, 0.3950), (-0.0002, 0.3950)]), plane="XZ",
                         w0=-0.03, w1=0.03),
                   [prism(half([(0.0, 0.3950), (0.0115, 0.3950), (0.0164, 0.3921), (0.0168, 0.3800), (0.0, 0.3800)]),
@@ -419,11 +432,11 @@ def _plane_box(p0, p1, keep="above", w=0.05, lift=0.0):
 def grip():
     g = loft(grip_rings())
     rib, _ = ribbon(smooth_path(GRIP_TRIM, 3), 0.0034)
-    rib_in, _ = ribbon(smooth_path(GRIP_TRIM, 3), 0.0026)
+    rib_in, _ = ribbon(shorten(smooth_path(GRIP_TRIM, 3), 0.0008), 0.0026)
     flanks = box(0.0, 0.4, -0.06, 0.06, -0.1, 0.4)
-    groove = boolean(boolean(loft(grip_rings(grow=0.004)), [loft(grip_rings(grow=-0.0015))]),
+    groove = boolean(boolean(loft(grip_rings(grow=0.004)), [loft(grip_rings(grow=-0.0040))]),
                      [prism(rib, plane="XZ", w0=-0.2, w1=0.2)], "INTERSECT")
-    strip = boolean(boolean(loft(grip_rings(grow=-0.0005)), [loft(grip_rings(grow=-0.0021))]),
+    strip = boolean(boolean(loft(grip_rings(grow=-0.0015)), [loft(grip_rings(grow=-0.0046))]),
                     [prism(rib_in, plane="XZ", w0=-0.2, w1=0.2)], "INTERSECT")
     g = boolean(g, [groove])
     part("grip", boolean(g, [_plane_box(*POMMEL, keep="above")], "INTERSECT"), "rubber", bevel=0, angle=70,
@@ -469,14 +482,14 @@ def stock():
     sec = smooth_half(STOCK_HALF, 2)
     tube = prism(sec, plane="YZ", w0=0.1500, w1=0.4250)
     grooves = [prism(offset_poly(sec, -0.01), [ccw(offset_poly(sec, 0.0016))], plane="YZ", w0=a, w1=b)
-               for a, b in ((0.1770, 0.1830), (0.4060, 0.4100))]
-    tpath = [(0.2150, 0.3210), (0.3950, 0.3210)]
+               for a, b in ((0.1770, 0.1830),)]
+    tpath = [(0.2150, 0.3210), (0.3860, 0.3210)]
     hi = [channel(sec, 0.15, 0.425, [(0.1880, 0.3545), (0.3980, 0.3545)], 0.0009, 0.0006),
           channel(sec, 0.15, 0.425, [(0.2700, 0.2900), (0.2700, 0.3560)], 0.0009, 0.0006)] if HI else None
-    part("stock_tube", boolean(tube, grooves + [channel(sec, 0.15, 0.425, tpath, 0.0030, 0.0014)]), "paint",
+    part("stock_tube", boolean(tube, grooves + [channel(sec, 0.15, 0.425, tpath, 0.0030, 0.0022)]), "paint",
          bevel=0, uv_axis="x", cuts=hi)
-    part("stock_collars", join(shell_band(sec, 0.1585, 0.1700, 0.0026, 0.004), shell_band(sec, 0.3960, 0.4060, 0.0026, 0.004)),
-         "gunmetal", bevel=0, rim=(outer_rim(sec), 0.0020, 1), uv_axis="x")
+    part("stock_collars", join(shell_band(sec, 0.1585, 0.1700, 0.0030, 0.004), shell_band(sec, 0.3930, 0.4030, 0.0030, 0.004)),
+         "gunmetal", bevel=0, rim=(outer_rim(sec), 0.0015, 1), uv_axis="x")
     bsec = smooth_half(BUTT_HALF, 3)
     bpath = smooth_path(BUTT_TRIM, 3)
     body = boolean(prism(ccw(fillet(BUTT_SIDE, BUTT_R, 3)), plane="XZ", w0=-0.06, w1=0.06),
@@ -486,9 +499,9 @@ def stock():
     behind = prism(ccw([(xa + k * (0.40 - za), 0.40), (0.55, 0.40), (0.55, 0.10), (xa + k * (0.10 - za), 0.10)]),
                    plane="XZ", w0=-0.06, w1=0.06)
     pad_vol = boolean(behind, [box(0.3, 0.6, -0.06, 0.06, 0.10, za)], "INTERSECT")
-    part("stock_trim", join(inlay(sec, 0.15, 0.425, tpath, 0.0030, 0.0014), inlay(bsec, 0.39, 0.51, bpath, 0.0034, 0.0016)),
+    part("stock_trim", join(inlay(sec, 0.15, 0.425, tpath, 0.0030, 0.0022), inlay(bsec, 0.39, 0.51, bpath, 0.0034, 0.0022)),
          "trim", bevel=0, uv_axis="x")
-    part("butt", boolean(body.copy(), [pad_vol.copy(), channel(bsec, 0.39, 0.51, bpath, 0.0034, 0.0016)]), "paint", bevel=0.0012,
+    part("butt", boolean(body.copy(), [pad_vol.copy(), channel(bsec, 0.39, 0.51, bpath, 0.0034, 0.0022)]), "paint", bevel=0.0012,
          rim=(side_silhouette(0.037), 0.0070, 3), uv_axis="y")
     grown = boolean(prism(ccw(offset_poly(ccw(fillet(BUTT_SIDE, BUTT_R, 3)), -0.0020)), plane="XZ", w0=-0.06, w1=0.06),
                     [prism(ccw(offset_poly(smooth_half(BUTT_HALF, 3), 0.0030)), plane="YZ", w0=0.39, w1=0.52)],

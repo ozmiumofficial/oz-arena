@@ -9,7 +9,9 @@ which only the oz renderer reads. Files already in the pak that this run doesn't
 Maps (work_dir/pbr, texture.py) -> <shader>.dds and suffixes:
   .dds        base color, BC7                     _n.dds   normal, BC5, green flipped (rend2's t runs down)
   _s.dds      rend2's specular layout, BC7: R roughness (floor 0.45, Oz's matte rule), G metal (x 0.35, as Oz's
-              other maps: rend2 takes a metal's diffuse away), B occlusion (make_pk3s.py's layout)
+              other maps: rend2 takes a metal's diffuse away), B occlusion (make_pk3s.py's layout); a weapon's
+              config can set "roughness_floor" and "metal_scale" (the rebuilt railgun: 0 and 1, shiny metal as the
+              rocket launcher has it)
   _tint.dds   the red parts, rgb = alpha = mask      _trim.dds, _cell.dds   the glows
 
 The shader (one per weapon): the painted stage lit by rend2 with the normal and specular maps; then the red parts
@@ -109,8 +111,10 @@ def main():
         nrm8 = (np.clip(nrm, 0, 1) * 255 + 0.5).astype(np.uint8)
         nrm8[..., 1] = 255 - nrm8[..., 1]
         orm = rd(os.path.join(pd, "orm.png"))
-        spec = np.stack([np.maximum(orm[..., 1], int(round(ROUGHNESS_FLOOR * 255))),
-                         (orm[..., 2] * METAL_SCALE + 0.5).astype(np.uint8), orm[..., 0]], -1)
+        floor = float(cfg.get("roughness_floor", ROUGHNESS_FLOOR))   # a weapon's config can turn the matte rule off
+        mscale = float(cfg.get("metal_scale", METAL_SCALE))
+        spec = np.stack([np.maximum(orm[..., 1], int(round(floor * 255))),
+                         (orm[..., 2] * mscale + 0.5).astype(np.uint8), orm[..., 0]], -1)
         tint = rd(os.path.join(pd, "tint.png"))
         tint = tint[..., 0] if tint.ndim == 3 else tint
         maps = {".dds": ("bc7", rgba(fit(base, S))),

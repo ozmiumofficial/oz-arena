@@ -496,6 +496,60 @@ def _sane(ob, far=2.0):
     return ok
 
 
+def zfight(objs=None, gap=0.0010, facing=0.95, samples=3):
+    """Z-fighting risks: places where a part's surface runs within `gap` of another part's surface facing the same way
+    (both visible, one a hair above the other). Samples each triangle's centre and points toward its corners; returns
+    {(part, other): area at risk}, largest first. Surfaces buried inside another part are skipped (the sample is
+    inside the other part when the nearest other surface faces away from it)."""
+    from mathutils.bvhtree import BVHTree
+    dg = bpy.context.evaluated_depsgraph_get()
+    data = {}
+    for ob in (objs or collection().objects):
+        if ob.type != "MESH":
+            continue
+        me = ob.evaluated_get(dg).to_mesh()
+        bm = bmesh.new(); bm.from_mesh(me); ob.evaluated_get(dg).to_mesh_clear()
+        bm.transform(ob.matrix_world)
+        bmesh.ops.triangulate(bm, faces=bm.faces)
+        bm.faces.ensure_lookup_table()
+        data[ob.name] = (bm, BVHTree.FromBMesh(bm))
+    risk = {}
+    for name, (bm, _) in data.items():
+        for f in bm.faces:
+            n = f.normal
+            if n.length < 0.5:
+                continue
+            c = f.calc_center_median()
+            pts = [c] + [c.lerp(v.co, 0.6) for v in f.verts][:samples - 1]
+            hits = {}
+            for p in pts:
+                for other, (obm, tree) in data.items():
+                    if other == name:
+                        continue
+                    loc, on, idx, d = tree.find_nearest(p, gap)
+                    if loc is None:
+                        continue
+                    off = p - loc
+                    # same way, p outside the other part, and stacked over it (not just beside it in the same plane)
+                    if on.dot(n) > facing and off.dot(on) > -1e-6 and (d < 1e-6 or abs(off.dot(on)) > 0.97 * d):
+                        # and not buried in some third part: the other parts' nearest surfaces must face away from p
+                        buried = False
+                        for third, (tbm, ttree) in data.items():
+                            if third in (name, other):
+                                continue
+                            l3, n3, i3, d3 = ttree.find_nearest(p, 0.05)
+                            if l3 is not None and (p - l3).dot(n3) < -1e-6:
+                                buried = True; break
+                        if not buried:
+                            hits[other] = hits.get(other, 0) + 1
+            for other, k in hits.items():
+                key = (name, other)
+                risk[key] = risk.get(key, 0.0) + f.calc_area() * k / len(pts)
+    for bm, _ in data.values():
+        bm.free()
+    return sorted(risk.items(), key=lambda kv: -kv[1])
+
+
 def tri_count(objs=None):
     dg = bpy.context.evaluated_depsgraph_get()
     total = 0
@@ -679,9 +733,20 @@ def channel(section, w0, w1, path, width, depth, plane="YZ", side_plane="XZ", cl
                    [prism(rib, holes, plane=side_plane, w0=-0.2, w1=0.2)], "INTERSECT")
 
 
-def inlay(section, w0, w1, path, width, depth, below=0.0005, plane="YZ", side_plane="XZ", closed=False):
-    """The strip that sits in channel(): a little narrower, its face `below` under the surface, its back buried."""
-    rib, holes = ribbon(path, width - 0.0008, closed)
+def shorten(path, d):
+    """An open polyline with d taken off each end (a strip's ends stay inside its channel's ends)."""
+    P = [Vector(p) for p in path]
+    for ends in ((0, 1), (-1, -2)):
+        a, b = P[ends[0]], P[ends[1]]
+        if (b - a).length > d * 2:
+            P[ends[0]] = a + (b - a).normalized() * d
+    return [tuple(p) for p in P]
+
+
+def inlay(section, w0, w1, path, width, depth, below=0.0010, plane="YZ", side_plane="XZ", closed=False):
+    """The strip that sits in channel(): a little narrower, its face `below` under the surface (1 mm: further and the
+    channel's own floor and the strip's face would fight for depth), its back buried."""
+    rib, holes = ribbon(path if closed else shorten(path, 0.0008), width - 0.0008, closed)
     return boolean(shell_band(section, w0, w1, -below, depth + 0.0006, plane),
                    [prism(rib, holes, plane=side_plane, w0=-0.2, w1=0.2)], "INTERSECT")
 

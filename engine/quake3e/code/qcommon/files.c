@@ -2453,6 +2453,38 @@ int FS_ReadFile( const char *qpath, void **buffer ) {
 	buf = NULL;	// quiet compiler warning
 	isConfig = qfalse;
 
+	// Oz: a player's custom texture, read as it is from its own folder (cl_oz_textures.c)
+	if ( fs_ozCustomPath && qpath[0] == '$' ) {
+		const char *ospath = fs_ozCustomPath( qpath );
+		if ( ospath ) {
+			FILE *f = Sys_FOpen( ospath, "rb" );
+			if ( !f || fseek( f, 0, SEEK_END ) || ( len = ftell( f ) ) < 0 || fseek( f, 0, SEEK_SET ) ) {
+				if ( f ) {
+					fclose( f );
+				}
+				if ( buffer ) {
+					*buffer = NULL;
+				}
+				return -1;
+			}
+			if ( buffer ) {
+				buf = Hunk_AllocateTempMemory( len + 1 );
+				if ( (long)fread( buf, 1, len, f ) != len ) {
+					Hunk_FreeTempMemory( buf );
+					fclose( f );
+					*buffer = NULL;
+					return -1;
+				}
+				buf[len] = '\0';
+				fs_loadCount++;
+				fs_loadStack++;
+				*buffer = buf;
+			}
+			fclose( f );
+			return len;
+		}
+	}
+
 	// if this is a .cfg file and we are playing back a journal, read
 	// it from the journal file
 	if ( com_journalDataFile != FS_INVALID_HANDLE && strstr( qpath, ".cfg" ) ) {
@@ -6482,6 +6514,15 @@ static const char *FS_GetBasePath( void )
 		return fs_basepath->string;
 	else
 		return "";
+}
+
+
+// Oz: custom textures (cl_oz_textures.c): set by the client, NULL in the dedicated server
+const char *(*fs_ozCustomPath)( const char *qpath );
+
+qboolean FS_OzPure( void )
+{
+	return fs_numServerPaks ? qtrue : qfalse;
 }
 
 

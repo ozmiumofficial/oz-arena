@@ -1,0 +1,17 @@
+{
+  "game_dirs": [
+    "C:/steam/steamapps/common/Quake 3 Arena/baseq3",
+    "C:/steam/steamapps/common/Quake 3 Arena/Oz Arena/oz"
+  ],
+  "pk3s": [],
+  "watch_folder": "texture_replacements",
+  "match": "all",
+  "path_aware": true,
+  "extensions": [".png", ".jpg", ".jpeg", ".tga", ".dds", ".bmp", ".pcx"],
+  "dry_run": false,
+  "backup": true,
+  "protect_id_paks": true,
+  "poll_seconds": 1.0,
+  "settle_seconds": 1.5,
+  "log_file": "texswap.log"
+}

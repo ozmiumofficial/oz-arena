@@ -3665,6 +3665,8 @@ static void CL_InitRenderer( void ) {
 		CL_InitRef();
 	}
 
+	OzTex_Scan();	// Oz: the custom_textures folder as it is now, before any image loads
+
 	// this sets up the renderer and calls R_Init
 	re.BeginRegistration( &cls.glconfig );
 
@@ -3922,6 +3924,7 @@ static void CL_InitRef( void ) {
 	rimp.ProfStart = Com_ProfStart;
 	rimp.ProfDetail = Com_ProfDetail;
 	rimp.CL_LoadJPGScaled = CL_LoadJPGScaled;
+	rimp.OzCustomTexture = OzTex_Find;	// Oz: the player's custom textures
 #ifdef USE_OZ_UI
 	rimp.OzBodyVelocity = OzHud_BodyVelocity;
 #endif
@@ -4657,6 +4660,8 @@ void CL_Init( void ) {
 	Cmd_AddCommand( "dlmap", CL_Download_f );
 #endif
 	Cmd_AddCommand( "modelist", CL_ModeList_f );
+
+	OzTex_Init();	// Oz: the player's custom_textures folder (cl_oz_textures.c)
 
 #ifdef USE_OZ_UI
 	OzUI_Init();	// Oz: the native UI (ENGINE_PLAN.md P4)

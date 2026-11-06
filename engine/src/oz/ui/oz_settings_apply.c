@@ -165,6 +165,8 @@ static void Shadows( const char *v ) {
 }
 
 static void Reflections( const char *v ) { SetLatched( "r_cubeMapping", atoi( v ) ? "1" : "0" ); }
+// the custom_textures folder (cl_oz_textures.c) is read as the renderer starts: restart it when Settings closes
+static void CustomTextures( const char *v ) { SetLatched( "cl_ozCustomTextures", atoi( v ) || !Q_stricmp( v, "true" ) ? "1" : "0" ); }
 
 static void AmbientOcclusion( const char *v ) {
 	static const char *const names[] = { "off", "low", "medium", "high", NULL };
@@ -279,6 +281,7 @@ static ozSetting_t settings[] = {
 	{ "oz_video_contrast", Contrast },
 	{ "oz_graphics_shadows", Shadows },
 	{ "oz_graphics_reflections", Reflections },
+	{ "oz_graphics_custom_textures", CustomTextures },
 	{ "oz_graphics_ao", AmbientOcclusion },
 	{ "oz_graphics_bloom", Bloom },
 	{ "oz_graphics_antialiasing", Antialiasing },

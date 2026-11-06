@@ -113,6 +113,7 @@ IF(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES x86_64)
 	list(APPEND CLIENT_SRCS code/asm/snd_mix_x86_64.s)
 ENDIF()
 list(APPEND CLIENT_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../src/oz/replay/cl_oz_replay.c)	# Oz: replay playback (P10)
+list(APPEND CLIENT_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../src/oz/textures/cl_oz_textures.c)	# Oz: the player's custom textures
 IF(NOT USE_CURL)
 	list(REMOVE_ITEM CLIENT_SRCS code/client/cl_curl.c)
 ENDIF()

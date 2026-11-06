@@ -74,7 +74,7 @@ Rml::String panel = "inspect", shownPanel;
 Rml::String lastInspect, lastKeysRml;
 std::vector<std::string> shownKeys;	// the inspector's key rows, by index
 // the materials browser
-Rml::String matView = "all";		// map, recent, all, folders, folder:<name>
+Rml::String matView = "all";		// map, favorites, recent, dev, all, folders, folder:<name>, packs
 int matPage;
 Rml::String lastMats;
 std::vector<std::string> recent;
@@ -377,6 +377,7 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 	chip( "map", "IN THIS MAP", matView == "map" );
 	chip( "favorites", "FAVORITES", matView == "favorites" );
 	chip( "recent", "RECENT", matView == "recent" );
+	chip( "dev", "DEV TEXTURES", matView == "dev" );
 	chip( "all", "ALL", matView == "all" );
 	chip( "folders", inFolder ? Enc( Rml::StringUtilities::ToUpper( matView.substr( 7 ) ) ) + " +" : Rml::String( "FOLDERS +" ),
 		matView == "folders" || inFolder );
@@ -393,7 +394,9 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 	if ( matView == "folders" && search.empty() ) {
 		std::map<std::string, int> folders[2];
 		for ( const oz::ed::Material &m : all ) {
-			folders[m.stock ? 0 : 1][m.folder.empty() ? "(top)" : m.folder]++;
+			if ( m.folder != "oz_dev" ) {  // Dev textures has its own chip
+				folders[m.stock ? 0 : 1][m.folder.empty() ? "(top)" : m.folder]++;
+			}
 		}
 		Rml::String rml;
 		for ( int k = 0; k < 2; k++ ) {
@@ -410,7 +413,8 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 		return;
 	}
 
-	// the names in view: All is id's own (and the tools), Map packs the rest; a search looks at both
+	// the names in view: Dev textures is Oz's prototyping textures (textures/oz_dev), All the rest of
+	// id's own (and the tools), Map packs the rest; a search looks at all of them
 	std::vector<std::string> names;
 	if ( matView == "map" ) {
 		names = MapMaterials();
@@ -423,7 +427,8 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 		for ( const oz::ed::Material &m : all ) {
 			const bool in = search.size() ? true
 				: inFolder ? m.folder == folder || ( folder == "(top)" && m.folder.empty() )
-				: matView == "packs" ? !m.stock : true;
+				: matView == "dev" ? m.folder == "oz_dev"
+				: matView == "packs" ? !m.stock : m.folder != "oz_dev";
 			if ( in ) {
 				names.push_back( m.name );
 			}

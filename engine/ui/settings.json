@@ -4672,6 +4672,21 @@
    "preview": ""
   },
   {
+   "key": "experimental/remodeled_weapons",
+   "tab": "experimental",
+   "label": "Remodeled weapons",
+   "type": "bool",
+   "default": false,
+   "tip": "Draws the weapons that have a new high-detail model with it, in your hands, in other fighters' hands and on the floor: the rocket launcher so far. Experimental. Applies when Settings closes (the renderer restarts).",
+   "group": "Weapons",
+   "wired": true,
+   "restart": false,
+   "cvar": "oz_experimental_remodeled_weapons",
+   "create": true,
+   "cvar_default": "0",
+   "preview": ""
+  },
+  {
    "key": "profile/name",
    "tab": "profile",
    "label": "Player name",

@@ -181,6 +181,9 @@ static void Bloom( const char *v ) { Set( "r_ozBloom", atoi( v ) ? "1" : "0" ); 
 // Experimental: the upgraded fighters' models (tr_oz_rig.c loads them as their rigs register: at the next vid_restart)
 static void ModernModels( const char *v ) { SetLatched( "r_ozModernFighters", atoi( v ) ? "1" : "0" ); }
 
+// Experimental: the remodeled weapons (RE_RegisterModel swaps in <model>_remodel.iqm: at the next vid_restart)
+static void RemodeledWeapons( const char *v ) { SetLatched( "r_ozRemodeledWeapons", atoi( v ) ? "1" : "0" ); }
+
 static void Antialiasing( const char *v ) {
 	static const char *const names[] = { "off", "fxaa", "msaa2", "msaa4", "msaa8", NULL };
 	static const char *const samples[] = { "0", "0", "2", "4", "8" };
@@ -302,6 +305,7 @@ static ozSetting_t settings[] = {
 	{ "oz_gameplay_intro", Intro },
 	{ "oz_accessibility_colorblind", Colorblind },
 	{ "oz_experimental_modern_models", ModernModels },
+	{ "oz_experimental_remodeled_weapons", RemodeledWeapons },
 };
 
 /*

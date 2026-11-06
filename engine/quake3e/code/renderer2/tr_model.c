@@ -278,6 +278,25 @@ qhandle_t RE_RegisterModel( const char *name ) {
 		return 0;
 	}
 
+	// Oz, Settings > Experimental > Remodeled weapons (r_ozRemodeledWeapons): a weapon model with a remodel beside
+	// it, <model>_remodel.iqm (pak_oz_remodeled_weapons.pk3), is drawn with that, in the hand and on the floor.
+	// Its tags (tag_flash) are the remodel's joints, so the muzzle flash follows it.
+	if ( r_ozRemodeledWeapons && r_ozRemodeledWeapons->integer && !Q_stricmpn( name, "models/weapons2/", 16 ) ) {
+		const char *dot = strrchr( name, '.' );
+		char remodel[MAX_QPATH];
+
+		if ( dot && !Q_stricmp( dot, ".md3" ) && (size_t)( dot - name ) + sizeof( "_remodel.iqm" ) <= sizeof( remodel ) ) {
+			Q_strncpyz( remodel, name, (int)( dot - name ) + 1 );
+			Q_strcat( remodel, sizeof( remodel ), "_remodel.iqm" );
+			if ( ri.FS_ReadFile( remodel, NULL ) > 0 ) {
+				const qhandle_t h = RE_RegisterModel( remodel );
+				if ( h ) {
+					return h;
+				}
+			}
+		}
+	}
+
 	//
 	// search the currently loaded models
 	//

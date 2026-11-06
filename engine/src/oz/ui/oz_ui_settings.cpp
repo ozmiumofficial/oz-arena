@@ -260,6 +260,11 @@ void Settings_Init() {
 		e.create = JsonBool( s, "create", false );
 		e.restart = JsonBool( s, "restart", false );
 		e.wired = JsonBool( s, "wired", true );
+#ifndef _WIN32
+		if ( JsonBool( s, "windows", false ) ) {
+			e.wired = false;	// a Windows-only setting (Recording-friendly display: DXGI)
+		}
+#endif
 		e.scale = JsonNumber( s, "scale", 1.0f );
 		e.hasRange = cJSON_GetObjectItemCaseSensitive( s, "min" ) && cJSON_GetObjectItemCaseSensitive( s, "step" );
 		e.min = JsonNumber( s, "min", 0 );

@@ -3161,7 +3161,7 @@ static const char *const com_engineCvars[] = {
 	// cl_renderer is written apart, by Com_WriteEngineConfig
 	"r_mode", "r_customwidth", "r_customheight", "r_customPixelAspect",
 	"r_fullscreen", "r_modeFullscreen", "r_noborder", "r_displayRefresh", "r_swapInterval",
-	"r_ext_multisample", "r_gamma", "vid_xpos", "vid_ypos",
+	"r_ext_multisample", "r_gamma", "vid_xpos", "vid_ypos", "r_dxgi", "oz_video_capture",
 	"s_volume", "s_musicVolume", "s_useOpenAL", "s_alHRTF", "s_alDevice", "s_khz",
 	"in_joystick", "cl_demoPlayer",
 	// Oz: joining any server takes what it needs, under every mod: a mod's first config is the install's

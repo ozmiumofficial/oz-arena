@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../renderercommon/tr_public.h"
 #include "sdl_glw.h"
 #include "sdl_icon.h"
+#include "sdl_dxgi.h"	// Oz
 
 typedef enum {
 	RSERR_OK,
@@ -122,6 +123,10 @@ void GLimp_Shutdown( qboolean unloadDLL )
 			SDL_ShowCursor( SDL_TRUE );
 		}
 	}
+
+#ifdef _WIN32
+	DXGI_Stop();	// Oz: the swap chain goes with the window, while the GL context is still current
+#endif
 
 	if ( SDL_window ) {
 		SDL_DestroyWindow( SDL_window );
@@ -343,6 +348,9 @@ static int GLW_SetMode( int mode, const char *modeFS, qboolean fullscreen, qbool
 	Com_Printf( " %d %d\n", config->vidWidth, config->vidHeight );
 
 	// Destroy existing state if it exists
+#ifdef _WIN32
+	DXGI_Stop();	// Oz
+#endif
 	if ( SDL_glContext != NULL )
 	{
 		SDL_GL_DeleteContext( SDL_glContext );
@@ -374,6 +382,12 @@ static int GLW_SetMode( int mode, const char *modeFS, qboolean fullscreen, qbool
 	}
 
 	//flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+
+	// Oz: full screen at the desktop's own resolution stays up when another window takes the focus
+	// (OBS or Discord on a second monitor, a stream of the game): minimized, there's nothing to capture.
+	// Only a full screen that changed the monitor's mode gives the desktop back by minimizing.
+	SDL_SetHint( SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, ( fullscreen && ( config->vidWidth != glw_state.desktop_width
+		|| config->vidHeight != glw_state.desktop_height ) ) ? "1" : "0" );
 
 	colorBits = r_colorbits->value;
 
@@ -615,6 +629,12 @@ static int GLW_SetMode( int mode, const char *modeFS, qboolean fullscreen, qbool
 
 	SDL_WarpMouseInWindow( SDL_window, glw_state.window_width / 2, glw_state.window_height / 2 );
 
+#ifdef _WIN32
+	// Oz: OpenGL frames shown through DXGI, so recorders and streaming apps capture them (sdl_dxgi.c)
+	if ( !vulkan && !config->stereoEnabled )
+		DXGI_Start( SDL_window, config->vidWidth, config->vidHeight, r_swapInterval->integer );
+#endif
+
 	return RSERR_OK;
 }
 
@@ -745,6 +765,11 @@ void GLimp_EndFrame( void )
 	// don't flip if drawing to front buffer
 	if ( Q_stricmp( cl_drawBuffer->string, "GL_FRONT" ) != 0 )
 	{
+#ifdef _WIN32
+		if ( DXGI_Active() )
+			DXGI_Present();	// Oz
+		else
+#endif
 		SDL_GL_SwapWindow( SDL_window );
 	}
 }
@@ -759,7 +784,11 @@ Used by opengl renderers to resolve all qgl* function pointers
 */
 void *GL_GetProcAddress( const char *symbol )
 {
+#ifdef _WIN32
+	return DXGI_GetProcAddress( symbol, SDL_GL_GetProcAddress( symbol ) );	// Oz: framebuffer 0 is DXGI's
+#else
 	return SDL_GL_GetProcAddress( symbol );
+#endif
 }
 
 

@@ -1,0 +1,17 @@
+{
+  "source": "sources/railgun/tripo_convert_83059957-2c86-4da0-b8e8-3ad27d99dc7d.fbx",
+  "model": "models/weapons2/railgun/railgun",
+  "surface": "railgun",
+  "shader": "models/weapons2/railgun/railgun_remodel",
+  "forward": "-y",
+  "up": "+z",
+  "scale": 30.5,
+  "grip": [0.0, 0.172, 0.065],
+  "tags": {"tag_flash": [0.0, -0.505, 0.315]},
+  "voxel": 0.0009,
+  "thick": 0.0006,
+  "drop_faces": [10694, 5906, 1327],
+  "tris": 200000,
+  "texture": 4096,
+  "_notes": "grip: the palm's spot on the grip (Tripo units, z up, muzzle at -y). tag_flash: the nozzle's centre on the muzzle face. drop_faces: the flipped flap at the top of the right side vent (prep_orig.py's triangle numbers)."
+}

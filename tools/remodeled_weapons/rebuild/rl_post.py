@@ -2,7 +2,9 @@
 
     python rl_post.py <bake dir>            masks: ao.png, edge.png (from rl_bake's ao_geo.png, edge_geo.png),
                                             detail_normal.png (the normal map the materials read)
-    python rl_post.py <bake dir> pack <out> the game's maps from the pbr bake: rocket_launcher_basecolor.png,
+    python rl_post.py <bake dir> flat <out> the flat-color set (one color per material, metal stays metallic,
+                                            soft AO, flat normal): what ships now
+    python rl_post.py <bake dir> pack <out> the game maps from the pbr bake: rocket_launcher_basecolor.png,
                                             rocket_launcher_normal.png, rocket_launcher_orm.png (R AO, G roughness,
                                             B metalness) in <out>
 
@@ -27,6 +29,35 @@ if len(sys.argv) > 2 and sys.argv[2] == "pack":
     ao = rd("ao.png", "L"); r = rd("roughness.png", "L"); m = rd("metallic.png", "L")
     wr(np.dstack([ao, r, m]), os.path.join(out, "rocket_launcher_orm.png"))
     print("packed into", out)
+    sys.exit(0)
+
+if len(sys.argv) > 2 and sys.argv[2] == "flat":
+    # Tony's pick (2026-11-06): the clean look of Blender's solid view, one flat color per material with the
+    # lighting doing the shading, metal still metallic and reflective. No wear, grime, scratches or patterned normal
+    # detail; a soft AO keeps the crevices' gradient. Colors are rl_materials.PAINTS' (measured on the v2-sharp maps).
+    out = sys.argv[3]
+    os.makedirs(out, exist_ok=True)
+    FLAT = {   # material id color: (sRGB base color, roughness, metalness)
+        (1, 0, 0): ((0.300, 0.318, 0.334), 0.34, 1.0),    # gunmetal
+        (1, 0, 1): ((0.430, 0.448, 0.466), 0.27, 1.0),    # steel
+        (0, 1, 0): ((0.170, 0.182, 0.195), 0.45, 0.8),    # dark metal
+        (0, 0, 1): ((0.384, 0.188, 0.224), 0.45, 0.0),    # red paint
+        (0, 1, 1): ((0.165, 0.172, 0.180), 0.80, 0.0),    # rubber
+        (1, 1, 0): ((0.090, 0.470, 0.440), 0.08, 0.0),    # teal glass
+    }
+    mid = rd("matid.png")
+    keys = np.array(list(FLAT.keys()), np.float32)
+    cls = np.argmin(((mid[..., None, :] - keys[None, None]) ** 2).sum(-1), axis=-1)
+    vals = list(FLAT.values())
+    base = np.array([v[0] for v in vals], np.float32)[cls]
+    rough = np.array([v[1] for v in vals], np.float32)[cls]
+    metal = np.array([v[2] for v in vals], np.float32)[cls]
+    ao = np.clip(rd("ao_geo.png", "L"), 0, 1) ** 0.4
+    wr(base, os.path.join(out, "rocket_launcher_basecolor.png"))
+    wr(np.dstack([ao, rough, metal]), os.path.join(out, "rocket_launcher_orm.png"))
+    flat_n = np.zeros(base.shape, np.float32); flat_n[..., :2] = 0.5; flat_n[..., 2] = 1.0
+    wr(flat_n, os.path.join(out, "rocket_launcher_normal.png"))
+    print("flat maps into", out)
     sys.exit(0)
 
 nm = rd("normal.png") * 2 - 1

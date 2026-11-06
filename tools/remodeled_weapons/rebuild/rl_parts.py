@@ -50,7 +50,9 @@ def grooved(profile_pts, grooves, r, depth):
 
 def barrel():
     R = R_BARREL
-    prof = ([(-0.215, 0), (-0.215, R_BORE), (-0.470, R_BORE), (-0.470, 0.054), (-0.392, 0.054), (-0.3865, R)] +
+    # the barrel's bore is 0.6 mm inside the front collar's, so the two never share a surface (z-fighting)
+    rb = R_BORE - 0.0006
+    prof = ([(-0.215, 0), (-0.215, rb), (-0.470, rb), (-0.470, 0.054), (-0.392, 0.054), (-0.3865, R)] +
             # a raised knurled band, then two ring grooves near the housing
             [(-0.3460, R), (-0.3445, R + 0.0018), (-0.3225, R + 0.0018), (-0.3210, R)] +
             [(-0.020, R), (-0.020, 0)])
@@ -58,7 +60,7 @@ def barrel():
             ring_groove(-0.3800, -0.3785, R, 0.0008)] if HI else None
     part("barrel", lathe(prof, segs=48), "gunmetal", bevel=0.0007, segments=1, cuts=cuts)
     # the bore's floor: a dark disc just in front of the barrel's end cap at x -0.215
-    part("bore_floor", lathe([(-0.2168, 0), (-0.2168, R_BORE - 0.0006), (-0.2152, R_BORE - 0.0006), (-0.2152, 0)], segs=48),
+    part("bore_floor", lathe([(-0.2168, 0), (-0.2168, rb - 0.0006), (-0.2152, rb - 0.0006), (-0.2152, 0)], segs=48),
          "dark_metal", bevel=0)
     rib = rrect(-0.0115, Z + 0.045, 0.0115, 0.2866, 0.004)
     part("barrel_rib", prism(rib, plane="YZ", w0=-0.392, w1=-0.165), "gunmetal", bevel=0.0012)
@@ -276,7 +278,8 @@ def windows():
     frame_ = on_chamfer(boolean(slab(rrect(-0.0090, 0.0145, 0.0090, 0.0335, 0.0015), plane="XY", w0=-0.002, w1=0.0024,
                                      inset=0.0010),
                                 [box(-0.0064, 0.0064, 0.0176, 0.0304, 0.0010, 0.004)]), -0.024, 0)
-    glass = on_chamfer(box(-0.0066, 0.0066, 0.0174, 0.0306, -0.001, 0.0013), -0.024, 0)
+    # the glass sits flush with the frame's top, well clear of the recess floor under it (no z-fighting)
+    glass = on_chamfer(box(-0.0064, 0.0064, 0.0176, 0.0304, -0.0003, 0.0020), -0.024, 0)
     part("window_frame", frame_, "gunmetal", bevel=0.0004, mirror=True)
     part("window_glass", glass, "glass", bevel=0.0003, mirror=True)
 

@@ -3,7 +3,9 @@
 Tripo's rocket launcher modeled again from scratch in Blender: clean hard-surface parts measured off the Tripo model
 (kept as the reference), retextured with procedural PBR materials, baked to 4K. Tripo's mesh was triangle soup with
 inside-out parts and holes; this one is 49 closed parts, every face pointing out: 37,582 triangles, one 4K
-basecolor / normal / ORM set.
+basecolor / normal / ORM set. What ships is the flat-color set Tony picked (`rl_post.py <bake> flat <out>`): one
+color per material, the metal parts metallic and reflective, a soft AO, no wear or patterned normal detail. The
+worn, detailed PBR bake (`pack`) is still there to switch back to.
 
 Work files (not in git): `build/rocket-launcher-pbr/v3-rebuild/` in the main checkout: `rocket_launcher_rebuild.blend`
 (collections Reference, Rebuild, High, Final), `bake7/` (the final bakes), `textures/` (the game maps), `study/` (measurements),

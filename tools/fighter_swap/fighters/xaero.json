@@ -1,0 +1,57 @@
+{
+  "name": "xaero",
+  "slot": "xaero",
+  "source": "sources/xaero/tripo_convert_6907a3c7-0680-4e06-b9a7-cb933e7f9b53.fbx",
+  "texture": "sources/xaero/tripo_convert_6907a3c7-0680-4e06-b9a7-cb933e7f9b53.fbm/tripo_rgb_c2faebfe-315f-4027-a88c-6fe291183c59.jpg",
+  "repair": true,
+  "cap_max": 0.13,
+  "voxels": [0.012, 0.014, 0.01],
+  "locomotion": "walk",
+  "retouch": [
+    {"center": [-0.0180, -0.060, 0.9387], "radii": [0.0098, 0.0034], "grow": 1.9, "do": "socket"},
+    {"center": [0.0210, -0.060, 0.9381], "radii": [0.0092, 0.0031], "grow": 1.7, "do": "paint_eye"}
+  ],
+  "arms": {"stretch": 1.0, "ramp": [0.16, 0.2], "wrist_x": 0.395, "min_z": 0.70},
+  "left": {
+    "clavicle": [0.040, 0.020, 0.800],
+    "upperarm": [0.150, 0.030, 0.790],
+    "forearm": [0.285, 0.030, 0.788],
+    "hand": [0.395, 0.010, 0.786],
+    "fingers": [0.480, 0.000, 0.780],
+    "thigh": [0.075, 0.000, 0.500],
+    "calf": [0.075, 0.000, 0.280],
+    "foot": [0.072, 0.030, 0.070],
+    "toe": [0.075, -0.055, 0.020],
+    "toetip": [0.078, -0.095, 0.010]
+  },
+  "center": {
+    "root": [0.0, 0.0, 0.0],
+    "pelvis": [0.0, 0.000, 0.520],
+    "spine": [0.0, 0.000, 0.600],
+    "chest": [0.0, 0.005, 0.720],
+    "neck": [0.0, 0.010, 0.860],
+    "head": [0.0, 0.000, 0.895],
+    "headtop": [0.0, 0.000, 1.000]
+  },
+  "motion": {
+    "source": "md3",
+    "skip": ["u_arm", "u_armbase", "l_sash_back", "l_sash_front"],
+    "joints": {
+      "hip_L": [0.6, 3.1, 7.2], "knee_L": [11.1, 2.2, -5.3], "ankle_L": [8.6, 3.9, -20.0], "toe_L": [15.6, 4.4, -24.2],
+      "hip_R": [-4.6, -0.8, 7.6], "knee_R": [-3.9, -8.6, -7.0], "ankle_R": [-7.9, -1.2, -18.9], "toe_R": [-4.6, -7.6, -23.3],
+      "hipmid": [-2.0, 1.15, 7.4], "waist": [-1.6, 1.4, 11.2], "belly": [-1.6, 1.6, 15.7], "chest": [-2.8, 1.6, 21.1],
+      "neckbase": [-3.0, 1.0, 25.0], "neck": [-1.4, 0.4, 28.5], "headtop": [-1.3, 0.5, 35.2],
+      "shoulder_R": [-9.2, -1.8, 24.8], "elbow_R": [-12.4, -8.6, 20.2], "wrist_R": [-5.3, -7.9, 20.0], "hand_R": [-0.8, -7.0, 19.9],
+      "shoulder_L": [2.5, 6.3, 25.1], "elbow_L": [7.7, 3.5, 17.4], "wrist_L": [8.8, -3.4, 19.3], "hand_L": [10.0, -8.2, 19.1]
+    },
+    "segments": {
+      "pelvis": ["lower", ["hip_R", "hip_L"], ["hipmid", "waist"]],
+      "thigh_L": ["lower", ["hip_L", "knee_L"]], "calf_L": ["lower", ["knee_L", "ankle_L"]], "foot_L": ["lower", ["ankle_L", "toe_L"]],
+      "thigh_R": ["lower", ["hip_R", "knee_R"]], "calf_R": ["lower", ["knee_R", "ankle_R"]], "foot_R": ["lower", ["ankle_R", "toe_R"]],
+      "spine": ["upper", ["waist", "chest"]], "chest": ["upper", ["chest", "neckbase"], ["neckbase", "shoulder_L"]],
+      "neck": ["upper", ["neck", "headtop"]], "clavicle_R": ["upper", ["neckbase", "shoulder_R"]],
+      "upperarm_R": ["upper", ["shoulder_R", "elbow_R"]], "forearm_R": ["upper", ["elbow_R", "wrist_R"]], "hand_R": ["upper", ["wrist_R", "hand_R"]],
+      "upperarm_L": ["upper", ["shoulder_L", "elbow_L"]], "forearm_L": ["upper", ["elbow_L", "wrist_L"]], "hand_L": ["upper", ["wrist_L", "hand_L"]]
+    }
+  }
+}

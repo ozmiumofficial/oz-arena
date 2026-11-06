@@ -644,14 +644,130 @@ for label, tp in () if WALKER else (("stand", torso()), ("recoil", torso_anim("T
     _, short = pose(legs_base(), tp)
     print("hands short of target, %-8s right %.2f  left %.2f" % (label, short["R"], short["L"]))
 
+# ------------------------------------------------------------------ the id fighter's own motion ("motion": md3)
+MOTION = SK.cfg.get("motion")
+
+
+def minrot(a, b):
+    """the smallest rotation taking direction a to direction b"""
+    a, b = nrm(a), nrm(b)
+    ax = np.cross(a, b)
+    s, c = np.linalg.norm(ax), float(np.clip(a @ b, -1, 1))
+    if s < 1e-9:
+        return np.eye(3) if c > 0 else rot(nrm(np.cross(a, (0.3, 0.5, 0.8))), 180)
+    return rot(ax, math.degrees(math.atan2(s, c)))
+
+
+def md3_motion_frames():
+    """Every frame from the id model's own frames (md3_motion.py): each bone takes the turn of the id fighter's
+    segment it matches; then the legs reach for his ankles and the arms for his wrists (scaled to this skeleton's
+    limbs, two-bone IK with the knees and elbows where the turns put them), so the feet don't slide and the hands
+    stay on the gun, which hangs where id's tag_weapon has it."""
+    import md3_motion
+    skip = anims["LEGS_WALKCR"][0] - anims["TORSO_GESTURE"][0]
+    lf_ref, uf_ref = anims["LEGS_IDLE"][0] - skip, anims["TORSO_STAND"][0]
+    mot = md3_motion.Md3Motion(pak0, SLOT, MOTION, lf_ref, uf_ref)
+    X = mot.J
+    T_ref = mot.T_ref[:3, :3]
+    up = np.array([0, 0, 1.0])
+    xdir, xhint, nhint, src = {}, {}, {}, {}
+    hip_mid_new = (BP["thigh_L"] + BP["thigh_R"]) / 2
+    lat = nrm(X["hip_L"] - X["hip_R"])
+    xdir["pelvis"] = X["waist"] - X["hipmid"]
+    xhint["pelvis"], nhint["pelvis"], src["pelvis"] = nrm(np.cross(lat, xdir["pelvis"])), (1, 0, 0), "pelvis"
+    for b, a, c in (("spine", "waist", "chest"), ("chest", "chest", "neck"), ("neck", "neck", "headtop"),
+                    ("head", "neck", "headtop")):
+        xdir[b], xhint[b], nhint[b] = X[c] - X[a], T_ref @ np.array([1.0, 0, 0]), (1, 0, 0)
+        src[b] = b
+    for s in "LR":
+        th, ca = X["knee_" + s] - X["hip_" + s], X["ankle_" + s] - X["knee_" + s]
+        hinge = np.cross(th, ca)
+        hinge = nrm(hinge) if np.linalg.norm(hinge) > 1e-3 * np.linalg.norm(th) * np.linalg.norm(ca) else lat
+        xdir["thigh_" + s], xdir["calf_" + s] = th, ca
+        xdir["foot_" + s] = xdir["toe_" + s] = X["toe_" + s] - X["ankle_" + s]
+        for b in ("thigh_", "calf_"):
+            xhint[b + s], nhint[b + s], src[b + s] = hinge, (0, 1, 0), b + s
+        for b in ("foot_", "toe_"):
+            xhint[b + s] = nrm(np.cross(up, xdir[b + s]))
+            nhint[b + s] = nrm(np.cross(up, REST[b + s]))
+            src[b + s] = "foot_" + s
+        sh = X["shoulder_" + s]
+        ua, fa = X["elbow_" + s] - sh, X["wrist_" + s] - X["elbow_" + s]
+        xh = nrm(np.cross(ua, fa))
+        hr = nrm(np.cross(REST["upperarm_" + s], (1, 0, 0)))
+        xdir["clavicle_" + s] = sh - X["neckbase"]
+        xhint["clavicle_" + s], nhint["clavicle_" + s] = up, (0, 0, 1)
+        src["clavicle_" + s] = "clavicle_" + s if "clavicle_" + s in mot.seg else "chest"
+        for b, d in (("upperarm_", ua), ("forearm_", fa), ("hand_", X["hand_" + s] - X["wrist_" + s])):
+            xdir[b + s], xhint[b + s], nhint[b + s], src[b + s] = d, xh, hr, b + s
+    R0 = {b: aim(REST[b], nhint[b], xdir[b], xhint[b]) for b in xdir}
+    legx = {s: np.linalg.norm(X["knee_" + s] - X["hip_" + s]) + np.linalg.norm(X["ankle_" + s] - X["knee_" + s]) for s in "LR"}
+    armx = {s: np.linalg.norm(X["elbow_" + s] - X["shoulder_" + s]) + np.linalg.norm(X["wrist_" + s] - X["elbow_" + s]) for s in "LR"}
+    s_leg = np.mean([(LEN["thigh_" + s] + LEN["calf_" + s]) / legx[s] for s in "LR"])
+    s_arm = {s: (LEN["upperarm_" + s] + LEN["forearm_" + s]) / armx[s] for s in "LR"}
+    print("motion: md3 of %s; leg scale %.2f, arm scale L %.2f R %.2f" % (SLOT, s_leg, s_arm["L"], s_arm["R"]))
+    floor = np.array([0, 0, FLOOR])
+
+    def frame(lf, uf):
+        TR = mot.segment_transforms(lf, uf)
+        cur = lambda j, seg: TR[seg][:3, :3] @ X[j] + TR[seg][:3, 3]
+        Rw = {b: TR[src[b]][:3, :3] @ R0[b] for b in R0}
+        W = {"root": M(np.eye(3), BP["root"])}
+
+        def fk(b, parent):
+            W[b] = M(Rw[b], W[parent][:3, 3] + W[parent][:3, :3] @ (BP[b] - BP[parent]))
+        hm = floor + s_leg * (cur("hipmid", "pelvis") - floor)
+        W["pelvis"] = M(Rw["pelvis"], hm + Rw["pelvis"] @ (BP["pelvis"] - hip_mid_new))
+        for b, p in (("spine", "pelvis"), ("chest", "spine"), ("neck", "chest"), ("head", "neck")):
+            fk(b, p)
+        for s in "LR":
+            fk("thigh_" + s, "pelvis")
+            H = W["thigh_" + s][:3, 3]
+            Kfk = H + Rw["thigh_" + s] @ (BP["calf_" + s] - BP["thigh_" + s])
+            A_t = H + s_leg * (cur("ankle_" + s, "calf_" + s) - cur("hip_" + s, "pelvis"))
+            Kn, A2 = ik2(H, A_t, LEN["thigh_" + s], LEN["calf_" + s], Kfk - H)
+            Rt = minrot(Rw["thigh_" + s] @ nrm(REST["thigh_" + s]), Kn - H) @ Rw["thigh_" + s]
+            Rc = minrot(Rw["calf_" + s] @ nrm(REST["calf_" + s]), A2 - Kn) @ Rw["calf_" + s]
+            W["thigh_" + s], W["calf_" + s] = M(Rt, H), M(Rc, Kn)
+            W["foot_" + s] = M(Rw["foot_" + s], A2)
+            W["toe_" + s] = M(Rw["toe_" + s], A2 + Rw["foot_" + s] @ (BP["toe_" + s] - BP["foot_" + s]))
+            fk("clavicle_" + s, "chest")
+        TW = mot.tag_weapon(lf, uf)
+        tag_x = TW[:3, 3]
+        for s in "RL":
+            S = W["clavicle_" + s][:3, 3] + Rw["clavicle_" + s] @ (BP["upperarm_" + s] - BP["clavicle_" + s])
+            sh_x, wr_x = cur("shoulder_" + s, src["clavicle_" + s]), cur("wrist_" + s, "forearm_" + s)
+            target = S + s_arm[s] * (wr_x - sh_x)
+            if s == "L":      # the left hand: where it is on the gun, when it's on the gun
+                g = 1 - float(np.clip((np.linalg.norm(wr_x - tag_x) - 12.0) / 8.0, 0, 1)) ** 2
+                target = g * (tag_p + (wr_x - tag_x)) + (1 - g) * target
+            Efk = S + Rw["upperarm_" + s] @ (BP["forearm_" + s] - BP["upperarm_" + s])
+            E, W2 = ik2(S, target, LEN["upperarm_" + s], LEN["forearm_" + s], Efk - S)
+            Ru = minrot(Rw["upperarm_" + s] @ nrm(REST["upperarm_" + s]), E - S) @ Rw["upperarm_" + s]
+            Rf = minrot(Rw["forearm_" + s] @ nrm(REST["forearm_" + s]), W2 - E) @ Rw["forearm_" + s]
+            W["upperarm_" + s], W["forearm_" + s], W["hand_" + s] = M(Ru, S), M(Rf, E), M(Rw["hand_" + s], W2)
+            if s == "R":      # the gun hangs off the right hand as id's hangs off his
+                tag_p = W2 + (tag_x - wr_x)
+        W["tag_torso"] = M(TR["tag_torso"][:3, :3], W["spine"][:3, 3])
+        W["tag_head"] = W["head"].copy()
+        W["tag_weapon"] = M(TW[:3, :3], tag_p)
+        return W
+
+    out = [frame(i, uf_ref) for i in range(nl)] + [frame(lf_ref, j) for j in range(nu)]
+    return out
+
+
 frames = []
-for (ln, lk, lnn) in sources("lower", nl):
-    W, _ = pose(legs_anim(ln, lk, lnn), torso())
-    frames.append(W)
-lower_idle = legs_anim("LEGS_IDLE", 0, 10)
-for (un, uk, unn) in sources("upper", nu):
-    W, _ = pose(lower_idle, torso_anim(un, uk, unn))
-    frames.append(W)
+if MOTION:
+    frames = md3_motion_frames()
+else:
+    for (ln, lk, lnn) in sources("lower", nl):
+        W, _ = pose(legs_anim(ln, lk, lnn), torso())
+        frames.append(W)
+    lower_idle = legs_anim("LEGS_IDLE", 0, 10)
+    for (un, uk, unn) in sources("upper", nu):
+        W, _ = pose(lower_idle, torso_anim(un, uk, unn))
+        frames.append(W)
 F = np.array([[W[n] for n in names] for W in frames])
 bind = np.array([M(np.eye(3), BP[n]) for n in names[:-3]] +
                 [M(np.eye(3), BP["spine"]), M(np.eye(3), BP["head"]),
@@ -771,7 +887,9 @@ inv = inv.ravel()
 src = cv[first]
 uv = d["uv"][cl[first]].copy()
 uv[:, 1] = 1.0 - uv[:, 1]
-prim = dict(pos=P[src], nrm=cn[first] / np.linalg.norm(cn[first], axis=1, keepdims=True), uv=uv,
+nlen = np.linalg.norm(cn[first], axis=1, keepdims=True)
+cnf = np.where(nlen > 1e-6, cn[first] / np.maximum(nlen, 1e-9), [0.0, 0.0, 1.0])     # caps' slivers have no normal
+prim = dict(pos=P[src], nrm=cnf, uv=uv,
             jw=topw[src], ji=top[src], tris=inv.reshape(-1, 3)[:, ::-1], stem="oz_mech")
 prim["tan"] = mf.tangents(prim["pos"], prim["nrm"], prim["uv"], prim["tris"])
 

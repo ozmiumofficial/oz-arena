@@ -53,11 +53,18 @@ def run(name):
     todo = STEPS[STEPS.index(a.start):]
     print("== %s (replaces %s)" % (name, cfg.get("slot", name)))
     if "prep" in todo:
-        blender("prep.py", os.path.join(HERE, cfg["source"]), d, "100000000", *(["repair"] if cfg.get("repair") else []))
+        blender("prep.py", os.path.join(HERE, cfg["source"]), d, "100000000", *(["repair"] if cfg.get("repair") else []),
+                *(["cap_max=%g" % cfg["cap_max"]] if "cap_max" in cfg else []))
     if "stretch" in todo:
         blender("stretch_arms.py", cfg_path, os.path.join(d, "clean.blend"), rig)
     if "weights" in todo:
         blender("rig_weights.py", cfg_path, os.path.join(rig, "rigged_mesh.blend"), os.path.join(rig, "proxy_weights.npz"))
+    if cfg.get("retouch") and "pack" in todo:     # the texture touched up where the config says (retouch.py)
+        r = subprocess.run([sys.executable, os.path.join(HERE, "retouch.py"), cfg_path, os.path.join(d, "clean.npz"),
+                            os.path.join(HERE, cfg["texture"]), os.path.join(d, "oz_skin.jpg")], capture_output=True, text=True)
+        print("\n".join("    " + l for l in r.stdout.splitlines()))
+        if r.returncode:
+            sys.exit("retouch.py failed:\n" + r.stderr[-3000:])
     if "anim" in todo:
         r = subprocess.run([sys.executable, os.path.join(HERE, "anim_fighter.py"), cfg_path, os.path.join(rig, "mesh.npz"),
                             os.path.join(rig, "proxy_weights.npz"), pak0, d], capture_output=True, text=True)
@@ -76,7 +83,8 @@ def pack(names):
             cfg = json.load(open(os.path.join(HERE, "fighters", name + ".json")))
             slot = cfg.get("slot", name)
             z.write(os.path.join(OUT, name, "oz_rig.iqm"), "models/players/%s/oz_rig_modern.iqm" % slot)
-            z.write(os.path.join(HERE, cfg["texture"]), "models/players/%s/oz_skin.jpg" % slot, zipfile.ZIP_STORED)
+            tex = os.path.join(OUT, name, "oz_skin.jpg") if cfg.get("retouch") else os.path.join(HERE, cfg["texture"])
+            z.write(tex, "models/players/%s/oz_skin.jpg" % slot, zipfile.ZIP_STORED)
             shader += ["models/players/%s/oz_skin" % slot, "{", "\tcull disable", "\t{",
                        "\t\tmap models/players/%s/oz_skin.jpg" % slot, "\t\trgbGen lightingDiffuse", "\t}", "}", ""]
         z.writestr("scripts/oz_modern_fighters.shader", "\n".join(shader))

@@ -1,14 +1,17 @@
 """A Tripo model's cleanup in Blender: weld, cap holes, decimate (only past target_tris), export arrays.
-blender -b --python prep.py -- in.fbx out_dir target_tris [repair]
+blender -b --python prep.py -- in.fbx out_dir target_tris [repair] [cap_max=<size>]
 
 repair (a fighter config's "repair": true, for meshes that come with real holes, like orbb's): before capping, drop
 zero-area and doubled faces, split the edges three or more faces share (fins and cables fused into the body) so each
-side gets its own cap, and turn every shell's faces the same way out; then cap again until no open edge is left."""
+side gets its own cap, and turn every shell's faces the same way out; then cap again until no open edge is left.
+cap_max (a config's "cap_max"): leave open the loops bigger than that across (Blender units), the edges of cloth such as
+xaero's robe, whose caps would be lids across his legs; the two-sided shader draws both sides of the cloth."""
 import bpy, bmesh, sys, os
 import numpy as np
 argv = sys.argv[sys.argv.index("--") + 1:]
 src, out, target = argv[0], argv[1], int(argv[2])
 REPAIR = "repair" in argv[3:]
+CAP_MAX = next((float(a.split("=")[1]) for a in argv[3:] if a.startswith("cap_max=")), 1e9)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.fbx(filepath=src)
 ob = next(o for o in bpy.context.scene.objects if o.type == 'MESH')
@@ -74,11 +77,37 @@ if REPAIR:
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     stats(bm, "repaired")
     print("CAPS doubled %d split %d" % (len(dup), len(nm)))
+
+
+def loops_of(edges):
+    """open edges -> their loops (sets of edges), each with its size across"""
+    be, out = set(edges), []
+    while be:
+        e = be.pop()
+        comp, st = {e}, [e]
+        while st:
+            x = st.pop()
+            for v in x.verts:
+                for f in v.link_edges:
+                    if f in be:
+                        be.remove(f)
+                        comp.add(f)
+                        st.append(f)
+        co = np.array([v.co[:] for x in comp for v in x.verts])
+        out.append((comp, float(np.linalg.norm(co.max(0) - co.min(0)))))
+    return out
+
+
+def cappable(bm):
+    return [e for comp, size in loops_of([e for e in bm.edges if e.is_boundary]) if size < CAP_MAX for e in comp]
+
+
 # cap every open boundary loop, then give the caps the UVs their corners already have
 uv = bm.loops.layers.uv.active
 caps = 0
+model_faces = set(bm.faces)
 for attempt in range(4 if REPAIR else 1):
-    open_edges = [e for e in bm.edges if e.is_boundary]
+    open_edges = cappable(bm) if REPAIR else [e for e in bm.edges if e.is_boundary]
     if not open_edges:
         break
     before = set(bm.faces)
@@ -104,7 +133,7 @@ def fan_fill(bm):
     """the loops holes_fill leaves (it won't make a face whose corners another face already has): a fan from a new
     point at the loop's middle, with the UVs of the faces around it"""
     import mathutils
-    be, n = {e for e in bm.edges if e.is_boundary}, 0
+    be, n = set(cappable(bm)), 0
     while be:
         e0 = be.pop()
         ring, v, e = [e0.verts[0]], e0.verts[1], e0
@@ -142,14 +171,28 @@ if REPAIR:     # what's left: fan the loops holes_fill wouldn't take, split edge
         nm = [e for e in bm.edges if len(e.link_faces) > 2]
         if nm:
             bmesh.ops.split_edges(bm, edges=nm)
-        if not any(e.is_boundary for e in bm.edges):
+        if not cappable(bm):
             break
-        bmesh.ops.holes_fill(bm, edges=[e for e in bm.edges if e.is_boundary], sides=0)
+        bmesh.ops.holes_fill(bm, edges=cappable(bm), sides=0)
         caps += fan_fill(bm)
         bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    print("CAPS left open %d, three-sided %d" % (sum(1 for e in bm.edges if e.is_boundary),
-                                                  sum(1 for e in bm.edges if len(e.link_faces) > 2)))
+    left = loops_of([e for e in bm.edges if e.is_boundary])
+    print("CAPS left open %d edges in %d loops (%d of them cloth edges past cap_max), three-sided %d" % (
+        sum(len(c) for c, _ in left), len(left), sum(1 for _, z in left if z >= CAP_MAX),
+        sum(1 for e in bm.edges if len(e.link_faces) > 2)))
+if REPAIR:     # a cap whose corners come from different UV charts would smear a strip of the texture across it:
+    # give it its first corner's colour instead
+    flat = 0
+    for f in bm.faces:
+        if f in model_faces:
+            continue
+        us = [l[uv].uv for l in f.loops]
+        if max(abs(a.x - b.x) + abs(a.y - b.y) for a in us for b in us) > 0.02:
+            for l in f.loops[1:]:
+                l[uv].uv = us[0].copy()
+            flat += 1
+    print("CAPS %d faces spanning UV charts given one colour" % flat)
 stats(bm, "capped")
 print("CAPS", caps)
 bm.to_mesh(me)

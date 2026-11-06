@@ -13,11 +13,12 @@ without a modern model keeps its remastered rig.
 | `visor` | visor | orange cyborg |
 | `anarki` | anarki | rides a hoverboard: the board is rigged, the legs ride it |
 | `orb` | orbb | a walker: an eye on two arms it walks on; the gun sits in a mount on top that turns with the aim |
+| `xaero` | xaero | moves with id's own Xaero animations (`"motion": "md3"`); no scorpion arm; one eye taken out |
 
 ## Build
 
 ```
-python tools/fighter_swap/build_fighter.py doom visor anarki orb
+python tools/fighter_swap/build_fighter.py doom visor anarki orb xaero
 ```
 
 Needs Blender 4.2 or later (`BLENDER`, or `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`) and your
@@ -42,6 +43,24 @@ its joints in the model's T-pose (Blender coordinates: x is his left, -y his fro
    id weapon, `q3weapons.py`) and the left under the fore-end, with a rifleman's turn of the torso. It also covers
    recoil, the gauntlet, weapon drop and raise, the taunt and the falls. `tag_weapon` follows the right hand, and the
    tags, spine, ragdoll and IQM come from `tools/make_fighters.py`.
+
+### The id fighter's own moves
+
+A config with `"motion": {"source": "md3", ...}` (xaero) skips the hand-built animations: every frame is the id
+model's own (`md3_motion.py`). The md3 is vertex animation, so its body parts are found as the vertices that keep their
+distances over every frame, and its joints as the points where neighbouring parts pivot (both measured once and written
+into the config's `"joints"`, in the id model's TORSO_STAND over LEGS_IDLE pose). Each bone of the new skeleton takes
+the turn of the part it matches (`"segments"`), then the legs reach for his ankles and the arms for his wrists, scaled
+to the new limbs, so the feet stay planted and the hands stay on the gun, which hangs where id's tag_weapon has it.
+`"skip"` leaves surfaces out (the scorpion arm, cloth). `"voxels"` picks the heat-weight proxy sizes when the default
+ones break the mesh apart (an open robe).
+
+### Texture touch-ups
+
+`"retouch"` (`retouch.py`) paints the texture by where its texels land on the model, since Tripo's UV layout is
+scattered: an ellipse on the face seen from the front, `socket` (an eye taken out: a dark hollow, scarred rim),
+`paint_eye` (a fresh eye in an opening the painted one missed) or `move`. The build writes the result as the fighter's
+`oz_skin.jpg`.
 
 ### Walkers
 

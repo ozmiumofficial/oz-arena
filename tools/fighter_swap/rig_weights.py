@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import skeleton
 
 sk = skeleton.load(argv[0])
-VOXELS = [float(v) for v in argv[3].split(",")] if len(argv) > 3 else [0.006, 0.008, 0.005, 0.01]
+VOXELS = [float(v) for v in argv[3].split(",")] if len(argv) > 3 else     sk.cfg.get("voxels", [0.006, 0.008, 0.005, 0.01])      # a config's "voxels": sizes to try, in order
 bpy.ops.wm.open_mainfile(filepath=argv[1])
 mech = next(o for o in bpy.context.scene.objects if o.type == 'MESH')
 
@@ -68,8 +68,8 @@ def heat(proxy):
 
 
 def prune(proxy):
-    """keep only the proxy's main shell: crumbs the voxels leave of thin cables can make the solver give up on the
-    whole mesh (orbb); the mesh's bits there take the nearest proxy points' weights anyway"""
+    """drop the proxy's crumbs: what the voxels leave of thin cables can make the solver give up on the whole mesh
+    (orbb); the mesh's bits there take the nearest proxy points' weights anyway"""
     bm = bmesh.new()
     bm.from_mesh(proxy.data)
     seen, comps = set(), []
@@ -86,14 +86,17 @@ def prune(proxy):
             st.extend(e.other_vert(x) for e in x.link_edges)
         comps.append(comp)
     comps.sort(key=len, reverse=True)
-    bmesh.ops.delete(bm, geom=[v for c in comps[1:] for v in c], context='VERTS')
+    keep = max(len(comps[0]) * 0.02, 200)       # crumbs only: a robe or an arm can be a big shell of its own
+    drop = [c for c in comps if len(c) < keep]
+    print("PROXY shells kept: %s" % [len(c) for c in comps if len(c) >= keep])
+    bmesh.ops.delete(bm, geom=[v for c in drop for v in c], context='VERTS')
     bm.to_mesh(proxy.data)
     bm.free()
     for g in list(proxy.vertex_groups):
         proxy.vertex_groups.remove(g)
     proxy.parent = None
     proxy.modifiers.clear()
-    print("PROXY pruned to its main shell: %d of %d islands dropped" % (len(comps) - 1, len(comps)))
+    print("PROXY pruned: %d of %d islands dropped" % (len(drop), len(comps)))
 
 
 best = None

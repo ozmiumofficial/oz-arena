@@ -24,8 +24,11 @@ UPnP discovery takes seconds.
 #include <oleauto.h>
 
 static cvar_t	*oz_host_upnp, *oz_host_masters;
-static HANDLE	thread;
-static volatile LONG	state;		// 0 idle, 1 asking, 2 open, 3 refused
+static HANDLE	thread;				// Open, while it asks the router
+static HANDLE	closer;				// Close, while it takes a forward down
+// 0 idle, 1 asking, 2 open, 3 refused, 4 hosting ended while asking (Open takes its forward down).
+// 1 -> 2, 3 or 4 only by InterlockedCompareExchange, so Open and OzUpnp_Close never both miss a forward.
+static volatile LONG	state;
 static char		address[64];		// "ip:port" once open
 static char		why[128];
 static int		mappedPort;
@@ -67,6 +70,15 @@ static IStaticPortMappingCollection *Mappings( IUPnPNAT **nat ) {
 }
 
 
+// Open's answer: refused, unless hosting ended meanwhile (then idle)
+static void Refused( const char *reason ) {
+	Q_strncpyz( why, reason, sizeof( why ) );
+	if ( InterlockedCompareExchange( &state, 3, 1 ) != 1 ) {
+		InterlockedExchange( &state, 0 );
+	}
+}
+
+
 static DWORD WINAPI Open( LPVOID arg ) {
 	IUPnPNAT *nat = NULL;
 	IStaticPortMappingCollection *coll;
@@ -79,11 +91,9 @@ static DWORD WINAPI Open( LPVOID arg ) {
 	CoInitializeEx( NULL, COINIT_MULTITHREADED );
 	coll = Mappings( &nat );
 	if ( !coll ) {
-		Q_strncpyz( why, "no UPnP router answered", sizeof( why ) );
-		InterlockedExchange( &state, 3 );
+		Refused( "no UPnP router answered" );
 	} else if ( !LocalAddress( lan, sizeof( lan ) ) ) {
-		Q_strncpyz( why, "no LAN address", sizeof( why ) );
-		InterlockedExchange( &state, 3 );
+		Refused( "no LAN address" );
 	} else {
 		MultiByteToWideChar( CP_ACP, 0, lan, -1, wlan, ARRAY_LEN( wlan ) );
 		proto = SysAllocString( L"UDP" );
@@ -95,10 +105,16 @@ static DWORD WINAPI Open( LPVOID arg ) {
 			WideCharToMultiByte( CP_ACP, 0, ext, -1, ip, sizeof( ip ), NULL, NULL );
 			Com_sprintf( address, sizeof( address ), "%s:%i", ip, port );
 			mappedPort = port;
-			InterlockedExchange( &state, 2 );
+			if ( InterlockedCompareExchange( &state, 2, 1 ) != 1 ) {
+				// hosting ended while the router was asked: the forward comes down here, or it stays
+				// on the router (NATUPnP's static forwards don't expire)
+				IStaticPortMappingCollection_Remove( coll, port, proto );
+				address[0] = '\0';
+				mappedPort = 0;
+				InterlockedExchange( &state, 0 );
+			}
 		} else {
-			Q_strncpyz( why, "the router refused the port", sizeof( why ) );
-			InterlockedExchange( &state, 3 );
+			Refused( "the router refused the port" );
 		}
 		if ( ext ) {
 			SysFreeString( ext );
@@ -158,6 +174,14 @@ const char *OzUpnp_Address( void ) {
 	if ( !oz_host_upnp->integer ) {
 		return "";
 	}
+	if ( closer ) {
+		// the last forward is still coming down: asking now could be undone by its Remove
+		if ( WaitForSingleObject( closer, 0 ) != WAIT_OBJECT_0 ) {
+			return "";
+		}
+		CloseHandle( closer );
+		closer = NULL;
+	}
 	if ( state == 0 && !thread ) {
 		InterlockedExchange( &state, 1 );
 		thread = CreateThread( NULL, 0, Open, (LPVOID)(intptr_t)Cvar_VariableIntegerValue( "net_port" ), 0, NULL );
@@ -170,33 +194,60 @@ const char *OzUpnp_Address( void ) {
 			if ( oz_host_masters->integer ) {
 				Cvar_Set( "sv_ozMasters", "1" );
 			}
-		} else {
+		} else if ( state == 3 ) {
 			Com_Printf( "upnp: %s; peer-to-peer only\n", why );
 		}
+		// state 0: hosting ended while asking, and Open took its forward down; a host still on asks again
 	}
 	return state == 2 ? address : "";
 }
 
 
-// hosting ended: the forward comes down (on a thread: it can take a while)
+/*
+==================
+OzUpnp_Close
+
+Hosting ended: the forward comes down, on a thread (it can take a while). Still asking, the router's
+answer is Open's to undo. Quitting (OzUpnp_Shutdown) waits for it.
+==================
+*/
 void OzUpnp_Close( void ) {
-	if ( state == 2 && mappedPort ) {
-		HANDLE t = CreateThread( NULL, 0, Close, (LPVOID)(intptr_t)mappedPort, 0, NULL );
-		if ( t ) {
-			CloseHandle( t );
+	LONG was = InterlockedCompareExchange( &state, 4, 1 );
+	if ( was == 2 && mappedPort ) {
+		if ( closer ) {
+			WaitForSingleObject( closer, 3000 );	// the one before (an unhost, a host, an unhost in a row)
+			CloseHandle( closer );
 		}
+		closer = CreateThread( NULL, 0, Close, (LPVOID)(intptr_t)mappedPort, 0, NULL );
 	}
-	if ( state != 1 ) {
+	if ( was != 1 ) {
 		InterlockedExchange( &state, 0 );
+		mappedPort = 0;
+		address[0] = '\0';
 	}
-	mappedPort = 0;
-	address[0] = '\0';
 	Cvar_Set( "sv_ozMasters", "0" );
 }
 
 
+// the game quits: whatever forward is up or on its way comes down before the process ends
+void OzUpnp_Shutdown( void ) {
+	OzUpnp_Close();
+	if ( thread ) {
+		WaitForSingleObject( thread, 5000 );	// asking: Open removes what the router gives it
+		CloseHandle( thread );
+		thread = NULL;
+	}
+	if ( closer ) {
+		WaitForSingleObject( closer, 3000 );
+		CloseHandle( closer );
+		closer = NULL;
+	}
+}
+
+
 void OzUpnp_Print( void ) {
-	static const char *names[] = { "not asked", "asking the router", "open", "refused" };
-	Com_Printf( "upnp: %s%s%s\n", names[state & 3], state == 2 ? " at " : state == 3 ? ": " : "", state == 2 ? address : state == 3 ? why : "" );
+	static const char *names[] = { "not asked", "asking the router", "open", "refused", "taking the forward down" };
+	LONG s = state;
+	Com_Printf( "upnp: %s%s%s\n", names[s >= 0 && s <= 4 ? s : 0], s == 2 ? " at " : s == 3 ? ": " : "", s == 2 ? address : s == 3 ? why : "" );
 }
 #endif

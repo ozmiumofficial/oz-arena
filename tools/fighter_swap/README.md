@@ -13,12 +13,12 @@ without a modern model keeps its remastered rig.
 | `visor` | visor | orange cyborg |
 | `anarki` | anarki | rides a hoverboard: the board is rigged, the legs ride it |
 | `orb` | orbb | a walker: an eye on two arms it walks on; the gun sits in a mount on top that turns with the aim |
-| `xaero` | xaero | moves with id's own Xaero animations (`"motion": "md3"`); no scorpion arm; one eye taken out |
+| `xaero` | xaero | NOT SHIPPED (pulled 11/6/26, Tony didn't like the model). Config kept as the example of `"motion": "md3"` and texture touch-ups |
 
 ## Build
 
 ```
-python tools/fighter_swap/build_fighter.py doom visor anarki orb xaero
+python tools/fighter_swap/build_fighter.py doom visor anarki orb
 ```
 
 Needs Blender 4.2 or later (`BLENDER`, or `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`) and your

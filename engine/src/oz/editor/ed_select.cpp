@@ -863,7 +863,9 @@ void Session::start_push(const std::vector<std::pair<Id, int>> &faces, const Vec
 }
 
 void Session::start_group_push(const Handle &h) {
-	// each selected brush's face turned that way (its top, for the group's top): all pushed as one
+	// each selected brush's face turned that way and on the outside of the group (the tops at the group's
+	// top, for its top): all pushed as one. A face inside the group (a stack's lower tops) stays put
+	const double outer = h.normal.dot(h.base);
 	std::vector<std::pair<Id, int>> faces;
 	double d0 = 0;
 	bool one_plane = true;
@@ -874,7 +876,7 @@ void Session::start_group_push(const Handle &h) {
 		}
 		for (int f : shape(id).faces) {
 			const Plane &p = o->brush.faces[size_t(f)].plane;
-			if (p.n.dot(h.normal) > 0.999) {
+			if (p.n.dot(h.normal) > 0.999 && std::fabs(p.d - outer) < 0.5) {
 				one_plane &= faces.empty() || std::fabs(p.d - d0) < 1e-6;
 				d0 = p.d;
 				faces.push_back({id, f});

@@ -656,6 +656,7 @@ static int PlayerCount( void ) {
 // oz_upnp.c: the router's forward for an open host
 const char	*OzUpnp_Address( void );
 void		OzUpnp_Close( void );
+void		OzUpnp_Shutdown( void );
 void		OzUpnp_Print( void );
 #endif
 
@@ -1447,6 +1448,9 @@ void OzIce_Shutdown( qboolean quitting ) {
 	if ( !quitting ) {
 		return;		// a client restart (a mod switch) keeps the links: the connection carries on
 	}
+#ifdef _WIN32
+	OzUpnp_Shutdown();	// quitting while hosting: the router's forward comes down too
+#endif
 	for ( i = 0; i < ICE_LINKS; i++ ) {
 		FreeLink( &links[i], NULL );
 	}

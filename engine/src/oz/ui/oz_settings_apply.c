@@ -134,6 +134,16 @@ static void Window( const char *unused ) {
 	}
 }
 
+// Recording-friendly display: OpenGL frames through DXGI (sdl_dxgi.c), at the renderer's restart.
+// The Video tab's Apply restarts it at once, as it does the window.
+static void Capture( const char *v ) {
+	const char *value = ( atoi( v ) || !Q_stricmp( v, "true" ) ) ? "1" : "0";
+	if ( strcmp( Cvar_SavedString( "r_dxgi" ), value ) ) {
+		Cvar_Set2( "r_dxgi", value, qfalse );
+		vidRestart = qtrue;
+	}
+}
+
 static void RenderScale( const char *v ) { Set( "r_ozRenderScale", v ); }
 static void Upscaler( const char *v ) { Set( "r_ozUpscaler", !Q_stricmp( v, "fsr" ) ? "1" : "0" ); }
 static void Contrast( const char *v ) { Set( "r_ozContrast", v ); }
@@ -155,6 +165,8 @@ static void Shadows( const char *v ) {
 }
 
 static void Reflections( const char *v ) { SetLatched( "r_cubeMapping", atoi( v ) ? "1" : "0" ); }
+// the custom_textures folder (cl_oz_textures.c) is read as the renderer starts: restart it when Settings closes
+static void CustomTextures( const char *v ) { SetLatched( "cl_ozCustomTextures", atoi( v ) || !Q_stricmp( v, "true" ) ? "1" : "0" ); }
 
 static void AmbientOcclusion( const char *v ) {
 	static const char *const names[] = { "off", "low", "medium", "high", NULL };
@@ -263,11 +275,13 @@ static ozSetting_t settings[] = {
 	{ "oz_video_display_mode", Window },
 	{ "oz_video_resolution", Window },
 	{ "oz_video_monitor", Window },
+	{ "oz_video_capture", Capture },
 	{ "oz_video_render_scale", RenderScale },
 	{ "oz_video_upscaler", Upscaler },
 	{ "oz_video_contrast", Contrast },
 	{ "oz_graphics_shadows", Shadows },
 	{ "oz_graphics_reflections", Reflections },
+	{ "oz_graphics_custom_textures", CustomTextures },
 	{ "oz_graphics_ao", AmbientOcclusion },
 	{ "oz_graphics_bloom", Bloom },
 	{ "oz_graphics_antialiasing", Antialiasing },

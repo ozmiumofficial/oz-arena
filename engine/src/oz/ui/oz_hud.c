@@ -639,6 +639,7 @@ static cvar_t	*oz_hud;
 static cvar_t	*oz_hud_preset, *oz_hud_scale, *oz_hud_opacity, *oz_hud_show_speedometer, *oz_hud_speedometer;
 static cvar_t	*oz_hud_item_timers, *oz_hud_damage_numbers, *oz_hud_kill_feed, *oz_hud_ammo_bar, *oz_hud_chat_lines;
 static cvar_t	*oz_hud_chat_emoji;
+static cvar_t	*oz_hud_damage_debug;	// 1 logs each damage number's hit, 2 also works them out beside Oz's game's dmg (tests)
 static cvar_t	*oz_crosshair_shape, *oz_crosshair_thickness, *oz_crosshair_gap, *oz_crosshair_dot, *oz_crosshair_color;
 static cvar_t	*oz_crosshair_outline, *oz_crosshair_hit_color, *oz_crosshair_per_weapon;
 static cvar_t	*oz_crosshair_health, *oz_crosshair_opacity, *oz_crosshair_outline_width, *oz_crosshair_outline_opacity;
@@ -673,6 +674,7 @@ static const hudCvar_t hudCvars[] = {
 	{ &oz_hud_speedometer, "oz_hud_speedometer", "arc", CVAR_ARCHIVE },
 	{ &oz_hud_item_timers, "oz_hud_item_timers", "0", CVAR_ARCHIVE },
 	{ &oz_hud_damage_numbers, "oz_hud_damage_numbers", "1", CVAR_ARCHIVE },
+	{ &oz_hud_damage_debug, "oz_hud_damage_debug", "0", 0 },
 	{ &oz_hud_kill_feed, "oz_hud_kill_feed", "1", CVAR_ARCHIVE },
 	{ &oz_hud_ammo_bar, "oz_hud_ammo_bar", "1", CVAR_ARCHIVE },
 	{ &oz_hud_chat_lines, "oz_hud_chat_lines", "6", CVAR_ARCHIVE },
@@ -804,6 +806,9 @@ typedef struct {
 	float	pop;
 	vec3_t	pos, vel;
 	qboolean on;
+	// worked out on a game without Oz's dmg (GuessDamage): the damage known from the target's health and
+	// armor going down (PERS_ATTACKEE_ARMOR), the guessed rest since, and the health and armor last seen
+	int		exact, guess, lastS;
 } damageNumber_t;
 
 static struct {
@@ -1159,16 +1164,25 @@ static void AddChat( const char *text ) {
 	hud.numChat++;
 }
 
-static void DamageNumber( int target, int amount ) {
+// a snapshot's hit events, for damage numbers on a game without Oz's dmg (GuessDamage)
+#define MAX_SHOT_EVENTS	32
+static struct {
+	int		num;
+	struct { int event, weapon, target, shooter; vec3_t pos, start; } e[MAX_SHOT_EVENTS];
+	qboolean	alive[MAX_CLIENTS];		// alive in the last snapshot: a hit's victim may lie dead in this one
+} shotEv;
+
+// the number over a target, a new one unless it was hit within the last second, relaunched off its head
+static damageNumber_t *NumberFor( int target ) {
 	damageNumber_t	*n = NULL;
 	vec3_t			origin;
 	int				i;
 
 	if ( !oz_hud_damage_numbers->integer || target < 0 || target >= MAX_CLIENTS ) {
-		return;
+		return NULL;
 	}
 	if ( !EntityOrigin( target, origin ) ) {
-		return;
+		return NULL;
 	}
 	for ( i = 0; i < MAX_NUMBERS; i++ ) {
 		if ( hud.numbers[i].on && hud.numbers[i].target == target && hud.numbers[i].since < 1.0f ) {
@@ -1186,8 +1200,8 @@ static void DamageNumber( int target, int amount ) {
 		memset( n, 0, sizeof( *n ) );
 		n->on = qtrue;
 		n->target = target;
+		n->lastS = -1;
 	}
-	n->total += amount;
 	// relaunched off the head with the running total (damage_number.gd), in id units (32 a meter)
 	VectorCopy( origin, n->pos );
 	n->pos[2] += 40;
@@ -1196,6 +1210,16 @@ static void DamageNumber( int target, int amount ) {
 	n->vel[2] = 3.2f * 32;
 	n->since = 0;
 	n->pop = 0;
+	return n;
+}
+
+// Oz's game's dmg: the hit's whole damage (health and armor), as the server dealt it
+static void DamageNumber( int target, int amount ) {
+	damageNumber_t	*n = NumberFor( target );
+
+	if ( n ) {
+		n->total += amount;
+	}
 }
 
 // cg_servercmds.c CG_ParseScores: baseq3's "scores" (a mod with its own format just leaves the list
@@ -1474,11 +1498,16 @@ int OzHud_ServerCommand( const char *text ) {
 		const int	means = Cmd_Argc() > 4 ? atoi( Cmd_Argv( 4 ) ) : -1;
 		const int	time = Cmd_Argc() > 5 ? atoi( Cmd_Argv( 5 ) ) : -1;
 		const int	w = means >= 0 ? ModWeapon( means ) : cg.snap ? cg.snap->ps.weapon : 0;
-		hud.dmgFromServer = qtrue;
+		hud.dmgFromServer = oz_hud_damage_debug->integer < 2;
 		if ( cg.snap && target == cg.snap->ps.clientNum ) {
 			return 0;
 		}
-		DamageNumber( target, amount );
+		if ( oz_hud_damage_debug->integer ) {
+			Com_Printf( "ozdmg: server %d %d weapon %d time %d\n", target, amount, w, time );
+		}
+		if ( hud.dmgFromServer ) {
+			DamageNumber( target, amount );
+		}
 		if ( w > 0 && w < NAMES ) {
 			hud.damage[w] += amount;
 			if ( time < 0 || hud.hitAt[w] != time ) {
@@ -1672,6 +1701,7 @@ void OzHud_Reset( void ) {
 	memset( &cg, 0, sizeof( cg ) );
 	memset( &img, 0, sizeof( img ) );
 	memset( &moreScores, 0, sizeof( moreScores ) );
+	memset( &shotEv, 0, sizeof( shotEv ) );
 	BoardMouseReset();
 	cg.showScores = showScores;
 	hud.jump = -1;
@@ -1760,6 +1790,281 @@ static void ReadConfigstrings( void ) {
 	}
 }
 
+/*
+Damage numbers on a game without Oz's dmg command (id's, the mods' on community servers). The game tells
+the shooter only that a hit landed (PERS_HITS goes up in the snapshot of the frame it damaged in) and,
+in id's G_Damage, the health and armor the hit enemy had just before it (PERS_ATTACKEE_ARMOR: health << 8
+| armor). So, a snapshot at a time:
+- who: the hit events in the same snapshot that name a target (a bullet's flesh hit, a lightning or missile
+  hit), else the enemies near the rail's line, within a blast's radius, or nearest the view's line;
+- how much: id's 1.32 numbers for the weapon (with the quad's 3x), a blast's by id's G_RadiusDamage from
+  the snapshot's places; and once the same enemy is hit again, the fall of its health and armor between
+  the two hits, which is exactly what the hits before did (a hit's damage is what health and armor lose
+  together, however the armor shares it). So a run of hits counts exactly, but for its last one.
+*/
+static void NoteShotEvent( const entityState_t *es, int event ) {
+	switch ( event ) {
+	case EV_BULLET_HIT_FLESH:
+	case EV_MISSILE_HIT:
+	case EV_MISSILE_MISS:
+	case EV_MISSILE_MISS_METAL:
+	case EV_RAILTRAIL:
+		break;
+	default:
+		return;
+	}
+	if ( shotEv.num < MAX_SHOT_EVENTS ) {
+		shotEv.e[shotEv.num].event = event;
+		shotEv.e[shotEv.num].weapon = event == EV_BULLET_HIT_FLESH ? WP_MACHINEGUN : event == EV_RAILTRAIL ? WP_RAILGUN : es->weapon;
+		shotEv.e[shotEv.num].target = event == EV_BULLET_HIT_FLESH ? es->eventParm : event == EV_MISSILE_HIT ? es->otherEntityNum : -1;
+		shotEv.e[shotEv.num].shooter = event == EV_BULLET_HIT_FLESH ? es->otherEntityNum : event == EV_RAILTRAIL ? es->clientNum : -1;
+		VectorCopy( es->pos.trBase, shotEv.e[shotEv.num].pos );
+		VectorCopy( es->origin2, shotEv.e[shotEv.num].start );
+		shotEv.num++;
+	}
+}
+
+// an enemy you could have hurt in this snapshot: a player in it, alive now or a snapshot ago, not you or a teammate
+static const entityState_t *Enemy( int i ) {
+	const entityState_t	*es = SnapEntity( i );
+	const int			me = cl.snap.ps.clientNum;
+
+	if ( es->eType != ET_PLAYER || es->number < 0 || es->number >= MAX_CLIENTS || es->number == me ) {
+		return NULL;
+	}
+	if ( ( es->eFlags & EF_DEAD ) && !shotEv.alive[es->number] ) {
+		return NULL;
+	}
+	if ( cgs.gametype >= GT_TEAM && PlayerTeam( es->number ) && PlayerTeam( es->number ) == PlayerTeam( me ) ) {
+		return NULL;
+	}
+	return es;
+}
+
+static qboolean IsEnemy( int number ) {
+	int	i;
+
+	for ( i = 0; i < cl.snap.numEntities; i++ ) {
+		const entityState_t *es = Enemy( i );
+		if ( es && es->number == number ) {
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+// a player's box in id's game (SV_LinkEntity's absmin and absmax, a unit wider), standing
+static void PlayerBox( const vec3_t origin, vec3_t mins, vec3_t maxs ) {
+	VectorSet( mins, origin[0] - 16, origin[1] - 16, origin[2] - 25 );
+	VectorSet( maxs, origin[0] + 16, origin[1] + 16, origin[2] + 33 );
+}
+
+// the distance from a point to a segment
+static float SegmentDistance( const vec3_t p, const vec3_t a, const vec3_t b ) {
+	vec3_t	ab, ap, c;
+	float	t, len2;
+
+	VectorSubtract( b, a, ab );
+	VectorSubtract( p, a, ap );
+	len2 = DotProduct( ab, ab );
+	t = len2 > 0 ? DotProduct( ap, ab ) / len2 : 0;
+	t = t < 0 ? 0 : t > 1 ? 1 : t;
+	VectorMA( a, t, ab, c );
+	return Distance( p, c );
+}
+
+// the enemy nearest the view's line (the shotgun, the gauntlet, or any hit nothing else names), or -1
+static int EnemyInView( float reach ) {
+	const playerState_t	*ps = &cl.snap.ps;
+	vec3_t				eye, fwd, d;
+	float				best = 0.35f;
+	int					i, who = -1;
+
+	VectorCopy( ps->origin, eye );
+	eye[2] += ps->viewheight;
+	AngleVectors( ps->viewangles, fwd, NULL, NULL );
+	for ( i = 0; i < cl.snap.numEntities; i++ ) {
+		const entityState_t	*es = Enemy( i );
+		float				along, perp, score;
+		if ( !es ) {
+			continue;
+		}
+		VectorSubtract( es->pos.trBase, eye, d );
+		d[2] += 4;		// the box's middle
+		along = DotProduct( d, fwd );
+		if ( along <= 0 || along > reach ) {
+			continue;
+		}
+		perp = (float)sqrt( MAX( DotProduct( d, d ) - along * along, 0 ) );
+		score = MAX( perp - 40, 0 ) / along;		// how far off the line, past the box, for its distance
+		if ( score < best ) {
+			best = score;
+			who = es->number;
+		}
+	}
+	return who;
+}
+
+typedef struct { int target, hits, amount, last; } guessHit_t;
+
+static guessHit_t *GuessFor( guessHit_t *list, int *num, int target ) {
+	int	i;
+
+	for ( i = 0; i < *num; i++ ) {
+		if ( list[i].target == target ) {
+			return &list[i];
+		}
+	}
+	if ( *num == MAX_CLIENTS ) {
+		return NULL;
+	}
+	memset( &list[*num], 0, sizeof( list[0] ) );
+	list[*num].target = target;
+	return &list[( *num )++];
+}
+
+static void GuessHit( guessHit_t *list, int *num, int target, int amount ) {
+	guessHit_t	*g = GuessFor( list, num, target );
+
+	if ( g && amount > 0 ) {
+		g->hits++;
+		g->amount += amount;
+		g->last = amount;
+	}
+}
+
+// what a blast did to every enemy in its radius but the one it hit (id's G_RadiusDamage; damage with the quad's
+// share, then the shooter's handicap, as G_Damage takes it)
+static void GuessBlast( guessHit_t *list, int *num, const vec3_t at, int damage, float radius, int direct, int handicap ) {
+	int	i, k;
+
+	for ( i = 0; i < cl.snap.numEntities; i++ ) {
+		const entityState_t	*es = Enemy( i );
+		vec3_t				mins, maxs, v;
+		float				dist;
+		if ( !es || es->number == direct ) {
+			continue;
+		}
+		PlayerBox( es->pos.trBase, mins, maxs );
+		for ( k = 0; k < 3; k++ ) {
+			v[k] = at[k] < mins[k] ? mins[k] - at[k] : at[k] > maxs[k] ? at[k] - maxs[k] : 0;
+		}
+		dist = VectorLength( v );
+		if ( dist < radius ) {
+			GuessHit( list, num, es->number, (int)( damage * ( 1.0f - dist / radius ) ) * handicap / 100 );
+		}
+	}
+}
+
+// the hits PERS_HITS counted this snapshot, made weapon w's, onto the enemies they likely landed on
+static void GuessDamage( int w, int add ) {
+	const playerState_t	*ps = &cl.snap.ps;
+	const int			me = ps->clientNum;
+	const int			quad = ps->powerups[PW_QUAD] ? 3 : 1;
+	// id's G_Damage scales a hit by its shooter's handicap, which is the shooter's max health
+	const int			handicap = ps->stats[STAT_MAX_HEALTH] > 0 && ps->stats[STAT_MAX_HEALTH] < 100 ? ps->stats[STAT_MAX_HEALTH] : 100;
+	guessHit_t			list[MAX_CLIENTS];
+	int					num = 0, i, direct = 0, splash = 0, attackee;
+	float				radius = 0;
+
+	if ( !oz_hud_damage_numbers->integer || add <= 0 ) {
+		return;
+	}
+	switch ( w ) {
+	case WP_GAUNTLET:			direct = 50; break;
+	case WP_MACHINEGUN:			direct = cgs.gametype == GT_TEAM ? 5 : 7; break;
+	case WP_SHOTGUN:			direct = 10; break;
+	case WP_GRENADE_LAUNCHER:	direct = 100; splash = 100; radius = 150; break;
+	case WP_ROCKET_LAUNCHER:	direct = 100; splash = 100; radius = 120; break;
+	case WP_LIGHTNING:			direct = 8; break;
+	case WP_RAILGUN:			direct = 100; break;
+	case WP_PLASMAGUN:			direct = 20; splash = 15; radius = 20; break;
+	case WP_BFG:				direct = 100; splash = 100; radius = 120; break;
+	default:					return;
+	}
+	direct = direct * quad * handicap / 100;
+	for ( i = 0; i < shotEv.num; i++ ) {
+		const int	ev = shotEv.e[i].event, target = shotEv.e[i].target;
+		if ( shotEv.e[i].weapon != w ) {
+			continue;
+		}
+		if ( ev == EV_BULLET_HIT_FLESH && shotEv.e[i].shooter == me && IsEnemy( target ) ) {
+			GuessHit( list, &num, target, direct );
+		} else if ( ev == EV_MISSILE_HIT && IsEnemy( target ) ) {
+			GuessHit( list, &num, target, direct );
+		} else if ( ev == EV_RAILTRAIL && shotEv.e[i].shooter == me ) {
+			int k;
+			for ( k = 0; k < cl.snap.numEntities; k++ ) {
+				const entityState_t	*es = Enemy( k );
+				vec3_t				mid;
+				if ( es ) {
+					VectorCopy( es->pos.trBase, mid );
+					mid[2] += 4;
+					if ( SegmentDistance( mid, shotEv.e[i].start, shotEv.e[i].pos ) < 36 ) {
+						GuessHit( list, &num, es->number, direct );
+					}
+				}
+			}
+		}
+		if ( splash && ( ev == EV_MISSILE_HIT || ev == EV_MISSILE_MISS || ev == EV_MISSILE_MISS_METAL ) ) {
+			GuessBlast( list, &num, shotEv.e[i].pos, splash * quad, radius, ev == EV_MISSILE_HIT ? target : -1, handicap );
+		}
+	}
+	if ( !num ) {
+		// nothing in the snapshot names the target (pellets, the gauntlet, an event out of view): the enemy
+		// nearest where you look, every hit on it
+		const int who = EnemyInView( w == WP_GAUNTLET ? 96 : 8192 );
+		if ( who < 0 ) {
+			return;
+		}
+		GuessHit( list, &num, who, direct );
+		list[0].hits = add;
+		list[0].amount = direct * add;
+	} else if ( num == 1 && list[0].hits < add && !splash ) {
+		// more hits than the events showed (pellets, a bullet's event dropped): the same target's
+		list[0].amount += list[0].last * ( add - list[0].hits );
+		list[0].hits = add;
+	}
+	// the hit enemy's health and armor before the last hit, when only one was hit (a 16-bit stat on the wire)
+	attackee = ps->persistant[PERS_ATTACKEE_ARMOR] & 0xffff;
+	attackee = num == 1 && attackee ? ( attackee >> 8 ) + ( attackee & 0xff ) : -1;
+	for ( i = 0; i < num; i++ ) {
+		damageNumber_t	*n = NumberFor( list[i].target );
+		const int		s = num == 1 ? attackee : -1;
+		int				d, before;
+		if ( !n ) {
+			continue;
+		}
+		before = n->total;
+		d = s >= 0 && n->lastS >= 0 ? n->lastS - s : 0;
+		if ( d > 0 ) {
+			// the fall must be about what the hits since did (another weapon's numbers, a blast's distance): health
+			// or armor the enemy got between the two hits (a pickup, a respawn, regeneration) makes it short
+			const int expect = n->guess + list[i].amount - list[i].last;
+			if ( d * 2 < expect || d > expect * 2 + 10 ) {
+				d = 0;
+			}
+		}
+		if ( d > 0 ) {
+			// exactly what the hits since the last one's start did; this snapshot's last is still a guess
+			n->exact += d;
+			n->guess = list[i].last;
+		} else if ( s >= 0 ) {
+			n->exact += n->guess + list[i].amount - list[i].last;
+			n->guess = list[i].last;
+		} else {
+			n->exact += n->guess;
+			n->guess = list[i].amount;
+		}
+		n->lastS = s;
+		n->total = n->exact + n->guess;
+		if ( oz_hud_damage_debug->integer ) {
+			Com_Printf( "ozdmg: guess %d weapon %d hits %d/%d amount %d attackee %d known %d total %d change %d time %d\n", list[i].target, w,
+				list[i].hits, add, list[i].amount, s, d > 0 ? d : 0, n->total, n->total - before, cl.snap.serverTime );
+		}
+	}
+}
+
 // cg_event.c's event checks, on each new snapshot: the entities' events (temporary event entities
 // once, an entity's own event when its bits change) and the playerState's own (CG_CheckPlayerstateEvents)
 static void ReadEvents( void ) {
@@ -1777,6 +2082,7 @@ static void ReadEvents( void ) {
 	}
 	railShots = hud.shots[WP_RAILGUN];
 	memcpy( shotsBefore, hud.shots, sizeof( shotsBefore ) );
+	shotEv.num = 0;
 	for ( i = 0; i < cl.snap.numEntities; i++ ) {
 		const entityState_t	*es = SnapEntity( i );
 		const int			n = es->number & ( MAX_GENTITIES - 1 );
@@ -1784,12 +2090,14 @@ static void ReadEvents( void ) {
 		if ( es->eType > ET_EVENTS ) {
 			if ( !wasIn ) {
 				EntityEvent( es, ( es->eType - ET_EVENTS ) & ~EV_EVENT_BITS, qfalse );
+				NoteShotEvent( es, ( es->eType - ET_EVENTS ) & ~EV_EVENT_BITS );
 			}
 		} else if ( es->event != hud.entityEvent[n] || !wasIn ) {
 			const int old = hud.entityEvent[n];
 			hud.entityEvent[n] = es->event;
 			if ( ( es->event & ~EV_EVENT_BITS ) && ( wasIn ? es->event != old : hud.eventSnap >= 0 ) ) {
 				EntityEvent( es, es->event & ~EV_EVENT_BITS, es->number == ps->clientNum );
+				NoteShotEvent( es, es->event & ~EV_EVENT_BITS );
 			}
 		}
 		hud.entitySeen[n] = cl.snap.messageNum;
@@ -1846,8 +2154,20 @@ static void ReadEvents( void ) {
 				hud.statHits[w] = hud.shots[w];
 			}
 		}
+		if ( w > WP_NONE && w < NAMES ) {
+			GuessDamage( w, ps->persistant[PERS_HITS] - hud.railPersHits );
+		}
 	}
 	hud.railPersHits = ps->persistant[PERS_HITS];
+	for ( i = 0; i < MAX_CLIENTS; i++ ) {
+		shotEv.alive[i] = qfalse;
+	}
+	for ( i = 0; i < cl.snap.numEntities; i++ ) {
+		const entityState_t *es = SnapEntity( i );
+		if ( es->eType == ET_PLAYER && es->number >= 0 && es->number < MAX_CLIENTS && !( es->eFlags & EF_DEAD ) ) {
+			shotEv.alive[es->number] = qtrue;
+		}
+	}
 }
 
 static void LoadImages( void ) {

@@ -260,6 +260,11 @@ void Settings_Init() {
 		e.create = JsonBool( s, "create", false );
 		e.restart = JsonBool( s, "restart", false );
 		e.wired = JsonBool( s, "wired", true );
+#ifndef _WIN32
+		if ( JsonBool( s, "windows", false ) ) {
+			e.wired = false;	// a Windows-only setting (Recording-friendly display: DXGI)
+		}
+#endif
 		e.scale = JsonNumber( s, "scale", 1.0f );
 		e.hasRange = cJSON_GetObjectItemCaseSensitive( s, "min" ) && cJSON_GetObjectItemCaseSensitive( s, "step" );
 		e.min = JsonNumber( s, "min", 0 );
@@ -1395,6 +1400,7 @@ Rml::String Settings_PageRml() {
 		"<button class=\"btn small\" id=\"q3import\">Import from Quake III</button>"
 		"<button class=\"btn small primary\" id=\"xh_editor\" data-if=\"tab == 'crosshair' &amp;&amp; search == ''\" onclick=\"page crosshair\">Crosshair editor</button>"
 		"<button class=\"btn small primary\" id=\"gun_editor\" data-if=\"tab == 'gameplay' &amp;&amp; search == ''\" onclick=\"page gun\">Gun editor</button>"
+		"<button class=\"btn small\" id=\"tex_folder\" data-if=\"tab == 'graphics' &amp;&amp; search == ''\">Texture folder</button>"
 		"<span class=\"note\">{{apply_note}}</span>"
 		"<button class=\"btn small\" id=\"settings_discard\" data-if=\"apply_shown\" data-class-refused=\"pending == 0\">Discard</button>"
 		"<button class=\"btn small\" id=\"settings_apply\" data-if=\"apply_shown\" data-class-primary=\"pending &gt; 0\" data-class-refused=\"pending == 0\">Apply</button></div>\n"
@@ -1598,6 +1604,8 @@ public:
 				Printf( n < 0 ? "That isn't a config code\n" : "Applied %d settings from the code\n", n );
 			} else if ( id == "q3import" ) {
 				Menu_Q3Import( false );		// the player's Quake III config, over the page (oz_q3import.c)
+			} else if ( id == "tex_folder" ) {
+				OzE_ExecuteNow( "oz_textures open\n" );	// the custom_textures folder in the system's file browser (cl_oz_textures.c)
 			} else if ( id == "settings_apply" || id == "settings_discard" ) {
 				if ( staged.empty() ) {
 					PlaySound( Sound::Buzz );

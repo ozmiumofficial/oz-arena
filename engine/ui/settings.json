@@ -293,6 +293,22 @@
    "preview": ""
   },
   {
+   "key": "video/capture",
+   "tab": "video",
+   "label": "Recording-friendly display",
+   "type": "bool",
+   "default": true,
+   "tip": "Shows the game the way DirectX games do, so OBS, Discord and the Game Bar can record and stream it in every display mode. Off can reach higher frame rates above 500 fps, but recorders may show a black or frozen picture.",
+   "group": "Display",
+   "wired": true,
+   "restart": false,
+   "cvar": "oz_video_capture",
+   "windows": true,
+   "create": true,
+   "cvar_default": "1",
+   "preview": ""
+  },
+  {
    "key": "video/fov",
    "tab": "video",
    "label": "Field of view",
@@ -636,6 +652,21 @@
     "high": "0"
    },
    "cvar_default": "0",
+   "preview": ""
+  },
+  {
+   "key": "graphics/custom_textures",
+   "tab": "graphics",
+   "label": "Custom textures",
+   "type": "bool",
+   "default": true,
+   "tip": "Images you drop in your custom_textures folder replace the game's textures of the same name: wall01.png replaces wall01, whatever its format. Texture folder below opens it. Off on servers that only allow their own files. Applies when Settings closes (the renderer restarts).",
+   "group": "Image",
+   "wired": true,
+   "restart": false,
+   "cvar": "oz_graphics_custom_textures",
+   "create": true,
+   "cvar_default": "1",
    "preview": ""
   },
   {

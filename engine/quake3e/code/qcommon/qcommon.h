@@ -918,6 +918,10 @@ const char *FS_GetBaseGameDir( void );
 
 const char *FS_GetHomePath( void );
 const char *FS_GetMapsPath( void );	// Oz
+// Oz: custom textures (cl_oz_textures.c): the file system is pure (a server's paks only), and the file
+// on disk FS_ReadFile reads for one of its "$oztex/..." names (NULL in the dedicated server)
+qboolean FS_OzPure( void );
+extern const char *(*fs_ozCustomPath)( const char *qpath );
 
 qboolean FS_StripExt( char *filename, const char *ext );
 qboolean FS_AllowedExtension( const char *fileName, qboolean allowPk3s, const char **ext );

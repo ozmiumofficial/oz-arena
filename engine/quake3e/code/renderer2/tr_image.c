@@ -2426,6 +2426,24 @@ static void R_LoadImage( const char *name, byte **pic, int *width, int *height, 
 	*picFormat = GL_RGBA8;
 	*numMips = 0;
 
+	// Oz: the player's custom_textures file for this image comes first (cl_oz_textures.c), over
+	// the remastered .dds too
+	if (ri.OzCustomTexture && (altName = ri.OzCustomTexture(name, "dds png tga jpg jpeg pcx bmp")) != NULL) {
+		ext = COM_GetExtension(altName);
+		if (!Q_stricmp(ext, "dds")) {
+			R_LoadDDS(altName, pic, width, height, picFormat, numMips);
+		} else {
+			for (i = 0; i < numImageLoaders; i++) {
+				if (!Q_stricmp(ext, imageLoaders[i].ext)) {
+					imageLoaders[i].ImageLoader(altName, pic, width, height);
+					break;
+				}
+			}
+		}
+		if (*pic)
+			return;
+	}
+
 	Q_strncpyz(localName, name, sizeof(localName));
 	ext = COM_GetExtension(localName);
 	COM_StripExtension(name, base, sizeof(base));

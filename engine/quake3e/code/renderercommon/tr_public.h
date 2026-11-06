@@ -258,6 +258,9 @@ typedef struct {
 	void	(*ProfDetail)( const char *name, int64_t start );
 	// a JPEG decoded smaller by its DCT, at least atLeast texels across (0: whole)
 	void	(*CL_LoadJPGScaled)( const char *filename, unsigned char **pic, int *width, int *height, int atLeast );
+	// Oz: the player's custom_textures file for an image being loaded, in one of the formats listed
+	// ("png tga jpg"), as a name to load it by; NULL for none (cl_oz_textures.c)
+	const char *(*OzCustomTexture)( const char *name, const char *exts );
 
 } refimport_t;
 

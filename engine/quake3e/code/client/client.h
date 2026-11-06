@@ -651,6 +651,11 @@ void CL_NDP_Step( void );
 void CL_OzReplay_Init( void );
 void CL_OzReplay_Close( void );
 
+// Oz: the player's custom_textures folder (engine/src/oz/textures/cl_oz_textures.c)
+void OzTex_Init( void );
+void OzTex_Scan( void );
+const char *OzTex_Find( const char *name, const char *exts );
+
 // cl_cgame.c, the cgame's side of the new demo player
 void CL_CGNDP_AnalyzeCommand( int serverTime );
 void CL_CGNDP_GenerateCommands( const char **commands, int *numCommandBytes );

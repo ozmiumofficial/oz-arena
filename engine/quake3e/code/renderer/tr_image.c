@@ -917,6 +917,23 @@ static const char *R_LoadImage( const char *name, byte **pic, int *width, int *h
 	*width = 0;
 	*height = 0;
 
+	// Oz: the player's custom_textures file for this image comes first (cl_oz_textures.c)
+	if ( ri.OzCustomTexture && ( altName = ri.OzCustomTexture( name, "png tga jpg jpeg pcx bmp" ) ) != NULL )
+	{
+		ext = COM_GetExtension( altName );
+		for ( i = 0; i < numImageLoaders; i++ )
+		{
+			if ( !Q_stricmp( ext, imageLoaders[ i ].ext ) )
+			{
+				Q_strncpyz( localName, altName, sizeof( localName ) );
+				imageLoaders[ i ].ImageLoader( localName, pic, width, height );
+				if ( *pic )
+					return localName;
+				break;
+			}
+		}
+	}
+
 	Q_strncpyz( localName, name, sizeof( localName ) );
 
 	ext = COM_GetExtension( localName );

@@ -183,6 +183,7 @@ const std::vector<Action> &actions() {
 		{"light_intensity", "Light intensity", "", "ed light_intensity <n>: the selected lights' brightness, the \"light\" key (300 by default); a light with a range keeps it"},
 		{"light_range", "Light range", "", "ed light_range <units>: how far the selected lights reach: they fade evenly to nothing there (linear falloff, its \"fade\" key); 0 lights as real light does, fading with the distance squared"},
 		{"light_cone", "Spotlight cone", "", "ed light_cone <units>: a spotlight's radius where it meets its target, the \"radius\" key (64 by default)"},
+		{"handles", "Handles", "", "ed handles: the view's handles and where they are on screen (the tests')"},
 		{"key_remove", "Remove key", "", "ed key_remove <key>: from the selected entities"},
 		{"key_rename", "Rename key", "", "ed key_rename <key> <new name>: on the selected entities"},
 		{"history", "History", "", "ed history <n>: back or forward to n steps done"},
@@ -992,6 +993,16 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 			shader = a[0].compare(0, 9, "textures/") == 0 ? a[0].substr(9) : a[0];
 		}
 		say("New brushes: " + shader);
+	} else if (action == "handles") {
+		// test hook: each handle the view shows, in the view's pixels from its top left
+		for (const Handle &h : handles()) {
+			double x, y;
+			if (project(h.at, x, y)) {
+				char buf[128];
+				std::snprintf(buf, sizeof buf, "ed handles: kind %d a %d at %d %d\n", int(h.kind), h.a, int(x) - vx_, int(y) - vy_);
+				OzE_Print(buf);
+			}
+		}
 	} else if (action == "click" || action == "drag" || action == "hover" || action == "pick") {
 		// test hooks, in the view's pixels from its top left: ed click x y [mods], ed drag x0 y0 x1 y1 [mods]
 		const int x0 = vx_ + int(arg(a, 0)), y0 = vy_ + int(arg(a, 1));
@@ -1395,7 +1406,7 @@ bool Session::size_tag(std::string &text, double &sx, double &sy) const {
 		std::snprintf(buf, sizeof buf, "%g x %g x %g", s.x, s.y, s.z);
 	} else if (!drag_note_.empty()) {
 		const Bounds b = selection_bounds();
-		if ((drag_ == Drag::Push || drag_ == Drag::Corners) && !b.empty()) {
+		if ((drag_ == Drag::Push || drag_ == Drag::Corners || drag_ == Drag::Stretch) && !b.empty()) {
 			const Vec3 s = b.hi - b.lo;
 			std::snprintf(buf, sizeof buf, "%s Â· %g x %g x %g", drag_note_.c_str(), s.x, s.y, s.z);
 		} else {
@@ -1459,6 +1470,8 @@ std::string Session::hint() const {
 		return "Drag: move this edge (Alt up and down, Ctrl off the grid) \xc2\xb7 click: select its corners";
 	case Handle::Face:
 		return "Drag: push or pull this face (Ctrl off the grid)";
+	case Handle::GroupFace:
+		return "Drag: stretch the whole selection this way, its far side staying put (Ctrl off the grid) \xc2\xb7 to reshape one piece, select it alone";
 	default:
 		break;
 	}

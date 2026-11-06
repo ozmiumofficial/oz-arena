@@ -133,7 +133,7 @@ struct Hit {
 // A handle on the selection, drawn over the view: a brush's corner, an edge's middle, a face's diamond
 // on its stem, or one of the clipper's points.
 struct Handle {
-	enum Kind { None, Corner, Edge, Face, ClipPoint } kind = None;
+	enum Kind { None, Corner, Edge, Face, ClipPoint, GroupFace } kind = None;  // GroupFace: a side of a group's box (a: axis * 2 + 1 for its high side)
 	Id id = 0;
 	int a = -1, b = -1;  // the corner, the edge's two corners, the face, the clip point
 	Vec3 at;             // where it's drawn (a face's: the diamond's tip)
@@ -349,7 +349,7 @@ public:
 	enum { SHIFT = 1, CTRL = 2, ALT = 4 };
 
 private:
-	enum class Drag { None, Pending, Move, Box, Push, Corners, Pan, Footprint, ClipPoint };
+	enum class Drag { None, Pending, Move, Box, Push, Corners, Pan, Footprint, ClipPoint, Stretch };
 	struct Shape {  // a selected brush's corners, edges and faces, cached until it changes
 		ObjectPtr of;
 		std::vector<Vec3> corners;
@@ -381,6 +381,9 @@ private:
 	void start_move(const Hit &hit, int mods);
 	void move_plane(bool vertical);
 	void start_push(const std::vector<std::pair<Id, int>> &faces, const Vec3 &grab, const Vec3 &n, const char *label);
+	// A group's side dragged: the whole selection stretched along that axis, its other side staying put
+	void start_stretch(const Handle &h);
+	bool group_handles() const;  // two brushes or curves selected or more: one box of handles for them all
 	void start_corners(const Handle &h, int mods);
 	void drag_corners(const Vec3 &d);
 	void reselect_corners(const Vec3 &d);
@@ -552,6 +555,10 @@ private:
 	Vec3 push_grab_, push_n_;
 	double push_d0_ = 0, push_dist_ = 0;
 	bool push_grid_ = false;
+	Bounds stretch_b0_;      // the group's box when the stretch began
+	int stretch_axis_ = 2;
+	bool stretch_hi_ = true;  // its high side dragged (else its low side)
+	double stretch_to_ = 0;   // where the dragged side is now
 	std::unordered_map<Id, ObjectPtr> start_;      // objects before a live drag changed them
 	std::map<Id, std::vector<Vec3>> corner_pts_;   // their corners then
 	std::map<Id, std::vector<int>> corner_moving_;

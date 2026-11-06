@@ -53,7 +53,7 @@ def run(name):
     todo = STEPS[STEPS.index(a.start):]
     print("== %s (replaces %s)" % (name, cfg.get("slot", name)))
     if "prep" in todo:
-        blender("prep.py", os.path.join(HERE, cfg["source"]), d, "100000000")
+        blender("prep.py", os.path.join(HERE, cfg["source"]), d, "100000000", *(["repair"] if cfg.get("repair") else []))
     if "stretch" in todo:
         blender("stretch_arms.py", cfg_path, os.path.join(d, "clean.blend"), rig)
     if "weights" in todo:

@@ -2,7 +2,7 @@
 dozens of loose shells, which heat weighting can't cross). Saves the copy's vertices and weights; anim_fighter.py
 moves them onto the real mesh by nearest points.
 blender -b --python rig_weights.py -- fighters/<name>.json mesh.blend out.npz"""
-import bpy, sys, os
+import bpy, bmesh, sys, os
 import numpy as np
 argv = sys.argv[sys.argv.index("--") + 1:]
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -67,11 +67,44 @@ def heat(proxy):
     return co.reshape(-1, 3), W
 
 
+def prune(proxy):
+    """keep only the proxy's main shell: crumbs the voxels leave of thin cables can make the solver give up on the
+    whole mesh (orbb); the mesh's bits there take the nearest proxy points' weights anyway"""
+    bm = bmesh.new()
+    bm.from_mesh(proxy.data)
+    seen, comps = set(), []
+    for v in bm.verts:
+        if v in seen:
+            continue
+        comp, st = [], [v]
+        while st:
+            x = st.pop()
+            if x in seen:
+                continue
+            seen.add(x)
+            comp.append(x)
+            st.extend(e.other_vert(x) for e in x.link_edges)
+        comps.append(comp)
+    comps.sort(key=len, reverse=True)
+    bmesh.ops.delete(bm, geom=[v for c in comps[1:] for v in c], context='VERTS')
+    bm.to_mesh(proxy.data)
+    bm.free()
+    for g in list(proxy.vertex_groups):
+        proxy.vertex_groups.remove(g)
+    proxy.parent = None
+    proxy.modifiers.clear()
+    print("PROXY pruned to its main shell: %d of %d islands dropped" % (len(comps) - 1, len(comps)))
+
+
 best = None
 for size in VOXELS:
     proxy = make_proxy(size)
     co, W = heat(proxy)
     bad = float((W.sum(1) < 1e-4).mean())
+    if bad > 0.99:
+        prune(proxy)
+        co, W = heat(proxy)
+        bad = float((W.sum(1) < 1e-4).mean())
     print("PROXY voxel %.3f unweighted %.1f%%" % (size, 100 * bad))
     if best is None or bad < best[0]:
         best = (bad, co, W)

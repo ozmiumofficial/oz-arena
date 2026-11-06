@@ -8,6 +8,11 @@ bone when posing).
 Arms: Tripo's fighters have arms about two thirds of a person's, too short to hold a gun with both hands. Each config
 lengthens them along the T-pose axis between shoulder and wrist ("arm_stretch"); the stretch eases in past the
 shoulder joint so the pads barely move, and the hand keeps its size. arm_x maps the original |x| to the new one.
+
+A walker ("body": "walker", orbb) has no arms to hold a gun: it walks on two arms, which are its legs here (thigh =
+upper arm from the shoulder, calf = forearm, foot = hand, toe = knuckles), its body rides between them (pelvis), the
+gun sits in a mount on top that turns with the aim (spine = the mount's post, chest = its cradle: the torso), and its
+eye is the head joint, a child of the pelvis. Its config has no "arms"; "mount" and "eye" place those joints.
 """
 import json, os
 
@@ -23,15 +28,17 @@ class Skeleton:
         self.cfg = cfg
         self.name = cfg["name"]
         self.slot = cfg.get("slot", cfg["name"])
-        a = cfg["arms"]
+        self.walker = cfg.get("body") == "walker"
+        a = cfg.get("arms", {"stretch": 1.0, "ramp": [0.0, 1.0], "wrist_x": 1.0, "min_z": 99.0})
         self.stretch = a["stretch"]
         self.ramp = tuple(a["ramp"])
         self.wrist = a["wrist_x"]
         self.min_z = a["min_z"]
         L = {k: tuple(v) for k, v in cfg["left"].items()}
         for n in ("upperarm", "forearm", "hand", "fingers"):
-            x, y, z = L[n]
-            L[n] = (self.arm_x(x), y, z)
+            if n in L:
+                x, y, z = L[n]
+                L[n] = (self.arm_x(x), y, z)
         C = {k: tuple(v) for k, v in cfg["center"].items()}
         self.L, self.C = L, C
         self.sole_z = cfg.get("sole_z", 0.0)
@@ -46,7 +53,7 @@ class Skeleton:
             x, y, z = L[n]
             return (x if s == "L" else -x, y, z)
         J = [("root", None, "l", C["root"], C["pelvis"]),
-             ("pelvis", "root", "l", C["pelvis"], C["spine"])]
+             ("pelvis", "root", "l", C["pelvis"], C["spine"] if "spine" in C else tuple(cfg["mount"]["post"]))]
         if self.board:
             c = tuple(self.board["center"])
             J.append(("board", "root", "l", c, (c[0] + self.board["half_length"], c[1], c[2])))
@@ -55,6 +62,14 @@ class Skeleton:
                   ("calf_" + s, "thigh_" + s, "l", side("calf", s), side("foot", s)),
                   ("foot_" + s, "calf_" + s, "l", side("foot", s), side("toe", s)),
                   ("toe_" + s, "foot_" + s, "l", side("toe", s), side("toetip", s))]
+        if self.walker:
+            m = cfg["mount"]
+            J += [("spine", "pelvis", "u", tuple(m["post"]), tuple(m["cradle"])),
+                  ("chest", "spine", "u", tuple(m["cradle"]), tuple(m["top"])),
+                  ("head", "pelvis", "l", C["eye"], C["eye_front"])]
+            self.JOINTS = J
+            self.DEFORM = [j[0] for j in J if j[0] != "root"]
+            return
         J += [("spine", "pelvis", "u", C["spine"], C["chest"]),
               ("chest", "spine", "u", C["chest"], C["neck"]),
               ("neck", "chest", "u", C["neck"], C["head"]),

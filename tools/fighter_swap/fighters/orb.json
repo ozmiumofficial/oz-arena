@@ -1,0 +1,33 @@
+{
+  "name": "orb",
+  "slot": "orbb",
+  "source": "sources/orb/tripo_convert_f2a740fa-e0f8-4f8c-86da-8dc76080806f.fbx",
+  "texture": "sources/orb/tripo_convert_f2a740fa-e0f8-4f8c-86da-8dc76080806f.fbm/tripo_rgb_7226f20f-c069-4b83-a0b6-bd3f2954bbe5.jpg",
+  "repair": true,
+  "body": "walker",
+  "locomotion": "walk",
+  "knee_dir": -1,
+  "sole_z": 0.0,
+  "heel_y": 0.15,
+  "lie": 0.29,
+  "lie_side": 0.085,
+  "left": {
+    "thigh": [0.170, 0.110, 0.525],
+    "calf": [0.210, 0.140, 0.310],
+    "foot": [0.218, 0.100, 0.080],
+    "toe": [0.222, 0.020, 0.025],
+    "toetip": [0.230, -0.050, 0.010]
+  },
+  "center": {
+    "root": [0.000, 0.000, 0.000],
+    "pelvis": [0.000, 0.030, 0.470],
+    "eye": [0.005, -0.165, 0.435],
+    "eye_front": [0.005, -0.270, 0.435]
+  },
+  "mount": {
+    "post": [0.000, 0.040, 0.715],
+    "cradle": [0.000, 0.050, 0.780],
+    "top": [0.000, 0.050, 0.830],
+    "cup": [0.000, 0.050, 0.815]
+  }
+}

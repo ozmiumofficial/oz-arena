@@ -56,7 +56,7 @@ P = pos_v[tri_verts.ravel()[first]]
 N = cn[L[first]]
 N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
 UV = uv[L[first]]
-T = inv.reshape(-1, 3)
+T = inv.reshape(-1, 3)[:, ::-1]                # Blender's counter-clockwise front faces -> id's clockwise
 TAN = mf.tangents(P, N, UV, T)
 print("verts %d tris %d  bounds %s %s" % (len(P), len(T), P.min(0).round(1), P.max(0).round(1)))
 prim = dict(pos=P, nrm=N, uv=UV, tan=TAN, jw=np.ones((len(P), 1)), ji=np.zeros((len(P), 1), int))
@@ -83,9 +83,7 @@ rd = lambda n: np.asarray(Image.open(os.path.join(texdir, n)))
 base = rd("rocket_launcher_basecolor.png")
 base = np.dstack([base[..., :3], np.full(base.shape[:2], 255, np.uint8)])
 nrm = rd("rocket_launcher_normal.png")[..., :3].copy()
-# Blender's green-up normal map reads right as it is with make_fighters.tangents (flipped, the barrel streaked in game)
-if os.environ.get("NFLIP", "0") == "1":
-    nrm[..., 1] = 255 - nrm[..., 1]
+nrm[..., 1] = 255 - nrm[..., 1]              # Blender's green-up map -> rend2's t-down tangent space (as make_pk3s)
 nrm = np.dstack([nrm, np.full(nrm.shape[:2], 255, np.uint8)])
 orm = rd("rocket_launcher_orm.png")[..., :3]
 spec = np.dstack([orm[..., 1], orm[..., 2], orm[..., 0], np.full(orm.shape[:2], 255, np.uint8)]).astype(np.uint8)

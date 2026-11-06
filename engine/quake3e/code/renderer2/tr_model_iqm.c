@@ -213,7 +213,9 @@ qboolean R_LoadIQM( model_t *mod, void *buffer, int filesize, const char *mod_na
 	}
 
 	LL( header->filesize );
-	if( header->filesize > filesize || header->filesize > 16<<20 ) {
+	// Oz: 64 MB, not ioq3's 16: the remodeled weapons (Settings > Experimental) are full-detail meshes, the
+	// rocket launcher's 200k triangles about 20 MB
+	if( header->filesize > filesize || header->filesize > 64<<20 ) {
 		return qfalse;
 	}
 

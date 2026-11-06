@@ -279,25 +279,25 @@ std::vector<Handle> Session::handles() {
 		return out;
 	}
 	if (group_handles()) {
-		// one diamond on each side of the group's box (those facing the camera): dragged, it stretches them all
+		// a diamond on each side of the group's box that faces the camera, as a brush's face has
 		const Bounds b = selection_bounds();
 		const Vec3 c = b.center();
+		const double lo3[3] = {b.lo.x, b.lo.y, b.lo.z}, hi3[3] = {b.hi.x, b.hi.y, b.hi.z};
 		for (int axis = 0; axis < 3; axis++) {
 			for (int hi = 0; hi < 2; hi++) {
 				Vec3 n, base = c;
 				double *nv[3] = {&n.x, &n.y, &n.z}, *bv[3] = {&base.x, &base.y, &base.z};
-				const double lo3[3] = {b.lo.x, b.lo.y, b.lo.z}, hi3[3] = {b.hi.x, b.hi.y, b.hi.z};
 				*nv[axis] = hi ? 1 : -1;
 				*bv[axis] = hi ? hi3[axis] : lo3[axis];
 				if (ortho_axis_ >= 0 ? std::fabs(n.dot(fwd_)) > 0.95 : n.dot(base - eye_) >= 0) {
-					continue;  // turned away (a 2D view: facing it, it can't be dragged)
+					continue;  // turned away (a 2D view: facing it, it can't push)
 				}
 				Handle h;
 				h.kind = Handle::GroupFace;
 				h.a = axis * 2 + hi;
 				h.base = base;
 				h.normal = n;
-				h.at = base + n * (units_per_pixel(base) * DIAMOND_OUT * 1.4);
+				h.at = base + n * (units_per_pixel(base) * DIAMOND_OUT);
 				out.push_back(h);
 			}
 		}
@@ -370,7 +370,7 @@ bool Session::group_handles() const {
 	int n = 0;
 	for (Id id : sel) {
 		const Object *o = doc.get(id);
-		n += o && (o->kind == Kind::Brush || o->kind == Kind::Patch);
+		n += o && o->kind == Kind::Brush;
 	}
 	return n >= 2;
 }
@@ -503,7 +503,7 @@ void Session::motion(int m) {
 		} else if (tool == Tool::Select && (h.kind == Handle::Corner || h.kind == Handle::Edge)) {
 			start_corners(h, press_mods_);
 		} else if (tool == Tool::Select && h.kind == Handle::GroupFace) {
-			start_stretch(h);
+			start_group_push(h);
 		} else if (tool == Tool::Select && h.kind == Handle::Face) {
 			// grab where the press ray passes the face's axis, so the face doesn't jump to the cursor
 			start_push({{h.id, h.a}}, h.base, h.normal, "Push face");
@@ -599,47 +599,6 @@ void Session::motion(int m) {
 		drag_note_ = buf;
 		break;
 	}
-	case Drag::Stretch: {
-		// where the press ray passes the side's axis, as a pushed face's
-		Vec3 o, d;
-		ray(mx_, my_, o, d);
-		const Vec3 n(stretch_axis_ == 0 ? (stretch_hi_ ? 1 : -1) : 0, stretch_axis_ == 1 ? (stretch_hi_ ? 1 : -1) : 0, stretch_axis_ == 2 ? (stretch_hi_ ? 1 : -1) : 0);
-		const double lo3[3] = {stretch_b0_.lo.x, stretch_b0_.lo.y, stretch_b0_.lo.z}, hi3[3] = {stretch_b0_.hi.x, stretch_b0_.hi.y, stretch_b0_.hi.z};
-		const double from = stretch_hi_ ? hi3[stretch_axis_] : lo3[stretch_axis_], keep = stretch_hi_ ? lo3[stretch_axis_] : hi3[stretch_axis_];
-		const Vec3 w = o - push_grab_;
-		const double b = d.dot(n), dd = d.dot(d), denom = dd - b * b;
-		if (std::fabs(denom) < 1e-6) {
-			return;
-		}
-		const double s = (dd * n.dot(w) - b * d.dot(w)) / denom;
-		double to = from + (stretch_hi_ ? s : -s);
-		if (!(m & CTRL)) {
-			to = snap(to);
-		}
-		const double least = (m & CTRL) ? 1 : grid;  // never thinner than a grid step, nor turned inside out
-		to = stretch_hi_ ? std::max(to, keep + least) : std::min(to, keep - least);
-		if (to == stretch_to_) {
-			return;
-		}
-		const double k = (to - keep) / (from - keep);
-		std::vector<Id> ids;
-		for (auto &kv : start_) {
-			doc.put(kv.first, std::const_pointer_cast<Object>(kv.second));
-			ids.push_back(kv.first);
-		}
-		Vec3 scale(1, 1, 1), pivot;
-		double *sv[3] = {&scale.x, &scale.y, &scale.z}, *pv[3] = {&pivot.x, &pivot.y, &pivot.z};
-		*sv[stretch_axis_] = k;
-		*pv[stretch_axis_] = keep;
-		transform(doc, ids, scaling(scale, pivot), false, "");
-		changed(ids);
-		stretch_to_ = to;
-		static const char *names[3] = {"across (X)", "across (Y)", "up (Z)"};
-		char buf[96];
-		std::snprintf(buf, sizeof buf, "Stretch %s to %g", names[stretch_axis_], std::fabs(to - keep));
-		drag_note_ = buf;
-		break;
-	}
 	case Drag::Corners: {
 		const bool alt = (m & ALT) != 0 && ortho_axis_ < 0;  // a 2D view's drag stays in its plane
 		if (alt != vertical_) {
@@ -716,7 +675,6 @@ void Session::release(int m) {
 		box_select(press_x_, press_y_, mx_, my_, press_mods_);
 		break;
 	case Drag::Push:
-	case Drag::Stretch:
 		doc.end();
 		start_.clear();
 		corners.clear();  // the brush numbers its corners anew
@@ -835,7 +793,6 @@ void Session::click(int m, bool twice) {
 void Session::cancel_drag() {
 	switch (drag_) {
 	case Drag::Push:
-	case Drag::Stretch:
 	case Drag::Corners: {
 		std::vector<Id> ids;
 		for (auto &kv : start_) {
@@ -905,22 +862,34 @@ void Session::start_push(const std::vector<std::pair<Id, int>> &faces, const Vec
 	drag_ = Drag::Push;
 }
 
-void Session::start_stretch(const Handle &h) {
-	stretch_b0_ = selection_bounds();
-	stretch_axis_ = h.a / 2;
-	stretch_hi_ = (h.a & 1) != 0;
-	push_grab_ = h.base;
-	start_.clear();
-	for (Id id : selected()) {
-		start_[id] = doc.ptr(id);
+void Session::start_group_push(const Handle &h) {
+	// each selected brush's face turned that way (its top, for the group's top): all pushed as one
+	std::vector<std::pair<Id, int>> faces;
+	double d0 = 0;
+	bool one_plane = true;
+	for (Id id : sel) {
+		const Object *o = doc.get(id);
+		if (!o || o->kind != Kind::Brush) {
+			continue;
+		}
+		for (int f : shape(id).faces) {
+			const Plane &p = o->brush.faces[size_t(f)].plane;
+			if (p.n.dot(h.normal) > 0.999) {
+				one_plane &= faces.empty() || std::fabs(p.d - d0) < 1e-6;
+				d0 = p.d;
+				faces.push_back({id, f});
+			}
+		}
 	}
-	const double lo3[3] = {stretch_b0_.lo.x, stretch_b0_.lo.y, stretch_b0_.lo.z}, hi3[3] = {stretch_b0_.hi.x, stretch_b0_.hi.y, stretch_b0_.hi.z};
-	stretch_to_ = stretch_hi_ ? hi3[stretch_axis_] : lo3[stretch_axis_];
-	if (hi3[stretch_axis_] - lo3[stretch_axis_] < 1e-6) {
-		return;  // flat that way: nothing to stretch
+	if (faces.empty()) {
+		drag_ = Drag::None;
+		say("None of the selected brushes has a face that way to push");
+		return;
 	}
-	doc.begin("Stretch");
-	drag_ = Drag::Stretch;
+	start_push(faces, h.base, h.normal, faces.size() > 1 ? "Push faces" : "Push face");
+	// one shared plane on the grid's axis: it lands on the grid, as one face's does
+	push_grid_ = one_plane;
+	push_d0_ = d0;
 }
 
 void Session::start_corners(const Handle &h, int m) {
@@ -1280,20 +1249,12 @@ void Session::build_handles(Overlay &out) {
 				square(h.at, r, picked ? C_CORNER_SEL : on ? C_HOVER : C_EDGE);
 				break;
 			}
-			case Handle::Face: {
+			case Handle::Face:
+			case Handle::GroupFace: {
 				const unsigned char *c = on ? C_FACE_HOVER : C_FACE;
 				stem(h.base, h.at, on ? 3 : 2, c);
 				const double r = on ? 10 : 8;
 				diamond(h.at, r + 1.5, C_BLACK);
-				diamond(h.at, r, c);
-				break;
-			}
-			case Handle::GroupFace: {
-				// the group's: bigger, on a longer stem from the side of its box
-				const unsigned char *c = on ? C_FACE_HOVER : C_FACE;
-				stem(h.base, h.at, on ? 4 : 3, c);
-				const double r = on ? 13 : 11;
-				diamond(h.at, r + 2, C_BLACK);
 				diamond(h.at, r, c);
 				break;
 			}

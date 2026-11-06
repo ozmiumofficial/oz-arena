@@ -1406,7 +1406,7 @@ bool Session::size_tag(std::string &text, double &sx, double &sy) const {
 		std::snprintf(buf, sizeof buf, "%g x %g x %g", s.x, s.y, s.z);
 	} else if (!drag_note_.empty()) {
 		const Bounds b = selection_bounds();
-		if ((drag_ == Drag::Push || drag_ == Drag::Corners || drag_ == Drag::Stretch) && !b.empty()) {
+		if ((drag_ == Drag::Push || drag_ == Drag::Corners) && !b.empty()) {
 			const Vec3 s = b.hi - b.lo;
 			std::snprintf(buf, sizeof buf, "%s Â· %g x %g x %g", drag_note_.c_str(), s.x, s.y, s.z);
 		} else {
@@ -1471,7 +1471,7 @@ std::string Session::hint() const {
 	case Handle::Face:
 		return "Drag: push or pull this face (Ctrl off the grid)";
 	case Handle::GroupFace:
-		return "Drag: stretch the whole selection this way, its far side staying put (Ctrl off the grid) \xc2\xb7 to reshape one piece, select it alone";
+		return "Drag: push or pull every selected brush's face this way together (Ctrl off the grid) \xc2\xb7 select one brush alone for its own handles";
 	default:
 		break;
 	}

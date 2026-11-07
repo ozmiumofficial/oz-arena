@@ -117,6 +117,7 @@ const std::vector<Action> &actions() {
 		{"lift", "Lift", "", "The selected brushes become a lift: build it at the top; it starts lowered by its travel and rises when stepped on"},
 		{"door_near", "Door opens near", "", "The selected doors open when a player comes near, or not (ed door_near 1|0)"},
 		{"door_shot", "Door opens when shot", "", "The selected doors open when shot, or not (ed door_shot 1|0)"},
+		{"door_speed", "Door speed", "", "How fast the selected doors open, in units a second (ed door_speed <units>|+n|-n; the game's default 400)"},
 		{"door_button", "Add a button", "", "Click a wall: a button there that opens the selected doors (pressed, or shot with health)"},
 		{"train_path", "Lay a path", "", "The selected train: click where it goes, corner by corner; the first corner again closes the loop"},
 		{"mover_play", "Play movers", "", "The selected doors, lifts, bobbing, rotating and swinging brushes and trains move in the view as in the game"},

@@ -44,6 +44,7 @@ ed_new, ed_camera, ed_stats, ed_leave.
 #include "../editor/ed_engine.h"
 #include "../editor/ed_shaders.h"
 #include "../editor/ed_view.h"
+#include "oz_editor_icons.h"
 
 #include <algorithm>
 #include <cmath>
@@ -100,6 +101,7 @@ Rml::String lastSearch, lastKeymap, lastKeymapNote, lastKeyHelp;
 Rml::String lastPanes;	// the panes' names as last shown
 std::string colorGridKey;	// the color key whose full grid of colors shows
 bool advancedOpen;			// a light's raw keys shown (Advanced: all keys)
+bool tintsAll;				// every color under Color, not only the strong hues' row
 // the materials the player keeps at hand (<fs_homepath>/oz/editor/favorites.txt, a name a line)
 std::vector<std::string> favorites;
 bool favoritesLoaded;
@@ -173,6 +175,46 @@ void SetText( Rml::ElementDocument *doc, const char *id, const Rml::String &text
 void SetRml( Rml::ElementDocument *doc, const char *id, const Rml::String &rml ) {
 	if ( Rml::Element *e = doc->GetElementById( id ) ) {
 		e->SetInnerRML( rml );
+	}
+}
+
+// An icon's glyph in ui/fonts/OzIcons.ttf (oz_editor_icons.h), as UTF-8; empty for a name it lacks
+Rml::String IconGlyph( const Rml::String &name ) {
+	for ( const auto &i : OZ_EDITOR_ICONS ) {
+		if ( name == i.name ) {
+			const unsigned c = i.code;	// the private use area: three bytes
+			return Rml::String( { char( 0xE0 | ( c >> 12 ) ), char( 0x80 | ( ( c >> 6 ) & 0x3F ) ), char( 0x80 | ( c & 0x3F ) ) } );
+		}
+	}
+	return Rml::String();
+}
+
+// A def's label as a button says it: START_OPEN -> Start open
+Rml::String Sentence( const std::string &label ) {
+	Rml::String out;
+	for ( char c : label ) {
+		out += c == '_' ? ' ' : (char)tolower( (unsigned char)c );
+	}
+	if ( !out.empty() ) {
+		out[0] = (char)toupper( (unsigned char)out[0] );
+	}
+	return out;
+}
+
+// An icon for markup made here: <span class="ic">, drawn in the text's color
+Rml::String Icon( const char *name ) {
+	return "<span class=\"ic\">" + IconGlyph( name ) + "</span>";
+}
+
+// The page's own icons: each span of class ic names its icon in data-icon (editor.rml)
+void FillIcons( Rml::ElementDocument *doc ) {
+	Rml::ElementList icons;
+	doc->GetElementsByClassName( icons, "ic" );
+	for ( Rml::Element *e : icons ) {
+		const Rml::String name = e->GetAttribute<Rml::String>( "data-icon", "" );
+		if ( !name.empty() ) {
+			e->SetInnerRML( IconGlyph( name ) );
+		}
 	}
 }
 
@@ -382,21 +424,21 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 	auto chip = [&]( const char *view, const Rml::String &label, bool on ) {
 		chips += Rml::String( "<button class=\"chip" ) + ( on ? " on" : "" ) + "\" onclick=\"append ed panel mats " + view + "\">" + label + "</button>";
 	};
-	chip( "map", "IN THIS MAP", matView == "map" );
-	chip( "favorites", "FAVORITES", matView == "favorites" );
-	chip( "recent", "RECENT", matView == "recent" );
-	chip( "dev", "DEV TEXTURES", matView == "dev" );
-	chip( "all", "ALL", matView == "all" );
-	chip( "folders", inFolder ? Enc( Rml::StringUtilities::ToUpper( matView.substr( 7 ) ) ) + " +" : Rml::String( "FOLDERS +" ),
+	chip( "map", "In this map", matView == "map" );
+	chip( "favorites", "Favorites", matView == "favorites" );
+	chip( "recent", "Recent", matView == "recent" );
+	chip( "dev", "Dev textures", matView == "dev" );
+	chip( "all", "All", matView == "all" );
+	chip( "folders", inFolder ? Enc( matView.substr( 7 ) ) + " +" : Rml::String( "Folders +" ),
 		matView == "folders" || inFolder );
-	chip( "packs", "MAP PACKS", matView == "packs" );
+	chip( "packs", "Map packs", matView == "packs" );
 	SetRml( doc, "ed-chips", chips );
 	// the current material's favorite button
 	bool fav = false;
 	for ( const std::string &f : favorites ) {
 		fav = fav || Lower( f ) == current;
 	}
-	SetRml( doc, "ed-fav", fav ? "FAVORITE: REMOVE" : "ADD TO FAVORITES" );
+	SetRml( doc, "ed-fav", Icon( "star" ) + "<span>" + Rml::String( fav ? "Remove from favorites" : "Add to favorites" ) + "</span>" );
 
 	// the folders to choose from: id's, then the map packs'
 	if ( matView == "folders" && search.empty() ) {
@@ -475,8 +517,8 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 	SetRml( doc, "ed-mats", rml );
 	Rml::String pager;
 	if ( pages > 1 ) {
-		pager = "<button class=\"tb\" onclick=\"append ed panel mpage -1\">PREVIOUS</button><span>" + std::to_string( matPage + 1 ) + " / " +
-			std::to_string( pages ) + "</span><button class=\"tb\" onclick=\"append ed panel mpage 1\">NEXT</button>";
+		pager = "<button class=\"tb\" onclick=\"append ed panel mpage -1\">Previous</button><span>" + std::to_string( matPage + 1 ) + " / " +
+			std::to_string( pages ) + "</span><button class=\"tb\" onclick=\"append ed panel mpage 1\">Next</button>";
 	}
 	SetRml( doc, "ed-mpager", pager );
 }
@@ -620,23 +662,23 @@ Rml::String TypedControls( const std::string &k, const oz::ed::KeyDef &kd, const
 			button( names[i], "angle " + key + " " + std::to_string( i * 45 ), Enc( k + ": " + std::to_string( i * 45 ) + " degrees (east is 0, north 90)" ),
 				!v.empty() && a == i * 45 );
 		}
-		button( "UP", "angle " + key + " -1", Enc( k + ": -1, up" ), v == "-1" );
-		button( "DOWN", "angle " + key + " -2", Enc( k + ": -2, down" ), v == "-2" );
-		button( "VIEW", "angle " + key + " view", Enc( k + ": the way the camera faces, to 15 degrees" ), false );
+		button( "Up", "angle " + key + " -1", Enc( k + ": -1, up" ), v == "-1" );
+		button( "Down", "angle " + key + " -2", Enc( k + ": -2, down" ), v == "-2" );
+		button( "View", "angle " + key + " view", Enc( k + ": the way the camera faces, to 15 degrees" ), false );
 		break;
 	}
 	case oz::ed::KeyType::Bool:
-		button( v == "1" ? "ON" : "OFF", "bool " + key, Enc( k + ": click turns it " + ( v == "1" ? "off" : "on" ) ), v == "1" );
+		button( v == "1" ? "On" : "Off", "bool " + key, Enc( k + ": click turns it " + ( v == "1" ? "off" : "on" ) ), v == "1" );
 		break;
 	case oz::ed::KeyType::Sound:
-		button( "PICK", "pick " + key + ( k == "music" ? " music" : " sound" ), Enc( "Pick " + k + " from the game's " + ( k == "music" ? "music" : "sounds" ) ), false );
-		button( "LISTEN", "listen " + key, Enc( "Plays " + ( v.empty() ? k : v ) ), false );
+		button( "Pick", "pick " + key + ( k == "music" ? " music" : " sound" ), Enc( "Pick " + k + " from the game's " + ( k == "music" ? "music" : "sounds" ) ), false );
+		button( "Listen", "listen " + key, Enc( "Plays " + ( v.empty() ? k : v ) ), false );
 		break;
 	case oz::ed::KeyType::Model:
-		button( "PICK", "pick " + key + " model", Enc( "Pick " + k + " from the game's models" ), false );
+		button( "Pick", "pick " + key + " model", Enc( "Pick " + k + " from the game's models" ), false );
 		break;
 	case oz::ed::KeyType::Target:
-		button( "PICK", "pick " + key + " target", Enc( "Pick what " + k + " names from the map's names" ), false );
+		button( "Pick", "pick " + key + " target", Enc( "Pick what " + k + " names from the map's names" ), false );
 		break;
 	case oz::ed::KeyType::Number: {
 		const double step = k == "light" ? 50 : k == "radius" ? 16 : k == "speed" ? 50 : k == "wait" || k == "random" ? 0.5 : k == "ambient" ? 5
@@ -733,11 +775,11 @@ bool MatchFilter( const std::string &k ) {
 
 // An add-key chip's words: what a key does for the common ones, else its name
 Rml::String ChipLabel( const std::string &k ) {
-	static const std::map<std::string, std::string> labels = { { "target", "LINK TO" }, { "targetname", "NAME" },
-		{ "gametype", "ONLY IN THESE GAME TYPES" }, { "not_gametype", "NOT IN THESE GAME TYPES (CPMA)" }, { "notfree", "NOT IN FREE FOR ALL" },
-		{ "notteam", "NOT IN TEAM GAMES" }, { "notsingle", "NOT IN SINGLE PLAYER" } };
+	static const std::map<std::string, std::string> labels = { { "target", "Link to" }, { "targetname", "Name" },
+		{ "gametype", "Only in these game types" }, { "not_gametype", "Not in these game types (CPMA)" }, { "notfree", "Not in free for all" },
+		{ "notteam", "Not in team games" }, { "notsingle", "Not in single player" } };
 	const auto it = labels.find( k );
-	return it != labels.end() ? Rml::String( it->second ) : Rml::StringUtilities::ToUpper( k );
+	return it != labels.end() ? Rml::String( it->second ) : Rml::String( k );
 }
 
 Rml::String LightSlideText( const std::string &what, double v, const oz::ed::LightNumbers &n ) {
@@ -782,9 +824,9 @@ Rml::String LightSliders( const oz::ed::Object *o ) {
 	}
 	// a point light shines every way, a spotlight one way: at its aim point, a marker to drag
 	out += "<div class=\"row\">" + Rml::String( spot
-		? "<button class=\"tb\" data-action=\"point_light\" onclick=\"append ed point_light\">BACK TO A POINT LIGHT</button>"
+		? "<button class=\"tb\" data-action=\"point_light\" onclick=\"append ed point_light\">Back to a point light</button>"
 		  "<span class=\"lnote\">A spotlight: drag its aim point (" + Enc( o->entity.get( "target" ) ) + ") to aim it</span>"
-		: "<button class=\"tb\" data-action=\"spotlight\" onclick=\"append ed spotlight\">MAKE SPOTLIGHT</button>"
+		: "<button class=\"tb\" data-action=\"spotlight\" onclick=\"append ed spotlight\">Make spotlight</button>"
 		  "<span class=\"lnote\">Shines every way. A spotlight shines one way, at a point you drag</span>" ) + "</div>";
 	return out;
 }
@@ -921,7 +963,7 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		};
 		Rml::String rml = "<button class=\"cchip none" + Rml::String( now == -1 ? " on" : "" ) +
 			"\" data-hint=\"No color: the texture as it is\" onclick=\"append ed tint none\"></button>";
-		for ( double sat : { 0.75, 0.45, 0.2 } ) {
+		auto hues = [&]( double sat, Rml::String &out ) {
 			for ( int h = 0; h < 360; h += 30 ) {
 				const double c = sat, x = c * ( 1 - std::fabs( std::fmod( h / 60.0, 2 ) - 1 ) ), m = 1 - c;
 				double r = 0, g = 0, b = 0;
@@ -933,11 +975,25 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 				case 4: r = x, b = c; break;
 				default: r = c, b = x; break;
 				}
-				rml += dot( r + m, g + m, b + m, std::to_string( h ) + " degrees" );
+				out += dot( r + m, g + m, b + m, std::to_string( h ) + " degrees" );
 			}
-		}
+		};
+		// one row of strong hues; More adds the paler rows and the grays, which show by themselves
+		// while the faces' color is one of them
+		Rml::String more;
+		hues( 0.75, rml );
+		hues( 0.45, more );
+		hues( 0.2, more );
 		for ( double v : { 0.75, 0.5, 0.3 } ) {
-			rml += dot( v, v, v, "gray" );
+			more += dot( v, v, v, "gray" );
+		}
+		const bool moreOn = more.find( "cchip on" ) != Rml::String::npos;
+		if ( tintsAll || moreOn ) {
+			rml += more;
+		}
+		if ( tintsAll || !moreOn ) {
+			rml += "<button class=\"tb\" data-hint=\"" + Rml::String( tintsAll ? "Only the strong colors" : "Paler colors and grays" ) +
+				"\" onclick=\"append ed panel tints\">" + ( tintsAll ? "Fewer" : "More" ) + "</button>";
 		}
 		SetRml( doc, "ed-tints", faces.empty() ? Rml::String( "<p>Pick faces or select brushes to color them</p>" ) : rml );
 	}
@@ -1105,27 +1161,41 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 			Rml::String m;
 			auto check = [&]( const char *id, const Rml::String &label, bool on, bool mixed, const char *verb, const Rml::String &hint ) {
 				m += "<button class=\"check" + Rml::String( on ? " ticked" : "" ) + ( mixed ? " mixed" : "" ) + "\" id=\"" + id + "\" data-hint=\"" + hint +
-					"\" onclick=\"append ed " + verb + "\"><span class=\"tick\"></span><span class=\"lbl2\">" + label + "</span></button>";
+					"\" onclick=\"append ed " + verb + "\"><span class=\"tick\"><span class=\"knob\"></span></span><span class=\"lbl2\">" + label + "</span></button>";
 			};
 			if ( mover == "func_door" ) {
 				const oz::ed::Session::DoorState ds = s.door_state();
 				m += "<div class=\"sub\">OPENS WHEN</div><div class=\"row\">";
-				check( "ed-door-near", "A PLAYER COMES NEAR", ds.near, ds.near_mixed, "door_near",
+				check( "ed-door-near", "A player comes near", ds.near, ds.near_mixed, "door_near",
 					"A trigger around the doorway, 120 units out each side: walking up to it opens it" );
-				check( "ed-door-shot", "IT'S SHOT", ds.shot, ds.shot_mixed, "door_shot", "Any shot that hits it opens it" );
-				m += "</div><div class=\"row\"><button class=\"tb\" data-action=\"door_button\" onclick=\"append ed door_button\">ADD BUTTON</button>";
+				check( "ed-door-shot", "It's shot", ds.shot, ds.shot_mixed, "door_shot", "Any shot that hits it opens it" );
+				m += "</div><div class=\"sub\">SPEED</div><div class=\"row\"><button class=\"tb\" data-hint=\"Slower by 50 units a second\" "
+					 "onclick=\"append ed door_speed -50\">Slower</button><input type=\"text\" class=\"text\" id=\"ed-door-speed\" style=\"width: 4.5rem;\" value=\"" +
+					 ( ds.speed_mixed ? Rml::String() : Num( ds.speed ) ) + "\"" + ( ds.speed_mixed ? " placeholder=\"(differs)\"" : "" ) +
+					 " data-apply=\"door_speed_typed\" data-hint=\"Units a second the door moves: type one, Enter sets it (the game's default 400)\"/>"
+					 "<button class=\"tb\" data-hint=\"Faster by 50 units a second\" onclick=\"append ed door_speed +50\">Faster</button></div><div class=\"row\">";
+				auto speedChip = [&]( const char *label, int v ) {
+					const bool on = !ds.speed_mixed && std::fabs( ds.speed - v ) < 0.5;
+					m += "<button class=\"chip" + Rml::String( on ? " on" : "" ) + "\" data-hint=\"" + std::to_string( v ) + " units a second\" onclick=\"append ed door_speed " +
+						std::to_string( v ) + "\">" + label + "</button>";
+				};
+				speedChip( "Slow", 100 );
+				speedChip( "Normal", 400 );
+				speedChip( "Fast", 800 );
+				m += "<span class=\"note\">" + Enc( ds.speed_mixed ? "The selected doors differ" : "Opens in " + Num( std::round( ds.seconds * 100 ) / 100 ) + " s" ) + "</span>";
+				m += "</div><div class=\"row\"><button class=\"tb\" data-action=\"door_button\" onclick=\"append ed door_button\">Add button</button>";
 				m += "<span class=\"note\">" + Enc( ds.buttons ? std::to_string( ds.buttons ) + ( ds.buttons == 1 ? " button or trigger fires it" : " buttons or triggers fire it" )
 					: !ds.team.empty() ? "Its halves open together (team " + ds.team + ")" : "The arrows above: which way it slides" ) + "</span></div>";
 			} else if ( mover == "func_plat" ) {
 				m += "<div class=\"sub\">TRAVEL</div><div class=\"row\"><button class=\"tb\" onclick=\"append ed lift_travel -16\">-</button>"
 					"<button class=\"tb\" onclick=\"append ed lift_travel +16\">+</button><span class=\"note\">Built at its top: the outline shows its bottom</span></div>";
 			} else if ( mover == "func_train" ) {
-				m += "<div class=\"row\"><button class=\"tb\" data-action=\"train_path\" onclick=\"append ed train_path\">LAY PATH</button>"
+				m += "<div class=\"row\"><button class=\"tb\" data-action=\"train_path\" onclick=\"append ed train_path\">Lay path</button>"
 					"<span class=\"note\">Click its corners in order; the first again closes the loop</span></div>";
 			}
 			if ( !mover.empty() ) {
 				m += "<div class=\"row\"><button class=\"tb" + Rml::String( s.mover_play ? " on" : "" ) + "\" data-action=\"mover_play\" onclick=\"append ed mover_play\">" +
-					( s.mover_play ? "STOP" : "PLAY MOTION" ) + "</button><span class=\"note\">The outline shows where it moves to</span></div>";
+					( s.mover_play ? "Stop" : "Play motion" ) + "</button><span class=\"note\">The outline shows where it moves to</span></div>";
 			}
 			SetRml( doc, "ed-mover", m );
 			Show( doc, "ed-mover", !m.empty() );
@@ -1152,7 +1222,7 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 				const std::string what = cn == "light" && f.bit == 2 ? "Walls the light meets at a slant are lit as brightly as walls facing it. " : "";
 				flags += "<button class=\"chip flag" + Rml::String( on ? " on" : "" ) + "\" data-hint=\"" + Enc( what ) + "Spawnflag " + std::to_string( f.bit ) +
 					": click turns it " + ( on ? "off" : "on" ) + "\" onclick=\"append ed flag " + std::to_string( f.bit ) + "\">" +
-					Enc( Rml::StringUtilities::ToUpper( f.label ) ) + "</button>";
+					Enc( Sentence( f.label ) ) + "</button>";
 			}
 		}
 		SetRml( doc, "ed-flags", flags );
@@ -1192,7 +1262,7 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		}
 		if ( ents.size() == 1 && ents[0] == d.worldspawn() ) {
 			// the map's own keys: its sky and light have a dialog of their own
-			adds = "<button class=\"chip on\" data-action=\"sky_sun\" onclick=\"append ed sky_sun\">SKY AND SUN</button>" + adds;
+			adds = "<button class=\"chip on\" data-action=\"sky_sun\" onclick=\"append ed sky_sun\">Sky and sun</button>" + adds;
 		}
 		SetRml( doc, "ed-addkeys", adds );
 		bool owned = false;
@@ -1209,7 +1279,7 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		if ( fold ) {
 			rml += "<div class=\"row\"><button class=\"tb adv\" id=\"ed-advanced\" data-hint=\"" +
 				Rml::String( advancedOpen ? "Hides the light's keys again" : "Every key the light has, as the .map file writes them, to change by hand" ) +
-				"\" onclick=\"append ed panel advanced\">" + ( advancedOpen ? "- " : "+ " ) + "ADVANCED: ALL KEYS (" + std::to_string( order.size() ) + ")</button></div>";
+				"\" onclick=\"append ed panel advanced\">" + ( advancedOpen ? "- " : "+ " ) + "Advanced: all keys (" + std::to_string( order.size() ) + ")</button></div>";
 		}
 		const bool rawKeys = !fold || advancedOpen;
 		Show( doc, "ed-addrow", rawKeys );
@@ -1224,7 +1294,7 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 			// the remove button first: a text field takes Left and Right, so the d-pad reaches a row's
 			// buttons from the rows above and below
 			rml += "<div class=\"row kv\">" + ( k == "classname" ? Rml::String( "<span class=\"nox\"></span>" )
-				: "<button class=\"tb x\" data-action=\"key_remove\" onclick=\"append ed panel key_remove_at " + idx + "\">X</button>" ) +
+				: "<button class=\"tb ib io x\" data-action=\"key_remove\" onclick=\"append ed panel key_remove_at " + idx + "\">" + Icon( "close" ) + "</button>" ) +
 				"<input type=\"text\" class=\"text key\" id=\"ed-k-" + idx + "\"" + hint + " value=\"" + Enc( k ) +
 				"\" data-apply=\"key_name_typed\" data-key-index=\"" + idx + "\" data-action=\"key_rename\"/><input type=\"text\" class=\"text val\" id=\"ed-v-" + idx +
 				"\"" + hint + " value=\"" + ( mixed ? "" : Enc( value[k] ) ) + "\"" + ( mixed ? " placeholder=\"(differs)\"" : "" ) + " data-apply=\"key_typed\" data-key-index=\"" + idx +
@@ -1267,7 +1337,7 @@ void BuildPrefabs( Rml::ElementDocument *doc ) {
 			( thumbs[i].empty() ? Rml::String( "<span>DRAWING ...</span>" ) : "<img src=\"" + Enc( thumbs[i] ) + "\"/>" ) +
 			"</div><span class=\"mn\">" + n + "</span></div><button class=\"pfdel" + ( armed ? " armed" : "" ) +
 			"\" data-hint=\"" + ( armed ? "Click again to delete the prefab " + n + " for good" : "Deletes the prefab " + n + " (click twice)" ) +
-			"\" onclick=\"append ed panel prefab_del " + n + "\">" + ( armed ? "DELETE FOR GOOD?" : "DELETE" ) + "</button></div>";
+			"\" onclick=\"append ed panel prefab_del " + n + "\">" + ( armed ? "Delete for good?" : "Delete" ) + "</button></div>";
 	}
 	SetRml( doc, "ed-prefabs", rml.empty() ? Rml::String( "<p class=\"note\">None yet.</p>" ) : rml );
 }
@@ -1289,8 +1359,8 @@ const EntSection ENT_SECTIONS[] = {
 	{ "Health", "HEALTH", "" },
 	{ "Powerups and holdables", "POWERUPS", "" },
 	{ "Lights and sound", "LIGHTS AND SOUND", "" },
-	{ "Teleporters", "TELEPORTER PIECES", "TELEPORTER above makes these two, linked. Use them alone only to rewire one by hand." },
-	{ "Jump pads and pushers", "JUMP PAD PIECES", "JUMP PAD above makes these, aimed. Use them alone only to rewire one by hand." },
+	{ "Teleporters", "TELEPORTER PIECES", "Teleporter above makes these two, linked. Use them alone only to rewire one by hand." },
+	{ "Jump pads and pushers", "JUMP PAD PIECES", "Jump pad above makes these, aimed. Use them alone only to rewire one by hand." },
 	{ "Movers", "MOVING BRUSHES", "Select the brushes first, then click one of these to turn them into it." },
 	{ "Triggers and logic", "TRIGGERS AND LOGIC",
 		"Make things happen: a trigger fires whatever its target key names (that thing's targetname)." },
@@ -1369,13 +1439,13 @@ void BuildEntities( Rml::ElementDocument *doc ) {
 		}
 		if ( sec == "Defrag" ) {
 			// Defrag's builders: each makes the whole piece (a trigger across the course and its timer)
-			rml += "<div class=\"row\"><button class=\"tb\" data-action=\"defrag_start\" onclick=\"append ed defrag_start\">START LINE</button>"
-				   "<button class=\"tb\" data-action=\"defrag_checkpoint\" onclick=\"append ed defrag_checkpoint\">CHECKPOINT</button>"
-				   "<button class=\"tb\" data-action=\"defrag_finish\" onclick=\"append ed defrag_finish\">FINISH LINE</button></div>"
-				   "<div class=\"row\"><button class=\"tb\" data-action=\"defrag_speed\" onclick=\"append ed defrag_speed\">SPEED PAD</button>"
-				   "<button class=\"tb\" data-action=\"defrag_shooter\" onclick=\"append ed defrag_shooter\">SHOOTER</button></div>"
-				   "<div class=\"row\"><button class=\"tb\" data-action=\"defrag_check\" onclick=\"append ed defrag_check\">CHECK THE COURSE</button>"
-				   "<button class=\"tb play\" data-action=\"play_defrag\" onclick=\"append ed play_defrag\">PLAY IN DEFRAG</button></div>"
+			rml += "<div class=\"row\"><button class=\"tb\" data-action=\"defrag_start\" onclick=\"append ed defrag_start\">Start line</button>"
+				   "<button class=\"tb\" data-action=\"defrag_checkpoint\" onclick=\"append ed defrag_checkpoint\">Checkpoint</button>"
+				   "<button class=\"tb\" data-action=\"defrag_finish\" onclick=\"append ed defrag_finish\">Finish line</button></div>"
+				   "<div class=\"row\"><button class=\"tb\" data-action=\"defrag_speed\" onclick=\"append ed defrag_speed\">Speed pad</button>"
+				   "<button class=\"tb\" data-action=\"defrag_shooter\" onclick=\"append ed defrag_shooter\">Shooter</button></div>"
+				   "<div class=\"row\"><button class=\"tb\" data-action=\"defrag_check\" onclick=\"append ed defrag_check\">Check the course</button>"
+				   "<button class=\"tb play\" data-action=\"play_defrag\" onclick=\"append ed play_defrag\">Play in Defrag</button></div>"
 				   "<p class=\"enote\">The lines above make the triggers for you. The pieces, to place by hand:</p>";
 		}
 		rml += "<div class=\"mats\">";
@@ -1597,8 +1667,8 @@ void BuildObjects( Rml::ElementDocument *doc ) {
 	}
 	Rml::String pager;
 	if ( pages > 1 ) {
-		pager = "<button class=\"tb\" onclick=\"append ed panel opage -1\">PREVIOUS</button><span>" + std::to_string( objPage + 1 ) + " / " +
-			std::to_string( pages ) + "</span><button class=\"tb\" onclick=\"append ed panel opage 1\">NEXT</button>";
+		pager = "<button class=\"tb\" onclick=\"append ed panel opage -1\">Previous</button><span>" + std::to_string( objPage + 1 ) + " / " +
+			std::to_string( pages ) + "</span><button class=\"tb\" onclick=\"append ed panel opage 1\">Next</button>";
 	}
 	SetRml( doc, "ed-opager", pager );
 }
@@ -1868,7 +1938,7 @@ void BuildKeymap( Rml::ElementDocument *doc ) {
 		ids.push_back( std::string( "ed-kb-" ) + a.name );
 		rml += "<div class=\"krow" + Rml::String( on ? " on" : "" ) + "\" data-hint=\"" + Enc( a.help ) + "\"><span class=\"kl\">" + Enc( a.label ) +
 			"</span><span class=\"kk\">" + ( on ? Rml::String( "Press the keys ..." ) : keys.empty() ? Rml::String( "<span class=\"none\">none</span>" ) : Enc( keys ) ) +
-			"</span><button class=\"tb\" id=\"" + ids.back() + "\" onclick=\"append ed bind_start " + a.name + "\">SET</button></div>";
+			"</span><button class=\"tb\" id=\"" + ids.back() + "\" onclick=\"append ed bind_start " + a.name + "\">Set</button></div>";
 	}
 	SetRml( doc, "ed-keymap-rows", rml );
 	if ( Rml::Element *waiting = s.binding.empty() ? nullptr : doc->GetElementById( "ed-kb-" + s.binding ) ) {
@@ -1877,7 +1947,7 @@ void BuildKeymap( Rml::ElementDocument *doc ) {
 	}
 	const oz::ed::Action *b = s.binding.empty() ? nullptr : oz::ed::find_action( s.binding );
 	SetText( doc, "ed-keymap-note", b ? "Press the keys for " + std::string( b->label ) + ", with Ctrl, Shift or Alt if you like: Esc keeps them as they were, Backspace leaves it none."
-		: "SET an action, then press its keys. A key does one thing: given to another action, it leaves the one that had it.", lastKeymapNote );
+		: "Click Set beside an action, then press its keys. A key does one thing: given to another action, it leaves the one that had it.", lastKeymapNote );
 	if ( Rml::Element *note = doc->GetElementById( "ed-keymap-note" ) ) {
 		note->SetClass( "wait", b != nullptr );
 	}
@@ -1972,9 +2042,9 @@ void BuildSky( Rml::ElementDocument *doc ) {
 	// the light
 	Rml::String rml = "<div class=\"srow\"><span class=\"sl\">Light from</span>"
 		"<button class=\"chip" + Rml::String( ss.own ? "" : " on" ) + "\" id=\"ed-sky-editor\" data-hint=\"The sun and sky light below light the map\" "
-		"onclick=\"append ed sky light_from editor\">THESE SETTINGS</button>"
+		"onclick=\"append ed sky light_from editor\">These settings</button>"
 		"<button class=\"chip" + Rml::String( ss.own ? " on" : "" ) + "\" id=\"ed-sky-own\" data-hint=\"The sky's own script lights the map, as id's maps with it are lit\" "
-		"onclick=\"append ed sky light_from own\">THE SKY'S OWN</button>"
+		"onclick=\"append ed sky light_from own\">The sky's own</button>"
 		"<span class=\"sh\">" + Rml::String( ss.own ? "The sky's own sun and glow light the map; the settings below wait." : "The sun and the sky's glow below light the map." ) +
 		"</span></div>";
 	// the fill light: q3map2's floodlight, for maps without lamps (an imported map pack's lost its lights)
@@ -2214,8 +2284,8 @@ const std::map<std::string, GameMapInfo> &GameMapInfos() {
 // the categories, as chips: their key, label, and whether a map is in one
 static const struct {
 	const char *key, *label;
-} IMPORT_CATS[] = { { "all", "ALL" }, { "id", "ID'S ARENAS" }, { "ffa", "DEATHMATCH" }, { "tourney", "TOURNEY" }, { "team", "TEAM" },
-	{ "ctf", "CTF" }, { "other", "OTHER" } };
+} IMPORT_CATS[] = { { "all", "All" }, { "id", "id's arenas" }, { "ffa", "Deathmatch" }, { "tourney", "Tourney" }, { "team", "Team" },
+	{ "ctf", "CTF" }, { "other", "Other" } };
 
 static bool InImportCat( const GameMapInfo &i, const std::string &cat ) {
 	auto has = [&]( const char *w ) { return ( " " + i.types + " " ).find( std::string( " " ) + w + " " ) != std::string::npos; };
@@ -2980,6 +3050,10 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		lastSky.clear();	// shown again as it is, the value refused or not
 		return f.empty() || s.run( "sky", { f, value() } );
 	}
+	if ( what == "door_speed_typed" ) {
+		const std::string v = value();
+		return v.empty() || s.run( "door_speed", { v } );
+	}
 	if ( what == "key_typed" ) {
 		const std::string k = fieldKey();
 		return k.empty() || s.run( "key_set", { k, value() } );
@@ -3109,6 +3183,9 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 	} else if ( a == "advanced" ) {
 		advancedOpen = !advancedOpen;
 		lastInspect.clear();
+	} else if ( a == "tints" ) {
+		tintsAll = !tintsAll;
+		lastInspect.clear();	// the Color row made again, with the paler rows or without
 	} else if ( a == "colors" && args.size() > 1 ) {
 		colorGridKey = colorGridKey == args[1] ? "" : args[1];
 		lastInspect.clear();	// the key rows made again with the grid, or without
@@ -3817,8 +3894,7 @@ bool Editor_Draw( int width, int height ) {
 			}
 		}
 		if ( Rml::Element *e = doc->GetElementById( "tool-lock" ) ) {
-			e->SetClass( "on", s.texture_lock );
-			e->SetInnerRML( s.texture_lock ? "TEXTURE LOCK ON" : "TEXTURE LOCK OFF" );
+			e->SetClass( "on", s.texture_lock );	// its switch shows on or off
 		}
 	}
 	// the panes' names over them (the 2D views', all four's in four), the one the pointer works in brighter
@@ -3876,7 +3952,7 @@ bool Editor_Draw( int width, int height ) {
 	Show( doc, "ed-leak", s.leaking() );
 	Show( doc, "ed-warnings", !s.compile_warnings().empty() && !s.compiling() );
 	static Rml::String lastWarnings;
-	SetText( doc, "ed-warnings", s.compile_warnings().size() == 1 ? "1 WARNING" : std::to_string( s.compile_warnings().size() ) + " WARNINGS", lastWarnings );
+	SetText( doc, "ed-warnings-n", s.compile_warnings().size() == 1 ? "1 warning" : std::to_string( s.compile_warnings().size() ) + " warnings", lastWarnings );
 	if ( Rml::Element *e = doc->GetElementById( "ed-preview" ) ) {
 		e->SetClass( "on", s.previewing() );
 	}
@@ -4060,6 +4136,7 @@ void Editor_Opened( Rml::ElementDocument *doc ) {
 	lastMenu.clear();
 	tipFor = nullptr;
 	session().binding.clear();
+	FillIcons( doc );
 	doc->AddEventListener( Rml::EventId::Change, &slideListener );
 	if ( Rml::Element *v = doc->GetElementById( "ed-uv-view" ) ) {
 		for ( Rml::EventId id : { Rml::EventId::Dragstart, Rml::EventId::Drag, Rml::EventId::Dragend, Rml::EventId::Mousescroll } ) {

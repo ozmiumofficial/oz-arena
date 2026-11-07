@@ -1319,9 +1319,11 @@ static void AddCommands() {
 }
 
 // Barlow, the web menu's body face; the display face is traced from the player's pak0 as the UI
-// starts (oz_ui_font.cpp; without it the display text falls back to Barlow)
+// starts (oz_ui_font.cpp; without it the display text falls back to Barlow). OzIcons is the map
+// editor's icons (engine/tools/make_editor_icons.py), its own family: never a fallback.
 static const char *const fonts[] = {
-	"ui/fonts/Barlow-Regular.ttf", "ui/fonts/Barlow-Medium.ttf", "ui/fonts/Barlow-SemiBold.ttf", "ui/fonts/Barlow-Bold.ttf"
+	"ui/fonts/Barlow-Regular.ttf", "ui/fonts/Barlow-Medium.ttf", "ui/fonts/Barlow-SemiBold.ttf", "ui/fonts/Barlow-Bold.ttf",
+	"ui/fonts/OzIcons.ttf"
 };
 
 // ui_displayfont <file>: the traced display font, written to the home path (tests compare it)

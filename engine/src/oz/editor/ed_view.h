@@ -462,6 +462,9 @@ public:
 		bool any = false, near = false, shot = false, near_mixed = false, shot_mixed = false;
 		std::string team;
 		int buttons = 0;  // what fires them besides their own zone
+		double speed = 400;    // units a second (the first door's; the game's default 400)
+		bool speed_mixed = false;
+		double seconds = 0;    // how long the first door takes to open at that speed
 	};
 	DoorState door_state();               // the selected doors'
 	void make_door(bool pair);            // the selected brushes a door, or cut in two a pair sliding apart

@@ -7,87 +7,120 @@
 		   the tool strip down the left and the panel down the right, around #viewport, where the 3D view draws
 		   under the page. A control's data-action names the editor's action: its tip (and the status line) shows
 		   its keys and what it does while the pointer is on it (data-hint: its own text). The menus and the
-		   panel's lists are made by oz_ui_editor.cpp from the one table of actions. */
-		body { font-size: 15dp; }
+		   panel's lists are made by oz_ui_editor.cpp from the one table of actions.
+
+		   The look (the user's pick of the design mockups, 2026-11-07, "Arena refined"): warm charcoal layers,
+		   faint edges, red only for the title, what's on (the tool in use, a toggle) and Play; buttons in plain
+		   words, the commands used most as icons. An icon is a span of class ic with data-icon naming it:
+		   oz_ui_editor.cpp fills in its glyph from ui/fonts/OzIcons.ttf (engine/tools/make_editor_icons.py), so
+		   it takes the text's color and stays sharp at any size. A button holding an icon is class ib (a flex
+		   row: its words go in a span), io when it's the icon alone. */
+		body { font-size: 15dp; color: #f1e9e0; }
 		.bar {
 			position: absolute;
 			left: 0;
 			right: 0;
-			background-color: #0a0807f5;
+			background-color: #1a1513f7;
 		}
+		.ic { font-family: OzIcons; font-weight: normal; font-size: 1.2rem; line-height: 1.2rem; }
 
 		/* the menu bar: the title, the menus, the map's name, the way back to the main menu */
 		.top {
 			top: 0;
 			height: 2.6rem;
-			border-bottom: 1dp #ffffff14;
+			background-color: #120e0dfa;
+			border-bottom: 1dp #ffecdc0f;
 			display: flex;
 			align-items: center;
-			padding: 0 0.6rem 0 1rem;
+			padding: 0 0.6rem 0 1.05rem;
 		}
-		.top .title { font-family: OzDisplay; font-size: 1.45rem; color: #db2410; letter-spacing: 0.08em; margin-right: 1.1rem; white-space: nowrap; }
+		.top .title { font-family: OzDisplay; font-size: 1.25rem; color: #ff4a1c; letter-spacing: 0.08em; margin-right: 1rem; white-space: nowrap; }
 		#ed-menubar { display: flex; align-items: center; height: 2.6rem; }
 		.mt {
 			display: block;
-			height: 2.6rem;
-			line-height: 2.6rem;
-			padding: 0 0.7rem;
-			font-size: 0.9rem;
-			font-weight: 600;
-			letter-spacing: 0.04em;
-			color: #c9bfb4;
+			height: 1.9rem;
+			line-height: 1.9rem;
+			padding: 0 0.6rem;
+			border-radius: 5dp;
+			font-size: 0.93rem;
+			font-weight: 500;
+			color: #c9bdb1;
 		}
-		.mt:hover, .mt:focus { color: #fff3e6; background-color: #ffffff12; }
-		.mt.on { color: #fff3e6; background-color: #db241040; }
-		.top .name { margin-left: auto; padding: 0 1rem; color: #8d847c; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.mt:hover, .mt:focus { color: #f1e9e0; background-color: #ffecdc12; }
+		.mt.on { color: #ffffff; background-color: #ffecdc1c; }
+		.top .name { margin-left: auto; padding: 0 1rem; color: #9b8f84; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 		.exit {
-			display: block;
+			display: flex;
+			align-items: center;
 			flex-shrink: 0;
-			padding: 0.32rem 0.85rem;
-			font-size: 0.8rem;
-			font-weight: 600;
-			letter-spacing: 0.1em;
-			color: #e6ddd2;
-			border: 1dp #ffffff40;
-			border-radius: 2dp;
-			background-color: #ffffff0d;
+			height: 1.9rem;
+			padding: 0 0.75rem 0 0.6rem;
+			font-size: 0.87rem;
+			font-weight: 500;
+			color: #e6ddd3;
+			border: 1dp #ffecdc24;
+			border-radius: 5dp;
+			background-color: #ffecdc08;
 		}
-		.exit:hover, .exit:focus { color: #fff3e6; border-color: #ff4a1c; background-color: #db241040; }
+		.exit .ic { font-size: 1rem; line-height: 1rem; margin-right: 0.4rem; }
+		.exit:hover, .exit:focus { color: #ffffff; border-color: #ffecdc4d; background-color: #ffecdc14; }
 
 		/* the action bar: the commands used most, each also in a menu */
 		.tools {
 			top: 2.6rem;
 			height: 2.8rem;
-			border-bottom: 1dp #db241066;
+			border-bottom: 1dp #ffecdc12;
 			display: flex;
 			align-items: center;
-			padding: 0 0.6rem;
-			background-color: #0a0807ee;
+			padding: 0 0.5rem;
 		}
-		.sep { width: 1dp; height: 1.5rem; background-color: #ffffff1f; margin: 0 0.5rem; flex-shrink: 0; }
+		.sep { width: 1dp; height: 1.45rem; background-color: #ffecdc17; margin: 0 0.4rem; flex-shrink: 0; }
 		.tb {
 			display: block;
-			padding: 0.35rem 0.8rem;
+			padding: 0.3rem 0.65rem;
 			margin-right: 0.25rem;
-			font-weight: 600;
-			font-size: 0.85rem;
-			letter-spacing: 0.12em;
-			color: #e6ddd2;
+			font-weight: 500;
+			font-size: 0.87rem;
+			color: #e6ddd3;
 			border: 1dp transparent;
-			border-radius: 2dp;
+			border-radius: 5dp;
 			white-space: nowrap;
 		}
-		.tools .tb { font-size: 0.74rem; letter-spacing: 0.08em; padding: 0.34rem 0.6rem; margin-right: 0.2rem; flex-shrink: 0; }
-		.tb:hover { background-color: #db241033; border-color: #db241099; color: #fff3e6; }
-		.tb:focus { border-color: #db241099; color: #fff3e6; }	/* a clicked button keeps the focus: its edge only, never lit like one that's on */
-		.tb:active { background-color: #db241066; }
-		.tb.on { background-color: #db24104d; border-color: #ff4a1c; color: #fff3e6; }
-		.tb.quiet { color: #8d847c; }
-		.tb.play { color: #0a0807; background-color: #6ee68c; border-color: #6ee68c; }
-		.tb.play:hover, .tb.play:focus { background-color: #9cf5b0; border-color: #ffffff; color: #0a0807; }
-		.tb.leak { color: #ff6a4a; border-color: #ff3c2899; }
-		.tb.warn { color: #ffd28a; border-color: #ffa53c66; }
+		.tb:hover { background-color: #ffecdc12; color: #ffffff; }
+		.tb:focus { border-color: #ffecdc33; color: #ffffff; }	/* a clicked button keeps the focus: its edge only, never lit like one that's on */
+		.tb:active { background-color: #ffecdc1f; }
+		.tb.on { background-color: #ff4a1c24; border-color: #ff4a1c80; color: #ffd9cc; }
+		.tb.on .ic { color: #ff6a42; }
+		.tb.quiet { color: #9b8f84; }
+		.tb.quiet:hover, .tb.quiet:focus { color: #e6ddd3; }
+		.tb.ib { display: flex; align-items: center; }
+		.tb .ic { margin-right: 0.45rem; }
+		.tb.io { padding-left: 0; padding-right: 0; justify-content: center; }
+		.tb.io .ic { margin-right: 0; }
+		.tb kbd { margin: 0 0 0 0.55rem; min-width: 0; }
+		.tb.play { color: #ffffff; background-color: #e8381a; border-color: #e8381a; font-weight: 600; }
+		.tb.play:hover, .tb.play:focus { background-color: #ff5533; border-color: #ff8a6e; color: #ffffff; }
+		.tb.play .ic { color: #ffffff; }
+		.tb.play kbd { color: #ffffff; background-color: #00000038; border-color: #00000000; }
+		.tb.out { border-color: #ffecdc2e; background-color: #ffecdc0a; }
+		.tb.out:hover, .tb.out:focus { border-color: #ffecdc4d; background-color: #ffecdc14; }
+		.tb.leak { color: #ff8a6e; border-color: #ff4a1c66; }
+		.tb.leak .ic { color: #ff6a42; }
+		.tb.warn { color: #f3bd62; background-color: #f0a83a1f; border-color: #00000000; }
+		.tb.warn .ic { color: #f3bd62; }
+		.tb.warn:hover, .tb.warn:focus { background-color: #f0a83a33; }
+		.tb.field { min-width: 8.5rem; color: #9b8f84; background-color: #100d0c; border-color: #ffecdc17; }
+		.tb.field:hover, .tb.field:focus { color: #e6ddd3; border-color: #ffecdc33; }
+		.tb.field kbd { margin-left: auto; }
+		.tools .tb { height: 2.1rem; padding: 0 0.6rem; margin-right: 0.15rem; flex-shrink: 0; display: flex; align-items: center; }
+		.tools .tb.io { width: 2.1rem; padding: 0; justify-content: center; }
+		.tools .tb.hidden, .tb.ib.hidden { display: none; }	/* over the flex rows' display: Stop, Show the leak, Warnings wait hidden */
 		.tools .spacer { flex: 1; }
+		/* a toggle's switch: Texture lock in the action bar */
+		.mtog { display: block; position: relative; flex-shrink: 0; width: 24dp; height: 14dp; border-radius: 7dp; background-color: #4a403b; margin-left: 0.55rem; }
+		.mtog .knob { position: absolute; top: 2dp; left: 2dp; width: 10dp; height: 10dp; border-radius: 5dp; background-color: #c2b6aa; }
+		.on .mtog { background-color: #ff4a1c; }
+		.on .mtog .knob { left: 12dp; background-color: #ffffff; }
 
 		/* the tool strip: the tools the pointer works with in the view, each with its key */
 		.strip {
@@ -96,27 +129,34 @@
 			left: 0;
 			bottom: 2.25rem;
 			width: 6.2rem;
-			padding: 0.45rem 0.4rem;
-			background-color: #0a0807f0;
-			border-right: 1dp #ffffff14;
+			padding: 0.3rem 0.45rem;
+			background-color: #1a1513f7;
+			border-right: 1dp #ffecdc12;
 			overflow-y: auto;
 		}
-		.strip .group { display: block; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.14em; color: #8d847c; margin: 0.35rem 0 0.25rem 0.15rem; }
+		.strip .group { display: block; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.14em; color: #9b8f84; margin: 0.6rem 0 0.35rem 0.2rem; }
 		.st {
 			display: flex;
+			flex-direction: column;
 			align-items: center;
-			height: 2.3rem;
+			justify-content: center;
+			position: relative;
+			height: 3.75rem;
 			margin-bottom: 0.25rem;
-			padding: 0 0.3rem 0 0.5rem;
-			border: 1dp #ffffff1a;
-			border-radius: 2dp;
-			background-color: #ffffff08;
+			border: 1dp transparent;
+			border-radius: 6dp;
+			color: #ddd1c5;
 		}
-		.st .tn { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; color: #e6ddd2; white-space: nowrap; }
-		.st kbd { margin-left: auto; min-width: 1.1rem; font-size: 0.6rem; padding: 0 0.25rem; color: #ffd28a; border-color: #ffd28a40; }
-		.st:hover, .st:focus { border-color: #db241099; background-color: #db241026; }
-		.st.on { border-color: #ff4a1c; background-color: #db24104d; }
-		.st.on .tn { color: #fff3e6; }
+		.st .ic { font-size: 1.4rem; line-height: 1.4rem; margin-bottom: 0.3rem; }
+		.st .tn { font-size: 0.8rem; font-weight: 500; white-space: nowrap; }
+		.st kbd { position: absolute; top: 0.2rem; right: 0.25rem; min-width: 0; padding: 0 0.15rem; font-size: 0.6rem; line-height: 1.2; color: #9b8f84; border-width: 0; background-color: #00000000; }
+		.st:hover, .st:focus { background-color: #ffecdc0f; color: #ffffff; }
+		.st.on { background-color: #ff4a1c24; border-color: #ff4a1c80; color: #ffffff; }
+		.st.on .ic { color: #ff6a42; }
+		.st.on kbd { color: #ff9a7d; }
+
+		/* keys, wherever they show */
+		kbd { border: 1dp #ffecdc24; border-bottom-width: 2dp; border-radius: 4dp; background-color: #261f1c; color: #ddd1c5; font-size: 0.66rem; padding: 0 0.35rem; line-height: 1.45; }
 
 		/* the panel: its tabs, then the open one's body, which scrolls */
 		.side {
@@ -124,328 +164,363 @@
 			top: 5.4rem;
 			right: 0;
 			bottom: 2.25rem;
-			width: 22rem;
-			background-color: #0a0807f0;
-			border-left: 1dp #ffffff14;
+			width: 23rem;
+			background-color: #1a1513f7;
+			border-left: 1dp #ffecdc12;
 			display: flex;
 			flex-direction: column;
 		}
-		.ptabs { display: flex; height: 2.5rem; border-bottom: 1dp #ffffff14; padding: 0 0.35rem; flex-shrink: 0; }
+		.ptabs { display: flex; height: 2.6rem; border-bottom: 1dp #ffecdc12; padding: 0 0.4rem; flex-shrink: 0; }
 		.ptab {
 			display: block;
 			flex: 1 1 auto;
 			text-align: center;
-			padding-top: 0.75rem;
-			font-size: 0.56rem;
+			padding-top: 0.78rem;
+			font-size: 0.76rem;
 			font-weight: 600;
-			letter-spacing: 0.01em;
-			color: #a59a90;
+			color: #9b8f84;
 			border-bottom: 2dp transparent;
 		}
-		.ptab:hover, .ptab:focus { color: #fff3e6; background-color: #ffffff0a; }
-		.ptab.on { color: #fff3e6; border-bottom-color: #ff4a1c; }
-		.pbody { flex: 1; overflow-y: auto; padding: 0.4rem 1.1rem 0.75rem 1.1rem; }
+		.ptab:hover, .ptab:focus { color: #f1e9e0; }
+		.ptab.on { color: #ffffff; border-bottom-color: #ff4a1c; }
+		.pbody { flex: 1; overflow-y: auto; padding: 0.5rem 1.05rem 0.9rem 1.05rem; }
 		.hidden, .side .row.hidden { display: none; }
-		.side h2 { font-family: OzDisplay; font-size: 1.1rem; color: #ff4a1c; letter-spacing: 0.08em; margin: 0.75rem 0 0.4rem 0; }
-		.side .row { display: flex; align-items: center; flex-wrap: wrap; font-size: 0.85rem; color: #8d847c; margin: 0.25rem 0; }
-		.side .row .lbl { width: 3.4rem; color: #a59a90; }
-		.side .row .k { color: #e6ddd2; }
-		.side input.text { width: 4.1rem; height: 1.9rem; padding: 0.2rem 0.45rem; margin-right: 0.3rem; font-size: 0.88rem; }
+		.side h2 { font-family: Barlow; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; color: #b5a99d; margin: 1.05rem 0 0.6rem 0; padding-bottom: 0.4rem; border-bottom: 1dp #ffecdc14; }
+		.side .row { display: flex; align-items: center; flex-wrap: wrap; font-size: 0.87rem; color: #9b8f84; margin: 0.3rem 0; }
+		.side .row .lbl { width: 3.6rem; flex-shrink: 0; color: #c2b6aa; }
+		.side .row .k { color: #e6ddd3; }
+		.side input.text { width: 4.3rem; height: 1.9rem; padding: 0.2rem 0.5rem; margin-right: 0.3rem; font-size: 0.9rem; border-radius: 4dp; background-color: #100d0c; border-color: #ffecdc17; color: #f1e9e0; }
+		.side input.text:focus { border-color: #ff4a1caa; background-color: #0a0807; }
+		.side input.text:placeholder-shown { color: #7d7168; }
 		.side input.text.wide { width: 100%; margin-right: 0; }
-		.side input.text.half { width: 8.2rem; }
+		.side input.text.half { width: 9rem; }
+		.side input.text.deg { width: 3.6rem; }
 		/* the panel's buttons look like buttons: a frame and a fill, the text large enough to read */
 		.side .tb {
-			font-size: 0.7rem;
-			padding: 0.3rem 0.5rem;
-			margin: 0 0.25rem 0.3rem 0;
-			letter-spacing: 0.06em;
-			border-color: #ffffff2e;
-			background-color: #ffffff0a;
+			font-size: 0.83rem;
+			padding: 0.28rem 0.6rem;
+			margin: 0 0.3rem 0.3rem 0;
+			border-color: #ffecdc1f;
+			background-color: #ffecdc08;
+			border-radius: 4dp;
 		}
-		.side .tb:hover, .side .tb:focus { border-color: #db241099; background-color: #db241033; }
-		.side .tb.play { color: #0a0807; background-color: #6ee68c; border-color: #6ee68c; }
-		.side .keys .row { margin: 0.18rem 0; flex-wrap: nowrap; }
-		.side kbd { margin-right: 0.6rem; min-width: 3.4rem; flex-shrink: 0; }
-		.side p { font-size: 0.85rem; color: #8d847c; margin: 0.35rem 0; }
-		.side .what { color: #e6ddd2; font-size: 0.9rem; margin-top: 0.6rem; }
-		.side .what .bad { color: #ff7a66; }
-		.side .sub { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.12em; color: #8d847c; margin: 0.5rem 0 0.25rem 0; }
+		.side .tb:hover, .side .tb:focus { border-color: #ffecdc40; background-color: #ffecdc14; }
+		.side .tb.on { background-color: #ff4a1c24; border-color: #ff4a1c80; color: #ffd9cc; }
+		.side .tb.play { color: #ffffff; background-color: #e8381a; border-color: #e8381a; }
+		.side .tb .ic { font-size: 1rem; line-height: 1rem; margin-right: 0.35rem; }
+		.side .tb.io { width: 1.9rem; height: 1.9rem; padding: 0; justify-content: center; }
+		.side .tb.io .ic { margin-right: 0; }
+		/* a group of small buttons in one frame: steps, alignments, flips */
+		.seg { display: flex; align-items: center; flex-shrink: 0; padding: 2dp; margin: 0 0.3rem 0.3rem 0; border-radius: 5dp; background-color: #100d0c; border: 1dp #ffecdc14; }
+		.side .seg .tb { margin: 0; border-width: 0; background-color: #00000000; height: 1.55rem; line-height: 1.55rem; padding: 0 0.45rem; border-radius: 3dp; color: #c2b6aa; }
+		.side .seg .tb:hover, .side .seg .tb:focus { background-color: #2c2420; color: #ffffff; }
+		.side .seg .tb.io { width: 1.75rem; height: 1.55rem; padding: 0; }
+		.side .row .seg { margin-bottom: 0; }
+		/* a number field with its axis: X red, Y green, Z blue (the grid's lines), U and V a texture's */
+		.axw { display: block; position: relative; flex-shrink: 0; }
+		.axw input.text { padding-left: 1.25rem; }
+		.axw .ax { position: absolute; left: 0.48rem; top: 0; height: 1.9rem; line-height: 1.9rem; font-size: 0.7rem; font-weight: 700; pointer-events: none; }
+		.ax.x { color: #f06f66; }
+		.ax.y { color: #86d279; }
+		.ax.z { color: #6aa6f6; }
+		.side .keys .row { margin: 0.2rem 0; flex-wrap: nowrap; }
+		.side kbd { margin-right: 0.6rem; min-width: 3.4rem; flex-shrink: 0; text-align: center; }
+		.side p { font-size: 0.85rem; color: #9b8f84; margin: 0.35rem 0; }
+		.side .what { color: #f1e9e0; font-size: 0.95rem; font-weight: 500; margin-top: 0.6rem; }
+		.side .what .bad { color: #ff8a6e; }
+		.side .sub { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.12em; color: #9b8f84; margin: 0.65rem 0 0.3rem 0; }
 		.steps .row { align-items: flex-start; flex-wrap: nowrap; margin: 0.35rem 0; }
-		.steps .n { width: 1.3rem; flex-shrink: 0; color: #ff4a1c; font-weight: 600; }
+		.steps .n { width: 1.3rem; flex-shrink: 0; color: #ff6a42; font-weight: 600; }
 		.steps .k { flex: 1; }
 		.side .steps kbd { min-width: 0; margin: 0 0.2rem; padding: 0 0.3rem; }
 
 		/* a material: its picture fit into a square */
-		.sw { width: 4rem; height: 4rem; display: flex; align-items: center; justify-content: center; background-color: #00000080; border: 1dp #ffffff1a; margin-right: 0.6rem; flex-shrink: 0; }
+		.sw { width: 3.75rem; height: 3.75rem; display: flex; align-items: center; justify-content: center; background-color: #00000080; border: 1dp #ffecdc1a; border-radius: 4dp; margin-right: 0.7rem; flex-shrink: 0; }
 		.sw.tool span { font-size: 0.6rem; letter-spacing: 0.1em; color: #00000099; font-weight: 600; }
-		.sw.none span { color: #5d554f; }
-		.matname { color: #e6ddd2; font-size: 0.85rem; }
+		.sw.none span { color: #6f655d; }
+		.matname { color: #f1e9e0; font-size: 0.9rem; font-weight: 500; }
 
 		/* the materials browser */
-		.chips { display: flex; flex-wrap: wrap; margin: 0.4rem 0 0.3rem 0; }
-		.chip { display: block; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; color: #a59a90; padding: 0.24rem 0.48rem; margin: 0 0.25rem 0.25rem 0; border: 1dp #ffffff26; border-radius: 2dp; }
-		.chip:hover, .chip:focus { color: #e6ddd2; border-color: #db241099; }
-		.chip.on { color: #fff3e6; border-color: #ff4a1c; background-color: #db241033; }
+		.chips { display: flex; flex-wrap: wrap; margin: 0.45rem 0 0.3rem 0; }
+		.chip { display: block; font-size: 0.8rem; font-weight: 500; color: #c2b6aa; padding: 0.2rem 0.62rem; margin: 0 0.3rem 0.3rem 0; border: 1dp #ffecdc1f; border-radius: 0.8rem; }
+		.chip:hover, .chip:focus { color: #f1e9e0; border-color: #ffecdc40; }
+		.chip.on { color: #ffd9cc; border-color: #ff4a1c80; background-color: #ff4a1c24; }
 		.mats { display: flex; flex-wrap: wrap; }
-		.mat { display: block; width: 5.95rem; margin: 0 0.15rem 0.45rem 0; }
-		.mat .sw { width: 5.65rem; height: 5.65rem; margin: 0; }
-		.mat:hover .sw { border-color: #db2410; }
+		.mat { display: block; width: 6.2rem; margin: 0 0.15rem 0.5rem 0; }
+		.mat .sw { width: 5.9rem; height: 5.9rem; margin: 0; }
+		.mat:hover .sw { border-color: #ffecdc59; }
 		.mat.on .sw { border: 2dp #ff4a1c; }
-		.mat .mn { display: block; font-size: 0.66rem; color: #8d847c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 5.65rem; margin-top: 0.12rem; }
-		.mat.on .mn { color: #fff3e6; }
-		.mat .badge { position: absolute; top: 0.2rem; right: 0.45rem; font-size: 0.55rem; font-weight: 600; letter-spacing: 0.08em; color: #0a0807; background-color: #ffa53ccc; padding: 0 0.2rem; }
+		.mat .mn { display: block; font-size: 0.7rem; color: #9b8f84; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 5.9rem; margin-top: 0.15rem; }
+		.mat.on .mn { color: #ffffff; }
+		.mat .badge { position: absolute; top: 0.25rem; right: 0.5rem; font-size: 0.55rem; font-weight: 600; letter-spacing: 0.08em; color: #1d1206; background-color: #f0a83ae6; border-radius: 3dp; padding: 0 0.22rem; }
 		.tints { flex-wrap: wrap; }
-		.tints .cchip.none { background-color: #ffffff; border: 1dp #8d847c; }
-		.check { display: flex; align-items: center; padding: 0.3rem 0.6rem 0.3rem 0.35rem; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; color: #e6ddd2;
-			border: 1dp #ffffff2e; background-color: #ffffff0a; margin-right: 0.6rem; }
-		.check:hover { border-color: #db241099; }
-		.check .tick { display: block; flex-shrink: 0; width: 0.9rem; height: 0.9rem; border: 2dp #c9bfb4; margin-right: 0.45rem; }
+		.tints .cchip.none { background-color: #ffffff; border: 1dp #9b8f84; }
+		.check { display: flex; align-items: center; padding: 0.3rem 0.65rem 0.3rem 0.4rem; font-size: 0.87rem; font-weight: 500; color: #e6ddd3;
+			border: 1dp #ffecdc1f; background-color: #ffecdc08; border-radius: 5dp; margin-right: 0.6rem; }
+		.check:hover, .check:focus { border-color: #ffecdc40; }
+		/* a check is a switch: off grey, on red, the knob halfway while the selection is mixed */
+		.check .tick { display: block; position: relative; flex-shrink: 0; width: 26dp; height: 15dp; border-radius: 8dp; background-color: #4a403b; margin-right: 0.5rem; }
+		.check .knob { position: absolute; top: 2dp; left: 2dp; width: 11dp; height: 11dp; border-radius: 6dp; background-color: #c2b6aa; }
 		.check .lbl2 { display: block; white-space: nowrap; }
-		.check.ticked .tick { background-color: #6ee68c; border-color: #6ee68c; }
-		.check.mixed .tick { background-color: #6ee68c66; }
-		#sec-shape .note, #ed-mover .note { font-size: 0.8rem; color: #8d847c; align-self: center; margin-left: 0.4rem; }
-		.bad { color: #ff7a66; }
+		.check.ticked .tick { background-color: #ff4a1c; }
+		.check.ticked .knob { left: 13dp; background-color: #ffffff; }
+		.check.mixed .tick { background-color: #ff4a1c73; }
+		.check.mixed .knob { left: 7dp; }
+		#sec-shape .note, #ed-mover .note { font-size: 0.82rem; color: #9b8f84; align-self: center; margin-left: 0.4rem; }
+		.bad { color: #ff8a6e; }
 		.mat { position: relative; }
-		.esec { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; color: #a59a90; margin: 0.7rem 0 0.3rem 0; }
+		.esec { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; color: #b5a99d; margin: 1rem 0 0.45rem 0; padding-bottom: 0.38rem; border-bottom: 1dp #ffecdc14; }
 		/* the Entities panel: the card saying what's armed, each section's line, names that wrap */
-		.einfo { margin: 0.5rem 0 0.2rem 0; padding: 0.5rem 0.6rem; background-color: #ffffff0a; border: 1dp #ffffff1a; }
-		.einfo .et { font-size: 0.95rem; font-weight: 600; color: #fff3e6; }
-		.einfo .ec { font-size: 0.66rem; font-weight: 400; color: #8d847c; margin-left: 0.5rem; }
-		.einfo .ed { display: block; font-size: 0.78rem; color: #e6ddd2; margin-top: 0.15rem; }
-		.einfo .en { display: block; font-size: 0.74rem; color: #ffa53c; margin-top: 0.25rem; }
-		.einfo .lg { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; color: #0a0807; background-color: #a59a90; padding: 0 0.25rem; }
-		.enote { font-size: 0.74rem; color: #8d847c; margin: 0 0 0.35rem 0; }
-		#panel-entities .mat .mn { white-space: normal; text-overflow: clip; height: 1.7rem; line-height: 0.85rem; }
-		.chip.flag.on { color: #fff3e6; border-color: #6ee68c; background-color: #6ee68c33; }
-		.folder { display: block; width: 9rem; font-size: 0.78rem; color: #e6ddd2; padding: 0.25rem 0.3rem; }
-		.folder:hover { background-color: #db241033; }
-		.folder .n { color: #5d554f; margin-left: 0.3rem; }
+		.einfo { margin: 0.55rem 0 0.2rem 0; padding: 0.55rem 0.7rem; background-color: #ffecdc0a; border: 1dp #ffecdc14; border-radius: 6dp; }
+		.einfo .et { font-size: 0.98rem; font-weight: 600; color: #ffffff; }
+		.einfo .ec { font-size: 0.7rem; font-weight: 400; color: #9b8f84; margin-left: 0.5rem; }
+		.einfo .ed { display: block; font-size: 0.82rem; color: #e6ddd3; margin-top: 0.15rem; }
+		.einfo .en { display: block; font-size: 0.78rem; color: #f3bd62; margin-top: 0.25rem; }
+		.einfo .lg { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; color: #1a1513; background-color: #b5a99d; border-radius: 3dp; padding: 0 0.25rem; }
+		.enote { font-size: 0.8rem; color: #9b8f84; margin: 0 0 0.35rem 0; }
+		#panel-entities .mat .mn { white-space: normal; text-overflow: clip; height: 1.75rem; line-height: 0.88rem; }
+		.chip.flag.on { color: #d6f5dc; border-color: #6ee68c80; background-color: #6ee68c1f; }
+		.folder { display: block; width: 9rem; font-size: 0.82rem; color: #e6ddd3; padding: 0.25rem 0.35rem; border-radius: 4dp; }
+		.folder:hover { background-color: #ffecdc12; }
+		.folder .n { color: #7d7168; margin-left: 0.3rem; }
 		.pager { justify-content: center; }
-		#ed-pick-chips .chip .n { color: #6d655e; margin-left: 0.2rem; }
-		#ed-pick-rows .srow .pn { width: 15rem; flex-shrink: 0; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 0.6rem; }
+		#ed-pick-chips .chip .n { color: #7d7168; margin-left: 0.2rem; }
+		#ed-pick-rows .srow .pn { width: 15rem; flex-shrink: 0; color: #e6ddd3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 0.6rem; }
 		.pfs { display: flex; flex-wrap: wrap; }
 		.pfbox { display: block; width: 10.4rem; margin: 0 0.3rem 0.6rem 0; }
 		.pf { display: block; }
-		.pf .pfsw { display: block; width: 10.1rem; height: 10.1rem; border: 1dp #ffffff26; background-color: #12100e; }
+		.pf .pfsw { display: block; width: 10.1rem; height: 10.1rem; border: 1dp #ffecdc1f; border-radius: 5dp; background-color: #12100e; }
 		.pf .pfsw img { display: block; width: 10.1rem; height: 10.1rem; }
-		.pf .pfsw span { display: block; padding-top: 4.5rem; text-align: center; font-size: 0.66rem; letter-spacing: 0.08em; color: #5d554f; }
-		.pf:hover .pfsw { border-color: #db2410; }
-		.pf .mn { display: block; font-size: 0.78rem; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 10.1rem; margin-top: 0.2rem; }
-		.pfdel { display: inline-block; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.08em; color: #8d847c; padding: 0.12rem 0.35rem; margin-top: 0.15rem; border: 1dp #ffffff1f; }
-		.pfdel:hover { color: #ff7a66; border-color: #ff7a66; }
-		.pfdel.armed { color: #0a0807; background-color: #ff7a66; border-color: #ff7a66; }
-		#panel-prefabs .note { font-size: 0.8rem; color: #8d847c; margin: 0.2rem 0 0.4rem 0; }
+		.pf .pfsw span { display: block; padding-top: 4.5rem; text-align: center; font-size: 0.66rem; letter-spacing: 0.08em; color: #6f655d; }
+		.pf:hover .pfsw { border-color: #ffecdc59; }
+		.pf .mn { display: block; font-size: 0.82rem; color: #e6ddd3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 10.1rem; margin-top: 0.2rem; }
+		.pfdel { display: inline-block; font-size: 0.7rem; font-weight: 500; color: #9b8f84; padding: 0.12rem 0.45rem; margin-top: 0.2rem; border: 1dp #ffecdc1f; border-radius: 4dp; }
+		.pfdel:hover { color: #ff8a6e; border-color: #ff8a6e; }
+		.pfdel.armed { color: #1a1513; background-color: #ff8a6e; border-color: #ff8a6e; }
+		#panel-prefabs .note { font-size: 0.82rem; color: #9b8f84; margin: 0.2rem 0 0.4rem 0; }
 		.pager span { margin: 0 0.6rem; }
 
 		/* the outliner and the history */
-		.orow { display: flex; align-items: center; font-size: 0.8rem; color: #e6ddd2; padding: 0.16rem 0.3rem; white-space: nowrap; }
-		.orow:hover { background-color: #ffffff0d; }
-		.orow.on { background-color: #db241040; }
-		.orow .tog { width: 1rem; color: #8d847c; }
+		.orow { display: flex; align-items: center; font-size: 0.84rem; color: #e6ddd3; padding: 0.16rem 0.35rem; border-radius: 4dp; white-space: nowrap; }
+		.orow:hover { background-color: #ffecdc0f; }
+		.orow.on { background-color: #ff4a1c2e; }
+		.orow .tog { width: 1rem; color: #9b8f84; }
 		.orow .in { width: 1rem; }
-		.orow .sub { color: #8d847c; margin-left: 0.4rem; overflow: hidden; text-overflow: ellipsis; }
-		.orow .cnt { color: #5d554f; margin-left: auto; padding-left: 0.5rem; }
-		.orow.redo { color: #5d554f; }
-		.orow.cur { color: #fff3e6; background-color: #db241033; }
-		.orow .mark { width: 1rem; color: #ff4a1c; }
-		.orow.hid { color: #5d554f; }
-		.orow .ostate { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; color: #ffd28a; margin-left: 0.4rem; }
+		.orow .sub { color: #9b8f84; margin-left: 0.4rem; overflow: hidden; text-overflow: ellipsis; }
+		.orow .cnt { color: #7d7168; margin-left: auto; padding-left: 0.5rem; }
+		.orow.redo { color: #7d7168; }
+		.orow.cur { color: #ffffff; background-color: #ff4a1c24; }
+		.orow .mark { width: 1rem; color: #ff6a42; }
+		.orow.hid { color: #7d7168; }
+		.orow .ostate { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; color: #f3bd62; margin-left: 0.4rem; }
 
 		/* entity keys */
-		.kv input.text.key { width: 6.4rem; color: #c9bfb4; }
-		.kv input.text.val { width: 9.8rem; }
-		.kv .x { margin: 0 0.3rem 0 0; padding: 0.25rem 0; width: 1.4rem; text-align: center; }
-		.kv .nox { width: 1.4rem; margin-right: 0.3rem; }
+		.kv input.text.key { width: 6.6rem; color: #c2b6aa; }
+		.kv input.text.val { width: 10.4rem; }
+		.side .kv .tb.x { margin: 0 0.3rem 0 0; width: 1.5rem; height: 1.9rem; padding: 0; color: #9b8f84; }
+		.side .kv .tb.x:hover { color: #ff8a6e; }
+		.side .kv .tb.x .ic { font-size: 0.9rem; line-height: 0.9rem; }
+		.kv .nox { width: 1.5rem; margin-right: 0.3rem; }
 		/* a typed key's controls under its row: a color's swatch and palette, an angle's compass, ... */
 		.kt { margin-top: 0; }
-		.kt .nox { width: 1.4rem; margin-right: 0.3rem; }
+		.kt .nox { width: 1.5rem; margin-right: 0.3rem; }
 		/* a light's sliders: intensity, range, a spotlight's cone */
 		.lsl { flex-wrap: nowrap; }
 		.lsl .lbl { width: 4.4rem; }
 		.lsl input.slider { width: 9rem; }
-		.lsl .n { color: #e6ddd2; margin-left: 0.6rem; white-space: nowrap; }
-		.lnote, .chipnote { font-size: 0.8rem; color: #8d847c; margin-left: 0.4rem; }
-		.chips .chipsub { width: 100%; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.12em; color: #8d847c; margin: 0.5rem 0 0 0; }
+		.side input.slider sliderprogress { decorator: none; background-color: #ff4a1c; }
+		.side input.slider sliderbar { border-color: #f1e9e0; background-color: #1a1513; }
+		.lsl .n { color: #e6ddd3; margin-left: 0.6rem; white-space: nowrap; }
+		.lnote, .chipnote { font-size: 0.82rem; color: #9b8f84; margin-left: 0.4rem; }
+		.chips .chipsub { width: 100%; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.12em; color: #9b8f84; margin: 0.55rem 0 0 0; }
 		.chips .chipnote { width: 100%; margin: 0.1rem 0 0.3rem 0; }
-		.side .kt .tb { font-size: 0.62rem; padding: 0.18rem 0.3rem; margin: 0 0.12rem 0.15rem 0; letter-spacing: 0.04em; }
+		.side .kt .tb { font-size: 0.72rem; padding: 0.16rem 0.38rem; margin: 0 0.15rem 0.18rem 0; }
 		#ed-pick-rows { max-height: 30rem; overflow-y: auto; }
-		.csw { width: 1.5rem; height: 1.2rem; border: 1dp #ffffff40; margin-right: 0.4rem; }
-		.cchip { width: 1.1rem; height: 1.1rem; margin: 0 0.12rem 0.15rem 0; border: 1dp #00000080; }
+		.csw { width: 1.5rem; height: 1.2rem; border: 1dp #ffecdc40; border-radius: 3dp; margin-right: 0.4rem; }
+		.cchip { width: 1.05rem; height: 1.05rem; margin: 0 0.16rem 0.2rem 0; border: 1dp #00000080; border-radius: 4dp; }
 		.cchip:hover, .cchip:focus { border-color: #ffffffcc; }
 		.cchip.on { border: 2dp #ffffff; }
+		.side .tints .tb { font-size: 0.72rem; padding: 0 0.45rem; height: 1.15rem; line-height: 1.05rem; margin: 0 0 0.2rem 0.2rem; border-radius: 0.6rem; }
 
 		/* the autosave's offer, along the view's top; the questions and cards over everything */
-		.recover { position: absolute; top: 6rem; left: 7rem; right: 23rem; display: flex; align-items: center; padding: 0.5rem 0.9rem;
-			background-color: #1a1210f2; border: 1dp #ffa53c99; font-size: 0.85rem; color: #ffd28a; }
+		.recover { position: absolute; top: 6rem; left: 7rem; right: 24rem; display: flex; align-items: center; padding: 0.55rem 0.9rem;
+			background-color: #241a12f2; border: 1dp #f0a83a66; border-radius: 6dp; font-size: 0.88rem; color: #f3d7a8; }
 		.recover .msg { flex: 1; }
-		.ask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #00000099; display: flex; align-items: center; justify-content: center; }
-		.ask .box { width: 26rem; padding: 1rem 1.4rem; background-color: #0a0807fa; border: 1dp #db241099; }
-		.ask h2 { font-family: OzDisplay; font-size: 1.2rem; color: #ff4a1c; letter-spacing: 0.08em; margin: 0 0 0.5rem 0; }
-		.ask p { font-size: 0.9rem; color: #e6ddd2; margin: 0 0 0.9rem 0; }
-		.ask p.dim { color: #8d847c; font-size: 0.82rem; }
+		.recover .tb { border-color: #ffecdc24; background-color: #ffecdc0a; }
+		.ask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #0000009e; display: flex; align-items: center; justify-content: center; }
+		.ask .box { width: 26rem; padding: 1.1rem 1.4rem 0.9rem 1.4rem; background-color: #1d1816fc; border: 1dp #ffecdc1f; border-radius: 8dp; box-shadow: #000000b3 0 12dp 36dp 0; }
+		.ask h2 { font-family: OzDisplay; font-size: 1.15rem; color: #ff4a1c; letter-spacing: 0.08em; margin: 0 0 0.55rem 0; }
+		.ask p { font-size: 0.92rem; color: #e6ddd3; margin: 0 0 0.9rem 0; }
+		.ask p.dim { color: #9b8f84; font-size: 0.85rem; }
 		.ask .row { display: flex; }
-		.ask .tb { border-color: #ffffff2e; background-color: #ffffff0a; }
-		.ask input.text { width: 100%; height: 2.3rem; margin-bottom: 0.5rem; }
+		.ask .tb { border-color: #ffecdc24; background-color: #ffecdc0a; margin-right: 0.4rem; }
+		.ask .tb:hover, .ask .tb:focus { border-color: #ffecdc4d; background-color: #ffecdc14; }
+		.tb.primary, .ask .tb.primary { color: #ffffff; background-color: #e8381a; border-color: #e8381a; font-weight: 600; }
+		.tb.primary:hover, .tb.primary:focus, .ask .tb.primary:hover, .ask .tb.primary:focus { background-color: #ff5533; border-color: #ff8a6e; }
+		.ask input.text { width: 100%; height: 2.3rem; margin-bottom: 0.6rem; border-radius: 4dp; background-color: #100d0c; border-color: #ffecdc1f; }
+		.ask input.text:focus, .search input.text:focus { border-color: #ff4a1caa; }
 		.recover.hidden, .ask.hidden { display: none; }
 		/* the getting started card */
 		.ask .box.guide { width: 40rem; }
 		.guide .steps .row { display: flex; align-items: flex-start; margin: 0 0 0.6rem 0; }
 		.guide .steps .n { width: 1.6rem; font-family: OzDisplay; font-size: 1.1rem; color: #ff4a1c; flex-shrink: 0; }
-		.guide .steps .t { flex: 1; font-size: 0.92rem; color: #e6ddd2; }
-		.guide .steps .t span.d { color: #8d847c; }
-		.guide kbd { min-width: 0; font-size: 0.72rem; margin: 0 0.12rem; padding: 0 0.35rem; color: #ffd28a; border-color: #ffd28a40; }
+		.guide .steps .t { flex: 1; font-size: 0.92rem; color: #e6ddd3; }
+		.guide .steps .t span.d { color: #9b8f84; }
+		.guide kbd { min-width: 0; font-size: 0.72rem; margin: 0 0.12rem; padding: 0 0.35rem; }
 
 		/* the search (F3): what to do, typed; its rows the actions it names, Enter does the highlighted */
-		.search { position: absolute; top: 6.5rem; left: 6.2rem; right: 22rem; display: flex; justify-content: center; pointer-events: none; }
-		.search .box { width: 44rem; padding: 0.6rem; background-color: #0a0807fa; border: 1dp #db241099; pointer-events: auto; }
-		.search input.text { width: 100%; height: 2.3rem; padding: 0.3rem 0.7rem; font-size: 1rem; margin-bottom: 0.35rem; }
-		.srow { display: flex; align-items: center; padding: 0.32rem 0.5rem; font-size: 0.85rem; border: 1dp transparent; }
-		.srow:hover, .srow:focus { background-color: #ffffff0d; }
-		.srow.on { background-color: #db241040; border-color: #db241099; }
-		.srow .sl { width: 12rem; flex-shrink: 0; color: #e6ddd2; }
-		.srow .sk { width: 9rem; flex-shrink: 0; color: #ffd28a; }
-		.srow .sh { flex: 1; color: #8d847c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-		.search p { font-size: 0.85rem; color: #8d847c; margin: 0.4rem 0.5rem; }
+		.search { position: absolute; top: 6.5rem; left: 6.2rem; right: 23rem; display: flex; justify-content: center; pointer-events: none; }
+		.search .box { width: 44rem; padding: 0.6rem; background-color: #1d1816fc; border: 1dp #ffecdc1f; border-radius: 8dp; box-shadow: #000000b3 0 12dp 36dp 0; pointer-events: auto; }
+		.search input.text { width: 100%; height: 2.3rem; padding: 0.3rem 0.7rem; font-size: 1rem; margin-bottom: 0.4rem; border-radius: 5dp; background-color: #100d0c; border-color: #ffecdc1f; }
+		.srow { display: flex; align-items: center; padding: 0.32rem 0.5rem; font-size: 0.87rem; border: 1dp transparent; border-radius: 4dp; }
+		.srow:hover, .srow:focus { background-color: #ffecdc0f; }
+		.srow.on { background-color: #ff4a1c26; border-color: #ff4a1c66; }
+		.srow .sl { width: 12rem; flex-shrink: 0; color: #f1e9e0; }
+		.srow .sk { width: 9rem; flex-shrink: 0; color: #f3d7a8; }
+		.srow .sh { flex: 1; color: #9b8f84; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.search p { font-size: 0.87rem; color: #9b8f84; margin: 0.4rem 0.5rem; }
 		.search.hidden { display: none; }
 		/* the UV editor: the face's outline over its texture's tiles, a repeat uvScale dp across */
 		.uvbox { justify-content: flex-start; padding-left: 1rem; }
 		.uvbox .box { width: auto; }
-		.uvbox .row { display: flex; flex-wrap: wrap; width: 440dp; margin-top: 0.4rem; }
+		.uvbox .row { display: flex; flex-wrap: wrap; width: 440dp; margin-top: 0.45rem; }
 		.uvbox p { width: 440dp; }
-		.uvbox .tb, .search .row .tb { font-size: 0.7rem; padding: 0.3rem 0.5rem; letter-spacing: 0.06em; border-color: #ffffff2e; background-color: #ffffff0a; margin: 0 0.25rem 0.3rem 0; }
-		#ed-uv-view { position: relative; width: 440dp; height: 440dp; overflow: hidden; clip: always; background-color: #000000; drag: drag; cursor: move; }
+		.uvbox .tb, .search .row .tb { font-size: 0.83rem; padding: 0.28rem 0.6rem; border-color: #ffecdc24; background-color: #ffecdc0a; border-radius: 4dp; margin: 0 0.3rem 0.3rem 0; }
+		.uvbox .tb:hover, .uvbox .tb:focus, .search .row .tb:hover, .search .row .tb:focus { border-color: #ffecdc4d; background-color: #ffecdc14; }
+		#ed-uv-view { position: relative; width: 440dp; height: 440dp; overflow: hidden; clip: always; background-color: #000000; border-radius: 4dp; drag: drag; cursor: move; }
 		#ed-uv-tex, #ed-uv-lines { position: absolute; left: 0; top: 0; width: 440dp; height: 440dp; pointer-events: none; }
 		.uvt { position: absolute; opacity: 0.85; }
-		.uvt.home { opacity: 1; border: 1dp #ffd28a; }
+		.uvt.home { opacity: 1; border: 1dp #f3d7a8; }
 		.uvl { position: absolute; height: 2dp; background-color: #ff4a1c; transform-origin: 0 0; }
 		.uvp { position: absolute; width: 6dp; height: 6dp; background-color: #fff3e6; }
-		.search h2 { font-family: OzDisplay; font-size: 1.1rem; color: #ff4a1c; letter-spacing: 0.08em; margin: 0.2rem 0.5rem 0.4rem 0.5rem; }
+		.search h2 { font-family: OzDisplay; font-size: 1.1rem; color: #ff4a1c; letter-spacing: 0.08em; margin: 0.25rem 0.5rem 0.45rem 0.5rem; }
 		.wrow .sl { width: auto; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 		.wrow .sk { width: 7rem; text-align: right; }
 
-		/* the Keys dialog: every action's keys, SET to press new ones */
+		/* the Keys dialog: every action's keys, Set to press new ones */
 		.ask .box.keymap { width: 44rem; height: 40rem; display: flex; flex-direction: column; }
-		.keymap input.text { width: 100%; height: 2rem; padding: 0.25rem 0.6rem; margin-bottom: 0.4rem; flex-shrink: 0; }
+		.keymap input.text { width: 100%; height: 2rem; padding: 0.25rem 0.6rem; margin-bottom: 0.45rem; flex-shrink: 0; }
 		.keymap p { flex-shrink: 0; }
-		.keymap p.wait { color: #ffd28a; }
+		.keymap p.wait { color: #f3bd62; }
 		.klist { flex: 1; overflow-y: auto; margin-bottom: 0.7rem; }
-		.krow { display: flex; align-items: center; padding: 0.12rem 0.4rem; font-size: 0.85rem; }
-		.krow:hover { background-color: #ffffff0d; }
-		.krow.on { background-color: #db241040; }
-		.krow .kl { width: 15rem; flex-shrink: 0; color: #e6ddd2; }
-		.krow .kk { flex: 1; color: #ffd28a; }
-		.krow .kk .none { color: #5d554f; }
-		.krow .tb { font-size: 0.68rem; padding: 0.22rem 0.6rem; margin: 0; letter-spacing: 0.1em; }
+		.krow { display: flex; align-items: center; padding: 0.12rem 0.4rem; font-size: 0.87rem; border-radius: 4dp; }
+		.krow:hover { background-color: #ffecdc0f; }
+		.krow.on { background-color: #ff4a1c2e; }
+		.krow .kl { width: 15rem; flex-shrink: 0; color: #e6ddd3; }
+		.krow .kk { flex: 1; color: #f3d7a8; }
+		.krow .kk .none { color: #6f655d; }
+		.krow .tb { font-size: 0.78rem; padding: 0.18rem 0.65rem; margin: 0; }
 
 		/* Sky and sun: the sky's tiles, then the light's settings */
 		.ask.skyask { background-color: #00000040; justify-content: flex-start; pointer-events: none; }	/* the view shows beside it, and takes the mouse there: look around at the sun's arrow */
 		.ask.skyask .box { pointer-events: auto; }
 		.ask .box.sky { width: 50rem; height: 44rem; margin-left: 5.5rem; display: flex; flex-direction: column; }
 		.sky p { flex-shrink: 0; }
-		.sky h3 { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.1em; color: #a59a90; margin: 0.2rem 0 0.35rem 0; flex-shrink: 0; }
+		.sky h3 { font-size: 0.74rem; font-weight: 600; letter-spacing: 0.12em; color: #b5a99d; margin: 0.2rem 0 0.35rem 0; flex-shrink: 0; }
 		.skies { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-wrap: wrap; align-content: flex-start; margin-bottom: 0.6rem; }
 		.sunset { flex-shrink: 0; margin-bottom: 0.6rem; }
 		.sunset.own .srow.num, .sunset.own .srow.col { opacity: 0.4; }
 		.srow { display: flex; align-items: center; margin-bottom: 0.3rem; }
-		.srow .sl { width: 8.5rem; flex-shrink: 0; font-size: 0.8rem; color: #e6ddd2; }
-		.srow .sh { flex: 1; font-size: 0.74rem; color: #8d847c; margin-left: 0.6rem; }
-		.srow .tb { font-size: 0.7rem; padding: 0.22rem 0.55rem; margin: 0 0.25rem 0 0; letter-spacing: 0.06em; }
+		.srow .sl { width: 8.5rem; flex-shrink: 0; font-size: 0.84rem; color: #e6ddd3; }
+		.srow .sh { flex: 1; font-size: 0.78rem; color: #9b8f84; margin-left: 0.6rem; }
+		.srow .tb { font-size: 0.78rem; padding: 0.2rem 0.55rem; margin: 0 0.25rem 0 0; }
 		.srow .chip { margin: 0 0.25rem 0 0; }
 		.ask .srow input.text { width: 5.5rem; height: 1.9rem; margin: 0 0.25rem 0 0; padding: 0.2rem 0.45rem; font-size: 0.88rem; }
 		.ask .srow input.text.rgb { width: 8.5rem; }
-		.srow .dot { width: 1.6rem; height: 1.6rem; margin: 0 0.25rem 0 0; border: 1dp #ffffff40; }
-		.srow .dot:hover, .srow .dot:focus { border-color: #ff4a1c; }
-		.srow .dot.on { border: 2dp #ff4a1c; }
-		#panel-world .note { font-size: 0.8rem; color: #8d847c; margin: 0.2rem 0 0.2rem 0; }
+		.srow .dot { width: 1.6rem; height: 1.6rem; margin: 0 0.25rem 0 0; border: 1dp #ffecdc40; border-radius: 4dp; }
+		.srow .dot:hover, .srow .dot:focus { border-color: #ffffffcc; }
+		.srow .dot.on { border: 2dp #ffffff; }
+		#panel-world .note { font-size: 0.82rem; color: #9b8f84; margin: 0.2rem 0 0.2rem 0; }
 		#panel-world .srow { flex-wrap: wrap; padding: 0.25rem 0; margin-bottom: 0.15rem; }
 		#panel-world .srow .sl { width: 100%; margin-bottom: 0.2rem; }
-		#panel-world .srow .sh { display: block; width: 100%; margin: 0.15rem 0 0 0; font-size: 0.68rem; white-space: normal; }
+		#panel-world .srow .sh { display: block; width: 100%; margin: 0.15rem 0 0 0; font-size: 0.72rem; white-space: normal; }
 		#panel-world .srow .dot { width: 1.25rem; height: 1.25rem; margin: 0 0.18rem 0.15rem 0; }
 		#panel-world .srow input.text { width: 5rem; height: 1.8rem; margin: 0 0.25rem 0 0; padding: 0.2rem 0.4rem; font-size: 0.85rem; }
 		#panel-world .srow input.text.rgb { width: 7.5rem; }
 		#panel-world .skies { display: flex; flex-wrap: wrap; }
-		#panel-world .mat { width: 4.1rem; margin: 0 0.15rem 0.35rem 0; }
-		#panel-world .mat .sw { width: 3.9rem; height: 3.9rem; }
-		#panel-world .mat .mn { width: 3.9rem; font-size: 0.6rem; }
+		#panel-world .mat { width: 4.3rem; margin: 0 0.15rem 0.35rem 0; }
+		#panel-world .mat .sw { width: 4.1rem; height: 4.1rem; }
+		#panel-world .mat .mn { width: 4.1rem; font-size: 0.62rem; }
 		#panel-world .mat .badge { font-size: 0.45rem; right: 0.25rem; }
 
 		/* a menu: its actions, their keys, a mark on what's on; greyed where it needs a selection */
 		.menu {
 			position: absolute;
-			top: 2.6rem;
+			top: 2.5rem;
 			left: 0;
 			width: 19rem;
-			padding: 0.3rem 0;
-			background-color: #0d0a09fc;
-			border: 1dp #ffffff26;
-			border-top: 2dp #ff4a1c;
-			box-shadow: #000000b3 0 6dp 18dp 0;
+			padding: 0.35rem;
+			background-color: #1d1816;
+			border: 1dp #ffecdc1f;
+			border-radius: 8dp;
+			box-shadow: #000000b3 0 10dp 28dp 0;
 			z-index: 10;
 		}
 		.menu.hidden { display: none; }
-		.mi { display: flex; align-items: center; height: 1.85rem; padding: 0 0.8rem 0 0.4rem; font-size: 0.86rem; color: #e6ddd2; }
+		.mi { display: flex; align-items: center; height: 1.95rem; padding: 0 0.7rem 0 0.35rem; border-radius: 5dp; font-size: 0.9rem; color: #e6ddd3; }
 		.mi .mc { width: 1.1rem; flex-shrink: 0; }
-		.mi .mc.chk { width: 0.5rem; height: 0.5rem; margin: 0 0.6rem 0 0.1rem; background-color: #ff4a1c; }
+		.mi .mc.chk { width: 0.45rem; height: 0.45rem; border-radius: 0.225rem; margin: 0 0.65rem 0 0.15rem; background-color: #ff4a1c; }
 		.mi .ml { flex: 1; white-space: nowrap; }
-		.mi .mk { color: #ffd28a; font-size: 0.78rem; margin-left: 1rem; white-space: nowrap; }
-		.mi:hover, .mi.on { background-color: #db241059; color: #fff3e6; }
-		.mi.off { color: #6d655f; }
-		.mi.off .mk { color: #6d655f; }
-		.mi.off:hover, .mi.off.on { background-color: #ffffff12; }
-		.msep { height: 1dp; margin: 0.3rem 0.6rem; background-color: #ffffff1a; }
-		.mhead { padding: 0.3rem 0.8rem 0.1rem 1.5rem; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.14em; color: #8d847c; }
+		.mi .mk { color: #b5a99d; font-size: 0.8rem; margin-left: 1rem; white-space: nowrap; }
+		.mi:hover, .mi.on { background-color: #ff4a1c26; color: #ffffff; }
+		.mi.off { color: #6f655d; }
+		.mi.off .mk { color: #6f655d; }
+		.mi.off:hover, .mi.off.on { background-color: #ffecdc0f; }
+		.msep { height: 1dp; margin: 0.3rem 0.5rem; background-color: #ffecdc17; }
+		.mhead { padding: 0.45rem 0.7rem 0.15rem 1.45rem; font-size: 0.64rem; font-weight: 600; letter-spacing: 0.14em; color: #9b8f84; }
 
 		/* a control's tip: its name and keys, what it does */
 		.tip {
 			position: absolute;
 			max-width: 22rem;
-			padding: 0.45rem 0.7rem;
-			background-color: #141010fa;
-			border: 1dp #ffffff33;
-			border-radius: 2dp;
-			box-shadow: #000000b3 0 4dp 12dp 0;
+			padding: 0.5rem 0.75rem;
+			background-color: #120e0dfa;
+			border: 1dp #ffecdc26;
+			border-radius: 6dp;
+			box-shadow: #000000b3 0 6dp 18dp 0;
 			pointer-events: none;
 			z-index: 20;
 		}
 		.tip.hidden { display: none; }
 		/* the size of the brush being drawn, or a drag's numbers, by the pointer */
 		.sizetag { position: absolute; z-index: 15; pointer-events: none; white-space: nowrap; font-size: 0.86rem; font-weight: 600;
-			color: #fff3e6; background-color: #0a0807d9; border: 1dp #ffd28a59; padding: 0.12rem 0.45rem; }
+			color: #ffffff; background-color: #120e0dd9; border: 1dp #f3d7a859; border-radius: 4dp; padding: 0.12rem 0.5rem; }
 		.sizetag.hidden { display: none; }
-		.tip .tt { font-size: 0.86rem; font-weight: 600; color: #fff3e6; }
-		.tip .tt span { color: #ffd28a; font-weight: normal; margin-left: 0.5rem; }
-		.tip .th { font-size: 0.8rem; color: #a59a90; margin-top: 0.15rem; }
+		.tip .tt { font-size: 0.9rem; font-weight: 600; color: #ffffff; }
+		.tip .tt span { color: #f3d7a8; font-weight: normal; margin-left: 0.5rem; }
+		.tip .th { font-size: 0.84rem; color: #b5a99d; margin-top: 0.15rem; }
 		.tip .th.none { display: none; }
 
 		#viewport {
 			position: absolute;
 			top: 5.4rem;
 			left: 6.2rem;
-			right: 22rem;
+			right: 23rem;
 			bottom: 2.25rem;
 		}
 		/* the panes' names: the 2D views, and all four in the four-view layout (the active one brighter) */
-		.pl { position: absolute; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; color: #c9bfb4; background-color: #0a0807d9;
-			padding: 0.12rem 0.45rem; pointer-events: none; }
-		.pl.on { color: #ff4a1c; }
-		.pl.solo, .pl.q0 { left: 0.7rem; top: 0.45rem; }
-		.pl.q1 { left: 50%; margin-left: 0.7rem; top: 0.45rem; }
-		.pl.q2 { left: 0.7rem; top: 50%; margin-top: 0.45rem; }
-		.pl.q3 { left: 50%; margin-left: 0.7rem; top: 50%; margin-top: 0.45rem; }
+		.pl { position: absolute; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.12em; color: #ddd1c5; background-color: #120e0dd9;
+			padding: 0.14rem 0.5rem; border-radius: 4dp; pointer-events: none; }
+		.pl.on { color: #ff6a42; }
+		.pl.solo, .pl.q0 { left: 0.7rem; top: 0.5rem; }
+		.pl.q1 { left: 50%; margin-left: 0.7rem; top: 0.5rem; }
+		.pl.q2 { left: 0.7rem; top: 50%; margin-top: 0.5rem; }
+		.pl.q3 { left: 50%; margin-left: 0.7rem; top: 50%; margin-top: 0.5rem; }
 		.pl.hidden { display: none; }
 		.status {
 			bottom: 0;
 			height: 2.25rem;
-			border-top: 1dp #ffffff14;
+			background-color: #120e0dfa;
+			border-top: 1dp #ffecdc0f;
 			display: flex;
 			align-items: center;
 			padding: 0 1rem;
-			font-size: 0.88rem;
+			font-size: 0.87rem;
 		}
-		.status #ed-hint { color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-		.status #ed-hint.note { color: #ffd28a; white-space: normal; font-size: 0.8rem; line-height: 1.05rem; }
-		.status #ed-hint.err { color: #ff6a4a; white-space: normal; font-size: 0.8rem; line-height: 1.05rem; }	/* a warning wraps rather than being cut off */
-		.status #ed-status { margin-left: auto; padding-left: 1.5rem; color: #8d847c; letter-spacing: 0.04em; white-space: nowrap; }
+		.status #ed-hint { color: #d2c6ba; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.status #ed-hint.note { color: #f3d7a8; white-space: normal; font-size: 0.82rem; line-height: 1.05rem; }
+		.status #ed-hint.err { color: #ff8a6e; white-space: normal; font-size: 0.82rem; line-height: 1.05rem; }	/* a warning wraps rather than being cut off */
+		.status #ed-status { margin-left: auto; padding-left: 1.5rem; color: #9b8f84; white-space: nowrap; }
 
 		/* the d-pad: the menus down to the tool strip and the panel's tabs, then the open panel top to bottom
 		   (a text field takes left and right) */
@@ -458,7 +533,7 @@
 		}
 		@media (max-width: 1400dp) {
 			.top .name { display: none; }
-			.mt { padding-left: 0.5rem; padding-right: 0.5rem; }
+			.mt { padding-left: 0.45rem; padding-right: 0.45rem; }
 		}
 	</style>
 </head>
@@ -485,64 +560,64 @@
 			<button class="mt" id="mt-help" data-hint="Getting started, every key, the search" onclick="append ed panel menu help">Help</button>
 		</div>
 		<span class="name" id="ed-name">untitled</span>
-		<button class="exit" id="ed-exit" data-action="leave" onclick="append ed leave">MAIN MENU</button>
+		<button class="exit" id="ed-exit" data-action="leave" onclick="append ed leave"><span class="ic" data-icon="exit"></span><span>Main menu</span></button>
 	</div>
 
 	<div class="bar tools">
-		<button class="tb wide" data-action="new" onclick="append ed new">NEW</button>
-		<button class="tb wide" data-action="open" onclick="append ed open">OPEN</button>
-		<button class="tb" data-action="save" onclick="append ed save">SAVE</button>
+		<button class="tb ib io wide" data-action="new" onclick="append ed new"><span class="ic" data-icon="new"></span></button>
+		<button class="tb ib io wide" data-action="open" onclick="append ed open"><span class="ic" data-icon="open"></span></button>
+		<button class="tb ib io" data-action="save" onclick="append ed save"><span class="ic" data-icon="save"></span></button>
+		<div class="sep"></div>
+		<button class="tb ib io" data-action="undo" onclick="append ed undo"><span class="ic" data-icon="undo"></span></button>
+		<button class="tb ib io" data-action="redo" onclick="append ed redo"><span class="ic" data-icon="redo"></span></button>
+		<div class="sep"></div>
+		<button class="tb ib io" data-action="duplicate" onclick="append ed duplicate"><span class="ic" data-icon="duplicate"></span></button>
+		<button class="tb ib io" data-action="delete" onclick="append ed delete"><span class="ic" data-icon="delete"></span></button>
+		<button class="tb ib io" data-action="rotate_left" onclick="append ed rotate_left"><span class="ic" data-icon="turn"></span></button>
+		<button class="tb ib io" data-action="flip_x" onclick="append ed flip_x"><span class="ic" data-icon="mirror"></span></button>
+		<div class="sep"></div>
+		<button class="tb ib" data-action="hollow" onclick="append ed hollow"><span class="ic" data-icon="hollow"></span><span>Hollow</span></button>
+		<button class="tb ib" data-action="subtract" onclick="append ed subtract"><span class="ic" data-icon="subtract"></span><span>Subtract</span></button>
+		<button class="tb ib" data-action="merge" onclick="append ed merge"><span class="ic" data-icon="merge"></span><span>Merge</span></button>
+		<div class="sep"></div>
+		<button class="tb ib io" data-action="pick_material" onclick="append ed pick_material"><span class="ic" data-icon="eyedropper"></span></button>
+		<button class="tb ib io" data-action="paint" onclick="append ed paint"><span class="ic" data-icon="paint"></span></button>
+		<button class="tb ib on" id="tool-lock" data-action="texture_lock" onclick="append ed texture_lock"><span class="ic" data-icon="lock"></span><span>Texture lock</span><span class="mtog"><span class="knob"></span></span></button>
 		<div class="sep wide"></div>
-		<button class="tb" data-action="undo" onclick="append ed undo">UNDO</button>
-		<button class="tb" data-action="redo" onclick="append ed redo">REDO</button>
-		<div class="sep"></div>
-		<button class="tb" data-action="duplicate" onclick="append ed duplicate">DUPLICATE</button>
-		<button class="tb" data-action="delete" onclick="append ed delete">DELETE</button>
-		<button class="tb" data-action="rotate_left" onclick="append ed rotate_left">TURN</button>
-		<button class="tb" data-action="flip_x" onclick="append ed flip_x">MIRROR</button>
-		<div class="sep"></div>
-		<button class="tb" data-action="hollow" onclick="append ed hollow">HOLLOW</button>
-		<button class="tb" data-action="subtract" onclick="append ed subtract">SUBTRACT</button>
-		<button class="tb" data-action="merge" onclick="append ed merge">MERGE</button>
-		<div class="sep"></div>
-		<button class="tb" data-action="pick_material" onclick="append ed pick_material">EYEDROPPER</button>
-		<button class="tb" data-action="paint" onclick="append ed paint">PAINT</button>
-		<button class="tb on" id="tool-lock" data-action="texture_lock" onclick="append ed texture_lock">TEXTURE LOCK ON</button>
-		<div class="sep wide"></div>
-		<button class="tb wide" id="ed-views" data-action="views" onclick="append ed views">4 VIEWS</button>
-		<button class="tb wide" data-action="frame_selection" onclick="append ed frame_selection">FRAME</button>
+		<button class="tb ib io wide" id="ed-views" data-action="views" onclick="append ed views"><span class="ic" data-icon="views"></span></button>
+		<button class="tb ib wide" data-action="frame_selection" onclick="append ed frame_selection"><span class="ic" data-icon="frame"></span><span>Frame</span></button>
 		<div class="spacer"></div>
-		<button class="tb leak hidden" id="ed-leak" data-action="frame_leak" onclick="append ed frame_leak">SHOW THE LEAK</button>
-		<button class="tb warn hidden" id="ed-warnings" data-action="warnings" onclick="append ed warnings">WARNINGS</button>
-		<button class="tb wide" id="ed-search-btn" data-action="search" onclick="append ed search">SEARCH</button>
-		<button class="tb" id="ed-preview" data-action="preview" onclick="append ed preview">LIT PREVIEW</button>
-		<button class="tb" id="ed-compile" data-action="compile" onclick="append ed compile">COMPILE</button>
-		<button class="tb hidden" id="ed-stop" data-action="compile_stop" onclick="append ed compile_stop">STOP</button>
-		<button class="tb play" id="ed-play" data-action="play" onclick="append ed play">PLAY</button>
+		<button class="tb ib leak hidden" id="ed-leak" data-action="frame_leak" onclick="append ed frame_leak"><span class="ic" data-icon="leak"></span><span>Show the leak</span></button>
+		<button class="tb ib warn hidden" id="ed-warnings" data-action="warnings" onclick="append ed warnings"><span class="ic" data-icon="warning"></span><span id="ed-warnings-n">Warnings</span></button>
+		<button class="tb ib field wide" id="ed-search-btn" data-action="search" onclick="append ed search"><span class="ic" data-icon="search"></span><span>Search</span><kbd data-keys="search">F3</kbd></button>
+		<button class="tb ib" id="ed-preview" data-action="preview" onclick="append ed preview"><span class="ic" data-icon="sun"></span><span>Lit preview</span></button>
+		<button class="tb ib out" id="ed-compile" data-action="compile" onclick="append ed compile"><span class="ic" data-icon="hammer"></span><span>Compile</span></button>
+		<button class="tb ib out hidden" id="ed-stop" data-action="compile_stop" onclick="append ed compile_stop"><span class="ic" data-icon="stop"></span><span>Stop</span></button>
+		<button class="tb ib play" id="ed-play" data-action="play" onclick="append ed play"><span class="ic" data-icon="play"></span><span>Play</span><kbd data-keys="play">F5</kbd></button>
 	</div>
 
 	<div class="strip" id="ed-strip">
 		<span class="group">BUILD</span>
-		<button class="st on" id="tool-select" data-action="select" onclick="append ed select"><span class="tn">SELECT</span><kbd data-keys="select">Esc</kbd></button>
-		<button class="st" id="tool-create" data-action="create" onclick="append ed create"><span class="tn">BRUSH</span><kbd data-keys="create">B</kbd></button>
-		<button class="st" id="tool-clip" data-action="clip" onclick="append ed clip"><span class="tn">CLIP</span><kbd data-keys="clip">C</kbd></button>
-		<button class="st" id="tool-faces" data-action="faces" onclick="append ed faces"><span class="tn">FACES</span><kbd data-keys="faces">T</kbd></button>
+		<button class="st on" id="tool-select" data-action="select" onclick="append ed select"><span class="ic" data-icon="select"></span><span class="tn">Select</span><kbd data-keys="select">Esc</kbd></button>
+		<button class="st" id="tool-create" data-action="create" onclick="append ed create"><span class="ic" data-icon="brush"></span><span class="tn">Brush</span><kbd data-keys="create">B</kbd></button>
+		<button class="st" id="tool-clip" data-action="clip" onclick="append ed clip"><span class="ic" data-icon="clip"></span><span class="tn">Clip</span><kbd data-keys="clip">C</kbd></button>
+		<button class="st" id="tool-faces" data-action="faces" onclick="append ed faces"><span class="ic" data-icon="faces"></span><span class="tn">Faces</span><kbd data-keys="faces">T</kbd></button>
 		<span class="group">PLACE</span>
-		<button class="st" id="tool-place" data-hint="Entity: pick one in the Entities panel (pickups, spawns, triggers ...), then click where it goes" onclick="append ed panel entities"><span class="tn">ENTITY</span></button>
-		<button class="st" id="tool-light" data-action="light" onclick="append ed light"><span class="tn">LIGHT</span><kbd data-keys="light">L</kbd></button>
-		<button class="st" id="tool-jump" data-action="jump_pad" onclick="append ed jump_pad"><span class="tn">JUMP PAD</span><kbd data-keys="jump_pad">J</kbd></button>
-		<button class="st" id="tool-tele" data-action="teleporter" onclick="append ed teleporter"><span class="tn">TELEPORT</span><kbd data-keys="teleporter">K</kbd></button>
+		<button class="st" id="tool-place" data-hint="Entity: pick one in the Entities panel (pickups, spawns, triggers ...), then click where it goes" onclick="append ed panel entities"><span class="ic" data-icon="entity"></span><span class="tn">Entity</span></button>
+		<button class="st" id="tool-light" data-action="light" onclick="append ed light"><span class="ic" data-icon="light"></span><span class="tn">Light</span><kbd data-keys="light">L</kbd></button>
+		<button class="st" id="tool-jump" data-action="jump_pad" onclick="append ed jump_pad"><span class="ic" data-icon="jump_pad"></span><span class="tn">Jump pad</span><kbd data-keys="jump_pad">J</kbd></button>
+		<button class="st" id="tool-tele" data-action="teleporter" onclick="append ed teleporter"><span class="ic" data-icon="teleport"></span><span class="tn">Teleport</span><kbd data-keys="teleporter">K</kbd></button>
 	</div>
 
 	<div class="side">
 		<div class="ptabs">
-			<button class="ptab on" id="tab-inspect" data-hint="What's selected: its material, texture mapping, place and keys" onclick="append ed panel inspect">INSPECT</button>
-			<button class="ptab" id="tab-materials" data-hint="Every material in your game's files: click one to paint the selection with it" onclick="append ed panel materials">MATERIALS</button>
-			<button class="ptab" id="tab-entities" data-hint="Pickups, spawns, lights, triggers and the rest: click one, then where it goes" onclick="append ed panel entities">ENTITIES</button>
-			<button class="ptab" id="tab-prefabs" data-hint="Your prefabs: select brushes and entities, name them, save; click one to put it in any map" onclick="append ed panel prefabs">PREFABS</button>
-			<button class="ptab" id="tab-objects" data-hint="Everything in the map, by entity: click selects, double-click frames" onclick="append ed panel objects">OBJECTS</button>
-			<button class="ptab" id="tab-world" data-hint="The map's sky and light: the sky around it, the sun, ambient light" onclick="append ed panel world">WORLD</button>
-			<button class="ptab" id="tab-history" data-hint="Every change: click one to go back (or forward) to it" onclick="append ed panel history">HISTORY</button>
+			<button class="ptab on" id="tab-inspect" data-hint="What's selected: its material, texture mapping, place and keys" onclick="append ed panel inspect">Inspect</button>
+			<button class="ptab" id="tab-materials" data-hint="Every material in your game's files: click one to paint the selection with it" onclick="append ed panel materials">Materials</button>
+			<button class="ptab" id="tab-entities" data-hint="Pickups, spawns, lights, triggers and the rest: click one, then where it goes" onclick="append ed panel entities">Entities</button>
+			<button class="ptab" id="tab-prefabs" data-hint="Your prefabs: select brushes and entities, name them, save; click one to put it in any map" onclick="append ed panel prefabs">Prefabs</button>
+			<button class="ptab" id="tab-objects" data-hint="Everything in the map, by entity: click selects, double-click frames" onclick="append ed panel objects">Objects</button>
+			<button class="ptab" id="tab-world" data-hint="The map's sky and light: the sky around it, the sun, ambient light" onclick="append ed panel world">World</button>
+			<button class="ptab" id="tab-history" data-hint="Every change: click one to go back (or forward) to it" onclick="append ed panel history">History</button>
 		</div>
 
 		<div class="pbody" id="panel-inspect">
@@ -559,9 +634,9 @@
 					<div class="row"><span class="n">6</span><span class="k">Play <kbd data-keys="play">F5</kbd> runs around in it; Esc, then Back to the map editor, comes back</span></div>
 				</div>
 				<div class="row">
-					<button class="tb" data-action="guide" onclick="append ed guide">THE GUIDE</button>
-					<button class="tb" data-action="keymap" onclick="append ed keymap">ALL KEYS</button>
-					<button class="tb" data-action="search" onclick="append ed search">SEARCH ACTIONS</button>
+					<button class="tb ib" data-action="guide" onclick="append ed guide"><span class="ic" data-icon="guide"></span><span>The guide</span></button>
+					<button class="tb ib" data-action="keymap" onclick="append ed keymap"><span class="ic" data-icon="keys"></span><span>All keys</span></button>
+					<button class="tb ib" data-action="search" onclick="append ed search"><span class="ic" data-icon="search"></span><span>Search actions</span></button>
 				</div>
 			</div>
 
@@ -575,8 +650,8 @@
 					</div>
 				</div>
 				<div class="row">
-					<button class="tb" data-action="paint" onclick="append ed paint">PAINT CURRENT</button>
-					<button class="tb" data-action="show_materials" onclick="append ed panel materials">BROWSE</button>
+					<button class="tb ib" data-action="paint" onclick="append ed paint"><span class="ic" data-icon="paint"></span><span>Paint selection</span></button>
+					<button class="tb" data-action="show_materials" onclick="append ed panel materials">Browse</button>
 				</div>
 				<div class="sub">COLOR</div>
 				<div class="row tints" id="ed-tints"></div>
@@ -586,48 +661,50 @@
 				<h2>TEXTURE</h2>
 				<div class="row">
 					<span class="lbl">Shift</span>
-					<input type="text" class="text" id="ed-tex-ss" data-apply="tex_typed" data-field="shift_s" data-action="tex_set"/>
-					<input type="text" class="text" id="ed-tex-st" data-apply="tex_typed" data-field="shift_t" data-action="tex_set"/>
+					<span class="axw"><input type="text" class="text" id="ed-tex-ss" data-apply="tex_typed" data-field="shift_s" data-action="tex_set"/><span class="ax x">U</span></span>
+					<span class="axw"><input type="text" class="text" id="ed-tex-st" data-apply="tex_typed" data-field="shift_t" data-action="tex_set"/><span class="ax y">V</span></span>
 				</div>
 				<div class="row">
 					<span class="lbl">Scale</span>
-					<input type="text" class="text" id="ed-tex-sc" data-apply="tex_typed" data-field="scale_s" data-action="tex_set"/>
-					<input type="text" class="text" id="ed-tex-tc" data-apply="tex_typed" data-field="scale_t" data-action="tex_set"/>
+					<span class="axw"><input type="text" class="text" id="ed-tex-sc" data-apply="tex_typed" data-field="scale_s" data-action="tex_set"/><span class="ax x">U</span></span>
+					<span class="axw"><input type="text" class="text" id="ed-tex-tc" data-apply="tex_typed" data-field="scale_t" data-action="tex_set"/><span class="ax y">V</span></span>
+					<div class="seg">
+						<button class="tb" data-action="tex_scale_up" onclick="append ed tex_scale_up">×2</button>
+						<button class="tb" data-action="tex_scale_down" onclick="append ed tex_scale_down">÷2</button>
+					</div>
 				</div>
 				<div class="row">
 					<span class="lbl">Turn</span>
 					<input type="text" class="text" id="ed-tex-rot" data-apply="tex_typed" data-field="rotate" data-action="tex_set"/>
-				</div>
-				<div class="row">
-					<span class="lbl">Steps</span>
-					<button class="tb" data-action="tex_rotate_left" onclick="append ed tex_rotate_left">LEFT 15</button>
-					<button class="tb" data-action="tex_rotate_right" onclick="append ed tex_rotate_right">RIGHT 15</button>
-					<button class="tb" data-action="tex_scale_up" onclick="append ed tex_scale_up">X2</button>
-					<button class="tb" data-action="tex_scale_down" onclick="append ed tex_scale_down">/2</button>
+					<div class="seg">
+						<button class="tb" data-action="tex_rotate_left" onclick="append ed tex_rotate_left">Left 15°</button>
+						<button class="tb" data-action="tex_rotate_right" onclick="append ed tex_rotate_right">Right 15°</button>
+					</div>
 				</div>
 				<div class="row">
 					<span class="lbl">Fit</span>
-					<input type="text" class="text" id="ed-fit-s" value="1" data-apply="fit_typed" data-action="tex_fit"/>
-					<input type="text" class="text" id="ed-fit-t" value="1" data-apply="fit_typed" data-action="tex_fit"/>
-					<button class="tb" data-action="tex_fit" onclick="append ed panel fit">FIT</button>
+					<span class="axw"><input type="text" class="text" id="ed-fit-s" value="1" data-apply="fit_typed" data-action="tex_fit"/><span class="ax x">U</span></span>
+					<span class="axw"><input type="text" class="text" id="ed-fit-t" value="1" data-apply="fit_typed" data-action="tex_fit"/><span class="ax y">V</span></span>
+					<button class="tb" data-action="tex_fit" onclick="append ed panel fit">Fit</button>
 				</div>
 				<div class="row">
 					<span class="lbl">Align</span>
-					<button class="tb" data-action="tex_left" onclick="append ed tex_left">LEFT</button>
-					<button class="tb" data-action="tex_right" onclick="append ed tex_right">RIGHT</button>
-					<button class="tb" data-action="tex_top" onclick="append ed tex_top">TOP</button>
-					<button class="tb" data-action="tex_bottom" onclick="append ed tex_bottom">BOTTOM</button>
+					<div class="seg">
+						<button class="tb ib io" data-action="tex_left" onclick="append ed tex_left"><span class="ic" data-icon="align_left"></span></button>
+						<button class="tb ib io" data-action="tex_right" onclick="append ed tex_right"><span class="ic" data-icon="align_right"></span></button>
+						<button class="tb ib io" data-action="tex_top" onclick="append ed tex_top"><span class="ic" data-icon="align_top"></span></button>
+						<button class="tb ib io" data-action="tex_bottom" onclick="append ed tex_bottom"><span class="ic" data-icon="align_bottom"></span></button>
+						<button class="tb ib io" data-action="tex_center" onclick="append ed tex_center"><span class="ic" data-icon="align_center"></span></button>
+					</div>
+					<div class="seg">
+						<button class="tb ib io" data-action="tex_flip_s" onclick="append ed tex_flip_s"><span class="ic" data-icon="flip_across"></span></button>
+						<button class="tb ib io" data-action="tex_flip_t" onclick="append ed tex_flip_t"><span class="ic" data-icon="flip_down"></span></button>
+					</div>
 				</div>
 				<div class="row">
 					<span class="lbl"></span>
-					<button class="tb" data-action="tex_center" onclick="append ed tex_center">CENTER</button>
-					<button class="tb" data-action="tex_flip_s" onclick="append ed tex_flip_s">FLIP ACROSS</button>
-					<button class="tb" data-action="tex_flip_t" onclick="append ed tex_flip_t">FLIP DOWN</button>
-				</div>
-				<div class="row">
-					<span class="lbl"></span>
-					<button class="tb" data-action="tex_reset" onclick="append ed tex_reset">RESET</button>
-					<button class="tb" data-action="uv" onclick="append ed uv">UV EDITOR</button>
+					<button class="tb ib" data-action="tex_reset" onclick="append ed tex_reset"><span class="ic" data-icon="reset"></span><span>Reset</span></button>
+					<button class="tb ib" data-action="uv" onclick="append ed uv"><span class="ic" data-icon="uv"></span><span>UV editor</span></button>
 				</div>
 				<p id="ed-tex-note"></p>
 			</div>
@@ -635,75 +712,71 @@
 			<div id="sec-transform">
 				<h2>TRANSFORM</h2>
 				<div class="row">
-					<span class="lbl">Move</span>
-					<input type="text" class="text" id="ed-mx" value="0" data-apply="move_typed" data-action="move"/>
-					<input type="text" class="text" id="ed-my" value="0" data-apply="move_typed" data-action="move"/>
-					<input type="text" class="text" id="ed-mz" value="0" data-apply="move_typed" data-action="move"/>
-				</div>
-				<div class="row">
-					<span class="lbl"></span>
-					<button class="tb" id="ed-move" data-action="move" onclick="append ed move_typed">MOVE BY X Y Z</button>
+					<span class="lbl">Move by</span>
+					<span class="axw"><input type="text" class="text" id="ed-mx" value="0" data-apply="move_typed" data-action="move"/><span class="ax x">X</span></span>
+					<span class="axw"><input type="text" class="text" id="ed-my" value="0" data-apply="move_typed" data-action="move"/><span class="ax y">Y</span></span>
+					<span class="axw"><input type="text" class="text" id="ed-mz" value="0" data-apply="move_typed" data-action="move"/><span class="ax z">Z</span></span>
+					<button class="tb ib io" id="ed-move" data-action="move" onclick="append ed move_typed"><span class="ic" data-icon="check"></span></button>
 				</div>
 				<div class="row">
 					<span class="lbl">Turn</span>
-					<input type="text" class="text" id="ed-deg" value="90" data-apply="rotate_typed" data-action="rotate"/>
-					<button class="tb" id="ed-onz" data-action="rotate" data-hint="Spins it flat on the floor by these degrees, as R does (about the up axis, Z)" onclick="append ed rotate_typed z">SPIN FLAT</button>
-					<button class="tb" data-action="rotate" data-hint="Tips it over the red X line of the grid: its north and south ends go up and down" onclick="append ed rotate_typed x">TIP X</button>
-					<button class="tb" data-action="rotate" data-hint="Tips it over the green Y line of the grid: its east and west ends go up and down" onclick="append ed rotate_typed y">TIP Y</button>
+					<input type="text" class="text deg" id="ed-deg" value="90" data-apply="rotate_typed" data-action="rotate"/>
+					<div class="seg">
+						<button class="tb" id="ed-onz" data-action="rotate" data-hint="Spins it flat on the floor by these degrees, as R does (about the up axis, Z)" onclick="append ed rotate_typed z">Spin flat</button>
+						<button class="tb" data-action="rotate" data-hint="Tips it over the red X line of the grid: its north and south ends go up and down" onclick="append ed rotate_typed x">Tip X</button>
+						<button class="tb" data-action="rotate" data-hint="Tips it over the green Y line of the grid: its east and west ends go up and down" onclick="append ed rotate_typed y">Tip Y</button>
+					</div>
 				</div>
 				<div class="row">
 					<span class="lbl">Size</span>
-					<input type="text" class="text" id="ed-sw" value="0" data-apply="size_typed" data-action="size"/>
-					<input type="text" class="text" id="ed-sd" value="0" data-apply="size_typed" data-action="size"/>
-					<input type="text" class="text" id="ed-sh" value="0" data-apply="size_typed" data-action="size"/>
-				</div>
-				<div class="row">
-					<span class="lbl"></span>
-					<button class="tb" id="ed-resize" data-action="size" onclick="append ed size_typed">RESIZE</button>
+					<span class="axw"><input type="text" class="text" id="ed-sw" value="0" data-apply="size_typed" data-action="size"/><span class="ax x">X</span></span>
+					<span class="axw"><input type="text" class="text" id="ed-sd" value="0" data-apply="size_typed" data-action="size"/><span class="ax y">Y</span></span>
+					<span class="axw"><input type="text" class="text" id="ed-sh" value="0" data-apply="size_typed" data-action="size"/><span class="ax z">Z</span></span>
+					<button class="tb ib io" id="ed-resize" data-action="size" onclick="append ed size_typed"><span class="ic" data-icon="check"></span></button>
 				</div>
 			</div>
 
 			<div id="sec-shape">
 				<div class="row">
-					<button class="check" id="ed-collide" data-action="collision" onclick="append ed collision"><span class="tick"></span><span class="lbl2">COLLISION</span></button>
+					<button class="check" id="ed-collide" data-action="collision" onclick="append ed collision"><span class="tick"><span class="knob"></span></span><span class="lbl2">Collision</span></button>
 					<span class="note" id="ed-collide-note"></span>
 				</div>
 				<h2>SHAPE</h2>
 				<div class="row">
-					<button class="tb" data-action="hollow" onclick="append ed hollow">HOLLOW</button>
-					<button class="tb" data-action="subtract" onclick="append ed subtract">SUBTRACT</button>
-					<button class="tb" data-action="merge" onclick="append ed merge">MERGE</button>
-					<button class="tb" data-action="stairs" onclick="append ed stairs">STAIRS</button>
-					<button class="tb" id="ed-detail" data-action="detail" onclick="append ed detail">DETAIL</button>
+					<button class="tb ib" data-action="hollow" onclick="append ed hollow"><span class="ic" data-icon="hollow"></span><span>Hollow</span></button>
+					<button class="tb ib" data-action="subtract" onclick="append ed subtract"><span class="ic" data-icon="subtract"></span><span>Subtract</span></button>
+					<button class="tb ib" data-action="merge" onclick="append ed merge"><span class="ic" data-icon="merge"></span><span>Merge</span></button>
+					<button class="tb" data-action="stairs" onclick="append ed stairs">Stairs</button>
+					<button class="tb" id="ed-detail" data-action="detail" onclick="append ed detail">Detail</button>
 				</div>
 				<div class="sub">MAKE A MOVER OF IT</div>
 				<div class="row">
-					<button class="tb" data-action="door" onclick="append ed door">DOOR</button>
-					<button class="tb" data-action="door_pair" onclick="append ed door_pair">DOUBLE DOOR</button>
-					<button class="tb" data-action="lift" onclick="append ed lift">LIFT</button>
+					<button class="tb" data-action="door" onclick="append ed door">Door</button>
+					<button class="tb" data-action="door_pair" onclick="append ed door_pair">Double door</button>
+					<button class="tb" data-action="lift" onclick="append ed lift">Lift</button>
 				</div>
 				<div class="sub">MAKE A CURVE OF EACH BRUSH</div>
 				<div class="row">
-					<button class="tb" data-action="curve_cylinder" onclick="append ed curve_cylinder">CYLINDER</button>
-					<button class="tb" data-action="curve_cone" onclick="append ed curve_cone">CONE</button>
-					<button class="tb" data-action="curve_arch" onclick="append ed curve_arch">ARCH</button>
-					<button class="tb" data-action="curve_bevel" onclick="append ed curve_bevel">BEVEL</button>
-					<button class="tb" data-action="curve_plane" onclick="append ed curve_plane">FLAT</button>
+					<button class="tb" data-action="curve_cylinder" onclick="append ed curve_cylinder">Cylinder</button>
+					<button class="tb" data-action="curve_cone" onclick="append ed curve_cone">Cone</button>
+					<button class="tb" data-action="curve_arch" onclick="append ed curve_arch">Arch</button>
+					<button class="tb" data-action="curve_bevel" onclick="append ed curve_bevel">Bevel</button>
+					<button class="tb" data-action="curve_plane" onclick="append ed curve_plane">Flat</button>
 				</div>
 			</div>
 
 			<div id="sec-curve">
 				<h2>CURVE</h2>
 				<div class="row">
-					<button class="tb" data-action="curve_more_columns" onclick="append ed curve_more_columns">+ COLUMNS</button>
-					<button class="tb" data-action="curve_fewer_columns" onclick="append ed curve_fewer_columns">- COLUMNS</button>
-					<button class="tb" data-action="curve_more_rows" onclick="append ed curve_more_rows">+ ROWS</button>
-					<button class="tb" data-action="curve_fewer_rows" onclick="append ed curve_fewer_rows">- ROWS</button>
+					<button class="tb" data-action="curve_more_columns" onclick="append ed curve_more_columns">+ Columns</button>
+					<button class="tb" data-action="curve_fewer_columns" onclick="append ed curve_fewer_columns">- Columns</button>
+					<button class="tb" data-action="curve_more_rows" onclick="append ed curve_more_rows">+ Rows</button>
+					<button class="tb" data-action="curve_fewer_rows" onclick="append ed curve_fewer_rows">- Rows</button>
 				</div>
 				<div class="row">
-					<button class="tb" data-action="curve_invert" onclick="append ed curve_invert">INVERT</button>
-					<button class="tb" data-action="curve_caps" onclick="append ed curve_caps">CAPS</button>
-					<button class="tb" data-action="curve_thicken" onclick="append ed curve_thicken">THICKEN</button>
+					<button class="tb" data-action="curve_invert" onclick="append ed curve_invert">Invert</button>
+					<button class="tb" data-action="curve_caps" onclick="append ed curve_caps">Caps</button>
+					<button class="tb" data-action="curve_thicken" onclick="append ed curve_thicken">Thicken</button>
 				</div>
 			</div>
 
@@ -714,9 +787,9 @@
 				<div class="hidden" id="ed-push">
 					<p class="what" id="ed-push-text"></p>
 					<div class="row">
-						<button class="tb" data-action="push_land" onclick="append ed push_land">LAND HERE</button>
-						<button class="tb" data-action="push_height" onclick="append ed push_height 32">HIGHER</button>
-						<button class="tb" data-action="push_height" onclick="append ed push_height -32">LOWER</button>
+						<button class="tb" data-action="push_land" onclick="append ed push_land">Land here</button>
+						<button class="tb" data-action="push_height" onclick="append ed push_height 32">Higher</button>
+						<button class="tb" data-action="push_height" onclick="append ed push_height -32">Lower</button>
 					</div>
 				</div>
 				<div class="chips" id="ed-flags"></div>
@@ -728,8 +801,8 @@
 				</div>
 				<div class="row" id="ed-addrow2">
 					<span class="nox"></span>
-					<button class="tb" id="ed-addkey" data-action="key_set" onclick="append ed panel key_add">ADD KEY</button>
-					<button class="tb" id="ed-toworld" data-action="to_world" onclick="append ed to_world">BACK TO THE WORLD</button>
+					<button class="tb ib" id="ed-addkey" data-action="key_set" onclick="append ed panel key_add"><span class="ic" data-icon="plus"></span><span>Add key</span></button>
+					<button class="tb" id="ed-toworld" data-action="to_world" onclick="append ed to_world">Back to the world</button>
 				</div>
 				<div class="chips" id="ed-addkeys"></div>
 			</div>
@@ -765,7 +838,7 @@
 				</div>
 			</div>
 			<div class="row">
-				<button class="tb" id="ed-fav" data-hint="The current material in your Favorites, or out of them" onclick="append ed panel fav">ADD TO FAVORITES</button>
+				<button class="tb ib" id="ed-fav" data-hint="The current material in your Favorites, or out of them" onclick="append ed panel fav"><span class="ic" data-icon="star"></span><span>Add to favorites</span></button>
 			</div>
 			<input type="text" class="text wide" id="ed-msearch" placeholder="Search materials" data-hint="Type part of a name: concrete, gothic, sky ..."/>
 			<div class="chips" id="ed-chips"></div>
@@ -779,15 +852,15 @@
 			<div class="esec">QUICK BUILDS</div>
 			<p class="enote">Whole setups, every piece made and linked for you.</p>
 			<div class="row">
-				<button class="tb" data-action="jump_pad" onclick="append ed jump_pad">JUMP PAD</button>
-				<button class="tb" data-action="teleporter" onclick="append ed teleporter">TELEPORTER</button>
-				<button class="tb" data-action="light" onclick="append ed light">LIGHT</button>
+				<button class="tb ib" data-action="jump_pad" onclick="append ed jump_pad"><span class="ic" data-icon="jump_pad"></span><span>Jump pad</span></button>
+				<button class="tb ib" data-action="teleporter" onclick="append ed teleporter"><span class="ic" data-icon="teleport"></span><span>Teleporter</span></button>
+				<button class="tb ib" data-action="light" onclick="append ed light"><span class="ic" data-icon="light"></span><span>Light</span></button>
 			</div>
 			<p class="enote">Turn the selected brushes into:</p>
 			<div class="row">
-				<button class="tb" data-action="door" onclick="append ed door">DOOR</button>
-				<button class="tb" data-action="door_pair" onclick="append ed door_pair">DOUBLE DOOR</button>
-				<button class="tb" data-action="lift" onclick="append ed lift">LIFT</button>
+				<button class="tb" data-action="door" onclick="append ed door">Door</button>
+				<button class="tb" data-action="door_pair" onclick="append ed door_pair">Double door</button>
+				<button class="tb" data-action="lift" onclick="append ed lift">Lift</button>
 			</div>
 			<div id="ed-ents"></div>
 		</div>
@@ -796,7 +869,7 @@
 			<div class="esec">SAVE THE SELECTION AS A PREFAB</div>
 			<div class="row">
 				<input type="text" class="text half" id="ed-prefab-name" placeholder="prefab name" data-apply="prefab_typed" data-action="prefab_save"/>
-				<button class="tb" id="ed-prefab-save" data-action="prefab_save" onclick="append ed panel prefab_save">SAVE SELECTION</button>
+				<button class="tb ib" id="ed-prefab-save" data-action="prefab_save" onclick="append ed panel prefab_save"><span class="ic" data-icon="save"></span><span>Save selection</span></button>
 			</div>
 			<p class="note">Select brushes, curves and entities, name them and save. The same name saves over it.</p>
 			<div class="esec">YOUR PREFABS</div>
@@ -804,11 +877,11 @@
 		</div>
 
 		<div class="pbody hidden" id="panel-world">
-			<p class="note" id="ed-sky-note">The map's sky and light, saved with it. LIT PREVIEW (F6) or PLAY shows them.</p>
+			<p class="note" id="ed-sky-note">The map's sky and light, saved with it. Lit preview (F6) or Play shows them.</p>
 			<div class="esec">LIGHT</div>
 			<div class="sunset" id="ed-sky-light"></div>
 			<div class="row">
-				<button class="tb quiet" id="ed-sky-reset" data-hint="Every setting back to its default: grey clouds, a white sun" onclick="append ed sky reset">DEFAULTS</button>
+				<button class="tb ib quiet" id="ed-sky-reset" data-hint="Every setting back to its default: grey clouds, a white sun" onclick="append ed sky reset"><span class="ic" data-icon="reset"></span><span>Defaults</span></button>
 			</div>
 			<div class="esec" id="ed-sky-now">SKY</div>
 			<div class="skies" id="ed-sky-tiles"></div>
@@ -817,25 +890,25 @@
 		<div class="pbody hidden" id="panel-objects">
 			<div class="esec">SHOW</div>
 			<div class="chips">
-				<button class="chip on" id="ed-f-tools" data-action="filter_tools" onclick="append ed filter_tools">TOOL BRUSHES</button>
-				<button class="chip on" id="ed-f-triggers" data-action="filter_triggers" onclick="append ed filter_triggers">TRIGGERS</button>
-				<button class="chip on" id="ed-f-sky" data-action="filter_sky" onclick="append ed filter_sky">SKY</button>
-				<button class="chip on" id="ed-f-entities" data-action="filter_entities" onclick="append ed filter_entities">ENTITIES</button>
-				<button class="chip on" id="ed-f-curves" data-action="filter_curves" onclick="append ed filter_curves">CURVES</button>
+				<button class="chip on" id="ed-f-tools" data-action="filter_tools" onclick="append ed filter_tools">Tool brushes</button>
+				<button class="chip on" id="ed-f-triggers" data-action="filter_triggers" onclick="append ed filter_triggers">Triggers</button>
+				<button class="chip on" id="ed-f-sky" data-action="filter_sky" onclick="append ed filter_sky">Sky</button>
+				<button class="chip on" id="ed-f-entities" data-action="filter_entities" onclick="append ed filter_entities">Entities</button>
+				<button class="chip on" id="ed-f-curves" data-action="filter_curves" onclick="append ed filter_curves">Curves</button>
 			</div>
 			<div class="row">
-				<button class="tb" id="ed-hide" data-action="hide" onclick="append ed hide">HIDE</button>
-				<button class="tb" data-action="hide_others" onclick="append ed hide_others">HIDE THE REST</button>
-				<button class="tb" id="ed-showall" data-action="show_all" onclick="append ed show_all">SHOW ALL</button>
+				<button class="tb ib" id="ed-hide" data-action="hide" onclick="append ed hide"><span class="ic" data-icon="eye"></span><span>Hide</span></button>
+				<button class="tb" data-action="hide_others" onclick="append ed hide_others">Hide the rest</button>
+				<button class="tb" id="ed-showall" data-action="show_all" onclick="append ed show_all">Show all</button>
 			</div>
 			<div class="row">
-				<button class="tb" data-action="lock" onclick="append ed lock">LOCK</button>
-				<button class="tb" data-action="unlock_all" onclick="append ed unlock_all">UNLOCK ALL</button>
-				<button class="tb" data-action="group" onclick="append ed group">GROUP</button>
-				<button class="tb" data-action="ungroup" onclick="append ed ungroup">UNGROUP</button>
+				<button class="tb ib" data-action="lock" onclick="append ed lock"><span class="ic" data-icon="lock"></span><span>Lock</span></button>
+				<button class="tb" data-action="unlock_all" onclick="append ed unlock_all">Unlock all</button>
+				<button class="tb" data-action="group" onclick="append ed group">Group</button>
+				<button class="tb" data-action="ungroup" onclick="append ed ungroup">Ungroup</button>
 			</div>
 			<input type="text" class="text wide" id="ed-ofilter" placeholder="Filter: class, name, material" data-hint="Type part of a class, a name or a material"/>
-			<div id="ed-objects" style="margin-top: 0.4rem;"></div>
+			<div id="ed-objects" style="margin-top: 0.45rem;"></div>
 			<div class="row pager" id="ed-opager"></div>
 		</div>
 
@@ -847,8 +920,8 @@
 
 	<div class="recover hidden" id="ed-recover">
 		<div class="msg" id="ed-recover-text"></div>
-		<button class="tb" id="ed-recover-yes" data-action="recover" onclick="append ed recover">RECOVER</button>
-		<button class="tb quiet" data-action="discard_recovery" onclick="append ed discard_recovery">THROW AWAY</button>
+		<button class="tb primary" id="ed-recover-yes" data-action="recover" onclick="append ed recover">Recover</button>
+		<button class="tb quiet" data-action="discard_recovery" onclick="append ed discard_recovery">Throw away</button>
 	</div>
 
 	<div class="ask hidden" id="ed-ask">
@@ -856,9 +929,9 @@
 			<h2>UNSAVED CHANGES</h2>
 			<p id="ed-ask-text">The map has changes you haven't saved.</p>
 			<div class="row">
-				<button class="tb" id="ed-ask-save" onclick="append ed answer save">SAVE</button>
-				<button class="tb" id="ed-ask-discard" onclick="append ed answer discard">DISCARD</button>
-				<button class="tb quiet" id="ed-ask-cancel" onclick="append ed answer cancel">CANCEL</button>
+				<button class="tb primary" id="ed-ask-save" onclick="append ed answer save">Save</button>
+				<button class="tb" id="ed-ask-discard" onclick="append ed answer discard">Discard</button>
+				<button class="tb quiet" id="ed-ask-cancel" onclick="append ed answer cancel">Cancel</button>
 			</div>
 		</div>
 	</div>
@@ -869,8 +942,8 @@
 			<p class="dim" id="ed-saveas-note">The map's name: letters, digits, - and _.</p>
 			<input type="text" class="text" id="ed-saveas-name" data-apply="saveas_run" data-hint="Type the map's name: Enter saves, Esc cancels"/>
 			<div class="row">
-				<button class="tb" id="ed-saveas-ok" onclick="append ed panel saveas_run">SAVE</button>
-				<button class="tb quiet" id="ed-saveas-cancel" onclick="append ed panel saveas_close">CANCEL</button>
+				<button class="tb primary" id="ed-saveas-ok" onclick="append ed panel saveas_run">Save</button>
+				<button class="tb quiet" id="ed-saveas-cancel" onclick="append ed panel saveas_close">Cancel</button>
 			</div>
 		</div>
 	</div>
@@ -885,11 +958,11 @@
 				<div class="row"><span class="n">3</span><span class="t">Shape: click a brush to select it and drag it to move it; Shift+drag a face to push or pull it. <span class="d">The corners and edges drag too.</span></span></div>
 				<div class="row"><span class="n">4</span><span class="t">Paint: the Materials tab on the right; click a material to put it on what's selected.</span></div>
 				<div class="row"><span class="n">5</span><span class="t">Fill it: the Entities tab, or Light, Jump pad and Teleport on the left; click one, then where it goes.</span></div>
-				<div class="row"><span class="n">6</span><span class="t">Play <kbd data-keys="play">F5</kbd> runs around in it at once; Esc there, then Back to the map editor. <span class="d">File saves it; Main Menu leaves, the map waits here.</span></span></div>
+				<div class="row"><span class="n">6</span><span class="t">Play <kbd data-keys="play">F5</kbd> runs around in it at once; Esc there, then Back to the map editor. <span class="d">File saves it; Main menu leaves, the map waits here.</span></span></div>
 			</div>
 			<div class="row">
-				<button class="tb" id="ed-guide-ok" onclick="append ed panel guide_close">GOT IT</button>
-				<button class="tb quiet" data-action="keymap" onclick="append ed panel guide_keys">ALL KEYS</button>
+				<button class="tb primary" id="ed-guide-ok" onclick="append ed panel guide_close">Got it</button>
+				<button class="tb quiet" data-action="keymap" onclick="append ed panel guide_keys">All keys</button>
 			</div>
 		</div>
 	</div>
@@ -911,15 +984,15 @@
 				<div id="ed-uv-lines"></div>
 			</div>
 			<div class="row">
-				<button class="tb" data-action="tex_rotate_left" onclick="append ed tex_rotate_left">LEFT 15</button>
-				<button class="tb" data-action="tex_rotate_right" onclick="append ed tex_rotate_right">RIGHT 15</button>
-				<button class="tb" data-action="tex_scale_up" onclick="append ed tex_scale_up">X2</button>
-				<button class="tb" data-action="tex_scale_down" onclick="append ed tex_scale_down">/2</button>
-				<button class="tb" data-action="tex_fit" onclick="append ed tex_fit">FIT</button>
-				<button class="tb" data-action="tex_flip_s" onclick="append ed tex_flip_s">FLIP</button>
-				<button class="tb" data-action="tex_reset" onclick="append ed tex_reset">RESET</button>
-				<button class="tb" data-hint="The face's outline back in the middle, zoomed to fit" onclick="append ed panel uv_fit">FRAME</button>
-				<button class="tb quiet" data-hint="Close the UV editor (U opens it again)" onclick="append ed panel uv_close">CLOSE</button>
+				<button class="tb" data-action="tex_rotate_left" onclick="append ed tex_rotate_left">Left 15°</button>
+				<button class="tb" data-action="tex_rotate_right" onclick="append ed tex_rotate_right">Right 15°</button>
+				<button class="tb" data-action="tex_scale_up" onclick="append ed tex_scale_up">×2</button>
+				<button class="tb" data-action="tex_scale_down" onclick="append ed tex_scale_down">÷2</button>
+				<button class="tb" data-action="tex_fit" onclick="append ed tex_fit">Fit</button>
+				<button class="tb" data-action="tex_flip_s" onclick="append ed tex_flip_s">Flip</button>
+				<button class="tb" data-action="tex_reset" onclick="append ed tex_reset">Reset</button>
+				<button class="tb" data-hint="The face's outline back in the middle, zoomed to fit" onclick="append ed panel uv_fit">Frame</button>
+				<button class="tb quiet" data-hint="Close the UV editor (U opens it again)" onclick="append ed panel uv_close">Close</button>
 			</div>
 		</div>
 	</div>
@@ -949,10 +1022,10 @@
 			<input type="text" class="text" id="ed-keymap-filter" placeholder="Filter: clip, texture, Ctrl+ ..." data-hint="Type part of an action's name or its keys"/>
 			<div class="klist" id="ed-keymap-rows"></div>
 			<div class="row">
-				<button class="tb" id="ed-keymap-oz" data-hint="Oz's keys: every action's keys back to the editor's own" onclick="append ed keymap_preset oz">OZ KEYS</button>
+				<button class="tb" id="ed-keymap-oz" data-hint="Oz's keys: every action's keys back to the editor's own" onclick="append ed keymap_preset oz">Oz keys</button>
 				<button class="tb" id="ed-keymap-radiant" data-hint="Radiant's keys where the editor has the same action (Space copies, X clips, Shift+U subtracts, Shift+arrows move textures); Oz's for the rest"
-					onclick="append ed keymap_preset radiant">RADIANT KEYS</button>
-				<button class="tb quiet" id="ed-keymap-done" data-hint="Close (Esc)" onclick="append ed panel keymap_close">DONE</button>
+					onclick="append ed keymap_preset radiant">Radiant keys</button>
+				<button class="tb primary" id="ed-keymap-done" data-hint="Close (Esc)" onclick="append ed panel keymap_close">Done</button>
 			</div>
 		</div>
 	</div>

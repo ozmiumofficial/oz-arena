@@ -350,7 +350,7 @@ void Session::push_height(double dz) {
 		}
 	}
 	if (targets.empty()) {
-		say("Select a jump pad with a target to throw at (LAND HERE gives it one)");
+		say("Select a jump pad with a target to throw at (Land here gives it one)");
 		return;
 	}
 	const double g = map_gravity(doc);
@@ -472,7 +472,7 @@ void Session::push_land() {
 		}
 	}
 	if (land_pushers_.empty()) {
-		say("Select a jump pad first, then LAND HERE and click where players should come down");
+		say("Select a jump pad first, then Land here and click where players should come down");
 		return;
 	}
 	set_tool(Tool::Place);
@@ -491,21 +491,21 @@ std::string Session::push_problem(Id id) {
 	}
 	const std::string target = o->entity.get("target");
 	if (target.empty()) {
-		return cn == "trigger_push" ? "It has no target, so it does nothing in the game: LAND HERE gives it one" : "";
+		return cn == "trigger_push" ? "It has no target, so it does nothing in the game: Land here gives it one" : "";
 	}
 	const Id t = entity_named(doc, target);
 	if (!t) {
-		return "Its target \"" + target + "\" isn't in the map, so it does nothing in the game: LAND HERE gives it a new one";
+		return "Its target \"" + target + "\" isn't in the map, so it does nothing in the game: Land here gives it a new one";
 	}
 	if (cn != "trigger_push") {
 		return "";
 	}
 	Vec3 from, to;
 	if (entity_center(doc, id, from) && entity_center(doc, t, to) && to.z <= from.z) {
-		return "Its target is no higher than the pad, so the game can't aim the throw: raise the target, or LAND HERE";
+		return "Its target is no higher than the pad, so the game can't aim the throw: raise the target, or Land here";
 	}
 	if (push_arc(id).size() >= 2 && !arc_lands_[id]) {
-		return "Its throw never comes down on anything: LAND HERE aims it at a floor";
+		return "Its throw never comes down on anything: Land here aims it at a floor";
 	}
 	return "";
 }

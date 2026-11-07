@@ -28,10 +28,25 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Cinzel:wght@600;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="grit.css">
+<link rel="stylesheet" href="ld.css">
 </head>
 <body>
 
 <a class="skip" href="#features">Skip to the features</a>
+
+<!-- shared marks for every diagram: arrowheads and the hatch for solid rock -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="a-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ffad33"/></marker>
+    <marker id="a-glow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ff4a1c"/></marker>
+    <marker id="a-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#e6ddd2"/></marker>
+    <marker id="a-pale" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ffd38a"/></marker>
+    <marker id="a-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#7fb2ff"/></marker>
+    <marker id="a-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#db2410"/></marker>
+    <marker id="a-bronze" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c9995f"/></marker>
+    <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#211a16"/><path d="M0 0V8" stroke="#3a2e26" stroke-width="2"/></pattern>
+  </defs>
+</svg>
 
 <header class="nav" id="top">
   <a class="brand" href="#top" aria-label="Ozmium Arena, back to top">
@@ -48,6 +63,7 @@
       <li><a href="#solo">Solo</a></li>
       <li><a href="#hud">HUD</a></li>
       <li><a href="#editor">Editor</a></li>
+      <li><a href="#level-design">Level design</a></li>
       <li><a href="#install" class="nav-cta">Install</a></li>
     </ul>
   </nav>
@@ -203,7 +219,7 @@
         </svg>
       </div>
       <h3>Same at every frame rate</h3>
-      <p>Oz's own game moves in fixed 8 ms steps, so jumps, footsteps and fire rates are the same at 60 fps as at 1000.</p>
+      <p>In matches running Oz, movement steps every 8 ms, so jumps, footsteps and fire rates are the same at 60 fps as at 1000.</p>
     </article>
 
     <article class="sigil">
@@ -233,7 +249,7 @@
         </svg>
       </div>
       <h3>Lag compensation</h3>
-      <p>In Oz's own game every instant-hit shot lands where you saw your target, whatever your ping, and your own shots show the moment you fire. Neil Toronto's Unlagged, fitted to Oz.</p>
+      <p>In matches running Oz, every instant-hit shot lands where you saw your target, whatever your ping, and your own shots show the moment you fire. Neil Toronto's Unlagged, fitted to Oz.</p>
     </article>
 
     <article class="sigil">
@@ -351,7 +367,7 @@
       <li><b>Mods switch by themselves:</b> join a CPMA or Defrag server and Oz switches to it, then back again when you leave. Their own code decides movement and rules.</li>
       <li><b>Pure servers stay playable.</b> A server that forces its own files always lets you in. Oz leaves its packs out there and keeps the lighting, the menus and the HUD.</li>
       <li><b>The server's rules:</b> your game predicts with the server's own settings, so a server on id's physics feels right.</li>
-      <li><b>Lag compensation</b> in Oz's own game: instant-hit shots land where you saw your target.</li>
+      <li><b>Lag compensation</b> in matches running Oz: instant-hit shots land where you saw your target.</li>
       <li><b>With friends:</b> friends, parties, Quick Play and peer-to-peer matches hosted from your own PC. Hide my IP sends a match through a relay.</li>
       <li><b>Joining without the map:</b> Oz fetches a missing map from the server or the map archives as you join.</li>
     </ul>
@@ -366,7 +382,7 @@
     <h2 id="solo-title">The arena never sleeps</h2>
     <ul class="ticks">
       <li><b>Campaign:</b> the original's tiers of arenas, up to the final duel.</li>
-      <li><b>Skirmish and Custom Match:</b> bots on any arena, in any mode, with your rules and modifiers, under Oz's own game, CPMA or Defrag.</li>
+      <li><b>Skirmish and Custom Match:</b> bots on any arena, in any mode, with your rules and modifiers, under Quake III Arena's own rules, CPMA or Defrag.</li>
       <li><b>Defrag races</b> on any map you own, with search and Oz's estimate of each course's difficulty.</li>
       <li><b>Training</b> for movement, aim and duels.</li>
       <li><b>Your career:</b> XP and levels, achievements, records and a player card you build from what you've earned.</li>
@@ -445,6 +461,7 @@
       <li><b>Compile and play</b> without leaving: Play drops you in, Esc brings you back.</li>
       <li><b>Maps for Defrag and CPMA</b> too, saved as standard <code>.map</code> files.</li>
     </ul>
+    <p style="margin: 26px 0 0"><a class="btn btn-blood" href="map-editor.html">Read the editor guide</a></p>
   </div>
   <figure class="shot framed"><img src="img/editor.jpg" alt="The map editor with The Longest Yard open and lit" loading="lazy"></figure>
 </section>
@@ -455,10 +472,87 @@
   <figure><img src="img/editor_play.jpg" alt="Play-testing a compiled room" loading="lazy"><figcaption>Compile and play</figcaption></figure>
 </section>
 
+<!-- ============================================================ level design -->
+<section class="chapter flip" id="level-design" aria-labelledby="ld-title">
+  <div class="chapter-text">
+    <p class="kicker"><span class="rune">IX</span> Level design</p>
+    <h2 id="ld-title">Build arenas worth fighting in</h2>
+    <p>The level design guide is about what makes a Quake III Arena duel map play well for years: using height, keeping players moving, connecting rooms, placing armor and weapons, setting spawns and shaping sound. It's built on the articles the competitive mapping community learned from, with the game's real numbers and a diagram for every idea.</p>
+    <ul class="ticks">
+      <li><b>Flow, connectivity and balance:</b> why maps loop, why a room needs more than one door, and how a layout pulls players before any item goes in.</li>
+      <li><b>Items and spawns:</b> armor sets and timing, weapon placement, health totals, and exactly how Quake III Arena picks where you come back.</li>
+      <li><b>The numbers:</b> jump heights, ledges, doorways, respawn times and weapon reach, measured in the game.</li>
+      <li><b>A checklist</b> to work through before you release.</li>
+    </ul>
+    <div class="ld-cta"><a class="btn btn-blood" href="level-design.html">Read the level design guide</a></div>
+  </div>
+  <figure class="shot framed ld-plan">
+    <svg class="dg" viewBox="0 0 760 392" role="img" aria-labelledby="home-ld-t">
+        <title id="home-ld-t">A plan of a control point on an upper walkway: two routes away on its own level, two drops, sightlines to the Mega, the yellow armor and a teleporter's exit, but blind to the red armor and with a jump pad landing beside it</title>
+        <rect class="solid dark" x="20" y="20" width="590" height="326"/>
+        <rect class="room low" x="150" y="110" width="330" height="200"/>
+        <rect class="room up" x="480" y="150" width="84" height="110"/>
+        <rect class="room up2" x="60" y="40" width="480" height="70"/>
+        <rect class="room up2" x="60" y="110" width="90" height="180"/>
+        <rect class="room up2" x="540" y="50" width="70" height="40"/>
+        <rect class="room up2" x="60" y="290" width="60" height="56"/>
+        <rect class="room low" x="436" y="290" width="40" height="22"/>
+        <rect class="room low" x="476" y="272" width="114" height="66"/>
+        <!-- the zone, its weaknesses and its reach -->
+        <ellipse class="zone" cx="118" cy="82" rx="54" ry="38"/>
+        <path class="route" d="M150 64H596" marker-end="url(#a-amber)"/>
+        <path class="route" d="M92 112V340" marker-end="url(#a-amber)"/>
+        <path class="drop" d="M160 112L300 206" marker-end="url(#a-glow)"/>
+        <path class="drop" d="M132 122L194 262" marker-end="url(#a-glow)"/>
+        <path class="los" d="M160 92L506 196M160 92L456 66M150 100L438 156"/>
+        <path d="M150 102L428 288" fill="none" stroke="#db2410" stroke-width="1.5" stroke-dasharray="2 5"/>
+        <g class="x" transform="translate(432 291)"><path d="M-6-6L6 6M6-6L-6 6"/></g>
+        <rect class="pad" x="190" y="132" width="28" height="16"/>
+        <path class="arc" d="M204 132C200 92 180 86 166 92" marker-end="url(#a-pale)"/>
+        <rect class="tele" x="426" y="148" width="30" height="16"/>
+        <ellipse class="tele-dest" cx="470" cy="66" rx="14" ry="8"/>
+        <!-- items -->
+        <g class="it mh" transform="translate(316 216)"><circle r="11"/><text y="3.5">MH</text></g>
+        <g class="it ya" transform="translate(522 204)"><circle r="11"/><text y="3.5">YA</text></g>
+        <g class="it ra" transform="translate(546 306)"><circle r="11"/><text y="3.5">RA</text></g>
+        <g class="wp" transform="translate(210 282)"><rect x="-14" y="-9" width="28" height="18" rx="2"/><text y="4">RG</text></g>
+        <g class="wp" transform="translate(330 50)"><rect x="-14" y="-9" width="28" height="18" rx="2"/><text y="4">RL</text></g>
+        <rect class="player" x="112" y="72" width="12" height="20"/>
+        <!-- labels -->
+        <text class="t-small t-red" x="66" y="34">CONTROL ZONE</text>
+        <g transform="translate(176 160)"><circle r="9" fill="#db2410" stroke="#000"/><text class="t-small t-hot mid" y="4">1</text></g>
+        <g transform="translate(448 270)"><circle r="9" fill="#db2410" stroke="#000"/><text class="t-small t-hot mid" y="4">2</text></g>
+        <text class="t-small t-faint" x="300" y="300">PIT (LOWEST)</text>
+        <text class="t-small t-faint" x="490" y="170">LEDGE</text>
+        <text class="t-small t-faint" x="244" y="100">UPPER WALKWAY</text>
+        <text class="t-small t-ink" x="444" y="180">TELEPORTER</text>
+        <!-- legend -->
+        <g transform="translate(626 38)">
+          <text class="t-head" x="0" y="0">KEY</text>
+          <path class="route" d="M0 16H34" marker-end="url(#a-amber)"/><text class="t-small" x="0" y="32">SAME LEVEL</text>
+          <path class="drop" d="M0 48H34" marker-end="url(#a-glow)"/><text class="t-small" x="0" y="64">A DROP</text>
+          <path class="los" d="M0 80H34"/><text class="t-small" x="0" y="96">LINE OF SIGHT</text>
+          <path class="arc" d="M0 114Q17 98 34 114" marker-end="url(#a-pale)"/><text class="t-small" x="0" y="130">JUMP PAD</text>
+          <rect class="room up2" x="0" y="142" width="16" height="12"/><text class="t-small" x="22" y="153">HIGH</text>
+          <rect class="room up" x="0" y="160" width="16" height="12"/><text class="t-small" x="22" y="171">MIDDLE</text>
+          <rect class="room low" x="0" y="178" width="16" height="12"/><text class="t-small" x="22" y="189">LOW</text>
+          <g class="it ra" transform="translate(8 210)"><circle r="8"/></g><text class="t-small" x="24" y="214">ARMOR</text>
+          <g class="wp" transform="translate(11 232)"><rect x="-11" y="-7" width="22" height="14" rx="2"/></g><text class="t-small" x="28" y="236">WEAPON</text>
+          <text class="t-head" x="0" y="268">WEAKNESSES</text>
+          <g transform="translate(9 288)"><circle r="9" fill="#db2410" stroke="#000"/><text class="t-small t-hot mid" y="4">1</text></g>
+          <text class="t-small t-ink" x="24" y="285">PAD LANDS</text><text class="t-small t-ink" x="24" y="299">BESIDE YOU</text>
+          <g transform="translate(9 322)"><circle r="9" fill="#db2410" stroke="#000"/><text class="t-small t-hot mid" y="4">2</text></g>
+          <text class="t-small t-ink" x="24" y="319">BLIND TO</text><text class="t-small t-ink" x="24" y="333">THE RED ARMOR</text>
+        </g>
+      </svg>
+    <figcaption>A control point from the guide: routes, drops, sightlines and two built-in weaknesses.</figcaption>
+  </figure>
+</section>
+
 <!-- ============================================================ install -->
 <section class="section rite" id="install" aria-labelledby="install-title">
   <header class="section-head center">
-    <p class="kicker"><span class="rune">IX</span> Getting in</p>
+    <p class="kicker"><span class="rune">X</span> Getting in</p>
     <h2 id="install-title">Four steps to the arena</h2>
     <p class="lede">Oz reads the game from your own copy and never ships or changes id's files. You need Quake III Arena: <a href="https://store.steampowered.com/app/2200/Quake_III_Arena/">buy it on Steam</a> if you don't have it.</p>
   </header>
@@ -510,7 +604,7 @@
 <!-- ============================================================ under the hood -->
 <section class="section" id="engine" aria-labelledby="engine-title">
   <header class="section-head">
-    <p class="kicker"><span class="rune">X</span> Under the hood</p>
+    <p class="kicker"><span class="rune">XI</span> Under the hood</p>
     <h2 id="engine-title">id Tech 3, rebuilt</h2>
     <p class="lede">Oz runs on a modified build of the game's own engine, which id released under the GPL.</p>
   </header>
@@ -546,12 +640,14 @@
       <li><a href="https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe">Download for Windows</a></li>
       <li><a href="https://github.com/ozmiumofficial/oz-arena/releases/latest">Linux and all releases</a></li>
       <li><a href="#install">How to install</a></li>
+      <li><a href="map-editor.html">Map editor guide</a></li>
     </ul></div>
     <div><h4>The game</h4><ul>
       <li><a href="#features">Features</a></li>
       <li><a href="#look">The look</a></li>
       <li><a href="#online">Online</a></li>
       <li><a href="#editor">Map editor</a></li>
+      <li><a href="level-design.html">Level design guide</a></li>
     </ul></div>
     <div><h4>Community</h4><ul>
       <li><a href="https://discord.gg/HbrAUzkEbJ">Discord</a></li>

@@ -346,6 +346,13 @@ Session::DoorState Session::door_state() {
 			s.near_mixed |= s.near != near;
 			s.shot_mixed |= s.shot != shot;
 		}
+		const double speed = num(e, "speed", 400);
+		if (!s.any) {
+			s.speed = speed;
+			s.seconds = speed > 0 ? end_offset(doc, d).length() / speed : 0;
+		} else {
+			s.speed_mixed |= s.speed != speed;
+		}
 		s.any = true;
 		s.team = e.get("team");
 		s.buttons += firers_of(doc, d);
@@ -431,7 +438,7 @@ void Session::door_opens(int near, int shot) {
 	say(want_near && want_shot ? "The door opens when a player comes near, or when shot"
 		: want_near ? "The door opens when a player comes near (its trigger shows: resize it like a brush); shots don't open it"
 		: want_shot ? "The door opens only when shot" : fired ? "The door opens only when its button or trigger fires it"
-		: "The door never opens on its own now: ADD BUTTON gives it one", !want_near && !want_shot && !fired);
+		: "The door never opens on its own now: Add button gives it one", !want_near && !want_shot && !fired);
 }
 
 // ---------------------------------------------------------------- the place tool's mover clicks
@@ -560,6 +567,31 @@ bool Session::movers_action(const std::string &action, const std::vector<std::st
 		} else {
 			door_opens(-1, a.empty() ? !s.shot : std::atoi(a[0].c_str()));
 		}
+	} else if (action == "door_speed") {
+		// ed door_speed <units a second> | +n | -n: how fast the selected doors open and close (their
+		// team's other halves go along, so a pair stays together)
+		std::vector<Id> doors = selected_of(*this, "func_door");
+		if (doors.empty()) {
+			say("Select a door first");
+			return true;
+		}
+		std::set<Id> all(doors.begin(), doors.end());
+		for (Id d : doors) {
+			const std::string team = doc.get(d)->entity.get("team");
+			for (Id e : doc.ids_of(Kind::Entity)) {
+				if (!team.empty() && doc.get(e)->entity.classname() == "func_door" && doc.get(e)->entity.get("team") == team) {
+					all.insert(e);
+				}
+			}
+		}
+		const std::string v = a.empty() ? "" : a[0];
+		const double now = num(doc.get(doors[0])->entity, "speed", 400);
+		const double next = v.empty() ? now : (v[0] == '+' || v[0] == '-') ? now + std::atof(v.c_str()) : std::atof(v.c_str());
+		if (!(next > 0)) {
+			say("A door's speed is units a second, more than 0 (the game's default is 400)", true);
+			return true;
+		}
+		set_key(doc, std::vector<Id>(all.begin(), all.end()), "speed", number(std::clamp(std::round(next), 10.0, 5000.0)), "Door speed");
 	} else if (action == "door_button") {
 		std::vector<Id> doors = selected_of(*this, "func_door");
 		if (doors.empty()) {
@@ -617,7 +649,7 @@ void Session::mover_problems(std::vector<CompileWarning> &out) {
 			w.text = "A " + cn + " has no origin brush, so it " + (cn == "func_train" ? "rides its path off to one side" : "turns about the map's middle") +
 				": give it a small brush of common/origin where it should turn";
 		} else if (cn == "func_train" && en.get("target").empty()) {
-			w.text = "A func_train has no path: select it, then LAY PATH (Inspect)";
+			w.text = "A func_train has no path: select it, then Lay path (Inspect)";
 		} else if (cn == "func_door") {
 			const bool named = !en.get("targetname").empty(), health = num(en, "health", 0) > 0;
 			if (named && !health && !zone_of(doc, e) && !firers_of(doc, e)) {

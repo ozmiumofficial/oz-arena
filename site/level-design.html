@@ -1,0 +1,1539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Level design · Ozmium Arena</title>
+<meta name="description" content="Ozmium Arena's level design guide: how to build Quake III Arena duel and deathmatch maps that play well, with flow, connectivity, balance, items, spawns and sound, the game's real numbers and a diagram for every idea.">
+<meta name="theme-color" content="#db2410">
+<link rel="canonical" href="https://ozmiumofficial.github.io/oz-arena/level-design.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Ozmium Arena">
+<meta property="og:url" content="https://ozmiumofficial.github.io/oz-arena/level-design.html">
+<meta property="og:title" content="Ozmium Arena: the level design guide">
+<meta property="og:description" content="How to build Quake III Arena maps worth fighting in: flow, connectivity, balance, items, spawns and sound, with the game's real numbers and a diagram for every idea.">
+<meta property="og:image" content="https://ozmiumofficial.github.io/oz-arena/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Ozmium Arena logo over a dark arena">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ozmium Arena: the level design guide">
+<meta name="twitter:description" content="How to build Quake III Arena maps worth fighting in, with the game's real numbers and a diagram for every idea.">
+<meta name="twitter:image" content="https://ozmiumofficial.github.io/oz-arena/img/og.jpg">
+<link rel="icon" href="img/icon-64.png" type="image/png">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Cinzel:wght@600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="grit.css">
+<link rel="stylesheet" href="ld.css">
+</head>
+<body>
+
+<a class="skip" href="#start">Skip to the guide</a>
+
+<!-- shared marks for every diagram: arrowheads and the hatch for solid rock -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="a-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ffad33"/></marker>
+    <marker id="a-glow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ff4a1c"/></marker>
+    <marker id="a-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#e6ddd2"/></marker>
+    <marker id="a-pale" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ffd38a"/></marker>
+    <marker id="a-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#7fb2ff"/></marker>
+    <marker id="a-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#db2410"/></marker>
+    <marker id="a-bronze" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c9995f"/></marker>
+    <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#211a16"/><path d="M0 0V8" stroke="#3a2e26" stroke-width="2"/></pattern>
+  </defs>
+</svg>
+
+<header class="nav" id="top">
+  <a class="brand" href="index.html" aria-label="Ozmium Arena, the home page">
+    <img src="img/icon-64.png" alt="" width="32" height="32">
+    <span class="brand-word">OZMIUM</span><span class="brand-sub">arena</span>
+  </a>
+  <nav aria-label="Site">
+    <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
+    <ul id="nav-links">
+      <li><a href="index.html#features">Features</a></li>
+      <li><a href="index.html#look">The look</a></li>
+      <li><a href="index.html#online">Online</a></li>
+      <li><a href="index.html#editor">Editor</a></li>
+      <li><a href="level-design.html" aria-current="page">Level design</a></li>
+      <li><a href="index.html#install" class="nav-cta">Install</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+
+<section class="doc-hero" aria-labelledby="doc-title">
+  <p class="kicker"><span class="rune">LD</span> The level design guide</p>
+  <h1 id="doc-title">Build arenas worth fighting in</h1>
+  <p class="lede">How to lay out a Quake III Arena duel or deathmatch map that still plays well after a thousand matches: flow, connectivity, balance, items, spawns and sound. Written for the game's original rules and Oz's built-in map editor, from the articles the competitive mapping community learned from, with a diagram for every idea.</p>
+  <div class="hero-actions">
+    <a class="btn btn-blood" href="#start">Start reading</a>
+    <a class="btn btn-ghost" href="#checklist">Jump to the checklist</a>
+  </div>
+</section>
+
+<section class="tally" aria-label="The guide's key numbers">
+  <ul>
+    <li><b>48</b><span>units a jump rises</span></li>
+    <li><b>~64</b><span>highest ledge a jump climbs</span></li>
+    <li><b>166</b><span>units a rocket jump lifts</span></li>
+    <li><b>25 s</b><span>armor respawn</span></li>
+    <li><b>35 s</b><span>health and Mega respawn</span></li>
+    <li><b>768</b><span>lightning gun reach</span></li>
+  </ul>
+</section>
+
+<div class="doc">
+
+<aside class="toc" aria-label="Contents">
+  <details open>
+    <summary>Contents</summary>
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#start"><span>I</span>Start here</a></li>
+      <li><a href="#process"><span>II</span>The process</a></li>
+      <li><a href="#numbers"><span>III</span>The numbers</a></li>
+      <li><a href="#layout"><span>IV</span>Height, flow and links</a></li>
+      <li><a href="#balance"><span>V</span>Balance and pull</a></li>
+      <li><a href="#families"><span>VI</span>Layout families</a></li>
+      <li><a href="#control"><span>VII</span>Control points</a></li>
+      <li><a href="#combat"><span>VIII</span>Combat terrain</a></li>
+      <li><a href="#vertical"><span>IX</span>Between floors</a></li>
+      <li><a href="#items"><span>X</span>Items</a></li>
+      <li><a href="#spawns"><span>XI</span>Spawns</a></li>
+      <li><a href="#sound"><span>XII</span>Sound</a></li>
+      <li><a href="#looks"><span>XIII</span>Looks, light, speed</a></li>
+      <li><a href="#tricks"><span>XIV</span>Trick jumps</a></li>
+      <li><a href="#testing"><span>XV</span>Testing</a></li>
+      <li><a href="#checklist"><span>XVI</span>The checklist</a></li>
+      <li><a href="#credits"><span>XVII</span>Credits</a></li>
+    </ol>
+  </details>
+</aside>
+
+<article>
+
+<!-- ============================================================ I -->
+<section id="start" aria-labelledby="start-title">
+  <p class="kicker"><span class="rune">I</span> Start here</p>
+  <h2 id="start-title">Gameplay first, and know why</h2>
+  <p>A map is a set of choices for the players in it: where to go, what to take, where to stand, when to run. This guide is about making those choices interesting. It's written for duels first, because a layout that holds up between two good players holds up nearly everywhere, with notes for free for all and team play where they differ.</p>
+  <p>None of it is law. Every rule here has a famous map that breaks it. DM4 is lopsided, keeps its Mega in a dead end and drops players in front of their killer, and it was the duel map for years. Learn why a rule exists, break it on purpose, and let good players tell you whether it worked.</p>
+  <p>Looks matter too. A handsome map gets downloaded; only a map that plays well stays installed. You don't have to choose between them, only make the decisions in the right order: the layout, then the items, then the paint.</p>
+  <div class="oz">
+    <p>Oz keeps Quake III Arena's original 1.32 rules. In matches running the mod, movement steps every 8 ms and holding jump hops again as you land, so a jump is the same at every frame rate. Every number in this guide was read from the game's code or measured in the game with Oz. A map travels, though: the same <code>.map</code> plays on CPMA and other community servers under their own movement, so if that's where it will live, test it there too.</p>
+  </div>
+</section>
+
+<!-- ============================================================ II -->
+<section id="process" aria-labelledby="process-title">
+  <p class="kicker"><span class="rune">II</span> The process</p>
+  <h2 id="process-title">Paper, blockout, players, then paint</h2>
+  <p>Decide first what the map is for. A serious duel map is built differently from a fun one: every decision is weighed by how it changes the fight, and it goes through round after round of testing with players who know what they're doing. A fun map can spend more of its effort on the look.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 236" role="img" aria-labelledby="d1t">
+        <title id="d1t">The process: paper, blockout, test, tune, detail, beta, with loops back when a test fails</title>
+        <g>
+          <path class="flow soft" d="M563 40V20H319V34" marker-end="url(#a-glow)"/>
+          <text class="t-small t-glow mid" x="441" y="14">EVERY CHANGE: TEST AGAIN</text>
+          <path class="flow" d="M319 152V196H75V156" marker-end="url(#a-glow)"/>
+          <text class="t-small t-glow mid" x="197" y="216">DOESN'T PLAY? RESHAPE OR SCRAP IT, BEFORE ANY DETAIL</text>
+        </g>
+        <g>
+          <rect class="box" x="21" y="40" width="108" height="110"/>
+          <rect class="box" x="143" y="40" width="108" height="110"/>
+          <rect class="box hot" x="265" y="40" width="108" height="110"/>
+          <rect class="box" x="387" y="40" width="108" height="110"/>
+          <rect class="box" x="509" y="40" width="108" height="110"/>
+          <rect class="box" x="631" y="40" width="108" height="110"/>
+          <g class="t-num">
+            <text class="t-num" x="33" y="66">01</text><text class="t-num" x="155" y="66">02</text><text class="t-num" x="277" y="66">03</text>
+            <text class="t-num" x="399" y="66">04</text><text class="t-num" x="521" y="66">05</text><text class="t-num" x="643" y="66">06</text>
+          </g>
+          <text class="t-head" x="33" y="90">PAPER</text>
+          <text class="t-small" x="33" y="112">a flow map:</text><text class="t-small" x="33" y="128">rooms, halls, floors</text>
+          <text class="t-head" x="155" y="90">BLOCKOUT</text>
+          <text class="t-small" x="155" y="112">plain brushes,</text><text class="t-small" x="155" y="128">items, spawns</text>
+          <text class="t-head" x="277" y="90">TEST</text>
+          <text class="t-small" x="277" y="112">duel players,</text><text class="t-small" x="277" y="128">no detail yet</text>
+          <text class="t-head" x="399" y="90">TUNE</text>
+          <text class="t-small" x="399" y="112">items, spawns,</text><text class="t-small" x="399" y="128">jumps, timing</text>
+          <text class="t-head" x="521" y="90">DETAIL</text>
+          <text class="t-small" x="521" y="112">texture, light,</text><text class="t-small" x="521" y="128">clip, optimize</text>
+          <text class="t-head" x="643" y="90">BETA</text>
+          <text class="t-small" x="643" y="112">test it again,</text><text class="t-small" x="643" y="128">then release</text>
+        </g>
+        <g class="route">
+          <path class="route" d="M131 95H139" marker-end="url(#a-amber)"/><path class="route" d="M253 95H261" marker-end="url(#a-amber)"/>
+          <path class="route" d="M375 95H383" marker-end="url(#a-amber)"/><path class="route" d="M497 95H505" marker-end="url(#a-amber)"/>
+          <path class="route" d="M619 95H627" marker-end="url(#a-amber)"/>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>The order</b> The layout is settled with plain brushes and real players before anything is made pretty. Detail is cheap to add and expensive to throw away.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <h3>Start on paper</h3>
+  <p>Don't open the editor and improvise outward from one cool room. Layouts made that way rarely have the depth a duel needs, and you only find out after the work is done. Draw a flow map first: big rooms as boxes, balconies as smaller boxes stuck to them, halls as lines, stairs as railroad tracks, lifts and pads as dots. It needn't hold every detail, only the rooms, how they connect and roughly how high each part is. Sketch a few maps you like the same way while you run them: you'll see how differently they're built, and that the best ones are surprisingly hard to draw.</p>
+
+  <h3>Block it out</h3>
+  <p>Turn the drawing into plain brushes: floors, walls, the main heights, the items and the spawns. No texturing, no detail, no careful light. This is where the scale gets settled, which is the hardest thing to get right. When in doubt, measure a map you like: walk it, count grid squares, note its hall widths and floor heights.</p>
+  <div class="oz">
+    <p>In the editor, Brush (B) draws boxes on the grid (1 to 9 set its size) and Hollow makes a room of one. The Jump pad (J) and Teleport (K) tools place working ones in two clicks. Play (F5) compiles quickly and drops you in, Play from here (Shift+F5) starts you where the camera is, and the pause menu's Back to the map editor returns you to the map as you left it. The compile walls the map in sky by itself, so an unfinished blockout still runs, but anything that falls off an open edge dies.</p>
+  </div>
+
+  <h3>Test the skeleton</h3>
+  <p>Give the blockout to players who play duels seriously, and watch them play it. Ask them about the layout, not the looks: they're the ones who know how a map plays. Other mappers are better at the technical side. If the verdict is that the layout doesn't work, reshape it or scrap it. That's what a blockout is for, and it's cheap now. Big changes to a weak first layout are often exactly what turns it into a good one.</p>
+
+  <h3>Tune, then dress</h3>
+  <p>Items, spawns and jumps take several rounds of testing to settle. Only then: textures, lighting, detail and clipping. Then test again, because detail changes play. A dark corner becomes a camping spot, a light fixture snags players mid-fight, a pillar blocks a sightline that used to matter.</p>
+</section>
+
+<!-- ============================================================ III -->
+<section id="numbers" aria-labelledby="numbers-title">
+  <p class="kicker"><span class="rune">III</span> The numbers</p>
+  <h2 id="numbers-title">The numbers to build with</h2>
+  <p>Scale is felt more than measured, but these are the figures the game runs on. They're in map units, the editor's grid.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 364" role="img" aria-labelledby="d2t">
+        <title id="d2t">The player and the heights that matter, drawn to scale from the side: the player's box, steps, the ledges a jump does and doesn't climb, a rocket jump, a doorway and the height of a floor</title>
+        <g>
+          <path class="gridl" d="M0 16H760M0 32H760M0 48H760M0 80H760M0 96H760M0 112H760M0 144H760M0 160H760M0 176H760M0 208H760M0 224H760M0 240H760M0 272H760M0 288H760M0 304H760"/>
+          <path class="gridl major" d="M0 0H760M0 64H760M0 128H760M0 192H760M0 256H760"/>
+          <path class="gridl" d="M16 0V320M32 0V320M48 0V320M80 0V320M96 0V320M112 0V320M144 0V320M160 0V320M176 0V320M208 0V320M224 0V320M240 0V320M272 0V320M288 0V320M304 0V320M336 0V320M352 0V320M368 0V320M400 0V320M416 0V320M432 0V320M464 0V320M480 0V320M496 0V320M528 0V320M544 0V320M560 0V320M592 0V320M608 0V320M624 0V320M656 0V320M672 0V320M688 0V320M720 0V320M736 0V320M752 0V320"/>
+          <path class="gridl major" d="M64 0V320M128 0V320M192 0V320M256 0V320M320 0V320M384 0V320M448 0V320M512 0V320M576 0V320M640 0V320M704 0V320"/>
+        </g>
+        <rect class="solid dark" x="0" y="320" width="760" height="44"/>
+        <path class="floorline" d="M0 320H760"/>
+        <text class="t-head" x="24" y="34">SIDE VIEW, TO SCALE</text>
+
+        <!-- the player, standing and crouched -->
+        <rect class="player" x="30" y="264" width="30" height="56"/>
+        <circle cx="45" cy="270" r="3" fill="#ffad33"/>
+        <path class="los solidl" d="M48 270H76"/>
+        <text class="t-small t-amber" x="78" y="274">EYE 50</text>
+        <text class="t-num mid" x="45" y="256">56</text>
+        <rect class="player ghost" x="120" y="280" width="30" height="40"/>
+        <text class="t-num mid" x="135" y="272">40</text>
+        <text class="t-small mid" x="45" y="340">STAND</text>
+        <text class="t-small mid" x="135" y="340">CROUCH</text>
+        <text class="t-small t-faint mid" x="90" y="356">30 WIDE</text>
+
+        <!-- stairs: 16-unit steps up to a 64-unit landing -->
+        <path class="solid" d="M176 320V304H196V288H216V272H236V256H262V320Z"/>
+        <text class="t-num mid" x="219" y="244">≤18</text>
+        <text class="t-small mid" x="219" y="340">STEPS</text>
+
+        <!-- ledges a jump does and doesn't climb -->
+        <rect class="solid" x="290" y="272" width="44" height="48"/>
+        <rect class="solid" x="352" y="256" width="44" height="64"/>
+        <rect class="rock" x="414" y="240" width="44" height="80"/>
+        <text class="t-num mid" x="312" y="264">48</text>
+        <text class="t-num mid" x="374" y="248">64</text>
+        <text class="t-num mid t-red" x="436" y="232">80</text>
+        <text class="t-small t-amber mid" x="312" y="340">EVERYONE</text>
+        <text class="t-small mid" x="374" y="340">THE LIMIT</text>
+        <text class="t-small t-red mid" x="436" y="340">NO JUMP</text>
+
+        <!-- a standing rocket jump -->
+        <rect class="player ghost" x="492" y="98" width="30" height="56"/>
+        <path class="drop" d="M507 312V160" marker-end="url(#a-glow)"/>
+        <circle cx="507" cy="316" r="6" fill="#ff4a1c" opacity=".8"/><circle cx="507" cy="316" r="12" fill="#ff4a1c" opacity=".25"/>
+        <path class="measure" d="M536 320V154M530 154H542M530 320H542"/>
+        <text class="t-num" x="546" y="236">166</text>
+        <text class="t-small" x="546" y="252">ROCKET</text><text class="t-small" x="546" y="266">JUMP</text>
+
+        <!-- a doorway under the upper floor, and a jump under it -->
+        <rect class="solid" x="620" y="64" width="140" height="18"/>
+        <rect class="solid" x="620" y="82" width="22" height="110"/>
+        <rect class="player ghost" x="590" y="216" width="26" height="56"/>
+        <path class="los" d="M584 216H648"/>
+        <text class="t-small t-amber" x="664" y="220">HEAD 104</text>
+        <path class="measure" d="M655 320V192M649 192H661"/>
+        <text class="t-num" x="664" y="262">128</text>
+        <text class="t-small" x="664" y="278">DOOR</text>
+        <path class="measure" d="M744 320V82M738 82H750M738 320H750"/>
+        <text class="t-num end" x="738" y="168">256</text>
+        <text class="t-small end" x="738" y="184">FLOOR TO</text><text class="t-small end" x="738" y="198">FLOOR</text>
+        <text class="t-small t-faint end" x="756" y="356">GRID 16 UNITS</text>
+      </svg>
+    </div>
+    <figcaption><b>To scale</b> One grid square is 16 units. A jump rises about 48 units and, with the 18-unit step the game allows at its top, climbs a ledge of about 64 in matches running Oz. A doorway on a running route wants 128: a jumping player's head reaches about 104.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <div class="table-wrap">
+  <table class="numbers">
+    <caption>The player</caption>
+    <tbody>
+      <tr><th scope="row">Size</th><td><b>30</b> wide and <b>56</b> tall, <b>40</b> crouched</td></tr>
+      <tr><th scope="row">Eye height</th><td><b>50</b> above the floor standing, <b>36</b> crouched</td></tr>
+      <tr><th scope="row">Run speed</th><td><b>320</b> units a second (80 crouched, half under water); strafe jumping takes good players well past it</td></tr>
+      <tr><th scope="row">Steps</th><td>up to <b>18</b> units walked straight up, no jump needed</td></tr>
+      <tr><th scope="row">Jump</th><td>about <b>48</b> units high, <b>0.73 s</b> in the air</td></tr>
+      <tr><th scope="row">Ledge a jump climbs</th><td>about <b>64</b>: the jump, plus an 18-unit step once you stop rising</td></tr>
+      <tr><th scope="row">Rocket jump</th><td>about <b>166</b> units up standing still, looking straight down; more with a jump</td></tr>
+      <tr><th scope="row">Spawning</th><td><b>125</b> health counting down to 100, no armor, the machine gun with 100 bullets (50 in team games) and the gauntlet</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="rule">
+    <p>Keep jump-ups to <em>48 units or less</em>, so everyone makes them. Stay away from ledges between <em>56 and 72</em>: on servers that move players frame by frame the height a jump reaches changes with the player's frame rate, so some make it and nobody can count on it. To stop a jump, make it <em>80 or more</em>. Miss by 16 units, not 2.</p>
+  </div>
+
+  <div class="table-wrap">
+  <table class="numbers">
+    <caption>Space (what competitive maps tend to use)</caption>
+    <tbody>
+      <tr><th scope="row">Walkways</th><td><b>128</b> wide for a tight hall, <b>192</b> for a common one, wider for the main routes</td></tr>
+      <tr><th scope="row">Floor to floor</th><td>about <b>256</b></td></tr>
+      <tr><th scope="row">An atrium</th><td>about <b>1024</b> across in a small, tight map</td></tr>
+      <tr><th scope="row">Walls</th><td><b>64</b> thick; paper-thin brushwork plays and looks poor</td></tr>
+      <tr><th scope="row">Doorways</th><td><b>128</b> tall on any route players run, so a jump never hits a lintel</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>The beat of a fight</h3>
+  <p>A fight is a run of shots, and between two shots of the same gun a player moves a fixed distance. Call it the beat. Within one beat the ground should offer several different moves: a step up, a pillar, a doorway, a drop. A long tight corridor offers only forward and back, so whoever arrives with more health and the better gun wins, whatever their skill. A huge empty room offers so many equal moves that none of them matter. Combat space lives between the two.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 214" role="img" aria-labelledby="d3t">
+        <title id="d3t">How far a running player moves between two shots of each gun, and how far the lightning gun reaches</title>
+        <path class="gridl major" d="M40 30V176M91.2 30V176M142.4 30V176M193.6 30V176M244.8 30V176M296 30V176M347.2 30V176M398.4 30V176M449.6 30V176M500.8 30V176M552 30V176M603.2 30V176M654.4 30V176"/>
+        <rect x="40" y="38" width="205" height="18" fill="#ff4a1c" opacity=".85"/>
+        <rect x="40" y="70" width="256" height="18" fill="#ff4a1c" opacity=".65"/>
+        <rect x="40" y="102" width="384" height="18" fill="#ff4a1c" opacity=".45"/>
+        <rect x="40" y="142" width="614" height="18" fill="#4f93ff" opacity=".35"/>
+        <path d="M654 136V166" stroke="#7fb2ff" stroke-width="2"/>
+        <text class="t-ink" x="253" y="52">ROCKET LAUNCHER · 0.8 s · <tspan class="t-num">256</tspan></text>
+        <text class="t-ink" x="304" y="84">SHOTGUN · 1.0 s · <tspan class="t-num">320</tspan></text>
+        <text class="t-ink" x="432" y="116">RAILGUN · 1.5 s · <tspan class="t-num">480</tspan></text>
+        <text class="t-ink end" x="646" y="156">LIGHTNING GUN REACH · <tspan class="t-num">768</tspan></text>
+        <path class="measure" d="M40 182H654.4"/>
+        <path class="tick" d="M40 178V188M142.4 178V188M244.8 178V188M347.2 178V188M449.6 178V188M552 178V188M654.4 178V188"/>
+        <g class="t-small t-faint">
+          <text class="mid" x="40" y="204">0</text><text class="mid" x="142.4" y="204">128</text><text class="mid" x="244.8" y="204">256</text><text class="mid" x="347.2" y="204">384</text>
+          <text class="mid" x="449.6" y="204">512</text><text class="mid" x="552" y="204">640</text><text class="mid" x="654.4" y="204">768</text>
+          <text x="672" y="204">UNITS</text>
+        </g>
+        <text class="t-head" x="40" y="22">ONE BEAT AT RUNNING SPEED (320 UNITS A SECOND)</text>
+      </svg>
+    </div>
+    <figcaption><b>The beat</b> Distance a running player covers between two shots. Strafe jumping stretches it further. The lightning gun's 768-unit reach is the size of room where it rules.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <div class="table-wrap">
+  <table class="numbers">
+    <caption>The weapons (the 1.32 rules)</caption>
+    <thead><tr><th scope="col">Weapon</th><th scope="col">Refire</th><th scope="col">Damage</th><th scope="col">What it means for the map</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Machine gun</th><td>0.1 s</td><td>7 a bullet (5 in team games)</td><td>Instant hit, everyone has it: open spawns get punished by it</td></tr>
+      <tr><th scope="row">Shotgun</th><td>1.0 s</td><td>11 pellets of 10</td><td>Instant hit, spreads: strong in tight maps, weak in open ones</td></tr>
+      <tr><th scope="row">Grenade launcher</th><td>0.8 s</td><td>100, blast 100 over 150</td><td>Thrown at 700, bounces, 2.5 s fuse: flat walls and floors to bank off</td></tr>
+      <tr><th scope="row">Rocket launcher</th><td>0.8 s</td><td>100, blast 100 over 120</td><td>900 units a second: floors, walls and low ceilings become splash</td></tr>
+      <tr><th scope="row">Lightning gun</th><td>0.05 s</td><td>8 a hit, 160 a second</td><td>Reaches 768 units: owns rooms smaller than that</td></tr>
+      <tr><th scope="row">Railgun</th><td>1.5 s</td><td>100</td><td>Instant hit at any range: long open sightlines are railgun land</td></tr>
+      <tr><th scope="row">Plasma gun</th><td>0.1 s</td><td>20, blast 15 over 20</td><td>2000 units a second: a spam weapon, good from below</td></tr>
+      <tr><th scope="row">BFG</th><td>0.2 s</td><td>100, blast 100 over 120</td><td>2000 units a second: keep it out of duels</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="table-wrap">
+  <table class="numbers">
+    <caption>The items</caption>
+    <thead><tr><th scope="col">Item</th><th scope="col">Gives</th><th scope="col">Back after</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Armor shard</th><td>+5 armor, past 100</td><td>25 s</td></tr>
+      <tr><th scope="row">Yellow armor</th><td>+50 armor</td><td>25 s</td></tr>
+      <tr><th scope="row">Red armor</th><td>+100 armor</td><td>25 s</td></tr>
+      <tr><th scope="row">5 health</th><td>+5, past 100</td><td>35 s</td></tr>
+      <tr><th scope="row">25 and 50 health</th><td>+25 and +50, up to 100</td><td>35 s</td></tr>
+      <tr><th scope="row">Mega health</th><td>+100, past 100 to 200</td><td>35 s from its pickup</td></tr>
+      <tr><th scope="row">Weapons</th><td>the gun and its ammo</td><td>5 s (30 s in team games)</td></tr>
+      <tr><th scope="row">Ammo</th><td>a box for one gun</td><td>40 s</td></tr>
+      <tr><th scope="row">Powerups</th><td>quad, haste, regeneration ...</td><td>120 s</td></tr>
+      <tr><th scope="row">Holdables</th><td>medkit, personal teleporter</td><td>60 s</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Armor and health above 100 both count down by one a second, and armor takes two thirds of the damage while it lasts, so 200 armor makes a player very hard to kill. Since the Mega comes back 35 seconds after it's taken, whoever times it can take it again and again.</p>
+
+  <div class="oz">
+    <p>Keys every item takes, set in the editor's inspector:</p>
+    <ul>
+      <li><code>wait</code> replaces the item's respawn time, in seconds; <code>random</code> varies it by up to that many seconds either way.</li>
+      <li><code>gametype</code> spawns it only in the modes listed: <code>ffa team</code> keeps a Quad out of duels (the names are <code>ffa</code>, <code>tournament</code>, <code>single</code>, <code>team</code>, <code>ctf</code>).</li>
+      <li><code>notfree</code> leaves it out of free for all and duels alike, <code>notteam</code> out of team modes, <code>notsingle</code> out of single player.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ IV -->
+<section id="layout" aria-labelledby="layout-title">
+  <p class="kicker"><span class="rune">IV</span> Height, flow and links</p>
+  <h2 id="layout-title">Height, flow and connections</h2>
+
+  <h3>Use the height</h3>
+  <p>Higher ground is the oldest advantage there is. From above, more of the map is in view. The floor under an enemy catches your rockets' splash. You can drop to any lower level when you like, while the player below has only the ways up. And one step back from the edge puts the floor between you. A good map hands out that advantage, then makes it cost something.</p>
+  <p>Spread tiers sideways instead of stacking them. Floors piled straight on top of each other only meet through holes. Offset like terraces, every level looks into the others, and fights cross between them.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 270" role="img" aria-labelledby="d4t">
+        <title id="d4t">Side views: three floors stacked straight up, which meet only through holes, against offset terraces that all see each other</title>
+        <path class="divider" d="M380 24V250"/>
+        <text class="t-head" x="30" y="30">STACKED</text>
+        <text class="t-head" x="400" y="30">OFFSET</text>
+        <!-- stacked: three slabs straight up -->
+        <rect class="solid dark" x="30" y="226" width="330" height="20"/>
+        <path class="floorline" d="M30 226H360"/>
+        <rect class="solid" x="50" y="168" width="120" height="12"/><rect class="solid" x="210" y="168" width="130" height="12"/>
+        <rect class="solid" x="50" y="110" width="180" height="12"/><rect class="solid" x="270" y="110" width="70" height="12"/>
+        <rect class="solid" x="50" y="52" width="290" height="12"/>
+        <rect class="player" x="94" y="202" width="12" height="24"/>
+        <rect class="player" x="300" y="144" width="12" height="24"/>
+        <rect class="player" x="80" y="86" width="12" height="24"/>
+        <path class="los" d="M190 174V220M250 116V162"/>
+        <text class="t-small mid" x="190" y="196">HOLE</text><text class="t-small mid" x="250" y="140">HOLE</text>
+        <text class="mark-bad t-small" x="30" y="264">AVOID · THE TIERS ONLY MEET THROUGH HOLES</text>
+        <!-- offset terraces -->
+        <path class="solid" d="M400 226V100H500V160H610V226Z"/>
+        <path class="solid" d="M660 226V120H740V226Z"/>
+        <rect class="solid dark" x="400" y="226" width="340" height="20"/>
+        <path class="floorline" d="M400 226H740"/>
+        <rect class="player" x="440" y="76" width="12" height="24"/>
+        <rect class="player" x="560" y="136" width="12" height="24"/>
+        <rect class="player" x="628" y="202" width="12" height="24"/>
+        <rect class="player" x="700" y="96" width="12" height="24"/>
+        <path class="los" d="M452 80L560 140M452 80L628 206M452 80L700 100M572 140L700 102M640 206L700 104"/>
+        <path class="drop" d="M498 96Q520 110 528 132M606 156Q620 176 624 196" marker-end="url(#a-glow)"/>
+        <text class="mark-good t-small" x="400" y="264">BETTER · EVERY TIER SEES THE OTHERS</text>
+      </svg>
+    </div>
+    <figcaption><b>Tiers</b> Dotted lines are sightlines, dashed arrows are drops. Offset levels make every height part of the fight; stacked ones make three separate maps joined by holes.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <p>Then give the low player answers: ceilings low enough over an upper walkway that rockets fired from below splash into it, a grate that lets splash through, more than one way up. High ground should be an advantage that changes hands, never a seat for the rest of the match.</p>
+
+  <h3>Keep it flowing</h3>
+  <p>On the large scale a map should loop. A player can keep running, never turning fully around, and come back to where they started having passed most of the interesting areas. A bare ring isn't enough, though: with no crosscut two players just chase each other around a track. Add at least one way across the middle.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 254" role="img" aria-labelledby="d5t">
+        <title id="d5t">Three plans: a line of rooms that ends in a turn-around, a plain ring, and two loops joined through a middle room with crosscuts</title>
+        <path class="divider" d="M252 24V244M508 24V244"/>
+        <text class="t-head" x="20" y="34">A LINE</text><text class="t-head" x="272" y="34">A RING</text><text class="t-head" x="528" y="34">LOOPS</text>
+        <!-- a line -->
+        <rect class="room" x="22" y="102" width="52" height="46"/><rect class="room" x="98" y="102" width="52" height="46"/><rect class="room" x="174" y="102" width="52" height="46"/>
+        <rect class="room" x="74" y="118" width="24" height="14"/><rect class="room" x="150" y="118" width="24" height="14"/>
+        <path class="flow" d="M40 92H206" marker-end="url(#a-glow)"/>
+        <path class="flow soft" d="M206 160H40" marker-end="url(#a-glow)"/>
+        <g class="x" transform="translate(218 125)"><path d="M-6-6L6 6M6-6L-6 6"/></g>
+        <text class="t-small mid" x="124" y="186">RUN IN, TURN AROUND</text>
+        <text class="mark-bad t-small" x="20" y="240">AVOID</text>
+        <!-- a ring -->
+        <circle class="flow soft" cx="380" cy="128" r="76"/>
+        <path class="flow" d="M444 88A76 76 0 0 1 452 112" marker-end="url(#a-glow)"/>
+        <path class="flow" d="M316 168A76 76 0 0 1 308 144" marker-end="url(#a-glow)"/>
+        <rect class="room" x="362" y="38" width="36" height="28"/><rect class="room" x="428" y="76" width="36" height="28"/><rect class="room" x="428" y="152" width="36" height="28"/>
+        <rect class="room" x="362" y="190" width="36" height="28"/><rect class="room" x="296" y="152" width="36" height="28"/><rect class="room" x="296" y="76" width="36" height="28"/>
+        <text class="t-small mid" x="380" y="132">A TRACK MEET</text>
+        <text class="mark-bad t-small" x="272" y="240">NOT ENOUGH</text>
+        <!-- loops with crosscuts -->
+        <circle class="flow soft" cx="590" cy="128" r="50"/><circle class="flow soft" cx="690" cy="128" r="50"/>
+        <path class="flow" d="M590 78H690" marker-end="url(#a-glow)"/>
+        <path class="flow" d="M542 116A50 50 0 0 1 560 88" marker-end="url(#a-glow)"/>
+        <path class="flow" d="M738 140A50 50 0 0 1 720 168" marker-end="url(#a-glow)"/>
+        <rect class="room up" x="622" y="112" width="36" height="32"/>
+        <rect class="room" x="572" y="64" width="36" height="26"/><rect class="room" x="672" y="64" width="36" height="26"/>
+        <rect class="room" x="524" y="114" width="30" height="28"/><rect class="room" x="726" y="114" width="30" height="28"/>
+        <rect class="room" x="572" y="166" width="36" height="26"/><rect class="room" x="672" y="166" width="36" height="26"/>
+        <text class="t-small mid" x="640" y="214">TWO LOOPS, A CROSSCUT</text>
+        <text class="mark-good t-small" x="528" y="240">BETTER</text>
+      </svg>
+    </div>
+    <figcaption><b>Flow</b> A player should be able to keep moving forward and loop back through the map. Loops that share a middle room, with a crosscut across the top, give every route a choice of where to go next.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <p>Avoid whatever stops a player cold: a lift that takes forever, a long empty hall, a staircase of more than three dozen steps with no landing, a floor cluttered with props that snag. Every area will be fought in at some point, so make each one a little interesting: a low step, a platform, a pillar to break line of sight. Items keep players moving too. Put ammo a short run from its gun rather than on top of it: a player standing on a pile of goodies has no reason to go anywhere.</p>
+
+  <h3>Connect it well</h3>
+  <p>Connectivity is how easily a player gets from one place to another: how direct the routes are, how many ways lead in and out of a room, how quickly a newcomer learns the shape of it.</p>
+  <ul>
+    <li><b>No room with only one door.</b> If a room must have one entrance, give it an exit that's only an exit: a drop, a window, a one-way teleporter.</li>
+    <li><b>One connection of each kind.</b> A second door from the same spot to the same spot adds nothing. A connection from a different part to a different part (a balcony to a floor, a ledge to a hall) adds a real choice.</li>
+    <li><b>Direct routes.</b> From anywhere there should be a fairly direct way to anywhere else, usually through the middle. Nobody should need a grand tour to cross the map.</li>
+    <li><b>Rooms that flow into rooms.</b> A map of rooms joined by single halls (room, hall, room) turns every hall into a choke point and every fight into a doorway standoff.</li>
+    <li><b>But not Swiss cheese.</b> With a hole in every wall nothing is worth holding, and the layout stops meaning anything.</li>
+  </ul>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 290" role="img" aria-labelledby="d6t">
+        <title id="d6t">Side views: two rooms joined by one staircase, a choke point, against one open space with three different ways up: stairs, a teleporter and a jump pad</title>
+        <path class="divider" d="M380 24V270"/>
+        <text class="t-head" x="24" y="34">ROOM, HALL, ROOM</text><text class="t-head" x="400" y="34">ROOMS THAT FLOW</text>
+        <!-- room hall room -->
+        <path class="solid dark" d="M20 50H360V250H20Z"/>
+        <rect class="room" x="34" y="150" width="126" height="90"/>
+        <rect class="room up" x="226" y="60" width="122" height="90"/>
+        <path class="room" d="M160 196H178V184H194V172H210V160H226V150H248V178H226V190H210V202H194V214H178V226H160Z"/>
+        <circle class="zone" cx="214" cy="168" r="30"/>
+        <text class="t-small t-red mid" x="214" y="124">CHOKE</text>
+        <rect class="player" x="70" y="216" width="12" height="24"/><rect class="player" x="300" y="126" width="12" height="24"/>
+        <text class="t-small mid" x="97" y="170">LOWER ROOM</text><text class="t-small mid" x="287" y="80">UPPER ROOM</text>
+        <text class="mark-bad t-small" x="24" y="272">AVOID · ONE WAY UP, ONE PLACE TO HOLD</text>
+        <!-- one space, three ways up -->
+        <path class="solid" d="M560 240V160H740V240Z"/>
+        <path class="solid" d="M650 160V102H740V160Z"/>
+        <rect class="solid dark" x="400" y="240" width="340" height="12"/>
+        <path class="floorline" d="M400 240H740"/>
+        <path class="solid" d="M500 240V228H512V216H524V204H536V192H548V180H560V240Z"/>
+        <rect class="tele" x="414" y="232" width="34" height="8"/>
+        <ellipse class="tele-dest" cx="610" cy="156" rx="16" ry="5"/>
+        <path d="M431 228C450 120 560 110 606 146" fill="none" stroke="#7fb2ff" stroke-width="1.8" stroke-dasharray="3 5" marker-end="url(#a-blue)"/>
+        <rect class="pad" x="462" y="234" width="28" height="6"/>
+        <path class="arc" d="M476 230C520 30 640 30 690 96" marker-end="url(#a-pale)"/>
+        <path class="route" d="M506 236L556 184" marker-end="url(#a-amber)"/>
+        <text class="t-num" x="568" y="208">1</text><text class="t-small" x="580" y="208">STAIRS</text>
+        <text class="t-num" x="404" y="222">2</text><text class="t-small" x="416" y="222">TELEPORTER</text>
+        <text class="t-num" x="520" y="42">3</text><text class="t-small" x="532" y="42">JUMP PAD TO THE TOP</text>
+        <text class="mark-good t-small" x="400" y="272">BETTER · THREE WAYS UP, EACH DIFFERENT</text>
+      </svg>
+    </div>
+    <figcaption><b>Connections</b> One staircase between two rooms makes a choke point that one player holds. Three different ways up, from different places, give the low player real choices and make the upper floor a place you have to watch.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <p>And keep it learnable. A player without a map should work out where things are within a run or two. Areas that feel far apart but turn out to sit side by side, unconnected, are the opposite of good connectivity: they confuse instead of offering choices.</p>
+</section>
+
+<!-- ============================================================ V -->
+<section id="balance" aria-labelledby="balance-title">
+  <p class="kicker"><span class="rune">V</span> Balance and pull</p>
+  <h2 id="balance-title">Balance, imbalance and pull</h2>
+  <p>A perfectly balanced map, where every spot is worth the same, is dull: nothing to fight over and no reason to be anywhere. A wildly unbalanced one is dull too, because the first player to take control keeps it. Aim between the two: enough pull toward some places to start fights, and always a way back for the player who's behind.</p>
+
+  <h3>The layout pulls first</h3>
+  <p>Before a single item goes in, the shape of the map already moves players around:</p>
+  <ul>
+    <li><b>The center.</b> The more routes run through a room, the more players pass through it. In a three-by-three grid of rooms the middle one has four neighbors, the sides three and the corners two, so the middle sees the most action. Take the middle out and the eight rooms of the ring are all equal again.</li>
+    <li><b>Gravity.</b> Dropping down is free and climbing costs time, so action drifts downward wherever players can fall from one area to another. Stairs are neutral, though a single stairwell is a bottleneck however neutral it is. Lifts push action back up: easy to ride up, awkward to come down.</li>
+    <li><b>Slow routes.</b> A crawlway, a long climb or a slow lift starves whatever lies behind it, and the rooms beside the fast routes get busier.</li>
+  </ul>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 286" role="img" aria-labelledby="d7t">
+        <title id="d7t">How the layout alone moves players: the middle of a grid of rooms is busiest, a ring of rooms is even, and players fall to lower rooms faster than they climb back</title>
+        <path class="divider" d="M252 24V266M508 24V266"/>
+        <text class="t-head" x="24" y="34">THE MIDDLE DRAWS</text><text class="t-head" x="276" y="34">A RING EVENS IT</text><text class="t-head" x="528" y="34">GRAVITY PULLS DOWN</text>
+        <!-- 3x3 grid -->
+        <g>
+          <rect class="room" x="80" y="68" width="18" height="12"/><rect class="room" x="152" y="68" width="18" height="12"/>
+          <rect class="room" x="80" y="140" width="18" height="12"/><rect class="room" x="152" y="140" width="18" height="12"/>
+          <rect class="room" x="80" y="212" width="18" height="12"/><rect class="room" x="152" y="212" width="18" height="12"/>
+          <rect class="room" x="49" y="98" width="12" height="18"/><rect class="room" x="121" y="98" width="12" height="18"/><rect class="room" x="193" y="98" width="12" height="18"/>
+          <rect class="room" x="49" y="170" width="12" height="18"/><rect class="room" x="121" y="170" width="12" height="18"/><rect class="room" x="193" y="170" width="12" height="18"/>
+          <rect class="heat1 edge" x="26" y="48" width="54" height="50"/><rect class="heat2 edge" x="98" y="48" width="54" height="50"/><rect class="heat1 edge" x="170" y="48" width="54" height="50"/>
+          <rect class="heat2 edge" x="26" y="116" width="54" height="54"/><rect class="heat3 edge" x="98" y="116" width="54" height="54"/><rect class="heat2 edge" x="170" y="116" width="54" height="54"/>
+          <rect class="heat1 edge" x="26" y="188" width="54" height="50"/><rect class="heat2 edge" x="98" y="188" width="54" height="50"/><rect class="heat1 edge" x="170" y="188" width="54" height="50"/>
+          <g class="t-num mid"><text class="t-num mid" x="53" y="79">2</text><text class="t-num mid" x="125" y="79">3</text><text class="t-num mid" x="197" y="79">2</text>
+          <text class="t-num mid" x="53" y="149">3</text><text class="t-num mid" x="125" y="149">4</text><text class="t-num mid" x="197" y="149">3</text>
+          <text class="t-num mid" x="53" y="219">2</text><text class="t-num mid" x="125" y="219">3</text><text class="t-num mid" x="197" y="219">2</text></g>
+          <text class="t-small mid" x="125" y="262">NUMBER = ROOMS NEXT DOOR</text>
+        </g>
+        <!-- ring of 8 -->
+        <g>
+          <rect class="room" x="332" y="68" width="18" height="12"/><rect class="room" x="404" y="68" width="18" height="12"/>
+          <rect class="room" x="332" y="212" width="18" height="12"/><rect class="room" x="404" y="212" width="18" height="12"/>
+          <rect class="room" x="301" y="98" width="12" height="18"/><rect class="room" x="445" y="98" width="12" height="18"/>
+          <rect class="room" x="301" y="170" width="12" height="18"/><rect class="room" x="445" y="170" width="12" height="18"/>
+          <rect class="heat1 edge" x="278" y="48" width="54" height="50"/><rect class="heat1 edge" x="350" y="48" width="54" height="50"/><rect class="heat1 edge" x="422" y="48" width="54" height="50"/>
+          <rect class="heat1 edge" x="278" y="116" width="54" height="54"/><rect class="solid dark" x="350" y="116" width="54" height="54"/><rect class="heat1 edge" x="422" y="116" width="54" height="54"/>
+          <rect class="heat1 edge" x="278" y="188" width="54" height="50"/><rect class="heat1 edge" x="350" y="188" width="54" height="50"/><rect class="heat1 edge" x="422" y="188" width="54" height="50"/>
+          <g><text class="t-num mid" x="305" y="79">2</text><text class="t-num mid" x="377" y="79">2</text><text class="t-num mid" x="449" y="79">2</text>
+          <text class="t-num mid" x="305" y="149">2</text><text class="t-num mid" x="449" y="149">2</text>
+          <text class="t-num mid" x="305" y="219">2</text><text class="t-num mid" x="377" y="219">2</text><text class="t-num mid" x="449" y="219">2</text></g>
+          <text class="t-small mid t-faint" x="377" y="148">SOLID</text>
+          <text class="t-small mid" x="377" y="262">EVERY ROOM THE SAME</text>
+        </g>
+        <!-- gravity -->
+        <g>
+          <rect class="solid dark" x="540" y="46" width="200" height="200"/>
+          <rect class="heat1 edge" x="556" y="58" width="168" height="74"/>
+          <rect class="heat3 edge" x="556" y="150" width="168" height="80"/>
+          <rect class="solid" x="556" y="132" width="52" height="18"/><rect class="solid" x="640" y="132" width="44" height="18"/>
+          <path class="drop" d="M624 92V196" marker-end="url(#a-glow)"/>
+          <rect class="pad" x="690" y="224" width="30" height="6"/>
+          <path class="route" d="M705 220V100" marker-end="url(#a-amber)"/>
+          <text class="t-small t-ink" x="566" y="76">QUIET</text><text class="t-small t-hot" x="566" y="222">BUSY</text>
+          <text class="t-small t-glow mid" x="624" y="214">FALL</text>
+          <text class="t-small t-amber end" x="700" y="116">LIFT</text>
+          <text class="t-small mid" x="640" y="262">DROPS PULL DOWN, LIFTS PUSH UP</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>The layout's own pull</b> The redder a room, the more players pass through it. Middles draw, rings even things out, and anywhere players can fall the action sinks.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <h3>Items pull hardest</h3>
+  <p>Picture the floor plan as a rubber sheet, with the players as balls rolling across it. Every item makes a sag, and the stronger the item the deeper the sag: a Mega pulls far harder than a box of shells. An item that's been taken still pulls, because nobody can see that it's gone. So placing items is placing balance: you can deepen one room's pull, or spread the sags so that no single spot holds everything worth having.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 300" role="img" aria-labelledby="d8t">
+        <title id="d8t">The floor plan drawn as a rubber sheet: items sag it, the strongest deepest, and players roll toward the sags</title>
+        <text class="t-head" x="24" y="30">ITEMS SAG THE FLOOR · PLAYERS ROLL TOWARD THE SAGS</text>
+        <polyline class="mesh major" points="64,52 74,52 84,52 94,52 104,53 114,53 124,53 134,53 144,53 154,53 164,53 174,53 184,53 194,53 204,53 214,53 224,53 234,53 244,53 254,53 264,53 274,53 284,53 294,54 304,54 314,54 324,54 334,54 344,53 354,53 364,53 374,53 384,53 394,52 404,52 414,52 424,52 434,53 444,53 454,53 464,53 474,54 484,54 494,54 504,54 514,54 524,53 534,53 544,53 554,53 564,52"/>
+<polyline class="mesh" points="71,59 81,59 91,59 101,60 111,60 121,60 131,61 141,61 151,61 161,61 171,61 181,61 191,61 201,61 211,61 221,61 231,61 241,61 251,61 261,61 271,62 281,62 291,63 301,63 311,63 321,64 331,63 341,63 351,62 361,62 371,61 381,60 391,60 401,60 411,59 421,60 431,60 441,60 451,61 461,62 471,63 481,64 491,64 501,64 511,64 521,64 531,63 541,62 551,61 561,60 571,60"/>
+<polyline class="mesh" points="78,66 88,67 98,67 108,68 118,69 128,70 138,70 148,71 158,72 168,72 178,72 188,72 198,72 208,72 218,71 228,71 238,71 248,71 258,71 268,72 278,73 288,74 298,76 308,77 318,77 328,78 338,77 348,76 358,75 368,73 378,72 388,70 398,69 408,68 418,67 428,68 438,68 448,70 458,71 468,73 478,76 488,77 498,79 508,79 518,79 528,77 538,76 548,73 558,71 568,69 578,68"/>
+<polyline class="mesh" points="85,74 95,75 105,77 115,79 125,80 135,82 145,84 155,86 165,87 175,88 185,88 195,88 205,88 215,87 225,85 235,85 245,84 255,84 265,85 275,86 285,88 295,91 305,93 315,95 325,97 335,97 345,96 355,95 365,92 375,88 385,85 395,82 405,79 415,77 425,76 435,77 445,78 455,80 465,84 475,88 485,92 495,95 505,97 515,98 525,97 535,95 545,91 555,87 565,83 575,80 585,77"/>
+<polyline class="mesh" points="92,84 102,86 112,89 122,92 132,96 142,100 152,103 162,106 172,109 182,111 192,111 202,111 212,110 222,108 232,105 242,103 252,102 262,101 272,101 282,103 292,106 302,110 312,114 322,117 332,120 342,120 352,119 362,116 372,111 382,106 392,100 402,95 412,91 422,87 432,86 442,86 452,88 462,91 472,96 482,101 492,107 502,111 512,115 522,116 532,115 542,111 552,106 562,101 572,95 582,90 592,85"/>
+<polyline class="mesh" points="99,94 109,98 119,103 129,109 139,115 149,121 159,128 169,133 179,137 189,140 199,141 209,140 219,138 229,135 239,130 249,126 259,123 269,120 279,120 289,121 299,124 309,128 319,133 329,137 339,140 349,140 359,138 369,134 379,128 389,121 399,113 409,107 419,101 429,97 439,94 449,94 459,95 469,99 479,104 489,109 499,115 509,121 519,124 529,126 539,124 549,121 559,115 569,109 579,103 589,97 599,92"/>
+<polyline class="mesh major" points="106,106 116,112 126,119 136,127 146,136 156,145 166,154 176,162 186,169 196,173 206,174 216,173 226,169 236,164 246,157 256,150 266,144 276,139 286,136 296,136 306,137 316,140 326,144 336,148 346,150 356,150 366,148 376,143 386,137 396,129 406,122 416,114 426,108 436,103 446,101 456,100 466,100 476,103 486,107 496,111 506,116 516,121 526,124 536,125 546,124 556,120 566,116 576,111 586,106 596,101 606,97"/>
+<polyline class="mesh" points="114,116 124,124 134,133 144,143 154,155 164,167 174,178 184,188 194,196 204,201 214,203 224,202 234,197 244,190 254,181 264,171 274,162 284,154 294,148 304,144 314,143 324,144 334,146 344,148 354,149 364,148 374,146 384,142 394,137 404,130 414,123 424,117 434,112 444,108 454,105 464,104 474,104 484,105 494,108 504,111 514,114 524,116 534,118 544,118 554,118 564,116 574,113 584,109 594,106 604,103 614,101"/>
+<polyline class="mesh" points="121,125 131,133 141,143 151,154 161,167 171,180 181,192 191,204 201,212 211,218 221,220 231,218 241,213 251,204 261,194 271,183 281,172 291,162 301,153 311,147 321,143 331,141 341,141 351,141 361,140 371,140 381,138 391,135 401,131 411,127 421,122 431,118 441,115 451,112 461,110 471,109 481,109 491,110 501,111 511,112 521,113 531,114 541,114 551,114 561,114 571,112 581,111 591,109 601,107 611,106 621,104"/>
+<polyline class="mesh" points="128,130 138,138 148,147 158,158 168,170 178,182 188,194 198,205 208,213 218,219 228,220 238,219 248,214 258,205 268,195 278,184 288,173 298,162 308,153 318,146 328,140 338,136 348,134 358,133 368,132 378,131 388,130 398,128 408,126 418,124 428,122 438,121 448,119 458,119 468,118 478,118 488,118 498,118 508,118 518,118 528,118 538,118 548,117 558,117 568,116 578,114 588,113 598,112 608,111 618,110 628,110"/>
+<polyline class="mesh" points="135,132 145,139 155,147 165,156 175,166 185,176 195,186 205,194 215,201 225,206 235,207 245,206 255,201 265,195 275,186 285,176 295,167 305,157 315,149 325,142 335,137 345,133 355,130 365,129 375,128 385,127 395,127 405,126 415,126 425,127 435,127 445,128 455,129 465,130 475,131 485,132 495,132 505,133 515,132 525,132 535,130 545,129 555,127 565,125 575,123 585,122 595,120 605,119 615,117 625,116 635,116"/>
+<polyline class="mesh" points="142,133 152,138 162,144 172,150 182,157 192,165 202,172 212,178 222,183 232,186 242,187 252,186 262,183 272,178 282,172 292,165 302,158 312,151 322,145 332,140 342,135 352,132 362,130 372,129 382,128 392,129 402,129 412,130 422,132 432,134 442,137 452,140 462,143 472,147 482,150 492,152 502,153 512,154 522,153 532,152 542,149 552,146 562,143 572,139 582,136 592,132 602,130 612,127 622,125 632,124 642,123"/>
+<polyline class="mesh major" points="149,135 159,138 169,141 179,145 189,150 199,154 209,158 219,162 229,165 239,167 249,168 259,167 269,165 279,162 289,159 299,154 309,150 319,145 329,142 339,138 349,136 359,134 369,133 379,132 389,133 399,134 409,136 419,138 429,142 439,146 449,151 459,157 469,163 479,168 489,173 499,177 509,180 519,180 529,180 539,177 549,173 559,168 569,162 579,156 589,151 599,146 609,141 619,137 629,134 639,132 649,130"/>
+<polyline class="mesh" points="156,137 166,139 176,141 186,143 196,145 206,148 216,150 226,152 236,154 246,155 256,155 266,155 276,154 286,152 296,150 306,148 316,146 326,143 336,141 346,140 356,138 366,138 376,137 386,138 396,139 406,141 416,144 426,148 436,153 446,160 456,167 466,175 476,183 486,191 496,198 506,204 516,207 526,208 536,207 546,204 556,198 566,191 576,183 586,175 596,167 606,159 616,153 626,148 636,143 646,140 656,138"/>
+<polyline class="mesh" points="163,141 173,142 183,143 193,144 203,145 213,146 223,147 233,148 243,149 253,150 263,150 273,150 283,149 293,148 303,148 313,147 323,146 333,145 343,144 353,143 363,143 373,143 383,143 393,144 403,146 413,148 423,152 433,157 443,164 453,171 463,180 473,190 483,200 493,210 503,218 513,225 523,230 533,231 543,230 553,225 563,218 573,210 583,200 593,190 603,180 613,171 623,163 633,157 643,152 653,148 663,145"/>
+<polyline class="mesh" points="170,147 180,147 190,147 200,148 210,148 220,148 230,149 240,149 250,150 260,150 270,150 280,150 290,150 300,150 310,150 320,150 330,150 340,150 350,149 360,149 370,149 380,149 390,150 400,151 410,152 420,155 430,159 440,164 450,171 460,179 470,189 480,199 490,210 500,220 510,229 520,236 530,241 540,242 550,241 560,236 570,229 580,220 590,210 600,199 610,189 620,179 630,171 640,164 650,159 660,155 670,152"/>
+<polyline class="mesh" points="177,152 187,152 197,152 207,153 217,153 227,153 237,153 247,153 257,154 267,154 277,154 287,154 297,155 307,156 317,156 327,157 337,158 347,158 357,159 367,158 377,158 387,158 397,158 407,158 417,159 427,161 437,165 447,169 457,175 467,183 477,191 487,201 497,211 507,220 517,228 527,235 537,239 547,240 557,239 567,235 577,228 587,220 597,210 607,201 617,191 627,183 637,175 647,169 657,164 667,160 677,157"/>
+<polyline class="mesh" points="184,158 194,158 204,158 214,158 224,159 234,159 244,159 254,159 264,159 274,159 284,160 294,161 304,162 314,164 324,166 334,168 344,170 354,171 364,172 374,172 384,171 394,169 404,168 414,167 424,166 434,167 444,169 454,173 464,177 474,183 484,190 494,197 504,205 514,212 524,219 534,224 544,227 554,228 564,227 574,224 584,219 594,212 604,205 614,197 624,189 634,183 644,177 654,172 664,168 674,165 684,163"/>
+<polyline class="mesh major" points="192,165 202,165 212,165 222,165 232,165 242,165 252,165 262,165 272,165 282,166 292,167 302,169 312,171 322,174 332,177 342,181 352,184 362,187 372,187 382,187 392,185 402,182 412,179 422,176 432,174 442,173 452,174 462,176 472,178 482,182 492,187 502,192 512,197 522,202 532,206 542,210 552,212 562,213 572,212 582,210 592,206 602,201 612,196 622,191 632,186 642,181 652,177 662,174 672,171 682,169 692,167"/>
+<polyline class="mesh" points="199,171 209,171 219,171 229,171 239,171 249,171 259,171 269,171 279,172 289,172 299,174 309,176 319,179 329,182 339,187 349,191 359,195 369,198 379,199 389,198 399,195 409,192 419,188 429,184 439,181 449,180 459,179 469,180 479,182 489,184 499,186 509,189 519,192 529,194 539,196 549,198 559,199 569,199 579,199 589,198 599,195 609,193 619,190 629,187 639,183 649,181 659,178 669,176 679,175 689,173 699,173"/>
+<polyline class="mesh" points="206,177 216,177 226,177 236,177 246,177 256,177 266,177 276,177 286,178 296,178 306,180 316,181 326,184 336,188 346,192 356,196 366,199 376,202 386,203 396,202 406,199 416,196 426,192 436,189 446,187 456,186 466,187 476,188 486,189 496,191 506,192 516,192 526,192 536,192 546,192 556,192 566,192 576,192 586,192 596,191 606,190 616,188 626,187 636,185 646,184 656,182 666,181 676,180 686,179 696,178 706,178"/>
+<polyline class="mesh" points="213,183 223,183 233,183 243,183 253,183 263,183 273,183 283,183 293,184 303,184 313,185 323,186 333,188 343,190 353,193 363,196 373,198 383,200 393,200 403,200 413,198 423,196 433,194 443,192 453,192 463,193 473,194 483,197 493,199 503,200 513,200 523,198 533,196 543,194 553,192 563,191 573,191 583,190 593,190 603,189 613,189 623,188 633,188 643,187 653,186 663,186 673,185 683,185 693,184 703,184 713,184"/>
+<polyline class="mesh" points="220,190 230,190 240,190 250,190 260,190 270,190 280,190 290,190 300,190 310,190 320,190 330,191 340,192 350,193 360,194 370,196 380,197 390,198 400,198 410,198 420,197 430,196 440,195 450,195 460,196 470,197 480,200 490,202 500,204 510,205 520,205 530,203 540,200 550,198 560,195 570,194 580,193 590,192 600,192 610,192 620,192 630,191 640,191 650,191 660,191 670,190 680,190 690,190 700,190 710,190 720,190"/>
+<polyline class="mesh" points="227,196 237,196 247,196 257,196 267,196 277,196 287,196 297,196 307,196 317,196 327,196 337,196 347,197 357,197 367,197 377,198 387,198 397,199 407,199 417,199 427,199 437,198 447,198 457,198 467,199 477,200 487,202 497,204 507,205 517,206 527,205 537,204 547,202 557,200 567,199 577,198 587,197 597,197 607,197 617,197 627,196 637,196 647,196 657,196 667,196 677,196 687,196 697,196 707,196 717,196 727,196"/>
+<polyline class="mesh major" points="234,202 244,202 254,202 264,202 274,202 284,202 294,202 304,202 314,202 324,202 334,202 344,202 354,202 364,202 374,202 384,203 394,203 404,203 414,203 424,203 434,203 444,203 454,203 464,203 474,203 484,204 494,204 504,205 514,206 524,206 534,206 544,205 554,204 564,204 574,203 584,203 594,202 604,202 614,202 624,202 634,202 644,202 654,202 664,202 674,202 684,202 694,202 704,202 714,202 724,202 734,202"/>
+<polyline class="mesh major" points="64,52 71,59 78,66 85,74 92,84 99,94 106,106 114,116 121,125 128,130 135,132 142,133 149,135 156,137 163,141 170,147 177,152 184,158 192,165 199,171 206,177 213,183 220,190 227,196 234,202"/>
+<polyline class="mesh" points="84,52 91,59 98,67 105,77 112,89 119,103 126,119 134,133 141,143 148,147 155,147 162,144 169,141 176,141 183,143 190,147 197,152 204,158 212,165 219,171 226,177 233,183 240,190 247,196 254,202"/>
+<polyline class="mesh" points="104,53 111,60 118,69 125,80 132,96 139,115 146,136 154,155 161,167 168,170 175,166 182,157 189,150 196,145 203,145 210,148 217,153 224,159 232,165 239,171 246,177 253,183 260,190 267,196 274,202"/>
+<polyline class="mesh" points="124,53 131,61 138,70 145,84 152,103 159,128 166,154 174,178 181,192 188,194 195,186 202,172 209,158 216,150 223,147 230,149 237,153 244,159 252,165 259,171 266,177 273,183 280,190 287,196 294,202"/>
+<polyline class="mesh" points="144,53 151,61 158,72 165,87 172,109 179,137 186,169 194,196 201,212 208,213 215,201 222,183 229,165 236,154 243,149 250,150 257,154 264,159 272,165 279,172 286,178 293,184 300,190 307,196 314,202"/>
+<polyline class="mesh major" points="164,53 171,61 178,72 185,88 192,111 199,141 206,174 214,203 221,220 228,220 235,207 242,187 249,168 256,155 263,150 270,150 277,154 284,160 292,167 299,174 306,180 313,185 320,190 327,196 334,202"/>
+<polyline class="mesh" points="184,53 191,61 198,72 205,88 212,110 219,138 226,169 234,197 241,213 248,214 255,201 262,183 269,165 276,154 283,149 290,150 297,155 304,162 312,171 319,179 326,184 333,188 340,192 347,197 354,202"/>
+<polyline class="mesh" points="204,53 211,61 218,71 225,85 232,105 239,130 246,157 254,181 261,194 268,195 275,186 282,172 289,159 296,150 303,148 310,150 317,156 324,166 332,177 339,187 346,192 353,193 360,194 367,197 374,202"/>
+<polyline class="mesh" points="224,53 231,61 238,71 245,84 252,102 259,123 266,144 274,162 281,172 288,173 295,167 302,158 309,150 316,146 323,146 330,150 337,158 344,170 352,184 359,195 366,199 373,198 380,197 387,198 394,203"/>
+<polyline class="mesh" points="244,53 251,61 258,71 265,85 272,101 279,120 286,136 294,148 301,153 308,153 315,149 322,145 329,142 336,141 343,144 350,149 357,159 364,172 372,187 379,199 386,203 393,200 400,198 407,199 414,203"/>
+<polyline class="mesh major" points="264,53 271,62 278,73 285,88 292,106 299,124 306,137 314,143 321,143 328,140 335,137 342,135 349,136 356,138 363,143 370,149 377,158 384,171 392,185 399,195 406,199 413,198 420,197 427,199 434,203"/>
+<polyline class="mesh" points="284,53 291,63 298,76 305,93 312,114 319,133 326,144 334,146 341,141 348,134 355,130 362,130 369,133 376,137 383,143 390,150 397,158 404,168 412,179 419,188 426,192 433,194 440,195 447,198 454,203"/>
+<polyline class="mesh" points="304,54 311,63 318,77 325,97 332,120 339,140 346,150 354,149 361,140 368,132 375,128 382,128 389,133 396,139 403,146 410,152 417,159 424,166 432,174 439,181 446,187 453,192 460,196 467,199 474,203"/>
+<polyline class="mesh" points="324,54 331,63 338,77 345,96 352,119 359,138 366,148 374,146 381,138 388,130 395,127 402,129 409,136 416,144 423,152 430,159 437,165 444,169 452,174 459,179 466,187 473,194 480,200 487,202 494,204"/>
+<polyline class="mesh" points="344,53 351,62 358,75 365,92 372,111 379,128 386,137 394,137 401,131 408,126 415,126 422,132 429,142 436,153 443,164 450,171 457,175 464,177 472,178 479,182 486,189 493,199 500,204 507,205 514,206"/>
+<polyline class="mesh major" points="364,53 371,61 378,72 385,85 392,100 399,113 406,122 414,123 421,122 428,122 435,127 442,137 449,151 456,167 463,180 470,189 477,191 484,190 492,187 499,186 506,192 513,200 520,205 527,205 534,206"/>
+<polyline class="mesh" points="384,53 391,60 398,69 405,79 412,91 419,101 426,108 434,112 441,115 448,119 455,129 462,143 469,163 476,183 483,200 490,210 497,211 504,205 512,197 519,192 526,192 533,196 540,200 547,202 554,204"/>
+<polyline class="mesh" points="404,52 411,59 418,67 425,76 432,86 439,94 446,101 454,105 461,110 468,118 475,131 482,150 489,173 496,198 503,218 510,229 517,228 524,219 532,206 539,196 546,192 553,192 560,195 567,199 574,203"/>
+<polyline class="mesh" points="424,52 431,60 438,68 445,78 452,88 459,95 466,100 474,104 481,109 488,118 495,132 502,153 509,180 516,207 523,230 530,241 537,239 544,227 552,212 559,199 566,192 573,191 580,193 587,197 594,202"/>
+<polyline class="mesh" points="444,53 451,61 458,71 465,84 472,96 479,104 486,107 494,108 501,111 508,118 515,132 522,153 529,180 536,207 543,230 550,241 557,239 564,227 572,212 579,199 586,192 593,190 600,192 607,197 614,202"/>
+<polyline class="mesh major" points="464,53 471,63 478,76 485,92 492,107 499,115 506,116 514,114 521,113 528,118 535,130 542,149 549,173 556,198 563,218 570,229 577,228 584,219 592,206 599,195 606,190 613,189 620,192 627,196 634,202"/>
+<polyline class="mesh" points="484,54 491,64 498,79 505,97 512,115 519,124 526,124 534,118 541,114 548,117 555,127 562,143 569,162 576,183 583,200 590,210 597,210 604,205 612,196 619,190 626,187 633,188 640,191 647,196 654,202"/>
+<polyline class="mesh" points="504,54 511,64 518,79 525,97 532,115 539,124 546,124 554,118 561,114 568,116 575,123 582,136 589,151 596,167 603,180 610,189 617,191 624,189 632,186 639,183 646,184 653,186 660,191 667,196 674,202"/>
+<polyline class="mesh" points="524,53 531,63 538,76 545,91 552,106 559,115 566,116 574,113 581,111 588,113 595,120 602,130 609,141 616,153 623,163 630,171 637,175 644,177 652,177 659,178 666,181 673,185 680,190 687,196 694,202"/>
+<polyline class="mesh" points="544,53 551,61 558,71 565,83 572,95 579,103 586,106 594,106 601,107 608,111 615,117 622,125 629,134 636,143 643,152 650,159 657,164 664,168 672,171 679,175 686,179 693,184 700,190 707,196 714,202"/>
+<polyline class="mesh major" points="564,52 571,60 578,68 585,77 592,85 599,92 606,97 614,101 621,104 628,110 635,116 642,123 649,130 656,138 663,145 670,152 677,157 684,163 692,167 699,173 706,178 713,184 720,190 727,196 734,202"/>
+        <g class="it ra" transform="translate(222 221)"><circle r="11"/><text y="3.5">RA</text></g>
+        <g class="it mh" transform="translate(539 242)"><circle r="11"/><text y="3.5">MH</text></g>
+        <g class="wp" transform="translate(355 149)"><rect x="-14" y="-9" width="28" height="18" rx="2"/><text y="4">RL</text></g>
+        <g class="it ya" transform="translate(528 125)"><circle r="11"/><text y="3.5">YA</text></g>
+        <g class="wp" transform="translate(380 200)"><rect x="-14" y="-9" width="28" height="18" rx="2"/><text y="4">SG</text></g>
+        <path class="shard" d="M498 204l4-5 4 5-4 5z M508 200l4-5 4 5-4 5z"/>
+        <circle cx="300" cy="92" r="6" fill="#ffad33"/><path class="route" d="M300 92Q256 140 232 206" marker-end="url(#a-amber)"/>
+        <circle cx="664" cy="118" r="6" fill="#ffad33"/><path class="route" d="M664 118Q626 196 553 236" marker-end="url(#a-amber)"/>
+        <text class="t-small t-amber" x="310" y="88">PLAYERS</text>
+        <text class="t-small" x="96" y="262">DEEPEST: THE RED ARMOR</text>
+        <text class="t-small" x="560" y="270">THE MEGA</text>
+        <text class="t-small" x="546" y="114">YELLOW ARMOR</text>
+        <text class="t-small t-faint" x="452" y="228">SHARDS</text>
+        <text class="t-small t-faint" x="300" y="290">THE SAME ROOMS AS A PLAN: DEPTH IS HOW HARD EACH SPOT PULLS</text>
+      </svg>
+    </div>
+    <figcaption><b>The rubber sheet</b> The pull of each item, drawn as depth. Two deep sags far apart make two places worth fighting for; one sag with everything in it makes a map one player owns.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <ul>
+    <li><b>Don't bunch strong things.</b> A launcher with three boxes of rockets beside it hands the map to whoever gets there first after it comes back.</li>
+    <li><b>Don't paper over the layout with items.</b> A room nobody visits because it's hard to reach isn't fixed by a gun in it; fix the routes.</li>
+    <li><b>Make power cost something.</b> A jump, a risky drop, an exposed spot. But never an ordeal nobody will attempt.</li>
+  </ul>
+
+  <h3>Not symmetrical</h3>
+  <p>A map that's the same on both halves has only half a map of ideas in it, and both halves are worth the same, so there's no middle and nothing in particular to fight over. The Proving Grounds (q3tourney2) gets away with its symmetry only because its items aren't symmetrical: ten extra shards in one of its two main rooms make that room the one to hold. Symmetry within one room, or in a single feature, is fine.</p>
+
+  <h3>A center worth holding</h3>
+  <p>Imagine six identical rooms, each with a rocket launcher and a health, each with a teleporter to every other. Finding your opponent would be pure luck, and there'd be no strategy at all. Real duel maps have strong areas and weak ones. Holding the strong areas is aggressive play, lurking in the weak ones defensive, and guessing which one your opponent is doing, and when they'll switch, is the deepest skill a duel has. Good maps make that guess matter.</p>
+</section>
+
+<!-- ============================================================ VI -->
+<section id="families" aria-labelledby="families-title">
+  <p class="kicker"><span class="rune">VI</span> Layout families</p>
+  <h2 id="families-title">Layout families that work</h2>
+  <p>Most successful duel maps fall into a few families. They're starting points, not molds: plenty of good maps mix them, and some fit none.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 300" role="img" aria-labelledby="d9t">
+        <title id="d9t">Three plans: a single atrium with an outer loop, two atriums joined at a corner with a figure-eight flow, and three atriums in a circuit</title>
+        <path class="divider" d="M252 24V280M508 24V280"/>
+        <text class="t-head" x="24" y="34">ONE ATRIUM</text><text class="t-head" x="276" y="34">TWO ATRIUMS</text><text class="t-head" x="528" y="34">THREE ATRIUMS</text>
+        <!-- one atrium: an outer loop of halls round a deep middle -->
+        <rect class="room up" x="30" y="56" width="196" height="196"/>
+        <rect class="solid dark" x="58" y="84" width="140" height="140"/>
+        <rect class="room low" x="74" y="100" width="108" height="108"/>
+        <rect class="room up" x="58" y="140" width="16" height="28"/><rect class="room up" x="182" y="140" width="16" height="28"/>
+        <rect class="room up" x="114" y="84" width="28" height="16"/><rect class="room up" x="114" y="208" width="28" height="16"/>
+        <path class="flow soft" d="M44 70H212V238H44Z"/>
+        <path class="flow" d="M150 70H200" marker-end="url(#a-glow)"/><path class="flow" d="M106 238H56" marker-end="url(#a-glow)"/>
+        <g class="it mh" transform="translate(128 154)"><circle r="11"/><text y="3.5">MH</text></g>
+        <g class="it ra" transform="translate(44 70)"><circle r="11"/><text y="3.5">RA</text></g>
+        <g class="it ya" transform="translate(212 238)"><circle r="11"/><text y="3.5">YA</text></g>
+        <text class="t-small mid" x="128" y="274">ARMORS ON THE LOOP, MEGA BELOW</text>
+        <!-- two atriums joined at the hip -->
+        <rect class="room up" x="276" y="56" width="120" height="120"/>
+        <rect class="room up" x="364" y="148" width="120" height="104"/>
+        <rect class="room low" x="294" y="74" width="84" height="84"/>
+        <rect class="room low" x="382" y="166" width="84" height="68"/>
+        <circle class="flow soft" cx="336" cy="116" r="58"/>
+        <circle class="flow soft" cx="424" cy="200" r="58"/>
+        <path class="flow" d="M372 154L388 162"/>
+        <path class="flow" d="M290 80A58 58 0 0 1 330 58" marker-end="url(#a-glow)"/>
+        <path class="flow" d="M470 236A58 58 0 0 1 430 258" marker-end="url(#a-glow)"/>
+        <g class="it ya" transform="translate(316 92)"><circle r="11"/><text y="3.5">YA</text></g>
+        <g class="wp" transform="translate(356 140)"><rect x="-14" y="-9" width="28" height="18" rx="2"/><text y="4">RL</text></g>
+        <g class="it ra" transform="translate(448 222)"><circle r="11"/><text y="3.5">RA</text></g>
+        <g class="wp" transform="translate(402 184)"><rect x="-14" y="-9" width="28" height="18" rx="2"/><text y="4">RL</text></g>
+        <text class="t-small mid" x="380" y="274">AN ARMOR AND A LAUNCHER EACH</text>
+        <!-- three atriums -->
+        <rect class="room up" x="528" y="70" width="64" height="150"/>
+        <rect class="room up" x="610" y="56" width="66" height="196"/>
+        <rect class="room up" x="694" y="86" width="56" height="130"/>
+        <rect class="room low" x="620" y="96" width="46" height="120"/>
+        <rect class="room" x="592" y="120" width="18" height="26"/><rect class="room" x="676" y="150" width="18" height="26"/>
+        <path class="room" d="M560 220V244H610V228H592V220Z"/><path class="room" d="M722 216V244H676V230H694V216Z"/>
+        <path class="flow soft" d="M560 145C560 92 600 76 643 76C690 76 722 100 722 151C722 205 690 234 643 234C600 234 560 205 560 145Z"/>
+        <path class="flow" d="M606 80C628 75 664 75 690 84" marker-end="url(#a-glow)"/>
+        <path class="flow" d="M680 230C658 235 628 235 600 226" marker-end="url(#a-glow)"/>
+        <g class="it ya" transform="translate(560 160)"><circle r="11"/><text y="3.5">YA</text></g>
+        <g class="it ra" transform="translate(722 140)"><circle r="11"/><text y="3.5">RA</text></g>
+        <g class="it mh" transform="translate(643 196)"><circle r="11"/><text y="3.5">MH</text></g>
+        <text class="t-small mid" x="640" y="274">ARMORS FAR APART, MEGA LOW</text>
+      </svg>
+    </div>
+    <figcaption><b>Families</b> Lighter floors are higher. One atrium: a deep middle ringed by a loop, like CPM22. Two atriums joined at a corner with a figure-eight flow, like CPM1A and CPM3. Three in a circuit, the middle largest, like pro-q3dm6.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <h3>One atrium</h3>
+  <p>One big room on many levels, often four or more, with smaller areas around it. The outer loop sees quick close fights; the atrium sees mid-range hide and seek across its ledges, and players pour into it for the big fights. The armors usually sit on opposite sides of the loop, with a big item, often the Mega, in the atrium's depths.</p>
+  <h3>Two atriums</h3>
+  <p>The champion of the competitive era: two big rooms joined at a corner, three or so tiers each, with halls, stairs and teleporters winding between them. A launcher and an armor in each atrium suits a game of two players, and the flow runs in a figure eight that keeps both moving. The danger is armor running: one player crossing back and forth to take both armors. Put the armors in different atriums and on different floors so a run costs something.</p>
+  <h3>Three atriums</h3>
+  <p>More strategic and slower: a third room, often the largest, in the middle. The footprint is bigger, so there are fewer floors, longer sightlines and more time between sightings, and the railgun matters more. The armors go in the two side rooms, spread as far apart as the map allows; the middle becomes the main battleground, or a quiet place to regroup.</p>
+  <h3>The others</h3>
+  <p>Older catalogs add more: rooms of every size jumbled together and fused where they overlap, with floors staggered half a level apart; a tangle of halls that rise, dip and cross over each other, widening into small rooms where they meet; one big arena room with walkways round it. And one that rarely works: room, corridor, room. If your plan looks like that, turn the rooms into atriums, widen the halls into rooms of their own, and use the height.</p>
+  <h3>Dead ends</h3>
+  <p>Usually bad: they stop the flow and invite camping. A short one with something worth the risk is another matter. DM4's Mega room was a dead end, and going in for the Mega meant being trapped below an opponent with rockets. That trade, a strong item for being cornered, stages some of the best fights a map can have. If a dead end shouldn't be a trap, give it a quick way out that isn't the way in: a hole to drop in by, a teleporter or a jump out.</p>
+</section>
+
+<!-- ============================================================ VII -->
+<section id="control" aria-labelledby="control-title">
+  <p class="kicker"><span class="rune">VII</span> Control points</p>
+  <h2 id="control-title">Control points</h2>
+  <p>A control point is a spot from which one player can reach most of the map, watch most of its approaches and guard its key items. The player in control holds one; the player behind tries to take it from them, or slip around it. Planning these spots is planning the duel.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 392" role="img" aria-labelledby="d10t">
+        <title id="d10t">A plan of a control point on an upper walkway: two routes away on its own level, two drops, sightlines to the Mega, the yellow armor and a teleporter's exit, but blind to the red armor and with a jump pad landing beside it</title>
+        <rect class="solid dark" x="20" y="20" width="590" height="326"/>
+        <rect class="room low" x="150" y="110" width="330" height="200"/>
+        <rect class="room up" x="480" y="150" width="84" height="110"/>
+        <rect class="room up2" x="60" y="40" width="480" height="70"/>
+        <rect class="room up2" x="60" y="110" width="90" height="180"/>
+        <rect class="room up2" x="540" y="50" width="70" height="40"/>
+        <rect class="room up2" x="60" y="290" width="60" height="56"/>
+        <rect class="room low" x="436" y="290" width="40" height="22"/>
+        <rect class="room low" x="476" y="272" width="114" height="66"/>
+        <!-- the zone, its weaknesses and its reach -->
+        <ellipse class="zone" cx="118" cy="82" rx="54" ry="38"/>
+        <path class="route" d="M150 64H596" marker-end="url(#a-amber)"/>
+        <path class="route" d="M92 112V340" marker-end="url(#a-amber)"/>
+        <path class="drop" d="M160 112L300 206" marker-end="url(#a-glow)"/>
+        <path class="drop" d="M132 122L194 262" marker-end="url(#a-glow)"/>
+        <path class="los" d="M160 92L506 196M160 92L456 66M150 100L438 156"/>
+        <path d="M150 102L428 288" fill="none" stroke="#db2410" stroke-width="1.5" stroke-dasharray="2 5"/>
+        <g class="x" transform="translate(432 291)"><path d="M-6-6L6 6M6-6L-6 6"/></g>
+        <rect class="pad" x="190" y="132" width="28" height="16"/>
+        <path class="arc" d="M204 132C200 92 180 86 166 92" marker-end="url(#a-pale)"/>
+        <rect class="tele" x="426" y="148" width="30" height="16"/>
+        <ellipse class="tele-dest" cx="470" cy="66" rx="14" ry="8"/>
+        <!-- items -->
+        <g class="it mh" transform="translate(316 216)"><circle r="11"/><text y="3.5">MH</text></g>
+        <g class="it ya" transform="translate(522 204)"><circle r="11"/><text y="3.5">YA</text></g>
+        <g class="it ra" transform="translate(546 306)"><circle r="11"/><text y="3.5">RA</text></g>
+        <g class="wp" transform="translate(210 282)"><rect x="-14" y="-9" width="28" height="18" rx="2"/><text y="4">RG</text></g>
+        <g class="wp" transform="translate(330 50)"><rect x="-14" y="-9" width="28" height="18" rx="2"/><text y="4">RL</text></g>
+        <rect class="player" x="112" y="72" width="12" height="20"/>
+        <!-- labels -->
+        <text class="t-small t-red" x="66" y="34">CONTROL ZONE</text>
+        <g transform="translate(176 160)"><circle r="9" fill="#db2410" stroke="#000"/><text class="t-small t-hot mid" y="4">1</text></g>
+        <g transform="translate(448 270)"><circle r="9" fill="#db2410" stroke="#000"/><text class="t-small t-hot mid" y="4">2</text></g>
+        <text class="t-small t-faint" x="300" y="300">PIT (LOWEST)</text>
+        <text class="t-small t-faint" x="490" y="170">LEDGE</text>
+        <text class="t-small t-faint" x="244" y="100">UPPER WALKWAY</text>
+        <text class="t-small t-ink" x="444" y="180">TELEPORTER</text>
+        <!-- legend -->
+        <g transform="translate(626 38)">
+          <text class="t-head" x="0" y="0">KEY</text>
+          <path class="route" d="M0 16H34" marker-end="url(#a-amber)"/><text class="t-small" x="0" y="32">SAME LEVEL</text>
+          <path class="drop" d="M0 48H34" marker-end="url(#a-glow)"/><text class="t-small" x="0" y="64">A DROP</text>
+          <path class="los" d="M0 80H34"/><text class="t-small" x="0" y="96">LINE OF SIGHT</text>
+          <path class="arc" d="M0 114Q17 98 34 114" marker-end="url(#a-pale)"/><text class="t-small" x="0" y="130">JUMP PAD</text>
+          <rect class="room up2" x="0" y="142" width="16" height="12"/><text class="t-small" x="22" y="153">HIGH</text>
+          <rect class="room up" x="0" y="160" width="16" height="12"/><text class="t-small" x="22" y="171">MIDDLE</text>
+          <rect class="room low" x="0" y="178" width="16" height="12"/><text class="t-small" x="22" y="189">LOW</text>
+          <g class="it ra" transform="translate(8 210)"><circle r="8"/></g><text class="t-small" x="24" y="214">ARMOR</text>
+          <g class="wp" transform="translate(11 232)"><rect x="-11" y="-7" width="22" height="14" rx="2"/></g><text class="t-small" x="28" y="236">WEAPON</text>
+          <text class="t-head" x="0" y="268">WEAKNESSES</text>
+          <g transform="translate(9 288)"><circle r="9" fill="#db2410" stroke="#000"/><text class="t-small t-hot mid" y="4">1</text></g>
+          <text class="t-small t-ink" x="24" y="285">PAD LANDS</text><text class="t-small t-ink" x="24" y="299">BESIDE YOU</text>
+          <g transform="translate(9 322)"><circle r="9" fill="#db2410" stroke="#000"/><text class="t-small t-hot mid" y="4">2</text></g>
+          <text class="t-small t-ink" x="24" y="319">BLIND TO</text><text class="t-small t-ink" x="24" y="333">THE RED ARMOR</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>A control point</b> From the corner of the upper walkway, the holder has two routes away on their own level, two drops, and sight of the Mega, the yellow armor and the teleporter's exit. Its weaknesses are built in: the red armor is out of sight, and the jump pad below lands an attacker right beside it.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <p>A good control point gives its holder several escape routes on their own level, a few drops, and lines of sight to the items and entrances that matter. Then it gives them a weakness: an item it can't watch, so going for it means leaving; a jump pad or teleporter that brings the opponent into their face; an exposed approach; a hard way out. A control point with no weakness is a map with one winner.</p>
+  <ul>
+    <li><b>Make the best armor cost the best spot.</b> Taking it should mean leaving the control point for a moment. That moment is the down player's chance.</li>
+    <li><b>Look at it from below.</b> What can the player who's behind do about the holder? Splash them from under a low ceiling, come out of a teleporter behind them, fight for a different item.</li>
+    <li><b>Have more than one.</b> Two or three good control points, each covering different items, make control something that moves around the map.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ VIII -->
+<section id="combat" aria-labelledby="combat-title">
+  <p class="kicker"><span class="rune">VIII</span> Combat terrain</p>
+  <h2 id="combat-title">Ground to fight on</h2>
+  <p>The space where players actually shoot at each other needs a few things: choices of where to move, things to hide behind, surfaces that make the weapons interesting, and nothing that turns a fight into luck.</p>
+
+  <h3>Cover</h3>
+  <p>Picture The Proving Grounds without the big pillar in its rocket launcher room. The best fights on that map happen around that pillar. Every good duel map has pieces of cover to fight around: pillars, corners, narrow doorways, crenellated walls that hide a player for a stride and then show them, short walls that screen part of a hall so a player can regroup or double back. Cover shouldn't block the route itself: pile crates against the walls, not across the path.</p>
+
+  <h3>No needless precision</h3>
+  <p>Aiming has two parts: knowing where to aim, which takes real skill, and hitting the exact spot, which past a point is luck. Moving is the same. Ground that demands needlessly fine aim or footwork rewards luck instead of judgment.</p>
+  <ul>
+    <li>No grates or railings with gaps just wide enough for a rocket: whether it gets through becomes chance.</li>
+    <li>Simple shapes where people fight: columns used as cover without bases, straight wall edges, light fixtures flush with the wall.</li>
+    <li>Clip whatever snags a running player: door posts, beams, sticking-out trim. And make the clipping match what players see: if a ledge looks climbable let them climb it, and don't block off a roof that looks reachable.</li>
+    <li>Smooth bumpy floors with clip, so a player's aim doesn't jolt as they run.</li>
+  </ul>
+
+  <h3>Ambushes</h3>
+  <p>An ambush is a shot from an angle the victim couldn't have known to watch. A doorway in the middle of a wall, with ledges or alcoves on both sides of it inside the room, means anyone coming through can only watch half of what threatens them. The fix is simple to say and hard to build: wherever a player first sees into a new area, they should be able to see all of it at once by looking the right way. T-junctions and dark corners beside entrances have the same problem.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 286" role="img" aria-labelledby="d11t">
+        <title id="d11t">Plans: a door in the middle of a wall leaves two blind sides for ambushers, a door at a corner shows the whole room in one view</title>
+        <defs><clipPath id="clip-amb"><rect x="440" y="50" width="300" height="150"/></clipPath></defs>
+        <path class="divider" d="M380 24V270"/>
+        <text class="t-head" x="24" y="28">A DOOR IN THE MIDDLE</text><text class="t-head" x="424" y="28">A DOOR AT THE CORNER</text>
+        <rect class="solid dark" x="24" y="36" width="332" height="222"/>
+        <rect class="room" x="40" y="50" width="300" height="150"/>
+        <rect class="room" x="172" y="200" width="36" height="50"/>
+        <rect class="room up" x="52" y="182" width="54" height="18"/><rect class="room up" x="274" y="182" width="54" height="18"/>
+        <path class="cone" d="M190 214L91 115A140 140 0 0 1 289 115Z"/>
+        <path class="los" style="stroke:#db2410" d="M80 176L184 212M300 176L196 212"/>
+        <g class="sp foe" transform="translate(76 172)"><circle r="8"/><path d="M6 3l8 4"/></g>
+        <g class="sp foe" transform="translate(304 172)"><circle r="8"/><path d="M-6 3l-8 4"/></g>
+        <g class="sp" transform="translate(190 222)"><circle r="8"/><path d="M0-8V-16"/></g>
+        <text class="t-small t-red" x="52" y="150">AMBUSH</text><text class="t-small t-red end" x="328" y="150">AMBUSH</text>
+        <text class="t-small t-amber mid" x="190" y="96">WHAT THEY SEE</text>
+        <text class="mark-bad t-small" x="24" y="278">AVOID · TWO BLIND SIDES</text>
+        <rect class="solid dark" x="424" y="36" width="332" height="222"/>
+        <rect class="room" x="440" y="50" width="300" height="150"/>
+        <rect class="room" x="440" y="200" width="36" height="50"/>
+        <path class="cone" clip-path="url(#clip-amb)" d="M458 214L458 -106A320 320 0 0 1 778 214Z"/>
+        <g class="sp" transform="translate(458 222)"><circle r="8"/><path d="M6-6l6-6"/></g>
+        <text class="t-small t-amber mid" x="600" y="130">THE WHOLE ROOM IN ONE VIEW</text>
+        <text class="mark-good t-small" x="424" y="278">BETTER · NOTHING BEHIND THEIR BACK</text>
+      </svg>
+    </div>
+    <figcaption><b>Doorways</b> The shaded wedge is what a player coming in can watch. Through the middle of a wall, both sides of the door are behind them. At a corner, the whole room is in front of them.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <p>An ambush spot can be fine, even good, when it costs something. A teleporter exit that an opponent can camp is a fair fight if the arriving player has another way in, or a jump that brings them up behind the camper. What's bad is the spot nobody can do anything about.</p>
+
+  <h3>Corners that fight</h3>
+  <p>A square, flat-walled corner offers one move: step out and be seen. Cut the corner at an angle, break the wall into ribs and gaps, and players can trade shots around it, bank grenades off it and splash rockets into the far leg without giving up their cover.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 266" role="img" aria-labelledby="d12t">
+        <title id="d12t">Plans of an L-shaped hall: a grenade thrown along it bounces straight back off a square corner, but banks up the other leg off an angled one</title>
+        <path class="divider" d="M380 24V250"/>
+        <text class="t-head" x="24" y="28">SQUARE CORNER</text><text class="t-head" x="424" y="28">ANGLED CORNER</text>
+        <rect class="solid dark" x="24" y="36" width="332" height="200"/>
+        <path class="room" d="M70 46H130V136H340V196H70Z"/>
+        <g class="sp" transform="translate(316 166)"><circle r="8"/><path d="M-8 0H-16"/></g>
+        <g class="sp foe" transform="translate(100 66)"><circle r="8"/><path d="M0 8V16"/></g>
+        <path class="arc" d="M302 160H80" marker-end="url(#a-pale)"/>
+        <path class="arc" d="M80 174H190" marker-end="url(#a-pale)"/>
+        <text class="t-small mid" x="200" y="214">THE GRENADE COMES STRAIGHT BACK</text>
+        <text class="mark-bad t-small" x="24" y="258">STEP OUT OR DO NOTHING</text>
+        <rect class="solid dark" x="424" y="36" width="332" height="200"/>
+        <path class="room" d="M470 46H530V118L548 136H740V196H514L470 152Z"/>
+        <path d="M476 158L508 190" stroke="#c9995f" stroke-width="3"/>
+        <g class="sp" transform="translate(716 166)"><circle r="8"/><path d="M-8 0H-16"/></g>
+        <g class="sp foe" transform="translate(500 66)"><circle r="8"/><path d="M0 8V16"/></g>
+        <path class="arc" d="M702 166H494" marker-end="url(#a-pale)"/>
+        <path class="arc" d="M492 166Q494 120 498 82" marker-end="url(#a-pale)"/>
+        <circle cx="500" cy="80" r="16" fill="#ff4a1c" opacity=".22"/>
+        <text class="t-small mid" x="620" y="214">IT BANKS UP THE OTHER LEG</text>
+        <text class="mark-good t-small" x="424" y="258">SPLASH AND BANK SHOTS FROM COVER</text>
+      </svg>
+    </div>
+    <figcaption><b>Corners</b> The same throw from the same spot. A square corner sends it back to the thrower; an angled wall, and a chamfer on the inner corner, let a player work the other leg without stepping out.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <h3>Long sightlines</h3>
+  <p>The railgun hits instantly at any range, so long open sightlines are where it rules, and a map whose main areas are all long open views becomes a contest of rail aim and nothing else. Break long sightlines with a bend, a pillar, a change of floor; that also helps the frame rate. Put in enough cover and enough tight space that the rocket launcher, the lightning gun and positioning matter as much as railing.</p>
+  <div class="oz">
+    <p>Oz adds lag compensation: in matches running the mod, an instant-hit shot lands where the shooter saw the target, whatever their ping. That makes the railgun, machine gun and lightning gun as dependable online as on a LAN, so long sightlines weigh even more on servers running Oz than on most others. Test your rail lines online, not only alone.</p>
+  </div>
+
+  <h3>Light the floor</h3>
+  <p>Mood is fine; not being able to see your opponent isn't. Keep the floor lit everywhere, and never leave a dark corner beside an item or a doorway. Many competitive players run settings that flatten shadows anyway, so a dark area mostly punishes the players who see the map the way you lit it.</p>
+
+  <h3>Hazards</h3>
+  <p>Lava and slime can raise the stakes in an area. Use them sparingly, keep them shallow, and put them where they make a strong item riskier rather than everywhere. Decide how much they hurt and how hard they are to climb out of. A pit with no way out but death, or a void that swallows a player stacked with armor, frustrates far more than it adds. Traps rarely help a duel: they make for slow, gimmicky play.</p>
+  <div class="oz">
+    <p>The editor's compile puts a deadly drop under the whole map, so any open edge you leave is a void. If an edge shouldn't kill, wall it or clip it.</p>
+  </div>
+</section>
+
+<!-- ============================================================ IX -->
+<section id="vertical" aria-labelledby="vertical-title">
+  <p class="kicker"><span class="rune">IX</span> Between floors</p>
+  <h2 id="vertical-title">Getting between floors</h2>
+  <p>Each way of changing height plays differently: it makes a noise or it doesn't, it can be chased or blocked or it can't, and it leaves the player exposed for a different stretch of time. Use a mix.</p>
+
+  <h3>Stairs</h3>
+  <p>The default for small changes of height: quiet, smooth, easy to dodge on, and they never stop a fight. Keep each flight short; past half a floor or so, think about a lift, a teleporter or a pad. Pick a step height and keep it everywhere: 8 units (id's choice), 12 or 16, always under the 18-unit step. Under CPMA, stairs and the ramps beside them also launch double jumps, so trim along a staircase creates trick routes.</p>
+
+  <h3>Teleporters</h3>
+  <p>The best way to join two areas that can't see or hear each other, or to get from the bottom of a map to the top fast. They keep play moving better than jump pads, and the classic duel maps used plenty: DM4 had five, Aerowalk four. Their costs: players have to learn where each one goes, and two-way pairs breed telefrags.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 270" role="img" aria-labelledby="d13t">
+        <title id="d13t">Plans: a one-way teleporter whose exit stands off the wall so a camper can wait behind it, and a two-way pair whose exits are a jump from the way back</title>
+        <path class="divider" d="M380 24V254"/>
+        <text class="t-head" x="24" y="28">ONE-WAY</text><text class="t-head" x="404" y="28">A TWO-WAY PAIR</text>
+        <rect class="solid dark" x="24" y="36" width="332" height="196"/>
+        <rect class="room" x="40" y="50" width="300" height="168"/>
+        <rect class="tele" x="62" y="182" width="36" height="16"/>
+        <ellipse class="tele-dest" cx="246" cy="104" rx="16" ry="10"/>
+        <path d="M80 180C120 120 190 100 228 104" fill="none" stroke="#7fb2ff" stroke-width="1.8" stroke-dasharray="3 5" marker-end="url(#a-blue)"/>
+        <path class="route" d="M240 104H214" marker-end="url(#a-amber)"/>
+        <g class="sp foe" transform="translate(306 104)"><circle r="8"/><path d="M-8 0H-16"/></g>
+        <path class="measure" d="M262 132H340M262 126V138M340 126V138"/>
+        <text class="t-small mid" x="301" y="150">ROOM BEHIND</text>
+        <text class="t-small t-red" x="262" y="78">WAITS HERE</text>
+        <text class="t-small t-ink" x="60" y="174">TELEPORTER</text>
+        <text class="mark-good t-small" x="24" y="250">ATTACKS ARE ALL OR NOTHING</text>
+        <rect class="solid dark" x="404" y="36" width="352" height="196"/>
+        <rect class="room" x="420" y="50" width="150" height="168"/>
+        <rect class="room up" x="600" y="50" width="140" height="168"/>
+        <rect class="tele" x="434" y="182" width="36" height="16"/>
+        <rect class="tele" x="690" y="182" width="36" height="16"/>
+        <ellipse class="tele-dest" cx="636" cy="84" rx="16" ry="10"/>
+        <ellipse class="tele-dest" cx="532" cy="84" rx="16" ry="10"/>
+        <path d="M452 180C500 130 580 96 620 88" fill="none" stroke="#7fb2ff" stroke-width="1.8" stroke-dasharray="3 5" marker-end="url(#a-blue)"/>
+        <path d="M708 180C680 130 600 100 548 90" fill="none" stroke="#7fb2ff" stroke-width="1.8" stroke-dasharray="3 5" marker-end="url(#a-blue)"/>
+        <ellipse class="zone amber" cx="676" cy="140" rx="44" ry="40"/>
+        <text class="t-small t-amber mid" x="676" y="144">ROOM TO</text><text class="t-small t-amber mid" x="676" y="158">FIGHT</text>
+        <text class="mark-good t-small" x="404" y="250">EACH EXIT A JUMP FROM THE WAY BACK</text>
+      </svg>
+    </div>
+    <figcaption><b>Teleporters</b> Blue dashes are the jumps through. Keep an exit off the wall so a player waiting for arrivals can stand behind it without being telefragged. In a pair, leave fighting space between each exit and the teleporter home, so nobody can pop through, fire and pop straight back.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <ul>
+    <li><b>One-way teleporters make attacks all or nothing.</b> Through a two-way pair a player can pop through, fire and pop back before anyone reacts: slower, sneakier play, and more telefrags.</li>
+    <li><b>Space a pair's exits.</b> Put each exit a jump away from the other teleporter, so there's room to fight between arriving and leaving.</li>
+    <li><b>Keep exits off the wall and on the floor.</b> Off the wall, so a waiting player can stand behind it without being telefragged; on the floor, not in mid-air, so players can jump straight out.</li>
+    <li><b>Make arriving a gamble.</b> Coming out on high ground is a strength, unless the other player already holds higher ground and knows exactly where you'll appear.</li>
+  </ul>
+
+  <h3>Jump pads</h3>
+  <p>Fast, and fun to misuse, but they make stop-and-go flow, and a player flying along a predictable arc is a free target for a railgun.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 268" role="img" aria-labelledby="d14t">
+        <title id="d14t">Side views: a jump pad whose whole flight is in the open, railed from a ledge, against a pad hidden in a shaft, exposed only where it starts and lands</title>
+        <path class="divider" d="M380 24V252"/>
+        <text class="t-head" x="24" y="28">EXPOSED</text><text class="t-head" x="404" y="28">COVERED</text>
+        <rect class="solid dark" x="24" y="230" width="332" height="14"/><path class="floorline" d="M24 230H356"/>
+        <rect class="solid" x="270" y="96" width="86" height="134"/>
+        <rect class="solid" x="24" y="120" width="40" height="110"/>
+        <rect class="pad" x="96" y="224" width="30" height="6"/>
+        <path class="arc" d="M111 222C130 40 230 30 282 92" marker-end="url(#a-pale)"/>
+        <rect class="player" x="36" y="96" width="12" height="24"/>
+        <path class="los" style="stroke:#db2410" d="M50 104L150 72M50 104L190 54M50 104L236 58"/>
+        <text class="t-small t-red" x="70" y="140">RAILED IN THE AIR</text>
+        <text class="mark-bad t-small" x="24" y="260">THE WHOLE FLIGHT IN THE OPEN</text>
+        <rect class="solid dark" x="404" y="230" width="352" height="14"/><path class="floorline" d="M404 230H756"/>
+        <rect class="solid" x="414" y="70" width="14" height="160"/>
+        <rect class="solid" x="476" y="96" width="14" height="134"/>
+        <rect class="solid" x="490" y="96" width="266" height="16"/>
+        <rect class="pad" x="436" y="224" width="32" height="6"/>
+        <path class="arc" d="M452 222V200" style="stroke:#ffad33;stroke-dasharray:none"/>
+        <path class="arc" d="M452 198V100" style="opacity:.35"/>
+        <path class="arc" d="M452 98C452 70 470 66 520 88" style="stroke:#ffad33;stroke-dasharray:none" marker-end="url(#a-amber)"/>
+        <rect class="player" x="700" y="206" width="12" height="24"/>
+        <path class="los" style="stroke:#db2410" d="M700 214L492 170M700 214L492 140"/>
+        <g class="x" transform="translate(494 155)"><path d="M-6-6L6 6M6-6L-6 6"/></g>
+        <text class="t-small t-amber" x="500" y="66">SEEN ONLY HERE</text>
+        <text class="t-small t-amber" x="476" y="216">AND HERE</text>
+        <text class="mark-good t-small" x="404" y="260">EXPOSED ONLY AT THE ENDS</text>
+      </svg>
+    </div>
+    <figcaption><b>Jump pads</b> The longer and more predictable the flight, the easier the rail. Hiding the path in a shaft or behind walls leaves a player exposed only where the pad starts and where it lands.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <ul>
+    <li><b>Cover part of the flight.</b> A pad whose arc runs behind walls or up a shaft is exposed only at its ends.</li>
+    <li><b>Use the right tool for the height.</b> Half a floor wants stairs; the full height of the map wants a teleporter.</li>
+    <li><b>Land somewhere worth it with no steering at all,</b> from whichever side the player stepped on.</li>
+    <li><b>Keep the trigger small.</b> An oversized trigger under a ledge bounces players off the ceiling and back onto the pad, and makes it hard to walk down past a pad without being thrown again.</li>
+    <li><b>In a railgun map, keep arcs low and quick.</b> High, floating arcs are better saved for maps without one.</li>
+  </ul>
+  <div class="oz">
+    <p>Select a jump pad in the editor and the inspector shows its throw: launch speed, how high it rises over the pad, how far away it lands and how long it's in the air. Higher and Lower move its target 32 units at a time, and the arc is drawn in the view as you place it.</p>
+  </div>
+
+  <h3>Lifts</h3>
+  <p>id left lifts out of its own arenas, but they play well. A lift is a great escape, since once it's moving the chaser can't get on; it's a sound cue; it can be held or denied; and a lift that blocks a passage when it's up makes an interesting gate. Make it fast: nobody enjoys a long ride while their opponent lines up a shot. Because a lift is easy to ride up and awkward to come down, it shifts action upward, which is handy where a drop pulls it down.</p>
+
+  <h3>Doors</h3>
+  <p>A door is a sound cue. Arrive in a room just as a door swings shut and you know which way your opponent went. Doors that open when shot let players fake a route.</p>
+</section>
+
+<!-- ============================================================ X -->
+<section id="items" aria-labelledby="items-title">
+  <p class="kicker"><span class="rune">X</span> Items</p>
+  <h2 id="items-title">Placing the items</h2>
+  <p>The layout makes the space; the items make the game. Where they go decides which areas matter, which routes players take and how easily one player can take control.</p>
+
+  <h3>Danger should match value</h3>
+  <p>The better an item, the more it should cost to take: the red armor more dangerous than the Mega, the Mega than the yellow, the yellow than the green. Danger isn't only lava and drops. An item out in the open on the lowest floor, watched from three ledges, is dangerous because of the other player.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 300" role="img" aria-labelledby="d15t">
+        <title id="d15t">A chart of how much an item gives against how dangerous it is to take: the armors and the Mega belong on the diagonal, a red armor in a safe corner is free power, a green armor over lava isn't worth the risk</title>
+        <path class="zone amber" d="M96 262L96 214L660 42L712 42L712 90L148 262Z"/>
+        <path class="measure" d="M96 262H712M96 262V36" />
+        <path d="M712 262l-8-4v8z M96 36l-4 8h8z" fill="#c9995f"/>
+        <text class="t-small" x="712" y="282" text-anchor="end">HOW MUCH IT GIVES</text>
+        <text class="t-small" transform="translate(80 262) rotate(-90)">HOW DANGEROUS TO TAKE</text>
+        <g class="it ga" transform="translate(180 214)"><circle r="12"/><text y="3.5">GA</text></g>
+        <g class="it ya" transform="translate(330 168)"><circle r="12"/><text y="3.5">YA</text></g>
+        <g class="it mh" transform="translate(470 126)"><circle r="12"/><text y="3.5">MH</text></g>
+        <g class="it ra" transform="translate(620 80)"><circle r="12"/><text y="3.5">RA</text></g>
+        <text class="t-small t-amber" x="198" y="236">QUIET CORNER</text>
+        <text class="t-small t-amber" x="348" y="190">EXPOSED SPOT</text>
+        <text class="t-small t-amber" x="488" y="148">LOW, WATCHED</text>
+        <text class="t-small t-amber" x="530" y="66">DEAD END OR CROSSFIRE</text>
+        <g class="ghost-item" transform="translate(620 222)"><circle r="12"/><text class="mid" y="3.5" style="font-size:10px;font-weight:700">RA</text></g>
+        <text class="t-small t-red" x="516" y="252">SAFE RED ARMOR: FREE POWER</text>
+        <g class="ghost-item" transform="translate(180 76)"><circle r="12"/><text class="mid" y="3.5" style="font-size:10px;font-weight:700">GA</text></g>
+        <text class="t-small t-red" x="200" y="80">GREEN ARMOR OVER LAVA:</text><text class="t-small t-red" x="200" y="94">NOT WORTH THE RISK</text>
+      </svg>
+    </div>
+    <figcaption><b>Value and danger</b> Each item belongs on the band: the more it gives, the more it should cost to take. Below the band an item is free power for whoever holds the map; above it, nobody bothers.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <ul>
+    <li><b>Spread the armors and the Mega</b> as far apart as the map allows, on different floors, so collecting all of them is hard (but not impossible).</li>
+    <li><b>Two or three of them</b> is about right for a duel. One makes the map trivial to control and puts every fight in one room; with many more, nobody needs to fight for any.</li>
+    <li><b>Give the armors the best fighting spaces</b> in the map: height around them, angles to attack from, room for a few shots before anyone reaches the item. Those fights decide matches.</li>
+    <li><b>The green armor is the down player's item:</b> tuck it in a quiet place to regroup.</li>
+    <li><b>An armor that's easy to defend</b> (a pit, a room with narrow ways in) lets the player who's behind fight for it even with weak weapons. Such a spot needs especially interesting space around it.</li>
+  </ul>
+
+  <h3>Armor sets</h3>
+  <div class="table-wrap">
+  <table class="numbers">
+    <thead><tr><th scope="col">Set</th><th scope="col">How it tends to play</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Two yellows</th><td>Fast, and prone to one player running both. A Mega gives the player who's behind a way back.</td></tr>
+      <tr><th scope="row">Red and yellow</th><td>Uneven on purpose: with no third armor, the down player struggles once both are held. With a Mega it becomes red against Mega and yellow.</td></tr>
+      <tr><th scope="row">Red and two yellows</th><td>The better player tends to run red and a yellow; best where the map makes red against two yellows a real fight.</td></tr>
+      <tr><th scope="row">Red, yellow, green</th><td>Balances out: the down player takes green and yellow against the red, and a Mega lets them attack the red player.</td></tr>
+      <tr><th scope="row">A yellow and greens</th><td>Health matters more than armor, and the Mega becomes the big prize.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Count the Mega as an armor, worth a little more than a yellow and less than a red. Under CPMA's armor rules, mixed armors are also harder to deny: a player carrying full red armor can't take a yellow without first losing armor.</p>
+
+  <h3>Time the run</h3>
+  <p>Armor comes back 25 seconds after it's taken. If a player can go from armor to armor to armor and be back at the first in less time than that, they can hold all of them while their opponent gets nothing. Time it in the blockout, running the circuit at a good player's pace. One classic map's two armors were ten seconds apart, so the player in control spent most of the wait camping one of them.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 214" role="img" aria-labelledby="d19t">
+        <title id="d19t">Two timelines of one player running the armors: when the circuit is shorter than the 25-second respawn they hold everything, when it's longer the red armor comes back while they're away</title>
+        <path class="gridl major" d="M120 40V176M195 40V176M270 40V176M345 40V176M420 40V176M495 40V176M570 40V176M645 40V176M720 40V176"/>
+        <text class="t-head" x="24" y="24">ONE PLAYER RUNNING THE ARMORS · RED ARMOR BACK AFTER 25 s</text>
+        <text class="t-small t-red" x="24" y="76">TOO CLOSE</text>
+        <path class="route" d="M132 70H213M237 70H303M327 70H393"/>
+        <rect x="405" y="62" width="90" height="16" fill="#db2410" opacity=".35"/>
+        <text class="t-small t-red mid" x="450" y="56">CAMPS IT</text>
+        <g class="it ra" transform="translate(120 70)"><circle r="11"/><text y="3.5">RA</text></g>
+        <g class="it ya" transform="translate(225 70)"><circle r="11"/><text y="3.5">YA</text></g>
+        <g class="it mh" transform="translate(315 70)"><circle r="11"/><text y="3.5">MH</text></g>
+        <g class="it ra" transform="translate(405 70)"><circle r="11"/><text y="3.5">RA</text></g>
+        <g class="it ra" transform="translate(495 70)"><circle r="11" style="stroke:#fff3e6;stroke-width:2"/><text y="3.5">RA</text></g>
+        <text class="t-small" x="512" y="74">TAKEN AGAIN THE MOMENT IT'S BACK</text>
+        <text class="t-small t-amber" x="24" y="146">SPREAD OUT</text>
+        <path class="route" d="M132 140H273M297 140H438M462 140H603"/>
+        <rect x="495" y="132" width="120" height="16" fill="#ffad33" opacity=".25"/>
+        <g class="it ra" transform="translate(120 140)"><circle r="11"/><text y="3.5">RA</text></g>
+        <g class="it ya" transform="translate(285 140)"><circle r="11"/><text y="3.5">YA</text></g>
+        <g class="it mh" transform="translate(450 140)"><circle r="11"/><text y="3.5">MH</text></g>
+        <g class="it ra" transform="translate(615 140)"><circle r="11"/><text y="3.5">RA</text></g>
+        <text class="t-small t-amber mid" x="555" y="124">RED IS BACK, THEY'RE AWAY</text>
+        <path class="measure" d="M120 184H720"/>
+        <path class="tick" d="M120 180V188M195 180V188M270 180V188M345 180V188M420 180V188M495 180V188M570 180V188M645 180V188M720 180V188"/>
+        <g class="t-small t-faint">
+          <text class="mid" x="120" y="204">0 s</text><text class="mid" x="195" y="204">5</text><text class="mid" x="270" y="204">10</text><text class="mid" x="345" y="204">15</text>
+          <text class="mid" x="420" y="204">20</text><text class="mid t-amber" x="495" y="204">25</text><text class="mid" x="570" y="204">30</text><text class="mid" x="645" y="204">35</text><text class="mid" x="720" y="204">40</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>The armor run</b> On top, the circuit takes 19 seconds, so the leader waits at the red armor and takes it the moment it appears. Below, it takes 33: the red armor comes back while they're across the map, and that's the down player's chance.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <h3>Weapons</h3>
+  <p>The duel set is nearly fixed: shotgun, grenade launcher, rocket launcher and lightning gun almost always, the railgun in most maps, the plasma gun sometimes, the BFG hardly ever. So the question is less which weapons than where.</p>
+  <div class="table-wrap">
+  <table class="numbers">
+    <thead><tr><th scope="col">Weapon</th><th scope="col">How many</th><th scope="col">Where</th><th scope="col">Ammo</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Shotgun</th><td>1, maybe 2</td><td>Off to the side of a busy area, with spawns nearby, for a player who just respawned</td><td>One box beside it at most</td></tr>
+      <tr><th scope="row">Grenade launcher</th><td>1</td><td>High to invite spamming down, low to discourage it: decide which you want</td><td>Little or none; one box in a big map</td></tr>
+      <tr><th scope="row">Rocket launcher</th><td>1 or 2</td><td>Busy, central places that make players show themselves; two go in different atriums, on different floors</td><td>2 or 3 boxes; one near one launcher makes that launcher worth holding</td></tr>
+      <tr><th scope="row">Lightning gun</th><td>1</td><td>A side room off a main area: sought out, risky but not suicidal</td><td>Scarce: 2 or 3 boxes spread around</td></tr>
+      <tr><th scope="row">Railgun</th><td>1 at most</td><td>Somewhere dangerous: in the open, low down, or at the end of a risky path; up high it invites sniping</td><td>Usually none</td></tr>
+      <tr><th scope="row">Plasma gun</th><td>0 or 1</td><td>Like the lightning gun, or as an easy weapon for the player who's behind</td><td>1 or 2 boxes; more if the railgun dominates</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Weak weapons in out-of-the-way places give a player who just respawned something to fight with on the way to a better one, and make for varied fights: shotgun against rockets, grenades against the lightning gun. Leaving a weapon out on purpose can give a map its flavor; The Proving Grounds has no grenade launcher or plasma gun and plays as a pure offensive scrap. In the original rules the instant-hit weapons, the railgun and machine gun above all, dominate more than they do in CPMA, so be stingy with the railgun in open maps.</p>
+
+  <h3>Ammo</h3>
+  <ul>
+    <li><b>Not beside its weapon.</b> A short run away, so players keep moving.</li>
+    <li><b>Three boxes for one gun at most.</b> One or two is usually plenty.</li>
+    <li><b>Group different ammo together.</b> One spot worth visiting beats two to remember.</li>
+  </ul>
+
+  <h3>Health</h3>
+  <p>Most duel maps carry between 100 and 250 health in all, not counting the 5s: a little more in a bigger map, less with a Mega. One classic map with almost 400 made health denial impossible, so every fight was about weapons and armor; another with 125 made retreating to heal pointless.</p>
+  <ul>
+    <li><b>Group it in a few places</b> rather than spreading it evenly, or players pick up health wherever they go and nothing changes hands.</li>
+    <li><b>Big groups in contested areas, small ones in quiet areas,</b> but never make healing a suicide run for the player who's behind.</li>
+    <li><b>Two 25s or one 50?</b> A hurt leader takes the 50 and leaves nothing. With two 25s, once they're full the second one stays for their opponent. If testing shows the leader denying health too often, swap 50s for pairs of 25s.</li>
+    <li><b>After a close fight the winner should be hurting;</b> after a one-sided one, they should be able to top up.</li>
+  </ul>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 236" role="img" aria-labelledby="d16t">
+        <title id="d16t">A leader at 80 health takes a 50 and leaves nothing; with two 25s in its place, the leader can only take one and the other is left for the player who's behind</title>
+        <path class="divider" d="M380 24V220"/>
+        <text class="t-head" x="24" y="28">ONE 50</text><text class="t-head" x="404" y="28">TWO 25s</text>
+        <text class="t-small t-ink" x="24" y="62">LEADER, 80 HEALTH</text>
+        <rect class="bar-bg" x="24" y="70" width="200" height="14"/><rect class="bar-hp" x="24" y="70" width="160" height="14"/><rect class="bar-gain" x="184" y="70" width="40" height="14"/>
+        <text class="t-small t-amber end" x="224" y="64">100</text>
+        <g class="hp" transform="translate(290 77)"><circle r="14"/><path d="M-6 0h12M0-6v12"/></g><text class="t-small mid" x="290" y="108">50</text>
+        <path class="route" d="M272 77H232" marker-end="url(#a-amber)"/>
+        <text class="t-small" x="24" y="122">THE WHOLE 50 GONE, 30 OF IT WASTED</text>
+        <text class="t-small t-ink" x="24" y="160">DOWN PLAYER ARRIVES</text>
+        <g class="ghost-item" transform="translate(290 168)"><circle r="14"/></g>
+        <text class="t-small t-red" x="24" y="188">NOTHING LEFT</text>
+        <text class="mark-bad t-small" x="24" y="216">EASY TO DENY</text>
+        <text class="t-small t-ink" x="404" y="62">LEADER, 80 HEALTH</text>
+        <rect class="bar-bg" x="404" y="70" width="200" height="14"/><rect class="bar-hp" x="404" y="70" width="160" height="14"/><rect class="bar-gain" x="564" y="70" width="40" height="14"/>
+        <text class="t-small t-amber end" x="604" y="64">100</text>
+        <g class="hp" transform="translate(668 77)"><circle r="11"/><path d="M-5 0h10M0-5v10"/></g>
+        <g class="hp" transform="translate(714 77)"><circle r="11"/><path d="M-5 0h10M0-5v10"/></g>
+        <path class="route" d="M654 77H612" marker-end="url(#a-amber)"/>
+        <text class="t-small" x="404" y="122">FULL AFTER ONE: CAN'T TAKE THE SECOND</text>
+        <text class="t-small t-ink" x="404" y="160">DOWN PLAYER ARRIVES</text>
+        <g class="ghost-item" transform="translate(668 168)"><circle r="11"/></g>
+        <g class="hp" transform="translate(714 168)"><circle r="11"/><path d="M-5 0h10M0-5v10"/></g>
+        <text class="t-small t-amber" x="404" y="188">25 STILL THERE FOR THEM</text>
+        <text class="mark-good t-small" x="404" y="216">SHARED</text>
+      </svg>
+    </div>
+    <figcaption><b>Health denial</b> 25 and 50 health only heal up to 100, so a full player can't take them. One 50 is easy for a leader to burn; two 25s leave the player who's behind a share.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <h3>Shards and fives</h3>
+  <p>Small items with big jobs:</p>
+  <ul>
+    <li><b>Sound cues.</b> Put them in groups of different sizes, from two to five, so a player who hears four pickups knows exactly where their opponent is.</li>
+    <li><b>Weight.</b> Extra shards make a room worth more, as The Proving Grounds' ten shards make one of its two matching rooms the one to hold.</li>
+    <li><b>The down player's lifeline.</b> A single shard after a respawn can be the difference between surviving a rail or not, and a cluster away from the main routes lets a player build armor while the leader is busy, which breaks up endless armor runs.</li>
+  </ul>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 250" role="img" aria-labelledby="d17t">
+        <title id="d17t">A plan with shard groups of two, three and four in three halls: hearing four pickups tells a player their opponent is in the east hall</title>
+        <rect class="solid dark" x="60" y="16" width="640" height="200"/>
+        <rect class="room" x="290" y="86" width="180" height="104"/>
+        <rect class="room" x="80" y="120" width="210" height="40"/>
+        <rect class="room" x="350" y="24" width="60" height="62"/>
+        <rect class="room" x="470" y="120" width="214" height="40"/>
+        <path class="shard" d="M160 140l5-6 5 6-5 6z M184 140l5-6 5 6-5 6z"/>
+        <path class="shard" d="M380 36l5-6 5 6-5 6z M380 54l5-6 5 6-5 6z M380 72l5-6 5 6-5 6z"/>
+        <path class="shard" d="M560 140l5-6 5 6-5 6z M584 140l5-6 5 6-5 6z M608 140l5-6 5 6-5 6z M632 140l5-6 5 6-5 6z"/>
+        <text class="t-num mid" x="177" y="116">2</text><text class="t-num" x="418" y="60">3</text><text class="t-num mid" x="600" y="116">4</text>
+        <g class="sp" transform="translate(372 150)"><circle r="8"/><path d="M8 0H16"/></g>
+        <path class="wave" d="M392 138q8 12 0 24M402 132q14 18 0 36M412 126q20 24 0 48"/>
+        <g class="sp foe" transform="translate(650 140)"><circle r="8"/><path d="M-8 0H-16"/></g>
+        <text class="t-small t-amber mid" x="380" y="238">FOUR PICKUPS? THEY'RE IN THE EAST HALL</text>
+      </svg>
+    </div>
+    <figcaption><b>Counting shards</b> Groups of different sizes turn pickup sounds into a map of where your opponent is.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <h3>Powerups, holdables and secrets</h3>
+  <p>Keep powerups and holdables out of duels. When one player has the quad, the other hides until it runs out, and the match stalls. A medkit saves a player at the moment they should have died; a personal teleporter makes every chase a guess. A map that's also built for free for all can still have them: give them <code>gametype</code> <code>ffa team</code> and the game leaves them out of duels. Secrets don't belong in competitive maps either: knowing where a hidden item is is map trivia, not skill.</p>
+</section>
+
+<!-- ============================================================ XI -->
+<section id="spawns" aria-labelledby="spawns-title">
+  <p class="kicker"><span class="rune">XI</span> Spawns</p>
+  <h2 id="spawns-title">Where players come back</h2>
+  <p>A respawn is a penalty: the player who died comes back with 125 health, a machine gun and nothing else, while the player who killed them keeps everything. Fighting back from there is one of the skills that makes duels interesting. Spawns that drop players in front of their killer take that skill away; spawns that can never be reached make control meaningless.</p>
+
+  <h3>How the game picks one</h3>
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 312" role="img" aria-labelledby="d18t">
+        <title id="d18t">A plan with eight spawns around the spot where a player died: one is taken, the other seven are sorted by distance, and the player comes back at one of the three farthest</title>
+        <defs><clipPath id="clip-sp"><rect x="30" y="24" width="540" height="270"/></clipPath></defs>
+        <rect class="solid dark" x="30" y="24" width="540" height="270"/>
+        <rect class="room" x="44" y="38" width="206" height="136"/>
+        <rect class="room" x="62" y="190" width="180" height="92"/>
+        <rect class="room" x="262" y="122" width="100" height="160"/>
+        <rect class="room" x="280" y="38" width="276" height="74"/>
+        <rect class="room" x="378" y="170" width="178" height="112"/>
+        <rect class="room" x="250" y="62" width="30" height="30"/><rect class="room" x="140" y="174" width="36" height="16"/>
+        <rect class="room" x="242" y="226" width="20" height="30"/><rect class="room" x="362" y="200" width="16" height="36"/><rect class="room" x="300" y="112" width="34" height="10"/>
+        <g clip-path="url(#clip-sp)">
+          <circle cx="150" cy="120" r="100" class="los"/><circle cx="150" cy="120" r="200" class="los"/><circle cx="150" cy="120" r="300" class="los"/>
+        </g>
+        <text class="t-small t-faint" x="246" y="34">100</text><text class="t-small t-faint" x="350" y="160">200</text><text class="t-small t-faint" x="446" y="160">300</text>
+        <g class="x" transform="translate(150 120)"><path d="M-8-8L8 8M8-8L-8 8"/></g>
+        <text class="t-small t-red" x="78" y="104">YOU DIED HERE</text>
+        <g class="sp foe" transform="translate(186 150)"><circle r="8"/><path d="M-6-6l-6-5"/></g>
+        <text class="t-small t-red" x="196" y="168">KILLER</text>
+        <g class="sp" transform="translate(206 70)"><circle r="8"/><path d="M0 8V16"/></g><text class="t-small" x="218" y="66">7</text>
+        <g class="sp" transform="translate(110 236)"><circle r="8"/><path d="M8 0H16"/></g><text class="t-small" x="86" y="240">6</text>
+        <g class="sp" transform="translate(312 166)"><circle r="8"/><path d="M0 8V16"/></g><text class="t-small" x="324" y="162">5</text>
+        <g class="sp" transform="translate(300 262)"><circle r="8"/><path d="M0-8V-16"/></g><text class="t-small" x="312" y="276">4</text>
+        <g class="sp off" transform="translate(344 74)"><circle r="8"/><path d="M8 0H16"/></g>
+        <rect class="player" x="338" y="62" width="12" height="24" style="opacity:.8"/>
+        <text class="t-small t-faint" x="296" y="102">TAKEN: SKIPPED</text>
+        <g class="sp far" transform="translate(424 236)"><circle r="8"/><path d="M-8 0H-16"/></g><text class="t-small t-amber" x="442" y="241">3</text>
+        <g class="sp far" transform="translate(478 76)"><circle r="8"/><path d="M-8 0H-16"/></g><text class="t-small t-amber" x="496" y="81">2</text>
+        <g class="sp far" transform="translate(524 252)"><circle r="8"/><path d="M-8 0H-16"/></g><text class="t-small t-amber" x="542" y="257">1</text>
+        <circle class="ring" cx="424" cy="236" r="14"/><circle class="ring" cx="478" cy="76" r="14"/><circle class="ring" cx="524" cy="252" r="14"/>
+        <g transform="translate(590 40)">
+          <text class="t-head" x="0" y="0">HOW IT PICKS</text>
+          <text class="t-num" x="0" y="30">1</text><text class="t-small t-ink" x="18" y="30">SKIP SPAWNS SOMEONE</text><text class="t-small t-ink" x="18" y="44">IS STANDING ON</text>
+          <text class="t-num" x="0" y="74">2</text><text class="t-small t-ink" x="18" y="74">SORT THE REST BY</text><text class="t-small t-ink" x="18" y="88">DISTANCE FROM WHERE</text><text class="t-small t-ink" x="18" y="102">YOU DIED</text>
+          <text class="t-num" x="0" y="132">3</text><text class="t-small t-ink" x="18" y="132">PICK ONE OF THE</text><text class="t-small t-ink" x="18" y="146">FARTHER HALF AT</text><text class="t-small t-ink" x="18" y="160">RANDOM</text>
+          <text class="t-small t-amber" x="0" y="196">HERE: 7 FREE SPAWNS,</text><text class="t-small t-amber" x="0" y="210">SO ONE OF THE</text><text class="t-small t-amber" x="0" y="224">3 FARTHEST</text>
+          <text class="t-small" x="0" y="252">NUMBERS: 1 IS THE</text><text class="t-small" x="0" y="266">FARTHEST AWAY</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Picking a spawn</b> Rings are distance from where the player died. The game sorts the free spawns by it and comes back at random from the farther half: with seven free, one of the three farthest.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+  <p>The original rules don't choose from all the spawns at random. They skip any spawn a player is standing on, sort the rest by distance from where you died, and pick at random from the farther half. Since your killer is usually near where you died, that tends to send you away from them, but only if the spawns are spread around the map. If most of them cluster on one side, the farther half of the list still includes spawns right beside the fight.</p>
+
+  <h3>How many, and where</h3>
+  <ul>
+    <li><b>The count shapes the match.</b> Few spawns (under about eight) make respawns predictable and spawn kills common, which some maps want: DM4's long frag runs were part of its legend. More spawns give more variety, and more chances of landing in view.</li>
+    <li><b>Check the farther halves.</b> For each place players die most (around the strongest armor, the Mega, the launchers), list which spawns fall in the farther half from it, and make sure none of them sits in plain view of that area's control points.</li>
+    <li><b>Out of sight, back to a wall.</b> Put spawns where the main control areas can't see them, off the busiest paths, facing out into a room with a wall behind, near an escape route and a weak weapon.</li>
+    <li><b>A step from an item, not on it.</b> Grabbing something a few steps away is part of the fun, and a player who spawns on an item may not even notice they took it. Spawns near armors (as in CPM1A and CPM3) give a player who lands there a fighting chance.</li>
+    <li><b>Check the starting pair.</b> Both players spawn at once when a match begins. If one spot always beats another to the red armor, the first minute decides too much.</li>
+  </ul>
+  <div class="oz">
+    <p>Spawn points stand in the editor as fighters, facing the way the spawn faces: turn them out into the room, not at a wall. A spawn's <code>nobots</code> and <code>nohumans</code> keys keep bots or people off it. The <code>initial</code> flag only matters for a listen server's host on their very first spawn, so it's no tool for a fair start.</p>
+  </div>
+  <p>One answer to unlucky spawns came out of this same community: Hoony proposed starting every point from two fixed spawns, alternating which player gets the stronger one, like serving in tennis. CPMA built a mode around it. A map made for that mode needs two spawns on equal footing, with weapons near each but spread out, so every point starts with a choice.</p>
+</section>
+
+<!-- ============================================================ XII -->
+<section id="sound" aria-labelledby="sound-title">
+  <p class="kicker"><span class="rune">XII</span> Sound</p>
+  <h2 id="sound-title">Sound is half the map</h2>
+  <p>Good players track each other by ear: the thump of a jump pad, a pickup, a door, a teleport, footsteps on metal. A map can make that rich or useless.</p>
+  <ul>
+    <li><b>What carries.</b> In this engine a player hears the game's sounds from the places it counts as possibly visible from where they stand. Rooms that block each other's view let players move quietly; a wide-open map hears everything. So the way you block sightlines is also how you shape hearing.</li>
+    <li><b>Make areas sound different.</b> Give each room its own mix of items, so a run of sounds (a heavy landing, a weapon, then armor) tells a listener exactly where you are and where you're headed. DM4's rooms each had their own combination.</li>
+    <li><b>Use doors and lifts as cues.</b> A <code>target_speaker</code> with its global flag plays to the whole map, such as a door that everyone hears open.</li>
+    <li><b>Leave out ambient loops</b> around the fighting. Players need to hear each other, not the machinery.</li>
+    <li><b>Surfaces talk.</b> <code>surfaceparm metalsteps</code> gives a floor metal footsteps, a zone players learn to recognize; <code>surfaceparm nosteps</code> silences them, on a clip brush over stairs say, for a map built for stealth.</li>
+    <li><b>Count the shards.</b> Groups of different sizes turn pickups into positions (see Items).</li>
+  </ul>
+  <div class="oz">
+    <p>Oz's 3D sound tells players which direction a sound came from, so distinct sounds on distinct floors and sides of the map are worth even more than they used to be.</p>
+  </div>
+</section>
+
+<!-- ============================================================ XIII -->
+<section id="looks" aria-labelledby="looks-title">
+  <p class="kicker"><span class="rune">XIII</span> Looks, light, speed</p>
+  <h2 id="looks-title">Looks that serve the play</h2>
+  <p>Gameplay comes first, but a map that looks unfinished never gets played long enough for anyone to find out it plays well. Make it look good and play well; just never let the look cost the play.</p>
+  <ul>
+    <li><b>Mark the areas.</b> Give each room, floor and route its own textures or colors, so a player knows where they are at a glance from any angle, without relying on items that may already be gone.</li>
+    <li><b>Build chunky, on a human scale.</b> Features big enough to matter in a fight. A field of player-high blocks makes good fights; blocks a quarter that size or four times it do far less.</li>
+    <li><b>Lift the ceilings.</b> A high ceiling makes a space feel big without cluttering the floor.</li>
+    <li><b>Keep lintels high and floors smooth.</b> Players jump everywhere; detail that catches heads and feet is detail in the wrong place.</li>
+    <li><b>Check it under other settings.</b> Low texture detail and vertex lighting can wash out the features that tell areas apart.</li>
+    <li><b>Hold the frame rate.</b> Watch the busiest areas with both players in them firing (the plasma gun especially). Keep triangle counts and overdraw down, cut long sightlines between detailed areas, use hint brushes, go easy on many-layered shaders, and try it on more than one PC.</li>
+    <li><b>Help the bots,</b> if the map should play well against them: simplify the awkward spots with bot clip.</li>
+  </ul>
+  <div class="oz">
+    <p>Oz has three renderers: its own new look, and id's original look on OpenGL or Vulkan. Check your map in more than one. In the editor, the Lit preview (F6) shows the compiled light in the view, and after a compile the warnings list points out leaks and missing materials, framing each one when you pick it.</p>
+  </div>
+</section>
+
+<!-- ============================================================ XIV -->
+<section id="tricks" aria-labelledby="tricks-title">
+  <p class="kicker"><span class="rune">XIV</span> Trick jumps</p>
+  <h2 id="tricks-title">Trick jumps</h2>
+  <p>A map doesn't need trick jumps, but good ones reward skill with a shortcut, a surprise or a faster item, and make a map more fun to play and to watch.</p>
+  <ul>
+    <li><b>Shortcuts, never the only way.</b> A trick jump to an item is great as one route of several. As the only route, it locks most players out.</li>
+    <li><b>Let the architecture make them.</b> Stairs, trims, ledges and ramps create jumps players find for themselves, and the ones players discover are better loved than the ones that look placed. A map built with real architecture, not padded walls, grows them by itself.</li>
+    <li><b>Risk for reward.</b> A jump hard enough to miss now and then, which leaves you exposed when you do, is worth more than a free one.</li>
+    <li><b>Deny with authority.</b> If a jump must be impossible, make it miss by 16 units or more. Near misses become tricks someone finds after release, and some of them break the map.</li>
+    <li><b>Teleporter exits on the floor,</b> with nothing overhead, so players can jump straight out with their speed.</li>
+  </ul>
+  <div class="oz">
+    <p>In matches running Oz, movement steps every 8 ms, so a jump works the same for everyone at any frame rate. On servers that move players frame by frame, and under CPMA's movement (double jumps off steps, ramp jumps, air control), the same map allows more: a staircase or a sloped trim can launch a player somewhere you never planned. Test there if your map will be played there.</p>
+  </div>
+</section>
+
+<!-- ============================================================ XV -->
+<section id="testing" aria-labelledby="testing-title">
+  <p class="kicker"><span class="rune">XV</span> Testing</p>
+  <h2 id="testing-title">Testing</h2>
+  <p>Every map needs more testing than its author expects, by better players than its author. Watch several matches between evenly matched players, and at least one between a strong player and a weak one. Then ask:</p>
+  <ul>
+    <li><b>Who controls the map, and from where?</b> Can the player who's behind get back into it?</li>
+    <li><b>Where do the fights happen?</b> Is there an area nobody visits?</li>
+    <li><b>Can one player run every armor?</b> Time the circuit against the 25 seconds.</li>
+    <li><b>Do spawns hand out free kills?</b> Note every spawn kill and where it happened.</li>
+    <li><b>Does anything snag, stall or confuse?</b> A slow lift, an oversized trigger, a doorway hit mid-jump, a teleporter that leaves players lost.</li>
+    <li><b>Do the jumps work as meant?</b> The ones you want, for everyone; the ones you don't, by a clear margin.</li>
+    <li><b>What would the testers change?</b> Ignore the paint at this stage, and listen hardest to the people who play the most duels.</li>
+  </ul>
+  <div class="oz">
+    <p>Play (F5) drops you into the map fast enough to test after every change, and Play from here (Shift+F5) starts you at the camera. Each compile also builds the bots' file, so bots can walk the item routes, though bots tell you whether something can be reached, not whether it plays well. And Oz records every match: watch the replay from either player's view to see the fights you weren't in.</p>
+  </div>
+  <p>Then release a beta to a wider circle, and keep listening after the release. The community will find jumps and strategies no tester did, and the best maps changed because of them.</p>
+</section>
+
+<!-- ============================================================ XVI -->
+<section id="checklist" aria-labelledby="checklist-title">
+  <p class="kicker"><span class="rune">XVI</span> The checklist</p>
+  <h2 id="checklist-title">Before you release</h2>
+  <p>Everything above, as boxes to tick. Nothing here is saved; it's for working through a map once, from top to bottom.</p>
+  <h4 class="checklist-h">Layout</h4>
+  <ul class="checklist">
+    <li><label><input type="checkbox"><span>The map loops on the large scale, with at least one crosscut.</span></label></li>
+    <li><label><input type="checkbox"><span>No room has a single door, unless it's short and holds something worth the risk.</span></label></li>
+    <li><label><input type="checkbox"><span>Tiers are offset, and the low player always has a way up and a way to hit back.</span></label></li>
+    <li><label><input type="checkbox"><span>No long empty halls, slow lifts or staircases of more than three dozen steps.</span></label></li>
+    <li><label><input type="checkbox"><span>It isn't symmetrical overall, and some areas are worth more than others.</span></label></li>
+    <li><label><input type="checkbox"><span>Every control point has a weakness.</span></label></li>
+  </ul>
+  <h4 class="checklist-h">Items</h4>
+  <ul class="checklist">
+    <li><label><input type="checkbox"><span>Two or three armors and Megas in all, far apart, on different floors.</span></label></li>
+    <li><label><input type="checkbox"><span>Each item's danger matches its value.</span></label></li>
+    <li><label><input type="checkbox"><span>A circuit of the armors takes longer than 25 seconds at a good player's pace.</span></label></li>
+    <li><label><input type="checkbox"><span>Ammo isn't beside its weapon, and no gun has more than three boxes.</span></label></li>
+    <li><label><input type="checkbox"><span>100 to 250 health in all, in a few groups; 25s where 50s are too easy to deny.</span></label></li>
+    <li><label><input type="checkbox"><span>Shard and 5-health groups of different sizes.</span></label></li>
+    <li><label><input type="checkbox"><span>No powerups or holdables in duels; <code>gametype</code> keeps any free for all ones out.</span></label></li>
+  </ul>
+  <h4 class="checklist-h">Movement</h4>
+  <ul class="checklist">
+    <li><label><input type="checkbox"><span>Jump-ups are 48 units or less, nothing sits between 56 and 72, and jumps to deny are 80 or more.</span></label></li>
+    <li><label><input type="checkbox"><span>Doorways on running routes are at least 128 tall.</span></label></li>
+    <li><label><input type="checkbox"><span>Teleporter exits stand off the wall and on the floor; a pair's exits are a jump from the way back.</span></label></li>
+    <li><label><input type="checkbox"><span>Jump pads' flights are partly covered and their triggers small.</span></label></li>
+    <li><label><input type="checkbox"><span>Stairs keep one step height, in short flights.</span></label></li>
+  </ul>
+  <h4 class="checklist-h">Spawns and sound</h4>
+  <ul class="checklist">
+    <li><label><input type="checkbox"><span>Spawns are out of sight of control points, backs to walls, a step from items.</span></label></li>
+    <li><label><input type="checkbox"><span>From each common death spot, the farther half of the spawns is safe.</span></label></li>
+    <li><label><input type="checkbox"><span>Rooms sound different from each other, and no ambient loop plays near a fight.</span></label></li>
+  </ul>
+  <h4 class="checklist-h">Finish</h4>
+  <ul class="checklist">
+    <li><label><input type="checkbox"><span>Floors are lit everywhere, with no dark corners by items or doors.</span></label></li>
+    <li><label><input type="checkbox"><span>Each area has a look of its own.</span></label></li>
+    <li><label><input type="checkbox"><span>Snags are clipped, and the clipping matches what players see.</span></label></li>
+    <li><label><input type="checkbox"><span>Good duel players tested it before any detail, and again after.</span></label></li>
+    <li><label><input type="checkbox"><span>It looks right in more than one renderer and at low detail, and busy areas hold their frame rate.</span></label></li>
+  </ul>
+</section>
+
+<!-- ============================================================ XVII -->
+<section id="credits" aria-labelledby="credits-title">
+  <p class="kicker"><span class="rune">XVII</span> Credits</p>
+  <h2 id="credits-title">The people who wrote it first</h2>
+  <p>This guide is our own writing, but its ideas come from the competitive mapping community of 1997 to 2002: mappers, players and writers who argued in columns, comment threads and forums about what makes a map good. Most of their pages are long gone from the web, so the links below go to the Internet Archive's copies. Thank you to every one of them. The numbers in this guide come from the game's code (id Software's GPL release of the 1.32 code, which Oz builds on) and from measurements in the game.</p>
+  <ul class="sources">
+    <li>
+      <span class="t">wviperw</span>
+      <span class="by">Competitive Design Guide · promode.org · October 2002</span>
+      <p>A mapper (the wvwq3dm series) who gathered the community's knowledge into one guide for CPMA mappers: planning and testing, layout theory, the three atrium families with worked examples, item placement weapon by weapon, then architecture, clipping, lighting, spawns and vertical transport. Its reading list led to every other article here. Read <a href="https://web.archive.org/web/2004/http://www.promode.org/maps/guide/">part one</a> and <a href="https://web.archive.org/web/20030430085554/http://www.promode.org:80/maps/guide2/">part two</a>; part one also lives on at <a href="http://cpma-news.org/guides/content/leveldesign">cpma-news.org</a>.</p>
+    </li>
+    <li>
+      <span class="t">twoAM</span>
+      <span class="by">How to make Levels for Q3A Tournament Play · Challenge World · August 2000</span>
+      <p>A mapper who spent months building maps for competitive duels, then wrote down the lessons: power points, sound and visibility, jump pads, lifts, teleporters, cover, armor counts and health totals compared across the classic duel maps. Read <a href="https://web.archive.org/web/20030713020348/http://www.challenge-world.com:80/maps/columns/twoam/comments.php3?pageid=754&amp;aid=9471">the column</a>.</p>
+    </li>
+    <li>
+      <span class="t">Johnny Law</span>
+      <span class="by">A reply in twoAM's comments · August 2000</span>
+      <p>Johnny Law's comment on twoAM's column ran longer than the column: circular flow with a crosscut, chunky proportions, door lintels a jump never hits, grates that turn high ground around, shards for the player who's behind, and jumps denied by a clear margin. Read it under <a href="https://web.archive.org/web/20030713020348/http://www.challenge-world.com:80/maps/columns/twoam/comments.php3?pageid=754&amp;aid=9471">twoAM's column</a>.</p>
+    </li>
+    <li>
+      <span class="t">Barratus and Sten "ztn" Uusvali</span>
+      <span class="by">What makes DM4 a classic map? · Challenge World Maps · April 2000</span>
+      <p>Barratus, who had run the map review site Ramshackle, started a project pairing mappers with competitive players, and opened it by asking ztn, the mapper behind The Rage, why DM4 works. ztn's answer, with a list of ingredients for a duel map, started the DM4 discussion, and the players in its comments argued over imbalance, risk and the way back. Read <a href="https://web.archive.org/web/20030713020420/http://www.challenge-world.com:80/maps/comments.php3?pageid=268&amp;aid=4694">the discussion</a>.</p>
+    </li>
+    <li>
+      <span class="t">Matthew "Lunaran" Breit</span>
+      <span class="by">Lunaran's Deathmatch Encyclopedia · 1999</span>
+      <p>A level designer and texture artist who took maps apart to define the words reviewers used: balance, flow and connectivity. The grid of rooms, gravity's pull, the rubber sheet and the flow map in this guide come from these essays. Read <a href="https://web.archive.org/web/20080211132953/http://www.lunaran.com/page.php?id=187">Map Balance</a>, <a href="https://web.archive.org/web/20080211132937/http://www.lunaran.com/page.php?id=188">Connectivity</a>, <a href="https://web.archive.org/web/20080211132942/http://www.lunaran.com/page.php?id=189">Flow</a>, <a href="https://web.archive.org/web/2008/http://www.lunaran.com/page.php?id=190">Architecture</a> and <a href="https://web.archive.org/web/2008/http://www.lunaran.com/page.php?id=191">Item Placement</a>, each with Lunaran's later note on what has held up.</p>
+    </li>
+    <li>
+      <span class="t">Geit</span>
+      <span class="by">Gameplay is King · January 2002</span>
+      <p>A mapper's case for testing gameplay with competitive players before the paint, and for remembering that looks get a map downloaded while gameplay keeps it installed. Read <a href="https://web.archive.org/web/20030606221345/http://goat.gamepoint.net:80/articles.php3?id=9">the article</a>.</p>
+    </li>
+    <li>
+      <span class="t">Myrkul (Charles Kendrick)</span>
+      <span class="by">Multiplayer Map Design · 1997</span>
+      <p>Part of Kendrick's designer's guide to multiplayer gameplay, and the "HowTo: Level Design" of the reading list: combat terrain dense with options, the beat of a fight, static advantages, needless precision, ambushes and map knowledge. Read <a href="https://web.archive.org/web/20030618114812/http://www.planetquake.com:80/expert/LevelDesign.html">the article</a>.</p>
+    </li>
+    <li>
+      <span class="t">Hoony</span>
+      <span class="by">Spawn System · Challenge World · December 2000</span>
+      <p>A columnist of the Challenge Network and promode.org, who helped publish wviperw's guide. Hoony's seven pages on spawn luck and spawn kills asked for fair starts, and a later column's idea of fixed spawns became CPMA's Hoonymode. Read <a href="https://web.archive.org/web/20020223070550/http://www.challenge-world.com:80/features/spawn/">Spawn System</a> and <a href="https://web.archive.org/web/2004/http://www.promode.org/columns/Hoony/">the columns</a>.</p>
+    </li>
+  </ul>
+  <p class="thanks">Thanks also to the CPMA team and cpma-news.org for keeping wviperw's guide online, to the Internet Archive for keeping everything else, and to the players of the Promode and Challenge World forums, whose threads shaped all of these articles.</p>
+</section>
+
+</article>
+</div>
+
+<section class="doc-end" aria-labelledby="end-title">
+  <h2 id="end-title">Now build one</h2>
+  <p class="lede">With Oz installed, the map editor is in the main menu: open a stock arena to see how it's made, or start from an empty room, and press Play to walk it.</p>
+  <div class="hero-actions">
+    <a class="btn btn-blood" href="https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe">Download for Windows</a>
+    <a class="btn btn-ghost" href="index.html#editor">See the editor</a>
+    <a class="btn btn-discord" href="https://discord.gg/HbrAUzkEbJ">Share your map on Discord</a>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot-brand"><img src="img/icon-64.png" alt="" width="40" height="40"><span>Ozmium Arena</span></div>
+  <div class="foot-cols">
+    <div><h4>Play</h4><ul>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe">Download for Windows</a></li>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena/releases/latest">Linux and all releases</a></li>
+      <li><a href="index.html#install">How to install</a></li>
+    </ul></div>
+    <div><h4>Build</h4><ul>
+      <li><a href="index.html#editor">The map editor</a></li>
+      <li><a href="level-design.html">Level design guide</a></li>
+      <li><a href="#credits">Credits</a></li>
+    </ul></div>
+    <div><h4>Community</h4><ul>
+      <li><a href="https://discord.gg/HbrAUzkEbJ">Discord</a></li>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena">Source code</a></li>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena/issues">Report a bug</a></li>
+    </ul></div>
+  </div>
+  <div class="foot-rule"></div>
+  <p class="credits">The guide is Ozmium Arena's own writing, built on the articles listed under <a href="#credits">Credits</a>; their ideas belong to their authors. The diagrams are drawn for this page.</p>
+  <p class="legal">Ozmium Arena is an unofficial, non-commercial fan project, not affiliated with, endorsed by or sponsored by id Software, Bethesda or ZeniMax. Quake and Quake III Arena are trademarks of ZeniMax Media, named here only to identify the game Ozmium Arena modifies and requires. The code is GPL-2.0; the remastered assets remain id Software's property.</p>
+  <a class="to-top" href="#top">Back to the top</a>
+</footer>
+
+<script src="main.js" defer></script>
+<script src="ld.js" defer></script>
+</body>
+</html>

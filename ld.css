@@ -104,7 +104,7 @@
 }
 .rule::before { content: "Rule of thumb"; }
 .oz { border-left-color: var(--amber); background: linear-gradient(90deg, #1d150a, #0d0a09 60%); }
-.oz::before { content: "In Oz"; color: var(--amber); }
+.oz::before { content: "With Oz"; color: var(--amber); }
 .rule p:last-child, .oz p:last-child, .rule ul:last-child, .oz ul:last-child { margin-bottom: 0; }
 .rule ul, .oz ul { margin: 0; padding-left: 1.1em; }
 .rule li, .oz li { margin-bottom: 6px; }
@@ -172,6 +172,7 @@
 .sources .by { display: block; margin: 4px 0 8px; font: 600 13px var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--bronze); }
 .sources p { margin: 0; font-size: 15.5px; color: var(--dim); }
 
+.doc .thanks { margin-top: 22px; color: var(--dim); font-size: 15.5px; }
 .doc-end { text-align: center; padding: 10px 16px 80px; }
 .doc-end .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 18px; }
 

@@ -4,21 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Level design · Ozmium Arena</title>
-<meta name="description" content="Ozmium Arena's level design guide: how to build duel and deathmatch arenas that play well, with flow, connectivity, balance, items, spawns and sound, Oz's own numbers and diagrams for every idea.">
+<meta name="description" content="Ozmium Arena's level design guide: how to build Quake III Arena duel and deathmatch maps that play well, with flow, connectivity, balance, items, spawns and sound, the game's real numbers and a diagram for every idea.">
 <meta name="theme-color" content="#db2410">
 <link rel="canonical" href="https://ozmiumofficial.github.io/oz-arena/level-design.html">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Ozmium Arena">
 <meta property="og:url" content="https://ozmiumofficial.github.io/oz-arena/level-design.html">
 <meta property="og:title" content="Ozmium Arena: the level design guide">
-<meta property="og:description" content="How to build arenas worth fighting in: flow, connectivity, balance, items, spawns and sound, with Oz's own numbers and a diagram for every idea.">
+<meta property="og:description" content="How to build Quake III Arena maps worth fighting in: flow, connectivity, balance, items, spawns and sound, with the game's real numbers and a diagram for every idea.">
 <meta property="og:image" content="https://ozmiumofficial.github.io/oz-arena/img/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The Ozmium Arena logo over a dark arena">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Ozmium Arena: the level design guide">
-<meta name="twitter:description" content="How to build arenas worth fighting in, with Oz's own numbers and a diagram for every idea.">
+<meta name="twitter:description" content="How to build Quake III Arena maps worth fighting in, with the game's real numbers and a diagram for every idea.">
 <meta name="twitter:image" content="https://ozmiumofficial.github.io/oz-arena/img/og.jpg">
 <link rel="icon" href="img/icon-64.png" type="image/png">
 <link rel="apple-touch-icon" href="img/icon-180.png">
@@ -70,7 +70,7 @@
 <section class="doc-hero" aria-labelledby="doc-title">
   <p class="kicker"><span class="rune">LD</span> The level design guide</p>
   <h1 id="doc-title">Build arenas worth fighting in</h1>
-  <p class="lede">How to lay out a duel or deathmatch map that still plays well after a thousand matches: flow, connectivity, balance, items, spawns and sound. Written for Oz's own rules and its built-in editor, from the articles the competitive mapping community learned from, with a diagram for every idea.</p>
+  <p class="lede">How to lay out a Quake III Arena duel or deathmatch map that still plays well after a thousand matches: flow, connectivity, balance, items, spawns and sound. Written for the game's original rules and Oz's built-in map editor, from the articles the competitive mapping community learned from, with a diagram for every idea.</p>
   <div class="hero-actions">
     <a class="btn btn-blood" href="#start">Start reading</a>
     <a class="btn btn-ghost" href="#checklist">Jump to the checklist</a>
@@ -97,7 +97,7 @@
     <ol>
       <li><a href="#start"><span>I</span>Start here</a></li>
       <li><a href="#process"><span>II</span>The process</a></li>
-      <li><a href="#numbers"><span>III</span>Oz's numbers</a></li>
+      <li><a href="#numbers"><span>III</span>The numbers</a></li>
       <li><a href="#layout"><span>IV</span>Height, flow and links</a></li>
       <li><a href="#balance"><span>V</span>Balance and pull</a></li>
       <li><a href="#families"><span>VI</span>Layout families</a></li>
@@ -111,7 +111,7 @@
       <li><a href="#tricks"><span>XIV</span>Trick jumps</a></li>
       <li><a href="#testing"><span>XV</span>Testing</a></li>
       <li><a href="#checklist"><span>XVI</span>The checklist</a></li>
-      <li><a href="#sources"><span>XVII</span>Sources</a></li>
+      <li><a href="#credits"><span>XVII</span>Credits</a></li>
     </ol>
   </details>
 </aside>
@@ -126,7 +126,7 @@
   <p>None of it is law. Every rule here has a famous map that breaks it. DM4 is lopsided, keeps its Mega in a dead end and drops players in front of their killer, and it was the duel map for years. Learn why a rule exists, break it on purpose, and let good players tell you whether it worked.</p>
   <p>Looks matter too. A handsome map gets downloaded; only a map that plays well stays installed. You don't have to choose between them, only make the decisions in the right order: the layout, then the items, then the paint.</p>
   <div class="oz">
-    <p>Oz's own game plays the original 1.32 rules, with movement in fixed 8 ms steps and the auto hop, so a jump is the same at every frame rate. Every number in this guide is Oz's, measured in the game or read from its code. A map travels, though: the same <code>.map</code> plays on CPMA and other community servers under their own movement, so if that's where it will live, test it there too.</p>
+    <p>Oz keeps Quake III Arena's original 1.32 rules. In matches running the mod, movement steps every 8 ms and holding jump hops again as you land, so a jump is the same at every frame rate. Every number in this guide was read from the game's code or measured in the game with Oz. A map travels, though: the same <code>.map</code> plays on CPMA and other community servers under their own movement, so if that's where it will live, test it there too.</p>
   </div>
 </section>
 
@@ -199,7 +199,7 @@
 
 <!-- ============================================================ III -->
 <section id="numbers" aria-labelledby="numbers-title">
-  <p class="kicker"><span class="rune">III</span> Oz's numbers</p>
+  <p class="kicker"><span class="rune">III</span> The numbers</p>
   <h2 id="numbers-title">The numbers to build with</h2>
   <p>Scale is felt more than measured, but these are the figures the game runs on. They're in map units, the editor's grid.</p>
 
@@ -242,7 +242,7 @@
         <text class="t-num mid" x="374" y="248">64</text>
         <text class="t-num mid t-red" x="436" y="232">80</text>
         <text class="t-small t-amber mid" x="312" y="340">EVERYONE</text>
-        <text class="t-small mid" x="374" y="340">OZ'S LIMIT</text>
+        <text class="t-small mid" x="374" y="340">THE LIMIT</text>
         <text class="t-small t-red mid" x="436" y="340">NO JUMP</text>
 
         <!-- a standing rocket jump -->
@@ -268,7 +268,7 @@
         <text class="t-small t-faint end" x="756" y="356">GRID 16 UNITS</text>
       </svg>
     </div>
-    <figcaption><b>To scale</b> One grid square is 16 units. A jump rises about 48 units and, with the 18-unit step the game allows at its top, climbs a ledge of about 64 in Oz's game. A doorway on a running route wants 128: a jumping player's head reaches about 104.</figcaption>
+    <figcaption><b>To scale</b> One grid square is 16 units. A jump rises about 48 units and, with the 18-unit step the game allows at its top, climbs a ledge of about 64 in matches running Oz. A doorway on a running route wants 128: a jumping player's head reaches about 104.</figcaption>
     <p class="scroll-hint">Scroll the diagram sideways</p>
   </figure>
 
@@ -374,7 +374,7 @@
   <p>Armor and health above 100 both count down by one a second, and armor takes two thirds of the damage while it lasts, so 200 armor makes a player very hard to kill. Since the Mega comes back 35 seconds after it's taken, whoever times it can take it again and again.</p>
 
   <div class="oz">
-    <p>Keys every item takes in Oz's game, set in the editor's inspector:</p>
+    <p>Keys every item takes, set in the editor's inspector:</p>
     <ul>
       <li><code>wait</code> replaces the item's respawn time, in seconds; <code>random</code> varies it by up to that many seconds either way.</li>
       <li><code>gametype</code> spawns it only in the modes listed: <code>ffa team</code> keeps a Quad out of duels (the names are <code>ffa</code>, <code>tournament</code>, <code>single</code>, <code>team</code>, <code>ctf</code>).</li>
@@ -929,7 +929,7 @@
   <h3>Long sightlines</h3>
   <p>The railgun hits instantly at any range, so long open sightlines are where it rules, and a map whose main areas are all long open views becomes a contest of rail aim and nothing else. Break long sightlines with a bend, a pillar, a change of floor; that also helps the frame rate. Put in enough cover and enough tight space that the rocket launcher, the lightning gun and positioning matter as much as railing.</p>
   <div class="oz">
-    <p>Oz's own game has lag compensation: an instant-hit shot lands where the shooter saw the target, whatever their ping. That makes the railgun, machine gun and lightning gun as dependable online as on a LAN, so long sightlines weigh even more on Oz's servers than on many others. Test your rail lines online, not only alone.</p>
+    <p>Oz adds lag compensation: in matches running the mod, an instant-hit shot lands where the shooter saw the target, whatever their ping. That makes the railgun, machine gun and lightning gun as dependable online as on a LAN, so long sightlines weigh even more on servers running Oz than on most others. Test your rail lines online, not only alone.</p>
   </div>
 
   <h3>Light the floor</h3>
@@ -1250,7 +1250,7 @@
   </figure>
 
   <h3>Powerups, holdables and secrets</h3>
-  <p>Keep powerups and holdables out of duels. When one player has the quad, the other hides until it runs out, and the match stalls. A medkit saves a player at the moment they should have died; a personal teleporter makes every chase a guess. A map that's also built for free for all can still have them: give them <code>gametype</code> <code>ffa team</code> and Oz's game leaves them out of duels. Secrets don't belong in competitive maps either: knowing where a hidden item is is map trivia, not skill.</p>
+  <p>Keep powerups and holdables out of duels. When one player has the quad, the other hides until it runs out, and the match stalls. A medkit saves a player at the moment they should have died; a personal teleporter makes every chase a guess. A map that's also built for free for all can still have them: give them <code>gametype</code> <code>ffa team</code> and the game leaves them out of duels. Secrets don't belong in competitive maps either: knowing where a hidden item is is map trivia, not skill.</p>
 </section>
 
 <!-- ============================================================ XI -->
@@ -1259,7 +1259,7 @@
   <h2 id="spawns-title">Where players come back</h2>
   <p>A respawn is a penalty: the player who died comes back with 125 health, a machine gun and nothing else, while the player who killed them keeps everything. Fighting back from there is one of the skills that makes duels interesting. Spawns that drop players in front of their killer take that skill away; spawns that can never be reached make control meaningless.</p>
 
-  <h3>How Oz's game picks one</h3>
+  <h3>How the game picks one</h3>
   <figure class="diagram">
     <div class="plate">
       <svg class="dg" viewBox="0 0 760 312" role="img" aria-labelledby="d18t">
@@ -1371,7 +1371,7 @@
     <li><b>Teleporter exits on the floor,</b> with nothing overhead, so players can jump straight out with their speed.</li>
   </ul>
   <div class="oz">
-    <p>Oz's own game moves in fixed 8 ms steps, so a jump works the same for everyone at any frame rate. On servers that move players frame by frame, and under CPMA's movement (double jumps off steps, ramp jumps, air control), the same map allows more: a staircase or a sloped trim can launch a player somewhere you never planned. Test there if your map will be played there.</p>
+    <p>In matches running Oz, movement steps every 8 ms, so a jump works the same for everyone at any frame rate. On servers that move players frame by frame, and under CPMA's movement (double jumps off steps, ramp jumps, air control), the same map allows more: a staircase or a sloped trim can launch a player somewhere you never planned. Test there if your map will be played there.</p>
   </div>
 </section>
 
@@ -1444,47 +1444,53 @@
 </section>
 
 <!-- ============================================================ XVII -->
-<section id="sources" aria-labelledby="sources-title">
-  <p class="kicker"><span class="rune">XVII</span> Sources</p>
-  <h2 id="sources-title">Where these ideas come from</h2>
-  <p>This guide is our own writing, but its ideas come from the competitive mapping community of 1997 to 2002, mostly from the reading list of wviperw's design guide for CPMA. Most of those pages are long gone from the web; the links below go to the Internet Archive's copies. Oz's numbers come from Oz's game code (id's GPL release of the 1.32 code, with Oz's changes) and from measurements in the game.</p>
+<section id="credits" aria-labelledby="credits-title">
+  <p class="kicker"><span class="rune">XVII</span> Credits</p>
+  <h2 id="credits-title">The people who wrote it first</h2>
+  <p>This guide is our own writing, but its ideas come from the competitive mapping community of 1997 to 2002: mappers, players and writers who argued in columns, comment threads and forums about what makes a map good. Most of their pages are long gone from the web, so the links below go to the Internet Archive's copies. Thank you to every one of them. The numbers in this guide come from the game's code (id Software's GPL release of the 1.32 code, which Oz builds on) and from measurements in the game.</p>
   <ul class="sources">
     <li>
-      <span class="t"><a href="https://web.archive.org/web/2004/http://www.promode.org/maps/guide/">Competitive Design Guide</a> · <a href="https://web.archive.org/web/20030430085554/http://www.promode.org:80/maps/guide2/">part two</a></span>
-      <span class="by">wviperw · promode.org · October 2002</span>
-      <p>The backbone: planning and testing, layout theory, the three atrium families with worked examples, and item placement weapon by weapon, then architecture, clipping, lighting, spawns and vertical transport. Its first part lives on at <a href="http://cpma-news.org/guides/content/leveldesign">cpma-news.org</a>, without its links.</p>
+      <span class="t">wviperw</span>
+      <span class="by">Competitive Design Guide · promode.org · October 2002</span>
+      <p>A mapper (the wvwq3dm series) who gathered the community's knowledge into one guide for CPMA mappers: planning and testing, layout theory, the three atrium families with worked examples, item placement weapon by weapon, then architecture, clipping, lighting, spawns and vertical transport. Its reading list led to every other article here. Read <a href="https://web.archive.org/web/2004/http://www.promode.org/maps/guide/">part one</a> and <a href="https://web.archive.org/web/20030430085554/http://www.promode.org:80/maps/guide2/">part two</a>; part one also lives on at <a href="http://cpma-news.org/guides/content/leveldesign">cpma-news.org</a>.</p>
     </li>
     <li>
-      <span class="t"><a href="https://web.archive.org/web/20030713020348/http://www.challenge-world.com:80/maps/columns/twoam/comments.php3?pageid=754&amp;aid=9471">How to make Levels for Q3A Tournament Play</a></span>
-      <span class="by">twoAM · Challenge World · August 2000</span>
-      <p>Power points, sound and visibility, jump pads, lifts, teleporters, cover, armor counts and health totals compared across the classic duel maps. Its comments hold Johnny Law's long reply: circular flow with a crosscut, chunky proportions, grates that reverse high ground, and generous jump margins.</p>
+      <span class="t">twoAM</span>
+      <span class="by">How to make Levels for Q3A Tournament Play · Challenge World · August 2000</span>
+      <p>A mapper who spent months building maps for competitive duels, then wrote down the lessons: power points, sound and visibility, jump pads, lifts, teleporters, cover, armor counts and health totals compared across the classic duel maps. Read <a href="https://web.archive.org/web/20030713020348/http://www.challenge-world.com:80/maps/columns/twoam/comments.php3?pageid=754&amp;aid=9471">the column</a>.</p>
     </li>
     <li>
-      <span class="t"><a href="https://web.archive.org/web/20030713020420/http://www.challenge-world.com:80/maps/comments.php3?pageid=268&amp;aid=4694">What makes DM4 a classic map?</a></span>
-      <span class="by">Barratus and ztn · Challenge World Maps · April 2000</span>
-      <p>The DM4 discussion: why a lopsided map with a dead-end Mega became the duel map, ztn's list of ingredients for a duel map, and players arguing over imbalance, risk and the way back.</p>
+      <span class="t">Johnny Law</span>
+      <span class="by">A reply in twoAM's comments · August 2000</span>
+      <p>Johnny Law's comment on twoAM's column ran longer than the column: circular flow with a crosscut, chunky proportions, door lintels a jump never hits, grates that turn high ground around, shards for the player who's behind, and jumps denied by a clear margin. Read it under <a href="https://web.archive.org/web/20030713020348/http://www.challenge-world.com:80/maps/columns/twoam/comments.php3?pageid=754&amp;aid=9471">twoAM's column</a>.</p>
     </li>
     <li>
-      <span class="t"><a href="https://web.archive.org/web/20080211132953/http://www.lunaran.com/page.php?id=187">Lunaran's Deathmatch Encyclopedia</a></span>
-      <span class="by">Matthew "Lunaran" Breit · 1999</span>
-      <p>Five essays: <a href="https://web.archive.org/web/20080211132953/http://www.lunaran.com/page.php?id=187">Map Balance</a>, <a href="https://web.archive.org/web/20080211132937/http://www.lunaran.com/page.php?id=188">Connectivity</a>, <a href="https://web.archive.org/web/20080211132942/http://www.lunaran.com/page.php?id=189">Flow</a>, <a href="https://web.archive.org/web/2008/http://www.lunaran.com/page.php?id=190">Architecture</a> and <a href="https://web.archive.org/web/2008/http://www.lunaran.com/page.php?id=191">Item Placement</a>. Where the grid of rooms, gravity, the rubber sheet and the flow map come from, with his own later notes on what he'd change.</p>
+      <span class="t">Barratus and Sten "ztn" Uusvali</span>
+      <span class="by">What makes DM4 a classic map? · Challenge World Maps · April 2000</span>
+      <p>Barratus, who had run the map review site Ramshackle, started a project pairing mappers with competitive players, and opened it by asking ztn, the mapper behind The Rage, why DM4 works. ztn's answer, with a list of ingredients for a duel map, started the DM4 discussion, and the players in its comments argued over imbalance, risk and the way back. Read <a href="https://web.archive.org/web/20030713020420/http://www.challenge-world.com:80/maps/comments.php3?pageid=268&amp;aid=4694">the discussion</a>.</p>
     </li>
     <li>
-      <span class="t"><a href="https://web.archive.org/web/20030606221345/http://goat.gamepoint.net:80/articles.php3?id=9">Gameplay is King</a></span>
-      <span class="by">Geit · January 2002</span>
-      <p>A rant about priorities: test gameplay with competitive players before the paint, and remember that looks get a map downloaded while gameplay keeps it.</p>
+      <span class="t">Matthew "Lunaran" Breit</span>
+      <span class="by">Lunaran's Deathmatch Encyclopedia · 1999</span>
+      <p>A level designer and texture artist who took maps apart to define the words reviewers used: balance, flow and connectivity. The grid of rooms, gravity's pull, the rubber sheet and the flow map in this guide come from these essays. Read <a href="https://web.archive.org/web/20080211132953/http://www.lunaran.com/page.php?id=187">Map Balance</a>, <a href="https://web.archive.org/web/20080211132937/http://www.lunaran.com/page.php?id=188">Connectivity</a>, <a href="https://web.archive.org/web/20080211132942/http://www.lunaran.com/page.php?id=189">Flow</a>, <a href="https://web.archive.org/web/2008/http://www.lunaran.com/page.php?id=190">Architecture</a> and <a href="https://web.archive.org/web/2008/http://www.lunaran.com/page.php?id=191">Item Placement</a>, each with Lunaran's later note on what has held up.</p>
     </li>
     <li>
-      <span class="t"><a href="https://web.archive.org/web/20030618114812/http://www.planetquake.com:80/expert/LevelDesign.html">Multiplayer Map Design</a></span>
-      <span class="by">Myrkul (Charles Kendrick) · 1997</span>
-      <p>The "HowTo: Level Design" of the reading list: combat terrain dense with options, the beat of a fight, static advantages, needless precision, ambushes and map knowledge.</p>
+      <span class="t">Geit</span>
+      <span class="by">Gameplay is King · January 2002</span>
+      <p>A mapper's case for testing gameplay with competitive players before the paint, and for remembering that looks get a map downloaded while gameplay keeps it installed. Read <a href="https://web.archive.org/web/20030606221345/http://goat.gamepoint.net:80/articles.php3?id=9">the article</a>.</p>
     </li>
     <li>
-      <span class="t"><a href="https://web.archive.org/web/20020223070550/http://www.challenge-world.com:80/features/spawn/">Spawn System</a></span>
-      <span class="by">Hoony · Challenge World · December 2000</span>
-      <p>Seven pages on spawn luck and spawn kills, why balancing the weapons never fixed them, and a call for fair starts. His <a href="https://web.archive.org/web/2004/http://www.promode.org/columns/Hoony/">later columns on promode.org</a> turned it into fixed spawns, and CPMA's mode built on them.</p>
+      <span class="t">Myrkul (Charles Kendrick)</span>
+      <span class="by">Multiplayer Map Design · 1997</span>
+      <p>Part of Kendrick's designer's guide to multiplayer gameplay, and the "HowTo: Level Design" of the reading list: combat terrain dense with options, the beat of a fight, static advantages, needless precision, ambushes and map knowledge. Read <a href="https://web.archive.org/web/20030618114812/http://www.planetquake.com:80/expert/LevelDesign.html">the article</a>.</p>
+    </li>
+    <li>
+      <span class="t">Hoony</span>
+      <span class="by">Spawn System · Challenge World · December 2000</span>
+      <p>A columnist of the Challenge Network and promode.org, who helped publish wviperw's guide. Hoony's seven pages on spawn luck and spawn kills asked for fair starts, and a later column's idea of fixed spawns became CPMA's Hoonymode. Read <a href="https://web.archive.org/web/20020223070550/http://www.challenge-world.com:80/features/spawn/">Spawn System</a> and <a href="https://web.archive.org/web/2004/http://www.promode.org/columns/Hoony/">the columns</a>.</p>
     </li>
   </ul>
+  <p class="thanks">Thanks also to the CPMA team and cpma-news.org for keeping wviperw's guide online, to the Internet Archive for keeping everything else, and to the players of the Promode and Challenge World forums, whose threads shaped all of these articles.</p>
 </section>
 
 </article>
@@ -1492,7 +1498,7 @@
 
 <section class="doc-end" aria-labelledby="end-title">
   <h2 id="end-title">Now build one</h2>
-  <p class="lede">The map editor is in Oz's main menu: open a stock arena to see how it's made, or start from an empty room, and press Play to walk it.</p>
+  <p class="lede">With Oz installed, the map editor is in the main menu: open a stock arena to see how it's made, or start from an empty room, and press Play to walk it.</p>
   <div class="hero-actions">
     <a class="btn btn-blood" href="https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe">Download for Windows</a>
     <a class="btn btn-ghost" href="index.html#editor">See the editor</a>
@@ -1513,7 +1519,7 @@
     <div><h4>Build</h4><ul>
       <li><a href="index.html#editor">The map editor</a></li>
       <li><a href="level-design.html">Level design guide</a></li>
-      <li><a href="#checklist">The checklist</a></li>
+      <li><a href="#credits">Credits</a></li>
     </ul></div>
     <div><h4>Community</h4><ul>
       <li><a href="https://discord.gg/HbrAUzkEbJ">Discord</a></li>
@@ -1522,7 +1528,7 @@
     </ul></div>
   </div>
   <div class="foot-rule"></div>
-  <p class="credits">The guide is Ozmium Arena's own writing, built on the articles listed under <a href="#sources">Sources</a>; their ideas belong to their authors. The diagrams are drawn for this page.</p>
+  <p class="credits">The guide is Ozmium Arena's own writing, built on the articles listed under <a href="#credits">Credits</a>; their ideas belong to their authors. The diagrams are drawn for this page.</p>
   <p class="legal">Ozmium Arena is an unofficial, non-commercial fan project, not affiliated with, endorsed by or sponsored by id Software, Bethesda or ZeniMax. Quake and Quake III Arena are trademarks of ZeniMax Media, named here only to identify the game Ozmium Arena modifies and requires. The code is GPL-2.0; the remastered assets remain id Software's property.</p>
   <a class="to-top" href="#top">Back to the top</a>
 </footer>

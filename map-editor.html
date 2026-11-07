@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map editor guide · Ozmium Arena</title>
+<meta name="description" content="How to use Ozmium Arena's built-in map editor: moving around, the views and grid, brushes, materials, entities, jump pads, curves, sky and sun, compiling and playing, Defrag courses, and every key.">
+<meta name="theme-color" content="#db2410">
+<link rel="canonical" href="https://ozmiumofficial.github.io/oz-arena/map-editor.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Ozmium Arena">
+<meta property="og:url" content="https://ozmiumofficial.github.io/oz-arena/map-editor.html">
+<meta property="og:title" content="Ozmium Arena: the map editor guide">
+<meta property="og:description" content="Build an arena in Ozmium Arena's built-in editor and play it without leaving: brushes, materials, entities, jump pads, sky, compiling, Defrag courses and every key.">
+<meta property="og:image" content="https://ozmiumofficial.github.io/oz-arena/img/editor.jpg">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="900">
+<meta property="og:image:alt" content="The map editor showing a lit room with a jump pad's arc">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ozmium Arena: the map editor guide">
+<meta name="twitter:description" content="Build an arena in Ozmium Arena's built-in editor and play it without leaving.">
+<meta name="twitter:image" content="https://ozmiumofficial.github.io/oz-arena/img/editor.jpg">
+<link rel="icon" href="img/icon-64.png" type="image/png">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Cinzel:wght@600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="grit.css">
+<link rel="stylesheet" href="me.css">
+</head>
+<body>
+
+<a class="skip" href="#open">Skip to the guide</a>
+
+<!-- shared marks for every diagram: arrowheads -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="a-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ffad33"/></marker>
+    <marker id="a-glow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ff4a1c"/></marker>
+    <marker id="a-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#e6ddd2"/></marker>
+    <marker id="a-pale" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ffd38a"/></marker>
+    <marker id="a-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#db2410"/></marker>
+    <marker id="a-bronze" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c9995f"/></marker>
+  </defs>
+</svg>
+
+<header class="nav" id="top">
+  <a class="brand" href="index.html" aria-label="Ozmium Arena, the home page">
+    <img src="img/icon-64.png" alt="" width="32" height="32">
+    <span class="brand-word">OZMIUM</span><span class="brand-sub">arena</span>
+  </a>
+  <nav aria-label="Site">
+    <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
+    <ul id="nav-links">
+      <li><a href="index.html#features">Features</a></li>
+      <li><a href="index.html#look">The look</a></li>
+      <li><a href="index.html#online">Online</a></li>
+      <li><a href="index.html#editor">Editor</a></li>
+      <li><a href="map-editor.html" aria-current="page">Editor guide</a></li>
+      <li><a href="level-design.html">Level design</a></li>
+      <li><a href="index.html#install" class="nav-cta">Install</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+
+<section class="doc-hero" aria-labelledby="doc-title">
+  <p class="kicker"><span class="rune">ED</span> The map editor guide</p>
+  <h1 id="doc-title">Build an arena, then play it</h1>
+  <p class="lede">Ozmium Arena adds a map editor to Quake III Arena. Open it from the main menu, block out a room, paint it, drop in items and jump pads, and press F5 to run around in it. This guide walks through every part of it, from the first room to a finished map, with every key in one table at the end.</p>
+  <div class="hero-actions">
+    <a class="btn btn-blood" href="#open">Start with the basics</a>
+    <a class="btn btn-ghost" href="#keys">Jump to the keys</a>
+  </div>
+</section>
+
+<section class="tally" aria-label="The editor at a glance">
+  <ul>
+    <li><b>F5</b><span>to play your map</span></li>
+    <li><b>8</b><span>tools on the strip</span></li>
+    <li><b>4</b><span>views: 3D, top, front, side</span></li>
+    <li><b>10</b><span>menus, every action listed</span></li>
+    <li><b>⅛–4096</b><span>units, the grid's range</span></li>
+    <li><b>.map</b><span>files any editor opens</span></li>
+  </ul>
+</section>
+
+<div class="doc">
+
+<aside class="toc" aria-label="Contents">
+  <details open>
+    <summary>Contents</summary>
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#open"><span>I</span>Open the editor</a></li>
+      <li><a href="#camera"><span>II</span>Moving around</a></li>
+      <li><a href="#views"><span>III</span>Views and the grid</a></li>
+      <li><a href="#tools"><span>IV</span>The tools</a></li>
+      <li><a href="#select"><span>V</span>Selecting and moving</a></li>
+      <li><a href="#brushes"><span>VI</span>Building with brushes</a></li>
+      <li><a href="#materials"><span>VII</span>Materials and textures</a></li>
+      <li><a href="#entities"><span>VIII</span>Entities</a></li>
+      <li><a href="#inspector"><span>IX</span>The inspector</a></li>
+      <li><a href="#curves"><span>X</span>Curves</a></li>
+      <li><a href="#organize"><span>XI</span>Hide, lock, groups, prefabs</a></li>
+      <li><a href="#sky"><span>XII</span>Sky and sun</a></li>
+      <li><a href="#play"><span>XIII</span>Compile and play</a></li>
+      <li><a href="#files"><span>XIV</span>Opening and saving</a></li>
+      <li><a href="#defrag"><span>XV</span>Defrag courses</a></li>
+      <li><a href="#custom-keys"><span>XVI</span>Your own keys</a></li>
+      <li><a href="#keys"><span>XVII</span>Every key</a></li>
+    </ol>
+  </details>
+</aside>
+
+<article>
+
+<!-- ============================================================ I -->
+<section id="open" aria-labelledby="open-title">
+  <p class="kicker"><span class="rune">I</span> Open the editor</p>
+  <h2 id="open-title">From the main menu, one click</h2>
+  <p>Pick <b>Map Editor</b> in the main menu. The first time, it opens on a new map: a small lit room with a light and a spawn point, ready to play as it is. The editor draws with the Oz renderer, the one Oz picks by default; if you've switched to another one, the status line tells you to switch back under Settings, Video, Renderer.</p>
+  <p>A card comes up the first time too: <b>Getting started</b>, six steps to a map you can play (look around, build, shape, paint, fill it, play). <b>Got it</b> closes it, and <kbd>F1</kbd> or Help, Getting started brings it back whenever you want it.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 450" role="img" aria-labelledby="d-screen-t">
+        <title id="d-screen-t">The editor's screen: the menu bar along the top, the action bar under it, the tool strip down the left, the view in the middle, the panel with its seven tabs on the right, and the status line along the bottom</title>
+        <defs><clipPath id="clip-view"><rect x="112" y="62" width="388" height="350"/></clipPath></defs>
+        <rect class="ui-bg" x="30" y="0" width="730" height="440"/>
+        <!-- menu bar -->
+        <rect class="ui-bar" x="30" y="0" width="730" height="34"/>
+        <text class="t-brand" x="42" y="22">MAP EDITOR</text>
+        <g class="t-menu">
+          <text x="146" y="21">File</text><text x="176" y="21">Edit</text><text x="206" y="21">Select</text><text x="246" y="21">View</text>
+          <text x="280" y="21">Brush</text><text x="318" y="21">Curve</text><text x="356" y="21">Texture</text><text x="404" y="21">Entity</text>
+          <text x="446" y="21">Build</text><text x="482" y="21">Help</text>
+        </g>
+        <text class="t-tiny t-faint" x="614" y="21">untitled *</text>
+        <rect class="ui-btn" x="668" y="7" width="84" height="20"/><text class="t-tiny t-ink mid" x="710" y="21">MAIN MENU</text>
+        <!-- action bar -->
+        <rect class="ui-bar2" x="30" y="34" width="730" height="28"/>
+        <g class="t-tiny t-ink">
+          <text x="40" y="52">NEW</text><text x="62" y="52">OPEN</text><text x="89" y="52">SAVE</text>
+          <text x="123" y="52">UNDO</text><text x="150" y="52">REDO</text>
+          <text x="184" y="52">DUPLICATE</text><text x="235" y="52">DELETE</text><text x="271" y="52">TURN</text><text x="298" y="52">MIRROR</text>
+          <text x="341" y="52">HOLLOW</text><text x="377" y="52">SUBTRACT</text><text x="423" y="52">MERGE</text>
+          <text x="462" y="52">PAINT</text>
+          <text x="574" y="52">SEARCH</text><text x="610" y="52">LIT PREVIEW</text><text x="671" y="52">COMPILE</text>
+        </g>
+        <path class="ui-sep" d="M116 41V55M177 41V55M334 41V55M455 41V55"/>
+        <rect class="ui-btn on" x="494" y="40" width="66" height="16"/><text class="t-tiny t-ink mid" x="527" y="52">TEXTURE LOCK</text>
+        <rect class="ui-play" x="714" y="40" width="38" height="16"/><text class="t-tiny mid t-dark" x="733" y="52">PLAY</text>
+        <!-- tool strip -->
+        <rect class="ui-strip" x="30" y="62" width="82" height="350"/>
+        <text class="t-tiny t-faint" x="38" y="78">BUILD</text>
+        <rect class="ui-tool on" x="36" y="84" width="70" height="22"/>
+        <rect class="ui-tool" x="36" y="111" width="70" height="22"/>
+        <rect class="ui-tool" x="36" y="138" width="70" height="22"/>
+        <rect class="ui-tool" x="36" y="165" width="70" height="22"/>
+        <text class="t-tiny t-faint" x="38" y="206">PLACE</text>
+        <rect class="ui-tool" x="36" y="212" width="70" height="22"/>
+        <rect class="ui-tool" x="36" y="239" width="70" height="22"/>
+        <rect class="ui-tool" x="36" y="266" width="70" height="22"/>
+        <rect class="ui-tool" x="36" y="293" width="70" height="22"/>
+        <g class="t-tiny t-ink">
+          <text x="42" y="99">SELECT</text><text x="42" y="126">BRUSH</text><text x="42" y="153">CLIP</text><text x="42" y="180">FACES</text>
+          <text x="42" y="227">ENTITY</text><text x="42" y="254">LIGHT</text><text x="42" y="281">JUMP PAD</text><text x="42" y="308">TELEPORT</text>
+        </g>
+        <g class="t-tiny t-amber end">
+          <text x="101" y="99">Esc</text><text x="101" y="126">B</text><text x="101" y="153">C</text><text x="101" y="180">T</text>
+          <text x="101" y="254">L</text><text x="101" y="281">J</text><text x="101" y="308">K</text>
+        </g>
+        <!-- the view -->
+        <rect class="ui-view" x="112" y="62" width="388" height="350"/>
+        <g clip-path="url(#clip-view)">
+          <path class="ui-grid" d="M112 222H500M112 246H500M112 280H500M112 326H500M112 390H500"/>
+          <path class="ui-grid" d="M306 160L112 300M306 160L170 412M306 160L238 412M306 160L306 412M306 160L374 412M306 160L442 412M306 160L500 300"/>
+          <path class="ui-axis-x" d="M112 352L500 236"/>
+          <path class="ui-axis-y" d="M200 412L420 200"/>
+        </g>
+        <polygon class="sel-face" points="246,330 330,352 330,282 246,262"/>
+        <polygon class="sel-face" points="330,352 404,322 404,254 330,282"/>
+        <polygon class="sel-face top" points="246,262 330,282 404,254 322,236"/>
+        <path class="sel-edge" d="M246,330L330,352L404,322M246,262L330,282L404,254L322,236L246,262M246,262V330M330,282V352M404,254V322"/>
+        <g class="spawn-glyph" transform="translate(178 300)"><circle cx="0" cy="-30" r="6"/><path d="M0-24V2M0 2L-8 22M0 2L8 22M-11-14H11"/></g>
+        <g transform="translate(432 168)"><circle class="lamp-glow" r="22"/><rect class="lamp" x="-6" y="-6" width="12" height="12"/></g>
+        <text class="t-tiny t-faint" x="122" y="80">3D VIEW</text>
+        <!-- the panel -->
+        <rect class="ui-panel" x="500" y="62" width="260" height="350"/>
+        <g class="t-tiny">
+          <text class="t-hot" x="510" y="84">INSPECT</text><text x="560" y="84">MATERIALS</text><text x="620" y="84">ENTITIES</text><text x="674" y="84">PREFABS</text>
+          <text x="510" y="106">OBJECTS</text><text x="558" y="106">WORLD</text><text x="598" y="106">HISTORY</text>
+        </g>
+        <path class="ui-tab-on" d="M510 89H550"/>
+        <path class="ui-sep" d="M506 114H754"/>
+        <text class="t-small t-ink" x="512" y="134">Nothing is selected</text>
+        <text class="t-tiny t-red" x="512" y="158">GETTING STARTED</text>
+        <g class="t-tiny">
+          <text x="512" y="178"><tspan class="t-glow">1</tspan>  Hold the right button to look</text>
+          <text x="512" y="194"><tspan class="t-glow">2</tspan>  Brush: drag a footprint, then up</text>
+          <text x="512" y="210"><tspan class="t-glow">3</tspan>  Click to select, drag to move</text>
+          <text x="512" y="226"><tspan class="t-glow">4</tspan>  Materials tab: click to paint</text>
+          <text x="512" y="242"><tspan class="t-glow">5</tspan>  Entities tab: pick, then click</text>
+          <text x="512" y="258"><tspan class="t-glow">6</tspan>  Play F5 runs around in it</text>
+        </g>
+        <text class="t-tiny t-red" x="512" y="288">MAP KEYS</text>
+        <rect class="ui-field" x="512" y="298" width="96" height="18"/><rect class="ui-field" x="614" y="298" width="136" height="18"/>
+        <rect class="ui-field" x="512" y="322" width="96" height="18"/><rect class="ui-field" x="614" y="322" width="136" height="18"/>
+        <rect class="ui-field" x="512" y="346" width="96" height="18"/><rect class="ui-field" x="614" y="346" width="136" height="18"/>
+        <g class="t-tiny"><text x="518" y="311">message</text><text x="518" y="335">music</text><text x="518" y="359">gravity</text></g>
+        <!-- status line -->
+        <rect class="ui-bar" x="30" y="412" width="730" height="28"/>
+        <text class="t-tiny t-amber" x="40" y="430">Click to select, drag to move · Shift+drag a face pushes it</text>
+        <text class="t-tiny end" x="752" y="430">10 brushes · 11 entities · grid 16 · texture lock on</text>
+        <!-- the numbers -->
+        <g class="callout">
+          <g transform="translate(15 17)"><circle r="10"/><text class="mid" y="4">1</text></g>
+          <g transform="translate(15 48)"><circle r="10"/><text class="mid" y="4">2</text></g>
+          <g transform="translate(71 390)"><circle r="10"/><text class="mid" y="4">3</text></g>
+          <g transform="translate(140 390)"><circle r="10"/><text class="mid" y="4">4</text></g>
+          <g transform="translate(528 390)"><circle r="10"/><text class="mid" y="4">5</text></g>
+          <g transform="translate(15 426)"><circle r="10"/><text class="mid" y="4">6</text></g>
+        </g>
+      </svg>
+    </div>
+    <figcaption>
+      <b>The screen</b>
+      <ol class="me-legend">
+        <li><b>The menu bar.</b> File, Edit, Select, View, Brush, Curve, Texture, Entity, Build and Help hold every action, each row with its keys. A mark shows what's on; a row is grayed out when there's nothing for it to work on. Main Menu is at the right end.</li>
+        <li><b>The action bar.</b> The actions you reach for most, with Play in green at the right. In a narrow window, New, Open, 4 Views, Frame and Search give up their place (they're still in the menus).</li>
+        <li><b>The tool strip.</b> Eight tools, each with its key, the one in use lit.</li>
+        <li><b>The view.</b> One 3D view, or four views with <kbd>V</kbd>.</li>
+        <li><b>The panel.</b> Seven tabs: Inspect, Materials, Entities, Prefabs, Objects, World and History.</li>
+        <li><b>The status line.</b> What the pointer is over and what a tool wants next on the left; the map's counts, the grid and the texture lock on the right. Notes like "Undo Jump higher" show here for a while too.</li>
+      </ol>
+    </figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <p>Rest the pointer on any button for a moment and a tip says its name, its keys and what it does. The same words show in the status line. If you can't find something, press <kbd>F3</kbd> and type what you want to do: "hollow", "light", "save". Enter does it.</p>
+  <p>With nothing selected, the Inspect tab shows the getting started steps, the map's own settings and a short list of keys, so the panel is never empty.</p>
+
+  <h3>Leaving and coming back</h3>
+  <p><b>Main Menu</b> at the right of the menu bar (or File, Exit to main menu) takes you back to the main menu. Nothing is lost: the map stays in the editor exactly as it was until you open it again, saved or not.</p>
+  <p><kbd>Esc</kbd> never leaves the editor. It cancels whatever a tool is in the middle of, and then clears the selection. To work the menus from the keyboard, press <kbd>F10</kbd>: the arrows move through them and Enter picks a row.</p>
+  <div class="know">
+    <p>The editor also opens from the console: type <code>editor</code>.</p>
+  </div>
+</section>
+
+<!-- ============================================================ II -->
+<section id="camera" aria-labelledby="camera-title">
+  <p class="kicker"><span class="rune">II</span> Moving around</p>
+  <h2 id="camera-title">Fly through it like a spectator</h2>
+  <p>The 3D view flies the way you'd move in the game, with the mouse held down to look:</p>
+  <div class="table-wrap">
+  <table class="numbers me-two">
+    <caption>The camera in the 3D view</caption>
+    <tbody>
+      <tr><th><kbd>Right mouse</kbd> held</th><td>Look around by moving the mouse. Let go and the pointer is back where it was.</td></tr>
+      <tr><th><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></th><td>Fly forward, left, back and right while the right button is held.</td></tr>
+      <tr><th><kbd>Q</kbd> <kbd>E</kbd></th><td>Fly down and up.</td></tr>
+      <tr><th><kbd>Shift</kbd> / <kbd>Ctrl</kbd></th><td>Fly faster or slower.</td></tr>
+      <tr><th><kbd>Wheel</kbd> while looking</th><td>Sets how fast you fly; the status line shows the speed.</td></tr>
+      <tr><th><kbd>Wheel</kbd></th><td>Moves toward whatever the pointer is over (with <kbd>Shift</kbd>, four times as far).</td></tr>
+      <tr><th><kbd>Middle mouse</kbd> drag</th><td>Slides the camera sideways and up and down.</td></tr>
+      <tr><th><kbd>F</kbd></th><td>Frames the selection: the camera turns and moves to look at it.</td></tr>
+      <tr><th><kbd>Home</kbd></th><td>Frames the whole map, centered on where players stand.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="tip">
+    <p>Lost in a big map? Select what you want to work on in the Objects tab and press <kbd>F</kbd>, or double-click it there. <kbd>Home</kbd> always brings you back to the middle of things.</p>
+  </div>
+</section>
+
+<!-- ============================================================ III -->
+<section id="views" aria-labelledby="views-title">
+  <p class="kicker"><span class="rune">III</span> Views and the grid</p>
+  <h2 id="views-title">One view or four, and everything on the grid</h2>
+  <p>Press <kbd>V</kbd> (or 4 Views in the action bar) to split the view into four panes, as classic map editors do: the 3D view, <b>top</b> (X across, Y up), <b>front</b> (X across, Z up) and <b>side</b> (Y across, Z up). Press <kbd>V</kbd> again and the pane under the pointer fills the view alone. <kbd>Ctrl+Tab</kbd> steps that single view through 3D, top, front and side.</p>
+
+  <figure class="shot framed">
+    <img src="img/editor_views.jpg" alt="The editor in four views on The Longest Yard: the 3D view at top left, the top, front and side views as line drawings, and the Inspect tab showing the map's own keys" loading="lazy" width="1600" height="900">
+    <figcaption>Four views on a stock arena opened in the editor. With nothing selected, Inspect shows the getting started steps and the map's keys. (Screenshots on this page are from an earlier build: the panel has since gained the Prefabs and World tabs.)</figcaption>
+  </figure>
+
+  <p>The 2D views are flat line drawings: brushes of the world in gray, brushes of an entity (a door, a trigger) in blue, the selection in orange, with entities, links and handles drawn as in 3D. Each one keeps its own place and zoom; Frame (<kbd>F</kbd>) and Frame the map (<kbd>Home</kbd>) set all four at once. In a 2D view, drag with the right or middle button to slide it, and turn the wheel to zoom toward the pointer.</p>
+  <p>Every tool works in whichever pane the pointer is over. In a 2D view a move stays flat in that view's plane, so it's the easy way to slide something along one axis. The Brush tool makes a brush in a single drag there (as deep as the selection, or as the last brush you made), and the Clip tool's cut runs straight back through the view.</p>
+
+  <h3>The grid</h3>
+  <p>Everything you draw, move or reshape lands on the grid. The number keys set its size in units:</p>
+  <div class="me-gridkeys" role="list" aria-label="Grid size in units for each number key">
+    <div role="listitem"><kbd>1</kbd><span>1</span></div>
+    <div role="listitem"><kbd>2</kbd><span>2</span></div>
+    <div role="listitem"><kbd>3</kbd><span>4</span></div>
+    <div role="listitem"><kbd>4</kbd><span>8</span></div>
+    <div role="listitem"><kbd>5</kbd><span>16</span></div>
+    <div role="listitem"><kbd>6</kbd><span>32</span></div>
+    <div role="listitem"><kbd>7</kbd><span>64</span></div>
+    <div role="listitem"><kbd>8</kbd><span>128</span></div>
+    <div role="listitem"><kbd>9</kbd><span>256</span></div>
+  </div>
+  <p><kbd>[</kbd> halves the grid and <kbd>]</kbd> doubles it, to any power of two from ⅛ of a unit up to 4096. <kbd>Ctrl</kbd>+wheel does the same. The status line always shows the size ("grid 16"). The grid's lines thin out as you zoom so they never crowd closer than a few pixels, every eighth line is brighter, and the axes are drawn in red (X), green (Y) and blue (Z).</p>
+  <div class="tip">
+    <p>Block out on a coarse grid (16 or 32) and only go finer for detail. A player is 30 units wide and 56 tall, and walks up steps of up to 18 units without jumping, so a 64-unit grid square is a comfortable corridor.</p>
+  </div>
+</section>
+
+<!-- ============================================================ IV -->
+<section id="tools" aria-labelledby="tools-title">
+  <p class="kicker"><span class="rune">IV</span> The tools</p>
+  <h2 id="tools-title">Eight tools down the left</h2>
+  <p>The strip on the left holds the tools, in two groups: <b>Build</b> for making and shaping brushes, <b>Place</b> for putting things in the map. Press a tool's key or click it; the one in use is lit. <kbd>Esc</kbd> goes back to Select.</p>
+  <div class="table-wrap">
+  <table class="numbers me-tools">
+    <thead><tr><th scope="col">Tool</th><th scope="col">Key</th><th scope="col">What it does</th></tr></thead>
+    <tbody>
+      <tr><th><span class="me-chip">Select</span></th><td><kbd>Esc</kbd></td><td>Click to select, drag to move, drag on empty space to select with a box. The handles of selected brushes reshape them. <a href="#select">More</a></td></tr>
+      <tr><th><span class="me-chip">Brush</span></th><td><kbd>B</kbd></td><td>Drag a footprint on a surface or on the grid, move the mouse to set the height, then click. <kbd>Enter</kbd> makes it too. <a href="#brushes">More</a></td></tr>
+      <tr><th><span class="me-chip">Clip</span></th><td><kbd>C</kbd></td><td>Click two points on a brush to cut it through them; a third point tilts the cut. <kbd>Tab</kbd> picks which side stays, <kbd>Enter</kbd> cuts. <a href="#brushes">More</a></td></tr>
+      <tr><th><span class="me-chip">Faces</span></th><td><kbd>T</kbd></td><td>Click faces to pick them for painting and texture work; drag to push them. <a href="#materials">More</a></td></tr>
+      <tr><th><span class="me-chip">Entity</span></th><td></td><td>Opens the Entities tab: pick a pickup, spawn, trigger or anything else, then click where it goes. <a href="#entities">More</a></td></tr>
+      <tr><th><span class="me-chip">Light</span></th><td><kbd>L</kbd></td><td>Click a surface: a light goes one grid step off it.</td></tr>
+      <tr><th><span class="me-chip">Jump pad</span></th><td><kbd>J</kbd></td><td>Click where players step, then where they should land: a working jump pad, aimed. <a href="#jump-pad">More</a></td></tr>
+      <tr><th><span class="me-chip">Teleport</span></th><td><kbd>K</kbd></td><td>Click the entrance, then the exit: a teleporter and its destination, linked.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>While a tool waits for its next click, the status line says what it wants ("click where the player lands", "Enter cuts, keeping the far side"). While you draw or drag, the size or the distance shows next to the pointer.</p>
+</section>
+
+<!-- ============================================================ V -->
+<section id="select" aria-labelledby="select-title">
+  <p class="kicker"><span class="rune">V</span> Selecting and moving</p>
+  <h2 id="select-title">Click, drag, and the handles</h2>
+  <h3>Selecting</h3>
+  <ul>
+    <li><b>Click</b> selects what's under the pointer. A brush that belongs to a group or to an entity (a door, a lift) selects the whole thing; a <b>double-click</b>, or <kbd>Ctrl</kbd>+click, reaches the single brush inside.</li>
+    <li><kbd>Shift</kbd>+click adds to the selection, <kbd>Ctrl</kbd>+click toggles one thing in or out.</li>
+    <li>Click again on the same spot to take the next thing behind it: handy where brushes overlap.</li>
+    <li><b>Drag on empty space</b> to draw a box: everything at least half inside it is selected. In a closed room every drag starts on a wall, so hold <kbd>Ctrl</kbd> and drag from anywhere off the selection.</li>
+    <li><kbd>Ctrl+A</kbd> selects everything, <kbd>Ctrl+Shift+A</kbd> nothing. <kbd>Esc</kbd> clears the selection when no tool has anything to cancel.</li>
+  </ul>
+
+  <h3>Moving</h3>
+  <ul>
+    <li><b>Drag</b> a selected object to move it across the grid, its corner landing on a grid line. Hold <kbd>Alt</kbd> to move it up and down instead, or <kbd>Ctrl</kbd> while dragging to move it off the grid. <kbd>Esc</kbd> during the drag puts it back.</li>
+    <li><kbd>Ctrl</kbd>+drag the selection to drag off a copy and leave the original in place.</li>
+    <li>The <b>arrow keys</b> nudge the selection a grid step as the camera sees it: <kbd>Up</kbd> moves it away from you, <kbd>Down</kbd> toward you. <kbd>PgUp</kbd> and <kbd>PgDn</kbd> move it up and down.</li>
+    <li><b>Duplicate</b> (<kbd>Ctrl+D</kbd> or <kbd>Space</kbd>) puts a copy beside the selection, to its right as the camera sees it. <b>Copy</b>, <b>Cut</b> and <b>Paste</b> are <kbd>Ctrl+C</kbd>, <kbd>Ctrl+X</kbd> and <kbd>Ctrl+V</kbd>; Paste puts it where the pointer is, on the grid. <kbd>Del</kbd> or <kbd>Backspace</kbd> deletes.</li>
+    <li><b>By numbers:</b> the Transform rows of the Inspect tab move the selection by X, Y and Z, turn it by any number of degrees (Spin flat turns it on the floor, Tip X and Tip Y tip it over the red and green grid lines), and resize it to a width, depth and height, standing on its floor.</li>
+  </ul>
+
+  <h3>The handles</h3>
+  <p>Selected brushes grow handles for reshaping them without any other tool:</p>
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 330" role="img" aria-labelledby="d-handles-t">
+        <title id="d-handles-t">A selected brush with its handles: a square on every corner, a dot on every edge and a diamond on a stem out of each face turned toward the camera</title>
+        <polygon class="sel-face" points="220,250 360,300 360,190 220,140"/>
+        <polygon class="sel-face" points="360,300 530,255 530,145 360,190"/>
+        <polygon class="sel-face top" points="220,140 360,190 530,145 390,95"/>
+        <path class="sel-hidden" d="M390,205L220,250M390,205L530,255M390,205V95"/>
+        <path class="sel-edge" d="M220,250L360,300L530,255M220,140L360,190L530,145L390,95Z M220,140V250M360,190V300M530,145V255"/>
+        <!-- stems and diamonds -->
+        <path class="stem" d="M290 220L168 206M445 222L590 214M375 142L372 64"/>
+        <g class="h-face"><path d="M168 197L177 206L168 215L159 206Z"/><path d="M590 205L599 214L590 223L581 214Z"/><path d="M372 55L381 64L372 73L363 64Z"/></g>
+        <!-- edge dots -->
+        <g class="h-edge">
+          <circle cx="290" cy="275" r="4.5"/><circle cx="445" cy="277.5" r="4.5"/><circle cx="220" cy="195" r="4.5"/><circle cx="360" cy="245" r="4.5"/>
+          <circle cx="530" cy="200" r="4.5"/><circle cx="290" cy="165" r="4.5"/><circle cx="445" cy="167.5" r="4.5"/><circle cx="460" cy="120" r="4.5"/><circle cx="305" cy="117.5" r="4.5"/>
+        </g>
+        <!-- corner squares -->
+        <g class="h-corner">
+          <rect x="215" y="245" width="10" height="10"/><rect x="355" y="295" width="10" height="10"/><rect x="525" y="250" width="10" height="10"/>
+          <rect x="215" y="135" width="10" height="10"/><rect x="355" y="185" width="10" height="10"/><rect x="525" y="140" width="10" height="10"/><rect x="385" y="90" width="10" height="10"/>
+        </g>
+        <rect class="h-corner dim" x="385" y="200" width="10" height="10"/>
+        <!-- labels -->
+        <path class="leader" d="M212 138L176 112"/>
+        <text class="t-head" x="20" y="72">CORNER</text>
+        <text class="t-small t-ink" x="20" y="92">Drag it to reshape the brush</text>
+        <text class="t-small" x="20" y="108">(Alt: up and down). Click to</text>
+        <text class="t-small" x="20" y="124">pick corners: the arrows nudge</text>
+        <text class="t-small" x="20" y="140">them, Del removes them.</text>
+        <path class="leader" d="M284 277L196 268"/>
+        <text class="t-head" x="20" y="256">EDGE</text>
+        <text class="t-small t-ink" x="20" y="276">Drag it to move the edge;</text>
+        <text class="t-small" x="20" y="292">click it to pick its corners.</text>
+        <path class="leader" d="M380 60L560 40"/>
+        <text class="t-head" x="566" y="36">DIAMOND</text>
+        <text class="t-small t-ink" x="566" y="56">Drag it to push or pull that</text>
+        <text class="t-small" x="566" y="72">face; its plane lands on the</text>
+        <text class="t-small" x="566" y="88">grid. Shift+drag on any face</text>
+        <text class="t-small" x="566" y="104">does the same.</text>
+        <path class="leader" d="M482 244L560 272"/>
+        <text class="t-head" x="566" y="268">THE BRUSH</text>
+        <text class="t-small t-ink" x="566" y="288">Drag it to move it; Ctrl+drag</text>
+        <text class="t-small" x="566" y="304">drags off a copy.</text>
+        <text class="t-small t-faint" x="402" y="226">hidden corner</text>
+      </svg>
+    </div>
+    <figcaption><b>The handles</b> A square on every corner, a dot on every edge, and a diamond on a stem out of each face turned toward you. A corner or edge behind the face under the pointer isn't grabbed through it.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+  <p>Dragging corners always keeps a brush a solid, convex shape: the brush becomes the tightest shape around its corners. Picked corners can be deleted with <kbd>Del</kbd>, which reshapes the brush without them (with corners picked, Delete takes only the corners, never the brush; <kbd>Shift+Del</kbd> does only that).</p>
+  <h3>Undo</h3>
+  <p><kbd>Ctrl+Z</kbd> undoes, <kbd>Ctrl+Y</kbd> or <kbd>Ctrl+Shift+Z</kbd> redoes, and both put back the selection you had. The History tab lists every change: click one to go back to it, or forward again.</p>
+</section>
+
+<!-- ============================================================ VI -->
+<section id="brushes" aria-labelledby="brushes-title">
+  <p class="kicker"><span class="rune">VI</span> Building with brushes</p>
+  <h2 id="brushes-title">Boxes first, then shape them</h2>
+  <p>A map's walls, floors and ceilings are <b>brushes</b>: solid, convex blocks. You build with boxes and then cut, carve, merge and reshape them.</p>
+  <h3>The Brush tool</h3>
+  <p>Press <kbd>B</kbd>, drag a footprint on the floor (or any surface, or the grid where there's nothing), then move the mouse up for the height and click. The new brush is made of the <b>current material</b> (the one shown at the top of the Materials tab). In a 2D view the footprint is all it needs: the brush is made at once.</p>
+  <h3>The Clip tool</h3>
+  <p>Press <kbd>C</kbd> and click two points on a brush: the cut runs straight into the face you clicked first, through both points. A third point tilts it. The part that will go is tinted red; <kbd>Tab</kbd> switches between keeping the far side, the near side or both halves, and <kbd>Enter</kbd> cuts. In a 2D view the points go anywhere and the cut runs straight back through the view. Clipping a box corner to corner is how you make a wedge, a ramp or a slanted wall.</p>
+
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 270" role="img" aria-labelledby="d-shapes-t">
+        <title id="d-shapes-t">Five shape tools, each before and after: Hollow makes a room of a block, Subtract cuts a doorway out of a wall, Merge makes two brushes one, Clip cuts a brush in two and keeps one side, Stairs turns a wedge into steps</title>
+        <g class="t-head mid"><text x="80" y="26">HOLLOW</text><text x="230" y="26">SUBTRACT</text><text x="380" y="26">MERGE</text><text x="530" y="26">CLIP</text><text x="680" y="26">STAIRS</text></g>
+        <path class="divider" d="M155 40V240M305 40V240M455 40V240M605 40V240"/>
+        <g class="route"><path class="route" d="M80 118V140" marker-end="url(#a-amber)"/><path class="route" d="M230 118V140" marker-end="url(#a-amber)"/><path class="route" d="M380 118V140" marker-end="url(#a-amber)"/><path class="route" d="M530 118V140" marker-end="url(#a-amber)"/><path class="route" d="M680 118V140" marker-end="url(#a-amber)"/></g>
+        <!-- hollow -->
+        <rect class="sel-face solidsel" x="40" y="50" width="80" height="60"/>
+        <path class="solid" d="M40 156H120V216H40Z M48 164V208H112V164Z" fill-rule="evenodd"/>
+        <!-- subtract -->
+        <rect class="solid" x="162" y="62" width="136" height="36"/>
+        <rect class="cutter" x="214" y="52" width="32" height="56"/>
+        <rect class="solid" x="162" y="168" width="52" height="36"/><rect class="solid" x="246" y="168" width="52" height="36"/>
+        <!-- merge -->
+        <rect class="sel-face solidsel" x="334" y="70" width="40" height="40"/><rect class="sel-face solidsel" x="386" y="50" width="40" height="60"/>
+        <polygon class="solid" points="334,216 334,176 386,156 426,156 426,216"/>
+        <!-- clip -->
+        <polygon class="drop-part" points="482,50 568,50 498,110 482,110"/>
+        <polygon class="sel-face solidsel" points="568,50 578,50 578,110 498,110"/>
+        <path class="cutline" d="M492 115L574 45"/>
+        <g class="callout small"><g transform="translate(498 110)"><circle r="7"/><text class="mid" y="3.5">1</text></g><g transform="translate(568 50)"><circle r="7"/><text class="mid" y="3.5">2</text></g></g>
+        <polygon class="solid" points="568,156 578,156 578,216 498,216"/>
+        <!-- stairs -->
+        <polygon class="sel-face solidsel" points="630,110 730,110 730,50"/>
+        <polygon class="solid" points="630,216 630,204 650,204 650,192 670,192 670,180 690,180 690,168 710,168 710,156 730,156 730,216"/>
+        <g class="t-small mid">
+          <text x="80" y="238">Ctrl+Shift+H</text><text x="80" y="254" class="t-faint">walls a grid step thick</text>
+          <text x="230" y="238">Ctrl+Shift+X</text><text x="230" y="254" class="t-faint">a doorway; the cutter goes</text>
+          <text x="380" y="238">Ctrl+J</text><text x="380" y="254" class="t-faint">one brush, no dents</text>
+          <text x="530" y="238">C, then Tab, Enter</text><text x="530" y="254" class="t-faint">red is the part that goes</text>
+          <text x="680" y="238">Ctrl+Shift+T</text><text x="680" y="254" class="t-faint">steps about 8 units high</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Shape tools</b> Each acts on the selected brushes. All of them are in the Brush menu, the action bar and the Inspect tab's Shape rows.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+
+  <h3>Hollow, Subtract, Merge, Stairs</h3>
+  <ul>
+    <li><b>Hollow</b> (<kbd>Ctrl+Shift+H</kbd>) turns each selected brush into a room: walls one grid step thick (8 units at least) around its inside. Draw a box the size of the room you want, hollow it, and you have floor, walls and ceiling.</li>
+    <li><b>Subtract</b> (<kbd>Ctrl+Shift+X</kbd>) carves the selected brushes out of every brush they overlap, then deletes them. Push a block through a wall and subtract it to make a doorway or a window.</li>
+    <li><b>Merge</b> (<kbd>Ctrl+J</kbd>) makes the selected brushes one: the smallest shape without dents that holds them all.</li>
+    <li><b>Stairs</b> (<kbd>Ctrl+Shift+T</kbd>) turns each selected wedge into solid stairs climbing its slope, each step about 8 units high. Clip a box corner to corner first to get the wedge.</li>
+  </ul>
+  <h3>Turn and mirror</h3>
+  <p><kbd>R</kbd> turns the selection 90 degrees counter-clockwise as seen from above, <kbd>Shift+R</kbd> clockwise; add <kbd>Ctrl</kbd> for 15 degrees. It turns about its middle, snapped to the grid. <kbd>M</kbd> mirrors it front to back (along X), <kbd>Shift+M</kbd> left to right (along Y) and <kbd>Ctrl+M</kbd> upside down. The Inspect tab's Turn row takes any angle.</p>
+  <h3>Texture lock</h3>
+  <p><b>Texture lock</b> (<kbd>Ctrl+T</kbd>, on at first) decides what happens to textures when brushes move, turn or mirror. On, the texture travels with the brush, so a moved crate still looks like a crate. Off, the texture stays put in the world and the brush slides under it, which is what you want when nudging a wall to line its bricks up with the next one. The action bar's button shows which it is.</p>
+  <h3>Detail and collision</h3>
+  <ul>
+    <li><b>Detail</b> (<kbd>Ctrl+Shift+D</kbd>) marks brushes as decoration: trim, pillars, props. Detail brushes don't cut the map up for working out what's visible from where, so the map compiles faster and runs smoother. Walls that close the map in should stay structural (press it again to put a brush back).</li>
+    <li><b>Collision</b> (a checkbox at the top of the Inspect tab's Shape rows, and the Brush menu) turns a brush solid or not. With it off, players and shots pass through: it still draws and still blocks light. Every brush collides at first, liquids aside.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ VII -->
+<section id="materials" aria-labelledby="materials-title">
+  <p class="kicker"><span class="rune">VII</span> Materials and textures</p>
+  <h2 id="materials-title">Paint it from your own install</h2>
+  <p>Every surface has a <b>material</b>: a texture and how it draws. The editor lists every material in your game's files, the stock ones and every map pack you've installed.</p>
+  <h3>The Materials tab</h3>
+  <p>At the top is the <b>current material</b>, which new brushes and Paint use. Click any material below to paint the selection with it and make it current. The chips along the top switch what the list shows:</p>
+  <ul>
+    <li><b>In this map</b>: every material the map already uses.</li>
+    <li><b>Favorites</b>: materials you keep at hand. <b>Add to favorites</b> puts the current material there; pressed again it takes it out.</li>
+    <li><b>Recent</b>: the ones you used last.</li>
+    <li><b>Dev textures</b>: Oz's plain prototyping textures, for blocking out.</li>
+    <li><b>All</b>, <b>Folders</b> and <b>Map packs</b>: everything, the game's own first, then each folder, and your map packs under their own chip.</li>
+  </ul>
+  <p>The search box narrows any of them as you type ("concrete", "gothic", "sky"). Tool materials, like the invisible clip and trigger ones, show in their own colors in the view, as other editors draw them.</p>
+
+  <h3>Eyedropper and Paint</h3>
+  <ul>
+    <li><b>Eyedropper</b> (<kbd>I</kbd>): the material of the face under the pointer becomes the current one.</li>
+    <li><b>Paint</b> (<kbd>P</kbd>): puts the current material on the picked faces, or on every face of the selected brushes and curves. Painting keeps each face's texture scale and position.</li>
+    <li>In the Faces tool, <kbd>Alt</kbd>+click is the eyedropper and <kbd>Alt+Shift</kbd>+click paints the face under the pointer. Copied onto a face in the same plane, a texture carries straight on across the join.</li>
+  </ul>
+
+  <h3>The Faces tool</h3>
+  <p>Press <kbd>T</kbd> to work on single faces instead of whole brushes. Click a face to pick it, <kbd>Shift</kbd>+click to add one, <kbd>Ctrl</kbd>+click to toggle, double-click to pick every face of that brush. Entering the tool picks the faces of the brushes you had selected; leaving it selects the brushes of the picked faces. With faces picked:</p>
+  <ul>
+    <li>The <b>arrows</b> move the texture a grid step the way you press, as the camera sees each face (<kbd>Shift</kbd>: one texel).</li>
+    <li><kbd>Ctrl+Left</kbd> and <kbd>Ctrl+Right</kbd> turn it 15 degrees; <kbd>Ctrl+Up</kbd> and <kbd>Ctrl+Down</kbd> double and halve its size.</li>
+    <li>Dragging pushes the picked faces in or out, like the face diamonds.</li>
+  </ul>
+
+  <h3>Texture rows in the Inspect tab</h3>
+  <p>For the picked faces (or the selected brushes), Inspect shows the material, a <b>Color</b> row that tints the texture (in the view and in the game), and the <b>Texture</b> numbers: shift, scale and turn, typed in directly, blank where the faces differ. Under them:</p>
+  <ul>
+    <li><b>Left 15</b>, <b>Right 15</b>, <b>×2</b> and <b>/2</b>.</li>
+    <li><b>Fit</b>: the texture so many times across and down each face.</li>
+    <li><b>Left</b>, <b>Right</b>, <b>Top</b>, <b>Bottom</b>, <b>Center</b>: line an edge (or the middle) of each face up with the texture.</li>
+    <li><b>Flip across</b>, <b>Flip down</b> and <b>Reset</b> (the default mapping at half scale).</li>
+    <li><b>UV editor</b> (<kbd>U</kbd>): the face's outline over its texture's tiles. Drag the texture to slide it, turn the wheel to zoom, use the same buttons under it, and Frame puts the face back in the middle. <kbd>U</kbd> or <kbd>Esc</kbd> closes it.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ VIII -->
+<section id="entities" aria-labelledby="entities-title">
+  <p class="kicker"><span class="rune">VIII</span> Entities</p>
+  <h2 id="entities-title">Items, spawns, pads and everything that does something</h2>
+  <p><b>Entities</b> are everything in a map that isn't plain wall: weapons and armor, spawn points, lights, jump pads, teleporters, doors, triggers. The <b>Entities tab</b> lists them all in plain words.</p>
+
+  <figure class="shot framed">
+    <img src="img/editor_entities.jpg" alt="A room with a jump pad's arc, a spawn point standing as a fighter, a rocket launcher, trigger boxes, and the Entities tab listing armor, health and weapons as icons" loading="lazy" width="1600" height="900">
+    <figcaption>The Entities tab beside a test room: pickups by their icons, a jump pad's arc drawn where players will fly, a spawn point standing as a fighter.</figcaption>
+  </figure>
+
+  <h3>The Entities tab</h3>
+  <ul>
+    <li>A card at the top says what you're about to place, what it does and what to click next. Point at any tile to read what it does.</li>
+    <li><b>Quick builds</b> come first: whole setups with every piece made and linked for you (below).</li>
+    <li>Then the sections, in the order you'll want them: Spawns, Weapons, Ammo, Armor, Health, Powerups, Lights and sound, Teleporter pieces, Jump pad pieces, Moving brushes, Triggers and logic, Hazards, Models and mirrors, Invisible markers, CTF flags and Defrag.</li>
+    <li>Pickups show as their icons. Other tiles are marked <b>SPOT</b> (something at one point) or <b>AREA</b> (a box of brushes, like a door or a trigger). CPMA's own items are marked.</li>
+    <li>The search box finds anything by name or by what it is: "spawn", "rocket", "door", "Defrag".</li>
+    <li>A mod's entity list in your install (a <code>.def</code> file, such as Defrag's) joins the tab under the mod's name.</li>
+  </ul>
+  <h3>Placing</h3>
+  <p>Click a tile, then click in the view. The entity sits against the surface you clicked (floor, wall or ceiling), on the grid. A spawn point faces the way the camera faces. Keep clicking to place more; clicking an entity that's already there selects it instead.</p>
+  <p>An <b>AREA</b> entity (a trigger, a door, a moving platform) is made of brushes: click in the view for a 64-unit box of it, or select brushes first and then pick it to turn those brushes into it. <b>Back to the world</b> in the Inspect tab puts them back as plain brushes.</p>
+  <p>In the view, spawn points stand as fighters, pickups turn and bob as they do in the game, lights glow in their own color (a selected one shows how far it reaches), and lines show what triggers what, with an arrowhead the way it goes.</p>
+
+  <h3 id="jump-pad">Jump pad, in two clicks</h3>
+  <p>Press <kbd>J</kbd>, click the floor where players should step on, then click where they should land. As you move the pointer before the second click, the arc shows where they'll fly.</p>
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 320" role="img" aria-labelledby="d-pad-t">
+        <title id="d-pad-t">A jump pad seen from the side: the first click puts an invisible push trigger on the floor, the second click is the landing on a higher ledge, the aim point sits at the top of the arc at least 40 units under the roof, and a ring at the landing can be dragged</title>
+        <rect class="solid dark" x="20" y="10" width="720" height="18"/>
+        <text class="t-small t-faint" x="30" y="23">ROOF</text>
+        <rect class="solid" x="20" y="260" width="720" height="50"/>
+        <rect class="solid" x="520" y="190" width="220" height="70"/>
+        <rect class="trigger" x="120" y="228" width="56" height="36"/>
+        <path class="arc" d="M148 250Q264 70 380 70Q474.5 70 569 190" marker-end="url(#a-pale)"/>
+        <g class="aim" transform="translate(380 70)"><path d="M0-8L8 0L0 8L-8 0Z"/><path class="tick" d="M-14 0H-9M9 0H14"/></g>
+        <path class="measure" d="M410 30V68"/><path class="tick" d="M404 30H416M404 68H416"/>
+        <text class="t-small" x="422" y="46">40 or more</text><text class="t-small" x="422" y="60">under the roof</text>
+        <ellipse class="ring" cx="569" cy="190" rx="26" ry="6"/>
+        <path class="leader" d="M122 226L96 196"/>
+        <text class="t-head" x="30" y="166">INVISIBLE PUSH TRIGGER</text>
+        <text class="t-small t-ink" x="30" y="184">4 units into the floor, 32 over it.</text>
+        <text class="t-small" x="30" y="200">No block: build a pad under it</text>
+        <text class="t-small" x="30" y="216">if you want one.</text>
+        <text class="t-head" x="206" y="104">AIM POINT</text>
+        <text class="t-small t-ink" x="206" y="122">at the top of the arc</text>
+        <path class="leader" d="M290 110L368 76"/>
+        <text class="t-head" x="600" y="128">LANDING RING</text>
+        <text class="t-small t-ink" x="600" y="146">drag it: the throw</text>
+        <text class="t-small" x="600" y="162">re-aims as you go</text>
+        <path class="leader" d="M598 152L582 182"/>
+        <g class="callout"><g transform="translate(148 286)"><circle r="10"/><text class="mid" y="4">1</text></g><g transform="translate(569 226)"><circle r="10"/><text class="mid" y="4">2</text></g></g>
+        <text class="t-small t-ink" x="166" y="291">Click 1: where players step</text>
+        <text class="t-small t-ink" x="587" y="231">Click 2: where they land</text>
+      </svg>
+    </div>
+    <figcaption><b>Jump pad</b> The pad is one object: a click selects all of it, a double-click one piece. Selected, Inspect reads out its throw, for example <i>The throw: 755 a second, 256 up, 640 across, 1.6 s in the air</i>.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+  <p>After the second click the Select tool is back with the new pad selected. Drag its landing ring to move where it lands; the throw re-aims as you drag, all in one undo step. <b>Land here</b> in the Inspect tab (or the Entity menu) lets you click a new landing spot, and <b>Higher</b> and <b>Lower</b> raise or drop the arc by 32 units while it still lands in the same place.</p>
+
+  <h3>The other quick builds</h3>
+  <ul>
+    <li><b>Teleporter</b> (<kbd>K</kbd>): click the entrance, then the exit. You get the teleport trigger and its destination, linked.</li>
+    <li><b>Light</b> (<kbd>L</kbd>): click a surface and a light goes one grid step off it. Its color, brightness and reach are in the Inspect tab (<a href="#inspector">below</a>).</li>
+    <li><b>Door</b>: select brushes, press Door. They become a sliding door that opens when a player comes near or when it's shot. Inspect sets which way it slides and what opens it.</li>
+    <li><b>Double door</b>: the selected brush is cut in two, a pair of doors sliding apart and opening together.</li>
+    <li><b>Lift</b>: build it where its top should be. It starts lowered and rises when someone steps on it; Inspect sets how far it travels.</li>
+  </ul>
+  <p>The Entity menu has more for moving brushes: <b>Add a button</b> (click a wall: a button there opens the selected doors), <b>Lay a path</b> (click where a train goes, corner by corner; the first corner again closes the loop) and <b>Play movers</b>, which runs the selected doors, lifts and other movers in the view as they'll move in the game.</p>
+</section>
+
+<!-- ============================================================ IX -->
+<section id="inspector" aria-labelledby="inspector-title">
+  <p class="kicker"><span class="rune">IX</span> The inspector</p>
+  <h2 id="inspector-title">Every setting, with a picker for each</h2>
+  <p>The <b>Inspect</b> tab shows whatever is selected: at the top, what it is ("Selected: 1 entity"), then the rows that apply to it. For brushes those are the material, color, texture, transform and shape rows covered above. For entities it's their title in plain words, what they do, and their <b>keys</b>: the settings the game reads.</p>
+  <ul>
+    <li>Every key is a name and a value you can edit, rename or remove (the × beside it). <b>Add key</b> adds any key by name.</li>
+    <li>Under them, a chip for each key the entity takes but doesn't have yet (+TARGET, +WAIT, +TEAM ...). Click one to add it at the game's default. Point at a key for what it does.</li>
+    <li><b>Spawnflags</b> show as switches with their meaning, such as Suspended for an item that floats in the air.</li>
+    <li>Rows of switches set which game types it appears in: only in some, or not in free for all, team games or single player.</li>
+    <li>With nothing selected, the same rows edit the map's own keys: its name (message), music, gravity, ambient light.</li>
+  </ul>
+  <h3>Pickers for typed keys</h3>
+  <p>Keys the editor knows the type of get a control beside the text field:</p>
+  <ul>
+    <li><b>Color</b>: a swatch and a palette (white, warm and cool white, red, orange, yellow, green, cyan, blue, purple). The <b>+</b> opens a grid of twelve hues in three strengths.</li>
+    <li><b>Angle</b>: a compass in 45-degree steps, plus Up and Down, and <b>View</b> to use the way the camera faces.</li>
+    <li><b>On/off</b>: a switch.</li>
+    <li><b>Sound</b> and <b>music</b>: <b>Pick</b> opens a list of the game's sounds to choose from, <b>Listen</b> plays it.</li>
+    <li><b>Model</b> and <b>target</b>: <b>Pick</b> lists the game's models, or the names in your map to link to.</li>
+  </ul>
+  <p>In a pick list, type part of a name to narrow it, move with <kbd>Up</kbd> and <kbd>Down</kbd>, and press <kbd>Enter</kbd> or click to take it.</p>
+  <h3>Jump pads, lights and doors</h3>
+  <ul>
+    <li>A selected <b>jump pad</b> reads out its throw: launch speed, how high over the pad, how far across, and its time in the air, with Land here, Higher and Lower. If something's wrong with it, the readout says what in red.</li>
+    <li>A selected <b>light</b> has its color and two sliders: <b>Intensity</b> (300 by default) and <b>Range</b>. All the way left, Range is Auto and the light fades as real light does; anywhere else, the light fades evenly to nothing at that distance. <b>Make spotlight</b> aims it: an aim point goes on the floor below, which you drag to point it, and a <b>Cone</b> slider sets how wide it shines. <b>Back to a point light</b> undoes it.</li>
+    <li>A selected <b>door</b> has switches for what opens it (a player comes near, it's shot), arrows for the way it slides, and how many buttons or triggers open it.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ X -->
+<section id="curves" aria-labelledby="curves-title">
+  <p class="kicker"><span class="rune">X</span> Curves</p>
+  <h2 id="curves-title">Arches, pillars and bends</h2>
+  <p>Curves are smooth surfaces, for round pillars, arches and bent pipes. Make them from boxes: select one or more brushes and pick a shape in the Curve menu (or the Inspect tab's Shape rows). Each brush becomes a curve filling its box, in the current material:</p>
+  <ul>
+    <li><b>Cylinder</b> and <b>Cone</b>: round the up axis, facing out (in a 2D view, round that view's axis).</li>
+    <li><b>Arch</b>: half round across the box's longer side, facing in, as you'd see it from a doorway.</li>
+    <li><b>Bevel</b>: a quarter round, facing in, for a rounded corner.</li>
+    <li><b>Flat</b>: a flat sheet on the box's top, to bend by its control points.</li>
+  </ul>
+  <p>A selected curve's <b>control points</b> are its handles: drag them like corners (<kbd>Alt</kbd> for up and down, <kbd>Ctrl</kbd> off the grid) or nudge them with the arrows, and the curve follows. Its control net is drawn over it.</p>
+  <p>The Inspect tab's <b>Curve</b> rows shape it further:</p>
+  <ul>
+    <li><b>+ Columns</b>, <b>+ Rows</b> split every section in two, so the curve keeps its shape exactly but has more points to bend. <b>- Columns</b>, <b>- Rows</b> join them again.</li>
+    <li><b>Invert</b> turns it inside out, so its other side shows.</li>
+    <li><b>Caps</b> closes the open ends: discs on a cylinder, half discs on an arch.</li>
+    <li><b>Thicken</b> gives it a back, one grid step behind, with seams along its open edges.</li>
+  </ul>
+  <p>Texture moves, turns, scaling, Fit, Flip and Reset work on curves too, along the curve's length. Aligning and typed texture numbers are for brush faces only.</p>
+</section>
+
+<!-- ============================================================ XI -->
+<section id="organize" aria-labelledby="organize-title">
+  <p class="kicker"><span class="rune">XI</span> Hide, lock, groups, prefabs</p>
+  <h2 id="organize-title">Keep a big map workable</h2>
+  <h3>Hide and lock</h3>
+  <ul>
+    <li><b>Hide</b> (<kbd>H</kbd>) hides the selection from every view, <b>Hide the rest</b> (<kbd>Alt+H</kbd>) hides everything else, and <b>Show all</b> (<kbd>Shift+H</kbd>) brings it all back.</li>
+    <li><b>Lock</b> (<kbd>Ctrl+L</kbd>) keeps the selection drawn but out of reach: clicks, boxes and Select all pass it by. <b>Unlock all</b> is <kbd>Ctrl+Shift+L</kbd>.</li>
+    <li>The <b>Show</b> chips (in the Objects tab and the View menu) leave whole kinds out of the view: tool brushes, triggers, sky, entities, curves.</li>
+  </ul>
+  <p>All of this is only how the editor shows the map. Hidden, locked and filtered things still compile and save. The status line counts what's hidden and locked, so nothing goes missing for long.</p>
+  <h3>Groups</h3>
+  <p><b>Group</b> (<kbd>Ctrl+G</kbd>) ties the selected brushes and curves together: a click selects the whole group and a double-click one brush in it. <b>Ungroup</b> (<kbd>Ctrl+Shift+G</kbd>) takes it apart. Groups are only for editing; in the game they're plain world.</p>
+  <h3>Prefabs</h3>
+  <p>A <b>prefab</b> is a piece you've built and want again, in this map or any other: a staircase, a doorway, a lamp with its light. Select it, type a name in the <b>Prefabs</b> tab and press <b>Save selection</b>. The tab shows every prefab you've saved as a 3D thumbnail; click one to put it where the pointer is, as Paste does. Delete takes two clicks, so it can't happen by accident.</p>
+  <h3>The Objects tab</h3>
+  <p>Everything in the map, listed: the world and every entity in the file's order, with their brushes under them. Type in the filter to find a class, a name or a material. Click a row to select it (<kbd>Shift</kbd> adds, <kbd>Ctrl</kbd> toggles), double-click to frame it. Hidden and locked rows are marked, and the tab has the hide, lock and group buttons too.</p>
+</section>
+
+<!-- ============================================================ XII -->
+<section id="sky" aria-labelledby="sky-title">
+  <p class="kicker"><span class="rune">XII</span> Sky and sun</p>
+  <h2 id="sky-title">The sky around the map, and its light</h2>
+  <p>The <b>World</b> tab (also Build, Sky and sun) sets the map's sky and the light it gives. It's saved with the map, and you see it in the Lit preview (<kbd>F6</kbd>) and when you play.</p>
+  <ul>
+    <li><b>Sky</b>: a tile for each of the game's skies, the current one marked. A new map starts with gray clouds and a white sun.</li>
+    <li><b>Light from</b>: <b>These settings</b> lights the map with the sun and sky glow below; <b>The sky's own</b> uses the light the sky came with, as the stock maps are lit.</li>
+    <li><b>Fill light</b>: a soft light everywhere, darker in corners. <b>Auto</b> turns it on only when the map has no lamps, so a first blockout is never pitch dark.</li>
+    <li><b>Sun color</b> and <b>Sky glow color</b>: palettes, or red, green and blue typed from 0 to 1.</li>
+    <li><b>Sun brightness</b> (100 is about as bright as the stock outdoor maps), <b>Sun height</b> (degrees over the horizon: 90 is straight down, low makes long shadows), <b>Sun direction</b> (degrees: 0 from the east, the +X side, 90 from +Y), <b>Sky light</b> (how much the sky itself glows onto the map) and <b>Ambient light</b> (a little light everywhere; 5 to 20 is subtle).</li>
+    <li><b>Defaults</b> puts all of it back.</li>
+  </ul>
+  <div class="know">
+    <p>You don't need to seal your map against the void. Every compile closes it in a box of sky by itself, out past the map's edges and above it, with a deadly floor under it so anyone who falls off an edge dies at once. The box is only in the compiled copy, never in your file.</p>
+  </div>
+</section>
+
+<!-- ============================================================ XIII -->
+<section id="play" aria-labelledby="play-title">
+  <p class="kicker"><span class="rune">XIII</span> Compile and play</p>
+  <h2 id="play-title">Press F5 and you're in it</h2>
+  <p>Maps are compiled before the game can run them: turned into a level file, with their light worked out. The editor does it for you, in the background, from the map as it is right now. You don't need to save first.</p>
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 252" role="img" aria-labelledby="d-compile-t">
+        <title id="d-compile-t">Three ways to compile: Play builds the level, a quick light and the bots' file, then drops you in; Compile builds the level, visibility, the full light and the bots' file; Lit preview shows the last compile's light in the editor</title>
+        <rect class="box" x="20" y="28" width="150" height="56"/><text class="t-head" x="34" y="52">PLAY</text><text class="t-num t-amber" x="34" y="72">F5</text>
+        <rect class="box" x="20" y="108" width="150" height="56"/><text class="t-head" x="34" y="132">COMPILE</text><text class="t-num t-amber" x="34" y="152">Ctrl+F5</text>
+        <rect class="box" x="20" y="188" width="150" height="56"/><text class="t-head" x="34" y="212">LIT PREVIEW</text><text class="t-num t-amber" x="34" y="232">F6</text>
+        <g>
+          <rect class="box" x="196" y="36" width="118" height="40"/><text class="t-small t-ink mid" x="255" y="61">BUILD THE LEVEL</text>
+          <rect class="box" x="336" y="36" width="118" height="40"/><text class="t-small t-ink mid" x="395" y="61">QUICK LIGHT</text>
+          <rect class="box" x="476" y="36" width="118" height="40"/><text class="t-small t-ink mid" x="535" y="61">BOTS' FILE</text>
+          <rect class="box hot" x="616" y="28" width="124" height="56"/><text class="t-small t-hot mid" x="678" y="52">YOU'RE IN</text><text class="t-small mid" x="678" y="70">Esc: Back to the editor</text>
+          <rect class="box" x="196" y="116" width="118" height="40"/><text class="t-small t-ink mid" x="255" y="141">BUILD THE LEVEL</text>
+          <rect class="box" x="336" y="116" width="118" height="40"/><text class="t-small t-ink mid" x="395" y="141">VISIBILITY, FULL LIGHT</text>
+          <rect class="box" x="476" y="116" width="118" height="40"/><text class="t-small t-ink mid" x="535" y="141">BOTS' FILE</text>
+          <rect class="box" x="616" y="108" width="124" height="56"/><text class="t-small t-ink mid" x="678" y="132">THE FINISHED MAP</text><text class="t-small mid" x="678" y="150">in your files</text>
+          <rect class="box" x="196" y="196" width="398" height="40"/><text class="t-small t-ink mid" x="395" y="214">THE LAST COMPILE, LIT BY ITS OWN LIGHTS</text><text class="t-small t-faint mid" x="395" y="229">a quick compile first if the map has changed</text>
+          <rect class="box hot" x="616" y="188" width="124" height="56"/><text class="t-small t-hot mid" x="678" y="212">IN THE VIEW</text><text class="t-small mid" x="678" y="230">F6 again: back</text>
+        </g>
+        <g>
+          <path class="route" d="M172 56H190M316 56H330M456 56H470M596 56H610" marker-end="url(#a-amber)"/>
+          <path class="route" d="M172 136H190M316 136H330M456 136H470M596 136H610" marker-end="url(#a-amber)"/>
+          <path class="route" d="M172 216H190M596 216H610" marker-end="url(#a-amber)"/>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Three ways to compile</b> All three run while you keep editing; the status line shows the stage and the seconds, and Stop ends it.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+  <ul>
+    <li><b>Play</b> (<kbd>F5</kbd>): a quick compile, then you're in the map at a spawn point. A blockout is ready in moments.</li>
+    <li><b>Play from here</b> (<kbd>Shift+F5</kbd>): the same, starting with your eye where the editor's camera is. The fastest way to test one jump.</li>
+    <li><b>Compile</b> (<kbd>Ctrl+F5</kbd>): the whole compile, with visibility and the full, softer light. Use it for the finished look and before you share the map.</li>
+    <li><b>Lit preview</b> (<kbd>F6</kbd>): the editor's view shows the map lit by its own lights, from the last compile. Changes you make meanwhile are drawn over it; <kbd>F6</kbd> again goes back to the plain view.</li>
+  </ul>
+  <figure class="shot framed">
+    <img src="img/editor_play.jpg" alt="Running around a compiled test room with the game's HUD, a rocket launcher on the floor and a pool of light on the far wall" loading="lazy" width="1600" height="900">
+    <figcaption>A test room after F5: the full game, HUD and all. Escape, then Back to the map editor.</figcaption>
+  </figure>
+  <h3>Back to the editor</h3>
+  <p>In the game, press <kbd>Esc</kbd>: the pause menu has <b>Back to the map editor</b> while you're in a play-test. The editor comes back with the map, the selection and the camera exactly as you left them.</p>
+  <h3>When something's wrong</h3>
+  <ul>
+    <li>After a compile with warnings, the status line counts them and a <b>Warnings</b> button shows in the action bar. Pick a warning and the editor selects and frames what it's about: a brush painted with a material the game doesn't have, say.</li>
+    <li><b>Check the map</b> (Build menu) looks for what would go wrong in the game: brushes without collision, jump pads that do nothing, targets that name nothing. What it finds goes in the same list.</li>
+    <li>If a compile ever finds a leak (a hole from the inside of the map out to the void), it stops and draws a red line from an entity out through the gap; <b>Show the leak</b> turns the camera onto it.</li>
+  </ul>
+  <div class="know">
+    <p>Play-tests are saved as <code>maps/ed_<i>name</i>.bsp</code> in your user folder. The <code>ed_</code> keeps a play-test of a stock map from replacing the original. When you open a stock map and compile it again, its lamps and teleporter pads (models that were built into the original and never shipped on their own) are left out, and the editor tells you how many.</p>
+  </div>
+</section>
+
+<!-- ============================================================ XIV -->
+<section id="files" aria-labelledby="files-title">
+  <p class="kicker"><span class="rune">XIV</span> Opening and saving</p>
+  <h2 id="files-title">Plain .map files, yours to keep</h2>
+  <ul>
+    <li><b>New map</b> (<kbd>Ctrl+N</kbd>): a lit room with a spawn point. With unsaved changes it asks first: Save, Discard or Cancel.</li>
+    <li><b>Open map</b> (<kbd>Ctrl+O</kbd>): a list of your maps; type to narrow it.</li>
+    <li><b>Open a game map</b> (File menu): any map in the game's files, the stock arenas and your map packs, made editable again with its brushes, curves and entities. Chips sort the list: All, id's arenas, Deathmatch, Tourney, Team, CTF and Other. It's the best way to learn: open a map you know and see how it's built.</li>
+    <li><b>Save</b> (<kbd>Ctrl+S</kbd>): the map as a <code>.map</code> file. A map that's never been saved asks for a name. <b>Save as</b> (<kbd>Ctrl+Shift+S</kbd>) saves it under a new one: letters, digits, <code>-</code> and <code>_</code>.</li>
+  </ul>
+  <h3>Where your files go</h3>
+  <div class="table-wrap">
+  <table class="numbers me-paths">
+    <thead><tr><th scope="col">What</th><th scope="col">Windows</th><th scope="col">Linux</th></tr></thead>
+    <tbody>
+      <tr><th>Your maps</th><td><code>%APPDATA%\Oz Arena\oz\editor\maps</code></td><td><code>~/.ozarena/oz/editor/maps</code></td></tr>
+      <tr><th>Prefabs</th><td><code>%APPDATA%\Oz Arena\oz\editor\prefabs</code></td><td><code>~/.ozarena/oz/editor/prefabs</code></td></tr>
+      <tr><th>Play-tests</th><td><code>%APPDATA%\Oz Arena\oz\maps</code></td><td><code>~/.ozarena/oz/maps</code></td></tr>
+      <tr><th>Your keys</th><td><code>%APPDATA%\Oz Arena\oz\editor\keymap.cfg</code></td><td><code>~/.ozarena/oz/editor/keymap.cfg</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The files are standard <code>.map</code> files, the same as other map editors use: a map you make here opens in NetRadiant-custom or TrenchBroom, and theirs open here. A map opened and saved without changes comes out the same, number for number, in whichever of the three face formats it was written in; new maps use the Valve 220 format. What a <code>.map</code> can't hold (the camera, what's hidden or locked) goes in a small file beside it.</p>
+  <h3>Autosave</h3>
+  <p>A copy of the map is written aside within 20 seconds of a change, and dropped when you save. If the game closes or crashes with changes unsaved, the next time the editor opens a bar across the view offers it back: <b>Recover</b> opens it, <b>Throw away</b> deletes it.</p>
+</section>
+
+<!-- ============================================================ XV -->
+<section id="defrag" aria-labelledby="defrag-title">
+  <p class="kicker"><span class="rune">XV</span> Defrag courses</p>
+  <h2 id="defrag-title">Timed runs, start to finish</h2>
+  <p>If you have Defrag installed, the editor builds race courses for it: the Entities tab's Defrag section and the Entity menu's Defrag rows.</p>
+  <figure class="diagram">
+    <div class="plate">
+      <svg class="dg" viewBox="0 0 760 240" role="img" aria-labelledby="d-defrag-t">
+        <title id="d-defrag-t">A Defrag course seen from above: a spawn, a start line across the corridor, a speed pad before a lava pit, a checkpoint line, a rocket shooter over its trigger zone, and a finish line; each line takes two clicks, one on each wall</title>
+        <rect class="solid" x="20" y="30" width="720" height="34"/>
+        <rect class="solid" x="20" y="156" width="720" height="34"/>
+        <rect class="room" x="20" y="64" width="720" height="92"/>
+        <rect class="lava" x="300" y="64" width="64" height="92"/>
+        <text class="t-small t-glow mid" x="332" y="114">LAVA</text>
+        <g class="sp" transform="translate(56 110)"><circle r="11"/><path d="M4 0H18M13-5L18 0L13 5"/></g>
+        <rect class="pad" x="232" y="96" width="32" height="28"/><path class="route" d="M248 110H290" marker-end="url(#a-amber)"/>
+        <path class="line-start" d="M120 64V156"/><path class="line-start" d="M450 64V156"/><path class="line-start" d="M660 64V156"/>
+        <g class="timer"><circle cx="120" cy="110" r="5"/><circle cx="450" cy="110" r="5"/><circle cx="660" cy="110" r="5"/></g>
+        <g class="callout small">
+          <g transform="translate(120 64)"><circle r="7"/><text class="mid" y="3.5">1</text></g><g transform="translate(120 156)"><circle r="7"/><text class="mid" y="3.5">2</text></g>
+          <g transform="translate(450 64)"><circle r="7"/><text class="mid" y="3.5">1</text></g><g transform="translate(450 156)"><circle r="7"/><text class="mid" y="3.5">2</text></g>
+          <g transform="translate(660 64)"><circle r="7"/><text class="mid" y="3.5">1</text></g><g transform="translate(660 156)"><circle r="7"/><text class="mid" y="3.5">2</text></g>
+        </g>
+        <rect class="zone" x="510" y="70" width="80" height="80"/>
+        <g transform="translate(550 47)"><rect class="shooter" x="-9" y="-7" width="18" height="14"/></g>
+        <path class="drop" d="M550 56V96" marker-end="url(#a-glow)"/>
+        <g class="t-head mid"><text x="120" y="20">START LINE</text><text x="450" y="20">CHECKPOINT</text><text x="660" y="20">FINISH LINE</text></g>
+        <g class="t-small mid">
+          <text x="56" y="210" class="t-ink">SPAWN</text>
+          <text x="120" y="210" class="t-ink">two clicks,</text><text x="120" y="226">wall to wall</text>
+          <text x="248" y="210" class="t-ink">SPEED PAD</text><text x="248" y="226">one click</text>
+          <text x="550" y="210" class="t-ink">SHOOTER</text><text x="550" y="226">where it fires from, then its zone</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>A course</b> Each line is a trigger across the course, fitted to it however it runs, firing Defrag's own timer. The timers are named start1, checkpoint1, finish1 and so on.</figcaption>
+    <p class="scroll-hint">Scroll the diagram sideways</p>
+  </figure>
+  <ul>
+    <li><b>Start line</b>, <b>Checkpoint line</b>, <b>Finish line</b>: click one side of the course, then the other. A trigger goes across between the two clicks, from the floor up to the ceiling (256 units at most), and fires Defrag's timer.</li>
+    <li><b>Speed pad</b>: one click on the floor. It launches the player at 700 along the axis nearest the way the view faces.</li>
+    <li><b>Shooter</b>: two clicks, where it fires from and then the zone that sets it off. It fires a rocket at the player, leading them, once a second while they're in the zone.</li>
+    <li><b>Check the course</b>: looks for a start, a finish and a spawn point, a trigger for every timer, and a name behind every target. It also follows the open space from the spawn points, through teleporters, to see whether every line can be reached at all (it doesn't test jumps: a ledge too high still counts as a way). What's wrong goes in the Warnings list, each item framed when picked.</li>
+    <li><b>Play in Defrag</b> (Build menu): a quick compile, then the game switches to Defrag and you run the course with its own timer. Disconnect brings you back, with the map waiting in the editor.</li>
+  </ul>
+  <p>Saving a course also writes the small map info file Defrag lists maps by, beside the <code>.map</code>.</p>
+  <div class="know">
+    <p>Oz never downloads Defrag for you: install it into your Quake III Arena folder as usual and the editor finds it. If it can't, Play in Defrag says so.</p>
+  </div>
+</section>
+
+<!-- ============================================================ XVI -->
+<section id="custom-keys" aria-labelledby="custom-keys-title">
+  <p class="kicker"><span class="rune">XVI</span> Your own keys</p>
+  <h2 id="custom-keys-title">Change any key, or bring Radiant's</h2>
+  <h3>Search</h3>
+  <p><b>Search</b> (<kbd>F3</kbd>, or Search in the action bar) finds any action by its name, by what it does or by its keys. The best matches come first; <kbd>Up</kbd> and <kbd>Down</kbd> move the highlight, <kbd>Enter</kbd> does it, <kbd>Esc</kbd> closes the box.</p>
+  <h3>The Keys dialog</h3>
+  <p>Open it from Edit, Keys or Help, Keys (or All keys on the getting started card). It lists every action with its keys and a <b>Set</b> button:</p>
+  <ul>
+    <li>Press Set, then the keys you want, with <kbd>Ctrl</kbd>, <kbd>Shift</kbd> or <kbd>Alt</kbd> if you like. <kbd>Esc</kbd> keeps the old keys; <kbd>Backspace</kbd> leaves the action with none.</li>
+    <li>A key does one thing: give it to one action and the action that had it loses it.</li>
+    <li><kbd>1</kbd> to <kbd>9</kbd> always stay the grid's.</li>
+    <li>Type in the filter to find an action or a key ("clip", "texture", "Ctrl+").</li>
+    <li><b>Oz keys</b> puts every action back to the editor's own keys.</li>
+    <li><b>Radiant keys</b> gives the keys of GtkRadiant and NetRadiant where the editor has the same action: <kbd>Space</kbd> and <kbd>Ctrl+D</kbd> copy, <kbd>X</kbd> the clipper, <kbd>Ctrl+Enter</kbd> its side, <kbd>Shift+U</kbd> subtract, <kbd>Ctrl+U</kbd> merge, <kbd>Shift+T</kbd> texture lock, <kbd>Shift</kbd>+arrows move the texture, <kbd>Shift+PgUp</kbd> and <kbd>Shift+PgDn</kbd> turn it. Everything else keeps the editor's own keys.</li>
+  </ul>
+  <p>Your keys are kept in <code>keymap.cfg</code> in your editor folder, and the tips, the status line and the menus all show your keys, not the defaults.</p>
+  <div class="know">
+    <p>Every action also runs from the console as <code>ed</code> followed by its name (<code>ed hollow</code>, <code>ed play</code>); <code>ed</code> alone lists them all.</p>
+  </div>
+</section>
+
+<!-- ============================================================ XVII -->
+<section id="keys" aria-labelledby="keys-title">
+  <p class="kicker"><span class="rune">XVII</span> Every key</p>
+  <h2 id="keys-title">The key reference</h2>
+  <p>The editor's own keys, as it ships. If you've changed yours, the menus and tips show yours.</p>
+  <div class="me-filter">
+    <label for="key-filter">Find a key or an action</label>
+    <input id="key-filter" type="search" placeholder="grid, texture, Ctrl+ ..." autocomplete="off" spellcheck="false">
+    <p class="me-filter-none" id="key-none" hidden>Nothing matches. Try part of an action's name, or a key such as <kbd>Ctrl</kbd>.</p>
+  </div>
+  <div class="table-wrap">
+  <table class="numbers me-keys" id="key-table">
+    <tbody>
+      <tr class="grp"><th colspan="2" scope="colgroup">Camera</th></tr>
+      <tr><th><kbd>Right mouse</kbd> held</th><td>Look around</td></tr>
+      <tr><th><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> <kbd>Q</kbd> <kbd>E</kbd></th><td>Fly while looking: forward, left, back, right, down, up</td></tr>
+      <tr><th><kbd>Shift</kbd> / <kbd>Ctrl</kbd></th><td>Fly faster / slower</td></tr>
+      <tr><th><kbd>Wheel</kbd></th><td>Move toward the pointer (2D views: zoom; while looking: fly speed)</td></tr>
+      <tr><th><kbd>Middle mouse</kbd> drag</th><td>Slide the view (2D views: the right button too)</td></tr>
+      <tr><th><kbd>F</kbd></th><td>Frame the selection</td></tr>
+      <tr><th><kbd>Home</kbd></th><td>Frame the map</td></tr>
+    </tbody>
+    <tbody>
+      <tr class="grp"><th colspan="2" scope="colgroup">Views and grid</th></tr>
+      <tr><th><kbd>V</kbd></th><td>Four views, or the pane under the pointer alone</td></tr>
+      <tr><th><kbd>Ctrl+Tab</kbd></th><td>Next view: 3D, top, front, side</td></tr>
+      <tr><th><kbd>1</kbd> – <kbd>9</kbd></th><td>Grid 1, 2, 4, 8, 16, 32, 64, 128, 256</td></tr>
+      <tr><th><kbd>[</kbd> <kbd>]</kbd></th><td>Smaller grid / bigger grid</td></tr>
+      <tr><th><kbd>Ctrl</kbd>+wheel</th><td>Grid smaller or bigger</td></tr>
+      <tr><th><kbd>F6</kbd></th><td>Lit preview on and off</td></tr>
+    </tbody>
+    <tbody>
+      <tr class="grp"><th colspan="2" scope="colgroup">Tools</th></tr>
+      <tr><th><kbd>Esc</kbd></th><td>Select tool; cancel what a tool is doing, then clear the selection</td></tr>
+      <tr><th><kbd>B</kbd></th><td>Brush</td></tr>
+      <tr><th><kbd>C</kbd></th><td>Clip</td></tr>
+      <tr><th><kbd>T</kbd></th><td>Faces</td></tr>
+      <tr><th><kbd>L</kbd></th><td>Light</td></tr>
+      <tr><th><kbd>J</kbd></th><td>Jump pad</td></tr>
+      <tr><th><kbd>K</kbd></th><td>Teleporter</td></tr>
+      <tr><th><kbd>Enter</kbd></th><td>Make the brush (Brush) or cut (Clip)</td></tr>
+      <tr><th><kbd>Tab</kbd></th><td>Clip: the side kept (far, near, both)</td></tr>
+    </tbody>
+    <tbody>
+      <tr class="grp"><th colspan="2" scope="colgroup">Selecting and moving</th></tr>
+      <tr><th>Click</th><td>Select (<kbd>Shift</kbd> adds, <kbd>Ctrl</kbd> toggles; double-click reaches inside a group)</td></tr>
+      <tr><th>Drag</th><td>Move on the grid (<kbd>Alt</kbd>: up and down; <kbd>Ctrl</kbd> held: off the grid)</td></tr>
+      <tr><th><kbd>Ctrl</kbd>+drag</th><td>From the selection: drag off a copy; from elsewhere: box select</td></tr>
+      <tr><th><kbd>Shift</kbd>+drag a face</th><td>Push or pull the face</td></tr>
+      <tr><th><kbd>Ctrl+A</kbd> / <kbd>Ctrl+Shift+A</kbd></th><td>Select all / select none</td></tr>
+      <tr><th>Arrows</th><td>Nudge a grid step as the camera sees it (Faces tool: move the texture)</td></tr>
+      <tr><th><kbd>PgUp</kbd> <kbd>PgDn</kbd></th><td>Nudge up / down</td></tr>
+      <tr><th><kbd>Ctrl+D</kbd> or <kbd>Space</kbd></th><td>Duplicate</td></tr>
+      <tr><th><kbd>Ctrl+C</kbd> <kbd>Ctrl+X</kbd> <kbd>Ctrl+V</kbd></th><td>Copy, cut, paste at the pointer</td></tr>
+      <tr><th><kbd>Del</kbd> or <kbd>Backspace</kbd></th><td>Delete (with corners picked: only those corners)</td></tr>
+      <tr><th><kbd>Shift+Del</kbd></th><td>Delete the picked corners</td></tr>
+      <tr><th><kbd>Ctrl+Z</kbd></th><td>Undo</td></tr>
+      <tr><th><kbd>Ctrl+Y</kbd> or <kbd>Ctrl+Shift+Z</kbd></th><td>Redo</td></tr>
+    </tbody>
+    <tbody>
+      <tr class="grp"><th colspan="2" scope="colgroup">Brushes</th></tr>
+      <tr><th><kbd>R</kbd> / <kbd>Shift+R</kbd></th><td>Turn 90 degrees left / right, seen from above</td></tr>
+      <tr><th><kbd>Ctrl+R</kbd> / <kbd>Ctrl+Shift+R</kbd></th><td>Turn 15 degrees left / right</td></tr>
+      <tr><th><kbd>M</kbd></th><td>Mirror front to back (X)</td></tr>
+      <tr><th><kbd>Shift+M</kbd></th><td>Mirror left to right (Y)</td></tr>
+      <tr><th><kbd>Ctrl+M</kbd></th><td>Mirror upside down (Z)</td></tr>
+      <tr><th><kbd>Ctrl+Shift+H</kbd></th><td>Hollow</td></tr>
+      <tr><th><kbd>Ctrl+Shift+X</kbd></th><td>Subtract</td></tr>
+      <tr><th><kbd>Ctrl+J</kbd></th><td>Merge</td></tr>
+      <tr><th><kbd>Ctrl+Shift+T</kbd></th><td>Stairs from a wedge</td></tr>
+      <tr><th><kbd>Ctrl+Shift+D</kbd></th><td>Detail, or structural again</td></tr>
+      <tr><th><kbd>Ctrl+T</kbd></th><td>Texture lock on and off</td></tr>
+    </tbody>
+    <tbody>
+      <tr class="grp"><th colspan="2" scope="colgroup">Materials and textures</th></tr>
+      <tr><th><kbd>I</kbd></th><td>Eyedropper: take the material under the pointer</td></tr>
+      <tr><th><kbd>P</kbd></th><td>Paint the current material</td></tr>
+      <tr><th><kbd>U</kbd></th><td>UV editor</td></tr>
+      <tr><th><kbd>Ctrl+Left</kbd> / <kbd>Ctrl+Right</kbd></th><td>Turn the texture 15 degrees</td></tr>
+      <tr><th><kbd>Ctrl+Up</kbd> / <kbd>Ctrl+Down</kbd></th><td>Texture bigger / smaller</td></tr>
+      <tr><th><kbd>Alt</kbd>+click</th><td>Faces tool: eyedropper</td></tr>
+      <tr><th><kbd>Alt+Shift</kbd>+click</th><td>Paint one face</td></tr>
+    </tbody>
+    <tbody>
+      <tr class="grp"><th colspan="2" scope="colgroup">Hide, lock, group</th></tr>
+      <tr><th><kbd>H</kbd></th><td>Hide the selection</td></tr>
+      <tr><th><kbd>Alt+H</kbd></th><td>Hide the rest</td></tr>
+      <tr><th><kbd>Shift+H</kbd></th><td>Show all</td></tr>
+      <tr><th><kbd>Ctrl+L</kbd> / <kbd>Ctrl+Shift+L</kbd></th><td>Lock the selection / unlock all</td></tr>
+      <tr><th><kbd>Ctrl+G</kbd> / <kbd>Ctrl+Shift+G</kbd></th><td>Group / ungroup</td></tr>
+    </tbody>
+    <tbody>
+      <tr class="grp"><th colspan="2" scope="colgroup">Play and files</th></tr>
+      <tr><th><kbd>F5</kbd></th><td>Play</td></tr>
+      <tr><th><kbd>Shift+F5</kbd></th><td>Play from here</td></tr>
+      <tr><th><kbd>Ctrl+F5</kbd></th><td>Compile</td></tr>
+      <tr><th><kbd>Ctrl+N</kbd></th><td>New map</td></tr>
+      <tr><th><kbd>Ctrl+O</kbd></th><td>Open map</td></tr>
+      <tr><th><kbd>Ctrl+S</kbd> / <kbd>Ctrl+Shift+S</kbd></th><td>Save / save as</td></tr>
+    </tbody>
+    <tbody>
+      <tr class="grp"><th colspan="2" scope="colgroup">Help</th></tr>
+      <tr><th><kbd>F1</kbd></th><td>Getting started</td></tr>
+      <tr><th><kbd>F3</kbd></th><td>Search every action</td></tr>
+      <tr><th><kbd>F10</kbd></th><td>Open the menus from the keyboard</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+</article>
+</div>
+
+<section class="doc-end" aria-labelledby="end-title">
+  <h2 id="end-title">Open it and press F5</h2>
+  <p class="lede">With Oz installed, the map editor is in the main menu. Start from the empty room, or open a stock arena to see how it's made.</p>
+  <div class="hero-actions">
+    <a class="btn btn-blood" href="https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe">Download for Windows</a>
+    <a class="btn btn-ghost" href="https://github.com/ozmiumofficial/oz-arena/releases/latest">Linux and all releases</a>
+    <a class="btn btn-discord" href="https://discord.gg/HbrAUzkEbJ">Share your map on Discord</a>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot-brand"><img src="img/icon-64.png" alt="" width="40" height="40"><span>Ozmium Arena</span></div>
+  <div class="foot-cols">
+    <div><h4>Play</h4><ul>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena/releases/latest/download/OzArenaSetup.exe">Download for Windows</a></li>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena/releases/latest">Linux and all releases</a></li>
+      <li><a href="index.html#install">How to install</a></li>
+    </ul></div>
+    <div><h4>Build</h4><ul>
+      <li><a href="index.html#editor">The map editor</a></li>
+      <li><a href="#open">Editor guide</a></li>
+      <li><a href="#keys">Every key</a></li>
+      <li><a href="level-design.html">Level design guide</a></li>
+    </ul></div>
+    <div><h4>Community</h4><ul>
+      <li><a href="https://discord.gg/HbrAUzkEbJ">Discord</a></li>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena">Source code</a></li>
+      <li><a href="https://github.com/ozmiumofficial/oz-arena/issues">Report a bug</a></li>
+    </ul></div>
+  </div>
+  <div class="foot-rule"></div>
+  <p class="credits">The guide describes the editor as of Ozmium Arena 0.7.23-beta. The diagrams are drawn for this page; the compiler is <a href="https://github.com/Garux/netradiant-custom">NetRadiant-custom</a>'s q3map2.</p>
+  <p class="legal">Ozmium Arena is an unofficial, non-commercial fan project, not affiliated with, endorsed by or sponsored by id Software, Bethesda or ZeniMax. Quake and Quake III Arena are trademarks of ZeniMax Media, named here only to identify the game Ozmium Arena modifies and requires. The code is GPL-2.0; the remastered assets remain id Software's property.</p>
+  <a class="to-top" href="#top">Back to the top</a>
+</footer>
+
+<script src="main.js" defer></script>
+<script src="me.js" defer></script>
+</body>
+</html>

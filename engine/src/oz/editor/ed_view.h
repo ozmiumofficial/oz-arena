@@ -195,6 +195,7 @@ public:
 	void new_map();
 	void frame_all();       // the camera onto the whole map
 	void frame_selection();
+	void frame_bounds(const Bounds &b);  // the views on a box, the 3D view keeping its direction
 	Bounds map_bounds() const;  // where players are (spawns, pickups), else everything
 
 	// ---- what shows (ed_show.cpp): objects hidden (out of every view) or locked (drawn, never picked),
@@ -278,10 +279,12 @@ public:
 	bool leaking() const { return !leak_.empty(); }
 	void frame_leak();
 	// The last compile's warnings, each stage's, alike ones counted once; ids: what each is about (the
-	// brush q3map2 names, the brushes with a material it couldn't find), framed by ed warning <i>.
+	// brush q3map2 names, the brushes with a material it couldn't find), framed by ed warning <i>;
+	// at: where it is when the warning names only points (a flipped triangle), framed when no object holds it.
 	struct CompileWarning {
 		std::string text;
 		std::vector<Id> ids;
+		Bounds at;
 		int count = 1;
 	};
 	const std::vector<CompileWarning> &compile_warnings() const { return warnings_; }
@@ -415,7 +418,8 @@ private:
 	void duplicate();
 	void copy();
 	void paste();
-	void paste_clip(const Clip &clip, const std::string &label);
+	// at_view: with the pointer off the view (on a panel), it goes where the camera looks, not where it was
+	void paste_clip(const Clip &clip, const std::string &label, bool at_view = false);
 	void remove_selection();
 	void set_tool(Tool t);
 	// the faces tool and the mapping (ed_faces.cpp)
@@ -460,6 +464,7 @@ public:
 	// id's maps have them; where each moves is drawn for the selected ones, and played with mover_play
 	struct DoorState {
 		bool any = false, near = false, shot = false, near_mixed = false, shot_mixed = false;
+		bool area = false;  // a trigger area of its own (a trigger_multiple brush) opens it, not the game's hidden one
 		std::string team;
 		int buttons = 0;  // what fires them besides their own zone
 		double speed = 400;    // units a second (the first door's; the game's default 400)
@@ -470,6 +475,9 @@ public:
 	void make_door(bool pair);            // the selected brushes a door, or cut in two a pair sliding apart
 	void make_lift();                     // the selected brushes a func_plat
 	void door_opens(int near, int shot);  // 1 on, 0 off, -1 as it is
+	// A trigger area for the selected doors: brushes selected with them become it, or with none, a box where
+	// the game's own trigger would be; players walking in open the door, and it blocks no one. Selected after.
+	void door_trigger();
 	bool mover_play = false;
 	// What would trouble the map in the game, found before it's compiled: brushes left without collision
 	// by a non-solid face, jump pads that do nothing, targets that name nothing. Each with what it's about.
@@ -706,6 +714,14 @@ private:
 };
 
 Session &session();
+
+// The first solid brush a segment from a to b meets (triggers, hint and the like let players through): its
+// place along the segment, 0 to 1.
+bool solid_hit(const Doc &doc, const Vec3 &a, const Vec3 &b, double &frac);
+// The compile's copy, made right for the game's door rules (ed_movers.cpp): a trigger firing a door waits
+// until the door is open before it fires again (a fire while it opens turns it back), and the door stays
+// open longer than that wait.
+void fix_door_triggers(Doc &d);
 
 // q3map2's detail flag, in a face's contents number: a detail brush doesn't split the BSP for visibility.
 inline constexpr int32_t CONTENTS_DETAIL = 0x8000000;

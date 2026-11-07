@@ -155,6 +155,52 @@ static Id zone_of(const Doc &doc, Id door) {
 	return 0;
 }
 
+// the doors and the other halves of their teams (a team opens as one)
+static std::set<Id> with_team(const Doc &doc, const std::vector<Id> &doors) {
+	std::set<Id> all(doors.begin(), doors.end());
+	for (Id d : doors) {
+		const std::string team = doc.get(d)->entity.get("team");
+		if (team.empty()) {
+			continue;
+		}
+		for (Id e : doc.ids_of(Kind::Entity)) {
+			const Entity &en = doc.get(e)->entity;
+			if (en.classname() == "func_door" && en.get("team") == team) {
+				all.insert(e);
+			}
+		}
+	}
+	return all;
+}
+
+// A trigger firing a door again while it opens turns it back (Use_BinaryMover's 1TO2 case; the game's own
+// door trigger skips that state, a trigger_multiple can't): it waits until the door is open, its travel at
+// its speed and the 50 ms the game starts it late, never less than the game's 0.5.
+static double zone_wait(const Doc &doc, Id door) {
+	const double speed = std::max(1.0, num(doc.get(door)->entity, "speed", 400));
+	return std::max(0.5, std::ceil((end_offset(doc, door).length() / speed + 0.15) * 10) / 10);
+}
+
+// a tag no door's trigger area has yet (unique_targetname alone looks at targetnames, and the tag is
+// _oz_door: two doors' areas got the same one, and one door's changes reached the other's area)
+static std::string new_zone_tag(const Doc &doc) {
+	std::set<std::string> taken;
+	for (Id e : doc.ids_of(Kind::Entity)) {
+		if (const std::string *t = doc.get(e)->entity.find("_oz_door")) {
+			taken.insert(*t);
+		}
+	}
+	return unique_targetname(doc, "doorzone", taken);
+}
+
+// a trigger area's entity, firing the doors named name; its brushes come after
+static Id new_zone(Doc &doc, const std::string &name, const std::string &tag, double wait) {
+	auto t = std::make_shared<Object>();
+	t->kind = Kind::Entity;
+	t->entity.keys = {{"classname", "trigger_multiple"}, {"target", name}, {"wait", number(wait)}, {"_oz_door", tag}};
+	return doc.add(t);
+}
+
 // what fires the door other than its own zone (buttons, triggers, timers)
 static int firers_of(const Doc &doc, Id door) {
 	const std::string name = doc.get(door)->entity.get("targetname");
@@ -334,6 +380,7 @@ void Session::make_lift() {
 
 Session::DoorState Session::door_state() {
 	DoorState s;
+	std::set<std::string> counted;
 	for (Id d : selected_of(*this, "func_door")) {
 		const Entity &e = doc.get(d)->entity;
 		const bool named = !e.get("targetname").empty();
@@ -354,24 +401,18 @@ Session::DoorState Session::door_state() {
 			s.speed_mixed |= s.speed != speed;
 		}
 		s.any = true;
+		s.area |= zone_of(doc, d) != 0;
 		s.team = e.get("team");
-		s.buttons += firers_of(doc, d);
+		if (counted.insert(e.get("targetname")).second) {
+			s.buttons += firers_of(doc, d);  // a team's halves share the name: its buttons once
+		}
 	}
 	return s;
 }
 
 void Session::door_opens(int near, int shot) {
-	std::vector<Id> doors = selected_of(*this, "func_door");
 	// a team opens as one: its other halves go along
-	std::set<Id> all(doors.begin(), doors.end());
-	for (Id d : doors) {
-		const std::string team = doc.get(d)->entity.get("team");
-		for (Id e : doc.ids_of(Kind::Entity)) {
-			if (!team.empty() && doc.get(e)->entity.classname() == "func_door" && doc.get(e)->entity.get("team") == team) {
-				all.insert(e);
-			}
-		}
-	}
+	const std::set<Id> all = with_team(doc, selected_of(*this, "func_door"));
 	if (all.empty()) {
 		say("Select a door first");
 		return;
@@ -380,18 +421,23 @@ void Session::door_opens(int near, int shot) {
 	const bool want_near = near < 0 ? now.near : near != 0, want_shot = shot < 0 ? now.shot : shot != 0;
 	doc.begin("How the door opens");
 	std::string name;  // the team's targetname, shared
+	Id area = 0;       // its trigger area, kept as the mapper shaped it while it still opens near
 	for (Id d : all) {
 		if (name.empty()) {
 			name = doc.get(d)->entity.get("targetname");
+		}
+		if (!area) {
+			area = zone_of(doc, d);
 		}
 	}
 	int fired = 0;
 	for (Id d : all) {
 		fired += firers_of(doc, d);
 	}
-	// the game's own door (near, and shot) unless a button or a trigger fires it: no name, no health
-	const bool plain = want_near && want_shot && !fired;
-	const std::string tag = !plain && want_near ? unique_targetname(doc, "doorzone") : "";
+	// the game's own door (near, and shot) unless a button, a trigger or its trigger area fires it: no name, no health
+	const bool keep_area = area && want_near;
+	const bool plain = want_near && want_shot && !fired && !keep_area;
+	const std::string tag = keep_area ? doc.get(area)->entity.get("_oz_door") : !plain && want_near ? new_zone_tag(doc) : "";
 	if (!plain && name.empty() && (want_near || fired)) {
 		name = unique_targetname(doc, "door");
 	}
@@ -409,24 +455,25 @@ void Session::door_opens(int near, int shot) {
 		} else {
 			o->entity.erase("health");
 		}
-		if (const Id z = zone_of(doc, d)) {
-			for (Id b : doc.owned(z)) {
-				doc.remove(b);
+		if (!keep_area) {
+			if (const Id z = zone_of(doc, d)) {
+				for (Id b : doc.owned(z)) {
+					doc.remove(b);
+				}
+				doc.remove(z);  // made again below when it's still wanted
 			}
-			doc.remove(z);  // made again below when it's still wanted
+			o->entity.erase("_oz_door");
 		}
-		o->entity.erase("_oz_door");
 		doc.put(d, o);
 	}
-	if (!plain && want_near) {
+	if (keep_area) {
+		set_key(doc, {area}, "target", name, "");
+	} else if (!plain && want_near) {
 		// the game's own trigger can't be had without the shot (it makes the door shootable): the same
 		// volume as a trigger_multiple firing the door, resizable like any brush
 		const Id first = *all.begin();
 		const Bounds z = door_zone(doc, first);
-		auto t = std::make_shared<Object>();
-		t->kind = Kind::Entity;
-		t->entity.keys = {{"classname", "trigger_multiple"}, {"target", name}, {"wait", "0.5"}, {"_oz_door", tag}};
-		const Id trig = doc.add(t);
+		const Id trig = new_zone(doc, name, tag, zone_wait(doc, first));
 		doc.add(box_brush(doc, z.lo, z.hi, shader_id("common/trigger"), trig));
 		for (Id d : all) {
 			auto o = doc.edit(d);
@@ -435,10 +482,97 @@ void Session::door_opens(int near, int shot) {
 		}
 	}
 	doc.end();
-	say(want_near && want_shot ? "The door opens when a player comes near, or when shot"
+	say(keep_area ? (want_shot ? "The door opens when a player walks into its trigger area, or when shot"
+						: "The door opens when a player walks into its trigger area; shots don't open it")
+		: want_near && want_shot ? "The door opens when a player comes near, or when shot"
 		: want_near ? "The door opens when a player comes near (its trigger shows: resize it like a brush); shots don't open it"
 		: want_shot ? "The door opens only when shot" : fired ? "The door opens only when its button or trigger fires it"
 		: "The door never opens on its own now: Add button gives it one", !want_near && !want_shot && !fired);
+}
+
+// A trigger area: a trigger_multiple firing the doors. It blocks no one (the game makes a trigger's brushes
+// CONTENTS_TRIGGER whatever their material) and draws nowhere in the game. The world's brushes selected with
+// the door become it (retextured as a trigger, so the view shows it as one); with none, a box where the game's
+// own trigger would be (the team's bounds, 120 units out each way on the thinnest side). The door gets a name
+// and, if shots opened it, health, so it stays shootable.
+void Session::door_trigger() {
+	const std::vector<Id> doors = selected_of(*this, "func_door");
+	if (doors.empty()) {
+		say("Select a door first (and, to shape its trigger area yourself, a brush you drew for it)", true);
+		return;
+	}
+	const std::set<Id> all = with_team(doc, doors);
+	Id zone = 0;
+	for (Id d : all) {
+		if (!zone) {
+			zone = zone_of(doc, d);
+		}
+	}
+	// the world's brushes (or a group's) selected with it become the area; a door's or a trigger's stay theirs
+	std::vector<Id> brushes;
+	for (Id b : selected_brushes(*this)) {
+		const Object *own = doc.get(doc.get(b)->owner);
+		if (doc.get(b)->owner == doc.worldspawn() || (own && own->entity.classname() == "func_group")) {
+			brushes.push_back(b);
+		}
+	}
+	if (zone && brushes.empty()) {
+		set_tool(Tool::Select);
+		select(group_of(zone), SelMode::Set);
+		say("The door has its trigger area: selected, drag its sides to resize it (a brush selected with the door joins it; Delete takes it away)");
+		return;
+	}
+	const DoorState was = door_state();
+	doc.begin("Trigger area");
+	std::string name;
+	for (Id d : all) {
+		if (name.empty()) {
+			name = doc.get(d)->entity.get("targetname");
+		}
+	}
+	if (name.empty()) {
+		name = unique_targetname(doc, "door");
+	}
+	const std::string tag = zone ? doc.get(zone)->entity.get("_oz_door") : new_zone_tag(doc);
+	for (Id d : all) {
+		auto o = doc.edit(d);
+		o->entity.set("targetname", name);
+		o->entity.set("_oz_door", tag);
+		if (was.shot && num(o->entity, "health", 0) <= 0) {
+			o->entity.set("health", "1");  // named, it would open only when fired
+		}
+		doc.put(d, o);
+	}
+	if (!zone) {
+		zone = new_zone(doc, name, tag, zone_wait(doc, *all.begin()));
+	}
+	if (brushes.empty()) {
+		const Bounds z = door_zone(doc, *all.begin());
+		doc.add(box_brush(doc, z.lo, z.hi, shader_id("common/trigger"), zone));
+	} else {
+		std::set<Id> left;
+		for (Id b : brushes) {
+			auto o = doc.edit(b);
+			if (o->owner != doc.worldspawn()) {
+				left.insert(o->owner);
+			}
+			o->owner = zone;
+			for (Face &f : o->brush.faces) {
+				f.shader = shader_id("common/trigger");
+			}
+			doc.put(b, o);
+		}
+		for (Id g : left) {
+			if (doc.get(g) && doc.owned(g).empty()) {
+				doc.remove(g);
+			}
+		}
+	}
+	doc.end();
+	set_tool(Tool::Select);
+	select(group_of(zone), SelMode::Set);
+	say(brushes.empty() ? "Trigger area: walking into it opens the door; it blocks no one. Drag its sides to resize it"
+						: "Trigger area: walking into the brush opens the door; it blocks no one and isn't drawn in the game");
 }
 
 // ---------------------------------------------------------------- the place tool's mover clicks
@@ -575,15 +709,7 @@ bool Session::movers_action(const std::string &action, const std::vector<std::st
 			say("Select a door first");
 			return true;
 		}
-		std::set<Id> all(doors.begin(), doors.end());
-		for (Id d : doors) {
-			const std::string team = doc.get(d)->entity.get("team");
-			for (Id e : doc.ids_of(Kind::Entity)) {
-				if (!team.empty() && doc.get(e)->entity.classname() == "func_door" && doc.get(e)->entity.get("team") == team) {
-					all.insert(e);
-				}
-			}
-		}
+		const std::set<Id> all = with_team(doc, doors);
 		const std::string v = a.empty() ? "" : a[0];
 		const double now = num(doc.get(doors[0])->entity, "speed", 400);
 		const double next = v.empty() ? now : (v[0] == '+' || v[0] == '-') ? now + std::atof(v.c_str()) : std::atof(v.c_str());
@@ -591,7 +717,16 @@ bool Session::movers_action(const std::string &action, const std::vector<std::st
 			say("A door's speed is units a second, more than 0 (the game's default is 400)", true);
 			return true;
 		}
-		set_key(doc, std::vector<Id>(all.begin(), all.end()), "speed", number(std::clamp(std::round(next), 10.0, 5000.0)), "Door speed");
+		doc.begin("Door speed");
+		set_key(doc, std::vector<Id>(all.begin(), all.end()), "speed", number(std::clamp(std::round(next), 10.0, 5000.0)), "");
+		for (Id d : all) {
+			if (const Id z = zone_of(doc, d)) {
+				set_key(doc, {z}, "wait", number(zone_wait(doc, d)), "");  // its trigger area waits till it's open
+			}
+		}
+		doc.end();
+	} else if (action == "door_trigger") {
+		door_trigger();
 	} else if (action == "door_button") {
 		std::vector<Id> doors = selected_of(*this, "func_door");
 		if (doors.empty()) {
@@ -661,6 +796,48 @@ void Session::mover_problems(std::vector<CompileWarning> &out) {
 			out.push_back(std::move(w));
 		}
 	}
+}
+
+// The compile's copy (ed_view.h): a trigger that fires a door again while it opens turns it back, and one
+// that fires it again only after it shut makes it close on the player: its wait goes between the two. (A
+// team's halves sharing one name are right as they are: id's G_FindTeams moves a member's targetname onto
+// the team's master, so the trigger finds the master alone; named apart, the master took the other name.)
+void fix_door_triggers(Doc &d) {
+	std::map<std::string, std::vector<Id>> named;
+	for (Id e : d.ids_of(Kind::Entity)) {
+		const Entity &en = d.get(e)->entity;
+		if (en.classname() == "func_door" && !en.get("targetname").empty()) {
+			named[en.get("targetname")].push_back(e);
+		}
+	}
+	d.begin("doors");
+	for (Id e : d.ids_of(Kind::Entity)) {
+		const Entity &en = d.get(e)->entity;
+		const auto it = named.find(en.get("target"));
+		if (en.classname() != "trigger_multiple" || it == named.end()) {
+			continue;
+		}
+		double need = 0.5;
+		for (Id door : it->second) {
+			need = std::max(need, zone_wait(d, door));
+		}
+		const double wait = num(en, "wait", 0.5);
+		if (wait > 0 && wait < need) {  // 0 or less: it fires once
+			auto o = d.edit(e);
+			o->entity.set("wait", number(need));
+			d.put(e, o);
+		}
+		for (Id door : it->second) {
+			double stays = num(d.get(door)->entity, "wait", 2);  // SP_func_door: 2 s open (0 too), -1 for good
+			stays = stays == 0 ? 2 : stays;
+			if (stays > 0 && stays < std::max(wait, need) + 0.5) {
+				auto o = d.edit(door);
+				o->entity.set("wait", number(std::max(wait, need) + 1));
+				d.put(door, o);
+			}
+		}
+	}
+	d.end();
 }
 
 // ---------------------------------------------------------------- drawn: where they go

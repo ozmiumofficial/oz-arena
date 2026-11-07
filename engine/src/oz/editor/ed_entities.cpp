@@ -191,7 +191,7 @@ void Session::draw_models(const float moved[3], int now) {
 // ---------------------------------------------------------------- links and arcs
 
 // The first solid brush a segment meets (triggers, hint and the like let players through).
-static bool solid_hit(const Doc &doc, const Vec3 &a, const Vec3 &b, double &frac) {
+bool solid_hit(const Doc &doc, const Vec3 &a, const Vec3 &b, double &frac) {
 	const Vec3 d = b - a;
 	const double len = d.length();
 	if (len < 1e-6) {

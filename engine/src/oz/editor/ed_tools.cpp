@@ -119,6 +119,7 @@ const std::vector<Action> &actions() {
 		{"door_shot", "Door opens when shot", "", "The selected doors open when shot, or not (ed door_shot 1|0)"},
 		{"door_speed", "Door speed", "", "How fast the selected doors open, in units a second (ed door_speed <units>|+n|-n; the game's default 400)"},
 		{"door_button", "Add a button", "", "Click a wall: a button there that opens the selected doors (pressed, or shot with health)"},
+		{"door_trigger", "Add a trigger area", "", "The selected door gets a trigger area: walking into it opens the door, and it blocks no one. Select a brush you drew with the door and that brush becomes it; with none, a box around the doorway to resize"},
 		{"train_path", "Lay a path", "", "The selected train: click where it goes, corner by corner; the first corner again closes the loop"},
 		{"mover_play", "Play movers", "", "The selected doors, lifts, bobbing, rotating and swinging brushes and trains move in the view as in the game"},
 		{"lift_travel", "Lift travel", "", "ed lift_travel <units>|+n|-n: how far the selected lifts go down"},
@@ -425,7 +426,7 @@ void Session::paste() {
 	paste_clip(clipboard_, "Paste");
 }
 
-void Session::paste_clip(const Clip &clip, const std::string &label) {
+void Session::paste_clip(const Clip &clip, const std::string &label, bool at_view) {
 	const Bounds b = clip_bounds(clip);
 	Vec3 offset = camera_axis(true) * grid;
 	Hit h;
@@ -434,6 +435,47 @@ void Session::paste_clip(const Clip &clip, const std::string &label) {
 		Vec3 at = snap_vec(h.point);
 		Vec3 c = b.center();
 		offset = Vec3(at.x - snap(c.x), at.y - snap(c.y), h.normal.z > 0.7 ? h.point.z - b.lo.z : at.z - snap(c.z));
+	} else if (!b.empty() && at_view) {
+		// the pointer's on a panel (a prefab clicked in the Prefabs tab): where the camera looks, the active
+		// view's middle, near enough to see; on the floor there, or under it, else in the air in front
+		const Vec3 c = b.center(), half = (b.hi - b.lo) * 0.5;
+		const double sx = vx_ + vw_ * 0.5, sy = vy_ + vh_ * 0.5;
+		Vec3 o, d;
+		ray(sx, sy, o, d);
+		const bool hit = pick(sx, sy, h, false);
+		if (ortho_axis_ >= 0) {
+			// a 2D view: across it at its middle; deep where the ray meets something, else as deep as it was
+			Vec3 at = hit ? h.point : o + d * (c - o).dot(d);
+			if (hit && h.normal.z > 0.7) {
+				offset = Vec3(snap(at.x) - snap(c.x), snap(at.y) - snap(c.y), h.point.z - b.lo.z);
+			} else {
+				offset = snap_vec(at) - snap_vec(c);
+			}
+		} else {
+			const double reach = std::max(256.0, half.length() * 3);
+			Vec3 at = hit && h.t <= reach ? h.point : o + d * reach;
+			if (hit && h.t <= reach && h.normal.z > 0.7) {
+				offset = Vec3(snap(at.x) - snap(c.x), snap(at.y) - snap(c.y), at.z - b.lo.z);
+			} else {
+				// a wall, a ceiling or nothing near: off the surface, back toward the camera by half its size,
+				// then down onto a floor
+				if (hit && h.t <= reach) {
+					at = at + h.normal * 2;
+					const Vec3 flat(d.x, d.y, 0);
+					if (flat.length() > 1e-3) {
+						const Vec3 u = flat.normalized();
+						at = at - u * (std::fabs(u.x) * half.x + std::fabs(u.y) * half.y + grid);
+					}
+				}
+				double frac;
+				const Vec3 down = at - Vec3(0, 0, reach);
+				if (solid_hit(doc, at, down, frac)) {
+					offset = Vec3(snap(at.x) - snap(c.x), snap(at.y) - snap(c.y), (at.z + (down.z - at.z) * frac) - b.lo.z);
+				} else {
+					offset = snap_vec(at) - snap_vec(c);
+				}
+			}
+		}
 	}
 	std::vector<Id> made = oz::ed::paste(doc, clip, offset, label);
 	corners.clear();
@@ -660,6 +702,17 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 				there.push_back(id);
 			}
 		}
+		if (there.empty() && !warnings_[i].at.empty()) {
+			// only a spot: framed, at least a few grid squares across so it isn't a pinpoint
+			Bounds b = warnings_[i].at;
+			const Vec3 c = b.center();
+			b.add(c - Vec3(48, 48, 48));
+			b.add(c + Vec3(48, 48, 48));
+			select(std::vector<Id>{}, SelMode::Set);
+			frame_bounds(b);
+			say(warnings_[i].text + " (framed where it is: no brush holds it now)");
+			return true;
+		}
 		if (there.empty()) {
 			say(warnings_[i].text + (warnings_[i].ids.empty() ? "" : " (what it was about is gone since)"));
 			return true;
@@ -746,6 +799,16 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 	}
 	if (action == "compile_wait") {
 		compile_wait();  // a test hook: until the compile is done
+		return true;
+	}
+	if (action == "warning_line") {
+		// a test hook: a compile log's line read as a warning ("WARNING: Duplicate or Flipped triangle: ( x y z ) ...")
+		std::string line;
+		for (const std::string &w : a) {
+			line += (line.empty() ? "" : " ") + w;
+		}
+		warnings_.clear();
+		collect_warnings(line, "test");
 		return true;
 	}
 	if (action == "frame_leak") {

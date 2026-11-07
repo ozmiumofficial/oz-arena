@@ -1101,6 +1101,11 @@ void Session::frame_selection() {
 	frame_2d(selection_bounds());
 }
 
+void Session::frame_bounds(const Bounds &b) {
+	look_at(cam, b, true);
+	frame_2d(b);
+}
+
 void Session::frame(int x, int y, int w, int h) {
 	const ozEdRender_t *r = OzEd_Renderer();
 	if (!r || w <= 0 || h <= 0) {

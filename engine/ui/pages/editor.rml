@@ -862,6 +862,11 @@
 				<button class="tb" data-action="door_pair" onclick="append ed door_pair">Double door</button>
 				<button class="tb" data-action="lift" onclick="append ed lift">Lift</button>
 			</div>
+			<p class="enote">For the selected door (with a brush you drew for it, if you like):</p>
+			<div class="row">
+				<button class="tb" data-action="door_trigger" onclick="append ed door_trigger">Trigger area</button>
+				<button class="tb" data-action="door_button" onclick="append ed door_button">Button</button>
+			</div>
 			<div id="ed-ents"></div>
 		</div>
 

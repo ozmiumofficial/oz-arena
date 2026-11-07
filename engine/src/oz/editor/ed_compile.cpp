@@ -578,6 +578,7 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 		boxed.put(boxed.worldspawn(), w);
 		boxed.end();
 	}
+	fix_door_triggers(boxed);  // doors fired by triggers and buttons, as the game's rules need them
 	const std::string text = write_map(boxed, wo);
 	const std::string shaders = j.dir + "/home/baseq3/scripts/oz_editor_tools.shader";
 	const std::string tool_shaders = std::string(TOOL_SHADERS) + sky_light_shaders(doc);
@@ -927,6 +928,37 @@ void Session::collect_warnings(const std::string &log, const std::string &stage)
 					if (uses) {
 						w.ids.push_back(id);
 					}
+				}
+			}
+			// points it names, "( x y z )" (a duplicate or flipped triangle): the smallest brush or curve
+			// around them, or the spot itself when none is
+			for (size_t p = line.find('('); p != std::string::npos; p = line.find('(', p + 1)) {
+				double x, y, z;
+				if (std::sscanf(line.c_str() + p, "( %lf %lf %lf )", &x, &y, &z) == 3) {
+					w.at.add(Vec3(x, y, z));
+				}
+			}
+			if (w.ids.empty() && !w.at.empty()) {
+				Id best = 0;
+				double least = 1e300;
+				for (Id id : doc.ids()) {
+					const Object *o = doc.get(id);
+					if (o->kind != Kind::Brush && o->kind != Kind::Patch) {
+						continue;
+					}
+					Bounds b = bounds_of(doc, id);
+					if (b.empty() || !(b.lo.x - 1 <= w.at.lo.x && b.lo.y - 1 <= w.at.lo.y && b.lo.z - 1 <= w.at.lo.z &&
+							w.at.hi.x <= b.hi.x + 1 && w.at.hi.y <= b.hi.y + 1 && w.at.hi.z <= b.hi.z + 1)) {
+						continue;
+					}
+					const Vec3 sz = b.size();
+					const double vol = (sz.x + 1) * (sz.y + 1) * (sz.z + 1);
+					if (vol < least) {
+						least = vol, best = id;
+					}
+				}
+				if (best) {
+					w.ids.push_back(best);
 				}
 			}
 		}

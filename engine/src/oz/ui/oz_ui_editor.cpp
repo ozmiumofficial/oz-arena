@@ -1166,8 +1166,9 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 			if ( mover == "func_door" ) {
 				const oz::ed::Session::DoorState ds = s.door_state();
 				m += "<div class=\"sub\">OPENS WHEN</div><div class=\"row\">";
-				check( "ed-door-near", "A player comes near", ds.near, ds.near_mixed, "door_near",
-					"A trigger around the doorway, 120 units out each side: walking up to it opens it" );
+				check( "ed-door-near", ds.area ? "A player walks into its trigger area" : "A player comes near", ds.near, ds.near_mixed, "door_near",
+					ds.area ? "Its trigger area (the orange brush) opens it: select it to move or resize it" :
+					"A trigger around the doorway, 120 units out each side: walking up to it opens it (Add trigger area shows it, to shape)" );
 				check( "ed-door-shot", "It's shot", ds.shot, ds.shot_mixed, "door_shot", "Any shot that hits it opens it" );
 				m += "</div><div class=\"sub\">SPEED</div><div class=\"row\"><button class=\"tb\" data-hint=\"Slower by 50 units a second\" "
 					 "onclick=\"append ed door_speed -50\">Slower</button><input type=\"text\" class=\"text\" id=\"ed-door-speed\" style=\"width: 4.5rem;\" value=\"" +
@@ -1183,7 +1184,9 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 				speedChip( "Normal", 400 );
 				speedChip( "Fast", 800 );
 				m += "<span class=\"note\">" + Enc( ds.speed_mixed ? "The selected doors differ" : "Opens in " + Num( std::round( ds.seconds * 100 ) / 100 ) + " s" ) + "</span>";
-				m += "</div><div class=\"row\"><button class=\"tb\" data-action=\"door_button\" onclick=\"append ed door_button\">Add button</button>";
+				m += "</div><div class=\"row\"><button class=\"tb\" data-action=\"door_trigger\" onclick=\"append ed door_trigger\">" +
+					 Rml::String( ds.area ? "Select trigger area" : "Add trigger area" ) + "</button>"
+					 "<button class=\"tb\" data-action=\"door_button\" onclick=\"append ed door_button\">Add button</button>";
 				m += "<span class=\"note\">" + Enc( ds.buttons ? std::to_string( ds.buttons ) + ( ds.buttons == 1 ? " button or trigger fires it" : " buttons or triggers fire it" )
 					: !ds.team.empty() ? "Its halves open together (team " + ds.team + ")" : "The arrows above: which way it slides" ) + "</span></div>";
 			} else if ( mover == "func_plat" ) {
@@ -1896,7 +1899,7 @@ void OpenWarnings( Rml::ElementDocument *doc ) {
 	Rml::String rml;
 	for ( size_t i = 0; i < ws.size(); i++ ) {
 		const std::string n = std::to_string( i );
-		const std::string about = ws[i].ids.empty() ? "" : ws[i].ids.size() == 1 ? "1 object" : std::to_string( ws[i].ids.size() ) + " objects";
+		const std::string about = ws[i].ids.empty() ? ( ws[i].at.empty() ? "" : "a spot" ) : ws[i].ids.size() == 1 ? "1 object" : std::to_string( ws[i].ids.size() ) + " objects";
 		rml += "<button class=\"srow wrow\" id=\"ed-wr-" + n + "\" data-hint=\"" + Enc( ws[i].text ) + "\" onclick=\"append ed panel warning_pick " + n +
 			"\"><span class=\"sl\">" + Enc( ws[i].text ) + "</span><span class=\"sk\">" + Enc( about + ( ws[i].count > 1 ? " x" + std::to_string( ws[i].count ) : "" ) ) +
 			"</span></button>";
@@ -2658,7 +2661,7 @@ const struct {
 	{ "texture", { "show_materials", "pick_material", "paint", "-", "uv", "tex_fit", "tex_left", "tex_right", "tex_top", "tex_bottom", "tex_center",
 		"-", "tex_flip_s", "tex_flip_t", "tex_rotate_left", "tex_rotate_right", "tex_scale_up", "tex_scale_down", "tex_reset" } },
 	{ "entity", { "show_entities", "light", "jump_pad", "push_land", "teleporter", "-", "#MOVERS", "door", "door_pair", "lift", "door_button",
-		"train_path", "mover_play", "-", "to_world", "-", "#DEFRAG", "defrag_start", "defrag_checkpoint", "defrag_finish",
+		"door_trigger", "train_path", "mover_play", "-", "to_world", "-", "#DEFRAG", "defrag_start", "defrag_checkpoint", "defrag_finish",
 		"defrag_speed", "defrag_shooter", "defrag_check", "play_defrag" } },
 	{ "build", { "play", "play_here", "play_defrag", "-", "sky_sun", "-", "compile", "compile_stop", "preview", "-", "check_map", "frame_leak", "warnings" } },
 	{ "help", { "guide", "keymap", "search" } },
@@ -3375,6 +3378,7 @@ void Stats_f() {
 		Printf( "ed_stats asking: %s\n", s.asking.c_str() );
 	}
 	Printf( "ed_stats panes: %d %s %s\n", s.layout, oz::ed::pane_name( s.solo ), oz::ed::pane_name( s.active_pane() ) );
+	Printf( "ed_stats camera: %.0f %.0f %.0f\n", s.cam.origin.x, s.cam.origin.y, s.cam.origin.z );
 	std::string kept;
 	if ( s.recovery_offer( kept ) ) {
 		Printf( "ed_stats recovery: %s\n", kept.c_str() );

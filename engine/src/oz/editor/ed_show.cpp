@@ -502,7 +502,7 @@ bool Session::prefab_insert(const std::string &name) {
 		say("The prefab " + file + " is empty", true);
 		return false;
 	}
-	paste_clip(clip, "Insert " + file);
+	paste_clip(clip, "Insert " + file, true);
 	return true;
 }
 

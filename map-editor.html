@@ -122,7 +122,12 @@
   <p class="kicker"><span class="rune">I</span> Open the editor</p>
   <h2 id="open-title">From the main menu, one click</h2>
   <p>Pick <b>Map Editor</b> in the main menu. The first time, it opens on a new map: a small lit room with a light and a spawn point, ready to play as it is. The editor draws with the Oz renderer, the one Oz picks by default; if you've switched to another one, the status line tells you to switch back under Settings, Video, Renderer.</p>
-  <p>A card comes up the first time too: <b>Getting started</b>, six steps to a map you can play (look around, build, shape, paint, fill it, play). <b>Got it</b> closes it, and <kbd>F1</kbd> or Help, Getting started brings it back whenever you want it.</p>
+  <p>A card comes up the first time too, with six steps to a map you can play (look around, build, shape, paint, fill it, play). <b>Got it</b> closes it, and <kbd>F1</kbd> or Help, Getting started brings it back whenever you want it.</p>
+
+  <figure class="shot framed">
+    <img src="img/editor_guide.jpg" alt="The map editor opening for the first time: a card with six numbered steps over a new room, the same steps listed again in the Inspect tab on the right" loading="lazy" width="1600" height="900">
+    <figcaption>The first time: the card over a new room. The same six steps stay in the Inspect tab while nothing is selected.</figcaption>
+  </figure>
 
   <figure class="diagram">
     <div class="plate">
@@ -138,41 +143,34 @@
           <text x="280" y="21">Brush</text><text x="318" y="21">Curve</text><text x="356" y="21">Texture</text><text x="404" y="21">Entity</text>
           <text x="446" y="21">Build</text><text x="482" y="21">Help</text>
         </g>
-        <text class="t-tiny t-faint" x="614" y="21">untitled *</text>
-        <rect class="ui-btn" x="668" y="7" width="84" height="20"/><text class="t-tiny t-ink mid" x="710" y="21">MAIN MENU</text>
-        <!-- action bar -->
+        <text class="t-tiny t-faint" x="618" y="21">untitled *</text>
+        <rect class="ui-btn" x="672" y="7" width="80" height="20" rx="3"/><path class="ui-ic" transform="translate(684 17)" d="M0-4H-4V4H0 M-1.5 0H4.5 M2.5-2L4.5 0L2.5 2"/><text class="t-tiny t-ink" x="694" y="21">Main menu</text>
+        <!-- action bar: icons for the commands used most, an icon and a word for the rest -->
         <rect class="ui-bar2" x="30" y="34" width="730" height="28"/>
-        <g class="t-tiny t-ink">
-          <text x="40" y="52">NEW</text><text x="62" y="52">OPEN</text><text x="89" y="52">SAVE</text>
-          <text x="123" y="52">UNDO</text><text x="150" y="52">REDO</text>
-          <text x="184" y="52">DUPLICATE</text><text x="235" y="52">DELETE</text><text x="271" y="52">TURN</text><text x="298" y="52">MIRROR</text>
-          <text x="341" y="52">HOLLOW</text><text x="377" y="52">SUBTRACT</text><text x="423" y="52">MERGE</text>
-          <text x="462" y="52">PAINT</text>
-          <text x="574" y="52">SEARCH</text><text x="610" y="52">LIT PREVIEW</text><text x="671" y="52">COMPILE</text>
-        </g>
-        <path class="ui-sep" d="M116 41V55M177 41V55M334 41V55M455 41V55"/>
-        <rect class="ui-btn on" x="494" y="40" width="66" height="16"/><text class="t-tiny t-ink mid" x="527" y="52">TEXTURE LOCK</text>
-        <rect class="ui-play" x="714" y="40" width="38" height="16"/><text class="t-tiny mid t-dark" x="733" y="52">PLAY</text>
-        <!-- tool strip -->
+        <path class="ui-ic" transform="translate(45 48)" d="M-3-4.5H1.5L3.5-2.5V4.5H-3Z"/><path class="ui-ic" transform="translate(63 48)" d="M-4.5-3.5H-1L0-2.5H4.5V3.5H-4.5Z"/><path class="ui-ic" transform="translate(81 48)" d="M-4-4H2.5L4-2.5V4H-4Z M-2-4V-1.5H2V-4"/><path class="ui-ic" transform="translate(107 48)" d="M3.5 3.5A4 4 0 0 0 -2.5 -2 M-4.5-4V-1H-1.5"/><path class="ui-ic" transform="translate(125 48)" d="M-3.5 3.5A4 4 0 0 1 2.5 -2 M4.5-4V-1H1.5"/><path class="ui-ic" transform="translate(151 48)" d="M-4.5-1.5H1.5V4.5H-4.5Z M-1.5-1.5V-4.5H4.5V1.5H1.5"/><path class="ui-ic" transform="translate(169 48)" d="M-3-2.5H3L2.4 4.5H-2.4Z M-4.5-2.5H4.5 M-1.2-4.5H1.2"/><path class="ui-ic" transform="translate(187 48)" d="M4 0A4 4 0 1 1 1.5 -3.7 M0.5-5.5L1.8-3.6L-0.2-2.4"/><path class="ui-ic" transform="translate(205 48)" d="M0-5V5 M-1.8-3.5L-4.5 3.5H-1.8Z M1.8-3.5L4.5 3.5H1.8Z"/>
+        <path class="ui-sep" d="M95 41V55M139 41V55M219 41V55M361 41V55M487 41V55"/>
+        <rect class="ui-btn" x="225" y="40" width="40" height="16" rx="3"/><path class="ui-ic" transform="translate(233 48)" d="M-4-4H4V4H-4Z M-1.8-1.8H1.8V1.8H-1.8Z"/><text class="t-tiny t-ink" x="240" y="51">Hollow</text>
+        <rect class="ui-btn" x="268" y="40" width="48" height="16" rx="3"/><path class="ui-ic" transform="translate(276 48)" d="M-4.5-4.5H1.5V1.5H-4.5Z M-1.5 1.5V4.5H4.5V-1.5H1.5"/><text class="t-tiny t-ink" x="283" y="51">Subtract</text>
+        <rect class="ui-btn" x="319" y="40" width="38" height="16" rx="3"/><path class="ui-ic" transform="translate(327 48)" d="M-3.5-4.5L0 0L3.5-4.5 M0 0V4.5"/><text class="t-tiny t-ink" x="334" y="51">Merge</text>
+        <path class="ui-ic" transform="translate(373 48)" d="M-4 4L1-1 M-0.5-2.5L2.5 0.5 M1-4L4-1"/><path class="ui-ic" transform="translate(391 48)" d="M-3.5-0.5L0-4L4 0L0.5 3.5Z M4 2V4"/>
+        <rect class="ui-btn on" x="403" y="40" width="80" height="16" rx="3"/><path class="ui-ic on" transform="translate(411 48)" d="M-3-0.5H3V4.5H-3Z M-2-0.5V-2.5A2 2 0 0 1 2 -2.5V-0.5"/><text class="t-tiny t-ink" x="418" y="51">Texture lock</text><rect class="ui-switch" x="465" y="44" width="13" height="8" rx="4"/><circle class="ui-knob" cx="474" cy="48" r="2.6"/>
+        <path class="ui-ic" transform="translate(499 48)" d="M-4.5-4.5H-0.8V-0.8H-4.5Z M0.8-4.5H4.5V-0.8H0.8Z M-4.5 0.8H-0.8V4.5H-4.5Z M0.8 0.8H4.5V4.5H0.8Z"/>
+        <rect class="ui-btn" x="511" y="40" width="39" height="16" rx="3"/><path class="ui-ic" transform="translate(519 48)" d="M-4.5-1.5V-4.5H-1.5 M1.5-4.5H4.5V-1.5 M4.5 1.5V4.5H1.5 M-1.5 4.5H-4.5V1.5"/><text class="t-tiny t-ink" x="526" y="51">Frame</text>
+        <rect class="ui-search" x="555" y="40" width="48" height="16" rx="3"/><path class="ui-ic" transform="translate(563 48)" d="M1.6-1A2.6 2.6 0 1 1 -3.6 -1A2.6 2.6 0 1 1 1.6 -1Z M0.8 1L4 4.2"/><text class="t-tiny t-faint" x="570" y="51">Search</text>
+        <rect class="ui-btn" x="607" y="40" width="58" height="16" rx="3"/><path class="ui-ic" transform="translate(615 48)" d="M2 0A2 2 0 1 1 -2 0A2 2 0 1 1 2 0Z M0-5V-3.6 M0 3.6V5 M-5 0H-3.6 M3.6 0H5 M-3.5-3.5L-2.5-2.5 M2.5 2.5L3.5 3.5 M-3.5 3.5L-2.5 2.5 M2.5-2.5L3.5-3.5"/><text class="t-tiny t-ink" x="622" y="51">Lit preview</text>
+        <rect class="ui-btn" x="669" y="40" width="45" height="16" rx="3"/><path class="ui-ic" transform="translate(677 48)" d="M-4 4.5L0.5 0 M-1.5-2L1.5-5L4.5-2L1.5 1Z"/><text class="t-tiny t-ink" x="684" y="51">Compile</text>
+        <rect class="ui-play" x="717" y="40" width="37" height="16" rx="3"/><path class="ui-ic light" transform="translate(724 48)" d="M-2.5-3.5L3.5 0L-2.5 3.5Z"/><text class="t-tiny t-onred" x="731" y="51">Play</text>
+        <!-- tool strip: a card for each tool, its icon, name and key -->
         <rect class="ui-strip" x="30" y="62" width="82" height="350"/>
-        <text class="t-tiny t-faint" x="38" y="78">BUILD</text>
-        <rect class="ui-tool on" x="36" y="84" width="70" height="22"/>
-        <rect class="ui-tool" x="36" y="111" width="70" height="22"/>
-        <rect class="ui-tool" x="36" y="138" width="70" height="22"/>
-        <rect class="ui-tool" x="36" y="165" width="70" height="22"/>
-        <text class="t-tiny t-faint" x="38" y="206">PLACE</text>
-        <rect class="ui-tool" x="36" y="212" width="70" height="22"/>
-        <rect class="ui-tool" x="36" y="239" width="70" height="22"/>
-        <rect class="ui-tool" x="36" y="266" width="70" height="22"/>
-        <rect class="ui-tool" x="36" y="293" width="70" height="22"/>
-        <g class="t-tiny t-ink">
-          <text x="42" y="99">SELECT</text><text x="42" y="126">BRUSH</text><text x="42" y="153">CLIP</text><text x="42" y="180">FACES</text>
-          <text x="42" y="227">ENTITY</text><text x="42" y="254">LIGHT</text><text x="42" y="281">JUMP PAD</text><text x="42" y="308">TELEPORT</text>
-        </g>
-        <g class="t-tiny t-amber end">
-          <text x="101" y="99">Esc</text><text x="101" y="126">B</text><text x="101" y="153">C</text><text x="101" y="180">T</text>
-          <text x="101" y="254">L</text><text x="101" y="281">J</text><text x="101" y="308">K</text>
-        </g>
+        <text class="t-micro t-quiet" x="38" y="76">BUILD</text><text class="t-micro t-quiet" x="38" y="231">PLACE</text>
+        <rect class="ui-tool on" x="36" y="81" width="70" height="31" rx="4"/><path class="ui-ic on" transform="translate(71 92)" d="M-3.5-5L3.5 1H-0.2L1.8 5 M-3.5-5V3L-0.6 0.6"/><text class="t-tiny t-hot mid" x="71" y="107">Select</text><text class="t-micro t-faint end" x="102" y="90">Esc</text>
+        <rect class="ui-tool" x="36" y="116" width="70" height="31" rx="4"/><path class="ui-ic" transform="translate(71 127)" d="M0-5L4.5-2.5V2.5L0 5L-4.5 2.5V-2.5Z M-4.5-2.5L0 0L4.5-2.5 M0 0V5"/><text class="t-tiny t-ink mid" x="71" y="142">Brush</text><text class="t-micro t-faint end" x="102" y="125">B</text>
+        <rect class="ui-tool" x="36" y="151" width="70" height="31" rx="4"/><path class="ui-ic" transform="translate(71 162)" d="M-4-5L2.5 2 M4-5L-2.5 2 M-1 3.6A1.4 1.4 0 1 1 -3.8 3.6A1.4 1.4 0 1 1 -1 3.6Z M5.2 3.6A1.4 1.4 0 1 1 2.4 3.6A1.4 1.4 0 1 1 5.2 3.6Z"/><text class="t-tiny t-ink mid" x="71" y="177">Clip</text><text class="t-micro t-faint end" x="102" y="160">C</text>
+        <rect class="ui-tool" x="36" y="186" width="70" height="31" rx="4"/><path class="ui-ic" transform="translate(71 197)" d="M0-5L4.5-2.5V2.5L0 5L-4.5 2.5V-2.5Z M-4.5-2.5L0 0L4.5-2.5 M0 0V5 M1.5 0.8L3.3-0.2V1.8L1.5 2.8Z"/><text class="t-tiny t-ink mid" x="71" y="212">Faces</text><text class="t-micro t-faint end" x="102" y="195">T</text>
+        <rect class="ui-tool" x="36" y="237" width="70" height="31" rx="4"/><path class="ui-ic" transform="translate(71 248)" d="M0-4.5L4.5 0L0 4.5L-4.5 0Z M1.3 0A1.3 1.3 0 1 1 -1.3 0A1.3 1.3 0 1 1 1.3 0Z"/><text class="t-tiny t-ink mid" x="71" y="263">Entity</text>
+        <rect class="ui-tool" x="36" y="272" width="70" height="31" rx="4"/><path class="ui-ic" transform="translate(71 283)" d="M0-5A3.2 3.2 0 0 1 3.2 -1.8C3.2 0 1.6 0.8 1.6 2.2H-1.6C-1.6 0.8 -3.2 0 -3.2 -1.8A3.2 3.2 0 0 1 0 -5Z M-1.4 4H1.4"/><text class="t-tiny t-ink mid" x="71" y="298">Light</text><text class="t-micro t-faint end" x="102" y="281">L</text>
+        <rect class="ui-tool" x="36" y="307" width="70" height="31" rx="4"/><path class="ui-ic" transform="translate(71 318)" d="M-5 3.5H5 M-3.5 3.5Q0-6 3.5 3.5"/><text class="t-tiny t-ink mid" x="71" y="333">Jump pad</text><text class="t-micro t-faint end" x="102" y="316">J</text>
+        <rect class="ui-tool" x="36" y="342" width="70" height="31" rx="4"/><path class="ui-ic" transform="translate(71 353)" d="M0-5V0.5 M-2.2-2.8L0-5L2.2-2.8 M-4.5 4H4.5 M-3 2H3"/><text class="t-tiny t-ink mid" x="71" y="368">Teleport</text><text class="t-micro t-faint end" x="102" y="351">K</text>
         <!-- the view -->
         <rect class="ui-view" x="112" y="62" width="388" height="350"/>
         <g clip-path="url(#clip-view)">
@@ -188,29 +186,27 @@
         <g class="spawn-glyph" transform="translate(178 300)"><circle cx="0" cy="-30" r="6"/><path d="M0-24V2M0 2L-8 22M0 2L8 22M-11-14H11"/></g>
         <g transform="translate(432 168)"><circle class="lamp-glow" r="22"/><rect class="lamp" x="-6" y="-6" width="12" height="12"/></g>
         <text class="t-tiny t-faint" x="122" y="80">3D VIEW</text>
-        <!-- the panel -->
+        <!-- the panel: seven tabs in a row -->
         <rect class="ui-panel" x="500" y="62" width="260" height="350"/>
+        <g class="t-micro"><text class="t-hot" x="508" y="82">Inspect</text><text x="541" y="82">Materials</text><text x="581" y="82">Entities</text><text x="616" y="82">Prefabs</text><text x="649" y="82">Objects</text><text x="683" y="82">World</text><text x="709" y="82">History</text></g>
+        <path class="ui-tab-on" d="M508 88H534"/>
+        <path class="ui-sep" d="M506 94H754"/>
+        <text class="t-small t-ink" x="512" y="114">Nothing is selected</text>
+        <text class="t-micro t-quiet" x="512" y="136">GETTING STARTED</text><path class="ui-sep" d="M512 141H750"/>
         <g class="t-tiny">
-          <text class="t-hot" x="510" y="84">INSPECT</text><text x="560" y="84">MATERIALS</text><text x="620" y="84">ENTITIES</text><text x="674" y="84">PREFABS</text>
-          <text x="510" y="106">OBJECTS</text><text x="558" y="106">WORLD</text><text x="598" y="106">HISTORY</text>
+          <text x="512" y="157"><tspan class="t-glow">1</tspan>  Hold the right button to look</text>
+          <text x="512" y="173"><tspan class="t-glow">2</tspan>  Brush: drag a footprint, then up</text>
+          <text x="512" y="189"><tspan class="t-glow">3</tspan>  Click to select, drag to move</text>
+          <text x="512" y="205"><tspan class="t-glow">4</tspan>  Materials tab: click to paint</text>
+          <text x="512" y="221"><tspan class="t-glow">5</tspan>  Entities tab: pick, then click</text>
+          <text x="512" y="237"><tspan class="t-glow">6</tspan>  Play F5 runs around in it</text>
         </g>
-        <path class="ui-tab-on" d="M510 89H550"/>
-        <path class="ui-sep" d="M506 114H754"/>
-        <text class="t-small t-ink" x="512" y="134">Nothing is selected</text>
-        <text class="t-tiny t-red" x="512" y="158">GETTING STARTED</text>
-        <g class="t-tiny">
-          <text x="512" y="178"><tspan class="t-glow">1</tspan>  Hold the right button to look</text>
-          <text x="512" y="194"><tspan class="t-glow">2</tspan>  Brush: drag a footprint, then up</text>
-          <text x="512" y="210"><tspan class="t-glow">3</tspan>  Click to select, drag to move</text>
-          <text x="512" y="226"><tspan class="t-glow">4</tspan>  Materials tab: click to paint</text>
-          <text x="512" y="242"><tspan class="t-glow">5</tspan>  Entities tab: pick, then click</text>
-          <text x="512" y="258"><tspan class="t-glow">6</tspan>  Play F5 runs around in it</text>
-        </g>
-        <text class="t-tiny t-red" x="512" y="288">MAP KEYS</text>
-        <rect class="ui-field" x="512" y="298" width="96" height="18"/><rect class="ui-field" x="614" y="298" width="136" height="18"/>
-        <rect class="ui-field" x="512" y="322" width="96" height="18"/><rect class="ui-field" x="614" y="322" width="136" height="18"/>
-        <rect class="ui-field" x="512" y="346" width="96" height="18"/><rect class="ui-field" x="614" y="346" width="136" height="18"/>
-        <g class="t-tiny"><text x="518" y="311">message</text><text x="518" y="335">music</text><text x="518" y="359">gravity</text></g>
+        <text class="t-micro t-quiet" x="512" y="266">MAP KEYS</text><path class="ui-sep" d="M512 271H750"/>
+        <rect class="ui-field" x="512" y="280" width="96" height="18" rx="2"/><rect class="ui-field" x="614" y="280" width="136" height="18" rx="2"/>
+        <rect class="ui-field" x="512" y="304" width="96" height="18" rx="2"/><rect class="ui-field" x="614" y="304" width="136" height="18" rx="2"/>
+        <rect class="ui-field" x="512" y="328" width="96" height="18" rx="2"/><rect class="ui-field" x="614" y="328" width="136" height="18" rx="2"/>
+        <g class="t-tiny"><text x="518" y="293">message</text><text x="518" y="317">music</text><text x="518" y="341">gravity</text></g>
+        <rect class="ui-chip on" x="512" y="352" width="56" height="16" rx="8"/><text class="t-tiny t-ink mid" x="540" y="363">Sky and sun</text>
         <!-- status line -->
         <rect class="ui-bar" x="30" y="412" width="730" height="28"/>
         <text class="t-tiny t-amber" x="40" y="430">Click to select, drag to move · Shift+drag a face pushes it</text>
@@ -219,9 +215,9 @@
         <g class="callout">
           <g transform="translate(15 17)"><circle r="10"/><text class="mid" y="4">1</text></g>
           <g transform="translate(15 48)"><circle r="10"/><text class="mid" y="4">2</text></g>
-          <g transform="translate(71 390)"><circle r="10"/><text class="mid" y="4">3</text></g>
-          <g transform="translate(140 390)"><circle r="10"/><text class="mid" y="4">4</text></g>
-          <g transform="translate(528 390)"><circle r="10"/><text class="mid" y="4">5</text></g>
+          <g transform="translate(71 394)"><circle r="10"/><text class="mid" y="4">3</text></g>
+          <g transform="translate(140 394)"><circle r="10"/><text class="mid" y="4">4</text></g>
+          <g transform="translate(528 394)"><circle r="10"/><text class="mid" y="4">5</text></g>
           <g transform="translate(15 426)"><circle r="10"/><text class="mid" y="4">6</text></g>
         </g>
       </svg>
@@ -229,9 +225,9 @@
     <figcaption>
       <b>The screen</b>
       <ol class="me-legend">
-        <li><b>The menu bar.</b> File, Edit, Select, View, Brush, Curve, Texture, Entity, Build and Help hold every action, each row with its keys. A mark shows what's on; a row is grayed out when there's nothing for it to work on. Main Menu is at the right end.</li>
-        <li><b>The action bar.</b> The actions you reach for most, with Play in green at the right. In a narrow window, New, Open, 4 Views, Frame and Search give up their place (they're still in the menus).</li>
-        <li><b>The tool strip.</b> Eight tools, each with its key, the one in use lit.</li>
+        <li><b>The menu bar.</b> File, Edit, Select, View, Brush, Curve, Texture, Entity, Build and Help hold every action, each row with its keys. A mark shows what's on; a row is grayed out when there's nothing for it to work on. Main menu is at the right end.</li>
+        <li><b>The action bar.</b> The actions you reach for most. The commonest are icons (point at one for its name and key), the rest an icon and a word; Play is the red button at the right. In a narrow window, New, Open, Four views, Frame and Search give up their place (they're still in the menus).</li>
+        <li><b>The tool strip.</b> Eight tools, each a card with its icon, name and key, the one in use outlined in red.</li>
         <li><b>The view.</b> One 3D view, or four views with <kbd>V</kbd>.</li>
         <li><b>The panel.</b> Seven tabs: Inspect, Materials, Entities, Prefabs, Objects, World and History.</li>
         <li><b>The status line.</b> What the pointer is over and what a tool wants next on the left; the map's counts, the grid and the texture lock on the right. Notes like "Undo Jump higher" show here for a while too.</li>
@@ -244,7 +240,7 @@
   <p>With nothing selected, the Inspect tab shows the getting started steps, the map's own settings and a short list of keys, so the panel is never empty.</p>
 
   <h3>Leaving and coming back</h3>
-  <p><b>Main Menu</b> at the right of the menu bar (or File, Exit to main menu) takes you back to the main menu. Nothing is lost: the map stays in the editor exactly as it was until you open it again, saved or not.</p>
+  <p><b>Main menu</b> at the right of the menu bar (or File, Exit to main menu) takes you back to the main menu. Nothing is lost: the map stays in the editor exactly as it was until you open it again, saved or not.</p>
   <p><kbd>Esc</kbd> never leaves the editor. It cancels whatever a tool is in the middle of, and then clears the selection. To work the menus from the keyboard, press <kbd>F10</kbd>: the arrows move through them and Enter picks a row.</p>
   <div class="know">
     <p>The editor also opens from the console: type <code>editor</code>.</p>
@@ -281,11 +277,11 @@
 <section id="views" aria-labelledby="views-title">
   <p class="kicker"><span class="rune">III</span> Views and the grid</p>
   <h2 id="views-title">One view or four, and everything on the grid</h2>
-  <p>Press <kbd>V</kbd> (or 4 Views in the action bar) to split the view into four panes, as classic map editors do: the 3D view, <b>top</b> (X across, Y up), <b>front</b> (X across, Z up) and <b>side</b> (Y across, Z up). Press <kbd>V</kbd> again and the pane under the pointer fills the view alone. <kbd>Ctrl+Tab</kbd> steps that single view through 3D, top, front and side.</p>
+  <p>Press <kbd>V</kbd> (or the four-squares icon in the action bar) to split the view into four panes, as classic map editors do: the 3D view, <b>top</b> (X across, Y up), <b>front</b> (X across, Z up) and <b>side</b> (Y across, Z up). Press <kbd>V</kbd> again and the pane under the pointer fills the view alone. <kbd>Ctrl+Tab</kbd> steps that single view through 3D, top, front and side.</p>
 
   <figure class="shot framed">
     <img src="img/editor_views.jpg" alt="The editor in four views on The Longest Yard: the 3D view at top left, the top, front and side views as line drawings, and the Inspect tab showing the map's own keys" loading="lazy" width="1600" height="900">
-    <figcaption>Four views on a stock arena opened in the editor. With nothing selected, Inspect shows the getting started steps and the map's keys. (Screenshots on this page are from an earlier build: the panel has since gained the Prefabs and World tabs.)</figcaption>
+    <figcaption>Four views on a stock arena opened in the editor. With nothing selected, Inspect shows the getting started steps and the map's own keys.</figcaption>
   </figure>
 
   <p>The 2D views are flat line drawings: brushes of the world in gray, brushes of an entity (a door, a trigger) in blue, the selection in orange, with entities, links and handles drawn as in 3D. Each one keeps its own place and zoom; Frame (<kbd>F</kbd>) and Frame the map (<kbd>Home</kbd>) set all four at once. In a 2D view, drag with the right or middle button to slide it, and turn the wheel to zoom toward the pointer.</p>
@@ -352,7 +348,7 @@
     <li><kbd>Ctrl</kbd>+drag the selection to drag off a copy and leave the original in place.</li>
     <li>The <b>arrow keys</b> nudge the selection a grid step as the camera sees it: <kbd>Up</kbd> moves it away from you, <kbd>Down</kbd> toward you. <kbd>PgUp</kbd> and <kbd>PgDn</kbd> move it up and down.</li>
     <li><b>Duplicate</b> (<kbd>Ctrl+D</kbd> or <kbd>Space</kbd>) puts a copy beside the selection, to its right as the camera sees it. <b>Copy</b>, <b>Cut</b> and <b>Paste</b> are <kbd>Ctrl+C</kbd>, <kbd>Ctrl+X</kbd> and <kbd>Ctrl+V</kbd>; Paste puts it where the pointer is, on the grid. <kbd>Del</kbd> or <kbd>Backspace</kbd> deletes.</li>
-    <li><b>By numbers:</b> the Transform rows of the Inspect tab move the selection by X, Y and Z, turn it by any number of degrees (Spin flat turns it on the floor, Tip X and Tip Y tip it over the red and green grid lines), and resize it to a width, depth and height, standing on its floor.</li>
+    <li><b>By numbers:</b> the Transform rows of the Inspect tab move the selection by X, Y and Z (the fields lettered in the grid's colors; press <kbd>Enter</kbd> or the check beside them), turn it by any number of degrees (Spin flat turns it on the floor, Tip X and Tip Y tip it over the red and green grid lines), and resize it to a width, depth and height, standing on its floor.</li>
   </ul>
 
   <h3>The handles</h3>
@@ -495,6 +491,11 @@
   </ul>
   <p>The search box narrows any of them as you type ("concrete", "gothic", "sky"). Tool materials, like the invisible clip and trigger ones, show in their own colors in the view, as other editors draw them.</p>
 
+  <figure class="shot framed">
+    <img src="img/editor_materials.jpg" alt="A room blocked out in plain colored grid textures, a selected block painted teal, and the Materials tab showing the current material and the twelve dev textures" loading="lazy" width="1600" height="900">
+    <figcaption>A blockout in the dev textures. The selected block is teal, which is now the current material at the top of the tab.</figcaption>
+  </figure>
+
   <h3>Eyedropper and Paint</h3>
   <ul>
     <li><b>Eyedropper</b> (<kbd>I</kbd>): the material of the face under the pointer becomes the current one.</li>
@@ -511,14 +512,19 @@
   </ul>
 
   <h3>Texture rows in the Inspect tab</h3>
-  <p>For the picked faces (or the selected brushes), Inspect shows the material, a <b>Color</b> row that tints the texture (in the view and in the game), and the <b>Texture</b> numbers: shift, scale and turn, typed in directly, blank where the faces differ. Under them:</p>
+  <p>For the picked faces (or the selected brushes), Inspect shows the material with <b>Paint selection</b> and <b>Browse</b>, a <b>Color</b> row that tints the texture in the view and in the game (one row of strong colors; <b>More</b> adds paler ones and grays), and the <b>Texture</b> numbers: shift, scale and turn, typed in directly (U across, V down), "mixed" where the faces differ. Beside and under them:</p>
   <ul>
-    <li><b>Left 15</b>, <b>Right 15</b>, <b>×2</b> and <b>/2</b>.</li>
+    <li><b>×2</b> and <b>÷2</b> for the scale, <b>Left 15°</b> and <b>Right 15°</b> for the turn.</li>
     <li><b>Fit</b>: the texture so many times across and down each face.</li>
-    <li><b>Left</b>, <b>Right</b>, <b>Top</b>, <b>Bottom</b>, <b>Center</b>: line an edge (or the middle) of each face up with the texture.</li>
-    <li><b>Flip across</b>, <b>Flip down</b> and <b>Reset</b> (the default mapping at half scale).</li>
+    <li><b>Align</b>: five icons that line an edge of each face (left, right, top, bottom) or its middle up with the texture, then two that flip it across and down. Point at one for its name.</li>
+    <li><b>Reset</b>: the default mapping at half scale.</li>
     <li><b>UV editor</b> (<kbd>U</kbd>): the face's outline over its texture's tiles. Drag the texture to slide it, turn the wheel to zoom, use the same buttons under it, and Frame puts the face back in the middle. <kbd>U</kbd> or <kbd>Esc</kbd> closes it.</li>
   </ul>
+
+  <figure class="shot framed">
+    <img src="img/editor_faces.jpg" alt="The Faces tool with one wall's face picked and tinted blue, and the Inspect tab showing its material, the color row and the texture numbers with align buttons" loading="lazy" width="1600" height="900">
+    <figcaption>One face picked with the Faces tool (<kbd>T</kbd>): its material, color and texture numbers in the Inspect tab.</figcaption>
+  </figure>
 </section>
 
 <!-- ============================================================ VIII -->
@@ -528,8 +534,8 @@
   <p><b>Entities</b> are everything in a map that isn't plain wall: weapons and armor, spawn points, lights, jump pads, teleporters, doors, triggers. The <b>Entities tab</b> lists them all in plain words.</p>
 
   <figure class="shot framed">
-    <img src="img/editor_entities.jpg" alt="A room with a jump pad's arc, a spawn point standing as a fighter, a rocket launcher, trigger boxes, and the Entities tab listing armor, health and weapons as icons" loading="lazy" width="1600" height="900">
-    <figcaption>The Entities tab beside a test room: pickups by their icons, a jump pad's arc drawn where players will fly, a spawn point standing as a fighter.</figcaption>
+    <img src="img/editor_entities.jpg" alt="A room with a jump pad's arc, a teleporter's link, a spawn point standing as a fighter, a rocket launcher and armor, and the Entities tab with a card for the player spawn, the quick builds and the spawn tiles" loading="lazy" width="1600" height="900">
+    <figcaption>The Entities tab beside a test room. The card on top says what's about to be placed (a player spawn) and what to click next, with the quick builds under it. In the view: a jump pad's arc, a teleporter's link, a spawn point standing as a fighter.</figcaption>
   </figure>
 
   <h3>The Entities tab</h3>
@@ -584,11 +590,17 @@
   </figure>
   <p>After the second click the Select tool is back with the new pad selected. Drag its landing ring to move where it lands; the throw re-aims as you drag, all in one undo step. <b>Land here</b> in the Inspect tab (or the Entity menu) lets you click a new landing spot, and <b>Higher</b> and <b>Lower</b> raise or drop the arc by 32 units while it still lands in the same place.</p>
 
+  <figure class="shot framed">
+    <img src="img/editor_jumppad.jpg" alt="A selected jump pad in a test room, its arc and landing ring drawn, and the Inspect tab reading out the throw: 696 a second, 202 up, 581 across, 1.5 s in the air, with Land here, Higher and Lower" loading="lazy" width="1600" height="900">
+    <figcaption>A pad just made: the ring at the landing drags, and Inspect reads out the throw.</figcaption>
+  </figure>
+
   <h3>The other quick builds</h3>
   <ul>
     <li><b>Teleporter</b> (<kbd>K</kbd>): click the entrance, then the exit. You get the teleport trigger and its destination, linked.</li>
     <li><b>Light</b> (<kbd>L</kbd>): click a surface and a light goes one grid step off it. Its color, brightness and reach are in the Inspect tab (<a href="#inspector">below</a>).</li>
-    <li><b>Door</b>: select brushes, press Door. They become a sliding door that opens when a player comes near or when it's shot. Inspect sets which way it slides and what opens it.</li>
+    <li><b>Door</b>: select brushes, press Door. They become a sliding door that opens when a player comes near or when it's shot. Inspect sets which way it slides, what opens it and how fast.</li>
+    <li><b>Trigger area</b> (for a selected door): the area players walk into to open it, made for you as a box around the doorway and selected so you can resize it. Select a brush you drew along with the door and that brush becomes the area instead. It blocks no one and doesn't show in the game.</li>
     <li><b>Double door</b>: the selected brush is cut in two, a pair of doors sliding apart and opening together.</li>
     <li><b>Lift</b>: build it where its top should be. It starts lowered and rises when someone steps on it; Inspect sets how far it travels.</li>
   </ul>
@@ -621,8 +633,12 @@
   <ul>
     <li>A selected <b>jump pad</b> reads out its throw: launch speed, how high over the pad, how far across, and its time in the air, with Land here, Higher and Lower. If something's wrong with it, the readout says what in red.</li>
     <li>A selected <b>light</b> has its color and two sliders: <b>Intensity</b> (300 by default) and <b>Range</b>. All the way left, Range is Auto and the light fades as real light does; anywhere else, the light fades evenly to nothing at that distance. <b>Make spotlight</b> aims it: an aim point goes on the floor below, which you drag to point it, and a <b>Cone</b> slider sets how wide it shines. <b>Back to a point light</b> undoes it.</li>
-    <li>A selected <b>door</b> has switches for what opens it (a player comes near, it's shot), arrows for the way it slides, and how many buttons or triggers open it.</li>
+    <li>A selected <b>door</b> has switches for what opens it (a player comes near, or walks into its trigger area; it's shot), arrows for the way it slides, and how many buttons or triggers open it. <b>Speed</b> is in units a second (the game's default is 400): <b>Slower</b> and <b>Faster</b> step it by 50, <b>Slow</b>, <b>Normal</b> and <b>Fast</b> set 100, 400 and 800, and beside them is how long it takes to open. <b>Add trigger area</b> gives it an area to walk into, and once it has one, <b>Select trigger area</b> picks it to move or resize.</li>
   </ul>
+  <figure class="shot framed">
+    <img src="img/editor_door.jpg" alt="A door in a doorway with its orange trigger area in front and an outline where it slides to, and the Inspect tab's door rows: what opens it, its speed with Slower, Faster, Slow, Normal and Fast, and Select trigger area" loading="lazy" width="1600" height="900">
+    <figcaption>A door with its trigger area (the orange box players walk into) and the outline of where it slides to. Inspect has what opens it and its speed: at 400 it opens in 0.28 s.</figcaption>
+  </figure>
 </section>
 
 <!-- ============================================================ X -->
@@ -661,7 +677,11 @@
   <h3>Groups</h3>
   <p><b>Group</b> (<kbd>Ctrl+G</kbd>) ties the selected brushes and curves together: a click selects the whole group and a double-click one brush in it. <b>Ungroup</b> (<kbd>Ctrl+Shift+G</kbd>) takes it apart. Groups are only for editing; in the game they're plain world.</p>
   <h3>Prefabs</h3>
-  <p>A <b>prefab</b> is a piece you've built and want again, in this map or any other: a staircase, a doorway, a lamp with its light. Select it, type a name in the <b>Prefabs</b> tab and press <b>Save selection</b>. The tab shows every prefab you've saved as a 3D thumbnail; click one to put it where the pointer is, as Paste does. Delete takes two clicks, so it can't happen by accident.</p>
+  <p>A <b>prefab</b> is a piece you've built and want again, in this map or any other: a staircase, a doorway, a lamp with its light. Select it, type a name in the <b>Prefabs</b> tab and press <b>Save selection</b>. The tab shows every prefab you've saved as a 3D thumbnail; click one to put it where you're looking: on the floor in the middle of the view, or against the wall there. Delete takes two clicks, so it can't happen by accident.</p>
+  <figure class="shot framed">
+    <img src="img/editor_prefabs.jpg" alt="The Prefabs tab with a name field, Save selection, and two saved prefabs shown as 3D thumbnails: a crate and a doorway with its door" loading="lazy" width="1600" height="900">
+    <figcaption>Two prefabs saved from this room, the doorway with its door and trigger area, and a crate.</figcaption>
+  </figure>
   <h3>The Objects tab</h3>
   <p>Everything in the map, listed: the world and every entity in the file's order, with their brushes under them. Type in the filter to find a class, a name or a material. Click a row to select it (<kbd>Shift</kbd> adds, <kbd>Ctrl</kbd> toggles), double-click to frame it. Hidden and locked rows are marked, and the tab has the hide, lock and group buttons too.</p>
 </section>
@@ -679,6 +699,10 @@
     <li><b>Sun brightness</b> (100 is about as bright as the stock outdoor maps), <b>Sun height</b> (degrees over the horizon: 90 is straight down, low makes long shadows), <b>Sun direction</b> (degrees: 0 from the east, the +X side, 90 from +Y), <b>Sky light</b> (how much the sky itself glows onto the map) and <b>Ambient light</b> (a little light everywhere; 5 to 20 is subtle).</li>
     <li><b>Defaults</b> puts all of it back.</li>
   </ul>
+  <figure class="shot framed">
+    <img src="img/editor_world.jpg" alt="A room with its ceiling taken away, gray clouds overhead in the view, an arrow showing which way the sun shines, and the World tab's light settings" loading="lazy" width="1600" height="900">
+    <figcaption>The World tab on a new map, its ceiling taken away. The sky shows in the view as you change it, and an arrow shows where the sun shines from.</figcaption>
+  </figure>
   <div class="know">
     <p>You don't need to seal your map against the void. Every compile closes it in a box of sky by itself, out past the map's edges and above it, with a deadly floor under it so anyone who falls off an edge dies at once. The box is only in the compiled copy, never in your file.</p>
   </div>
@@ -725,6 +749,10 @@
     <li><b>Lit preview</b> (<kbd>F6</kbd>): the editor's view shows the map lit by its own lights, from the last compile. Changes you make meanwhile are drawn over it; <kbd>F6</kbd> again goes back to the plain view.</li>
   </ul>
   <figure class="shot framed">
+    <img src="img/editor.jpg" alt="The Longest Yard open in the map editor in Lit preview, lit as in the game against its starry sky, jump pad arcs drawn over it, the heavy armor selected and its keys in the Inspect tab" loading="lazy" width="1600" height="900">
+    <figcaption>A stock arena opened in the editor, compiled in 12 seconds and seen in Lit preview, with its heavy armor selected. The compile's warnings wait behind the button in the action bar.</figcaption>
+  </figure>
+  <figure class="shot framed">
     <img src="img/editor_play.jpg" alt="Running around a compiled test room with the game's HUD, a rocket launcher on the floor and a pool of light on the far wall" loading="lazy" width="1600" height="900">
     <figcaption>A test room after F5: the full game, HUD and all. Escape, then Back to the map editor.</figcaption>
   </figure>
@@ -732,7 +760,7 @@
   <p>In the game, press <kbd>Esc</kbd>: the pause menu has <b>Back to the map editor</b> while you're in a play-test. The editor comes back with the map, the selection and the camera exactly as you left them.</p>
   <h3>When something's wrong</h3>
   <ul>
-    <li>After a compile with warnings, the status line counts them and a <b>Warnings</b> button shows in the action bar. Pick a warning and the editor selects and frames what it's about: a brush painted with a material the game doesn't have, say.</li>
+    <li>After a compile with warnings, the status line counts them and a <b>Warnings</b> button shows in the action bar. Pick a warning and the editor selects and frames what it's about: a brush painted with a material the game doesn't have, say. A warning that gives only a spot in the map selects the brush there, or frames the spot when there's none.</li>
     <li><b>Check the map</b> (Build menu) looks for what would go wrong in the game: brushes without collision, jump pads that do nothing, targets that name nothing. What it finds goes in the same list.</li>
     <li>If a compile ever finds a leak (a hole from the inside of the map out to the void), it stops and draws a red line from an entity out through the gap; <b>Show the leak</b> turns the camera onto it.</li>
   </ul>
@@ -987,7 +1015,7 @@
     </ul></div>
   </div>
   <div class="foot-rule"></div>
-  <p class="credits">The guide describes the editor as of Ozmium Arena 0.7.23-beta. The diagrams are drawn for this page; the compiler is <a href="https://github.com/Garux/netradiant-custom">NetRadiant-custom</a>'s q3map2.</p>
+  <p class="credits">The guide describes the editor as of Ozmium Arena 0.7.26-beta. The diagrams are drawn for this page; the compiler is <a href="https://github.com/Garux/netradiant-custom">NetRadiant-custom</a>'s q3map2.</p>
   <p class="legal">Ozmium Arena is an unofficial, non-commercial fan project, not affiliated with, endorsed by or sponsored by id Software, Bethesda or ZeniMax. Quake and Quake III Arena are trademarks of ZeniMax Media, named here only to identify the game Ozmium Arena modifies and requires. The code is GPL-2.0; the remastered assets remain id Software's property.</p>
   <a class="to-top" href="#top">Back to the top</a>
 </footer>

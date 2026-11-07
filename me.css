@@ -239,21 +239,34 @@
 .dg .mid, .dg .mid text { text-anchor: middle; }
 .dg .end, .dg .end text { text-anchor: end; }
 
-/* the screen */
-.dg .ui-bg { fill: #070605; }
-.dg .ui-bar { fill: #0d0a09; stroke: #241c18; }
-.dg .ui-bar2 { fill: #0a0807; stroke: #241c18; }
-.dg .ui-strip { fill: #0a0807; stroke: #241c18; }
-.dg .ui-view { fill: #0c0908; stroke: #3a1a10; }
-.dg .ui-panel { fill: #0d0a09; stroke: #241c18; }
-.dg .ui-sep { stroke: #2a211d; stroke-width: 1; fill: none; }
-.dg .ui-btn { fill: #120e0c; stroke: #4a3a30; }
-.dg .ui-btn.on { fill: #3a1209; stroke: var(--red); }
-.dg .ui-play { fill: #6fe08a; stroke: #2a6e3a; }
-.dg .ui-tool { fill: #120e0c; stroke: #2e241e; }
-.dg .ui-tool.on { fill: #3a1209; stroke: var(--red); }
+/* the screen (the editor's look since 0.7.24: warm charcoal layers, red only for what's on and Play) */
+.dg .ui-bg { fill: #0e0b0a; }
+.dg .ui-bar { fill: #110d0c; stroke: #241d1a; }
+.dg .ui-bar2 { fill: #1a1513; stroke: #241d1a; }
+.dg .ui-strip { fill: #1a1513; stroke: #241d1a; }
+.dg .ui-view { fill: #0c0908; stroke: #2a221e; }
+.dg .ui-panel { fill: #1a1513; stroke: #241d1a; }
+.dg .ui-sep { stroke: #2e2622; stroke-width: 1; fill: none; }
+.dg .ui-btn { fill: #221c19; stroke: #2e2622; }
+.dg .ui-btn.on { fill: #3b1c13; stroke: var(--glow); }
+.dg .ui-ibtn { fill: #1a1513; stroke: none; }
+.dg .ui-ibtn.on { fill: #3b1c13; stroke: var(--glow); }
+.dg .ui-search { fill: #100d0c; stroke: #2e2622; }
+.dg .ui-play { fill: #e8381a; stroke: #ff5a36; }
+.dg .ui-tool { fill: #1a1513; stroke: #262019; }
+.dg .ui-tool.on { fill: #391b12; stroke: var(--glow); }
 .dg .ui-tab-on { stroke: var(--glow); stroke-width: 2; }
-.dg .ui-field { fill: #070605; stroke: #2a211d; }
+.dg .ui-field { fill: #100d0c; stroke: #2a221e; }
+.dg .ui-chip { fill: #221c19; stroke: #2e2622; }
+.dg .ui-chip.on { fill: #3b1c13; stroke: var(--glow); }
+.dg .ui-switch { fill: var(--glow); }
+.dg .ui-knob { fill: #fff3e6; }
+.dg .ui-ic { fill: none; stroke: #c4b8ae; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
+.dg .ui-ic.on { stroke: var(--glow); }
+.dg .ui-ic.light { stroke: #fff3e6; }
+.dg .t-micro, .dg .t-micro text { font-size: 7.5px; font-weight: 600; letter-spacing: .05em; }
+.dg .t-quiet, .dg .t-quiet text { fill: #b3a79d; letter-spacing: .16em; }
+.dg .t-onred, .dg .t-onred text { fill: #fff3e6; }
 .dg .ui-grid { stroke: #2a211d; stroke-width: 1; fill: none; }
 .dg .ui-axis-x { stroke: #b3170a88; stroke-width: 1.2; fill: none; }
 .dg .ui-axis-y { stroke: #3a9a4a88; stroke-width: 1.2; fill: none; }

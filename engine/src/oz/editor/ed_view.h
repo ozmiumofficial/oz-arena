@@ -215,7 +215,11 @@ public:
 	bool prefab_save(const std::string &name);
 	bool prefab_insert(const std::string &name);
 	std::vector<std::string> prefab_names() const;
-	int prefab_rev = 0;             // bumps when one is saved
+	bool prefab_delete(const std::string &name);  // its .map and its thumbnails
+	// A prefab's 3D thumbnail, as the UI names it ("/editor/prefabs/<name>.<stamp>.jpg"), "" while it has
+	// none; each save draws a new one (prefab_thumb_tick), and asking for a prefab without one queues it.
+	std::string prefab_thumb(const std::string &name);
+	int prefab_rev = 0;             // bumps when one is saved, deleted or gets its thumbnail
 	void group_selection();         // the selected brushes and curves made a func_group
 	void ungroup_selection();       // the selected groups' brushes back in the world
 
@@ -521,6 +525,18 @@ private:
 
 	Mesher world_, chosen_, wire_, wire_sel_;
 	Overlay ents_, ents_sel_, hover_lines_, pane_handles_[4], grid2d_[3], preview_, faces_lines_;
+	// prefab thumbnails (ed_show.cpp): the prefab read into a document of its own and drawn alone, framed,
+	// in a square in the 3D view's middle for a few frames, while a screenshot takes it
+	void prefab_thumb_tick(int x, int y, int w, int h, int now);
+	std::vector<std::string> thumb_queue_;
+	std::set<std::string> thumb_tried_;  // asked for this run: one try each, even if it fails
+	std::string thumb_name_;
+	std::shared_ptr<Doc> thumb_doc_;
+	Mesher thumb_mesh_;
+	Overlay thumb_ents_;
+	Camera thumb_cam_;
+	int thumb_state_ = 0, thumb_frames_ = 0;  // 0 idle, 1 drawing until the screenshot lands
+	int thumb_rect_[4] = {0, 0, 0, 0};
 	uint64_t faces_doc_rev_ = ~0ull, faces_sel_rev_ = ~0ull;
 	int generation_ = -1;
 	int grid_mesh_ = 0;

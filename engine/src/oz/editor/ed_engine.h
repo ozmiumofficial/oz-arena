@@ -50,6 +50,9 @@ const char	*OzEd_HomePath( void );					// fs_homepath
 const char	*OzEd_BaseQ3( void );					// the player's baseq3 folder, "" when unknown
 const char	*OzEd_EngineDir( void );				// the folder OzArena.exe is in
 int			OzEd_FileExists( const char *path );	// an OS path
+int			OzEd_RemoveOSFile( const char *path );	// 1 when it's gone
+// An RGB image (rows bottom-up, as glReadPixels and the screenshots have them) written as a JPEG; 1 when written.
+int			OzEd_SaveJPG( const char *path, int width, int height, const unsigned char *rgb, int quality );
 char		**OzEd_ListOSFiles( const char *dir, const char *ext, int *count );	// file names; free with OzEd_FreeList
 void		OzEd_FreeList( char **list );
 // Runs a program and waits (taking the window's messages meanwhile); its output goes to log. The exit code, -1 when it didn't start.

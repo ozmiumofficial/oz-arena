@@ -102,8 +102,10 @@ const std::vector<Action> &actions() {
 		{"filter_sky", "Sky", "", "Shows or hides the sky brushes"},
 		{"filter_entities", "Point entities", "", "Shows or hides the point entities (pickups, spawns, lights ...)"},
 		{"filter_curves", "Curves", "", "Shows or hides the curves"},
-		{"prefab_save", "Save as a prefab", "", "ed prefab_save <name>: the selection saved as a prefab, for any map (the Entities panel lists them)"},
+		{"prefab_save", "Save as a prefab", "", "ed prefab_save <name>: the selection saved as a prefab, for any map (the Prefabs panel lists them)"},
 		{"prefab_insert", "Insert a prefab", "", "ed prefab_insert <name>: a saved prefab put where the pointer is"},
+		{"prefab_delete", "Delete a prefab", "", "ed prefab_delete <name>: a saved prefab and its thumbnail deleted"},
+		{"show_prefabs", "Prefabs panel", "", "The panel's Prefabs tab: every prefab you saved, with a 3D thumbnail; click one to put it in the map"},
 		{"defrag_start", "Start line", "", "Defrag: click one side of the course, then the other: a trigger across it fires Defrag's start timer"},
 		{"defrag_checkpoint", "Checkpoint line", "", "Defrag: a trigger across the course firing a checkpoint (two clicks, side to side)"},
 		{"defrag_finish", "Finish line", "", "Defrag: a trigger across the course firing Defrag's stop timer (two clicks, side to side)"},
@@ -614,9 +616,9 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 		curves_action(action.substr(6));
 		return true;
 	}
-	if (action == "prefab_save" || action == "prefab_insert") {
+	if (action == "prefab_save" || action == "prefab_insert" || action == "prefab_delete") {
 		const std::string name = a.empty() ? "" : a[0];
-		action == "prefab_save" ? prefab_save(name) : prefab_insert(name);
+		action == "prefab_save" ? prefab_save(name) : action == "prefab_insert" ? prefab_insert(name) : prefab_delete(name);
 		return true;
 	}
 	if (action == "hide" || action == "hide_others") {
@@ -689,7 +691,8 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 		want_page = action;
 		return true;
 	}
-	if (action == "show_inspect" || action == "show_materials" || action == "show_entities" || action == "show_objects" || action == "show_history") {
+	if (action == "show_inspect" || action == "show_materials" || action == "show_entities" || action == "show_objects" || action == "show_history" ||
+		action == "show_prefabs") {
 		want_page = "panel " + action.substr(5);
 		return true;
 	}

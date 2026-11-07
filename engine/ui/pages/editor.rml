@@ -133,12 +133,12 @@
 		.ptabs { display: flex; height: 2.5rem; border-bottom: 1dp #ffffff14; padding: 0 0.35rem; flex-shrink: 0; }
 		.ptab {
 			display: block;
-			flex: 1;
+			flex: 1 1 auto;
 			text-align: center;
-			padding-top: 0.72rem;
-			font-size: 0.72rem;
+			padding-top: 0.75rem;
+			font-size: 0.62rem;
 			font-weight: 600;
-			letter-spacing: 0.05em;
+			letter-spacing: 0.02em;
 			color: #a59a90;
 			border-bottom: 2dp transparent;
 		}
@@ -212,6 +212,18 @@
 		.folder:hover { background-color: #db241033; }
 		.folder .n { color: #5d554f; margin-left: 0.3rem; }
 		.pager { justify-content: center; }
+		.pfs { display: flex; flex-wrap: wrap; }
+		.pfbox { display: block; width: 10.4rem; margin: 0 0.3rem 0.6rem 0; }
+		.pf { display: block; }
+		.pf .pfsw { display: block; width: 10.1rem; height: 10.1rem; border: 1dp #ffffff26; background-color: #12100e; }
+		.pf .pfsw img { display: block; width: 10.1rem; height: 10.1rem; }
+		.pf .pfsw span { display: block; padding-top: 4.5rem; text-align: center; font-size: 0.66rem; letter-spacing: 0.08em; color: #5d554f; }
+		.pf:hover .pfsw { border-color: #db2410; }
+		.pf .mn { display: block; font-size: 0.78rem; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 10.1rem; margin-top: 0.2rem; }
+		.pfdel { display: inline-block; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.08em; color: #8d847c; padding: 0.12rem 0.35rem; margin-top: 0.15rem; border: 1dp #ffffff1f; }
+		.pfdel:hover { color: #ff7a66; border-color: #ff7a66; }
+		.pfdel.armed { color: #0a0807; background-color: #ff7a66; border-color: #ff7a66; }
+		#panel-prefabs .note { font-size: 0.8rem; color: #8d847c; margin: 0.2rem 0 0.4rem 0; }
 		.pager span { margin: 0 0.6rem; }
 
 		/* the outliner and the history */
@@ -504,6 +516,7 @@
 			<button class="ptab on" id="tab-inspect" data-hint="What's selected: its material, texture mapping, place and keys" onclick="append ed panel inspect">INSPECT</button>
 			<button class="ptab" id="tab-materials" data-hint="Every material in your game's files: click one to paint the selection with it" onclick="append ed panel materials">MATERIALS</button>
 			<button class="ptab" id="tab-entities" data-hint="Pickups, spawns, lights, triggers and the rest: click one, then where it goes" onclick="append ed panel entities">ENTITIES</button>
+			<button class="ptab" id="tab-prefabs" data-hint="Your prefabs: select brushes and entities, name them, save; click one to put it in any map" onclick="append ed panel prefabs">PREFABS</button>
 			<button class="ptab" id="tab-objects" data-hint="Everything in the map, by entity: click selects, double-click frames" onclick="append ed panel objects">OBJECTS</button>
 			<button class="ptab" id="tab-history" data-hint="Every change: click one to go back (or forward) to it" onclick="append ed panel history">HISTORY</button>
 		</div>
@@ -756,13 +769,18 @@
 				<button class="tb" data-action="defrag_check" onclick="append ed defrag_check">CHECK THE COURSE</button>
 				<button class="tb play" data-action="play_defrag" onclick="append ed play_defrag">PLAY IN DEFRAG</button>
 			</div>
-			<div class="esec">PREFABS</div>
-			<div class="chips" id="ed-prefabs"></div>
+			<div id="ed-ents"></div>
+		</div>
+
+		<div class="pbody hidden" id="panel-prefabs">
+			<div class="esec">SAVE THE SELECTION AS A PREFAB</div>
 			<div class="row">
 				<input type="text" class="text half" id="ed-prefab-name" placeholder="prefab name" data-apply="prefab_typed" data-action="prefab_save"/>
 				<button class="tb" id="ed-prefab-save" data-action="prefab_save" onclick="append ed panel prefab_save">SAVE SELECTION</button>
 			</div>
-			<div id="ed-ents"></div>
+			<p class="note">Select brushes, curves and entities, name them and save. The same name saves over it.</p>
+			<div class="esec">YOUR PREFABS</div>
+			<div class="pfs" id="ed-prefabs"></div>
 		</div>
 
 		<div class="pbody hidden" id="panel-objects">

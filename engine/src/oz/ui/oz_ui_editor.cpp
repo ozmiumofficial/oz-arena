@@ -87,6 +87,9 @@ Rml::String lastObjects;
 // the history
 Rml::String lastHistory;
 Rml::String lastEntities;
+// the prefabs
+Rml::String lastPrefabs;
+std::string prefabDeleting;	// the prefab whose DELETE was clicked once: a second click deletes it
 Rml::String lastChain;	// the panel as last chained for the d-pad
 // the search, the compile's warnings and the Keys dialog
 bool searchOpen, keymapOpen, warnsOpen;
@@ -1209,6 +1212,37 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 	}
 }
 
+// ---------------------------------------------------------------- the prefabs
+
+// The saved prefabs as tiles: the 3D thumbnail (drawn by the view when one has none yet) and the name;
+// a click puts the prefab where the pointer is, DELETE twice deletes it.
+void BuildPrefabs( Rml::ElementDocument *doc ) {
+	oz::ed::Session &s = session();
+	const std::vector<std::string> names = s.prefab_names();
+	std::vector<std::string> thumbs;
+	Rml::String key = std::to_string( s.prefab_rev ) + "|" + prefabDeleting;
+	for ( const std::string &n : names ) {
+		thumbs.push_back( s.prefab_thumb( n ) );
+		key += "|" + n + "=" + thumbs.back();
+	}
+	if ( key == lastPrefabs ) {
+		return;
+	}
+	lastPrefabs = key;
+	Rml::String rml;
+	for ( size_t i = 0; i < names.size(); i++ ) {
+		const Rml::String n = Enc( names[i] );
+		const bool armed = prefabDeleting == names[i];
+		rml += "<div class=\"pfbox\"><div class=\"pf\" id=\"ed-pf-" + n + "\" data-hint=\"Puts the prefab " + n +
+			" in the map, where the pointer is\" onclick=\"append ed prefab_insert " + n + "\"><div class=\"pfsw\">" +
+			( thumbs[i].empty() ? Rml::String( "<span>DRAWING ...</span>" ) : "<img src=\"" + Enc( thumbs[i] ) + "\"/>" ) +
+			"</div><span class=\"mn\">" + n + "</span></div><button class=\"pfdel" + ( armed ? " armed" : "" ) +
+			"\" data-hint=\"" + ( armed ? "Click again to delete the prefab " + n + " for good" : "Deletes the prefab " + n + " (click twice)" ) +
+			"\" onclick=\"append ed panel prefab_del " + n + "\">" + ( armed ? "DELETE FOR GOOD?" : "DELETE" ) + "</button></div>";
+	}
+	SetRml( doc, "ed-prefabs", rml.empty() ? Rml::String( "<p class=\"note\">None yet.</p>" ) : rml );
+}
+
 // ---------------------------------------------------------------- the entities
 
 // Every class the editor knows, by the catalog's sections, as tiles: a pickup's icon, else its color
@@ -1222,13 +1256,6 @@ void BuildEntities( Rml::ElementDocument *doc ) {
 		return;
 	}
 	lastEntities = key;
-	// the saved prefabs: a click puts one where the pointer is (or by the selection)
-	Rml::String prefabs;
-	for ( const std::string &n : s.prefab_names() ) {
-		prefabs += "<button class=\"chip\" data-hint=\"Puts the prefab " + Enc( n ) + " in the map, where the pointer is\" onclick=\"append ed prefab_insert " +
-			Enc( n ) + "\">" + Enc( n ) + "</button>";
-	}
-	SetRml( doc, "ed-prefabs", prefabs.empty() ? Rml::String( "<p>None yet: select brushes and entities, name it, Save selection.</p>" ) : prefabs );
 	// by section, in the order the catalog first names them (a mod's class joins its section)
 	std::vector<std::string> sections;
 	std::map<std::string, std::vector<const oz::ed::EntityDef *>> in;
@@ -1568,7 +1595,7 @@ void ChainPanel( Rml::ElementDocument *doc ) {
 			}
 		}
 	}
-	static const char *tabs[5] = { "tab-inspect", "tab-materials", "tab-entities", "tab-objects", "tab-history" };
+	static const char *tabs[6] = { "tab-inspect", "tab-materials", "tab-entities", "tab-prefabs", "tab-objects", "tab-history" };
 	for ( const char *t : tabs ) {
 		if ( Rml::Element *e = doc->GetElementById( t ) ) {
 			e->SetProperty( "nav-down", rows.empty() ? Rml::String( "none" ) : id( rows[0].front() ) );
@@ -2346,9 +2373,9 @@ const struct {
 	{ "file", { "new", "open", "import", "-", "save", "save_as", "-", "leave" } },
 	{ "edit", { "undo", "redo", "-", "cut", "copy", "paste", "duplicate", "delete", "-", "texture_lock", "grid_smaller", "grid_bigger", "-", "keymap" } },
 	{ "select", { "select", "select_all", "select_none", "-", "hide", "hide_others", "show_all", "-", "lock", "unlock_all", "-", "group", "ungroup",
-		"-", "show_objects" } },
+		"-", "prefab_save", "show_prefabs", "-", "show_objects" } },
 	{ "view", { "views", "view_next", "-", "frame_selection", "frame_all", "-", "#SHOW", "filter_tools", "filter_triggers", "filter_sky", "filter_entities",
-		"filter_curves", "-", "preview", "-", "#PANEL", "show_inspect", "show_materials", "show_entities", "show_objects", "show_history" } },
+		"filter_curves", "-", "preview", "-", "#PANEL", "show_inspect", "show_materials", "show_entities", "show_prefabs", "show_objects", "show_history" } },
 	{ "brush", { "create", "clip", "faces", "-", "collision", "detail", "-", "hollow", "subtract", "merge", "-", "rotate_left", "rotate_right", "rotate_left_15", "rotate_right_15",
 		"-", "flip_x", "flip_y", "flip_z" } },
 	{ "curve", { "#FROM THE SELECTED BRUSHES", "curve_cylinder", "curve_cone", "curve_arch", "curve_bevel", "curve_plane", "-", "#THE SELECTED CURVES",
@@ -2705,7 +2732,7 @@ void ShowPanel( Rml::ElementDocument *doc ) {
 		return;
 	}
 	shownPanel = panel;
-	static const char *names[5] = { "inspect", "materials", "entities", "objects", "history" };
+	static const char *names[6] = { "inspect", "materials", "entities", "prefabs", "objects", "history" };
 	for ( const char *n : names ) {
 		Show( doc, ( Rml::String( "panel-" ) + n ).c_str(), panel == n );
 		if ( Rml::Element *t = doc->GetElementById( Rml::String( "tab-" ) + n ) ) {
@@ -2818,7 +2845,7 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		return false;
 	}
 	const std::string &a = args[0];
-	if ( a == "inspect" || a == "materials" || a == "entities" || a == "objects" || a == "history" ) {
+	if ( a == "inspect" || a == "materials" || a == "entities" || a == "prefabs" || a == "objects" || a == "history" ) {
 		panel = a;
 	} else if ( a == "fit" ) {
 		Typed( "fit_typed", {} );
@@ -2854,6 +2881,13 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		SetInput( doc, "ed-search-text", text );
 	} else if ( a == "prefab_save" ) {
 		Typed( "prefab_typed", {} );
+	} else if ( a == "prefab_del" && args.size() > 1 ) {
+		if ( prefabDeleting == args[1] ) {
+			prefabDeleting.clear();
+			s.run( "prefab_delete", { args[1] } );
+		} else {
+			prefabDeleting = args[1];
+		}
 	} else if ( ( a == "swatch" || a == "angle" ) && args.size() > 2 ) {
 		// a palette color, a compass direction (or the camera's way, to 15 degrees)
 		std::string v = args[2];
@@ -3788,6 +3822,8 @@ bool Editor_Draw( int width, int height ) {
 		LoadThumbs( doc );
 	} else if ( panel == "entities" ) {
 		BuildEntities( doc );
+	} else if ( panel == "prefabs" ) {
+		BuildPrefabs( doc );
 	} else if ( panel == "objects" ) {
 		BuildObjects( doc );
 	} else {
@@ -3833,6 +3869,8 @@ void Editor_Opened( Rml::ElementDocument *doc ) {
 		BuildMaterials( doc );
 	} else if ( panel == "entities" ) {
 		BuildEntities( doc );
+	} else if ( panel == "prefabs" ) {
+		BuildPrefabs( doc );
 	} else if ( panel == "objects" ) {
 		BuildObjects( doc );
 	} else {

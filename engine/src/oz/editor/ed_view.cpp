@@ -1127,6 +1127,13 @@ void Session::frame(int x, int y, int w, int h) {
 		links_doc_ = ~0ull;
 		model_handles_.clear();  // models register again with the new renderer
 		grid_mesh_ = 0;
+		thumb_mesh_.reset();
+		thumb_ents_.reset();
+		if (thumb_state_) {
+			thumb_state_ = 0;  // its meshes are gone: drawn again from the start
+			thumb_tried_.erase(thumb_name_);
+			thumb_queue_.insert(thumb_queue_.begin(), thumb_name_);
+		}
 		pending_all_ = true;
 		ents_dirty_ = true;
 		hover_rev_ = ~0ull;
@@ -1248,6 +1255,9 @@ void Session::frame(int x, int y, int w, int h) {
 		}
 	}
 	use_pane(active_);
+
+	// a prefab's thumbnail, drawn over the view's middle for the few frames a screenshot takes
+	prefab_thumb_tick(x, y, w, h, now);
 
 	// over the view: the box select's rectangle
 	if (drag_ == Drag::Box) {

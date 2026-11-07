@@ -9,9 +9,13 @@
 #include "ed_engine.h"
 #include "ed_mapfile.h"
 #include "ed_shaders.h"
+#include "../ui/oz_ui_engine.h"
 
 #include <algorithm>
 #include <cctype>
+#include <ctime>
+#include <memory>
+#include <set>
 
 namespace oz::ed {
 
@@ -249,7 +253,8 @@ std::vector<std::string> Session::prefab_names() const {
 bool Session::prefab_save(const std::string &name) {
 	const std::string file = prefab_file_name(name);
 	if (file.empty()) {
-		say("ed prefab_save <name>: a name for it", true);
+		want_page = "panel prefabs";  // the panel's name field
+		say("Name the prefab in the Prefabs panel, then Save selection");
 		return false;
 	}
 	if (sel.empty()) {
@@ -269,8 +274,196 @@ bool Session::prefab_save(const std::string &name) {
 		return false;
 	}
 	prefab_rev++;
-	say("Saved the prefab " + file + " (" + std::to_string(ids.size()) + " objects): the Entities panel puts it in any map");
+	// its thumbnail drawn again, first in line
+	thumb_tried_.erase(file);
+	thumb_queue_.erase(std::remove(thumb_queue_.begin(), thumb_queue_.end(), file), thumb_queue_.end());
+	thumb_queue_.insert(thumb_queue_.begin(), file);
+	say("Saved the prefab " + file + " (" + std::to_string(ids.size()) + " objects): the Prefabs panel puts it in any map");
 	return true;
+}
+
+// The prefab's thumbnails on disk: "<name>.<stamp>.jpg", the newest last.
+static std::vector<std::string> thumb_files(const std::string &file) {
+	std::vector<std::pair<unsigned long long, std::string>> found;
+	int count = 0;
+	char **files = OzEd_ListOSFiles(prefab_dir().c_str(), "jpg", &count);
+	for (int i = 0; i < count; i++) {
+		const std::string n = files[i];
+		if (n.size() > file.size() + 5 && n.compare(0, file.size() + 1, file + ".") == 0) {
+			const std::string stamp = n.substr(file.size() + 1, n.size() - file.size() - 5);
+			if (!stamp.empty() && std::all_of(stamp.begin(), stamp.end(), [](char c) { return std::isdigit((unsigned char)c); })) {
+				found.push_back({std::stoull(stamp), n});
+			}
+		}
+	}
+	OzEd_FreeList(files);
+	std::sort(found.begin(), found.end());
+	std::vector<std::string> out;
+	for (auto &f : found) {
+		out.push_back(f.second);
+	}
+	return out;
+}
+
+bool Session::prefab_delete(const std::string &name) {
+	const std::string file = prefab_file_name(name);
+	const std::string path = prefab_dir() + "/" + file + ".map";
+	if (file.empty() || !OzEd_FileExists(path.c_str())) {
+		say("No prefab " + file, true);
+		return false;
+	}
+	OzEd_RemoveOSFile(path.c_str());
+	for (const std::string &t : thumb_files(file)) {
+		OzEd_RemoveOSFile((prefab_dir() + "/" + t).c_str());
+	}
+	thumb_queue_.erase(std::remove(thumb_queue_.begin(), thumb_queue_.end(), file), thumb_queue_.end());
+	prefab_rev++;
+	say("Deleted the prefab " + file);
+	return true;
+}
+
+std::string Session::prefab_thumb(const std::string &name) {
+	const std::string file = prefab_file_name(name);
+	const std::vector<std::string> t = thumb_files(file);
+	if (t.empty()) {
+		if (!thumb_tried_.count(file) && std::find(thumb_queue_.begin(), thumb_queue_.end(), file) == thumb_queue_.end()) {
+			thumb_queue_.push_back(file);  // a prefab from before thumbnails, or one whose drawing failed last run
+		}
+		return "";
+	}
+	// the game's path to it: <fs_homepath>/oz is the game's folder
+	return "/editor/prefabs/" + t.back();
+}
+
+// The screenshot the thumbnail is cut from (the renderer's "screenshot <name>": screenshots/<name>.tga)
+static const char *const THUMB_SHOT = "_oz_prefab_thumb";
+static std::string thumb_shot_path() {
+	return std::string(OzEd_HomePath()) + "/oz/screenshots/" + THUMB_SHOT + ".tga";
+}
+
+void Session::prefab_thumb_tick(int x, int y, int w, int h, int now) {
+	const ozEdRender_t *r = OzEd_Renderer();
+	if (!r) {
+		return;
+	}
+	if (thumb_state_ == 0) {
+		if (thumb_queue_.empty()) {
+			return;
+		}
+		thumb_name_ = thumb_queue_.front();
+		thumb_queue_.erase(thumb_queue_.begin());
+		thumb_tried_.insert(thumb_name_);
+		const std::string path = prefab_dir() + "/" + thumb_name_ + ".map";
+		char *text = nullptr;
+		const int len = OzEd_ReadOSFile(path.c_str(), &text);
+		if (len < 0) {
+			return;
+		}
+		auto d = std::make_shared<Doc>();
+		d->tex_size = doc.tex_size;
+		ReadReport rep;
+		const bool ok = read_map(std::string_view(text, size_t(len)), *d, rep);
+		OzEd_Free(text);
+		std::vector<Id> ids;
+		for (Id id : ok ? d->ids() : std::vector<Id>{}) {
+			if (id != d->worldspawn()) {
+				ids.push_back(id);
+			}
+		}
+		const Bounds b = bounds_of(*d, ids);
+		const int side = std::min({w, h, 320}) - 16;
+		if (b.empty() || side < 64) {
+			return;
+		}
+		thumb_doc_ = d;
+		thumb_mesh_.include = nullptr;
+		thumb_mesh_.changed(*thumb_doc_, {});
+		thumb_mesh_.flush(*thumb_doc_);
+		// point entities as boxes in the Entities panel's orange
+		static const unsigned char ent[4] = {255, 150, 70, 255};
+		thumb_ents_.begin();
+		for (Id id : thumb_doc_->ids_of(Kind::Entity)) {
+			const Object *o = thumb_doc_->get(id);
+			Vec3 lo, hi;
+			if (id != thumb_doc_->worldspawn() && o && point_box(*o, lo, hi)) {
+				thumb_ents_.box_edges(lo, hi, ent);
+			}
+		}
+		thumb_ents_.end();
+		// seen from above at three quarters, framed whole
+		thumb_cam_ = Camera();
+		thumb_cam_.yaw = 45, thumb_cam_.pitch = 30, thumb_cam_.fov = 50;
+		Vec3 f, l, u;
+		thumb_cam_.axes(f, l, u);
+		const double radius = std::max(b.size().length() * 0.5, 32.0);
+		thumb_cam_.origin = b.center() - f * (radius / std::sin(thumb_cam_.fov * 0.5 * 3.14159265358979323846 / 180) * 1.05);
+		thumb_rect_[0] = x + (w - side) / 2, thumb_rect_[1] = y + (h - side) / 2;
+		thumb_rect_[2] = thumb_rect_[3] = side;
+		OzEd_RemoveOSFile(thumb_shot_path().c_str());
+		OzE_InsertText((std::string("screenshot ") + THUMB_SHOT + "\n").c_str());
+		thumb_state_ = 1, thumb_frames_ = 0;
+	}
+
+	// drawing: the prefab alone, every frame until the screenshot has it
+	const int *rc = thumb_rect_;
+	static const float back[4] = {0.07f, 0.065f, 0.06f, 1.0f};
+	OzEd_Fill(rc[0], rc[1], rc[2], rc[3], back);
+	OzEd_ClearScene();
+	static const float zero[3] = {0, 0, 0};
+	static const float ident[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+	thumb_mesh_.draw(zero, ident);
+	thumb_ents_.draw(zero, ident);
+	Vec3 f, l, u;
+	thumb_cam_.axes(f, l, u);
+	float org[3] = {float(thumb_cam_.origin.x), float(thumb_cam_.origin.y), float(thumb_cam_.origin.z)};
+	float axis[3][3] = {{float(f.x), float(f.y), float(f.z)}, {float(l.x), float(l.y), float(l.z)}, {float(u.x), float(u.y), float(u.z)}};
+	OzEd_RenderScene(rc[0], rc[1], rc[2], rc[3], org, axis, float(thumb_cam_.fov), float(thumb_cam_.fov), now, 0);
+	thumb_frames_++;
+
+	// the screenshot landed: cut the square out of it
+	char *shot = nullptr;
+	const int len = thumb_frames_ > 1 ? OzEd_ReadOSFile(thumb_shot_path().c_str(), &shot) : -1;
+	if (len < 18) {
+		if (shot) {
+			OzEd_Free(shot);
+		}
+		if (thumb_frames_ > 240) {
+			thumb_state_ = 0;  // never came: tried once this run
+			say("The prefab " + thumb_name_ + "'s thumbnail didn't draw", true);
+		}
+		return;
+	}
+	const unsigned char *t = (const unsigned char *)shot;
+	const int sw = t[12] | t[13] << 8, sh = t[14] | t[15] << 8, idlen = t[0];
+	const unsigned char *px = t + 18 + idlen;
+	if (t[2] != 2 || t[16] != 24 || len < 18 + idlen + sw * sh * 3) {
+		OzEd_Free(shot);  // still being written
+		return;
+	}
+	// the TGA's rows go bottom-up, as the JPEG wants them; top-left screen coordinates turned to its rows
+	const int cw = std::min(rc[2], sw - rc[0]), ch = std::min(rc[3], sh - rc[1]);
+	if (cw > 0 && ch > 0 && rc[0] >= 0 && rc[1] >= 0) {
+		std::vector<unsigned char> rgb(size_t(cw) * ch * 3);
+		for (int row = 0; row < ch; row++) {
+			const int src_row = sh - 1 - (rc[1] + ch - 1 - row);  // output row 0 is the square's bottom
+			const unsigned char *s = px + (size_t(src_row) * sw + rc[0]) * 3;
+			unsigned char *o = &rgb[size_t(row) * cw * 3];
+			for (int i = 0; i < cw; i++) {
+				o[i * 3] = s[i * 3 + 2], o[i * 3 + 1] = s[i * 3 + 1], o[i * 3 + 2] = s[i * 3];
+			}
+		}
+		const std::vector<std::string> old = thumb_files(thumb_name_);
+		const std::string out = prefab_dir() + "/" + thumb_name_ + "." + std::to_string((unsigned long long)std::time(nullptr) * 1000ull + (unsigned long long)(OzE_Milliseconds() % 1000)) + ".jpg";
+		if (OzEd_SaveJPG(out.c_str(), cw, ch, rgb.data(), 90)) {
+			for (const std::string &o : old) {
+				OzEd_RemoveOSFile((prefab_dir() + "/" + o).c_str());
+			}
+			prefab_rev++;
+		}
+	}
+	OzEd_Free(shot);
+	OzEd_RemoveOSFile(thumb_shot_path().c_str());
+	thumb_state_ = 0;
 }
 
 bool Session::prefab_insert(const std::string &name) {

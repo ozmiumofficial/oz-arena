@@ -382,6 +382,26 @@ int OzEd_FileExists( const char *path ) {
 	return 1;
 }
 
+int OzEd_RemoveOSFile( const char *path ) {
+	return remove( path ) == 0 || !OzEd_FileExists( path );
+}
+
+int OzEd_SaveJPG( const char *path, int width, int height, const unsigned char *rgb, int quality ) {
+	const size_t cap = (size_t)width * height * 3 + 4096;
+	byte *buf;
+	size_t len;
+	int ok;
+
+	if ( width <= 0 || height <= 0 ) {
+		return 0;
+	}
+	buf = (byte *)Z_Malloc( (int)cap );
+	len = CL_SaveJPGToBuffer( buf, cap, quality, width, height, (byte *)rgb, 0 );
+	ok = len > 0 && OzEd_WriteOSFile( path, buf, (int)len );
+	Z_Free( buf );
+	return ok;
+}
+
 char **OzEd_ListOSFiles( const char *dir, const char *ext, int *count ) {
 	return Sys_ListFiles( dir, ext, NULL, count, qfalse );
 }

@@ -3501,6 +3501,20 @@ bool Editor_Key( int key, bool down ) {
 		CloseWarnings( doc );
 		return true;
 	}
+	if ( down && ( key == K_ESCAPE || key == K_PAD0_B ) && !TypingIn() && ( pickOpen || searchOpen || saveAsOpen ) ) {
+		// Open a map, Open a game map, the search and Save as close with Escape wherever the focus is: after a
+		// click on a category or a row it had left their text field, and Escape did nothing
+		if ( pickOpen ) {
+			ClosePick( doc );
+		}
+		if ( searchOpen ) {
+			CloseSearch( doc );
+		}
+		if ( saveAsOpen ) {
+			CloseSaveAs( doc );
+		}
+		return true;
+	}
 	if ( guideOpen ) {
 		// the card's: its buttons take clicks; Escape, Enter and F1 close it, and the pad's A and B
 		if ( down && ( key == K_ESCAPE || key == K_ENTER || key == K_KP_ENTER || key == K_F1 || key == K_PAD0_A || key == K_PAD0_B ) ) {

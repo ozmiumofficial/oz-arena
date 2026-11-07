@@ -133,7 +133,7 @@ struct Hit {
 // A handle on the selection, drawn over the view: a brush's corner, an edge's middle, a face's diamond
 // on its stem, or one of the clipper's points.
 struct Handle {
-	enum Kind { None, Corner, Edge, Face, ClipPoint, GroupFace } kind = None;  // GroupFace: a side of a group's box
+	enum Kind { None, Corner, Edge, Face, ClipPoint, GroupFace, Land } kind = None;  // GroupFace: a side of a group's box; Land: where a jump pad's throw comes down
 	Id id = 0;
 	int a = -1, b = -1;  // the corner, the edge's two corners, the face, the clip point
 	Vec3 at;             // where it's drawn (a face's: the diamond's tip)
@@ -359,7 +359,7 @@ public:
 	enum { SHIFT = 1, CTRL = 2, ALT = 4 };
 
 private:
-	enum class Drag { None, Pending, Move, Box, Push, Corners, Pan, Footprint, ClipPoint };
+	enum class Drag { None, Pending, Move, Box, Push, Corners, Pan, Footprint, ClipPoint, Land };
 	struct Shape {  // a selected brush's corners, edges and faces, cached until it changes
 		ObjectPtr of;
 		std::vector<Vec3> corners;
@@ -449,6 +449,13 @@ public:
 	std::string push_problem(Id id);
 	std::vector<Id> pushers_at(const std::string &targetname) const;  // the pushers aiming at it
 	void push_land();             // the place tool: the next click is where the selected pads' throws land
+	// A pad's throw aimed so it comes down on floor (its target moved, or one of its own made when it
+	// has none or shares it); in an open step. The target's id, 0 for no pad.
+	Id aim_pad(Id pad, const Vec3 &floor);
+	// The landing handle of a selected pad, dragged: the pad re-aimed live, one undo step
+	void start_land_drag(Id pad);
+	void land_drag(int mods);
+	void end_land_drag(bool cancel);
 	// ---- movers (ed_movers.cpp): doors, lifts, buttons, trains, rotating, bobbing and swinging brushes as
 	// id's maps have them; where each moves is drawn for the selected ones, and played with mover_play
 	struct DoorState {
@@ -467,6 +474,9 @@ public:
 	void check_map();             // map_problems into the warnings' list, said
 private:
 	std::vector<Id> land_pushers_;  // push_land's pads
+	Id land_drag_pad_ = 0;          // the pad whose landing is being dragged
+	Vec3 land_drag_at_;
+	bool land_drag_moved_ = false;
 	Id make_mover(const std::vector<Id> &brushes, const std::string &cls, const Keys &keys);
 	void add_pivot(Id ent);
 	bool movers_action(const std::string &action, const std::vector<std::string> &a);
@@ -580,6 +590,7 @@ private:
 	Handle press_handle_;
 	Vec3 anchor_, plane_n_, base_, min_, delta_;
 	bool vertical_ = false;
+	bool copy_move_ = false;  // a Ctrl drag from the selection: moving its copies, on the grid though Ctrl is held
 	std::vector<std::pair<Id, int>> push_faces_;
 	Vec3 push_grab_, push_n_;
 	double push_d0_ = 0, push_dist_ = 0;

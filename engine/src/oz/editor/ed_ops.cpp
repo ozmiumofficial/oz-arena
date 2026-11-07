@@ -1032,6 +1032,104 @@ std::vector<Id> hollow(Doc &doc, const std::vector<Id> &ids, double thickness, s
 	return made;
 }
 
+std::vector<Id> stairs(Doc &doc, const std::vector<Id> &ids, int count, double rise, std::string &note) {
+	const std::vector<Id> brushes = brushes_in(doc, ids);
+	if (brushes.empty()) {
+		note = "Select a wedge (a brush with a sloped top) to make stairs of";
+		return {};
+	}
+	std::vector<std::pair<Id, std::vector<std::shared_ptr<Object>>>> made_by;
+	int steps_total = 0;
+	for (Id id : brushes) {
+		const Object *o = doc.get(id);
+		const std::vector<Plane> planes = planes_of(o->brush);
+		const std::vector<Winding> &ws = doc.windings(id);
+		// the slope: the largest face looking up at an angle (a ramp's top, not a floor or a wall)
+		int slope = -1;
+		double best = 0;
+		for (size_t i = 0; i < planes.size() && i < ws.size(); i++) {
+			const double nz = planes[i].n.z;
+			if (ws[i].size() < 3 || nz < 0.02 || nz > 0.999) {
+				continue;
+			}
+			const double area = q3map::winding_area(ws[i]);
+			if (area > best) {
+				best = area, slope = int(i);
+			}
+		}
+		if (slope < 0) {
+			note = "Stairs need a wedge: a brush whose top slopes (none of the selected brushes slopes up)";
+			return {};
+		}
+		// uphill along the floor, and the slope's span along it and up
+		Vec3 up_run{-planes[size_t(slope)].n.x, -planes[size_t(slope)].n.y, 0};
+		up_run = up_run * (1.0 / up_run.length());
+		double s0 = 1e300, s1 = -1e300, z0 = 1e300, z1 = -1e300;
+		for (const Vec3 &p : ws[size_t(slope)]) {
+			const double s = up_run.dot(p);
+			s0 = std::min(s0, s), s1 = std::max(s1, s);
+			z0 = std::min(z0, p.z), z1 = std::max(z1, p.z);
+		}
+		// the whole brush's span along it: the first and last steps reach its ends (a wedge has no
+		// face at its thin end, so the lowest step needs one)
+		double b0 = 1e300, b1 = -1e300;
+		for (const Winding &w : ws) {
+			for (const Vec3 &p : w) {
+				b0 = std::min(b0, up_run.dot(p)), b1 = std::max(b1, up_run.dot(p));
+			}
+		}
+		const double height = z1 - z0;
+		int n = count > 0 ? count : int(std::lround(height / (rise > 0 ? rise : 8)));
+		n = std::max(2, std::min(n, 256));
+		const double run = (s1 - s0) / n, step = height / n;
+		std::vector<Plane> base;
+		for (size_t i = 0; i < planes.size(); i++) {
+			if (int(i) != slope) {
+				base.push_back(planes[i]);
+			}
+		}
+		std::vector<const Face *> src;
+		for (const Face &f : o->brush.faces) {
+			src.push_back(&f);
+		}
+		const Vec3 origin = origin_for(doc, *o);
+		std::vector<std::shared_ptr<Object>> mine;
+		for (int k = 0; k < n; k++) {
+			std::vector<Plane> p = base;
+			p.push_back(Plane{up_run * -1.0, -(k > 0 ? s0 + run * k : b0)});
+			p.push_back(Plane{up_run, k < n - 1 ? s0 + run * (k + 1) : b1});
+			p.push_back(Plane{Vec3{0, 0, 1}, z0 + step * (k + 1)});
+			std::vector<Plane> kept;
+			for (int i : q3map::brush_face_planes(p)) {
+				kept.push_back(p[size_t(i)]);
+			}
+			if (auto b = brush_like(doc, src, o->owner, kept, origin)) {
+				mine.push_back(b);
+			}
+		}
+		if (mine.empty()) {
+			note = "That wedge is too small for stairs";
+			return {};
+		}
+		steps_total += int(mine.size());
+		made_by.emplace_back(id, std::move(mine));
+	}
+	doc.begin("Stairs");
+	std::vector<Id> made;
+	for (auto &kv : made_by) {
+		doc.remove(kv.first);
+		for (auto &b : kv.second) {
+			made.push_back(doc.add(b));
+		}
+	}
+	doc.end();
+	char buf[128];
+	std::snprintf(buf, sizeof buf, "Made %d step%s from %d wedge%s", steps_total, steps_total == 1 ? "" : "s", int(made_by.size()),
+		made_by.size() == 1 ? "" : "s");
+	note = buf;
+	return made;
+}
+
 std::vector<Id> merge(Doc &doc, const std::vector<Id> &ids, std::string &note) {
 	const std::vector<Id> brushes = brushes_in(doc, ids);
 	if (brushes.size() < 2) {

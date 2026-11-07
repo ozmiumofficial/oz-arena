@@ -84,8 +84,8 @@ bool push_velocity(const Vec3 &from, const Vec3 &target, double gravity, Vec3 &v
 Vec3 apex_for(const Vec3 &from, const Vec3 &landing, double gravity, double ceiling = 1e30);
 // The same, its top at the height asked (a throw made higher or lower that still lands where it did).
 Vec3 apex_at(const Vec3 &from, const Vec3 &landing, double gravity, double top);
-// The key the editor ties a jump pad's pieces with (its pad's func_group, its trigger_push and its target
-// share the value, the target's name): a click on one takes them all. The game ignores it.
+// The key the editor ties a jump pad's pieces with (its trigger_push and its target, and an older pad's
+// block func_group, share the value, the target's name): a click on one takes them all. The game ignores it.
 inline const char *const JUMPPAD_KEY = "_oz_jumppad";
 
 }  // namespace oz::ed

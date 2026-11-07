@@ -172,7 +172,7 @@ std::vector<Id> Session::group_of(Id id) const {
 			}
 		}
 	}
-	// a jump pad's pieces (its pad's group, its trigger, its target) go together
+	// a jump pad's pieces (its trigger, its target, an older pad's block group) go together
 	const std::string tag = doc.get(ent)->entity.get(JUMPPAD_KEY);
 	if (!tag.empty()) {
 		for (Id e : doc.ids_of(Kind::Entity)) {
@@ -278,6 +278,35 @@ std::vector<Handle> Session::handles() {
 	if (tool != Tool::Select || sel.empty()) {
 		return out;
 	}
+	// a selected jump pad's landing: a handle where its throw comes down, dragged to re-aim it
+	{
+		std::set<Id> pads;
+		for (Id id : sel) {
+			const Object *o = doc.get(id);
+			if (!o || o->kind != Kind::Entity) {
+				continue;
+			}
+			if (o->entity.classname() == "trigger_push") {
+				pads.insert(id);
+			} else if (const std::string *n = o->entity.find("targetname")) {
+				for (Id p : pushers_at(*n)) {
+					if (doc.get(p)->entity.classname() == "trigger_push") {
+						pads.insert(p);
+					}
+				}
+			}
+		}
+		for (Id p : pads) {
+			const std::vector<Vec3> arc = push_arc(p);
+			if (arc.size() >= 2 && push_lands(p)) {
+				Handle h;
+				h.kind = Handle::Land;
+				h.id = p;
+				h.at = arc.back();
+				out.push_back(h);
+			}
+		}
+	}
 	if (group_handles()) {
 		// a diamond on each side of the group's box that faces the camera, as a brush's face has
 		const Bounds b = selection_bounds();
@@ -309,7 +338,7 @@ std::vector<Handle> Session::handles() {
 		if (o && (o->kind == Kind::Brush || o->kind == Kind::Patch)) {
 			count += o->kind == Kind::Brush ? shape(id).corners.size() : o->patch.ctrl.size() / 5;
 			if (count > size_t(MAX_CORNERS)) {
-				return {};  // a big selection would be all squares
+				return out;  // a big selection would be all squares (a pad's landing stays)
 			}
 		}
 	}
@@ -404,7 +433,7 @@ Handle Session::handle_at(double sx, double sy) {
 	// corners and clip points win over edges, edges over diamonds
 	for (int pass = 0; pass < 3 && best.kind == Handle::None; pass++) {
 		for (const Handle &h : hs) {
-			const bool mine = pass == 0 ? (h.kind == Handle::Corner || h.kind == Handle::ClipPoint)
+			const bool mine = pass == 0 ? (h.kind == Handle::Corner || h.kind == Handle::ClipPoint || h.kind == Handle::Land)
 				: pass == 1 ? h.kind == Handle::Edge : h.kind == Handle::Face || h.kind == Handle::GroupFace;
 			double x, y;
 			if (!mine || !project(h.at, x, y)) {
@@ -424,7 +453,7 @@ Handle Session::handle_at(double sx, double sy) {
 					}
 				}
 			}
-			consider(h, d, pass == 0 ? PICK_CORNER : pass == 1 ? PICK_EDGE : PICK_FACE);
+			consider(h, d, h.kind == Handle::Land ? PICK_CORNER + 4 : pass == 0 ? PICK_CORNER : pass == 1 ? PICK_EDGE : PICK_FACE);
 		}
 	}
 	return best;
@@ -500,6 +529,8 @@ void Session::motion(int m) {
 			drag_ = create_state_ == 1 ? Drag::Footprint : Drag::None;
 		} else if (tool == Tool::Clip && clip_drag_ >= 0) {
 			drag_ = Drag::ClipPoint;
+		} else if (tool == Tool::Select && h.kind == Handle::Land) {
+			start_land_drag(h.id);
 		} else if (tool == Tool::Select && (h.kind == Handle::Corner || h.kind == Handle::Edge)) {
 			start_corners(h, press_mods_);
 		} else if (tool == Tool::Select && h.kind == Handle::GroupFace) {
@@ -512,6 +543,18 @@ void Session::motion(int m) {
 				select({press_hit_.id}, SelMode::Add);
 			}
 			start_push({{press_hit_.id, press_hit_.face}}, press_hit_.point, press_hit_.normal, "Push face");
+		} else if (press_hit_ok_ && tool == Tool::Select && (press_mods_ & CTRL) && sel.count(press_hit_.id)) {
+			// Ctrl drag from the selection: copies of it, dragged off the originals
+			std::vector<Id> made = oz::ed::paste(doc, copy_of(doc, selected()), Vec3(), "Duplicate");
+			corners.clear();
+			select(made, SelMode::Set);
+			// start_move would select the brush under the pointer again: the original
+			drag_ = Drag::Move;
+			base_ = delta_ = Vec3();
+			min_ = selection_bounds().lo;
+			anchor_ = press_hit_.point;
+			move_plane(false);
+			copy_move_ = true;
 		} else if (press_hit_ok_ && tool == Tool::Select && !(press_mods_ & CTRL)) {
 			start_move(press_hit_, press_mods_);
 		} else {
@@ -534,7 +577,7 @@ void Session::motion(int m) {
 			return;
 		}
 		Vec3 raw = p - anchor_;
-		const bool on_grid = !(m & CTRL);
+		const bool on_grid = copy_move_ || !(m & CTRL);
 		auto along = [&](double lo, double move) { return on_grid ? snap(lo + move) - lo : move; };
 		Vec3 d = base_;
 		if (ortho_axis_ >= 0) {
@@ -633,6 +676,9 @@ void Session::motion(int m) {
 	case Drag::Footprint:
 		create_motion();
 		break;
+	case Drag::Land:
+		land_drag(m);
+		break;
 	case Drag::ClipPoint: {
 		Hit h;
 		if (clip_drag_ >= 0 && clip_drag_ < int(clip_pts_.size()) && pick(mx_, my_, h, false)) {
@@ -668,11 +714,17 @@ void Session::release(int m) {
 	case Drag::Move:
 		if (delta_.x != 0 || delta_.y != 0 || delta_.z != 0) {
 			transform_selection(translation(delta_), "Move", texture_lock);
+		} else if (copy_move_) {
+			remove_selection();  // let go where it began: no copies lying inside the originals
 		}
+		copy_move_ = false;
 		delta_ = Vec3();
 		break;
 	case Drag::Box:
 		box_select(press_x_, press_y_, mx_, my_, press_mods_);
+		break;
+	case Drag::Land:
+		end_land_drag(false);
 		break;
 	case Drag::Push:
 		doc.end();
@@ -792,6 +844,11 @@ void Session::click(int m, bool twice) {
 
 void Session::cancel_drag() {
 	switch (drag_) {
+	case Drag::Land:
+		drag_ = Drag::None;
+		drag_note_.clear();
+		end_land_drag(true);
+		break;
 	case Drag::Push:
 	case Drag::Corners: {
 		std::vector<Id> ids;
@@ -807,9 +864,16 @@ void Session::cancel_drag() {
 	case Drag::Pan:
 		pan_to(press_x_, press_y_);
 		break;
+	case Drag::Move:
+		if (copy_move_) {
+			drag_ = Drag::None;
+			remove_selection();  // a Ctrl drag called off: its copies go too
+		}
+		break;
 	default:
 		break;
 	}
+	copy_move_ = false;
 	drag_ = Drag::None;
 	press_button_ = 0;
 	delta_ = Vec3();
@@ -1044,9 +1108,28 @@ void Session::nudge(const Vec3 &d) {
 
 void Session::box_select(int x0, int y0, int x1, int y1, int m) {
 	const double lx = std::min(x0, x1), hx = std::max(x0, x1), ly = std::min(y0, y1), hy = std::max(y0, y1);
-	auto inside = [&](const Vec3 &p) {
-		double x, y;
-		return project(p, x, y) && x >= lx && x <= hx && y >= ly && y <= hy;
+	// an object counts when at least half of what it covers on screen is inside the box: one sticking
+	// out a little past the box's edge comes along, a floor the box only covers a corner of doesn't. A
+	// corner behind the camera (the 3D view) doesn't count against it
+	auto in_box = [&](const std::vector<Vec3> &pts) {
+		double ax = 1e300, ay = 1e300, bx = -1e300, by = -1e300;
+		int seen = 0;
+		for (const Vec3 &p : pts) {
+			double x, y;
+			if (project(p, x, y)) {
+				ax = std::min(ax, x), ay = std::min(ay, y), bx = std::max(bx, x), by = std::max(by, y);
+				seen++;
+			}
+		}
+		if (!seen) {
+			return false;
+		}
+		ax -= 0.5, ay -= 0.5, bx += 0.5, by += 0.5;  // a brush seen edge on still has an area
+		const double ox = std::min(bx, hx) - std::max(ax, lx), oy = std::min(by, hy) - std::max(ay, ly);
+		if (ox <= 0 || oy <= 0) {
+			return false;
+		}
+		return ox * oy >= 0.5 * (bx - ax) * (by - ay);
 	};
 	std::vector<Id> ids;
 	std::set<Id> got;
@@ -1055,37 +1138,27 @@ void Session::box_select(int x0, int y0, int x1, int y1, int m) {
 		if (id == doc.worldspawn() || !pickable(id)) {
 			continue;
 		}
-		bool all = false;
+		std::vector<Vec3> pts;
 		if (o->kind == Kind::Brush) {
-			all = true;
-			bool any = false;
 			for (const Winding &w : doc.windings(id)) {
-				for (const Vec3 &p : w) {
-					any = true;
-					if (!(all = inside(p))) {
-						break;
-					}
-				}
-				if (!all) {
-					break;
-				}
+				pts.insert(pts.end(), w.begin(), w.end());
 			}
-			all &= any;
 		} else if (o->kind == Kind::Patch) {
-			std::vector<Vec3> pts = object_points(doc, id);
-			all = !pts.empty() && std::all_of(pts.begin(), pts.end(), inside);
+			pts = object_points(doc, id);
 		} else {
 			Vec3 lo, hi;
 			if (point_box(*o, lo, hi)) {
-				all = inside(lo) && inside(hi) && inside(Vec3(lo.x, hi.y, lo.z)) && inside(Vec3(hi.x, lo.y, hi.z));
+				for (int c = 0; c < 8; c++) {
+					pts.push_back(Vec3(c & 1 ? hi.x : lo.x, c & 2 ? hi.y : lo.y, c & 4 ? hi.z : lo.z));
+				}
 			}
 		}
-		if (all) {
+		if (!pts.empty() && in_box(pts)) {
 			ids.push_back(id);
 			got.insert(id);
 		}
 	}
-	// a group or a brush entity wholly inside comes along as itself
+	// a group or a brush entity all of whose pieces count comes along as itself
 	std::set<Id> owners;
 	for (Id id : ids) {
 		const Object *o = doc.get(id);
@@ -1258,6 +1331,22 @@ void Session::build_handles(Overlay &out) {
 				const double r = on ? 10 : 8;
 				diamond(h.at, r + 1.5, C_BLACK);
 				diamond(h.at, r, c);
+				break;
+			}
+			case Handle::Land: {
+				// a ring on the floor where the throw comes down, a square in it to grab
+				static const unsigned char C_LAND[4] = {110, 255, 150, 255};
+				const double r = on ? 8 : 6;
+				const double ring = units_per_pixel(h.at) * (on ? 22 : 16);
+				Vec3 last = h.at + Vec3(ring, 0, 1);
+				for (int i = 1; i <= 24; i++) {
+					const double a = i * (2 * 3.14159265358979 / 24);
+					const Vec3 p = h.at + Vec3(std::cos(a) * ring, std::sin(a) * ring, 1);
+					stem(last, p, on ? 3 : 2, C_LAND);
+					last = p;
+				}
+				square(h.at, r + 1.5, C_BLACK);
+				square(h.at, r, on ? C_HOVER : C_LAND);
 				break;
 			}
 			case Handle::ClipPoint: {

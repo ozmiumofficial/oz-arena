@@ -24,10 +24,11 @@ namespace oz::ed {
 static const double PI = 3.14159265358979323846;
 static const double PAD = 64;  // the jump pad and teleporter tools' footprint
 // A jump pad's throw, as the arc shows it: from the trigger's middle (AimAtTarget), down to the floor
-// clicked. The player stands 10 units above the trigger's middle (its origin 24 over the pad's 4-unit
-// top, the trigger's middle 18 up), so the arc that brings the player's origin to 24 over the floor
-// brings the middle to 14 over it.
-static const double PAD_MIDDLE = 18, LAND_MIDDLE = 14;
+// clicked. The player stands 10 units above the trigger's middle (its origin 24 over the floor, the
+// trigger 4 into the floor and 32 over it, so its middle 14 up), so the arc that brings the player's
+// origin to 24 over the floor brings the middle to 14 over it. (The editor's older pads, a 4-unit
+// block under a 36-unit trigger, put the player 10 over the middle too.)
+static const double PAD_LOW = -4, PAD_HIGH = 32, PAD_MIDDLE = 14, LAND_MIDDLE = 14;
 
 static const unsigned char C_LINK[4] = {255, 214, 90, 130}, C_LINK_HIDDEN[4] = {255, 214, 90, 34}, C_LINK_ON[4] = {255, 250, 210, 255},
 	C_ARC[4] = {110, 255, 150, 230}, C_ARC_HIDDEN[4] = {110, 255, 150, 60}, C_GHOST_EDGE[4] = {255, 170, 90, 255},
@@ -379,6 +380,90 @@ void Session::push_height(double dz) {
 	}
 }
 
+Id Session::aim_pad(Id p, const Vec3 &floor) {
+	Vec3 from;
+	if (!doc.get(p) || !entity_center(doc, p, from)) {
+		return 0;
+	}
+	const Vec3 top = apex_for(from, floor + Vec3(0, 0, LAND_MIDDLE), map_gravity(doc), ceiling_over(from, floor));
+	const std::string at = vec_key(Vec3(std::round(top.x), std::round(top.y), std::round(top.z)));
+	const std::string name = doc.get(p)->entity.get("target");
+	Id t = name.empty() ? 0 : entity_named(doc, name);
+	if (t && pushers_at(name).size() > 1) {
+		t = 0;  // shared with another pad: this one gets a target of its own
+	}
+	if (t) {
+		auto o = doc.edit(t);
+		o->entity.set("origin", at);
+		doc.put(t, o);
+		return t;
+	}
+	const std::string tag = doc.get(p)->entity.get(JUMPPAD_KEY);
+	const std::string fresh = unique_targetname(doc, "pad");
+	auto o = std::make_shared<Object>();
+	o->kind = Kind::Entity;
+	o->entity.keys = {{"classname", "target_position"}, {"targetname", fresh}, {"origin", at}};
+	if (!tag.empty()) {
+		o->entity.set(JUMPPAD_KEY, tag);
+	}
+	t = doc.add(o);
+	auto pe = doc.edit(p);
+	pe->entity.set("target", fresh);
+	doc.put(p, pe);
+	return t;
+}
+
+void Session::start_land_drag(Id pad) {
+	land_drag_pad_ = pad;
+	land_drag_moved_ = false;
+	land_drag_at_ = Vec3(1e30, 1e30, 1e30);
+	doc.begin("Land here");
+	drag_ = Drag::Land;
+}
+
+void Session::land_drag(int m) {
+	// the floor under the pointer, through triggers and entities, on the grid unless Ctrl is held
+	Hit h;
+	if (!doc.get(land_drag_pad_)) {
+		return;
+	}
+	if (!pick_floor(mx_, my_, h, false)) {
+		h = Hit();
+		h.normal = Vec3(0, 0, 1);
+		if (!plane_point(mx_, my_, Vec3(0, 0, 0), Vec3(0, 0, 1), h.point)) {
+			return;
+		}
+	}
+	Vec3 at = h.point;
+	if (!(m & CTRL)) {
+		at.x = snap(at.x), at.y = snap(at.y);
+	}
+	if (at.x == land_drag_at_.x && at.y == land_drag_at_.y && at.z == land_drag_at_.z) {
+		return;
+	}
+	land_drag_at_ = at;
+	const Id t = aim_pad(land_drag_pad_, at);
+	land_drag_moved_ = true;
+	changed({land_drag_pad_, t});
+	Vec3 from;
+	const double across = entity_center(doc, land_drag_pad_, from) ? std::hypot(at.x - from.x, at.y - from.y) : 0;
+	char buf[96];
+	std::snprintf(buf, sizeof buf, "Lands at %g %g %g, %g across", std::round(at.x), std::round(at.y), std::round(at.z), std::round(across));
+	drag_note_ = buf;
+}
+
+void Session::end_land_drag(bool cancel) {
+	doc.end();
+	if (cancel && land_drag_moved_) {
+		doc.undo();  // called off: the pad aimed as it was
+	}
+	changed({});
+	if (doc.get(land_drag_pad_)) {
+		select(group_of(land_drag_pad_), SelMode::Set);  // its target too, if it got one of its own
+	}
+	land_drag_pad_ = 0;
+}
+
 void Session::push_land() {
 	land_pushers_.clear();
 	for (Id p : selected_pushers(*this)) {
@@ -661,40 +746,12 @@ void Session::place_click(int m) {
 	}
 	if (cls == "jump_land") {
 		// the selected pads' targets moved (or made) so their throws come down here
-		const double g = map_gravity(doc);
 		std::vector<Id> pads;
 		doc.begin("Land here");
 		for (Id p : land_pushers_) {
-			Vec3 from;
-			if (!doc.get(p) || !entity_center(doc, p, from)) {
-				continue;
+			if (aim_pad(p, h.point)) {
+				pads.push_back(p);
 			}
-			const Vec3 top = apex_for(from, h.point + Vec3(0, 0, LAND_MIDDLE), g, ceiling_over(from, h.point));
-			const std::string at = vec_text(Vec3(std::round(top.x), std::round(top.y), std::round(top.z)));
-			const std::string name = doc.get(p)->entity.get("target");
-			Id t = name.empty() ? 0 : entity_named(doc, name);
-			if (t && pushers_at(name).size() > 1) {
-				t = 0;  // shared with another pad: this one gets a target of its own
-			}
-			if (t) {
-				auto o = doc.edit(t);
-				o->entity.set("origin", at);
-				doc.put(t, o);
-			} else {
-				const std::string tag = doc.get(p)->entity.get(JUMPPAD_KEY);
-				const std::string fresh = unique_targetname(doc, "pad");
-				auto o = std::make_shared<Object>();
-				o->kind = Kind::Entity;
-				o->entity.keys = {{"classname", "target_position"}, {"targetname", fresh}, {"origin", at}};
-				if (!tag.empty()) {
-					o->entity.set(JUMPPAD_KEY, tag);
-				}
-				doc.add(o);
-				auto pe = doc.edit(p);
-				pe->entity.set("target", fresh);
-				doc.put(p, pe);
-			}
-			pads.push_back(p);
 		}
 		doc.end();
 		land_pushers_.clear();
@@ -747,16 +804,9 @@ void Session::place_click(int m) {
 		doc.begin(cls == "jump_pad" ? "Jump pad" : "Teleporter");
 		Id made;
 		if (cls == "jump_pad") {
-			// a 4-unit pad (a bounce pad's material, in a group of its own) under a 36-unit trigger, its
-			// target the top of the arc down to the second click; the three tied by JUMPPAD_KEY
-			static const char *const PAD_MATERIAL = "sfx/bouncepad01_block17";
-			const std::string mat = shaders_lib().found(PAD_MATERIAL) ? PAD_MATERIAL : shader;
-			auto grp = std::make_shared<Object>();
-			grp->kind = Kind::Entity;
-			grp->entity.keys = {{"classname", "func_group"}, {JUMPPAD_KEY, name}};
-			const Id g = doc.add(grp);
-			doc.add(box_brush(doc, a + Vec3(-PAD / 2, -PAD / 2, 0), a + Vec3(PAD / 2, PAD / 2, 4), shader_id(mat), g));
-			const Id trig = place_brush_entity("trigger_push", a + Vec3(-PAD / 2, -PAD / 2, 0), a + Vec3(PAD / 2, PAD / 2, 36), "common/trigger");
+			// no block, only what plays: an invisible trigger where the player steps, and its target, the
+			// top of the arc down to the second click; the two tied by JUMPPAD_KEY
+			const Id trig = place_brush_entity("trigger_push", a + Vec3(-PAD / 2, -PAD / 2, PAD_LOW), a + Vec3(PAD / 2, PAD / 2, PAD_HIGH), "common/trigger");
 			auto t = doc.edit(trig);
 			t->entity.set("target", name);
 			t->entity.set(JUMPPAD_KEY, name);
@@ -783,8 +833,9 @@ void Session::place_click(int m) {
 		}
 		doc.end();
 		if (cls == "jump_pad") {
+			set_tool(Tool::Select);  // its landing's handle ready to drag
 			select(group_of(made), SelMode::Set);
-			say("Jump pad made: drag it to move it all, LAND HERE (Inspect) re-aims it, HIGHER and LOWER keep where it lands");
+			say("Jump pad made: drag the green ring where it lands to adjust it; drag the pad to move it all; HIGHER and LOWER keep where it lands");
 		} else {
 			select({made}, SelMode::Set);
 		}
@@ -857,9 +908,10 @@ void Session::build_place_preview() {
 				Vec3 at = h.point;
 				at.x = snap(at.x), at.y = snap(at.y);
 				const Vec3 a = place_step_ ? place_first_ : at;
-				const double tall = place_class == "jump_pad" ? 36 : PAD;
-				place_preview_.box_faces(a + Vec3(-PAD / 2, -PAD / 2, 0), a + Vec3(PAD / 2, PAD / 2, tall), fill, "$oz_ed_tool");
-				place_preview_.box_edges(a + Vec3(-PAD / 2, -PAD / 2, 0), a + Vec3(PAD / 2, PAD / 2, tall), C_GHOST_EDGE);
+				const bool pad = place_class == "jump_pad";
+				const Vec3 lo = a + Vec3(-PAD / 2, -PAD / 2, pad ? PAD_LOW : 0), hi = a + Vec3(PAD / 2, PAD / 2, pad ? PAD_HIGH : PAD);
+				place_preview_.box_faces(lo, hi, fill, "$oz_ed_tool");
+				place_preview_.box_edges(lo, hi, C_GHOST_EDGE);
 				if (place_step_ && place_class == "jump_pad") {
 					// the throw the pad will make, down to the pointer
 					const double g = map_gravity(doc);

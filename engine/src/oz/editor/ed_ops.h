@@ -148,6 +148,9 @@ std::vector<Id> clip(Doc &doc, const std::vector<Id> &ids, const Plane &plane, i
 std::vector<Id> subtract(Doc &doc, const std::vector<Id> &ids, std::string &note);
 // Each brush made into walls of thickness around its inside (Radiant's hollow, the walls overlapping).
 std::vector<Id> hollow(Doc &doc, const std::vector<Id> &ids, double thickness, std::string &note);
+// Each wedge (a brush with a sloped top) cut into solid steps climbing its slope: count steps, or
+// with count 0 as many as make each about rise units high (2 at least).
+std::vector<Id> stairs(Doc &doc, const std::vector<Id> &ids, int count, double rise, std::string &note);
 // The brushes made one: their convex hull, in the first one's entity.
 std::vector<Id> merge(Doc &doc, const std::vector<Id> &ids, std::string &note);
 // Copies with new ids, moved by offset. A copied entity takes copies of its brushes; a brush whose

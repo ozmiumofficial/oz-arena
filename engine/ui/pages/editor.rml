@@ -207,6 +207,15 @@
 		.bad { color: #ff7a66; }
 		.mat { position: relative; }
 		.esec { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; color: #a59a90; margin: 0.7rem 0 0.3rem 0; }
+		/* the Entities panel: the card saying what's armed, each section's line, names that wrap */
+		.einfo { margin: 0.5rem 0 0.2rem 0; padding: 0.5rem 0.6rem; background-color: #ffffff0a; border: 1dp #ffffff1a; }
+		.einfo .et { font-size: 0.95rem; font-weight: 600; color: #fff3e6; }
+		.einfo .ec { font-size: 0.66rem; font-weight: 400; color: #8d847c; margin-left: 0.5rem; }
+		.einfo .ed { display: block; font-size: 0.78rem; color: #e6ddd2; margin-top: 0.15rem; }
+		.einfo .en { display: block; font-size: 0.74rem; color: #ffa53c; margin-top: 0.25rem; }
+		.einfo .lg { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; color: #0a0807; background-color: #a59a90; padding: 0 0.25rem; }
+		.enote { font-size: 0.74rem; color: #8d847c; margin: 0 0 0.35rem 0; }
+		#panel-entities .mat .mn { white-space: normal; text-overflow: clip; height: 1.7rem; line-height: 0.85rem; }
 		.chip.flag.on { color: #fff3e6; border-color: #6ee68c; background-color: #6ee68c33; }
 		.folder { display: block; width: 9rem; font-size: 0.78rem; color: #e6ddd2; padding: 0.25rem 0.3rem; }
 		.folder:hover { background-color: #db241033; }
@@ -664,6 +673,7 @@
 					<button class="tb" data-action="hollow" onclick="append ed hollow">HOLLOW</button>
 					<button class="tb" data-action="subtract" onclick="append ed subtract">SUBTRACT</button>
 					<button class="tb" data-action="merge" onclick="append ed merge">MERGE</button>
+					<button class="tb" data-action="stairs" onclick="append ed stairs">STAIRS</button>
 					<button class="tb" id="ed-detail" data-action="detail" onclick="append ed detail">DETAIL</button>
 				</div>
 				<div class="sub">MAKE A MOVER OF IT</div>
@@ -765,24 +775,19 @@
 
 		<div class="pbody hidden" id="panel-entities">
 			<input type="text" class="text wide" id="ed-esearch" placeholder="Search: spawn, rocket, door, Defrag ..." data-hint="Type part of a class or what it is"/>
-			<div class="row" style="margin-top: 0.45rem;">
+			<div class="einfo" id="ed-einfo"></div>
+			<div class="esec">QUICK BUILDS</div>
+			<p class="enote">Whole setups, every piece made and linked for you.</p>
+			<div class="row">
 				<button class="tb" data-action="jump_pad" onclick="append ed jump_pad">JUMP PAD</button>
 				<button class="tb" data-action="teleporter" onclick="append ed teleporter">TELEPORTER</button>
 				<button class="tb" data-action="light" onclick="append ed light">LIGHT</button>
 			</div>
-			<div class="esec">DEFRAG</div>
+			<p class="enote">Turn the selected brushes into:</p>
 			<div class="row">
-				<button class="tb" data-action="defrag_start" onclick="append ed defrag_start">START LINE</button>
-				<button class="tb" data-action="defrag_checkpoint" onclick="append ed defrag_checkpoint">CHECKPOINT</button>
-				<button class="tb" data-action="defrag_finish" onclick="append ed defrag_finish">FINISH LINE</button>
-			</div>
-			<div class="row">
-				<button class="tb" data-action="defrag_speed" onclick="append ed defrag_speed">SPEED PAD</button>
-				<button class="tb" data-action="defrag_shooter" onclick="append ed defrag_shooter">SHOOTER</button>
-			</div>
-			<div class="row">
-				<button class="tb" data-action="defrag_check" onclick="append ed defrag_check">CHECK THE COURSE</button>
-				<button class="tb play" data-action="play_defrag" onclick="append ed play_defrag">PLAY IN DEFRAG</button>
+				<button class="tb" data-action="door" onclick="append ed door">DOOR</button>
+				<button class="tb" data-action="door_pair" onclick="append ed door_pair">DOUBLE DOOR</button>
+				<button class="tb" data-action="lift" onclick="append ed lift">LIFT</button>
 			</div>
 			<div id="ed-ents"></div>
 		</div>

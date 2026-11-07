@@ -24,11 +24,11 @@ static const double PI = 3.14159265358979323846;
 
 const std::vector<Action> &actions() {
 	static const std::vector<Action> table = {
-		{"select", "Select", "Esc", "Click to select, drag to move; the corners, edges and diamonds of selected brushes reshape them"},
+		{"select", "Select", "Esc", "Click to select, drag to move, drag from empty space (or Ctrl+drag off the selection) to box select, Ctrl+drag the selection to drag off a copy; the corners, edges and diamonds of selected brushes reshape them"},
 		{"create", "Create brush", "B", "Drag a footprint on a surface or the grid, then move the mouse to set the height"},
 		{"clip", "Clipper", "C", "Click two points on a brush to cut through them (a third tilts the cut); Tab: the side kept; Enter cuts"},
 		{"faces", "Faces tool", "T", "Click faces to pick them (Shift adds, Ctrl toggles, double-click: the brush's), drag to push; the arrows move their texture, the panel maps it"},
-		{"jump_pad", "Jump pad", "J", "Click the floor where the pad goes, then where the player lands: a bounce pad, its trigger and target, one object (a click takes it all, a double-click one piece)"},
+		{"jump_pad", "Jump pad", "J", "Click the floor where the player steps, then where the player lands: an invisible trigger and its target, no block, one object (a click takes it all, a double-click one piece)"},
 		{"teleporter", "Teleporter", "K", "Click the entrance, then the exit: a trigger_teleport and its misc_teleporter_dest, linked"},
 		{"light", "Light", "L", "Click a surface: a light a grid step off it"},
 		{"place", "Place", "", "ed place <class>: the place tool puts that down where you click (the Entities panel picks it)"},
@@ -59,9 +59,9 @@ const std::vector<Action> &actions() {
 		{"tex_rotate", "Turn texture", "", "ed tex_rotate <degrees>: turns the texture on each face"},
 		{"tex_scale", "Scale texture", "", "ed tex_scale <s> [t]: the scale numbers times these"},
 		{"tex_set", "Mapping number", "", "ed tex_set shift_s|shift_t|rotate|scale_s|scale_t <value>: one number of the mapping, on each face"},
-		{"delete", "Delete", "Del, Backspace", "Deletes the selection"},
+		{"delete", "Delete", "Del, Backspace", "Deletes the selection; with corners picked, only those corners (the brush reshaped without them)"},
 		{"delete_corners", "Delete corners", "Shift+Del", "Deletes the picked corners of the selected brushes: each brush reshaped without them"},
-		{"duplicate", "Duplicate", "Ctrl+D, Space", "A copy of the selection beside it, to the right as the camera sees it"},
+		{"duplicate", "Duplicate", "Ctrl+D, Space", "A copy of the selection beside it, to the right as the camera sees it (or Ctrl+drag the selection to drag a copy off it)"},
 		{"copy", "Copy", "Ctrl+C", "Copies the selection"},
 		{"cut", "Cut", "Ctrl+X", "Copies the selection and deletes it"},
 		{"paste", "Paste", "Ctrl+V", "Pastes where the pointer is, on the grid"},
@@ -76,7 +76,8 @@ const std::vector<Action> &actions() {
 		{"flip_z", "Mirror upside down", "Ctrl+M", "Mirrors the selection along Z"},
 		{"subtract", "Subtract", "Ctrl+Shift+X", "Cuts the selected brushes out of every brush they overlap (a doorway, a window), then deletes them"},
 		{"hollow", "Hollow", "Ctrl+Shift+H", "Makes each selected brush a room: walls one grid step thick (8 units at least) around its inside; ed hollow <units> for any"},
-		{"merge", "Merge", "Ctrl+J", "Makes the selected brushes one brush: the smallest shape without dents that holds them all"},
+		{"stairs", "Stairs", "Ctrl+Shift+T", "Turns each selected wedge into solid stairs climbing its slope, each step about 8 units high; ed stairs <steps> for an exact count"},
+		{"merge", "Merge", "Ctrl+J","Makes the selected brushes one brush: the smallest shape without dents that holds them all"},
 		{"tint", "Color", "", "ed tint <r g b> | none: colors the picked faces (or every face of the selected brushes): the texture is multiplied by it, in the view and the game"},
 		{"collision", "Collision", "", "The selected brushes' collision on or off: off, players and shots pass through them (they still draw, and still block light). Every brush collides at first, liquids aside"},
 		{"detail", "Detail", "Ctrl+Shift+D", "Marks the selected brushes detail, or structural again: detail (trim, pillars, props) doesn't cut the map up for visibility, so it compiles faster and runs smoother; walls that hold the map in stay structural"},
@@ -439,7 +440,7 @@ void Session::paste_clip(const Clip &clip, const std::string &label) {
 }
 
 void Session::remove_selection() {
-	corners.clear();  // a corner picked by a stray click never turns Delete into a reshape (Shift+Delete does that)
+	corners.clear();
 	if (sel.empty()) {
 		say("Nothing is selected");
 		return;
@@ -754,7 +755,7 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 		return true;
 	}
 	if (tool == Tool::Faces && (action == "delete" || action == "duplicate" || action == "cut" || action.compare(0, 6, "rotate") == 0 ||
-			action.compare(0, 5, "flip_") == 0 || action.compare(0, 6, "nudge_") == 0 || action == "hollow" || action == "subtract" || action == "merge")) {
+			action.compare(0, 5, "flip_") == 0 || action.compare(0, 6, "nudge_") == 0 || action == "hollow" || action == "subtract" || action == "merge" || action == "stairs")) {
 		say("That works on brushes: Esc leaves the faces tool with their brushes selected");
 		return true;
 	}
@@ -765,7 +766,11 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 	} else if (action == "clip") {
 		set_tool(tool == Tool::Clip ? Tool::Select : Tool::Clip);
 	} else if (action == "delete") {
-		remove_selection();
+		if (!corners.empty()) {
+			delete_corners();  // picked corners: Delete takes them, not their brushes (click off them first for that)
+		} else {
+			remove_selection();
+		}
 	} else if (action == "delete_corners") {
 		if (corners.empty()) {
 			say("Pick corners of a selected brush first (click them; Shift adds)");
@@ -908,6 +913,14 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 		const double thick = !a.empty() ? std::max(1.0, arg(a, 0, grid)) : std::max(grid, 8.0);
 		std::vector<Id> made = oz::ed::hollow(doc, selected(), thick, note);
 		if (!made.empty()) {
+			select(made, SelMode::Set);
+		}
+		say(note, made.empty());
+	} else if (action == "stairs") {
+		const int count = !a.empty() ? std::atoi(a[0].c_str()) : 0;
+		std::vector<Id> made = oz::ed::stairs(doc, selected(), count, 8, note);
+		if (!made.empty()) {
+			corners.clear();
 			select(made, SelMode::Set);
 		}
 		say(note, made.empty());
@@ -1467,6 +1480,8 @@ std::string Session::hint() const {
 		return std::string("Enter cuts, keeping ") + sides[clip_keep_] + " (Tab changes it) \xc2\xb7 a third point tilts the cut \xc2\xb7 Esc clears";
 	}
 	switch (hover_handle_.kind) {
+	case Handle::Land:
+		return "Drag: where the jump pad lands, the throw re-aimed as you go (Ctrl off the grid) \xc2\xb7 Esc during the drag puts it back";
 	case Handle::Corner:
 		return "Drag: move this corner (Alt up and down, Ctrl off the grid) \xc2\xb7 click: select corners (Shift adds, Ctrl toggles) \xc2\xb7 Del removes them";
 	case Handle::Edge:

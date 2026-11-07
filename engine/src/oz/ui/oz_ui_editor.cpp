@@ -661,21 +661,51 @@ struct LightSlide {
 	int at = 0;
 } lightSlide;
 
+// A class in plain words ("Teleporter exit", not misc_teleporter_dest): the Entities panel's tiles and
+// the inspector's title. A pickup goes by its name (its catalog help); a class this list lacks (a mod's
+// .def) by its own name, past its prefix, with spaces
+std::string ClassTitle( const std::string &cn ) {
+	static const std::map<std::string, std::string> names = { { "info_player_start", "Old spawn" }, { "info_player_deathmatch", "Player spawn" },
+		{ "info_player_intermission", "Scoreboard camera" }, { "team_CTF_redplayer", "Red team start" }, { "team_CTF_blueplayer", "Blue team start" },
+		{ "team_CTF_redspawn", "Red respawn" }, { "team_CTF_bluespawn", "Blue respawn" }, { "info_null", "Aim point" }, { "info_notnull", "Target point" },
+		{ "item_botroam", "Bot roam spot" }, { "info_camp", "Bot camp spot" }, { "path_corner", "Train stop" }, { "target_position", "Jump pad target" },
+		{ "misc_teleporter_dest", "Teleporter exit" }, { "trigger_teleport", "Teleporter area" }, { "target_teleporter", "Teleport on fire" },
+		{ "trigger_push", "Jump pad area" }, { "target_push", "Push on fire" }, { "func_door", "Door" }, { "func_button", "Button" }, { "func_plat", "Lift" },
+		{ "func_rotating", "Spinner" }, { "func_bobbing", "Bobber" }, { "func_pendulum", "Pendulum" }, { "func_train", "Train" },
+		{ "func_static", "Still model" }, { "func_timer", "Timer" }, { "func_group", "Group" }, { "trigger_always", "At map start" },
+		{ "trigger_multiple", "Trigger area" }, { "trigger_hurt", "Hurt area" }, { "target_give", "Give items" }, { "target_remove_powerups", "Take powerups" },
+		{ "target_delay", "Delay" }, { "target_relay", "Relay" }, { "target_kill", "Kill" }, { "target_speaker", "Sound" }, { "target_print", "Message" },
+		{ "target_laser", "Laser" }, { "target_score", "Give points" }, { "target_location", "Location name" }, { "light", "Light" }, { "misc_model", "Model" },
+		{ "misc_portal_surface", "Mirror or portal" }, { "misc_portal_camera", "Portal camera" }, { "shooter_rocket", "Rocket shooter" },
+		{ "shooter_grenade", "Grenade shooter" }, { "shooter_plasma", "Plasma shooter" }, { "team_CTF_redflag", "Red flag" }, { "team_CTF_blueflag", "Blue flag" },
+		{ "target_startTimer", "Start timer" }, { "target_stopTimer", "Stop timer" }, { "target_checkpoint", "Checkpoint" },
+		{ "target_fragsFilter", "Frags filter" }, { "target_init", "Reset items" }, { "target_smallprint", "Small message" }, { "target_speed", "Speed" },
+		{ "trigger_push_velocity", "Speed jump pad" }, { "shooter_rocket_targetplayer", "Rocket at player" },
+		{ "shooter_plasma_targetplayer", "Plasma at player" }, { "shooter_grenade_targetplayer", "Grenade at player" } };
+	const auto it = names.find( cn );
+	if ( it != names.end() ) {
+		return it->second;
+	}
+	const oz::ed::EntityDef *def = oz::ed::entity_def( cn );
+	if ( def && def->item ) {
+		return def->help;	// a pickup's help is its name
+	}
+	const size_t us = cn.find( '_' );
+	std::string n = us == std::string::npos ? cn : cn.substr( us + 1 );
+	for ( char &c : n ) {
+		if ( c == '_' ) {
+			c = ' ';
+		}
+	}
+	if ( !n.empty() ) {
+		n[0] = (char)toupper( (unsigned char)n[0] );
+	}
+	return n;
+}
+
 // What an entity is, in words, for its panel's title: a light with a target is a spotlight, an
-// info_null a light aims at is its aim point, a pickup goes by its name; else by its class
+// info_null a light aims at is its aim point; else its class's title
 Rml::String EntityTitle( const oz::ed::Doc &d, oz::ed::Id id ) {
-	static const std::map<std::string, std::string> names = { { "info_player_start", "PLAYER SPAWN" }, { "info_player_deathmatch", "PLAYER SPAWN" },
-		{ "info_player_intermission", "INTERMISSION CAMERA" }, { "info_null", "AIM POINT" }, { "info_notnull", "TARGET POINT" },
-		{ "item_botroam", "BOT ROAM SPOT" }, { "info_camp", "BOT CAMP SPOT" }, { "path_corner", "TRAIN STOP" }, { "target_position", "TARGET POINT" },
-		{ "misc_teleporter_dest", "TELEPORTER EXIT" }, { "trigger_teleport", "TELEPORTER TRIGGER" }, { "target_teleporter", "TELEPORTER ACTION" },
-		{ "trigger_push", "JUMP PAD TRIGGER" }, { "target_push", "PUSHER" }, { "func_door", "DOOR" }, { "func_button", "BUTTON" }, { "func_plat", "LIFT" },
-		{ "func_rotating", "SPINNING BRUSH" }, { "func_bobbing", "BOBBING BRUSH" }, { "func_pendulum", "PENDULUM" }, { "func_train", "TRAIN" },
-		{ "func_static", "STILL BRUSH MODEL" }, { "func_timer", "TIMER" }, { "func_group", "GROUP" }, { "trigger_always", "AT MAP START" },
-		{ "trigger_multiple", "TRIGGER" }, { "trigger_hurt", "HURT ZONE" }, { "target_give", "GIVE ITEMS" }, { "target_remove_powerups", "TAKE POWERUPS" },
-		{ "target_delay", "DELAY" }, { "target_relay", "RELAY" }, { "target_kill", "KILL" }, { "target_speaker", "SPEAKER" }, { "target_print", "MESSAGE" },
-		{ "target_laser", "LASER" }, { "target_score", "SCORE" }, { "target_location", "LOCATION NAME" }, { "light", "LIGHT" }, { "misc_model", "MODEL" },
-		{ "misc_portal_surface", "MIRROR OR PORTAL" }, { "misc_portal_camera", "PORTAL CAMERA" }, { "shooter_rocket", "ROCKET SHOOTER" },
-		{ "shooter_grenade", "GRENADE SHOOTER" }, { "shooter_plasma", "PLASMA SHOOTER" } };
 	const oz::ed::Object *o = d.get( id );
 	if ( !o ) {
 		return "KEYS";
@@ -693,18 +723,7 @@ Rml::String EntityTitle( const oz::ed::Doc &d, oz::ed::Id id ) {
 			}
 		}
 	}
-	const auto it = names.find( cn );
-	if ( it != names.end() ) {
-		return it->second;
-	}
-	const oz::ed::EntityDef *def = oz::ed::entity_def( cn );
-	if ( def && def->item ) {
-		return Rml::StringUtilities::ToUpper( def->help );	// a pickup's help is its name
-	}
-	if ( def && def->section == "Spawns" ) {
-		return "PLAYER SPAWN (" + Rml::StringUtilities::ToUpper( cn ) + ")";
-	}
-	return Rml::StringUtilities::ToUpper( cn );
+	return Rml::StringUtilities::ToUpper( oz::ed::entity_def( cn ) || cn.empty() ? ClassTitle( cn ) : cn );
 }
 
 // The match filters every spawned entity takes (ed_entdefs.cpp common_keys)
@@ -1118,7 +1137,7 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		}
 		if ( padGroup ) {
 			SetRml( doc, "ed-ent-title", "JUMP PAD" );
-			SetRml( doc, "ed-ent-help", Enc( "Its pad, trigger and target, moved and copied together. A double-click takes one piece alone (its keys, or the target to drag)." ) );
+			SetRml( doc, "ed-ent-help", Enc( "Where you step (an invisible trigger) and the arc's top it throws you to, moved and copied together. A double-click takes one piece alone (its keys, or the target to drag)." ) );
 		}
 		Rml::String flags;
 		if ( def && ents[0] != d.worldspawn() ) {
@@ -1255,8 +1274,36 @@ void BuildPrefabs( Rml::ElementDocument *doc ) {
 
 // ---------------------------------------------------------------- the entities
 
-// Every class the editor knows, by the catalog's sections, as tiles: a pickup's icon, else its color
-// and name. A click arms the place tool with it (a brush class with brushes selected makes them one).
+// The Entities panel's sections, in the order a mapper reaches for them, each with a line saying what
+// it holds; a section the catalog has that isn't here (a mod's .def) follows, under its own name
+struct EntSection {
+	const char *section;  // the catalog's
+	const char *label;
+	const char *note;
+};
+const EntSection ENT_SECTIONS[] = {
+	{ "Spawns", "SPAWNS", "Where players appear. A map needs a few; each faces the way the camera did when you placed it." },
+	{ "Weapons", "WEAPONS", "Pickups: click one, then click the floor where it goes." },
+	{ "Ammo", "AMMO", "" },
+	{ "Armor", "ARMOR", "" },
+	{ "Health", "HEALTH", "" },
+	{ "Powerups and holdables", "POWERUPS", "" },
+	{ "Lights and sound", "LIGHTS AND SOUND", "" },
+	{ "Teleporters", "TELEPORTER PIECES", "TELEPORTER above makes these two, linked. Use them alone only to rewire one by hand." },
+	{ "Jump pads and pushers", "JUMP PAD PIECES", "JUMP PAD above makes these, aimed. Use them alone only to rewire one by hand." },
+	{ "Movers", "MOVING BRUSHES", "Select the brushes first, then click one of these to turn them into it." },
+	{ "Triggers and logic", "TRIGGERS AND LOGIC",
+		"Make things happen: a trigger fires whatever its target key names (that thing's targetname)." },
+	{ "Hazards", "HAZARDS", "" },
+	{ "Models and portals", "MODELS AND MIRRORS", "" },
+	{ "Markers", "INVISIBLE MARKERS", "Points players never see: for bots, for aiming lights and lasers, for train paths." },
+	{ "Flags", "CTF FLAGS", "One in each team's base, for capture the flag." },
+	{ "Defrag", "DEFRAG", "For Defrag race maps." },
+};
+
+// Every class the editor knows, by section, as tiles: a pickup's icon, else its color, and its name in
+// plain words. A click arms the place tool with it (a brush class with brushes selected makes them one);
+// the card on top says what the armed one is and what to do next.
 void BuildEntities( Rml::ElementDocument *doc ) {
 	const oz::ed::Session &s = session();
 	const std::string search = Lower( InputValue( doc, "ed-esearch" ) );
@@ -1266,76 +1313,107 @@ void BuildEntities( Rml::ElementDocument *doc ) {
 		return;
 	}
 	lastEntities = key;
-	// by section, in the order the catalog first names them (a mod's class joins its section)
+
+	// the card: the armed class, else how the panel works
+	const bool placing = s.tool == oz::ed::Tool::Place && !s.place_class.empty();
+	const oz::ed::EntityDef *armed = placing ? oz::ed::entity_def( s.place_class ) : nullptr;
+	Rml::String card;
+	if ( armed ) {
+		card = "<div class=\"et\">" + Enc( ClassTitle( armed->name ) ) + "<span class=\"ec\">" + Enc( armed->name ) + "</span></div><div class=\"ed\">" +
+			Enc( armed->item ? "A pickup: players run over it to take it." : armed->help + "." ) + "</div><div class=\"en\">" +
+			Enc( armed->brush ? "Now click in the 3D view: a 64-unit box of it goes there. Or select brushes first, then pick this, to turn them into it."
+							  : "Now click in the 3D view where it goes. Click it again for another." ) + "</div>";
+	} else {
+		card = "<div class=\"ed\">Pick a tile, then click in the 3D view to put it there. Point at a tile to read what it does.</div>"
+			   "<div class=\"en\"><span class=\"lg\">SPOT</span> sits at one point. <span class=\"lg\">AREA</span> is a box of brushes (a door, a trigger).</div>";
+	}
+	SetRml( doc, "ed-einfo", card );
+
+	// by section; the old spawn name (the same as Player spawn) only when searched for
 	std::vector<std::string> sections;
 	std::map<std::string, std::vector<const oz::ed::EntityDef *>> in;
+	for ( const EntSection &es : ENT_SECTIONS ) {
+		sections.push_back( es.section );
+	}
 	for ( const oz::ed::EntityDef &d : oz::ed::entity_defs() ) {
 		if ( d.section.empty() ) {
 			continue;	// worldspawn, func_group: not placed
 		}
-		if ( !search.empty() && Lower( d.name + " " + d.help + " " + d.mod + " " + d.section ).find( search ) == std::string::npos ) {
+		if ( search.empty() && d.name == "info_player_start" ) {
 			continue;
 		}
-		if ( !in.count( d.section ) ) {
+		if ( !search.empty() && Lower( ClassTitle( d.name ) + " " + d.name + " " + d.help + " " + d.mod + " " + d.section ).find( search ) == std::string::npos ) {
+			continue;
+		}
+		if ( std::find( sections.begin(), sections.end(), d.section ) == sections.end() ) {
 			sections.push_back( d.section );
 		}
 		in[d.section].push_back( &d );
 	}
-	std::vector<const oz::ed::EntityDef *> order;
-	for ( const std::string &sec : sections ) {
-		order.insert( order.end(), in[sec].begin(), in[sec].end() );
-	}
-	Rml::String rml, section;
+	Rml::String rml;
 	int shown = 0;
-	for ( const oz::ed::EntityDef *dp : order ) {
-		const oz::ed::EntityDef &d = *dp;
-		if ( d.section != section ) {
-			if ( !section.empty() ) {
-				rml += "</div>";
-			}
-			section = d.section;
-			rml += "<div class=\"esec\">" + Enc( Rml::StringUtilities::ToUpper( section ) ) + "</div><div class=\"mats\">";
+	for ( const std::string &sec : sections ) {
+		const auto list = in.find( sec );
+		if ( list == in.end() || list->second.empty() ) {
+			continue;
 		}
-		Rml::String sw, style;
-		static std::map<std::string, bool> iconThere;	// CPMA's green armor's is in CPMA's pak alone
-		if ( !d.icon.empty() && !iconThere.count( d.icon ) ) {
-			void *buf = nullptr;
-			iconThere[d.icon] = OzE_ReadFile( ( d.icon + ".tga" ).c_str(), &buf ) > 0;
-			if ( buf ) {
-				OzE_FreeFile( buf );
+		const EntSection *es = nullptr;
+		for ( const EntSection &e : ENT_SECTIONS ) {
+			if ( sec == e.section ) {
+				es = &e;
 			}
 		}
-		if ( !d.icon.empty() && iconThere[d.icon] ) {
-			// the pickup's icon whole, as the HUD draws it: its shape is in its alpha
-			sw = "<img src=\"/" + Enc( d.icon ) + "\" style=\"width: 3.4rem; height: 3.4rem;\"/>";
-		} else {
-			char c[64];
-			snprintf( c, sizeof c, "background-color: #%02x%02x%02x;", int( d.color.x * 200 ), int( d.color.y * 200 ), int( d.color.z * 200 ) );
-			style = c;
-			sw = "<span>" + Enc( Rml::StringUtilities::ToUpper( d.brush ? "brush" : "point" ) ) + "</span>";
+		rml += "<div class=\"esec\">" + Enc( es ? Rml::String( es->label ) : Rml::StringUtilities::ToUpper( sec ) ) + "</div>";
+		if ( es && es->note[0] ) {
+			rml += "<p class=\"enote\">" + Enc( es->note ) + "</p>";
 		}
-		// the name past its prefix (item_armor_body: armor_body), but whole where the prefix is what tells two
-		// apart (trigger_push and target_push, func_door, misc_model), with a space for the underscore
-		const size_t us = d.name.find( '_' );
-		const std::string prefix = us == std::string::npos ? "" : d.name.substr( 0, us );
-		std::string shortName = prefix == "trigger" || prefix == "target" || prefix == "func" || prefix == "misc" || prefix == "shooter"
-			? d.name : d.name.substr( us == std::string::npos ? 0 : us + 1 );
-		if ( prefix == "trigger" || prefix == "target" || prefix == "func" || prefix == "misc" || prefix == "shooter" ) {
-			shortName[us] = ' ';
+		if ( sec == "Defrag" ) {
+			// Defrag's builders: each makes the whole piece (a trigger across the course and its timer)
+			rml += "<div class=\"row\"><button class=\"tb\" data-action=\"defrag_start\" onclick=\"append ed defrag_start\">START LINE</button>"
+				   "<button class=\"tb\" data-action=\"defrag_checkpoint\" onclick=\"append ed defrag_checkpoint\">CHECKPOINT</button>"
+				   "<button class=\"tb\" data-action=\"defrag_finish\" onclick=\"append ed defrag_finish\">FINISH LINE</button></div>"
+				   "<div class=\"row\"><button class=\"tb\" data-action=\"defrag_speed\" onclick=\"append ed defrag_speed\">SPEED PAD</button>"
+				   "<button class=\"tb\" data-action=\"defrag_shooter\" onclick=\"append ed defrag_shooter\">SHOOTER</button></div>"
+				   "<div class=\"row\"><button class=\"tb\" data-action=\"defrag_check\" onclick=\"append ed defrag_check\">CHECK THE COURSE</button>"
+				   "<button class=\"tb play\" data-action=\"play_defrag\" onclick=\"append ed play_defrag\">PLAY IN DEFRAG</button></div>"
+				   "<p class=\"enote\">The lines above make the triggers for you. The pieces, to place by hand:</p>";
 		}
-		const bool on = s.tool == oz::ed::Tool::Place && s.place_class == d.name;
-		rml += "<div class=\"mat" + Rml::String( on ? " on" : "" ) + "\" data-hint=\"" + Enc( d.name + ": " + d.help + ( d.mod.empty() ? "" : " (" + d.mod + ")" ) +
-			( d.brush ? ". Click, then click in the view for a 64-unit brush of it; with brushes selected, makes them one" : ". Click, then where it goes" ) ) +
-			"\" onclick=\"append ed place " + Enc( d.name ) + "\"><div class=\"sw" + ( style.empty() ? "" : " tool" ) + "\"" +
-			( style.empty() ? "" : " style=\"" + style + "\"" ) + ">" + sw + "</div>" + ( d.mod.empty() ? "" : "<span class=\"badge\">" + Enc( Rml::StringUtilities::ToUpper( d.mod ) ) + "</span>" ) +
-			"<span class=\"mn\">" + Enc( shortName ) + "</span></div>";
-		shown++;
-	}
-	if ( !section.empty() ) {
+		rml += "<div class=\"mats\">";
+		for ( const oz::ed::EntityDef *dp : list->second ) {
+			const oz::ed::EntityDef &d = *dp;
+			Rml::String sw, style;
+			static std::map<std::string, bool> iconThere;	// CPMA's green armor's is in CPMA's pak alone
+			if ( !d.icon.empty() && !iconThere.count( d.icon ) ) {
+				void *buf = nullptr;
+				iconThere[d.icon] = OzE_ReadFile( ( d.icon + ".tga" ).c_str(), &buf ) > 0;
+				if ( buf ) {
+					OzE_FreeFile( buf );
+				}
+			}
+			if ( !d.icon.empty() && iconThere[d.icon] ) {
+				// the pickup's icon whole, as the HUD draws it: its shape is in its alpha
+				sw = "<img src=\"/" + Enc( d.icon ) + "\" style=\"width: 3.4rem; height: 3.4rem;\"/>";
+			} else {
+				char c[64];
+				snprintf( c, sizeof c, "background-color: #%02x%02x%02x;", int( d.color.x * 200 ), int( d.color.y * 200 ), int( d.color.z * 200 ) );
+				style = c;
+				sw = d.brush ? "<span>AREA</span>" : "<span>SPOT</span>";
+			}
+			const std::string title = ClassTitle( d.name );
+			const bool on = s.tool == oz::ed::Tool::Place && s.place_class == d.name;
+			rml += "<div class=\"mat" + Rml::String( on ? " on" : "" ) + "\" data-hint=\"" +
+				Enc( title + " (" + d.name + "): " + ( d.item ? "a pickup" : d.help ) + ( d.mod.empty() ? "" : " (" + d.mod + ")" ) +
+					( d.brush ? ". Click, then click in the view for a box of it; with brushes selected, makes them one" : ". Click, then where it goes" ) ) +
+				"\" onclick=\"append ed place " + Enc( d.name ) + "\"><div class=\"sw" + ( style.empty() ? "" : " tool" ) + "\"" +
+				( style.empty() ? "" : " style=\"" + style + "\"" ) + ">" + sw + "</div>" +
+				( d.mod.empty() || d.mod == "Defrag" ? "" : "<span class=\"badge\">" + Enc( Rml::StringUtilities::ToUpper( d.mod ) ) + "</span>" ) +
+				"<span class=\"mn\">" + Enc( title ) + "</span></div>";
+			shown++;
+		}
 		rml += "</div>";
 	}
 	if ( !shown ) {
-		rml = "<p>No class matches.</p>";
+		rml = "<p class=\"enote\">Nothing matches. Try a word for what it does: spawn, door, jump, hurt, sound.</p>";
 	}
 	SetRml( doc, "ed-ents", rml );
 }
@@ -2486,7 +2564,7 @@ const struct {
 		"-", "prefab_save", "show_prefabs", "-", "show_objects" } },
 	{ "view", { "views", "view_next", "-", "frame_selection", "frame_all", "-", "#SHOW", "filter_tools", "filter_triggers", "filter_sky", "filter_entities",
 		"filter_curves", "-", "preview", "-", "#PANEL", "show_inspect", "show_materials", "show_entities", "show_prefabs", "show_objects", "show_history" } },
-	{ "brush", { "create", "clip", "faces", "-", "collision", "detail", "-", "hollow", "subtract", "merge", "-", "rotate_left", "rotate_right", "rotate_left_15", "rotate_right_15",
+	{ "brush", { "create", "clip", "faces", "-", "collision", "detail", "-", "hollow", "subtract", "merge", "stairs", "-", "rotate_left", "rotate_right", "rotate_left_15", "rotate_right_15",
 		"-", "flip_x", "flip_y", "flip_z" } },
 	{ "curve", { "#FROM THE SELECTED BRUSHES", "curve_cylinder", "curve_cone", "curve_arch", "curve_bevel", "curve_plane", "-", "#THE SELECTED CURVES",
 		"curve_more_columns", "curve_fewer_columns", "curve_more_rows", "curve_fewer_rows", "curve_invert", "curve_caps", "curve_thicken" } },
@@ -2536,7 +2614,7 @@ bool MenuEnabled( const std::string &a ) {
 		return !s.target_faces().empty() || !s.target_patches().empty();
 	}
 	static const std::set<std::string> needSel = { "delete", "duplicate", "copy", "cut", "rotate_left", "rotate_right", "rotate_left_15",
-		"rotate_right_15", "flip_x", "flip_y", "flip_z", "subtract", "hollow", "merge", "hide", "hide_others", "lock", "group", "ungroup",
+		"rotate_right_15", "flip_x", "flip_y", "flip_z", "subtract", "hollow", "merge", "stairs", "hide", "hide_others", "lock", "group", "ungroup",
 		"frame_selection", "to_world" };
 	if ( needSel.count( a ) ) {
 		return sel || ( a == "delete" && !s.corners.empty() );

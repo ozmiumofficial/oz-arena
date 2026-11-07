@@ -9,8 +9,8 @@ main menu doesn't come back over it; leaving (Main Menu, File > Exit to main men
 The menus (File, Edit, Select, View, Brush, Curve, Texture, Entity, Build, Help) list every action a
 mapper does with nothing typed, with its keys, a mark on what's on, greyed where it needs a selection
 (MENUS: rows of oz::ed::actions()). A click on a title opens one, the pointer over another title moves
-to it, the arrows and Enter work it, Escape or a click elsewhere closes it. Escape in the editor with
-nothing to cancel opens File. A button held under the pointer a moment shows its tip: its name, its
+to it, the arrows and Enter work it, Escape or a click elsewhere closes it. Escape in the editor only
+cancels; F10 opens File. A button held under the pointer a moment shows its tip: its name, its
 keys and what it does. The first time the editor opens, the getting started card shows (F1 again).
 
 Keys and buttons go to the editor first while its page is on top and no text field has the focus:
@@ -2192,12 +2192,29 @@ void NoteRecent( const std::string &path ) {
 	OzEd_WriteOSFile( RecentFile().c_str(), text.data(), int( text.size() ) );
 }
 
-// The Open list: the recent maps first (by name in the maps folder, else by full path), then the folder's
+// A path to compare: forward slashes, and on Windows any case (the same length as the path)
+std::string PathKey( const std::string &p ) {
+	std::string k = p;
+	for ( char &c : k ) {
+		if ( c == '\\' ) {
+			c = '/';
+		}
+#ifdef _WIN32
+		c = (char)tolower( (unsigned char)c );
+#endif
+	}
+	return k;
+}
+
+// The Open list: the recent maps first (by name in the maps folder, else by full path), then the folder's.
+// A recent map's path may spell the folder another way (backslashes from the home path, slashes typed):
+// compared as PathKey, room.map in the folder is "room" once, never also by its full path.
 std::vector<std::string> MyMaps() {
 	std::vector<std::string> out;
-	const std::string dir = session().maps_dir() + "/";
+	const std::string dir = session().maps_dir() + "/", dirKey = PathKey( dir );
 	for ( const std::string &r : RecentMaps() ) {
-		const bool here = r.compare( 0, dir.size(), dir ) == 0 && r.size() > dir.size() + 4 && r.find( '/', dir.size() ) == std::string::npos;
+		const std::string key = PathKey( r );
+		const bool here = key.compare( 0, dirKey.size(), dirKey ) == 0 && key.size() > dirKey.size() + 4 && key.find( '/', dirKey.size() ) == std::string::npos;
 		out.push_back( here ? r.substr( dir.size(), r.size() - dir.size() - 4 ) : r );
 	}
 	const size_t recent = out.size();

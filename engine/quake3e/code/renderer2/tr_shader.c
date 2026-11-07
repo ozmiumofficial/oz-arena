@@ -4391,6 +4391,28 @@ shader_t *R_OzEdLook( const char *name ) {
 	shader_t *sh;
 	int i;
 
+	// "$oz_ed_sky:<image>": the sky's picture around the 3D view, unlit, behind everything
+	if ( !Q_stricmpn( name, "$oz_ed_sky:", 11 ) ) {
+		image_t *img;
+		sh = R_FindShaderByName( name );
+		if ( sh != tr.defaultShader ) {
+			return sh;
+		}
+		img = R_FindImageFile( name + 11, IMGTYPE_COLORALPHA, IMGFLAG_MIPMAP );
+		if ( !img ) {
+			return NULL;
+		}
+		InitShader( name, LIGHTMAP_NONE );
+		stages[0].bundle[0].image[0] = img;
+		stages[0].bundle[0].tcGen = TCGEN_TEXTURE;
+		stages[0].active = qtrue;
+		stages[0].rgbGen = CGEN_VERTEX;
+		stages[0].alphaGen = AGEN_IDENTITY;
+		stages[0].stateBits = GLS_DEFAULT;
+		shader.cullType = CT_TWO_SIDED;
+		shader.sort = SS_ENVIRONMENT;
+		return FinishShader();
+	}
 	for ( i = 0; i < (int)ARRAY_LEN( looks ); i++ ) {
 		if ( Q_stricmp( name, looks[i].name ) ) {
 			continue;

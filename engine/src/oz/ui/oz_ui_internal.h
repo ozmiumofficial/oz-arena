@@ -10,6 +10,7 @@ oz_ui_settings.cpp (ui/settings.json, its cvars and the generated Settings page)
 #include <filesystem>
 #include <set>
 #include <string>
+#include <map>
 #include <vector>
 
 struct cJSON;
@@ -291,5 +292,14 @@ struct FocusWalkResult {
 	int reached = 0, total = 0;
 	Rml::StringList missed;
 };
+
+// "/@thumb/<image>" sources the renderer couldn't load this run (oz_ui_render.cpp), by image path: the
+// map editor's browser leaves those materials out. ThumbFailedRev() goes up with each new one.
+bool ThumbFailed( const std::string &image );
+
+// The info blocks of the game's scripts: first (scripts/arenas.txt, scripts/bots.txt), then every scripts/*<ext>
+// (oz_ui_menu.cpp), each block's keys in lowercase
+void ReadInfoFiles( const char *first, const char *ext, std::vector<std::map<Rml::String, Rml::String>> &out );
+int ThumbFailedRev();
 
 } // namespace OzUI

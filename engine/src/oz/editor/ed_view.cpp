@@ -1127,6 +1127,9 @@ void Session::frame(int x, int y, int w, int h) {
 		links_doc_ = ~0ull;
 		model_handles_.clear();  // models register again with the new renderer
 		grid_mesh_ = 0;
+		sky_mesh_ = 0;
+		sky_mesh_image_.clear();
+		live_rev_ = ~0ull;
 		thumb_mesh_.reset();
 		thumb_ents_.reset();
 		if (thumb_state_) {
@@ -1172,6 +1175,7 @@ void Session::frame(int x, int y, int w, int h) {
 	}
 	use_pane(active_);  // the tools' view: the pane the pointer works in
 	const bool flat = layout == 4 || solo != Pane::Cam;  // a 2D pane shows
+	live_world();
 
 	// the lit preview, on or off: every mesh again
 	if (previewing() != lit_) {
@@ -1271,6 +1275,60 @@ void Session::frame(int x, int y, int w, int h) {
 	}
 }
 
+void Session::live_world() {
+	const ozEdRender_t *r = OzEd_Renderer();
+	if (!r) {
+		return;
+	}
+	if (live_rev_ != doc.revision) {
+		live_rev_ = doc.revision;
+		const SkySun s = sky_sun();
+		// the sun: toward it, from its height over the horizon and its direction (0 from +X, 90 from +Y);
+		// the defaults (100, 60, 30, sky light 80, no ambient) give the view's light as it always was
+		const double h = s.height * PI / 180, d = s.direction * PI / 180;
+		live_dir_[0] = float(std::cos(h) * std::cos(d)), live_dir_[1] = float(std::cos(h) * std::sin(d)), live_dir_[2] = float(std::sin(h));
+		for (int i = 0; i < 3; i++) {
+			live_directed_[i] = float(std::min(255.0, s.color[i] * 150 * s.brightness / 100));
+			const double sky = s.glow[i] * 90 * s.sky_light / 80, amb = s.ambient_color[i] * s.ambient, fill = s.fill_on ? 30 : 0;
+			live_ambient_[i] = float(std::min(255.0, sky + amb + fill));
+		}
+		// the sky's picture (a cloud layer, a box side), tiled on a box round the camera
+		const std::string img = shaders_lib().found(s.sky) ? shaders_lib().image(s.sky) : "";
+		if (img != sky_mesh_image_) {
+			sky_mesh_image_ = img;
+			const int sh = img.empty() ? 0 : r->RegisterShader(("$oz_ed_sky:" + img).c_str());
+			if (!sh) {
+				sky_mesh_ = 0;
+			} else {
+				if (!sky_mesh_) {
+					sky_mesh_ = r->CreateMesh(0);
+				}
+				const double S = 16384;  // inside OZ_ED_FAR
+				static const unsigned char white[4] = {255, 255, 255, 255};
+				std::vector<ozEdVertex_t> verts;
+				std::vector<unsigned short> idx;
+				const Vec3 c[8] = {{-S, -S, -S}, {S, -S, -S}, {S, S, -S}, {-S, S, -S}, {-S, -S, S}, {S, -S, S}, {S, S, S}, {-S, S, S}};
+				const int faces[6][4] = {{4, 5, 6, 7}, {0, 3, 2, 1}, {0, 1, 5, 4}, {1, 2, 6, 5}, {2, 3, 7, 6}, {3, 0, 4, 7}};
+				for (const auto &f : faces) {
+					const unsigned short base = (unsigned short)verts.size();
+					const double st[4][2] = {{0, 0}, {6, 0}, {6, 6}, {0, 6}};  // the picture six times across a side
+					for (int k = 0; k < 4; k++) {
+						verts.push_back(vertex(c[f[k]], st[k][0], st[k][1], Vec3(0, 0, 1), Vec3(1, 0, 0), 1, white));
+					}
+					for (int k : {0, 1, 2, 0, 2, 3}) {
+						idx.push_back((unsigned short)(base + k));
+					}
+				}
+				const ozEdRange_t range{sh, 0, int(idx.size())};
+				if (sky_mesh_) {
+					r->UploadMesh(sky_mesh_, verts.data(), int(verts.size()), idx.data(), int(idx.size()), &range, 1);
+				}
+			}
+		}
+	}
+	r->SetViewLight(live_ambient_, live_directed_, live_dir_);
+}
+
 void Session::draw_pane(Pane p, int now) {
 	use_pane(p);
 	const Rect &r = panes_[int(p)];
@@ -1286,6 +1344,10 @@ void Session::draw_pane(Pane p, int now) {
 	Overlay &handles = pane_handles_[int(p)];
 	build_handles(handles);  // sized for this pane
 	if (p == Pane::Cam) {
+		if (sky_mesh_ && !previewing()) {
+			const float at[3] = {float(eye_.x), float(eye_.y), float(eye_.z)};
+			OzEd_AddModel(sky_mesh_, at, ident, 0, nullptr);  // the World tab's sky, around wherever you look from
+		}
 		world_.draw(zero, ident);
 		chosen_.draw(moved, ident);
 		if (grid_mesh_) {

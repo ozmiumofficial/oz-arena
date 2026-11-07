@@ -113,7 +113,10 @@ static const double SKY_SIDE = 512, SKY_TOP = 1024, SKY_BELOW = 512, SKY_THICK =
 // id's cloud skies are red or orange, and toxicsky lit play-tests piss yellow (Ozmium 2026-11-04).
 static const char *const K_SKY = "_oz_sky", *const K_LIGHT_FROM = "_oz_sky_light_from", *const K_COLOR = "_oz_sun_color",
 	*const K_BRIGHT = "_oz_sun_brightness", *const K_HEIGHT = "_oz_sun_height", *const K_DIR = "_oz_sun_direction",
-	*const K_GLOW = "_oz_sky_light", *const K_GLOW_COLOR = "_oz_sky_light_color";
+	*const K_GLOW = "_oz_sky_light", *const K_GLOW_COLOR = "_oz_sky_light_color", *const K_FILL = "_oz_fill";
+// the fill light: q3map2's worldspawn _floodlight "r g b distance intensity" (its -floodlight defaults: a soft white
+// that reaches 1024 units, darker where surfaces close in)
+static const char *const FILL_LIGHT = "240 240 255 1024 128";
 
 // "r g b", 0 to 1 each (0 to 255 read as such), into out; false when it isn't three numbers
 static bool read_rgb(const std::string &v, double out[3]) {
@@ -193,6 +196,13 @@ static Session::SkySun sky_sun_of(const Doc &d) {
 	s.glow_set = read_rgb(e.get(K_GLOW_COLOR), s.glow);
 	s.ambient = std::max(0.0, std::atof(e.get("ambient", "0").c_str()));
 	read_rgb(e.get("_color"), s.ambient_color);
+	const std::string fill = e.get(K_FILL);
+	s.fill = fill == "on" || fill == "off" ? fill : "auto";
+	for (Id id : d.ids_of(Kind::Entity)) {
+		const std::string cn = d.get(id)->entity.classname();
+		s.lamps = s.lamps || cn == "light" || cn == "lightJunior";
+	}
+	s.fill_on = s.fill == "on" || (s.fill == "auto" && !s.lamps);
 	return s;
 }
 
@@ -264,7 +274,7 @@ bool Session::sky_action(const std::string &action, const std::vector<std::strin
 	}
 	if (a[0] == "reset") {
 		doc.begin("Sky and sun: defaults");
-		for (const char *k : {K_SKY, K_LIGHT_FROM, K_COLOR, K_BRIGHT, K_HEIGHT, K_DIR, K_GLOW, K_GLOW_COLOR, "ambient", "_color"}) {
+		for (const char *k : {K_SKY, K_LIGHT_FROM, K_COLOR, K_BRIGHT, K_HEIGHT, K_DIR, K_GLOW, K_GLOW_COLOR, "ambient", "_color", K_FILL}) {
 			remove_key(doc, world, k, "");
 		}
 		doc.end();
@@ -311,6 +321,18 @@ bool Session::sky_action(const std::string &action, const std::vector<std::strin
 		}
 		put(a[0] == "color" ? K_COLOR : a[0] == "glow_color" ? K_GLOW_COLOR : "_color", clear ? v : std::string(norm),
 			a[0] == "color" ? "Sun color" : a[0] == "glow_color" ? "Sky glow color" : "Ambient color");
+	} else if (a[0] == "fill") {
+		if (v != "auto" && v != "on" && v != "off" && !clear) {
+			say("ed sky fill auto|on|off", true);
+			return true;
+		}
+		if (clear || v == "auto") {
+			remove_key(doc, world, K_FILL, "Fill light");
+		} else {
+			set_key(doc, world, K_FILL, v, "Fill light");
+		}
+		const SkySun s = sky_sun();
+		say(std::string("Fill light: ") + (s.fill_on ? "on" : "off") + (s.fill == "auto" ? (s.lamps ? " (auto: the map has lamps)" : " (auto: the map has no lamps)") : ""));
 	} else if (a[0] == "ambient") {
 		char buf[32];
 		std::snprintf(buf, sizeof buf, "%g", std::max(0.0, std::min(500.0, std::atof(v.c_str()))));
@@ -547,6 +569,15 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 		boxed.put(id, e);
 	}
 	boxed.end();
+	// a map without lamps (an imported map pack's, its lights gone with its .bsp) gets the fill light:
+	// q3map2's floodlight on the copy alone, so the map file keeps its own keys
+	if (sky_sun_of(boxed).fill_on) {
+		boxed.begin("fill");
+		auto w = boxed.edit(boxed.worldspawn());
+		w->entity.set("_floodlight", FILL_LIGHT);
+		boxed.put(boxed.worldspawn(), w);
+		boxed.end();
+	}
 	const std::string text = write_map(boxed, wo);
 	const std::string shaders = j.dir + "/home/baseq3/scripts/oz_editor_tools.shader";
 	const std::string tool_shaders = std::string(TOOL_SHADERS) + sky_light_shaders(doc);

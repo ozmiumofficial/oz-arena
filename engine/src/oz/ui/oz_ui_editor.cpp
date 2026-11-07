@@ -113,6 +113,7 @@ const double UV_VIEW = 440;				// the view's side, dp
 // the pick list a typed key opens (a sound, a model, a name to target)
 bool pickOpen;
 std::string pickKey, pickType, pickQuery;	// pickType: sound, music, model, target
+std::string importCat = "all";	// Open a game map's category: all, id, ffa, tourney, team, ctf, other
 std::vector<std::string> pickFound;
 int pickAt;
 Rml::String lastPick;
@@ -275,6 +276,10 @@ Rml::String SwatchRml( const std::string &name, double box, Rml::String &style, 
 		style = Rml::String( "background-color: " ) + tool + ";";
 		return "<span>" + Enc( Rml::StringUtilities::ToUpper( name.substr( 7 ) ) ) + "</span>";
 	}
+	if ( lib.look( name ) == oz::ed::Look::Fog && !lib.found( name ) ) {
+		style = Rml::String( "background-color: " ) + tool + ";";	// a fog volume: its picture was the editor's alone
+		return "<span>FOG</span>";
+	}
 	if ( !lib.found( name ) ) {
 		style = "background-color: #1a1614;";
 		return "<span>NO IMAGE</span>";
@@ -363,8 +368,8 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 	const std::string current = Lower( session().shader );
 	LoadFavorites();
 	char key[200];
-	snprintf( key, sizeof key, "%s|%d|%s|%s|%llu|%d", matView.c_str(), matPage, search.c_str(), current.c_str(),
-		matView == "map" ? (unsigned long long)session().doc.revision : 0ull, (int)favorites.size() );
+	snprintf( key, sizeof key, "%s|%d|%s|%s|%llu|%d|%d", matView.c_str(), matPage, search.c_str(), current.c_str(),
+		matView == "map" ? (unsigned long long)session().doc.revision : 0ull, (int)favorites.size(), ThumbFailedRev() );
 	if ( key == lastMats ) {
 		return;
 	}
@@ -440,6 +445,11 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 	if ( !search.empty() ) {
 		names.erase( std::remove_if( names.begin(), names.end(), [&]( const std::string &n ) { return Lower( n ).find( search ) == std::string::npos; } ),
 			names.end() );
+	}
+	// a picture the renderer couldn't load: no tile for it (the map's own materials still show, to find them)
+	if ( ThumbFailedRev() && matView != "map" ) {
+		oz::ed::ShaderLib &lib = oz::ed::shaders_lib();
+		names.erase( std::remove_if( names.begin(), names.end(), [&]( const std::string &n ) { return ThumbFailed( lib.image( n ) ); } ), names.end() );
 	}
 	const int pages = std::max( 1, int( ( names.size() + MAT_PAGE - 1 ) / MAT_PAGE ) );
 	matPage = std::min( matPage, pages - 1 );
@@ -1839,7 +1849,7 @@ void BuildSky( Rml::ElementDocument *doc ) {
 	const oz::ed::Session::SkySun ss = s.sky_sun();
 	char rgb[64];
 	snprintf( rgb, sizeof rgb, "%g %g %g", ss.color[0], ss.color[1], ss.color[2] );
-	const Rml::String key = ss.sky + "|" + ss.painted + "|" + std::to_string( ss.chosen ) + std::to_string( ss.own ) + "|" + rgb + "|" +
+	const Rml::String key = std::to_string( ThumbFailedRev() ) + "|" + ss.fill + std::to_string( ss.lamps ) + "|" + ss.sky + "|" + ss.painted + "|" + std::to_string( ss.chosen ) + std::to_string( ss.own ) + "|" + rgb + "|" +
 		Num( ss.brightness ) + " " + Num( ss.height ) + " " + Num( ss.direction ) + " " + Num( ss.sky_light ) + "|" + Num( ss.glow[0] ) + " " +
 		Num( ss.glow[1] ) + " " + Num( ss.glow[2] ) + " " + Num( ss.ambient ) + " " + Num( ss.ambient_color[0] ) + " " + Num( ss.ambient_color[1] ) + " " +
 		Num( ss.ambient_color[2] );
@@ -1853,7 +1863,7 @@ void BuildSky( Rml::ElementDocument *doc ) {
 	std::vector<std::string> skies;
 	oz::ed::ShaderLib &lib = oz::ed::shaders_lib();
 	for ( const oz::ed::Material &m : lib.materials() ) {
-		if ( m.stock && m.script && m.name.compare( 0, 6, "skies/" ) == 0 && lib.look( m.name ) == oz::ed::Look::Sky ) {
+		if ( m.stock && m.script && m.name.compare( 0, 6, "skies/" ) == 0 && lib.look( m.name ) == oz::ed::Look::Sky && !ThumbFailed( lib.image( m.name ) ) ) {
 			skies.push_back( m.name );
 		}
 	}
@@ -1889,6 +1899,15 @@ void BuildSky( Rml::ElementDocument *doc ) {
 		"onclick=\"append ed sky light_from own\">THE SKY'S OWN</button>"
 		"<span class=\"sh\">" + Rml::String( ss.own ? "The sky's own sun and glow light the map; the settings below wait." : "The sun and the sky's glow below light the map." ) +
 		"</span></div>";
+	// the fill light: q3map2's floodlight, for maps without lamps (an imported map pack's lost its lights)
+	rml += "<div class=\"srow\"><span class=\"sl\">Fill light</span>";
+	for ( const char *f : { "auto", "on", "off" } ) {
+		rml += "<button class=\"chip" + Rml::String( ss.fill == f ? " on" : "" ) + "\" id=\"ed-sky-fill-" + f + "\" onclick=\"append ed sky fill " + f + "\" data-hint=\"" +
+			( !strcmp( f, "auto" ) ? "On when the map has no lamps" : !strcmp( f, "on" ) ? "A soft light everywhere, darker in corners" : "Only the lamps, the sun and the sky light the map" ) +
+			"\">" + Rml::StringUtilities::ToUpper( f ) + "</button>";
+	}
+	rml += "<span class=\"sh\">" + Rml::String( ss.fill_on ? "On" : "Off" ) +
+		( ss.fill == "auto" ? ( ss.lamps ? ": the map has lamps." : ": the map has no lamps (a map pack's lose theirs when compiled), so a soft light fills it." ) : "." ) + "</span></div>";
 	// a color: the palette's dots, a swatch of what it is, the numbers to type
 	auto colorRow = [&]( const char *field, const char *label, const double c[3], const char *help ) {
 		char v[64];
@@ -2079,13 +2098,76 @@ const std::vector<std::string> &GameMaps() {
 	return out;
 }
 
+// What Open a game map knows of each: its name in the arena files (scripts/arenas.txt and *.arena), the
+// modes they give it, and whether it's one of id's
+struct GameMapInfo {
+	std::string name, types;
+	bool id = false, listed = false;
+};
+const std::map<std::string, GameMapInfo> &GameMapInfos() {
+	static std::map<std::string, GameMapInfo> out;
+	static bool made;
+	if ( made ) {
+		return out;
+	}
+	made = true;
+	std::vector<std::map<Rml::String, Rml::String>> blocks;
+	ReadInfoFiles( "scripts/arenas.txt", ".arena", blocks );
+	std::map<std::string, std::map<Rml::String, Rml::String>> byMap;
+	for ( auto &b : blocks ) {
+		if ( !b["map"].empty() ) {
+			byMap[Lower( b["map"] )] = b;
+		}
+	}
+	for ( const std::string &m : GameMaps() ) {
+		GameMapInfo i;
+		auto it = byMap.find( Lower( m ) );
+		if ( it != byMap.end() ) {
+			i.listed = true;
+			i.name = it->second["longname"];
+			i.types = Lower( it->second["type"] );
+		}
+		i.id = OzE_InIdPak( ( "maps/" + m + ".bsp" ).c_str() ) != 0;
+		out[m] = i;
+	}
+	return out;
+}
+
+// the categories, as chips: their key, label, and whether a map is in one
+static const struct {
+	const char *key, *label;
+} IMPORT_CATS[] = { { "all", "ALL" }, { "id", "ID'S ARENAS" }, { "ffa", "DEATHMATCH" }, { "tourney", "TOURNEY" }, { "team", "TEAM" },
+	{ "ctf", "CTF" }, { "other", "OTHER" } };
+
+static bool InImportCat( const GameMapInfo &i, const std::string &cat ) {
+	auto has = [&]( const char *w ) { return ( " " + i.types + " " ).find( std::string( " " ) + w + " " ) != std::string::npos; };
+	if ( cat == "all" ) return true;
+	if ( cat == "id" ) return i.id;
+	if ( cat == "ffa" ) return has( "ffa" );
+	if ( cat == "tourney" ) return has( "tourney" );
+	if ( cat == "team" ) return has( "team" );
+	if ( cat == "ctf" ) return has( "ctf" ) || has( "oneflag" ) || has( "harvester" ) || has( "overload" );
+	return !i.listed || i.types.empty();  // other: no arena file says what it's for
+}
+
+static std::string ImportModes( const std::string &types ) {
+	std::string out;
+	for ( const auto &w : { std::make_pair( "ffa", "deathmatch" ), std::make_pair( "tourney", "tourney" ), std::make_pair( "team", "team" ),
+			std::make_pair( "ctf", "CTF" ) } ) {
+		if ( ( " " + types + " " ).find( std::string( " " ) + w.first + " " ) != std::string::npos ) {
+			out += ( out.empty() ? "" : ", " ) + std::string( w.second );
+		}
+	}
+	return out;
+}
+
 void BuildPick( Rml::ElementDocument *doc ) {
 	std::string query = Lower( InputValue( doc, "ed-pick-text" ) );
 	if ( query != pickQuery ) {
 		pickQuery = query;
 		pickAt = 0;
 	}
-	const Rml::String key = query + "|" + std::to_string( pickAt ) + "|" + pickKey + "|" + pickType + "|" + std::to_string( session().doc.revision );
+	const Rml::String key = query + "|" + std::to_string( pickAt ) + "|" + pickKey + "|" + pickType + "|" + importCat + "|" + std::to_string( session().doc.revision );
 	if ( key == lastPick ) {
 		return;
 	}
@@ -2103,7 +2185,26 @@ void BuildPick( Rml::ElementDocument *doc ) {
 	} else if ( pickType == "open" ) {
 		all = MyMaps();
 	} else if ( pickType == "import" ) {
-		all = GameMaps();
+		// the category's maps, with the chips' counts
+		const auto &infos = GameMapInfos();
+		Rml::String chips;
+		for ( const auto &c : IMPORT_CATS ) {
+			int n = 0;
+			for ( const auto &kv : infos ) {
+				n += InImportCat( kv.second, c.key );
+			}
+			if ( n == 0 && strcmp( c.key, "all" ) ) {
+				continue;
+			}
+			chips += Rml::String( "<button class=\"chip" ) + ( importCat == c.key ? " on" : "" ) + "\" id=\"ed-pick-cat-" + c.key +
+				"\" onclick=\"append ed panel pick_cat " + c.key + "\">" + c.label + " <span class=\"n\">" + std::to_string( n ) + "</span></button>";
+		}
+		SetRml( doc, "ed-pick-chips", chips );
+		for ( const auto &kv : infos ) {
+			if ( InImportCat( kv.second, importCat ) ) {
+				all.push_back( kv.first );
+			}
+		}
 	} else {
 		all = PickFiles( pickType );
 	}
@@ -2118,13 +2219,19 @@ void BuildPick( Rml::ElementDocument *doc ) {
 	}
 	pickFound.clear();
 	size_t matches = 0;
+	const bool import = pickType == "import";
+	const size_t most = import ? 200 : 60;
 	for ( const std::string &f : all ) {
-		const std::string lf = Lower( f );
+		std::string lf = Lower( f );
+		if ( import ) {
+			const auto it = GameMapInfos().find( f );
+			lf += it == GameMapInfos().end() ? "" : " " + Lower( it->second.name );  // its name finds it too
+		}
 		bool ok = true;
 		for ( const std::string &w : words ) {
 			ok = ok && lf.find( w ) != std::string::npos;
 		}
-		if ( ok && ++matches <= 60 ) {
+		if ( ok && ++matches <= most ) {
 			pickFound.push_back( f );
 		}
 	}
@@ -2132,8 +2239,17 @@ void BuildPick( Rml::ElementDocument *doc ) {
 	Rml::String rml;
 	for ( size_t i = 0; i < pickFound.size(); i++ ) {
 		const std::string n = std::to_string( i );
+		Rml::String label = "<span class=\"sh\">" + Enc( pickFound[i] ) + "</span>";
+		if ( import ) {
+			// its name, then the file and what it's for
+			const auto it = GameMapInfos().find( pickFound[i] );
+			const GameMapInfo info = it == GameMapInfos().end() ? GameMapInfo() : it->second;
+			const std::string modes = ImportModes( info.types );
+			label = "<span class=\"pn\">" + Enc( info.name.empty() ? pickFound[i] : info.name ) + "</span><span class=\"sh\">" + Enc( pickFound[i] ) +
+				( modes.empty() ? "" : " \xc2\xb7 " + modes ) + ( info.id ? " \xc2\xb7 id's" : "" ) + "</span>";
+		}
 		rml += "<button class=\"srow" + Rml::String( int( i ) == pickAt ? " on" : "" ) + "\" id=\"ed-pr-" + n + "\" onclick=\"append ed panel pick_row " + n +
-			"\"><span class=\"sh\">" + Enc( pickFound[i] ) + "</span></button>";
+			"\">" + label + "</button>";
 	}
 	if ( matches > pickFound.size() ) {
 		rml += "<p>" + std::to_string( matches - pickFound.size() ) + " more: type more of the name</p>";
@@ -2161,6 +2277,7 @@ void OpenPick( Rml::ElementDocument *doc, const std::string &k, const std::strin
 		: type == "import" ? "A map from the game's files (map packs too), its brushes, curves and entities made editable again by q3map2."
 		: "" ) );
 	Show( doc, "ed-pick-note", type == "open" || type == "import" );
+	Show( doc, "ed-pick-chips", type == "import" );
 	Show( doc, "ed-pick", true );
 	SetInput( doc, "ed-pick-text", "" );
 	BuildPick( doc );
@@ -2879,6 +2996,9 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		SetInput( doc, "ed-search-text", text );
 	} else if ( a == "prefab_save" ) {
 		Typed( "prefab_typed", {} );
+	} else if ( a == "pick_cat" && args.size() > 1 ) {
+		importCat = args[1];
+		pickAt = 0;
 	} else if ( a == "prefab_del" && args.size() > 1 ) {
 		if ( prefabDeleting == args[1] ) {
 			prefabDeleting.clear();
@@ -3213,6 +3333,20 @@ void Classes_f() {
 void Materials_f() {
 	const std::vector<oz::ed::Material> &all = oz::ed::shaders_lib().materials();
 	const std::string filter = OzE_Argc() > 1 ? Lower( OzE_Argv( 1 ) ) : "";
+	if ( filter == "broken" ) {
+		// ed_materials broken: those whose image the browser can't size (a "NO IMAGE" tile), and how long the check takes
+		oz::ed::ShaderLib &lib = oz::ed::shaders_lib();
+		const int t0 = OzE_Milliseconds();
+		int bad = 0;
+		for ( const oz::ed::Material &m : all ) {
+			if ( m.name.compare( 0, 7, "common/" ) != 0 && !lib.found( m.name ) ) {
+				bad++;
+				Printf( "  broken %s%s  %s\n", m.name.c_str(), m.stock ? "" : " (map pack)", lib.image( m.name ).c_str() );
+			}
+		}
+		Printf( "ed_materials broken: %d of %d, checked in %d ms\n", bad, (int)all.size(), OzE_Milliseconds() - t0 );
+		return;
+	}
 	std::map<std::string, int> folders[2];
 	int stock = 0;
 	for ( const oz::ed::Material &m : all ) {

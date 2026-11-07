@@ -9,6 +9,8 @@ handed over whole when drawn, so they outlive a restart.
 #include "oz_ui_internal.h"
 
 #include <chrono>
+#include <string>
+#include <unordered_set>
 #include <cmath>
 
 namespace OzUI {
@@ -86,6 +88,17 @@ void RenderInterface::ReleaseGeometry( Rml::CompiledGeometryHandle geometry ) {
 	}
 }
 
+static std::unordered_set<std::string> thumbFailed;
+static int thumbFailedRev;
+
+bool ThumbFailed( const std::string &image ) {
+	return !thumbFailed.empty() && thumbFailed.count( Rml::StringUtilities::ToLower( image ) ) != 0;
+}
+
+int ThumbFailedRev() {
+	return thumbFailedRev;
+}
+
 // a page's src="/textures/..." is a path in the pk3s; relative ones were joined to the page's folder
 Rml::TextureHandle RenderInterface::LoadTexture( Rml::Vector2i &dimensions, const Rml::String &source ) {
 	int w = 0, h = 0;
@@ -126,6 +139,9 @@ Rml::TextureHandle RenderInterface::LoadTexture( Rml::Vector2i &dimensions, cons
 	if ( !t ) {
 		if ( !thumb ) {	// a tool material's tile has no image: its color shows
 			Printf( "^3UI: no image %s\n", path );
+		} else if ( thumbFailed.insert( Rml::StringUtilities::ToLower( path ) ).second ) {
+			thumbFailedRev++;	// the map editor's browser leaves it out from now on
+			Printf( "UI: thumbnail didn't load: %s\n", path );
 		}
 		return 0;
 	}

@@ -212,6 +212,8 @@
 		.folder:hover { background-color: #db241033; }
 		.folder .n { color: #5d554f; margin-left: 0.3rem; }
 		.pager { justify-content: center; }
+		#ed-pick-chips .chip .n { color: #6d655e; margin-left: 0.2rem; }
+		#ed-pick-rows .srow .pn { width: 15rem; flex-shrink: 0; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 0.6rem; }
 		.pfs { display: flex; flex-wrap: wrap; }
 		.pfbox { display: block; width: 10.4rem; margin: 0 0.3rem 0.6rem 0; }
 		.pf { display: block; }
@@ -921,6 +923,7 @@
 		<div class="box">
 			<h2 id="ed-pick-title">PICK</h2>
 			<p id="ed-pick-note" class="hidden"></p>
+			<div class="chips hidden" id="ed-pick-chips"></div>
 			<input type="text" class="text" id="ed-pick-text" placeholder="Part of the name ..." data-apply="pick_run"
 				data-hint="Type part of the name: Up and Down pick, Enter takes it, Esc closes"/>
 			<div id="ed-pick-rows"></div>

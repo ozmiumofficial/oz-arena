@@ -315,6 +315,12 @@ public:
 		bool glow_set = false;
 		double ambient = 0;             // light everywhere before the lights (worldspawn "ambient")
 		double ambient_color[3] = {1, 1, 1};  // its color (worldspawn "_color")
+		// Fill light (worldspawn _oz_fill: auto, on, off): q3map2's floodlight, a soft even light everywhere,
+		// darker in corners. Auto turns it on for a map without lamps (a map pack's: q3map2 drops its light
+		// entities from the .bsp, so an imported one comes back with none and compiled pitch dark).
+		std::string fill = "auto";
+		bool lamps = false;    // the map has light entities
+		bool fill_on = false;  // the compile adds it
 	};
 	static constexpr const char *DEFAULT_SKY = "skies/hellsky2";
 	SkySun sky_sun() const;
@@ -525,6 +531,13 @@ private:
 
 	Mesher world_, chosen_, wire_, wire_sel_;
 	Overlay ents_, ents_sel_, hover_lines_, pane_handles_[4], grid2d_[3], preview_, faces_lines_;
+	// the World tab live in the 3D view: its sky's picture on a box around the camera, and the view's light
+	// from its sun, sky light, ambient and fill (live_world, each frame; worked out again as the map changes)
+	void live_world();
+	int sky_mesh_ = 0;
+	std::string sky_mesh_image_;
+	uint64_t live_rev_ = ~0ull;
+	float live_ambient_[3] = {90, 90, 96}, live_directed_[3] = {150, 146, 138}, live_dir_[3] = {0.4f, 0.25f, 0.88f};
 	// prefab thumbnails (ed_show.cpp): the prefab read into a document of its own and drawn alone, framed,
 	// in a square in the 3D view's middle for a few frames, while a screenshot takes it
 	void prefab_thumb_tick(int x, int y, int w, int h, int now);

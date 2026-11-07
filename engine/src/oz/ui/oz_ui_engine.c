@@ -73,6 +73,19 @@ void OzE_FreeFile( void *buffer ) {
 	FS_FreeFile( buffer );
 }
 
+int OzE_ReadFileHead( const char *path, void *buffer, int size ) {
+	fileHandle_t f;
+	int len, got;
+
+	len = FS_FOpenFileRead( path, &f, qfalse );
+	if ( len < 0 || f == FS_INVALID_HANDLE ) {
+		return -1;
+	}
+	got = FS_Read( buffer, len < size ? len : size, f );
+	FS_FCloseFile( f );
+	return got;
+}
+
 int OzE_FileExists( const char *path ) {
 	return FS_FOpenFileRead( path, NULL, qfalse ) > 0;
 }

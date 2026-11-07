@@ -350,7 +350,7 @@ static std::vector<std::map<Rml::String, Rml::String>> InfoBlocks( const char *t
 	return out;
 }
 
-static void ReadInfoFiles( const char *first, const char *ext, std::vector<std::map<Rml::String, Rml::String>> &out ) {
+void ReadInfoFiles( const char *first, const char *ext, std::vector<std::map<Rml::String, Rml::String>> &out ) {
 	std::vector<Rml::String> files = { first };
 	int n = 0;
 	char **list = OzE_ListFiles( "scripts", ext, &n );

@@ -35,6 +35,7 @@ Plain C with no engine types, so the client's C++ can include it.
 //   $oz_ed_lines     lines, depth tested                   $oz_ed_lines_xray  lines, drawn through everything
 //   $oz_ed_flat      solid triangles in the vertex colors  $oz_ed_tint        triangles blended over (selection)
 //   $oz_ed_ghost     see-through triangles (tool brushes, the create box)
+//   $oz_ed_sky:<image>  the image, unlit and repeating, drawn first behind everything (the World tab's sky)
 
 typedef struct {
 	float			xyz[3];

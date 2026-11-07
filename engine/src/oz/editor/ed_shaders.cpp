@@ -249,8 +249,16 @@ bool ShaderLib::image_size(const std::string &image, int &w, int &h) {
 	w = h = 0;
 	const std::string base = strip_ext(image);
 	for (const char *ext : {".tga", ".jpg", ".png", ".dds"}) {
+		// the header alone (every material is checked once: whole files took 4.8 s for 9,500 of them);
+		// a JPEG's size can sit past a big EXIF block, so one that ran out reads the whole file
+		static unsigned char head[16384];
+		const int got = OzE_ReadFileHead((base + ext).c_str(), head, int(sizeof head));
+		if (got > 0 && header_size(head, got, w, h)) {
+			break;
+		}
+		w = h = 0;
 		void *buf = nullptr;
-		int len = OzE_ReadFile((base + ext).c_str(), &buf);
+		int len = got == int(sizeof head) && ext[1] == 'j' ? OzE_ReadFile((base + ext).c_str(), &buf) : -1;
 		if (len > 0) {
 			bool ok = header_size((const unsigned char *)buf, len, w, h);
 			OzE_FreeFile(buf);
@@ -526,11 +534,17 @@ const std::vector<Material> &ShaderLib::materials() {
 	}
 	// shaders that draw nothing because none of their images exists (about 350 of id's development
 	// leftovers in pak0, never shipped with their pictures): they'd be a blank tile and a missing texture
+	// and any (a sky too) whose picture can't be read: a "NO IMAGE" tile that paints nothing you can see.
+	// The tools and fog volumes stay: they draw in their color, as they're meant to.
 	materials_.erase(std::remove_if(materials_.begin(), materials_.end(), [&](const Material &m) {
 		if (m.name.compare(0, 7, "common/") == 0) {
 			return false;
 		}
-		return look(m.name) == Look::Normal && !drawable(m.name);
+		const Look l = look(m.name);
+		if (l == Look::Normal && !drawable(m.name)) {
+			return true;
+		}
+		return l != Look::Fog && !found(m.name);
 	}), materials_.end());
 	// id's first, then by folder; id's development leftovers in pak0 (most of them without a
 	// picture) and the few outside any folder last

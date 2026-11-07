@@ -484,13 +484,17 @@ void fix_valve_axes(Face &f) {
 
 Face retarget(const Doc &doc, const Face &src, const Plane &plane, const Vec3 &origin) {
 	Face f = src;
-	if (q3map::same_plane(src.plane, plane)) {
-		return f;
+	if (!q3map::same_plane(src.plane, plane)) {
+		f.plane = plane;
+		f.pts_valid = false;
+		fix_valve_axes(f);
+		doc.derive_st(f, origin);
 	}
-	f.plane = plane;
-	f.pts_valid = false;
-	fix_valve_axes(f);
-	doc.derive_st(f, origin);
+	// a dev texture back on the world's grid: merge, hollow, clip, subtract and face pushes make their
+	// faces here, from a source face whose mapping may be off it (one moved before they kept to it)
+	if (world_grid(f) && f.form != TexForm::Primitives) {
+		world_mapping(doc, f, origin, Winding{});
+	}
 	return f;
 }
 

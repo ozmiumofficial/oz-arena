@@ -4085,6 +4085,12 @@ static void CL_Video_f( void )
 		// explicit filename
 		Com_sprintf( filename, sizeof( filename ), "videos/%s", Cmd_Argv( 1 ) );
 
+		// Oz: video-pipe puts the name in quotes in a shell command: no quotes, separators or substitutions
+		if ( pipe && ( strchr( Cmd_Argv( 1 ), '"' ) || strchr( Cmd_Argv( 1 ), '|' ) || !CL_ValidatePipeFormat( Cmd_Argv( 1 ) ) ) ) {
+			Com_Printf( S_COLOR_ERROR "Invalid video-pipe file name: %s\n", Cmd_Argv( 1 ) );
+			return;
+		}
+
 		// override video file extension
 		if ( pipe ) {
 			char *e = strrchr( filename, '.' );
@@ -4473,7 +4479,7 @@ void CL_Init( void ) {
 	cl_aviPipeFormat = Cvar_Get( "cl_aviPipeFormat",
 		"-preset medium -crf 23 -c:v libx264 -flags +cgop -pix_fmt yuvj420p "
 		"-bf 2 -c:a aac -strict -2 -b:a 160k -movflags faststart",
-		CVAR_ARCHIVE );
+		CVAR_ARCHIVE | CVAR_PROTECTED );	// Oz: it reaches a shell command, so VMs and servers can't set it
 	Cvar_SetDescription( cl_aviPipeFormat, "Encoder parameters used for \\video-pipe." );
 
 	rconAddress = Cvar_Get ("rconAddress", "", 0);

@@ -220,7 +220,150 @@ std::vector<Plane> box_planes(const Vec3 &mins, const Vec3 &maxs) {
 	};
 }
 
-std::vector<Plane> hull_planes(const std::vector<Vec3> &pts) {
+// The convex hull's planes by an incremental hull: the points welded (a merge's brushes share most of
+// their corners), a first tetrahedron, then each point outside the hull so far replaces the faces it
+// sees with a fan from their horizon. About n * faces; the brute force below (every triple of points
+// against every point, n^4) took minutes on a 65-brush prefab's 600 corners and hung the game.
+std::vector<Plane> hull_planes(const std::vector<Vec3> &in) {
+	const double WELD = 1e-3, ON = 1e-3;
+	std::vector<Vec3> pts;
+	for (const Vec3 &p : in) {
+		bool there = false;
+		for (const Vec3 &q : pts) {
+			if (std::fabs(p.x - q.x) < WELD && std::fabs(p.y - q.y) < WELD && std::fabs(p.z - q.z) < WELD) {
+				there = true;
+				break;
+			}
+		}
+		if (!there) {
+			pts.push_back(p);
+		}
+	}
+	const size_t n = pts.size();
+	if (n < 4) {
+		return {};
+	}
+	// the first tetrahedron: two points far apart, the point farthest from their line, then from their plane
+	size_t a = 0, b = 0;
+	for (size_t i = 1; i < n; i++) {
+		if (pts[i].x < pts[a].x) a = i;
+		if (pts[i].x > pts[b].x) b = i;
+	}
+	if (a == b) {
+		for (size_t i = 1; i < n; i++) {
+			if ((pts[i] - pts[a]).length() > (pts[b] - pts[a]).length()) b = i;
+		}
+	}
+	const Vec3 ab = pts[b] - pts[a];
+	size_t c = a;
+	double best = 0;
+	for (size_t i = 0; i < n; i++) {
+		const double d = ab.cross(pts[i] - pts[a]).length();
+		if (d > best) best = d, c = i;
+	}
+	if (best < 1e-6) {
+		return {};  // all on a line
+	}
+	const Vec3 nrm = ab.cross(pts[c] - pts[a]).normalized();
+	size_t e = a;
+	best = 0;
+	for (size_t i = 0; i < n; i++) {
+		const double d = std::fabs(nrm.dot(pts[i] - pts[a]));
+		if (d > best) best = d, e = i;
+	}
+	if (best < ON) {
+		return {};  // all on a plane: no solid
+	}
+	struct Tri {
+		size_t v[3];
+		Vec3 n;
+		double d;
+		bool dead = false;
+	};
+	std::vector<Tri> tris;
+	const Vec3 inside = (pts[a] + pts[b] + pts[c] + pts[e]) * 0.25;
+	auto add = [&](size_t i, size_t j, size_t k) {
+		Tri t;
+		t.v[0] = i, t.v[1] = j, t.v[2] = k;
+		t.n = (pts[j] - pts[i]).cross(pts[k] - pts[i]).normalized();
+		t.d = t.n.dot(pts[i]);
+		if (t.n.dot(inside) - t.d > 0) {  // facing in: turn it round
+			std::swap(t.v[1], t.v[2]);
+			t.n = -t.n, t.d = -t.d;
+		}
+		tris.push_back(t);
+	};
+	add(a, b, c), add(a, b, e), add(a, c, e), add(b, c, e);
+	for (size_t p = 0; p < n; p++) {
+		if (p == a || p == b || p == c || p == e) {
+			continue;
+		}
+		// the faces the point sees, and their edges no other seen face shares: the horizon
+		std::vector<std::pair<size_t, size_t>> edges;
+		bool sees = false;
+		for (Tri &t : tris) {
+			if (!t.dead && t.n.dot(pts[p]) - t.d > ON) {
+				t.dead = sees = true;
+				for (int k = 0; k < 3; k++) {
+					edges.push_back({t.v[k], t.v[(k + 1) % 3]});
+				}
+			}
+		}
+		if (!sees) {
+			continue;  // inside, or on the hull
+		}
+		std::vector<std::pair<size_t, size_t>> horizon;
+		for (const auto &ed : edges) {
+			bool shared = false;
+			for (const auto &o : edges) {
+				shared |= o.first == ed.second && o.second == ed.first;
+			}
+			if (!shared) {
+				horizon.push_back(ed);
+			}
+		}
+		tris.erase(std::remove_if(tris.begin(), tris.end(), [](const Tri &t) { return t.dead; }), tris.end());
+		for (const auto &h : horizon) {
+			Tri t;
+			t.v[0] = h.first, t.v[1] = h.second, t.v[2] = p;  // the seen face's winding: facing out
+			t.n = (pts[h.second] - pts[h.first]).cross(pts[p] - pts[h.first]);
+			if (t.n.length() < 1e-12) {
+				continue;
+			}
+			t.n = t.n.normalized();
+			t.d = t.n.dot(pts[h.first]);
+			tris.push_back(t);
+		}
+	}
+	// a plane per face of the hull: its triangles on one plane made one, every point behind it
+	std::vector<Plane> out;
+	for (const Tri &t : tris) {
+		Plane pl = clean_plane({t.n, t.d});
+		pl.d = pl.n.dot(pts[t.v[0]]);
+		bool dup = false;
+		for (const Plane &q : out) {
+			dup |= q.n.dot(pl.n) > 1 - 1e-5 && std::fabs(q.d - pl.d) < 0.05;
+		}
+		if (dup) {
+			continue;
+		}
+		double worst = 0;
+		for (const Vec3 &q : pts) {
+			worst = std::max(worst, pl.dist(q));
+		}
+		if (worst > ON * 10) {
+			continue;  // a sliver of noise, not a face
+		}
+		out.push_back(pl);
+	}
+	if (!brush_valid(out)) {
+		out.clear();
+	}
+	return out;
+}
+
+// The brute force the hull above replaced, kept for ed_core_test.cpp to check it against.
+std::vector<Plane> hull_planes_brute(const std::vector<Vec3> &pts) {
 	std::vector<Plane> out;
 	size_t n = pts.size();
 	for (size_t i = 0; i < n; i++) {

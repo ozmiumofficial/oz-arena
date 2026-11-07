@@ -2813,7 +2813,7 @@ static sysEvent_t Com_GetSystemEvent( void )
 	int			evTime;
 
 	// return if we have data
-	if ( eventHead - eventTail > 0 )
+	if ( eventHead != eventTail )
 		return eventQue[ ( eventTail++ ) & MASK_QUED_EVENTS ];
 
 	Sys_SendKeyEvents();
@@ -2834,7 +2834,7 @@ static sysEvent_t Com_GetSystemEvent( void )
 	}
 
 	// return if we have data
-	if ( eventHead - eventTail > 0 )
+	if ( eventHead != eventTail )
 		return eventQue[ ( eventTail++ ) & MASK_QUED_EVENTS ];
 
 	// create an empty event to return

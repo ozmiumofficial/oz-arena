@@ -369,6 +369,9 @@ qboolean CL_ValidatePipeFormat( const char *s )
 		// deny redirections/special characters
 		if ( *s == '>' || *s == '&' )
 			return qfalse;
+		// Oz: the command runs through /bin/sh on Linux: deny command separators, substitutions and control characters
+		if ( *s == ';' || *s == '`' || *s == '$' || *s == '<' || (unsigned char)*s < ' ' )
+			return qfalse;
 		// single '|' can be used to specify extension
 		if ( *s == '|' )
 			p++;

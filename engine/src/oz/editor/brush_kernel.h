@@ -65,6 +65,7 @@ std::vector<int> brush_face_planes(const std::vector<Plane> &planes);
 std::vector<Plane> box_planes(const Vec3 &mins, const Vec3 &maxs);
 // Planes of the convex hull of points (the vertex tool's rebuild). Empty if the points are flat.
 std::vector<Plane> hull_planes(const std::vector<Vec3> &points);
+std::vector<Plane> hull_planes_brute(const std::vector<Vec3> &points);  // the old n^4 one, for the tests
 
 // Affine transform x' = M x + t, M as rows. Planes map by M^-T (so mirrors stay outward).
 struct Affine {

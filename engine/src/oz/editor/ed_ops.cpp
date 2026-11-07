@@ -433,6 +433,40 @@ std::shared_ptr<Object> box_brush(const Doc &doc, const Vec3 &lo, const Vec3 &hi
 
 // A Valve 220 face's own axes, which a turned plane can leave edge-on: its default axes then, as
 // TrenchBroom's "paraxial" reset, keeping the scale and offsets.
+bool world_grid(const Face &f) {
+	const std::string &n = shader_name(f.shader);
+	const size_t s = n.size() >= 9 && std::equal(n.begin(), n.begin() + 9, "textures/", [](char a, char b) { return std::tolower((unsigned char)a) == b; }) ? 9 : 0;
+	static const char dev[] = "oz_dev/";
+	if (n.size() < s + 7) {
+		return false;
+	}
+	for (size_t i = 0; i < 7; i++) {
+		if (std::tolower((unsigned char)n[s + i]) != dev[i]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+void world_mapping(const Doc &doc, Face &f, const Vec3 &origin, const Winding &w) {
+	Face q = f;
+	const double quake[5] = {0, 0, 0, 0.5, 0.5};
+	std::copy(quake, quake + 5, q.raw);
+	q.form = TexForm::Quake;
+	if (f.form == TexForm::Valve) {
+		Vec3 u, v;
+		q3map::default_texture_axes(f.plane.n, u, v);
+		const double valve[11] = {u.x, u.y, u.z, 0, v.x, v.y, v.z, 0, 0, 0.5, 0.5};
+		std::copy(valve, valve + 11, q.raw);
+		q.form = TexForm::Valve;
+	}
+	doc.derive_st(q, origin);
+	if (f.form == TexForm::Primitives) {
+		doc.derive_raw(q, TexForm::Primitives, origin, w);
+	}
+	f = q;
+}
+
 void fix_valve_axes(Face &f) {
 	if (f.form != TexForm::Valve) {
 		return;
@@ -522,6 +556,19 @@ std::shared_ptr<Object> transformed(const Doc &doc, const Object &o, const Affin
 			for (size_t i = 0; i < out->brush.faces.size(); i++) {
 				Face &f = out->brush.faces[i];
 				doc.derive_raw(f, f.form, origin, i < ws.size() ? ws[i] : Winding{});
+			}
+		}
+		// dev textures stay on the world's grid wherever the brush goes, texture lock or not
+		bool dev = false;
+		for (const Face &f : out->brush.faces) {
+			dev = dev || world_grid(f);
+		}
+		if (dev) {
+			const std::vector<Winding> ws = q3map::brush_windings(planes_of(out->brush));
+			for (size_t i = 0; i < out->brush.faces.size(); i++) {
+				if (world_grid(out->brush.faces[i])) {
+					world_mapping(doc, out->brush.faces[i], origin, i < ws.size() ? ws[i] : Winding{});
+				}
 			}
 		}
 	} else if (o.kind == Kind::Patch) {

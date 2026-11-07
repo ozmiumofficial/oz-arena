@@ -199,25 +199,9 @@ bool remapped(const Doc &doc, Face &f, const Winding &w, const Vec3 &origin, con
 		b[k] = r[k * 2] + r[k * 2 + 1];
 		break;
 	}
-	case MapOp::Reset: {
-		Face q = f;
-		const double quake[5] = {0, 0, 0, 0.5, 0.5};
-		std::copy(quake, quake + 5, q.raw);
-		q.form = TexForm::Quake;
-		if (f.form == TexForm::Valve) {
-			Vec3 u, v;
-			q3map::default_texture_axes(f.plane.n, u, v);
-			const double valve[11] = {u.x, u.y, u.z, 0, v.x, v.y, v.z, 0, 0, 0.5, 0.5};
-			std::copy(valve, valve + 11, q.raw);
-			q.form = TexForm::Valve;
-		}
-		doc.derive_st(q, origin);
-		if (f.form == TexForm::Primitives) {
-			doc.derive_raw(q, TexForm::Primitives, origin, w);
-		}
-		f = q;
+	case MapOp::Reset:
+		world_mapping(doc, f, origin, w);
 		return true;
-	}
 	case MapOp::Field: {
 		const int i = e.which;
 		if (i < 0 || i > 4 || (i >= 3 && e.a == 0)) {
@@ -379,9 +363,13 @@ bool map_patches(Doc &doc, const std::vector<Id> &patches, const MapEdit &e, con
 
 bool paint(Doc &doc, const std::vector<FaceRef> &faces, const std::vector<Id> &patches, ShaderId shader, const std::string &label) {
 	doc.begin(label);
-	bool any = each_face(doc, faces, label, [&](Face &f, const Winding &, const Vec3 &origin) {
+	bool any = each_face(doc, faces, label, [&](Face &f, const Winding &w, const Vec3 &origin) {
 		f.shader = shader;
-		doc.derive_st(f, origin);
+		if (world_grid(f)) {
+			world_mapping(doc, f, origin, w);  // a dev texture lines up with the world's grid
+		} else {
+			doc.derive_st(f, origin);
+		}
 		return true;
 	});
 	for (Id id : patches) {
@@ -422,6 +410,9 @@ bool copy_mapping(Doc &doc, const std::vector<FaceRef> &faces, const Face &src, 
 			if (!same_frame) {
 				doc.derive_raw(g, g.form, origin, w);
 			}
+		}
+		if (world_grid(g)) {
+			world_mapping(doc, g, origin, w);  // a dev texture lines up with the world's grid
 		}
 		f = g;
 		return true;

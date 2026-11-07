@@ -116,6 +116,11 @@ std::shared_ptr<Object> box_brush(const Doc &doc, const Vec3 &lo, const Vec3 &hi
 // A Valve 220 face's own axes when its plane leaves them edge-on: its default axes then, as
 // TrenchBroom's "paraxial" reset, keeping the scale and offsets.
 void fix_valve_axes(Face &f);
+// Oz's prototyping textures (textures/oz_dev): their grid measures the world, so they always sit on
+// the world's default projection at half scale, whatever texture lock says.
+bool world_grid(const Face &f);
+// The face's texture on the default projection at half scale, in its own form (Reset mapping).
+void world_mapping(const Doc &doc, Face &f, const Vec3 &origin, const Winding &w);
 // src's attributes (shader, numbers, flags) on another plane, its texture projected there again.
 Face retarget(const Doc &doc, const Face &src, const Plane &plane, const Vec3 &origin);
 // A brush of these planes, each face taking the attributes of the source face pointing most nearly

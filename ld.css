@@ -1,0 +1,278 @@
+/* Ozmium Arena: the level design guide. Loaded after style.css and grit.css; the diagrams are inline SVG
+   drawn with the classes at the end, in the site's palette (ink, blood, glow, amber on near-black iron). */
+
+/* ------------------------------------------------------------------ the guide's head */
+
+.doc-hero {
+  position: relative; isolation: isolate; overflow: hidden;
+  padding: clamp(64px, 10vw, 120px) clamp(16px, 4vw, 32px) clamp(40px, 6vw, 70px);
+  text-align: center;
+  background:
+    radial-gradient(ellipse 55% 80% at 50% 0%, #4a140a66, transparent 70%),
+    linear-gradient(180deg, transparent 60%, #070605 100%);
+}
+.doc-hero::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none; width: 640px; height: 640px;
+  left: 50%; top: 46%; translate: -50% -50%; opacity: .07;
+  background: url("img/sigil.svg") center / contain no-repeat;
+  animation: watch 240s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .doc-hero::before { animation: none; } }
+.doc-hero .kicker { justify-content: center; }
+.doc-hero h1 {
+  margin: 6px auto 18px; max-width: 900px;
+  font: 900 clamp(36px, 6.4vw, 76px)/1.04 var(--display); letter-spacing: .02em;
+  background: linear-gradient(180deg, #fff3e6 0%, #e9d6bd 38%, #b08a63 62%, #6b4a2c 100%), var(--grime);
+  background-blend-mode: multiply; background-size: 100% 100%, 300px;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 #000) drop-shadow(0 0 22px #ff4a1c44);
+  text-wrap: balance;
+}
+.doc-hero .lede { max-width: 760px; margin: 0 auto; }
+.doc-hero .hero-actions { margin-top: 30px; justify-content: center; display: flex; flex-wrap: wrap; gap: 14px; }
+
+/* ------------------------------------------------------------------ the two columns: contents and text */
+
+.doc {
+  max-width: var(--max); margin: 0 auto; padding: clamp(36px, 6vw, 70px) clamp(16px, 4vw, 32px) 40px;
+  display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: clamp(28px, 4vw, 60px); align-items: start;
+}
+@media (max-width: 1000px) { .doc { grid-template-columns: minmax(0, 1fr); } }
+
+.toc { position: sticky; top: 86px; max-height: calc(100vh - 110px); overflow: auto; padding-right: 6px; }
+.toc details > summary { display: none; }
+.doc .toc h2 {
+  margin: 0 0 12px; font: 700 12px/1 var(--label); letter-spacing: .32em; text-transform: uppercase;
+  background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--bronze); filter: none;
+}
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; counter-reset: t; }
+.toc a {
+  display: grid; grid-template-columns: 34px 1fr; align-items: baseline; padding: 6px 8px 6px 0;
+  font: 600 14px/1.25 var(--label); letter-spacing: .06em; color: var(--dim); text-decoration: none;
+  border-left: 2px solid #2a211d; padding-left: 10px; transition: color .2s, border-color .2s;
+}
+.toc a span { font: 700 11px var(--display); color: var(--faint); letter-spacing: .04em; }
+.toc a:hover { color: var(--hot); }
+.toc a[aria-current="true"] { color: var(--hot); border-left-color: var(--glow); }
+.toc a[aria-current="true"] span { color: var(--glow); }
+@media (max-width: 1000px) {
+  .toc { position: static; max-height: none; overflow: visible; padding: 0; }
+  .toc details { border: 1px solid #2a211d; background: #0d0a09cc; }
+  .toc details > summary {
+    display: flex; justify-content: space-between; cursor: pointer; list-style: none; padding: 14px 16px;
+    font: 700 13px/1 var(--label); letter-spacing: .28em; text-transform: uppercase; color: var(--bronze);
+  }
+  .toc details > summary::-webkit-details-marker { display: none; }
+  .toc details > summary::after { content: "+"; color: var(--glow); font-size: 18px; line-height: .7; }
+  .toc details[open] > summary::after { content: "\2212"; }
+  .toc details h2 { display: none; }
+  .toc ol { padding: 0 12px 14px; }
+}
+
+/* ------------------------------------------------------------------ the text */
+
+.doc article { min-width: 0; max-width: 820px; }
+.doc section { padding-top: 26px; margin-bottom: clamp(48px, 7vw, 76px); scroll-margin-top: 80px; }
+.doc section + section { position: relative; }
+.doc section + section::before {
+  content: ""; position: absolute; top: -28px; left: 0; width: min(420px, 70%); height: 1px;
+  background: linear-gradient(90deg, #6b4a2c, #c9995f 30%, transparent);
+}
+.doc h2 { font-size: clamp(28px, 3.6vw, 42px); margin-bottom: 18px; }
+.doc h3 { margin: 34px 0 10px; font-size: 19px; color: var(--hot); }
+.doc h3::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin: 0 10px 2px 0; background: var(--glow);
+  rotate: 45deg; box-shadow: 0 0 8px var(--glow); vertical-align: middle;
+}
+.doc p, .doc li { color: #cdc3b8; }
+.doc p { margin: 0 0 16px; text-wrap: pretty; }
+.doc article > section > ul, .doc .plain { padding-left: 1.2em; margin: 0 0 16px; }
+.doc article > section > ul li, .doc .plain li { margin-bottom: 8px; }
+.doc .ticks li { font-size: 16.5px; color: #cdc3b8; }
+.doc em { color: var(--hot); font-style: normal; }
+.doc .src { font: 600 13px var(--label); letter-spacing: .06em; color: var(--faint); white-space: nowrap; }
+
+/* a rule of thumb, and what's particular to Oz */
+.rule, .oz {
+  position: relative; margin: 24px 0; padding: 18px 22px 18px 24px;
+  background: linear-gradient(90deg, #1a0d0a, #0d0a09 60%);
+  border: 1px solid #000; border-left: 3px solid var(--blood);
+  box-shadow: inset 0 1px 0 #ffffff0d, 0 10px 30px -18px #000;
+}
+.rule::before, .oz::before {
+  display: block; margin-bottom: 8px; font: 700 12px/1 var(--label); letter-spacing: .3em; text-transform: uppercase; color: var(--glow);
+}
+.rule::before { content: "Rule of thumb"; }
+.oz { border-left-color: var(--amber); background: linear-gradient(90deg, #1d150a, #0d0a09 60%); }
+.oz::before { content: "In Oz"; color: var(--amber); }
+.rule p:last-child, .oz p:last-child, .rule ul:last-child, .oz ul:last-child { margin-bottom: 0; }
+.rule ul, .oz ul { margin: 0; padding-left: 1.1em; }
+.rule li, .oz li { margin-bottom: 6px; }
+
+/* tables of numbers */
+.numbers { width: 100%; border-collapse: collapse; margin: 18px 0 24px; font-size: 15.5px; }
+.numbers caption { caption-side: top; text-align: left; padding-bottom: 10px; font: 700 12px var(--label); letter-spacing: .3em; text-transform: uppercase; color: var(--bronze); }
+.numbers th, .numbers td { text-align: left; padding: 9px 12px; border-bottom: 1px solid #241c18; vertical-align: top; }
+.numbers thead th { font: 700 12px var(--label); letter-spacing: .2em; text-transform: uppercase; color: var(--dim); border-bottom-color: #4a3324; }
+.numbers tbody th { font: 600 15px var(--label); letter-spacing: .05em; color: var(--hot); white-space: nowrap; }
+.numbers td { color: #cdc3b8; }
+.numbers td b { font-family: var(--label); font-size: 16px; letter-spacing: .03em; }
+.numbers tbody tr:hover { background: #ffffff05; }
+.table-wrap { overflow-x: auto; }
+
+/* ------------------------------------------------------------------ the diagrams' frames */
+
+.diagram { margin: 28px 0 32px; }
+.diagram .plate {
+  position: relative; padding: 10px; overflow-x: auto;
+  background:
+    var(--rivet) left 6px top 6px / 10px 10px no-repeat,
+    var(--rivet) right 6px top 6px / 10px 10px no-repeat,
+    var(--rivet) left 6px bottom 6px / 10px 10px no-repeat,
+    var(--rivet) right 6px bottom 6px / 10px 10px no-repeat,
+    linear-gradient(#120d0bcc, #0a0706d9), var(--iron);
+  background-size: 10px 10px, 10px 10px, 10px 10px, 10px 10px, auto, 300px;
+  border: 1px solid #000; box-shadow: inset 0 1px 0 #ffffff12, 0 30px 60px -24px #000, 0 0 50px -30px #ff4a1c66;
+}
+.diagram svg.dg { display: block; width: 100%; height: auto; background: #050403; border: 1px solid #000; box-shadow: inset 0 0 0 1px #2a1d16; }
+@media (max-width: 640px) { .diagram svg.dg { min-width: 600px; } }
+.diagram figcaption { margin-top: 12px; color: var(--dim); font-size: 15px; line-height: 1.5; }
+.diagram figcaption b { font: 700 13px var(--label); letter-spacing: .2em; text-transform: uppercase; color: var(--bronze); margin-right: 6px; }
+.scroll-hint { display: none; }
+@media (max-width: 640px) {
+  .scroll-hint { display: block; margin: 8px 0 0; font: 600 12px var(--label); letter-spacing: .2em; text-transform: uppercase; color: var(--faint); }
+}
+
+/* ------------------------------------------------------------------ the checklist */
+
+.checklist { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 10px; }
+.checklist label {
+  display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: start; cursor: pointer;
+  padding: 12px 14px; background: #0d0a09; border: 1px solid #241c18; color: #cdc3b8; transition: border-color .2s, background .2s;
+}
+.checklist label:hover { border-color: #4a3324; }
+.checklist input { appearance: none; width: 20px; height: 20px; margin: 2px 0 0; border: 1px solid var(--bronze); background: #070605; display: grid; place-items: center; cursor: pointer; }
+.checklist input::after { content: ""; width: 10px; height: 10px; background: var(--glow); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); box-shadow: 0 0 8px var(--glow); transform: scale(0); transition: transform .15s; }
+.checklist input:checked::after { transform: scale(1); }
+.checklist input:checked + span { color: var(--dim); text-decoration: line-through; text-decoration-color: #ff4a1c88; }
+.doc .checklist-h { margin: 30px 0 4px; font: 700 13px var(--label); letter-spacing: .28em; text-transform: uppercase; color: var(--bronze); }
+.doc .checklist-h:first-of-type { margin-top: 22px; }
+.doc .checklist li { margin: 0; }
+.doc .checklist, .doc .sources { padding-left: 0; }
+.doc .sources li { margin: 0; }
+.doc-end h2 { font-size: clamp(30px, 4.4vw, 48px); }
+
+/* ------------------------------------------------------------------ the sources */
+
+.sources { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 14px; }
+.sources li { padding: 16px 18px; background: linear-gradient(#15100d, #0d0a09); border: 1px solid #2e241e; }
+.sources .t { display: block; font: 700 17px/1.3 var(--label); letter-spacing: .04em; color: var(--hot); }
+.sources .t a { color: var(--hot); text-decoration-color: #ff4a1c66; }
+.sources .t a:hover { color: var(--amber); }
+.sources .by { display: block; margin: 4px 0 8px; font: 600 13px var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--bronze); }
+.sources p { margin: 0; font-size: 15.5px; color: var(--dim); }
+
+.doc-end { text-align: center; padding: 10px 16px 80px; }
+.doc-end .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 18px; }
+
+/* ------------------------------------------------------------------ the home page's level design chapter */
+
+.ld-plan svg.dg { display: block; width: 100%; height: auto; background: #050403; border: 1px solid #000; box-shadow: inset 0 0 0 1px #2a1d16; }
+.ld-plan figcaption { margin-top: 10px; font: 500 14px var(--label); letter-spacing: .06em; color: var(--dim); text-align: center; }
+.ld-cta { margin-top: 26px; }
+
+/* the nav carries one more link: tighter between the phone menu and a wide window, so it stays on one line */
+@media (min-width: 901px) and (max-width: 1100px) {
+  .nav ul a { padding: 8px 7px; letter-spacing: .1em; white-space: nowrap; }
+  .nav ul a.nav-cta { margin-left: 4px; }
+}
+
+/* ------------------------------------------------------------------ the diagrams' marks */
+
+.dg text { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .06em; fill: var(--dim); }
+.dg .t-hot { fill: var(--hot); }
+.dg .t-ink { fill: var(--ink); }
+.dg .t-amber { fill: var(--amber); }
+.dg .t-glow { fill: var(--glow); }
+.dg .t-red { fill: var(--red); }
+.dg .t-faint { fill: var(--faint); }
+.dg .t-head { font-size: 13px; font-weight: 700; letter-spacing: .24em; fill: var(--bronze); }
+.dg .t-big { font-size: 22px; font-weight: 700; letter-spacing: .02em; }
+.dg .t-num { font-size: 15px; font-weight: 700; fill: var(--hot); }
+.dg .t-small { font-size: 11.5px; }
+.dg .mid { text-anchor: middle; }
+.dg .end { text-anchor: end; }
+
+.dg .gridl { stroke: #1a1412; stroke-width: 1; }
+.dg .gridl.major { stroke: #261d18; }
+.dg .solid { fill: #2a221d; stroke: #6b5a4c; stroke-width: 1.5; }
+.dg .solid.dark { fill: #1c1612; }
+.dg .rock { fill: url(#hatch); stroke: #6b5a4c; stroke-width: 1.5; }
+.dg .room { fill: #120e0b; stroke: #6b5a4c; stroke-width: 1.5; }
+.dg .room.up { fill: #1f1713; }
+.dg .room.up2 { fill: #2e221a; }
+.dg .room.low { fill: #0b0807; }
+.dg .edge { fill: none; stroke: #6b5a4c; stroke-width: 1.5; }
+.dg .edge.thin { stroke-width: 1; stroke: #4a3a30; }
+.dg .floorline { stroke: #8a7360; stroke-width: 2; }
+.dg .divider { stroke: #2a211d; stroke-width: 1.5; }
+
+.dg .route { fill: none; stroke: var(--amber); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.dg .route.alt { stroke: #ffd38a; stroke-dasharray: 8 6; }
+.dg .flow { fill: none; stroke: var(--glow); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.dg .flow.soft { stroke: #ff4a1c99; }
+.dg .drop { fill: none; stroke: var(--glow); stroke-width: 2; stroke-dasharray: 6 5; stroke-linecap: round; }
+.dg .los { fill: none; stroke: var(--ink); stroke-width: 1.3; stroke-dasharray: 2 5; stroke-linecap: round; opacity: .85; }
+.dg .los.solidl { stroke-dasharray: none; opacity: .5; }
+.dg .arc { fill: none; stroke: #ffd38a; stroke-width: 2; stroke-dasharray: 3 5; stroke-linecap: round; }
+.dg .bad { fill: none; stroke: var(--red); stroke-width: 2.6; stroke-linecap: round; }
+.dg .zone { fill: #b3170a2e; stroke: var(--red); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.dg .zone.amber { fill: #ffad3322; stroke: var(--amber); }
+.dg .cone { fill: #ffad331c; stroke: #ffad3388; stroke-width: 1; }
+.dg .cone.red { fill: #db24101f; stroke: #db241088; }
+.dg .ring { fill: none; stroke: var(--amber); stroke-width: 2; }
+.dg .ring.red { stroke: var(--red); }
+.dg .dim { opacity: .35; }
+.dg .measure { stroke: var(--bronze); stroke-width: 1.2; fill: none; }
+.dg .tick { stroke: var(--bronze); stroke-width: 1.2; }
+.dg .heat0 { fill: #1a0f0b; } .dg .heat1 { fill: #3a120a; } .dg .heat2 { fill: #6a1a0c; } .dg .heat3 { fill: #a3260e; }
+.dg .mesh { fill: none; stroke: #6b4a2c; stroke-width: .8; opacity: .75; }
+.dg .mesh.major { stroke: #c9995f; opacity: .55; stroke-width: 1; }
+.dg .lava { fill: #ff4a1c33; stroke: #ff4a1c88; stroke-width: 1; }
+.dg .pad { fill: #ffad3333; stroke: var(--amber); stroke-width: 1.5; }
+.dg .tele { fill: #3d8bff22; stroke: #7fb2ff; stroke-width: 1.8; }
+.dg .tele-dest { fill: none; stroke: #7fb2ff; stroke-width: 1.8; stroke-dasharray: 3 3; }
+.dg .plate-bg { fill: #0a0706; stroke: #2a211d; }
+.dg .box { fill: #0d0a09; stroke: #4a3324; stroke-width: 1.2; }
+.dg .box.hot { stroke: var(--glow); }
+.dg .player { fill: #ffad3318; stroke: var(--amber); stroke-width: 1.6; }
+.dg .player.ghost { stroke-dasharray: 4 3; opacity: .7; }
+
+/* items: armors and the Mega as colored discs, weapons as chips, health as crosses, spawns as fighters */
+.dg .it circle { stroke: #000; stroke-width: 1.5; }
+.dg .it text { font-size: 10px; font-weight: 700; letter-spacing: .02em; fill: #120e0c; text-anchor: middle; }
+.dg .it.ra circle { fill: #e2321b; } .dg .it.ra text { fill: #fff3e6; }
+.dg .it.ya circle { fill: #f2c230; }
+.dg .it.ga circle { fill: #59c24f; }
+.dg .it.mh circle { fill: #4f93ff; } .dg .it.mh text { fill: #fff; }
+.dg .wp rect { fill: #e6ddd2; stroke: #000; stroke-width: 1.2; }
+.dg .wp text { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; fill: #120e0c; text-anchor: middle; }
+.dg .hp path { stroke: #fff3e6; stroke-width: 3; stroke-linecap: square; }
+.dg .hp circle { fill: #0d0a09; stroke: #fff3e6aa; stroke-width: 1; }
+.dg .shard { fill: #f2c230; stroke: #000; stroke-width: 1; }
+.dg .sp circle { fill: #0d0a09; stroke: var(--bronze); stroke-width: 1.8; }
+.dg .sp path { stroke: var(--bronze); stroke-width: 2; stroke-linecap: round; fill: none; }
+.dg .sp.far circle { stroke: var(--amber); fill: #2a1d0d; }
+.dg .sp.far path { stroke: var(--amber); }
+.dg .sp.off { opacity: .35; }
+.dg .sp.foe circle { stroke: var(--red); fill: #2a0d08; }
+.dg .sp.foe path { stroke: var(--red); }
+.dg .bar-bg { fill: #1a1411; stroke: #3a2e26; }
+.dg .bar-hp { fill: #e6ddd2; }
+.dg .bar-gain { fill: #ffad33; }
+.dg .ghost-item circle, .dg .ghost-item rect { fill: none; stroke-dasharray: 3 3; stroke: #8d847c; }
+.dg .ghost-item text { fill: #8d847c; }
+.dg .wave { fill: none; stroke: var(--amber); stroke-width: 2; stroke-linecap: round; }
+.dg .x path { stroke: var(--red); stroke-width: 3; stroke-linecap: round; }
+.dg .mark-bad { fill: var(--red); font-weight: 700; letter-spacing: .22em; }
+.dg .mark-good { fill: var(--amber); font-weight: 700; letter-spacing: .22em; }

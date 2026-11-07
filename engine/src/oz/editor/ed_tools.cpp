@@ -89,7 +89,7 @@ const std::vector<Action> &actions() {
 		{"preview", "Lit preview", "F6", "The map lit by its own lights, as the last compile made it (a quick compile first when the map changed); F6 again leaves it"},
 		{"compile_stop", "Stop compiling", "", "Stops the compile under way"},
 		{"frame_leak", "Show the leak", "", "The camera onto the leak's line: from an entity out to the void through the gap"},
-		{"sky_sun", "Sky and sun", "", "The map's sky and its light: the sky around the map, the sun's color, brightness, height and direction"},
+		{"sky_sun", "Sky and sun", "", "World: the map's sky and its light (the sky around the map; the sun's color, brightness, height and direction; ambient light). Lit preview or Play shows them"},
 		{"warnings", "Warnings", "", "The last compile's or check's warnings, a failed compile first: pick one to select and frame what it's about"},
 		{"warning", "Frame a warning", "", "ed warning <n>: selects and frames what the last compile's warning n is about"},
 		{"hide", "Hide", "H", "Hides the selection from every view (the map keeps it: it compiles and saves)"},

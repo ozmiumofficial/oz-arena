@@ -1595,7 +1595,7 @@ void ChainPanel( Rml::ElementDocument *doc ) {
 			}
 		}
 	}
-	static const char *tabs[6] = { "tab-inspect", "tab-materials", "tab-entities", "tab-prefabs", "tab-objects", "tab-history" };
+	static const char *tabs[7] = { "tab-inspect", "tab-materials", "tab-entities", "tab-prefabs", "tab-objects", "tab-world", "tab-history" };
 	for ( const char *t : tabs ) {
 		if ( Rml::Element *e = doc->GetElementById( t ) ) {
 			e->SetProperty( "nav-down", rows.empty() ? Rml::String( "none" ) : id( rows[0].front() ) );
@@ -1829,7 +1829,7 @@ void CloseKeymap( Rml::ElementDocument *doc ) {
 
 // ---------------------------------------------------------------- Sky and sun
 
-// The dialog over the view (Build > Sky and sun, the map's keys): id's skies as tiles, then the light.
+// The World tab (Build > Sky and sun, the map's keys): the light, then id's skies as tiles.
 // Everything in it runs ed sky ..., one undo step each on the map's own keys.
 bool skyOpen;
 Rml::String lastSky;
@@ -1870,7 +1870,7 @@ void BuildSky( Rml::ElementDocument *doc ) {
 	for ( size_t i = 0; i < skies.size(); i++ ) {
 		const std::string &n = skies[i];
 		Rml::String style;
-		const Rml::String sw = SwatchRml( n, 5.4, style, true );
+		const Rml::String sw = SwatchRml( n, 3.6, style, true );
 		const bool on = n == ss.sky;
 		const Rml::String badge = n == def ? "DEFAULT" : n == ss.painted ? "PAINTED" : "";
 		tiles += "<div class=\"mat" + Rml::String( on ? " on" : "" ) + "\" id=\"ed-sky-t-" + std::to_string( i ) + "\" data-hint=\"" + Enc( n ) +
@@ -1931,23 +1931,16 @@ void BuildSky( Rml::ElementDocument *doc ) {
 	}
 }
 
+void ShowPanel( Rml::ElementDocument *doc );
+// Sky and sun is the panel's World tab (Build > Sky and sun and the map keys' button open it)
 void OpenSky( Rml::ElementDocument *doc ) {
-	skyOpen = true;
-	session().sky_open = true;
-	lastSky.clear();
-	Show( doc, "ed-sky", true );
+	panel = "world";
+	ShowPanel( doc );
 	BuildSky( doc );
-	doc->UpdateDocument();
-	if ( Rml::Element *b = doc->GetElementById( "ed-sky-done" ) ) {
-		b->Focus();
-	}
 }
 
 void CloseSky( Rml::ElementDocument *doc ) {
-	skyOpen = false;
-	session().sky_open = false;
-	Show( doc, "ed-sky", false );
-	if ( TypingInside( doc->GetElementById( "ed-sky" ) ) ) {
+	if ( TypingInside( doc->GetElementById( "panel-world" ) ) ) {
 		TypingIn()->Blur();
 	}
 }
@@ -2658,7 +2651,7 @@ void UpdateTip( Rml::ElementDocument *doc, int width, int height ) {
 	Rml::Element *target = nullptr;
 	bool strip = false;
 	// none over a menu, a list or a question: those say what they do themselves
-	const bool covered = !menuOpen.empty() || searchOpen || pickOpen || saveAsOpen || guideOpen || keymapOpen || skyOpen || warnsOpen || !session().asking.empty();
+	const bool covered = !menuOpen.empty() || searchOpen || pickOpen || saveAsOpen || guideOpen || keymapOpen || warnsOpen || !session().asking.empty();
 	if ( !covered && !session().looking() && !session().dragging() ) {
 		for ( Rml::Element *e = GetContext()->GetHoverElement(); e && e != doc; e = e->GetParentNode() ) {
 			const Rml::String &id = e->GetId();
@@ -2731,8 +2724,13 @@ void ShowPanel( Rml::ElementDocument *doc ) {
 	if ( panel == shownPanel ) {
 		return;
 	}
+	skyOpen = panel == "world";	// Sky and sun is the World tab
+	session().sky_open = skyOpen;
+	if ( skyOpen ) {
+		lastSky.clear();
+	}
 	shownPanel = panel;
-	static const char *names[6] = { "inspect", "materials", "entities", "prefabs", "objects", "history" };
+	static const char *names[7] = { "inspect", "materials", "entities", "prefabs", "objects", "world", "history" };
 	for ( const char *n : names ) {
 		Show( doc, ( Rml::String( "panel-" ) + n ).c_str(), panel == n );
 		if ( Rml::Element *t = doc->GetElementById( Rml::String( "tab-" ) + n ) ) {
@@ -2845,7 +2843,7 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		return false;
 	}
 	const std::string &a = args[0];
-	if ( a == "inspect" || a == "materials" || a == "entities" || a == "prefabs" || a == "objects" || a == "history" ) {
+	if ( a == "inspect" || a == "materials" || a == "entities" || a == "prefabs" || a == "objects" || a == "world" || a == "history" ) {
 		panel = a;
 	} else if ( a == "fit" ) {
 		Typed( "fit_typed", {} );
@@ -3348,10 +3346,10 @@ bool Editor_Key( int key, bool down ) {
 		}
 		return !TypingIn() && ( key == K_BACKSPACE || key == 'q' || key == 'e' || key == 'f' || key == K_PAD0_LEFTSHOULDER || key == K_PAD0_RIGHTSHOULDER );
 	}
-	if ( skyOpen ) {
-		// Sky and sun is the page's: Enter sets a typed value, Escape leaves a field, then closes it
+	if ( skyOpen && TypingInside( doc->GetElementById( "panel-world" ) ) ) {
+		// the World tab's fields: Enter sets a typed value, Escape leaves the field
 		Rml::Element *field = TypingIn();
-		if ( down && field && ( key == K_ENTER || key == K_KP_ENTER ) ) {
+		if ( down && ( key == K_ENTER || key == K_KP_ENTER ) ) {
 			const Rml::String apply = field->GetAttribute<Rml::String>( "data-apply", "" );
 			if ( !apply.empty() ) {
 				session().notify = Notify;
@@ -3361,31 +3359,9 @@ bool Editor_Key( int key, bool down ) {
 			return true;
 		}
 		if ( down && ( key == K_ESCAPE || key == K_PAD0_B ) ) {
-			if ( field ) {
-				field->Blur();
-			} else {
-				CloseSky( doc );
-			}
+			field->Blur();
 			return true;
 		}
-		// the left button: the dialog's own controls, else nothing (the menus and panels around wait)
-		if ( key == K_MOUSE1 ) {
-			for ( Rml::Element *e = doc->GetContext()->GetHoverElement(); e; e = e->GetParentNode() ) {
-				if ( e->IsClassSet( "box" ) ) {
-					return false;
-				}
-			}
-			return true;
-		}
-		// the view beside the dialog: the right button looks around (the sun's arrow), the wheel moves
-		const bool viewMouse = key == K_MOUSE2 || key == K_MOUSE3 || key == K_MWHEELUP || key == K_MWHEELDOWN;
-		if ( viewMouse && ( OverView( doc ) || session().looking() || session().dragging() ) ) {
-			return session().key( key, down, OverView( doc ) );
-		}
-		if ( key == K_ESCAPE || key == K_PAD0_B || key == K_MOUSE2 ) {
-			return true;
-		}
-		return !field && ( key == K_BACKSPACE || key == 'q' || key == 'e' || key == 'f' || key == K_PAD0_LEFTSHOULDER || key == K_PAD0_RIGHTSHOULDER );
 	}
 	if ( warnsOpen && down && key == K_ESCAPE ) {
 		CloseWarnings( doc );
@@ -3794,7 +3770,7 @@ bool Editor_Draw( int width, int height ) {
 	if ( keymapOpen ) {
 		BuildKeymap( doc );
 	}
-	if ( skyOpen && !TypingInside( doc->GetElementById( "ed-sky" ) ) ) {
+	if ( skyOpen && !TypingInside( doc->GetElementById( "panel-world" ) ) ) {
 		BuildSky( doc );	// as undo and redo change it too; not under a field being typed in
 		LoadThumbs( doc, "ed-sky-tiles" );
 	}
@@ -3826,6 +3802,8 @@ bool Editor_Draw( int width, int height ) {
 		BuildPrefabs( doc );
 	} else if ( panel == "objects" ) {
 		BuildObjects( doc );
+	} else if ( panel == "world" ) {
+		// BuildSky runs above for the World tab
 	} else {
 		BuildHistory( doc );
 	}
@@ -3873,6 +3851,8 @@ void Editor_Opened( Rml::ElementDocument *doc ) {
 		BuildPrefabs( doc );
 	} else if ( panel == "objects" ) {
 		BuildObjects( doc );
+	} else if ( panel == "world" ) {
+		// BuildSky runs above for the World tab
 	} else {
 		BuildHistory( doc );
 	}

@@ -136,9 +136,9 @@
 			flex: 1 1 auto;
 			text-align: center;
 			padding-top: 0.75rem;
-			font-size: 0.62rem;
+			font-size: 0.56rem;
 			font-weight: 600;
-			letter-spacing: 0.02em;
+			letter-spacing: 0.01em;
 			color: #a59a90;
 			border-bottom: 2dp transparent;
 		}
@@ -345,6 +345,18 @@
 		.srow .dot { width: 1.6rem; height: 1.6rem; margin: 0 0.25rem 0 0; border: 1dp #ffffff40; }
 		.srow .dot:hover, .srow .dot:focus { border-color: #ff4a1c; }
 		.srow .dot.on { border: 2dp #ff4a1c; }
+		#panel-world .note { font-size: 0.8rem; color: #8d847c; margin: 0.2rem 0 0.2rem 0; }
+		#panel-world .srow { flex-wrap: wrap; padding: 0.25rem 0; margin-bottom: 0.15rem; }
+		#panel-world .srow .sl { width: 100%; margin-bottom: 0.2rem; }
+		#panel-world .srow .sh { display: block; width: 100%; margin: 0.15rem 0 0 0; font-size: 0.68rem; white-space: normal; }
+		#panel-world .srow .dot { width: 1.25rem; height: 1.25rem; margin: 0 0.18rem 0.15rem 0; }
+		#panel-world .srow input.text { width: 5rem; height: 1.8rem; margin: 0 0.25rem 0 0; padding: 0.2rem 0.4rem; font-size: 0.85rem; }
+		#panel-world .srow input.text.rgb { width: 7.5rem; }
+		#panel-world .skies { display: flex; flex-wrap: wrap; }
+		#panel-world .mat { width: 4.1rem; margin: 0 0.15rem 0.35rem 0; }
+		#panel-world .mat .sw { width: 3.9rem; height: 3.9rem; }
+		#panel-world .mat .mn { width: 3.9rem; font-size: 0.6rem; }
+		#panel-world .mat .badge { font-size: 0.45rem; right: 0.25rem; }
 
 		/* a menu: its actions, their keys, a mark on what's on; greyed where it needs a selection */
 		.menu {
@@ -518,6 +530,7 @@
 			<button class="ptab" id="tab-entities" data-hint="Pickups, spawns, lights, triggers and the rest: click one, then where it goes" onclick="append ed panel entities">ENTITIES</button>
 			<button class="ptab" id="tab-prefabs" data-hint="Your prefabs: select brushes and entities, name them, save; click one to put it in any map" onclick="append ed panel prefabs">PREFABS</button>
 			<button class="ptab" id="tab-objects" data-hint="Everything in the map, by entity: click selects, double-click frames" onclick="append ed panel objects">OBJECTS</button>
+			<button class="ptab" id="tab-world" data-hint="The map's sky and light: the sky around it, the sun, ambient light" onclick="append ed panel world">WORLD</button>
 			<button class="ptab" id="tab-history" data-hint="Every change: click one to go back (or forward) to it" onclick="append ed panel history">HISTORY</button>
 		</div>
 
@@ -783,6 +796,17 @@
 			<div class="pfs" id="ed-prefabs"></div>
 		</div>
 
+		<div class="pbody hidden" id="panel-world">
+			<p class="note" id="ed-sky-note">The map's sky and light, saved with it. LIT PREVIEW (F6) or PLAY shows them.</p>
+			<div class="esec">LIGHT</div>
+			<div class="sunset" id="ed-sky-light"></div>
+			<div class="row">
+				<button class="tb quiet" id="ed-sky-reset" data-hint="Every setting back to its default: grey clouds, a white sun" onclick="append ed sky reset">DEFAULTS</button>
+			</div>
+			<div class="esec" id="ed-sky-now">SKY</div>
+			<div class="skies" id="ed-sky-tiles"></div>
+		</div>
+
 		<div class="pbody hidden" id="panel-objects">
 			<div class="esec">SHOW</div>
 			<div class="chips">
@@ -921,20 +945,6 @@
 				<button class="tb" id="ed-keymap-radiant" data-hint="Radiant's keys where the editor has the same action (Space copies, X clips, Shift+U subtracts, Shift+arrows move textures); Oz's for the rest"
 					onclick="append ed keymap_preset radiant">RADIANT KEYS</button>
 				<button class="tb quiet" id="ed-keymap-done" data-hint="Close (Esc)" onclick="append ed panel keymap_close">DONE</button>
-			</div>
-		</div>
-	</div>
-
-	<div class="ask skyask hidden" id="ed-sky">
-		<div class="box sky">
-			<h2>SKY AND SUN</h2>
-			<p class="dim" id="ed-sky-note">Saved with the map. Play and Compile put the map in this sky and light it so.</p>
-			<h3 id="ed-sky-now">SKY</h3>
-			<div class="skies" id="ed-sky-tiles"></div>
-			<div class="sunset" id="ed-sky-light"></div>
-			<div class="row">
-				<button class="tb" id="ed-sky-done" data-hint="Close (Esc): Play or Compile lights the map with these" onclick="append ed panel sky_close">DONE</button>
-				<button class="tb quiet" id="ed-sky-reset" data-hint="Every setting back to its default: grey clouds, a white sun" onclick="append ed sky reset">DEFAULTS</button>
 			</div>
 		</div>
 	</div>

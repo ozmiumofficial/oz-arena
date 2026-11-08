@@ -160,8 +160,11 @@ void Session::collect_models() {
 	}
 }
 
-void Session::draw_models(const float moved[3], int now) {
+void Session::draw_models(const float moved[3], int now, bool spawns) {
 	for (const EntModel &m : models_) {
+		if (!spawns && !m.fighter.empty()) {
+			continue;  // the thumbnail: no one stands on the spawn points
+		}
 		if (lit_ && !changed_since(m.id) && doc.get(m.id) && doc.get(m.id)->entity.classname() == "misc_model") {
 			continue;  // the compile baked it into the world the lit preview draws
 		}
@@ -229,6 +232,40 @@ bool solid_hit(const Doc &doc, const Vec3 &a, const Vec3 &b, double &frac) {
 	return hit;
 }
 
+// The middle of the first entity named `name` that has one (a pusher's target).
+static bool target_center(const Doc &doc, const std::string &name, Vec3 &out) {
+	for (Id e : doc.ids_of(Kind::Entity)) {
+		const std::string *n = doc.get(e)->entity.find("targetname");
+		if (n && *n == name && entity_center(doc, e, out)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// A throw from `from` at v, falling on until it meets a brush (or 6.4 s, or 4096 under where it began):
+// its points 0.04 s apart, the last where it met the brush. Whether it met one.
+static bool throw_path(const Doc &doc, const Vec3 &from, const Vec3 &v, double g, std::vector<Vec3> &out) {
+	out.clear();
+	out.push_back(from);
+	Vec3 last = from;
+	for (int i = 1; i <= 160; i++) {
+		const double t = i * 0.04;
+		const Vec3 p = from + v * t - Vec3(0, 0, 0.5 * g * t * t);
+		double frac;
+		if (solid_hit(doc, last, p, frac)) {
+			out.push_back(last + (p - last) * frac);
+			return true;
+		}
+		out.push_back(p);
+		last = p;
+		if (p.z < from.z - 4096) {
+			break;
+		}
+	}
+	return false;
+}
+
 const std::vector<Vec3> &Session::push_arc(Id id) {
 	auto &cached = arcs_[id];
 	if (cached.first == doc.revision + 1) {
@@ -238,43 +275,38 @@ const std::vector<Vec3> &Session::push_arc(Id id) {
 	cached.second.clear();
 	arc_lands_[id] = false;
 	const Object *o = doc.get(id);
-	Vec3 from, to;
-	if (!o || !entity_center(doc, id, from)) {
-		return cached.second;
-	}
-	const std::string target = o->entity.get("target");
-	bool found = false;
-	for (Id e : doc.ids_of(Kind::Entity)) {
-		const std::string *n = doc.get(e)->entity.find("targetname");
-		if (n && *n == target && entity_center(doc, e, to)) {
-			found = true;
-			break;
-		}
-	}
-	Vec3 v;
+	Vec3 from, to, v;
 	const double g = map_gravity(doc);
-	if (!found || !push_velocity(from, to, g, v)) {
+	if (!o || !entity_center(doc, id, from) || !target_center(doc, o->entity.get("target"), to) || !push_velocity(from, to, g, v)) {
 		return cached.second;
 	}
-	// the throw, falling on until it meets a brush
-	cached.second.push_back(from);
-	Vec3 last = from;
-	for (int i = 1; i <= 160; i++) {
-		const double t = i * 0.04;
-		const Vec3 p = from + v * t - Vec3(0, 0, 0.5 * g * t * t);
-		double frac;
-		if (solid_hit(doc, last, p, frac)) {
-			cached.second.push_back(last + (p - last) * frac);
-			arc_lands_[id] = true;
-			break;
-		}
-		cached.second.push_back(p);
-		last = p;
-		if (p.z < from.z - 4096) {
-			break;
-		}
-	}
+	arc_lands_[id] = throw_path(doc, from, v, g, cached.second);
 	return cached.second;
+}
+
+bool Session::push_top(Id pad, Vec3 &top) {
+	const Object *o = doc.get(pad);
+	return o && push_arc(pad).size() >= 2 && target_center(doc, o->entity.get("target"), top);
+}
+
+bool Session::push_aim(Id pad, Vec3 &floor) {
+	const std::vector<Vec3> &arc = push_arc(pad);
+	if (arc.size() < 2 || !arc_lands_[pad]) {
+		return false;
+	}
+	floor = arc.back();
+	Vec3 from, top, v;
+	const double g = map_gravity(doc);
+	if (arc[arc.size() - 1].z >= arc[arc.size() - 2].z || !entity_center(doc, pad, from) || !push_top(pad, top) || !push_velocity(from, top, g, v)) {
+		return true;  // it comes down on something on its way up: aimed where it lands
+	}
+	// aim_pad aims LAND_MIDDLE over the floor: where the throw passes that height on its way down
+	const double disc = v.z * v.z - 2 * g * (floor.z + LAND_MIDDLE - from.z);
+	if (disc >= 0) {
+		const double t = (v.z + std::sqrt(disc)) / g;
+		floor.x = from.x + v.x * t, floor.y = from.y + v.y * t;
+	}
+	return true;
 }
 
 bool Session::push_flight(Id id, double &speed, double &height, double &across, double &seconds) {
@@ -364,7 +396,8 @@ void Session::push_height(double dz) {
 		const Id p = pusher_of[e];
 		const std::vector<Vec3> arc = push_arc(p);
 		if (doc.get(p)->entity.classname() == "trigger_push" && arc.size() >= 2 && entity_center(doc, p, from)) {
-			const Vec3 land = arc.back();
+			Vec3 land = arc.back();
+			push_aim(p, land);  // where it was aimed, or each press would carry the landing on a little
 			if (next.z < std::max(from.z, land.z + LAND_MIDDLE) + 16) {
 				refused++;
 				continue;  // a throw this low wouldn't clear where it lands
@@ -385,7 +418,13 @@ Id Session::aim_pad(Id p, const Vec3 &floor) {
 	if (!doc.get(p) || !entity_center(doc, p, from)) {
 		return 0;
 	}
-	const Vec3 top = apex_for(from, floor + Vec3(0, 0, LAND_MIDDLE), map_gravity(doc), ceiling_over(from, floor));
+	return aim_pad_top(p, apex_for(from, floor + Vec3(0, 0, LAND_MIDDLE), map_gravity(doc), ceiling_over(from, floor)));
+}
+
+Id Session::aim_pad_top(Id p, const Vec3 &top) {
+	if (!doc.get(p)) {
+		return 0;
+	}
 	const std::string at = vec_key(Vec3(std::round(top.x), std::round(top.y), std::round(top.z)));
 	const std::string name = doc.get(p)->entity.get("target");
 	Id t = name.empty() ? 0 : entity_named(doc, name);
@@ -462,6 +501,106 @@ void Session::end_land_drag(bool cancel) {
 		select(group_of(land_drag_pad_), SelMode::Set);  // its target too, if it got one of its own
 	}
 	land_drag_pad_ = 0;
+}
+
+// The height where a ray passes nearest the vertical through `at`; false when it runs along it (a view
+// straight down, which can't say how high).
+static bool vertical_height(const Vec3 &o, const Vec3 &d, const Vec3 &at, double &z) {
+	const Vec3 w = o - at;
+	const double dd = d.dot(d), b = d.z, denom = dd - b * b;
+	if (denom < 1e-4 * dd) {
+		return false;
+	}
+	z = at.z + (dd * w.z - b * d.dot(w)) / denom;
+	return true;
+}
+
+void Session::start_apex_drag(const Handle &h) {
+	drag_ = Drag::None;
+	Vec3 o, d, from;
+	ray(press_x_, press_y_, o, d);
+	if (!doc.get(h.id) || !entity_center(doc, h.id, from) || !push_aim(h.id, apex_drag_floor_) || !vertical_height(o, d, h.at, apex_drag_grab_)) {
+		return;
+	}
+	apex_drag_pad_ = h.id;
+	apex_drag_at_ = h.at;
+	apex_drag_top_ = h.at.z;
+	apex_drag_land_ = push_arc(h.id).back();
+	apex_drag_moved_ = false;
+	// no higher than 40 under the roof over its top, as a new pad's (or where it was, if that's higher)
+	double frac;
+	apex_drag_max_ = solid_hit(doc, h.at, h.at + Vec3(0, 0, 8192), frac) ? std::max(h.at.z + 8192 * frac - 40, h.at.z) : 1e30;
+	doc.begin("Jump height");
+	drag_ = Drag::Apex;
+}
+
+void Session::apex_drag(int m) {
+	const Id p = apex_drag_pad_;
+	Vec3 o, d, from;
+	double z;
+	ray(mx_, my_, o, d);
+	if (!doc.get(p) || !entity_center(doc, p, from) || !vertical_height(o, d, apex_drag_at_, z)) {
+		return;
+	}
+	// the top follows the pointer up and down, on the grid unless Ctrl is held
+	double top = apex_drag_at_.z + (z - apex_drag_grab_);
+	if (!(m & CTRL)) {
+		top = snap(top);
+	}
+	const char *limit = nullptr;
+	if (top > apex_drag_max_) {
+		top = std::floor(apex_drag_max_);
+		limit = "as high as it goes under the roof";
+	}
+	// 16 over the higher end at the least, as Lower keeps it
+	const double low = std::ceil(std::max(from.z, apex_drag_floor_.z + LAND_MIDDLE) + 16);
+	if (top < low) {
+		top = low;
+		limit = "as low as it goes and still lands there";
+	}
+	if (top != apex_drag_top_) {
+		const double g = map_gravity(doc);
+		const Vec3 a = apex_at(from, apex_drag_floor_ + Vec3(0, 0, LAND_MIDDLE), g, top);
+		const Vec3 next(std::round(a.x), std::round(a.y), std::round(a.z));
+		// tried first: a top whose throw comes down anywhere but where it should (something in the way,
+		// a roof, a wall or a ledge) is refused, and the throw stays at the last one that landed
+		Vec3 v;
+		std::vector<Vec3> path;
+		bool lands = push_velocity(from, next, g, v) && throw_path(doc, from, v, g, path);
+		if (lands) {
+			const double disc = v.z * v.z - 2 * g * (apex_drag_land_.z - from.z);
+			const double t = disc >= 0 ? (v.z + std::sqrt(disc)) / g : -1;
+			const Vec3 want = from + v * t - Vec3(0, 0, 0.5 * g * t * t);
+			lands = t > 0 && (path.back() - want).length() < 8;
+		}
+		if (lands) {
+			const Id t = aim_pad_top(p, next);
+			apex_drag_top_ = top;
+			apex_drag_moved_ = true;
+			changed({p, t});
+		} else {
+			limit = top > apex_drag_top_ ? "any higher and it meets something on the way" : "any lower and it meets something on the way";
+		}
+	}
+	double speed, height, across, seconds;
+	if (push_flight(p, speed, height, across, seconds)) {
+		char buf[192];
+		std::snprintf(buf, sizeof buf, "Throws %g up, %.1f s in the air, landing where it did%s%s", std::round(height), seconds,
+			limit ? " \xc2\xb7 " : "", limit ? limit : "");
+		drag_note_ = buf;
+	}
+}
+
+void Session::end_apex_drag(bool cancel) {
+	doc.end();
+	if (cancel && apex_drag_moved_) {
+		doc.undo();  // called off: the throw as it was
+	}
+	changed({});
+	if (doc.get(apex_drag_pad_)) {
+		select(group_of(apex_drag_pad_), SelMode::Set);  // its target too, if it got one of its own
+	}
+	apex_drag_pad_ = 0;
 }
 
 void Session::push_land() {
@@ -835,7 +974,7 @@ void Session::place_click(int m) {
 		if (cls == "jump_pad") {
 			set_tool(Tool::Select);  // its landing's handle ready to drag
 			select(group_of(made), SelMode::Set);
-			say("Jump pad made: drag the green ring where it lands to adjust it; drag the pad to move it all; HIGHER and LOWER keep where it lands");
+			say("Jump pad made: drag the green ring to change where it lands, the green diamond at the top of the arc to throw it higher or lower; drag the pad to move it all");
 		} else {
 			select({made}, SelMode::Set);
 		}

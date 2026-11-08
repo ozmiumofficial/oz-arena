@@ -25,6 +25,7 @@ void		OzE_AudioDevices( char *list, int size );	// the sound output devices' nam
 int			OzE_ReadFile( const char *path, void **buffer );	// the length, -1 when missing
 void		OzE_FreeFile( void *buffer );
 int			OzE_ReadFileHead( const char *path, void *buffer, int size );	// a file's first bytes (an image's header): how many, -1 when missing
+int			OzE_ReadFileAt( const char *path, int offset, void *buffer, int size );	// up to size bytes from offset on (a BSP's lump): how many, -1 when missing
 void		OzE_WriteFile( const char *path, const void *data, int size );	// in the home path's game folder
 int			OzE_FileExists( const char *path );		// in the search path or the UI pak, without reading it
 int			OzE_IsPlayerHome( void );				// fs_homepath is the player's own user folder (not a test's)

@@ -113,7 +113,7 @@ public:
 	ObjectPtr ptr(Id id) const;
 	// A private copy to change and put() back.
 	std::shared_ptr<Object> edit(Id id) const;
-	Id add(std::shared_ptr<Object> obj);  // a new id at the end of the file order
+	Id add(std::shared_ptr<Object> obj);  // a new id at the end of the file order (in a session, the lease's next)
 	void put(Id id, std::shared_ptr<Object> obj);
 	void remove(Id id);
 	// ids in file order (the ids are handed out in it)
@@ -172,11 +172,51 @@ public:
 	// Face polygons of a brush, cached until it changes.
 	const std::vector<q3map::Winding> &windings(Id id) const;
 
-private:
+	// ---- editing together (ed_sync.h, ENGINE_PLAN.md PE). None of it is used while editing alone.
 	struct Change {
 		Id id;
-		ObjectPtr before, after;
+		ObjectPtr before, after;  // null: not there (made, or removed)
 	};
+	// Every change made here, as it lands: a step's end, an undo or redo, a change outside a step;
+	// label is the step's ("Undo Move" for an undo of Move). A session sends it to the others. A copy of
+	// the document (the compile's, with its sky box) never has it: its changes are its own.
+	struct LocalHook {
+		std::function<void(const std::string &label, const std::vector<Change> &)> f;
+		LocalHook() = default;
+		LocalHook(const LocalHook &) {}
+		LocalHook &operator=(const LocalHook &) { return *this; }  // assigned a document, this one's hook stays
+		LocalHook &operator=(std::function<void(const std::string &, const std::vector<Change> &)> fn) {
+			f = std::move(fn);
+			return *this;
+		}
+		LocalHook &operator=(std::nullptr_t) {
+			f = nullptr;
+			return *this;
+		}
+		explicit operator bool() const { return bool(f); }
+		void operator()(const std::string &label, const std::vector<Change> &c) const { f(label, c); }
+	} on_local;
+	// Another player's objects (null: removed), as the session's host ordered them: no undo step, the
+	// history kept; announced through on_change.
+	void apply_remote(const std::vector<std::pair<Id, ObjectPtr>> &objects);
+	// The document replaced by a session's snapshot: these objects, the first entity the world. No history.
+	void reset(Id world, const std::vector<std::pair<Id, ObjectPtr>> &objects);
+	// New ids from a block the host handed out (lease_next .. lease_end), so no two players make the same
+	// id; without one, the next past every id there is (as alone). lease_left: how many are left.
+	void lease(Id from, Id end);
+	Id lease_left() const {
+		return (lease_end_ > lease_next_ ? lease_end_ - lease_next_ : 0) + (spare_end_ > spare_next_ ? spare_end_ - spare_next_ : 0);
+	}
+	bool lease_spare() const { return spare_end_ > spare_next_; }
+	bool leasing() const { return lease_end_ != 0; }
+	// In a session undo and redo are each player's own: they put back only the objects still as the step
+	// left them (someone else changed the rest since); skipped counts the last one's left alone.
+	bool shared = false;
+	size_t skipped = 0;
+	Id next_id() const { return next_; }
+	bool stepping(Id id) const { return depth_ > 0 && open_index_.count(id) != 0; }  // changed in the open step
+
+private:
 	struct Step {
 		std::string label;
 		std::vector<Change> changes;
@@ -184,10 +224,14 @@ private:
 	};
 	void record(Id id, ObjectPtr before, ObjectPtr after);
 	void apply(const Step &s, bool forward);
+	// shared: only what's still as the step left it (forward: as before it), returned as the changes made
+	std::vector<Change> apply_shared(const Step &s, bool forward);
 	void announce(std::vector<Id> ids);
+	void local(const std::string &label, const std::vector<Change> &changes);
 
 	std::unordered_map<Id, ObjectPtr> objects_;
 	Id next_ = 1;
+	Id lease_next_ = 0, lease_end_ = 0, spare_next_ = 0, spare_end_ = 0;
 	Id world_ = 0;
 	int depth_ = 0;
 	Step open_;

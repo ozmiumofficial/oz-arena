@@ -101,6 +101,9 @@ MapBrowser.tsx and SinglePlayerPage.tsx. Linked after menu.rcss.
 	color: #8d847c;
 }
 
+/* Skirmish's User generated heading, at the list's top */
+.othersh.usersh { margin-top: 0; }
+
 /* a level shot card, about 4:3 in a 16:9 window */
 button.card {
 	position: relative;

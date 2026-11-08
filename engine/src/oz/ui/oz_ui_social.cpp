@@ -189,12 +189,18 @@ void Social( const cJSON *m ) {
 		const std::string target = join.substr( join.find( ':' ) + 1, join.find( ' ' ) == std::string::npos ? std::string::npos : join.find( ' ' ) - join.find( ':' ) - 1 );
 		std::string host = !join.compare( 0, 4, "ice:" ) ? target : "";
 		const std::string server = !join.compare( 0, 7, "server:" ) ? target : "";
+		// an editing session (PE): "edit:<host>", joined in the multiplayer map editor
+		std::string edit = !join.compare( 0, 5, "edit:" ) ? target : "";
 		if ( host == myId ) {
 			host.clear();	// they're in your own match
 		}
-		cJSON_AddBoolToObject( o, "join", !host.empty() || !server.empty() );
+		if ( edit == myId ) {
+			edit.clear();	// your own session
+		}
+		cJSON_AddBoolToObject( o, "join", !host.empty() || !server.empty() || !edit.empty() );
 		cJSON_AddStringToObject( o, "host", host.c_str() );
 		cJSON_AddStringToObject( o, "server", server.c_str() );
+		cJSON_AddStringToObject( o, "edit", edit.c_str() );
 		cJSON_AddBoolToObject( o, "locked", locked );
 		// the match's mod and map (PH step 3), beside the detail line that names them
 		cJSON_AddStringToObject( o, "mod", on ? Str( i, "mod" ) : "" );
@@ -435,6 +441,9 @@ void Browser( const cJSON *m ) {
 	const bool hide = atoi( OzE_CvarString( "oz_network_hide_ip" ) ) != 0;
 	cJSON *out = cJSON_CreateArray();
 	cJSON_ArrayForEach( r, cJSON_GetObjectItemCaseSensitive( m, "matches" ) ) {
+		if ( !strcmp( Str( r, "mode" ), "edit" ) ) {
+			continue;	// an editing session (PE): the multiplayer map editor lists those, not the matches
+		}
 		const std::string host = Str( r, "host" );
 		const int players = (int)Num( r, "players" ), max = (int)Num( r, "max" );
 		const std::string name = Plain( Str( r, "name", "Match" ) );
@@ -867,6 +876,7 @@ extern "C" void OzUI_HubMessage( const char *type, const cJSON *msg ) {
 		Menu_Toast( Str( msg, "text" ), cJSON_IsString( tone ) && !strcmp( tone->valuestring, "info" ) ? "info" : "warn" );
 	} else if ( !strcmp( type, "net_matches" ) ) {
 		Browser( msg );
+		Together_HubMessage( type, msg );	// the editing sessions among the listings (the multiplayer map editor's)
 	} else if ( !strcmp( type, "net_quick" ) ) {
 		QuickAnswer( msg );
 	} else if ( !strcmp( type, "net_follow" ) ) {

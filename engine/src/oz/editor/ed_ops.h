@@ -151,7 +151,8 @@ std::vector<Id> hollow(Doc &doc, const std::vector<Id> &ids, double thickness, s
 // Each wedge (a brush with a sloped top) cut into solid steps climbing its slope: count steps, or
 // with count 0 as many as make each about rise units high (2 at least).
 std::vector<Id> stairs(Doc &doc, const std::vector<Id> &ids, int count, double rise, std::string &note);
-// The brushes made one: their convex hull, in the first one's entity.
+// The brushes joined where together they make one convex brush (their hull fills nothing more), within
+// each entity; the rest stay as they were. The brushes left: the joined ones and those kept apart.
 std::vector<Id> merge(Doc &doc, const std::vector<Id> &ids, std::string &note);
 // Copies with new ids, moved by offset. A copied entity takes copies of its brushes; a brush whose
 // entity isn't copied stays in it. The copies' ids, objects and brushes, in file order.

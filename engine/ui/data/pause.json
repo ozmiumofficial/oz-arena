@@ -6,6 +6,7 @@
     "warmup": false,
     "can_restart": false,
     "editor": false,
+    "edreload": false,
     "team": "",
     "status": "",
     "join": "",

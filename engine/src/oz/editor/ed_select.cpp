@@ -304,6 +304,15 @@ std::vector<Handle> Session::handles() {
 				h.id = p;
 				h.at = arc.back();
 				out.push_back(h);
+				// and the top of its throw, dragged up and down (not in the top view, which looks along that)
+				Vec3 top;
+				if (ortho_axis_ != 2 && push_top(p, top)) {
+					Handle a;
+					a.kind = Handle::Apex;
+					a.id = p;
+					a.at = top;
+					out.push_back(a);
+				}
 			}
 		}
 	}
@@ -433,7 +442,8 @@ Handle Session::handle_at(double sx, double sy) {
 	// corners and clip points win over edges, edges over diamonds
 	for (int pass = 0; pass < 3 && best.kind == Handle::None; pass++) {
 		for (const Handle &h : hs) {
-			const bool mine = pass == 0 ? (h.kind == Handle::Corner || h.kind == Handle::ClipPoint || h.kind == Handle::Land)
+			const bool pad = h.kind == Handle::Land || h.kind == Handle::Apex;
+			const bool mine = pass == 0 ? (h.kind == Handle::Corner || h.kind == Handle::ClipPoint || pad)
 				: pass == 1 ? h.kind == Handle::Edge : h.kind == Handle::Face || h.kind == Handle::GroupFace;
 			double x, y;
 			if (!mine || !project(h.at, x, y)) {
@@ -453,7 +463,7 @@ Handle Session::handle_at(double sx, double sy) {
 					}
 				}
 			}
-			consider(h, d, h.kind == Handle::Land ? PICK_CORNER + 4 : pass == 0 ? PICK_CORNER : pass == 1 ? PICK_EDGE : PICK_FACE);
+			consider(h, d, pad ? PICK_CORNER + 4 : pass == 0 ? PICK_CORNER : pass == 1 ? PICK_EDGE : PICK_FACE);
 		}
 	}
 	return best;
@@ -517,6 +527,22 @@ void Session::motion(int m) {
 		if (std::hypot(mx_ - press_x_, my_ - press_y_) < DRAG_START) {
 			return;
 		}
+		begin_drag(m);
+		// editing together: what the drag changes is held while it runs; another player's already is
+		if (grab && drag_ != Drag::None && drag_ != Drag::Pending) {
+			const std::vector<Id> held = held_ids();
+			std::string why;
+			if (!held.empty() && !grab(held, why)) {
+				drop_drag(why);
+				return;
+			}
+		}
+	}
+	drag_motion(m);
+}
+
+void Session::begin_drag(int m) {
+	{
 		// the press becomes a drag: what it does depends on what it grabbed
 		const Handle &h = press_handle_;
 		if (tool == Tool::Faces) {
@@ -531,6 +557,8 @@ void Session::motion(int m) {
 			drag_ = Drag::ClipPoint;
 		} else if (tool == Tool::Select && h.kind == Handle::Land) {
 			start_land_drag(h.id);
+		} else if (tool == Tool::Select && h.kind == Handle::Apex) {
+			start_apex_drag(h);
 		} else if (tool == Tool::Select && (h.kind == Handle::Corner || h.kind == Handle::Edge)) {
 			start_corners(h, press_mods_);
 		} else if (tool == Tool::Select && h.kind == Handle::GroupFace) {
@@ -561,6 +589,10 @@ void Session::motion(int m) {
 			drag_ = Drag::Box;
 		}
 	}
+	(void)m;
+}
+
+void Session::drag_motion(int m) {
 	switch (drag_) {
 	case Drag::Move: {
 		const bool alt = (m & ALT) != 0;
@@ -679,6 +711,9 @@ void Session::motion(int m) {
 	case Drag::Land:
 		land_drag(m);
 		break;
+	case Drag::Apex:
+		apex_drag(m);
+		break;
 	case Drag::ClipPoint: {
 		Hit h;
 		if (clip_drag_ >= 0 && clip_drag_ < int(clip_pts_.size()) && pick(mx_, my_, h, false)) {
@@ -725,6 +760,9 @@ void Session::release(int m) {
 		break;
 	case Drag::Land:
 		end_land_drag(false);
+		break;
+	case Drag::Apex:
+		end_apex_drag(false);
 		break;
 	case Drag::Push:
 		doc.end();
@@ -848,6 +886,11 @@ void Session::cancel_drag() {
 		drag_ = Drag::None;
 		drag_note_.clear();
 		end_land_drag(true);
+		break;
+	case Drag::Apex:
+		drag_ = Drag::None;
+		drag_note_.clear();
+		end_apex_drag(true);
 		break;
 	case Drag::Push:
 	case Drag::Corners: {
@@ -1215,6 +1258,28 @@ void Session::build_entities() {
 		if (s) {
 			ov.box_edges(lo, hi, sel_hidden, "$oz_ed_lines_xray");
 		}
+		// a camera (the intermission point, the map's thumbnail camera): what it sees, 90 degrees across at
+		// 4:3, its top marked
+		Vec3 eye;
+		double cyaw, cpitch;
+		if (o->entity.classname() == "info_player_intermission" && camera_view(doc, id, eye, cyaw, cpitch)) {
+			Camera cv;
+			cv.origin = eye, cv.yaw = cyaw, cv.pitch = cpitch;
+			Vec3 f, l, u;
+			cv.axes(f, l, u);
+			const double depth = 48, hw = depth, hh = depth * 0.75;
+			const Vec3 mid = eye + f * depth;
+			const Vec3 k[4] = {mid + l * hw + u * hh, mid - l * hw + u * hh, mid - l * hw - u * hh, mid + l * hw - u * hh};
+			const unsigned char *lc = s ? sel_edge : c;
+			for (int i = 0; i < 4; i++) {
+				ov.line(eye, k[i], lc);
+				ov.line(k[i], k[(i + 1) % 4], lc);
+			}
+			const Vec3 top = mid + u * (hh + 14);
+			ov.line(k[0], top, lc);
+			ov.line(top, k[1], lc);
+			continue;
+		}
 		// which way it faces: a line out of its middle
 		const std::string *angle = o->entity.find("angle");
 		Vec3 ang;
@@ -1347,6 +1412,21 @@ void Session::build_handles(Overlay &out) {
 				}
 				square(h.at, r + 1.5, C_BLACK);
 				square(h.at, r, on ? C_HOVER : C_LAND);
+				break;
+			}
+			case Handle::Apex: {
+				// a diamond at the top of the throw, arrows up and down through it: it drags up and down
+				static const unsigned char C_TOP[4] = {110, 255, 150, 255};
+				const double r = on ? 9 : 7, u = units_per_pixel(h.at), w = on ? 3 : 2;
+				const Vec3 tip(0, 0, u * (on ? 26 : 22)), barb(0, 0, u * 6), side = right * (u * 5);
+				stem(h.at - tip, h.at + tip, w, C_TOP);
+				for (int s = -1; s <= 1; s += 2) {
+					const Vec3 end = h.at + tip * s;
+					stem(end, end - barb * s + side, w, C_TOP);
+					stem(end, end - barb * s - side, w, C_TOP);
+				}
+				diamond(h.at, r + 1.5, C_BLACK);
+				diamond(h.at, r, on ? C_HOVER : C_TOP);
 				break;
 			}
 			case Handle::ClipPoint: {

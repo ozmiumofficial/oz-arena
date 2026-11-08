@@ -77,7 +77,7 @@ const std::vector<Action> &actions() {
 		{"subtract", "Subtract", "Ctrl+Shift+X", "Cuts the selected brushes out of every brush they overlap (a doorway, a window), then deletes them"},
 		{"hollow", "Hollow", "Ctrl+Shift+H", "Makes each selected brush a room: walls one grid step thick (8 units at least) around its inside; ed hollow <units> for any"},
 		{"stairs", "Stairs", "Ctrl+Shift+T", "Turns each selected wedge into solid stairs climbing its slope, each step about 8 units high; ed stairs <steps> for an exact count"},
-		{"merge", "Merge", "Ctrl+J","Makes the selected brushes one brush: the smallest shape without dents that holds them all"},
+		{"merge", "Merge", "Ctrl+J","Joins the selected brushes that together make one brush shape (side by side, a row of tiles); never fills space between them"},
 		{"tint", "Color", "", "ed tint <r g b> | none: colors the picked faces (or every face of the selected brushes): the texture is multiplied by it, in the view and the game"},
 		{"collision", "Collision", "", "The selected brushes' collision on or off: off, players and shots pass through them (they still draw, and still block light). Every brush collides at first, liquids aside"},
 		{"detail", "Detail", "Ctrl+Shift+D", "Marks the selected brushes detail, or structural again: detail (trim, pillars, props) doesn't cut the map up for visibility, so it compiles faster and runs smoother; walls that hold the map in stay structural"},
@@ -86,9 +86,18 @@ const std::vector<Action> &actions() {
 		{"grid_bigger", "Bigger grid", "]", "Doubles the grid"},
 		{"play", "Play", "F5", "Compiles the map as it is (BSP and quick light) and plays it from a spawn point; in the game, Escape then Back to the map editor"},
 		{"play_here", "Play from here", "Shift+F5", "The same, the player's eye where the camera is"},
+		{"play_together", "Play together", "Ctrl+Shift+F5", "Compiles the session's map on your PC, sends it to everyone in the session and hosts the match: they all join it (the multiplayer map editor's)"},
+		{"mode_ffa", "Free for all", "", "Play starts the map as free for all: everyone against everyone (the map keeps its mode)"},
+		{"mode_duel", "Duel", "", "Play starts the map as a duel: one against one, the rest waiting their turn (the map keeps its mode)"},
+		{"mode_tdm", "Team deathmatch", "", "Play starts the map as team deathmatch: red against blue, each player put on a team as they come in (the map keeps its mode)"},
+		{"mode_ctf", "Capture the flag", "", "Play starts the map as capture the flag: it needs a red flag and a blue flag (team_CTF_redflag, team_CTF_blueflag); players go on teams as they come in"},
+		{"leave_session", "Leave session", "", "Leaves the editing session (as its host, ends it for everyone); the map stays as it is, to save"},
 		{"compile", "Compile", "Ctrl+F5", "The whole compile in the background (BSP, vis, full light, the bots' file) into maps/ed_<name>.bsp in your files"},
 		{"preview", "Lit preview", "F6", "The map lit by its own lights, as the last compile made it (a quick compile first when the map changed); F6 again leaves it"},
 		{"compile_stop", "Stop compiling", "", "Stops the compile under way"},
+		{"thumb_set", "Set thumbnail camera", "", "The map's thumbnail camera where you look from, the way you look: the menus, the loading screen and the scoreboard show the picture it takes (it's the map's intermission spot, the camera at a match's end too)"},
+		{"thumb_view", "Look through thumbnail camera", "", "The 3D view through the thumbnail camera, its picture framed (4:3, 90 degrees across); moving the view leaves it"},
+		{"thumb_shoot", "Make thumbnail", "", "Takes the map's thumbnail (levelshots/ed_<name>.jpg, and beside the saved map) from its camera, lit as the last compile lit it (a quick compile first when the map changed); Compile takes it too"},
 		{"frame_leak", "Show the leak", "", "The camera onto the leak's line: from an entity out to the void through the gap"},
 		{"sky_sun", "Sky and sun", "", "World: the map's sky and its light (the sky around the map; the sun's color, brightness, height and direction; ambient light). Lit preview or Play shows them"},
 		{"warnings", "Warnings", "", "The last compile's or check's warnings, a failed compile first: pick one to select and frame what it's about"},
@@ -576,11 +585,23 @@ static int axis_arg(const std::vector<std::string> &a, size_t i) {
 
 bool Session::run(const std::string &action, const std::vector<std::string> &a) {
 	std::string note;
+	if (intercept && intercept(action, a)) {
+		return true;  // editing together's own (a session's map stays the session's)
+	}
+	if (action == "play_together" || action == "leave_session") {
+		say("That's the multiplayer map editor's, in a session (main menu, Map Editor, Multiplayer)");
+		return true;
+	}
 	if (faces_action(action, a)) {
 		return true;
 	}
 	if (action == "jump_pad" || action == "teleporter" || action == "light") {
 		return entities_action("place", {action});
+	}
+	if (action == "mode_ffa" || action == "mode_duel" || action == "mode_tdm" || action == "mode_ctf" || action == "mode") {
+		// ed mode_<ffa|duel|tdm|ctf>, or ed mode <ffa|duel|tdm|ctf>: the mode Play starts the map in
+		set_game_mode(action == "mode" ? (a.empty() ? "ffa" : a[0]) : action.substr(5));
+		return true;
 	}
 	if (action == "play" || action == "play_here" || action == "compile") {
 		compile(action == "compile", action != "compile", action == "play_here");
@@ -599,6 +620,17 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 	}
 	if (action == "preview") {
 		toggle_preview();
+		return true;
+	}
+	if (action == "thumb_set" || action == "thumb_shoot") {
+		action == "thumb_set" ? thumb_set() : thumb_shoot();
+		return true;
+	}
+	if (action == "thumb_view") {
+		thumb_look();
+		if (through_) {
+			say("Through the thumbnail camera: the frame is its picture (4:3, 90 degrees across); moving the view leaves it");
+		}
 		return true;
 	}
 	if (action == "views" || action == "view_next" || action == "pane") {
@@ -1011,7 +1043,13 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 		const std::string label = redo ? doc.redo_label() : doc.undo_label();
 		if (redo ? doc.redo() : doc.undo()) {
 			corners.clear();
-			say((redo ? "Redo " : "Undo ") + label);
+			if (doc.skipped) {
+				// editing together: undo is each player's own, and leaves what someone else changed since
+				say((redo ? "Redo " : "Undo ") + label + ": " + std::to_string(doc.skipped) + (doc.skipped == 1 ? " object" : " objects") +
+					" someone else changed since stayed as they are");
+			} else {
+				say((redo ? "Redo " : "Undo ") + label);
+			}
 		} else {
 			say(redo ? "Nothing to redo" : "Nothing to undo");
 		}
@@ -1292,6 +1330,18 @@ static void create_box(const Vec3 &a, const Vec3 &b, int axis, double plane, dou
 	set_comp(hi, axis, std::max(plane, top));
 }
 
+bool Session::drawing_box(Bounds &b) const {
+	if (tool != Tool::Create || create_state_ != 2) {
+		return false;
+	}
+	Vec3 lo, hi;
+	create_box(create_a_, create_b_, create_axis_, create_plane_, create_sign_, create_height_, lo, hi);
+	b = Bounds();
+	b.add(lo);
+	b.add(hi);
+	return true;
+}
+
 bool Session::create_commit() {
 	if (create_state_ != 2) {
 		return false;
@@ -1546,6 +1596,8 @@ std::string Session::hint() const {
 	switch (hover_handle_.kind) {
 	case Handle::Land:
 		return "Drag: where the jump pad lands, the throw re-aimed as you go (Ctrl off the grid) \xc2\xb7 Esc during the drag puts it back";
+	case Handle::Apex:
+		return "Drag up or down: how high the jump pad throws, still landing where it does (Ctrl off the grid) \xc2\xb7 Esc during the drag puts it back";
 	case Handle::Corner:
 		return "Drag: move this corner (Alt up and down, Ctrl off the grid) \xc2\xb7 click: select corners (Shift adds, Ctrl toggles) \xc2\xb7 Del removes them";
 	case Handle::Edge:

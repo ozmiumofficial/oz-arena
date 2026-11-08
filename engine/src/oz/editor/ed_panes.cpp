@@ -74,6 +74,10 @@ void Session::use_pane(Pane p) {
 	if (p == Pane::Cam) {
 		ortho_axis_ = -1;
 		tan_x_ = std::tan(cam.fov * 0.5 * 3.14159265358979323846 / 180);
+		if (through_) {
+			// through the thumbnail camera: its picture (90 degrees across at 4:3) framed whole in the pane
+			tan_x_ = vw_ / std::min(double(vw_), vh_ * 4.0 / 3.0);
+		}
 		tan_y_ = tan_x_ * vh_ / vw_;
 		cam.axes(fwd_, left_, up_);
 		eye_ = cam.origin;

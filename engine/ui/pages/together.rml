@@ -1,0 +1,144 @@
+<rml>
+<head>
+	<title>Multiplayer Map Editor</title>
+	<link type="text/rcss" href="../rcss/menu.rcss"/>
+	<link type="text/rcss" href="../rcss/play.rcss"/>
+	<link type="text/rcss" href="../rcss/match.rcss"/>
+	<style>
+		.col { padding: 1rem 2.5rem; }
+		.edtabs { display: flex; }
+		.edtabs .tab { margin-right: 0.25rem; padding: 0.5rem 0.75rem; font-size: 0.8rem; letter-spacing: 0.14em; }
+		.edtabs .tab .under { left: 0.5rem; right: 0.5rem; bottom: -1dp; background-color: #ff4a1c; }
+		.edtabs .refresh { margin-left: auto; }
+		.twocol { display: flex; margin-top: 0.75rem; }
+		.twocol .hostmap { flex: 1 1 0; margin-right: 2rem; text-align: left; }
+		.twocol .hostset { flex: 1 1 0; text-align: left; }
+		.twocol input.text { text-align: left; }
+		.cards.src .cell { width: 33%; }
+		.picklist { height: 12rem; overflow-y: auto; border: 1dp #ffffff12; margin-top: 0.5rem; }
+		.picklist .prow { display: block; width: 100%; padding: 0.45rem 0.75rem; text-align: left; font-size: 0.95rem; color: #e6ddd2; }
+		.picklist .prow:hover { background-color: #ffffff0a; }
+		.picklist .prow:focus { background-color: #db241026; }
+		.picklist .prow.on { color: #fff3e6; background-color: #ff4a1c22; }
+		.picklist .empty { padding: 0.75rem; color: #8d847c; font-size: 0.9rem; }
+		.count { display: flex; align-items: center; }
+		.count .n { width: 3rem; text-align: center; font-size: 1.2rem; color: #fff3e6; }
+		.sess { flex: 1; min-height: 0; overflow-y: auto; border: 1dp #ffffff12; margin-top: 0.75rem; height: 16rem; }
+		.srow { position: relative; display: flex; align-items: center; border-bottom: 1dp #ffffff0d; padding: 0.55rem 0.75rem; }
+		.srow:hover { background-color: #ffffff0a; }
+		.srow .nm { flex: 1 1 auto; font-size: 1rem; color: #fff3e6; }
+		.srow .by { margin-left: 0.5rem; font-size: 0.85rem; color: #8d847c; }
+		.srow .mp { width: 12rem; font-size: 0.9rem; color: #c8bfb5; }
+		.srow .pl { width: 4rem; font-size: 0.9rem; color: #c8bfb5; }
+		.srow .why { width: 10rem; font-size: 0.8rem; color: #8d847c; }
+		.srow button { margin-left: 0.5rem; }
+		.state { margin-top: 0.75rem; padding: 0.75rem 1rem; background-color: #00000066; font-size: 0.95rem; color: #e6ddd2; }
+		.state.bad { color: #ffb38a; }
+		.joinby { display: flex; align-items: flex-end; margin-top: 0.75rem; }
+		.joinby .field { flex: 1 1 auto; margin-right: 1rem; }
+		.joinby .btn { flex: 0 0 auto; white-space: nowrap; margin-bottom: 0.5rem; }
+	</style>
+</head>
+<!--
+The multiplayer map editor's session screen (ENGINE_PLAN.md PE, oz_ui_together.cpp): its own entry in the main
+menu, apart from the map editor alone. Host a session (a new map, one of yours, or a game map; its name, a
+password, how many may join) or join one: the sessions open now on the online service, your friends' (Friends'
+Join comes here too), or a host's code (their player id). Either opens the map editor on the session's map.
+-->
+<body data-model="menu">
+	<div class="panel">
+		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
+		<div class="topline"/>
+		<div class="phead">
+			<div><banner text="Multiplayer Map Editor"/><p class="subtitle">Build one map together, live, with up to 8 players: everyone sees the others fly around and work, and you play it together.</p></div>
+			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
+		</div>
+		<div class="divider"/>
+		<div class="pbody">
+			<div class="col">
+				<div class="edtabs tabs">
+					<button id="edt_tab_host" class="tab" autofocus="" data-class-active="together.tab == 'host'" data-event-click="together.tab = 'host'"><span>Host</span><span class="under"/></button>
+					<button id="edt_tab_join" class="tab" data-class-active="together.tab == 'join'" data-event-click="together.tab = 'join'"><span>Join</span><span class="under"/></button>
+					<button id="edt_refresh" class="btn small refresh" data-if="together.tab == 'join'" onclick="edtbrowse">Refresh</button>
+				</div>
+
+				<div class="state bad" data-if="!together.online">The online service isn't connected: sessions run through it (Settings, Network, Online).</div>
+				<div class="state bad" data-if="together.why != '' &amp;&amp; together.state == 'ended'">{{ together.why }}</div>
+
+				<!-- Host -->
+				<div class="twocol" data-if="together.tab == 'host'">
+					<div class="hostmap">
+						<div class="section first"><span class="t">Map</span><span class="rule"/></div>
+						<div class="cards src">
+							<div class="cell"><button id="edt_src_new" class="pcard" data-class-on="together.source == 'new'" data-event-click="together.source = 'new'"><span class="dot"/><div class="q3 n">New map</div><div class="t">A lit room with a spawn point</div></button></div>
+							<div class="cell"><button id="edt_src_mine" class="pcard" data-class-on="together.source == 'mine'" data-event-click="together.source = 'mine'"><span class="dot"/><div class="q3 n">Your map</div><div class="t">From your editor's maps folder</div></button></div>
+							<div class="cell"><button id="edt_src_game" class="pcard" data-class-on="together.source == 'game'" data-event-click="together.source = 'game'"><span class="dot"/><div class="q3 n">Game map</div><div class="t">One of the game's, made editable</div></button></div>
+						</div>
+						<div class="picklist" data-if="together.source == 'mine'">
+							<div class="empty" data-if="together.mine_count == 0">Your editor's maps folder has no maps yet: save one from the map editor, or start from a new map.</div>
+							<button class="prow" data-for="m, i : together.mine" data-attr-id="'edt_mine_' + i" data-class-on="together.mi == i" data-event-click="together.mi = i">{{ m.name }}</button>
+						</div>
+						<div class="field" data-if="together.source == 'game'" style="margin-top: 0.75rem;">
+							<div class="lbl"><span>Game map</span></div>
+							<input id="edt_game" class="text wide" type="text" maxlength="63" placeholder="q3dm17" data-value="together.game"/>
+						</div>
+						<p class="note">The session's map is everyone's to work on. Each player saves it to their own PC when they choose, and compiles and play-tests on their own PC.</p>
+					</div>
+					<div class="hostset">
+						<div class="section first"><span class="t">Session</span><span class="rule"/></div>
+						<div class="field">
+							<div class="lbl"><span>Name</span></div>
+							<input id="edt_name" class="text wide" type="text" maxlength="40" placeholder="Your map" data-value="together.name"/>
+						</div>
+						<div class="field">
+							<div class="lbl"><span>Password</span></div>
+							<input id="edt_password" class="text wide" type="text" maxlength="40" placeholder="None: open to everyone" data-value="together.password"/>
+						</div>
+						<div class="field">
+							<div class="lbl"><span>Players</span></div>
+							<div class="count">
+								<button id="edt_less" class="btn small" data-event-click="together.max = together.max &gt; 2 ? together.max - 1 : 2">-</button>
+								<span class="n">{{ together.max }}</span>
+								<button id="edt_more" class="btn small" data-event-click="together.max = together.max &lt; 8 ? together.max + 1 : 8">+</button>
+							</div>
+						</div>
+						<p class="note">You host from your PC: the session is listed for everyone (and your friends see it in Friends). Players link straight to you where their networks allow it, through a relay where they don't; with Hide my IP (Settings, Network) always through the relay.</p>
+					</div>
+				</div>
+
+				<!-- Join -->
+				<div data-if="together.tab == 'join'">
+					<div class="sess">
+						<div class="srow" data-if="together.answered &amp;&amp; together.count == 0"><span class="nm">No sessions are open right now. Host one, or ask a friend for their session's code.</span></div>
+						<div class="srow" data-if="!together.answered"><span class="nm">Asking the online service...</span></div>
+						<div class="srow" data-for="r, i : together.sessions">
+							<span class="nm">{{ r.name }}<span class="by" data-if="r.owner != ''">by {{ r.owner }}</span><span class="by" data-if="r.password">(password)</span></span>
+							<span class="mp">{{ r.map }}</span>
+							<span class="pl">{{ r.players }}</span>
+							<span class="why" data-if="r.other">version {{ r.version }}</span>
+							<span class="why" data-if="r.mine">Yours</span>
+							<button class="btn small primary" data-if="!r.mine &amp;&amp; !r.full &amp;&amp; !r.other" data-attr-id="'edt_join_' + i" data-attr-onclick="'edtjoin ' + r.host + (r.password ? ' locked' : '')">Join</button>
+						</div>
+					</div>
+					<div class="joinby">
+						<div class="field">
+							<div class="lbl"><span>A session's code</span></div>
+							<input id="edt_code" class="text wide" type="text" maxlength="40" placeholder="The host's player id (their session bar shows it)" data-value="together.code"/>
+						</div>
+						<div class="field">
+							<div class="lbl"><span>Password</span></div>
+							<input id="edt_join_password" class="text wide" type="text" maxlength="40" placeholder="If the session has one" data-value="together.join_password"/>
+						</div>
+						<button id="edt_join_code" class="btn" onclick="edtcode">Join by code</button>
+					</div>
+					<p class="note">Sessions from other versions of Oz Arena show but don't take you: everyone in a session plays the same version. Textures, models and sounds aren't sent: what one player's install lacks shows as missing for them.</p>
+				</div>
+			</div>
+		</div>
+		<div class="pfoot">
+			<div class="err"><span data-if="together.tab == 'host' &amp;&amp; !together.online">Hosting needs the online service.</span></div>
+			<button id="edt_host" class="btn primary" data-if="together.tab == 'host'" onclick="edthost"><span>Host session</span></button>
+		</div>
+	</div>
+</body>
+</rml>

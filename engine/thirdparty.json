@@ -342,6 +342,43 @@
     "/ffx-fsr/ffx_fsr1.h",
     "/license.txt"
    ]
+  },
+  "kcp": {
+   "url": "https://github.com/skywind3000/kcp.git",
+   "commit": "38e0c9366e4a72c749ff0bcdf911d1fe9bdfe9f5",
+   "release": "1.7",
+   "license": "MIT",
+   "_note": "Editing together's reliable ordered stream (ENGINE_PLAN.md PE step 2, engine/src/oz/online/oz_edlink.c): ARQ over the P8 ICE links; fetched only, its ikcp.c is compiled into the client",
+   "sparse": [
+    "/ikcp.c",
+    "/ikcp.h",
+    "/LICENSE"
+   ],
+   "engine_cmake": {
+    "KCP_DIR": "{src}"
+   }
+  },
+  "miniz": {
+   "url": "https://github.com/richgel999/miniz.git",
+   "commit": "293d4db1b7d0ffee9756d035b9ac6f7431ef8492",
+   "release": "3.0.2",
+   "license": "MIT",
+   "_note": "Deflate for editing together's snapshots and play-test paks (PE steps 2 and 5; the engine has only inflate); fetched only, its four .c files are compiled into the map editor (engine/src/oz/editor/miniz_export.h stands in for the header its CMake makes)",
+   "sparse": [
+    "/miniz.c",
+    "/miniz.h",
+    "/miniz_common.h",
+    "/miniz_tdef.c",
+    "/miniz_tdef.h",
+    "/miniz_tinfl.c",
+    "/miniz_tinfl.h",
+    "/miniz_zip.c",
+    "/miniz_zip.h",
+    "/LICENSE"
+   ],
+   "engine_cmake": {
+    "MINIZ_DIR": "{src}"
+   }
   }
  },
  "tools": {

@@ -373,7 +373,7 @@
     "custom": {"fit": "ffa", "mapi": 21}
   },
   "skirmish": {
-    "_note": "Skirmish's mod picker, search and sorts (oz_ui_skirmish.cpp fills what the page doesn't set): mod, the picked one (oz, cpma, defrag); mods, the ones offered (the spinner's options); have.<mod>.state, ready (a switch finds it), import (in the install where a switch doesn't look: found is that folder) or none; q, the search box; sort: order or name, under Defrag easy, hard or name; count and shown, the cards listed and shown by the search.",
+    "_note": "Skirmish's mod picker, search and sorts (oz_ui_skirmish.cpp fills what the page doesn't set): mod, the picked one (oz, cpma, defrag); mods, the ones offered (the spinner's options); have.<mod>.state, ready (a switch finds it), import (in the install where a switch doesn't look: found is that folder) or none; q, the search box; sort: order or name, under Defrag easy, hard or name; count and shown, the cards listed and shown by the search; user_shown, the user maps (the map editor's compiles, maps[].user) the search shows, which their section needs.",
     "mod": "oz",
     "mod_name": "Oz",
     "mods": "oz",
@@ -388,7 +388,8 @@
     "q": "",
     "sort": "order",
     "count": 0,
-    "shown": 0
+    "shown": 0,
+    "user_shown": 0
   },
   "skirmish_view": [],
   "skirmish_races": [],

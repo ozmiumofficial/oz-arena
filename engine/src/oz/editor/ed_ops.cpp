@@ -7,6 +7,7 @@
 #include <array>
 #include <cctype>
 #include <cmath>
+#include <cstddef>
 #include <cstdio>
 #include <map>
 #include <set>
@@ -1130,40 +1131,126 @@ std::vector<Id> stairs(Doc &doc, const std::vector<Id> &ids, int count, double r
 	return made;
 }
 
+// Merge joins brushes only where together they are one brush already: their union is convex, so the
+// hull of their corners holds exactly what they fill. Side by side, a row of floor tiles, overlapping
+// in a line, the pieces a subtract left once the hole is filled. A pair whose hull is bigger than the two
+// (an L, a gap, a step between them) stays apart: the hull stretched over space neither brush filled,
+// which made new geometry instead of merging (Ozmium, 2026-11-07; it was TrenchBroom's convex hull).
+// Pairs are joined again and again until none can be, so a grid of tiles becomes one brush too.
 std::vector<Id> merge(Doc &doc, const std::vector<Id> &ids, std::string &note) {
 	const std::vector<Id> brushes = brushes_in(doc, ids);
 	if (brushes.size() < 2) {
 		note = "Select two or more brushes to merge";
 		return {};
 	}
-	std::vector<Vec3> points;
-	std::vector<const Face *> src;
+	struct Part {
+		std::vector<Id> ids;  // the brushes it joins, the first keeping its id
+		Id owner = 0;
+		std::vector<Plane> planes;
+		std::vector<Vec3> corners;
+		Vec3 lo, hi;
+		double volume = 0;
+	};
+	auto shape = [](Part &p, std::vector<Plane> planes) {
+		p.planes = std::move(planes);
+		p.corners = q3map::brush_vertices(p.planes);
+		p.lo = Vec3(1e300, 1e300, 1e300), p.hi = Vec3(-1e300, -1e300, -1e300);
+		for (const Vec3 &c : p.corners) {
+			p.lo = Vec3(std::min(p.lo.x, c.x), std::min(p.lo.y, c.y), std::min(p.lo.z, c.z));
+			p.hi = Vec3(std::max(p.hi.x, c.x), std::max(p.hi.y, c.y), std::max(p.hi.z, c.z));
+		}
+		p.volume = p.corners.size() >= 4 ? q3map::brush_volume(p.planes) : 0;
+	};
+	// the planes of a and b as one brush, when that brush fills no more than they do
+	auto joined = [](const Part &a, const Part &b, std::vector<Plane> &out) {
+		const double TOUCH = 0.01;
+		if (a.owner != b.owner || a.volume <= 0 || b.volume <= 0 || a.lo.x > b.hi.x + TOUCH || b.lo.x > a.hi.x + TOUCH ||
+				a.lo.y > b.hi.y + TOUCH || b.lo.y > a.hi.y + TOUCH || a.lo.z > b.hi.z + TOUCH || b.lo.z > a.hi.z + TOUCH) {
+			return false;  // another entity's, no solid, or apart: never one convex brush
+		}
+		std::vector<Vec3> corners = a.corners;
+		corners.insert(corners.end(), b.corners.begin(), b.corners.end());
+		out = q3map::hull_planes(corners);
+		if (out.empty()) {
+			return false;
+		}
+		std::vector<Plane> both = a.planes;
+		both.insert(both.end(), b.planes.begin(), b.planes.end());
+		const double filled = a.volume + b.volume - q3map::brush_volume(both);  // the union: less their overlap
+		const double hull = q3map::brush_volume(out);
+		return hull - filled <= hull * 1e-7 + 1e-3;
+	};
+	std::vector<Part> parts;
 	for (Id id : brushes) {
 		const Object *o = doc.get(id);
-		for (const Vec3 &p : q3map::brush_vertices(planes_of(o->brush))) {
-			points.push_back(p);
-		}
-		for (const Face &f : o->brush.faces) {
-			src.push_back(&f);
+		Part p;
+		p.ids = {id};
+		p.owner = o->owner;
+		shape(p, planes_of(o->brush));
+		parts.push_back(std::move(p));
+	}
+	for (bool again = true; again;) {
+		again = false;
+		for (size_t i = 0; i < parts.size(); i++) {
+			for (size_t j = i + 1; j < parts.size(); j++) {
+				std::vector<Plane> hull;
+				if (joined(parts[i], parts[j], hull)) {
+					parts[i].ids.insert(parts[i].ids.end(), parts[j].ids.begin(), parts[j].ids.end());
+					shape(parts[i], std::move(hull));
+					parts.erase(parts.begin() + std::ptrdiff_t(j));
+					j = i;  // part i grew: try the rest against it again
+					again = true;
+				}
+			}
 		}
 	}
-	const Object *first = doc.get(brushes[0]);
-	std::vector<Plane> planes = q3map::hull_planes(points);
-	auto merged = planes.empty() ? nullptr : brush_like(doc, src, first->owner, planes, origin_for(doc, *first));
-	if (!merged) {
-		note = "Those brushes make no solid together";
+	std::vector<std::pair<const Part *, std::shared_ptr<Object>>> made;
+	int into = 0;
+	for (const Part &p : parts) {
+		if (p.ids.size() < 2) {
+			continue;
+		}
+		std::vector<const Face *> src;
+		for (Id id : p.ids) {
+			for (const Face &f : doc.get(id)->brush.faces) {
+				src.push_back(&f);
+			}
+		}
+		const Object *first = doc.get(p.ids[0]);
+		if (auto b = brush_like(doc, src, first->owner, p.planes, origin_for(doc, *first))) {
+			made.emplace_back(&p, b);
+			into += int(p.ids.size());
+		}
+	}
+	if (made.empty()) {
+		note = "Those can't merge: no two of them make one brush without filling space between them";
 		return {};
 	}
 	doc.begin("Merge");
-	doc.put(brushes[0], merged);
-	for (size_t i = 1; i < brushes.size(); i++) {
-		doc.remove(brushes[i]);
+	std::set<Id> gone;
+	for (auto &m : made) {
+		doc.put(m.first->ids[0], m.second);
+		for (size_t k = 1; k < m.first->ids.size(); k++) {
+			doc.remove(m.first->ids[k]);
+			gone.insert(m.first->ids[k]);
+		}
 	}
 	doc.end();
-	char buf[96];
-	std::snprintf(buf, sizeof buf, "Merged %d brushes", int(brushes.size()));
+	std::vector<Id> out;  // what's left of the selection: the merged brushes and those kept apart
+	for (Id id : brushes) {
+		if (!gone.count(id)) {
+			out.push_back(id);
+		}
+	}
+	char buf[160];
+	if (out.size() == 1) {
+		std::snprintf(buf, sizeof buf, "Merged %d brushes", into);
+	} else {
+		std::snprintf(buf, sizeof buf, "Merged %d brushes into %d; the rest stay apart, as joining them would fill space between them",
+				into, int(made.size()));
+	}
 	note = buf;
-	return {brushes[0]};
+	return out;
 }
 
 Clip copy_of(const Doc &doc, const std::vector<Id> &ids) {

@@ -84,6 +84,18 @@ The main column on the left; a submenu opens beside it (Right, or Enter); the pa
 			</div>
 		</div>
 	</div>
+	<div id="sub_map_editor" class="sub" data-if="state.sub == 'map_editor'" data-class-covered="state.wide">
+		<div class="subhead"><banner data-attr-text="subs.map_editor.title"/><span class="rule"/></div>
+		<div class="sublist">
+			<div class="mitem md" data-for="it : subs.map_editor.items">
+				<button data-attr-id="'sub_' + it.id" data-attr-onclick="it.do">
+					<span class="bar"/><span class="wash"/>
+					<div class="row"><span class="label">{{ it.label }}</span></div>
+				</button>
+				<div class="hint">{{ it.hint }}</div>
+			</div>
+		</div>
+	</div>
 	<div id="sub_extras" class="sub" data-if="state.sub == 'extras'" data-class-covered="state.wide">
 		<div class="subhead"><banner data-attr-text="subs.extras.title"/><span class="rule"/></div>
 		<div class="sublist">

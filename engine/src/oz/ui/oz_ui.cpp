@@ -342,7 +342,8 @@ static Page pages[] = {
 	{ "connect", "ui/pages/connect.rml", nullptr, PAGE_MENU, nullptr },
 	{ "crosshair", "ui/pages/crosshair.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
 	{ "gun", "ui/pages/gun.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },
-	{ "editor", "ui/pages/editor.rml", nullptr, 0, nullptr },	// P13: the map editor (oz_ui_editor.cpp)
+	{ "editor", "ui/pages/editor.rml", nullptr, 0, nullptr },	// P13: the map editor (oz_ui_editor.cpp), alone or together
+	{ "together", "ui/pages/together.rml", nullptr, PAGE_MENU | PAGE_OVERLAY, nullptr },	// PE: the multiplayer map editor's session screen (oz_ui_together.cpp)
 };
 
 // always on top while any page is open, never focused: the toasts (Chrome.tsx's Toasts)

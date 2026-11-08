@@ -133,7 +133,8 @@ struct Hit {
 // A handle on the selection, drawn over the view: a brush's corner, an edge's middle, a face's diamond
 // on its stem, or one of the clipper's points.
 struct Handle {
-	enum Kind { None, Corner, Edge, Face, ClipPoint, GroupFace, Land } kind = None;  // GroupFace: a side of a group's box; Land: where a jump pad's throw comes down
+	// GroupFace: a side of a group's box; Land: where a jump pad's throw comes down; Apex: the top of its throw
+	enum Kind { None, Corner, Edge, Face, ClipPoint, GroupFace, Land, Apex } kind = None;
 	Id id = 0;
 	int a = -1, b = -1;  // the corner, the edge's two corners, the face, the clip point
 	Vec3 at;             // where it's drawn (a face's: the diamond's tip)
@@ -152,6 +153,9 @@ const std::vector<Action> &actions();
 const Action *find_action(const std::string &name);
 std::string combo(int key, int mods);  // "Ctrl+Shift+R"; "" for a key the editor doesn't name (ed_keys.cpp)
 bool runs_alone(const Action &a);      // listed by the search and the Keys dialog: needs nothing typed
+// A camera entity's view as the game takes it (an intermission point): its origin, its angles in the
+// file's order, turned toward its target when it has one (ed_thumb.cpp)
+bool camera_view(const Doc &doc, Id id, Vec3 &origin, double &yaw, double &pitch);
 
 class Session {
 public:
@@ -221,6 +225,21 @@ public:
 	// none; each save draws a new one (prefab_thumb_tick), and asking for a prefab without one queues it.
 	std::string prefab_thumb(const std::string &name);
 	int prefab_rev = 0;             // bumps when one is saved, deleted or gets its thumbnail
+	// The thumbnail camera (ed_thumb.cpp): the map's picture, levelshots/<map>.jpg, which the menus, the
+	// loading screen and the scoreboard show, is taken from its intermission point (info_player_intermission,
+	// also the camera at a match's end), as the game's levelshot command takes it: 90 degrees across at 4:3,
+	// lit as the last compile lit it (the lit preview's world). A full Compile takes it when it's done.
+	Id thumb_camera() const;  // the first info_player_intermission (the one the game takes), 0 for none
+	bool thumb_view(Vec3 &origin, double &yaw, double &pitch) const;  // where it looks from, and which way
+	void thumb_set();    // the camera where the 3D view looks from, the way it looks (made when there's none); one step
+	void thumb_look();   // the 3D view through it, framed as its picture, until the view moves
+	void thumb_shoot();  // its picture taken (a quick compile first when the map changed since the last)
+	bool thumb_through() const { return through_; }
+	bool thumb_busy() const;          // a picture on its way (a compile for it, the lit world loading, the shot)
+	std::string thumb_image() const;  // the panel's copy of the map's picture ("/editor/thumbs/<map>.<stamp>.jpg"), "" none
+	std::string thumb_note() const;   // the panel's line about it
+	std::string thumb_stats() const;  // ed_stats thumb:
+	int thumb_rev = 0;                // bumps when a picture is made, or one starts or fails
 	void group_selection();         // the selected brushes and curves made a func_group
 	void ungroup_selection();       // the selected groups' brushes back in the world
 
@@ -327,6 +346,17 @@ public:
 	};
 	static constexpr const char *DEFAULT_SKY = "skies/hellsky2";
 	SkySun sky_sun() const;
+	// The game mode Play, Play from here and Play together start the map in (Build menu): the map's worldspawn
+	// key _oz_mode (ffa, duel, tdm, ctf; none is free for all), so it stays with the map, and an editing session
+	// shares it as it shares the rest of the map. Team modes put the players on a team as they come in.
+	std::string game_mode() const;                    // "ffa", "duel", "tdm", "ctf"
+	void set_game_mode(const std::string &mode);      // one undo step; free for all takes the key away
+	int game_type() const;                            // its g_gametype (0, 1, 3, 4)
+	std::string mode_problem() const;                 // why the map can't be played in its mode ("" when it can)
+	static const char *mode_label(const std::string &mode);  // "Free for all" ...
+	// the commands a play-test starts with before its map: the mode's g_gametype; after it, the team join
+	std::string mode_before_map() const;
+	std::string mode_after_map() const;
 	bool want_sky = false, sky_open = false;
 	bool want_uv = false;                           // the UV editor (the page's)
 	// What the page does for an action of its own: "open" and "import" (their lists), "save_as" (the
@@ -361,8 +391,25 @@ public:
 	void force_mods(int mods) { forced_mods_ = mods; }
 	enum { SHIFT = 1, CTRL = 2, ALT = 4 };
 
+	// ---- editing together (ed_together.cpp, ENGINE_PLAN.md PE): the multiplayer map editor's session sets
+	// these; the map editor alone leaves them unset, and nothing of it runs.
+	std::function<bool(const std::string &, const std::vector<std::string> &)> intercept;  // an action the session does (true: done)
+	std::function<bool(const std::vector<Id> &, std::string &why)> grab;  // a drag about to change these: false (and why) when another player has one
+	std::function<void(bool is3d)> draw_extra;  // the other players drawn into a pane's scene
+	void drop_drag(const std::string &why);   // the drag under way called off, as Escape does, and why said
+	std::vector<Id> held_ids() const;         // what the drag under way changes (none: no such drag)
+	bool pointer_at(Vec3 &at) const;          // where the pointer meets the map, over the view
+	bool move_ghost(Vec3 &delta) const;       // a Move drag's offset so far
+	bool drawing_box(Bounds &b) const;        // the brush being drawn (the create tool)
+	// the next compile's end handed to the session (Play together) in place of its own play-test: ok, the
+	// compile's folder and the map's name there (dir/maps/<out>.bsp), or why it failed
+	std::function<void(bool ok, const std::string &dir, const std::string &out)> compiled;
+	bool next_without_bots = false;  // the next compile skips the bots' file (Play together brings none)
+	std::string autosave_name = "autosave";   // autosave/<name>.map
+	bool no_recovery = false;                 // no offer of what an earlier session left (a session's map is the host's)
+
 private:
-	enum class Drag { None, Pending, Move, Box, Push, Corners, Pan, Footprint, ClipPoint, Land };
+	enum class Drag { None, Pending, Move, Box, Push, Corners, Pan, Footprint, ClipPoint, Land, Apex };
 	struct Shape {  // a selected brush's corners, edges and faces, cached until it changes
 		ObjectPtr of;
 		std::vector<Vec3> corners;
@@ -379,6 +426,8 @@ private:
 	void press(int mods);
 	void release(int mods);
 	void motion(int mods);
+	void begin_drag(int mods);   // a press become a drag: what it grabbed decides which
+	void drag_motion(int mods);  // the drag under way follows the pointer
 	void click(int mods, bool twice);
 	void cancel_drag();
 	bool cancel();  // Escape
@@ -439,7 +488,7 @@ private:
 	bool entities_action(const std::string &action, const std::vector<std::string> &args);
 	int model_handle(const std::string &name);
 	void collect_models();
-	void draw_models(const float moved[3], int now_ms);
+	void draw_models(const float moved[3], int now_ms, bool spawns = true);  // spawns: the fighters standing on spawn points
 	void build_links();
 public:
 	// A pusher's throw (trigger_push, target_push): its launch speed, how high it goes over where it
@@ -456,10 +505,22 @@ public:
 	// A pad's throw aimed so it comes down on floor (its target moved, or one of its own made when it
 	// has none or shares it); in an open step. The target's id, 0 for no pad.
 	Id aim_pad(Id pad, const Vec3 &floor);
+	// The same with the top of its throw given (the target's place).
+	Id aim_pad_top(Id pad, const Vec3 &top);
+	// Where a pad's throw was aimed: the floor it comes down on, under the point where it passes the height
+	// aim_pad aims at, so a throw made higher or lower lands where it did instead of creeping on. false when
+	// it doesn't land.
+	bool push_aim(Id pad, Vec3 &floor);
+	// The top of a pad's throw (its target's middle); false without a target it can throw at.
+	bool push_top(Id pad, Vec3 &top);
 	// The landing handle of a selected pad, dragged: the pad re-aimed live, one undo step
 	void start_land_drag(Id pad);
 	void land_drag(int mods);
 	void end_land_drag(bool cancel);
+	// The top of its throw, dragged up or down: higher or lower, still landing where it did; one undo step
+	void start_apex_drag(const Handle &h);
+	void apex_drag(int mods);
+	void end_apex_drag(bool cancel);
 	// ---- movers (ed_movers.cpp): doors, lifts, buttons, trains, rotating, bobbing and swinging brushes as
 	// id's maps have them; where each moves is drawn for the selected ones, and played with mover_play
 	struct DoorState {
@@ -488,6 +549,14 @@ private:
 	Id land_drag_pad_ = 0;          // the pad whose landing is being dragged
 	Vec3 land_drag_at_;
 	bool land_drag_moved_ = false;
+	Id apex_drag_pad_ = 0;          // the pad whose top is being dragged
+	Vec3 apex_drag_at_;             // the top as the drag began; it moves along the vertical through it
+	Vec3 apex_drag_floor_;          // where the throw was aimed (push_aim), kept through the drag
+	Vec3 apex_drag_land_;           // where it came down: a top that brings it down elsewhere is refused
+	double apex_drag_grab_ = 0;     // the height where the press's ray passed that vertical
+	double apex_drag_top_ = 0;      // the top now
+	double apex_drag_max_ = 1e30;   // 40 under the roof over the top (or the top as it was, if higher)
+	bool apex_drag_moved_ = false;
 	Id make_mover(const std::vector<Id> &brushes, const std::string &cls, const Keys &keys);
 	void add_pivot(Id ent);
 	bool movers_action(const std::string &action, const std::vector<std::string> &a);
@@ -571,6 +640,31 @@ private:
 	Camera thumb_cam_;
 	int thumb_state_ = 0, thumb_frames_ = 0;  // 0 idle, 1 drawing until the screenshot lands
 	int thumb_rect_[4] = {0, 0, 0, 0};
+	// the thumbnail camera's picture (ed_thumb.cpp): the lit preview's world loaded (once the view is still),
+	// then the camera's view drawn in a 4:3 frame in the view's middle for the few frames a screenshot takes
+	enum ShotState { SHOT_IDLE, SHOT_STILL, SHOT_WORLD, SHOT_DRAW };
+	struct Shot {
+		ShotState state = SHOT_IDLE;
+		std::string bsp;     // "maps/ed_<name>.bsp"
+		bool leave = false;  // the lit preview was off: left again after
+		int gen = 0, frames = 0, t0 = 0;
+		int rect[4] = {0, 0, 0, 0};
+		Vec3 origin;
+		double yaw = 0, pitch = 0;
+	} shot_;
+	void start_shot(bool loading);  // loading: the compile is loading its world into the lit preview already
+	void shot_failed(const std::string &why);
+	void thumb_tick(int x, int y, int w, int h, int now);
+	void draw_through();   // the picture's frame over the 3D view while looking through the camera
+	void thumb_reset();    // another map: nothing of this one's picture
+	void write_thumb_beside(const std::string &mapfile) const;  // a saved map's picture beside it (a maps folder's: levelshots/ beside it)
+	std::string shot_file_, shot_panel_;  // this session's last picture: the play-test's levelshot, the panel's copy
+	int shot_w_ = 0, shot_h_ = 0;
+	Vec3 shot_origin_;
+	double shot_yaw_ = 0, shot_pitch_ = 0;
+	std::string shot_error_;
+	bool through_ = false;  // the 3D view is the camera's, framed (thumb_look); moving it ends that
+	Camera through_cam_;
 	uint64_t faces_doc_rev_ = ~0ull, faces_sel_rev_ = ~0ull;
 	int generation_ = -1;
 	int grid_mesh_ = 0;
@@ -662,6 +756,7 @@ private:
 		std::string out, dir, map, log;
 		int t0 = 0, stage_t0 = 0;
 		bool running = false, full = false, play = false, here = false, preview = false, defrag = false;
+		bool thumb = false;   // the thumbnail camera's picture taken when it's done (Make thumbnail)
 		bool leaked = false;  // the BSP found a way out to the void: built and played without vis
 		Camera cam;
 		std::unordered_map<Id, ObjectPtr> snapshot;  // the document compiled
@@ -713,7 +808,7 @@ private:
 	Vec3 picked_origin_;
 };
 
-Session &session();
+Session &session();  // the one the page shows: the map editor alone's, or the multiplayer one's (ed_together.h)
 
 // The first solid brush a segment from a to b meets (triggers, hint and the like let players through): its
 // place along the segment, 0 to 1.

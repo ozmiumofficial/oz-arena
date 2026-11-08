@@ -347,8 +347,8 @@ void Session::prefab_thumb_tick(int x, int y, int w, int h, int now) {
 		return;
 	}
 	if (thumb_state_ == 0) {
-		if (thumb_queue_.empty()) {
-			return;
+		if (thumb_queue_.empty() || shot_.state != SHOT_IDLE) {
+			return;  // nothing to draw, or the map's own thumbnail is on its way (ed_thumb.cpp)
 		}
 		thumb_name_ = thumb_queue_.front();
 		thumb_queue_.erase(thumb_queue_.begin());

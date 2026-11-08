@@ -161,7 +161,7 @@ password asked first in the Server Browser when it has one.
 					</div>
 					<div class="who"><div class="n" data-rml="f.name | q3name"/><div class="s">{{ f.sub }}</div></div>
 					<div class="acts">
-						<button class="btn small primary" data-if="f.join" data-attr-id="'fr_join_' + f.id" data-attr-onclick="(f.server != '' ? 'serverjoin ' + f.server : 'join ' + f.host) + (f.locked ? ' locked' : '')">Join</button>
+						<button class="btn small primary" data-if="f.join" data-attr-id="'fr_join_' + f.id" data-attr-onclick="(f.edit != '' ? 'edtjoin ' + f.edit : f.server != '' ? 'serverjoin ' + f.server : 'join ' + f.host) + (f.locked ? ' locked' : '')">Join</button>
 						<button class="btn small" data-if="f.online" data-attr-onclick="'cmd hub party_invite id ' + f.id">Invite</button>
 						<button class="btn small" data-attr-onclick="'cmd hub friend_remove id ' + f.id">Remove</button>
 					</div>

@@ -298,6 +298,11 @@
 		.pfdel:hover { color: #ff8a6e; border-color: #ff8a6e; }
 		.pfdel.armed { color: #1a1513; background-color: #ff8a6e; border-color: #ff8a6e; }
 		#panel-prefabs .note { font-size: 0.82rem; color: #9b8f84; margin: 0.2rem 0 0.4rem 0; }
+		/* the map's thumbnail (its level shot, 4:3) and its camera's buttons: the World tab, the camera's inspector */
+		.thumbpic { display: block; width: 20.5rem; height: 15.375rem; margin: 0.3rem 0 0.35rem 0; border: 1dp #ffecdc1f; border-radius: 5dp; background-color: #12100e; }
+		.thumbpic img { display: block; width: 20.5rem; height: 15.375rem; }
+		.thumbpic span { display: block; padding-top: 7rem; text-align: center; font-size: 0.66rem; letter-spacing: 0.08em; color: #6f655d; }
+		.thumbnote { font-size: 0.82rem; color: #9b8f84; margin: 0.1rem 0 0.25rem 0; }
 		.pager span { margin: 0 0.6rem; }
 
 		/* the outliner and the history */
@@ -522,6 +527,31 @@
 		.status #ed-hint.err { color: #ff8a6e; white-space: normal; font-size: 0.82rem; line-height: 1.05rem; }	/* a warning wraps rather than being cut off */
 		.status #ed-status { margin-left: auto; padding-left: 1.5rem; color: #9b8f84; white-space: nowrap; }
 
+		/* the multiplayer map editor (ENGINE_PLAN.md PE): the session bar over the view's top right, the others' names
+		   over their fighters, and the card while joining or once the session ended; none of it in the map editor alone */
+		.tg { position: absolute; top: 0.5rem; right: 0.6rem; width: 19rem; padding: 0.5rem 0.65rem 0.4rem 0.65rem;
+			background-color: #120e0de6; border: 1dp #ffecdc1f; border-radius: 6dp; font-size: 0.82rem; color: #d2c6ba; }
+		.tg.hidden, .tgwait.hidden, .ptag.hidden { display: none; }
+		.tg .hd { display: flex; align-items: center; font-weight: 600; color: #f3d7a8; margin-bottom: 0.3rem; }
+		.tg .hd span { flex: 1; }
+		.tg .code { display: flex; align-items: center; color: #9b8f84; font-size: 0.74rem; margin-bottom: 0.35rem; }
+		.tg .code span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.tg .tb { font-size: 0.72rem; padding: 0.08rem 0.4rem; margin-left: 0.25rem; }
+		.tg .who { display: flex; align-items: center; height: 1.45rem; }
+		.tg .who .dot { width: 0.6rem; height: 0.6rem; border-radius: 0.3rem; margin-right: 0.45rem; }
+		.tg .who .nm { flex: 1; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.tg .who .rl { color: #9b8f84; font-size: 0.72rem; margin-left: 0.3rem; }
+		.tg .who .tb.on { color: #ffffff; border-color: #ff4a1c; }
+		.tg .foot { display: flex; justify-content: flex-end; margin-top: 0.35rem; }
+		.ptag { position: absolute; z-index: 12; pointer-events: none; white-space: nowrap; font-size: 0.8rem; font-weight: 600;
+			color: #ffffff; background-color: #120e0dcc; border-radius: 4dp; padding: 0.06rem 0.45rem; border-bottom: 2dp #ffffff; }
+		.tgwait { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #0000009e; display: flex; align-items: center; justify-content: center; }
+		.tgwait .box { width: 28rem; padding: 1.1rem 1.4rem 0.9rem 1.4rem; background-color: #1d1816fc; border: 1dp #ffecdc1f; border-radius: 8dp; }
+		.tgwait h2 { font-family: OzDisplay; font-size: 1.15rem; color: #ff4a1c; letter-spacing: 0.08em; margin: 0 0 0.55rem 0; }
+		.tgwait p { font-size: 0.92rem; color: #e6ddd3; margin: 0 0 0.9rem 0; }
+		.tgwait .row { display: flex; }
+		.tgwait .tb { margin-right: 0.4rem; }
+
 		/* the d-pad: the menus down to the tool strip and the panel's tabs, then the open panel top to bottom
 		   (a text field takes left and right) */
 		.mt { nav-down: #tool-select; }
@@ -543,10 +573,27 @@
 		<span class="pl hidden" id="pl-1">TOP  X Y</span>
 		<span class="pl hidden" id="pl-2">FRONT  X Z</span>
 		<span class="pl hidden" id="pl-3">SIDE  Y Z</span>
+		<div class="tg hidden" id="ed-tg">
+			<div class="hd"><span id="ed-tg-status"></span></div>
+			<div class="code"><span id="ed-tg-code"></span>
+				<button class="tb" id="ed-tg-copy" data-hint="Copies the session's code: a friend types it under Join on the session screen" onclick="edtcopycode">Code</button>
+				<button class="tb" id="ed-tg-link" data-hint="Copies the session's ozarena://edit link" onclick="edtcopylink">Link</button>
+			</div>
+			<div id="ed-tg-people"></div>
+			<div class="foot"><button class="tb" id="ed-tg-leave" data-hint="Leaves the session (as its host, ends it for everyone); the map stays as it is, to save" onclick="edtleave">Leave session</button></div>
+		</div>
 	</div>
+	<span class="ptag hidden" id="ed-tag-0"></span>
+	<span class="ptag hidden" id="ed-tag-1"></span>
+	<span class="ptag hidden" id="ed-tag-2"></span>
+	<span class="ptag hidden" id="ed-tag-3"></span>
+	<span class="ptag hidden" id="ed-tag-4"></span>
+	<span class="ptag hidden" id="ed-tag-5"></span>
+	<span class="ptag hidden" id="ed-tag-6"></span>
+	<span class="ptag hidden" id="ed-tag-7"></span>
 
 	<div class="bar top">
-		<span class="title">MAP EDITOR</span>
+		<span class="title" id="ed-title">MAP EDITOR</span>
 		<div id="ed-menubar">
 			<button class="mt" id="mt-file" data-hint="New, open, save, and back to the main menu" onclick="append ed panel menu file">File</button>
 			<button class="mt" id="mt-edit" data-hint="Undo, copy and paste, the grid, your keys" onclick="append ed panel menu edit">Edit</button>
@@ -616,7 +663,7 @@
 			<button class="ptab" id="tab-entities" data-hint="Pickups, spawns, lights, triggers and the rest: click one, then where it goes" onclick="append ed panel entities">Entities</button>
 			<button class="ptab" id="tab-prefabs" data-hint="Your prefabs: select brushes and entities, name them, save; click one to put it in any map" onclick="append ed panel prefabs">Prefabs</button>
 			<button class="ptab" id="tab-objects" data-hint="Everything in the map, by entity: click selects, double-click frames" onclick="append ed panel objects">Objects</button>
-			<button class="ptab" id="tab-world" data-hint="The map's sky and light: the sky around it, the sun, ambient light" onclick="append ed panel world">World</button>
+			<button class="ptab" id="tab-world" data-hint="The map's thumbnail, sky and light: its picture and camera, the sky around it, the sun, ambient light" onclick="append ed panel world">World</button>
 			<button class="ptab" id="tab-history" data-hint="Every change: click one to go back (or forward) to it" onclick="append ed panel history">History</button>
 		</div>
 
@@ -784,6 +831,7 @@
 				<h2 id="ed-ent-title">MAP KEYS</h2>
 				<p id="ed-ent-help"></p>
 				<div class="hidden" id="ed-mover"></div>
+				<div class="hidden" id="ed-thumb"></div>
 				<div class="hidden" id="ed-push">
 					<p class="what" id="ed-push-text"></p>
 					<div class="row">
@@ -882,7 +930,9 @@
 		</div>
 
 		<div class="pbody hidden" id="panel-world">
-			<p class="note" id="ed-sky-note">The map's sky and light, saved with it. Lit preview (F6) or Play shows them.</p>
+			<p class="note" id="ed-sky-note">The map's picture, sky and light, saved with it. Lit preview (F6) or Play shows the sky and light.</p>
+			<div class="esec">THUMBNAIL</div>
+			<div id="ed-thumb-world"></div>
 			<div class="esec">LIGHT</div>
 			<div class="sunset" id="ed-sky-light"></div>
 			<div class="row">
@@ -1036,6 +1086,17 @@
 	</div>
 
 	<div class="menu hidden" id="ed-menu"></div>
+
+	<div class="tgwait hidden" id="ed-tg-wait">
+		<div class="box">
+			<h2 id="ed-tg-wait-title">JOINING</h2>
+			<p id="ed-tg-wait-text"></p>
+			<div class="row">
+				<button class="tb primary hidden" id="ed-tg-keep" onclick="edtkeep">Keep the map open</button>
+				<button class="tb" id="ed-tg-back" onclick="edtleave">Back to the sessions</button>
+			</div>
+		</div>
+	</div>
 
 	<div class="bar status">
 		<span id="ed-hint"></span>

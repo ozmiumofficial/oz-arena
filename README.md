@@ -2,7 +2,7 @@
 
 # Oz Arena
 
-**A free, open-source mod for Quake III Arena.** Oz Arena is a heavily modified Quake III Arena client: it takes the game you already own and remakes how it looks, sounds and plays on a PC today: remastered textures and relit arenas, rigged fighters with ragdolls, remade effects, new menus and HUD, a map editor, and a browser that joins any community server: vanilla, CPMA or Defrag.
+**A free, open-source mod for Quake III Arena.** Oz Arena is a heavily modified Quake III Arena client: it takes the game you already own and remakes how it looks, sounds and plays on a PC today: remastered textures and relit arenas, rigged fighters with ragdolls, remade effects, new menus and HUD, a map editor you can build in alone or with friends, and a browser that joins any community server: vanilla, CPMA or Defrag.
 
 ![q3dm7 in Oz Arena](docs/screenshots/hero.jpg)
 
@@ -155,13 +155,13 @@ Every screen is Oz's own: the menus, the pause menu, the connection screen and e
 
 ![The map editor with q3dm17 open](docs/screenshots/editor.jpg)
 
-A map editor built into the game, from the main menu:
+A map editor built into the game: **Map Editor** in the main menu, then **Single Player**, or **Multiplayer** to build with friends ([below](#building-together)).
 
 - **Brushes, curves and entities** with select, brush, clip and faces tools, hollow, subtract and merge, and texture lock. Select several brushes and drag a side of the group to make them all longer at once.
 - **One view or four:** 3D, top, front and side.
 - **Materials and entities** from your own install and its map packs, with search and favorites.
 - **Open any map you own.** Stock maps open through q3map2, ready to change.
-- **Compile and play** without leaving: Play drops you in, and Esc brings you back.
+- **Compile and play** without leaving: Play drops you in, and Esc brings you back. **Build, Game mode** picks what Play starts the map as (free for all, duel, team deathmatch or capture the flag), and the map keeps it.
 - **Maps for Defrag and CPMA** too, with Defrag's timers and entities. Maps are saved as standard `.map` files.
 - **Doors, lifts and movers** as id builds them: a door or a double door from a brush, opening when a player comes near, when shot or from a button; lifts, trains, bobbing, rotating and swinging brushes, with where each moves shown and played in the view.
 - **Jump pads in two clicks:** the pad, its trigger and its target as one object, re-aimed by clicking where players should land.
@@ -173,6 +173,20 @@ A map editor built into the game, from the main menu:
 | | |
 |---|---|
 | ![The editor's 3D view](docs/screenshots/editor_3d.jpg) | ![A Defrag course](docs/screenshots/editor_defrag.jpg) |
+
+### Building together
+
+![Another builder flying in the multiplayer map editor](docs/screenshots/editor_together.jpg)
+
+The multiplayer map editor puts up to 8 players on one map, live, peer-to-peer. It's the same editor, with its own map, camera and autosave, apart from the single-player one.
+
+- **Host or join:** host from a new map, one of your maps or a game map, with a name, an optional password and up to 8 players. Join from the list of open sessions, from a friend in Friends, or with a session's code.
+- **See each other work:** every change shows for everyone as it's made. Each builder flies around as their fighter, with their name over them, and you see where they point, what they've selected and what they're dragging. Something another builder is dragging can't be grabbed until they let go.
+- **Your own undo and saves:** undo only undoes your own changes. History shows everyone's by name. Save writes the map to your own PC.
+- **Play together** (Ctrl+Shift+F5): compiles the map on your PC, sends it to everyone and hosts the match; Back to the map editor brings everyone back. While some play, others keep editing, and Reload brings the changes in with everyone kept in place.
+- **The host can leave:** if the host's game closes, the next player takes the session over. The host can make players viewers or kick them.
+
+Everyone in a session needs the same version of Oz Arena. Textures, models and sounds aren't sent: what one player's install lacks shows as missing for them.
 
 ---
 
@@ -187,7 +201,7 @@ Oz Arena runs on a modified build of Quake III Arena's own engine (id Tech 3, wh
 - **Oz's own game code** (`game/patches`): ioquake3's game code with id's 1.32 gameplay and Oz's changes as a patch series, built to QVMs.
 - **Ragdolls** (`engine/src/oz/physics`): Jolt Physics in the renderer, with the map's brushes and moving platforms as colliders.
 - **Online** (`online/`): a Cloudflare Worker hub for friends, parties, matchmaking and match records; peer-to-peer matches over ICE (libjuice) with TURN relays.
-- **Map editor** (`engine/src/oz/editor`): a C++ kernel for brushes and curves, reading and writing `.map` files in all three of their forms, drawn by the `oz` renderer.
+- **Map editor** (`engine/src/oz/editor`): a C++ kernel for brushes and curves, reading and writing `.map` files in all three of their forms, drawn by the `oz` renderer; the multiplayer map editor's sync shares the map peer-to-peer over the same links as online play.
 
 ---
 
@@ -225,7 +239,7 @@ The installer is `engine/installer/setup`: `python engine/tools/make_setup.py` b
 
 ## Credits and legal
 
-Oz Arena is built on the work of: id Software's GPL source release; [Quake3e](https://github.com/ec-/Quake3e); [ioquake3](https://github.com/ioquake/ioq3) (rend2 and OpenAL); [oDFe](https://github.com/Defrag-racing/oDFe); [CNQ3](https://bitbucket.org/CPMADevs/cnq3); Neil Toronto's [Unlagged](https://www.ra.is/unlagged/) and [Ratmod](https://ratmod.github.io/) (lag compensation); [RmlUi](https://github.com/mikke89/RmlUi); [Jolt Physics](https://github.com/jrouwe/JoltPhysics); [SDL2](https://www.libsdl.org/); [OpenAL Soft](https://github.com/kcat/openal-soft); [libjuice](https://github.com/paullouisageneau/libjuice); [libcurl](https://curl.se/); [Mbed TLS](https://github.com/Mbed-TLS/mbedtls); libtheora and libvorbis; AMD [FidelityFX FSR 1](https://github.com/GPUOpen-Effects/FidelityFX-FSR); [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN); and [NetRadiant-custom](https://github.com/Garux/netradiant-custom)'s q3map2, which the map editor runs.
+Oz Arena is built on the work of: id Software's GPL source release; [Quake3e](https://github.com/ec-/Quake3e); [ioquake3](https://github.com/ioquake/ioq3) (rend2 and OpenAL); [oDFe](https://github.com/Defrag-racing/oDFe); [CNQ3](https://bitbucket.org/CPMADevs/cnq3); Neil Toronto's [Unlagged](https://www.ra.is/unlagged/) and [Ratmod](https://ratmod.github.io/) (lag compensation); [RmlUi](https://github.com/mikke89/RmlUi); [Jolt Physics](https://github.com/jrouwe/JoltPhysics); [SDL2](https://www.libsdl.org/); [OpenAL Soft](https://github.com/kcat/openal-soft); [libjuice](https://github.com/paullouisageneau/libjuice); [KCP](https://github.com/skywind3000/kcp) and [miniz](https://github.com/richgel999/miniz) (the multiplayer map editor's stream and compression); [libcurl](https://curl.se/); [Mbed TLS](https://github.com/Mbed-TLS/mbedtls); libtheora and libvorbis; AMD [FidelityFX FSR 1](https://github.com/GPUOpen-Effects/FidelityFX-FSR); [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN); and [NetRadiant-custom](https://github.com/Garux/netradiant-custom)'s q3map2, which the map editor runs.
 
 The code is **GPL-2.0** (see `LICENSE`).
 

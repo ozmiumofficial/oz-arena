@@ -27,7 +27,10 @@ ui/pages, their data and their actions.
 #include "oz_ui_internal.h"
 
 #include "cJSON.h"
+#include "../editor/ed_together.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <map>
@@ -384,6 +387,251 @@ static cJSON *Words( const Rml::String &s ) {
 	return a;
 }
 
+/*
+================
+User generated maps: the map editor's compiles (maps/ed_<name>.bsp in the player's own Oz folder,
+ed_compile.cpp), which no arena script lists. They go after the arenas in maps with "user": true:
+Skirmish shows them in a section of their own, Custom Match among the arenas. A map is named after the
+arena it was imported from, else its own message, else the editor's file it was compiled from, else its
+file name; made for free for all, duel and team deathmatch, and capture the flag with both flags.
+"nobots" when it has no bots' area file (a map open to the void gets none).
+================
+*/
+static Rml::String Lower( Rml::String s ) {
+	for ( char &c : s ) {
+		c = (char)tolower( (unsigned char)c );
+	}
+	return s;
+}
+
+// the name a map editor's .map compiles under (ed_compile.cpp Session::compile_name)
+static Rml::String CompileName( const Rml::String &stem ) {
+	Rml::String n = "ed_";
+	for ( char c : stem ) {
+		n += isalnum( (unsigned char)c ) ? (char)tolower( (unsigned char)c ) : '_';
+	}
+	return n;
+}
+
+// the editor's .map files by the name each compiles under: its recent list first, then editor/maps
+static std::map<Rml::String, Rml::String> EditorNames() {
+	std::vector<Rml::String> files;
+	void *buf = nullptr;
+	const int len = OzE_ReadFile( "editor/recent.txt", &buf );
+	if ( len > 0 ) {
+		const Rml::String text( (const char *)buf, len );
+		size_t at = 0;
+		while ( at < text.size() ) {
+			size_t end = text.find( '\n', at );
+			end = end == Rml::String::npos ? text.size() : end;
+			files.push_back( text.substr( at, end - at ) );
+			at = end + 1;
+		}
+	}
+	if ( buf ) {
+		OzE_FreeFile( buf );
+	}
+	int n = 0;
+	char **list = OzE_ListFiles( "editor/maps", ".map", &n );
+	for ( int i = 0; i < n; i++ ) {
+		files.push_back( list[i] );
+	}
+	OzE_FreeFileList( list );
+	std::map<Rml::String, Rml::String> out;
+	for ( Rml::String f : files ) {
+		while ( !f.empty() && ( f.back() == '\r' || f.back() == ' ' ) ) {
+			f.pop_back();
+		}
+		const size_t slash = f.find_last_of( "/\\" );
+		Rml::String stem = slash == Rml::String::npos ? f : f.substr( slash + 1 );
+		if ( stem.size() > 4 && Lower( stem.substr( stem.size() - 4 ) ) == ".map" ) {
+			stem.resize( stem.size() - 4 );
+		}
+		if ( !stem.empty() && !out.count( CompileName( stem ) ) ) {
+			out[CompileName( stem )] = stem;
+		}
+	}
+	return out;
+}
+
+// a BSP's entities as info blocks (InfoBlocks: keys in lower case), the worldspawn first
+static std::vector<std::map<Rml::String, Rml::String>> BspEntities( const Rml::String &path ) {
+	int head[2 + 17 * 2];	// "IBSP", the version, then each lump's offset and length; the entities are lump 0
+	if ( OzE_ReadFileHead( path.c_str(), head, sizeof( head ) ) != (int)sizeof( head ) || memcmp( head, "IBSP", 4 ) ||
+			head[3] <= 0 || head[3] > ( 4 << 20 ) ) {
+		return {};
+	}
+	Rml::String text( (size_t)head[3], '\0' );
+	const int got = OzE_ReadFileAt( path.c_str(), head[2], &text[0], head[3] );
+	if ( got <= 0 ) {
+		return {};
+	}
+	text.resize( strnlen( text.c_str(), (size_t)got ) );
+	return InfoBlocks( text.c_str() );
+}
+
+static Rml::String LevelShot( const Rml::String &map ) {
+	return OzE_FileExists( ( "levelshots/" + map + ".jpg" ).c_str() ) || OzE_FileExists( ( "levelshots/" + map + ".tga" ).c_str() ) ?
+		"levelshots/" + map : "";
+}
+
+// the user maps' entries, in their names' order; arenas: the arena entries to name an imported map after
+static std::vector<cJSON *> UserMaps( const cJSON *arenas ) {
+	std::vector<std::pair<Rml::String, cJSON *>> found;
+	std::map<Rml::String, Rml::String> editorNames;
+	bool editorRead = false;
+	int n = 0;
+	char **list = OzE_ListFiles( "maps", ".bsp", &n );
+	for ( int i = 0; i < n; i++ ) {
+		Rml::String m = list[i];
+		if ( m.find_first_of( "/\\" ) != Rml::String::npos || m.size() < 8 || Lower( m.substr( 0, 3 ) ) != "ed_" ) {
+			continue;
+		}
+		m = Lower( m.substr( 0, m.size() - 4 ) );
+		const Rml::String source = m.substr( 3 );
+		bool listed = false;
+		const cJSON *arena = nullptr, *a;
+		cJSON_ArrayForEach( a, arenas ) {
+			const char *id = cJSON_GetStringValue( cJSON_GetObjectItem( a, "map" ) );
+			if ( id && cJSON_IsFalse( cJSON_GetObjectItem( a, "user" ) ) ) {
+				listed = listed || m == id;	// an arena script lists it: it's an arena, not a user map
+				arena = !arena && source == id ? a : arena;
+			}
+		}
+		bool dup = false;
+		for ( const auto &f : found ) {
+			dup = dup || m == cJSON_GetStringValue( cJSON_GetObjectItem( f.second, "map" ) );
+		}
+		if ( listed || dup ) {
+			continue;
+		}
+		const auto ents = BspEntities( "maps/" + m + ".bsp" );
+		if ( ents.empty() ) {
+			continue;	// not a map (yet: a compile still copying it)
+		}
+		bool red = false, blue = false;
+		for ( const auto &e : ents ) {
+			auto c = e.find( "classname" );
+			red = red || ( c != e.end() && Lower( c->second ) == "team_ctf_redflag" );
+			blue = blue || ( c != e.end() && Lower( c->second ) == "team_ctf_blueflag" );
+		}
+		auto message = ents[0].find( "message" );
+		Rml::String name = arena ? cJSON_GetStringValue( cJSON_GetObjectItem( arena, "name" ) ) : "";
+		if ( name.empty() && message != ents[0].end() ) {
+			name = message->second;
+		}
+		if ( name.empty() ) {
+			if ( !editorRead ) {
+				editorNames = EditorNames();
+				editorRead = true;
+			}
+			auto e = editorNames.find( m );
+			name = e != editorNames.end() ? e->second : source;
+		}
+		Rml::String shot = LevelShot( m );
+		shot = shot.empty() ? LevelShot( source ) : shot;	// an imported map: the original's
+		cJSON *e = cJSON_CreateObject();
+		cJSON_AddStringToObject( e, "map", m.c_str() );
+		cJSON_AddStringToObject( e, "name", name.c_str() );
+		cJSON_AddItemToObject( e, "types", Words( red && blue ? "ffa tourney team ctf" : "ffa tourney team" ) );
+		cJSON_AddItemToObject( e, "bots", cJSON_CreateArray() );
+		cJSON_AddStringToObject( e, "special", "" );
+		cJSON_AddNumberToObject( e, "fraglimit", 0 );
+		cJSON_AddNumberToObject( e, "timelimit", 0 );
+		cJSON_AddStringToObject( e, "shot", shot.empty() ? "" : ( "/" + shot ).c_str() );
+		cJSON_AddStringToObject( e, "tile", shot.empty() ? "" : ( "/@tile/" + shot ).c_str() );
+		cJSON_AddTrueToObject( e, "user" );
+		cJSON_AddBoolToObject( e, "nobots", !OzE_FileExists( ( "maps/" + m + ".aas" ).c_str() ) );
+		Rml::String plain;	// sorted by the name as shown
+		for ( size_t k = 0; k < name.size(); k++ ) {
+			if ( name[k] == '^' && k + 1 < name.size() && name[k + 1] >= '0' && name[k + 1] <= '9' ) {
+				k++;
+			} else {
+				plain += (char)tolower( (unsigned char)name[k] );
+			}
+		}
+		found.push_back( { plain + "\n" + m, e } );
+	}
+	OzE_FreeFileList( list );
+	std::sort( found.begin(), found.end(), []( const auto &x, const auto &y ) { return x.first < y.first; } );
+	std::vector<cJSON *> out;
+	for ( const auto &f : found ) {
+		out.push_back( f.second );
+	}
+	return out;
+}
+
+// UI: user maps: <count>: <map> "<name>" [no bots], ...
+static void LogUserMaps( const cJSON *maps ) {
+	Rml::String list;
+	int n = 0;
+	const cJSON *m;
+	cJSON_ArrayForEach( m, maps ) {
+		if ( cJSON_IsTrue( cJSON_GetObjectItem( m, "user" ) ) ) {
+			list += Rml::String( n++ ? ", " : ": " ) + cJSON_GetStringValue( cJSON_GetObjectItem( m, "map" ) ) + " \"" +
+				cJSON_GetStringValue( cJSON_GetObjectItem( m, "name" ) ) + "\"" + ( cJSON_IsTrue( cJSON_GetObjectItem( m, "nobots" ) ) ? " no bots" : "" );
+		}
+	}
+	Printf( "UI: user maps: %d%s\n", n, list.c_str() );
+}
+
+static void AddUserMaps( cJSON *maps ) {
+	for ( cJSON *e : UserMaps( maps ) ) {
+		cJSON_AddItemToArray( maps, e );
+	}
+	LogUserMaps( maps );
+}
+
+// the user maps looked for again as Skirmish or Custom Match opens (a map compiled since the game
+// started): the list's end is replaced when they changed, and a pick past the end goes to its mode's arena
+static void RefreshUserMaps() {
+	cJSON *maps = Menu_Node( "maps" );
+	if ( !maps ) {
+		return;
+	}
+	std::vector<cJSON *> fresh = UserMaps( maps );
+	Rml::String was, now;
+	for ( cJSON *m = maps->child; m; m = m->next ) {
+		if ( cJSON_IsTrue( cJSON_GetObjectItem( m, "user" ) ) ) {
+			char *s = cJSON_PrintUnformatted( m );
+			was += s ? s : "";
+			cJSON_free( s );
+		}
+	}
+	for ( cJSON *m : fresh ) {
+		char *s = cJSON_PrintUnformatted( m );
+		now += s ? s : "";
+		cJSON_free( s );
+	}
+	if ( was == now ) {
+		for ( cJSON *m : fresh ) {
+			cJSON_Delete( m );
+		}
+		return;
+	}
+	for ( cJSON *m = maps->child; m; ) {
+		cJSON *next = m->next;
+		if ( cJSON_IsTrue( cJSON_GetObjectItem( m, "user" ) ) ) {
+			cJSON_Delete( cJSON_DetachItemViaPointer( maps, m ) );
+		}
+		m = next;
+	}
+	for ( cJSON *m : fresh ) {
+		cJSON_AddItemToArray( maps, m );
+	}
+	Menu_Dirty( "maps" );
+	const int count = cJSON_GetArraySize( maps );
+	for ( const char *page : { "skirmish", "custom" } ) {
+		const Rml::String pick = Rml::String( "create_match_pick." ) + page + ".mapi";
+		if ( atoi( Menu_Get( pick.c_str() ) ) >= count ) {
+			const Rml::String mi = Menu_Get( ( Rml::String( "create_match." ) + page + ".mi" ).c_str() );
+			const int arena = atoi( Menu_Get( ( "create_match.modes." + mi + ".pick" ).c_str() ) );
+			Menu_Set( pick.c_str(), Rml::CreateString( "%d", arena < count ? arena : 0 ).c_str() );
+		}
+	}
+	LogUserMaps( maps );
+}
+
 static void FillFromGame() {
 	std::vector<std::map<Rml::String, Rml::String>> blocks;
 	cJSON *maps = cJSON_CreateArray(), *bots = cJSON_CreateArray(), *chars = cJSON_CreateArray();
@@ -408,8 +656,11 @@ static void FillFromGame() {
 		const bool shot = OzE_FileExists( ( "levelshots/" + m + ".jpg" ).c_str() ) || OzE_FileExists( ( "levelshots/" + m + ".tga" ).c_str() );
 		cJSON_AddStringToObject( e, "shot", shot ? ( "/levelshots/" + m ).c_str() : "" );
 		cJSON_AddStringToObject( e, "tile", shot ? ( "/@tile/levelshots/" + m ).c_str() : "" );	// the cards': smaller, after the page shows
+		cJSON_AddFalseToObject( e, "user" );
+		cJSON_AddFalseToObject( e, "nobots" );
 		cJSON_AddItemToArray( maps, e );
 	}
+	AddUserMaps( maps );
 
 	blocks.clear();
 	ReadInfoFiles( "scripts/bots.txt", ".bot", blocks );
@@ -816,6 +1067,7 @@ void Menu_Run( const Rml::String &commands, Rml::Element *element ) {
 		} else if ( Profile_Action( verb, arg ) ) {	// the Profile and Campaign pages' (oz_ui_profile.cpp)
 		} else if ( Skirmish_Action( verb, arg ) ) {	// Skirmish's mods and races (oz_ui_skirmish.cpp)
 		} else if ( Mods_Action( verb, arg ) ) {	// the Mod Library (oz_ui_mods.cpp)
+		} else if ( Together_Action( verb, arg ) ) {	// the multiplayer map editor's session screen (oz_ui_together.cpp)
 		} else if ( Servers_Action( verb, arg, element ) ) {	// the Server Browser's community servers (oz_ui_servers.cpp)
 		} else if ( Social_Action( verb, arg, element ) ) {	// the Server Browser's and Friends' joins (oz_ui_social.cpp)
 		} else if ( !verb.empty() ) {
@@ -1139,10 +1391,14 @@ void Menu_Opened( const char *name ) {
 	if ( !strcmp( name, "campaign" ) ) {
 		Prog::Campaign_Fill();
 	}
+	if ( !strcmp( name, "offline_bots" ) || !strcmp( name, "create_match" ) ) {
+		RefreshUserMaps();	// a map compiled in the map editor since the game started
+	}
 	Social_Opened( name );
 	Servers_Opened( name );
 	Skirmish_Opened( name );
 	Mods_Opened( name );
+	Together_Opened( name );
 	if ( !strcmp( name, "leaderboards" ) ) {	// both scopes from the online hub (P7); offline, "hub" says so in the console
 		const Rml::String tab = Menu_Get( "leaderboards.tab" );
 		OzE_ExecuteNow( ( "hub leaderboard board " + tab + " scope global" ).c_str() );	// one command a call
@@ -1299,7 +1555,9 @@ static void PauseFrame() {
 	Menu_Set( "pause.clock", clock );
 	Menu_Set( "pause.warmup", warmup ? "true" : "false" );
 	Menu_Set( "pause.can_restart", local ? "true" : "false" );
-	Menu_Set( "pause.editor", local && !strncmp( map, "ed_", 3 ) ? "true" : "false" );	// a map editor's play-test (P13)
+	// a map editor's play-test (P13), or a play-test together a tester joined (PE); its Reload once the session's map changed
+	Menu_Set( "pause.editor", ( local || oz::ed::together().playing_together() ) && !strncmp( map, "ed_", 3 ) ? "true" : "false" );
+	Menu_Set( "pause.edreload", oz::ed::together().reload_offered() ? "true" : "false" );
 	Menu_Set( "pause.standings.0.name", Menu_Get( "player.name" ) );
 	Menu_Set( "pause.standings.0.score", Rml::CreateString( "%d", score ).c_str() );
 	PauseTeams( warmup != 0 );
@@ -1314,6 +1572,7 @@ void Menu_Frame() {
 	Skirmish_Frame();
 	Crosshair_Frame();
 	Gun_Frame();
+	Together_Frame();
 	if ( focusFirst && menuDoc && !strcmp( TopPageName(), "menu" ) ) {
 		Rml::Element *f = GetContext()->GetFocusElement();
 		Rml::Element *first = menuDoc->GetElementById( "main_play" );

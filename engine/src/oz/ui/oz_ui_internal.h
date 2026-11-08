@@ -204,6 +204,13 @@ void Skirmish_Commands();					// ui_skirmish, for tests
 void Skirmish_SetMod( const char *mod );	// the tab the page opens on next (the Mod Library's Play)
 
 // the Mod Library (oz_ui_mods.cpp, PH step 2)
+// ---- oz_ui_together.cpp (PE): the multiplayer map editor's session screen (together.rml)
+void Together_Commands();					// editor_together, edt_host, edt_join, edt_leave ...
+void Together_Opened( const char *page );
+bool Together_Action( const Rml::String &verb, const Rml::String &arg );	// edthost, edtjoin, edtcode, edtbrowse ...
+void Together_HubMessage( const char *type, const cJSON *m );	// net_matches: the "edit" listings
+void Together_Frame();
+
 bool Mods_Action( const Rml::String &verb, const Rml::String &arg );	// modlib_import, modlib_go, modlib_play, modlib_remove...
 void Mods_Opened( const char *page );
 bool Mods_Back();							// the import card or the remove question was open: Back closed it

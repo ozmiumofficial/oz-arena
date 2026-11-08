@@ -32,7 +32,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 // Oz: the product name and the Quake3e release it is built on (ENGINE_PLAN.md P0)
 #define OZ_PRODUCT            "Oz Arena"
-#define OZ_VERSION            "0.7.26-beta"	// Oz: the release (the installer and the releases are named by it)
+#define OZ_VERSION            "0.7.27-beta"	// Oz: the release (the installer and the releases are named by it)
 #define OZ_BASE               "Quake3e 2026-10-14"
 #define OZ_CONSOLE_BANNER     OZ_PRODUCT " (" OZ_BASE ")"
 #define CLIENT_WINDOW_TITLE   OZ_PRODUCT

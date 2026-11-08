@@ -1,0 +1,24 @@
+{
+  "_note": "The multiplayer map editor's session screen (pages/together.rml, oz_ui_together.cpp; ENGINE_PLAN.md PE). tab: host or join. Host: source (new, mine: one of the editor's maps, game: a game map imported by q3map2), mine (the editor's maps folder: file, name) and mi (the one picked), game (a game map's name), name, password and max (2 to 8). Join: sessions (the online service's listings of mode edit: host, name, owner, map, players, full, password, mine, other: another version, version), answered, count, code (a host's player id typed in), join_password, ask (the locked session waiting on a password). state (off, joining, syncing, live, ended), status and why: the session as it is, and why it ended. online: the online service is connected.",
+  "together": {
+    "tab": "host",
+    "source": "new",
+    "mine": [],
+    "mine_count": 0,
+    "mi": 0,
+    "game": "q3dm17",
+    "name": "",
+    "password": "",
+    "max": 8,
+    "sessions": [],
+    "answered": false,
+    "count": 0,
+    "code": "",
+    "join_password": "",
+    "ask": "",
+    "state": "off",
+    "status": "",
+    "why": "",
+    "online": false
+  }
+}

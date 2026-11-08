@@ -42,6 +42,7 @@ void		OzIce_Shutdown( qboolean quitting );
 void		OzIce_Frame( void );
 qboolean	OzIce_HubMessage( const char *type, const cJSON *m );
 const char	*OzIce_JoinString( void );
+qboolean	OzIce_EditPresenceOf( const char **join, const char **detail );	// editing together (PE)
 #endif
 
 void OzUpdate_Init( void );					// oz_update.c: the update check
@@ -60,6 +61,7 @@ static int		friendsCount, friendsOnline, partySize, incomingCount;
 static char		newestInvite[64];	// the newest party invite's party (party_accept)
 static char		pendingFriend[16];	// a friend link's code, added once online
 static char		pendingJoin[24];	// a join link's host, joined once online
+static char		pendingEdit[24];	// an editing session link's host (PE), joined once online
 static char		msgBuf[OZ_ONLINE_MSG_MAX];
 
 
@@ -192,6 +194,16 @@ static void Presence( qboolean force ) {
 		}
 #endif
 	}
+#ifdef USE_OZ_ICE
+	else {
+		// editing together (PE): "Editing <map>", and the session a friend's Join takes them into ("edit:<host>")
+		const char *ej, *ed;
+		if ( OzIce_EditPresenceOf( &ej, &ed ) ) {
+			detail = ed;
+			join = ej;
+		}
+	}
+#endif
 	Com_sprintf( buf, sizeof( buf ), "%s|%s|%s|%s|%s|%s", status, detail, join, mod, map, server );
 	if ( !force && !strcmp( buf, lastPresence ) ) {
 		return;
@@ -664,6 +676,10 @@ void CL_OzOnlineFrame( void ) {
 		SendJson( m );
 		pendingFriend[0] = '\0';
 	}
+	if ( pendingEdit[0] ) {
+		Cbuf_AddText( va( "edt_join %s\n", pendingEdit ) );	// the multiplayer map editor (oz_ui_together.cpp)
+		pendingEdit[0] = '\0';
+	}
 	if ( pendingJoin[0] ) {
 		Cbuf_AddText( va( "oz_join %s\n", pendingJoin ) );
 		pendingJoin[0] = '\0';
@@ -741,6 +757,7 @@ oz_link <ozarena://...>: an Oz Arena link, as Windows hands one to the game ("+o
 registered by the installer, P14):
   ozarena://friend/<code>		adds that friend (once online)
   ozarena://join/<host>			joins that player's peer-to-peer match (once online)
+  ozarena://edit/<host>			joins that player's editing session in the multiplayer map editor (once online)
   ozarena://connect/<address>	joins that server
 ==================
 */
@@ -750,7 +767,7 @@ static void CL_OzLink_f( void ) {
 	int i, n = 0;
 
 	if ( Q_stricmpn( link, "ozarena://", 10 ) ) {
-		Com_Printf( "usage: oz_link ozarena://friend/<code> | ozarena://join/<host> | ozarena://connect/<address>\n" );
+		Com_Printf( "usage: oz_link ozarena://friend/<code> | ozarena://join/<host> | ozarena://edit/<host> | ozarena://connect/<address>\n" );
 		return;
 	}
 	rest = link + 10;
@@ -762,6 +779,14 @@ static void CL_OzLink_f( void ) {
 		}
 		pendingJoin[n] = '\0';
 		Com_Printf( "online: joining %s's match\n", pendingJoin );
+	} else if ( !Q_stricmpn( rest, "edit/", 5 ) ) {
+		for ( i = 5; rest[i] && n < (int)sizeof( pendingEdit ) - 1; i++ ) {
+			if ( isxdigit( (unsigned char)rest[i] ) ) {
+				pendingEdit[n++] = tolower( (unsigned char)rest[i] );
+			}
+		}
+		pendingEdit[n] = '\0';
+		Com_Printf( "online: joining %s's editing session\n", pendingEdit );
 	} else if ( !Q_stricmpn( rest, "friend/", 7 ) ) {
 		for ( i = 7; rest[i] && n < (int)sizeof( code ) - 1; i++ ) {
 			if ( isalnum( (unsigned char)rest[i] ) || rest[i] == '-' ) {

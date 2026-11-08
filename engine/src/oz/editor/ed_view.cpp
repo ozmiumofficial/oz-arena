@@ -5,6 +5,7 @@
 #include "ed_texmap.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
@@ -29,10 +30,7 @@ static const unsigned char SEL_EDGE_HIDDEN[4] = {255, 120, 50, 64};
 static const unsigned char WIRE_EDGE[4] = {205, 196, 184, 255};    // a 2D view's world brushes
 static const unsigned char WIRE_ENTITY[4] = {110, 170, 255, 255};  // an entity's brushes (doors, triggers)
 
-Session &session() {
-	static Session s;
-	return s;
-}
+// session(): ed_together.cpp's, the map editor alone's or the multiplayer one's
 
 static void printf_engine(const char *fmt, ...) {
 	char buf[1024];
@@ -846,6 +844,7 @@ void Session::new_map() {
 	picked_ok_ = false;
 	leak_.clear();
 	leak_rev_++;
+	thumb_reset();
 	pending_all_ = true;
 	ents_dirty_ = true;
 }
@@ -884,6 +883,7 @@ bool Session::open(const std::string &file, std::string &error) {
 	picked_ok_ = false;
 	leak_.clear();
 	leak_rev_++;
+	thumb_reset();
 	pending_all_ = true;
 	ents_dirty_ = true;
 	frame_all();
@@ -893,7 +893,8 @@ bool Session::open(const std::string &file, std::string &error) {
 }
 
 bool Session::save(const std::string &file, std::string &error) {
-	write_defi_beside(file);  // a Defrag course's map info beside it
+	write_defi_beside(file);   // a Defrag course's map info beside it
+	write_thumb_beside(file);  // and the map's thumbnail, when it has one
 	WriteOptions wo;
 	wo.title = name + ", written by the Oz Arena map editor";
 	std::string text = write_map(doc, wo);
@@ -1171,6 +1172,11 @@ void Session::frame(int x, int y, int w, int h) {
 			cam.origin = cam.origin + move.normalized() * (speed * dt);
 		}
 	}
+	// looking through the thumbnail camera lasts until the view moves
+	if (through_ && ((cam.origin - through_cam_.origin).length() > 1e-6 || std::fabs(cam.yaw - through_cam_.yaw) > 1e-6 ||
+			std::fabs(cam.pitch - through_cam_.pitch) > 1e-6 || (layout == 1 && solo != Pane::Cam))) {
+		through_ = false;
+	}
 	view_w_ = w, view_h_ = h;
 	lay_out(x, y, w, h);
 	if (!frame2d_later_.empty()) {
@@ -1264,8 +1270,10 @@ void Session::frame(int x, int y, int w, int h) {
 		}
 	}
 	use_pane(active_);
+	draw_through();  // the thumbnail camera's frame, looking through it
 
-	// a prefab's thumbnail, drawn over the view's middle for the few frames a screenshot takes
+	// the map's thumbnail, then a prefab's, drawn over the view's middle for the few frames a screenshot takes
+	thumb_tick(x, y, w, h, now);
 	prefab_thumb_tick(x, y, w, h, now);
 
 	// over the view: the box select's rectangle
@@ -1378,12 +1386,15 @@ void Session::draw_pane(Pane p, int now) {
 	hover_lines_.draw(zero, ident);
 	preview_.draw(zero, ident);
 	handles.draw(zero, ident);
+	if (draw_extra) {
+		draw_extra(p == Pane::Cam);  // editing together: the other players
+	}
 	float org[3] = {float(eye_.x), float(eye_.y), float(eye_.z)};
 	float axis[3][3] = {{float(fwd_.x), float(fwd_.y), float(fwd_.z)}, {float(left_.x), float(left_.y), float(left_.z)},
 		{float(up_.x), float(up_.y), float(up_.z)}};
 	if (p == Pane::Cam) {
-		const double fy = std::atan(tan_y_) * 2 * 180 / PI;
-		OzEd_RenderScene(r.x, r.y, r.w, r.h, org, axis, float(cam.fov), float(fy), now, 0);
+		const double fx = std::atan(tan_x_) * 2 * 180 / PI, fy = std::atan(tan_y_) * 2 * 180 / PI;  // cam.fov, but wider through the thumbnail camera
+		OzEd_RenderScene(r.x, r.y, r.w, r.h, org, axis, float(fx), float(fy), now, 0);
 	} else {
 		OzEd_RenderScene(r.x, r.y, r.w, r.h, org, axis, float(half_w_ * 2), float(half_h_ * 2), now, 1);
 	}
@@ -1542,8 +1553,10 @@ std::string Session::status() const {
 		}
 		shown += std::to_string(n) + (n == 1 ? " filter \xc2\xb7 " : " filters \xc2\xb7 ");
 	}
-	std::snprintf(buf, sizeof buf, "%s%d brushes \xc2\xb7 %d curves \xc2\xb7 %d entities \xc2\xb7 %sgrid %s \xc2\xb7 texture lock %s",
-			picked.c_str(), brushes, patches, entities, shown.c_str(), num(grid).c_str(), texture_lock ? "on" : "off");
+	std::string mode = mode_label(game_mode());
+	std::transform(mode.begin(), mode.end(), mode.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+	std::snprintf(buf, sizeof buf, "%s%d brushes \xc2\xb7 %d curves \xc2\xb7 %d entities \xc2\xb7 %s \xc2\xb7 %sgrid %s \xc2\xb7 texture lock %s",
+			picked.c_str(), brushes, patches, entities, mode.c_str(), shown.c_str(), num(grid).c_str(), texture_lock ? "on" : "off");
 	return buf;
 }
 

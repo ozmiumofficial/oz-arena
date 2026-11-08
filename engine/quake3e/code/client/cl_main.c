@@ -3481,6 +3481,9 @@ void CL_Frame( int msec, int realMsec ) {
 		Com_ProfEnd( COM_PROF_ONLINE, prof );
 	}
 #endif
+#ifdef USE_OZ_UI
+	OzEd_TogetherFrame();	// Oz: the multiplayer map editor's session (ENGINE_PLAN.md PE), in a play-test too
+#endif
 
 	// if recording an avi, lock to a fixed fps
 	if ( CL_VideoRecording() && msec ) {

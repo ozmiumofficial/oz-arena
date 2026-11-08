@@ -182,6 +182,30 @@ bool brush_valid(const std::vector<Plane> &planes) {
 	return faces >= 4 && volume > EPSILON;
 }
 
+double brush_volume(const std::vector<Plane> &planes) {
+	const std::vector<Winding> ws = brush_windings(planes);
+	// about a point inside, so a brush far from the origin sums no large terms that cancel
+	Vec3 c;
+	int n = 0;
+	for (const Winding &w : ws) {
+		for (const Vec3 &p : w) {
+			c = c + p;
+			n++;
+		}
+	}
+	if (n == 0) {
+		return 0;
+	}
+	c = c * (1.0 / n);
+	double volume = 0;
+	for (size_t i = 0; i < ws.size(); i++) {
+		if (!ws[i].empty()) {
+			volume += winding_area(ws[i]) * (planes[i].d - planes[i].n.dot(c)) / 3.0;
+		}
+	}
+	return volume > 0 ? volume : 0;
+}
+
 std::vector<Vec3> brush_vertices(const std::vector<Plane> &planes) {
 	std::vector<Vec3> out;
 	for (const Winding &w : brush_windings(planes)) {

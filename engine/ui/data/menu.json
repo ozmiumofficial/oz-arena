@@ -1,10 +1,10 @@
 {
   "_note": "The menus' data model (oz_ui_menu.cpp): the web menu's lib/menu.json tree, the news line, and stand-in data for the systems not built yet (social is live from the online hub, P7). Each page's own data is ui/data/<name>.json, merged in by the names in include. maps, bots, characters, player and subject are filled by the engine.",
-  "include": ["play", "server_browser", "mods", "dedicated", "create_match", "campaign", "profile", "leaderboards", "replays", "cinematics", "pause", "connect"],
+  "include": ["play", "server_browser", "mods", "dedicated", "create_match", "campaign", "profile", "leaderboards", "replays", "cinematics", "pause", "connect", "together"],
   "main": [
     { "id": "play", "label": "Play", "hint": "Online matches, ranked, bots, the campaign and training", "do": "sub play", "submenu": "play", "primary": true, "num": "01" },
     { "id": "profile", "label": "Profile", "hint": "Your player card, leaderboards and replays", "do": "sub profile_menu", "submenu": "profile_menu", "primary": false, "num": "02" },
-    { "id": "map_editor", "label": "Map Editor", "hint": "Build arenas or import the original game's maps", "do": "append editor", "submenu": "", "primary": false, "num": "03" },
+    { "id": "map_editor", "label": "Map Editor", "hint": "Build arenas alone or with friends, or import the original game's maps", "do": "sub map_editor", "submenu": "map_editor", "primary": false, "num": "03" },
     { "id": "settings", "label": "Settings", "hint": "Video, audio, controls and more", "do": "page settings", "submenu": "", "primary": false, "num": "04" },
     { "id": "extras", "label": "Extras", "hint": "The original cinematics and the credits", "do": "sub extras", "submenu": "extras", "primary": false, "num": "05" },
     { "id": "quit", "label": "Quit", "hint": "Back to the desktop", "do": "page quit", "submenu": "", "primary": false, "num": "06" }
@@ -24,6 +24,10 @@
       { "id": "player_card", "label": "Player Card", "hint": "Card, character, achievements and career stats", "do": "page profile" },
       { "id": "leaderboards", "label": "Leaderboards", "hint": "The top players by level and by ranked MMR", "do": "page leaderboards" },
       { "id": "replays", "label": "Replays", "hint": "Watch your recorded matches from any player's view", "do": "page replays" }
+    ] },
+    "map_editor": { "title": "Map Editor", "items": [
+      { "id": "editor_solo", "label": "Single Player", "hint": "Build arenas on your own, or import the original game's maps", "do": "append editor" },
+      { "id": "editor_mp", "label": "Multiplayer", "hint": "Build one map with up to 8 players, live, and play it together", "do": "append editor_together" }
     ] },
     "extras": { "title": "Extras", "items": [
       { "id": "cinematics", "label": "Cinematics", "hint": "The original movies: the intro, the tier movies, the ending", "do": "page cinematics" },

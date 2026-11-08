@@ -4,6 +4,7 @@
 // GtkRadiant and NetRadiant bind by default, where the editor has the same action; the rest stays
 // Oz's).
 
+#include "ed_together.h"
 #include "ed_view.h"
 #include "ed_engine.h"
 
@@ -59,6 +60,9 @@ std::string combo(int key, int mods) {
 // take numbers or names typed, or answer the page's own controls)
 bool runs_alone(const Action &a) {
 	static const char *page[] = {"row", "frame_ids", "answer", "recover", "discard_recovery", "tex_nudge"};
+	if ((!std::strcmp(a.name, "play_together") || !std::strcmp(a.name, "leave_session")) && !using_together()) {
+		return false;  // the multiplayer map editor's alone: the map editor alone never lists them
+	}
 	if (std::string(a.help).compare(0, 3, "ed ") == 0) {
 		return false;
 	}

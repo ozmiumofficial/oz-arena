@@ -10,7 +10,9 @@ and the sorts. GPL-2.0.
           mod: oz_playmod, then CPMA's own mode for the page's, mode_start); under Defrag it's a race,
           Defrag's game on the race map with its own timer and no bots (oz_playmod defrag, a plain map).
           Leaving the match comes back to Oz (oz_playmod's way back, cl_parse.c).
-  Maps    Oz and CPMA: the arenas (the engine's maps, in arenas.txt's order). Defrag: the race maps
+  Maps    Oz and CPMA: the arenas (the engine's maps, in arenas.txt's order), and first, under User
+          generated, the maps the player compiled in the map editor (maps' "user" entries, at its end:
+          oz_ui_menu.cpp UserMaps, looked for again as the page opens). Defrag: the race maps
           oz_races.c finds (Defrag's start and finish timers), read a slice a frame while the page shows.
   Search  the map's name and file name (a race's author too), any case.
   Sort    the game's order or by name; under Defrag easiest or hardest first (Oz's estimate, below) or
@@ -395,12 +397,15 @@ void BuildViews() {
 		static const char *const modes[][2] = { { "ffa", "Free For All" }, { "tourney", "Duel" }, { "team", "Team Deathmatch" }, { "ctf", "Capture the Flag" } };
 		std::vector<std::string> names;
 		std::vector<std::vector<std::string>> fits;
+		int users = 0;	// user maps the search shows: their section shows with one or more
 		cJSON *maps = Menu_Node( "maps" );
 		for ( cJSON *m = maps ? maps->child : nullptr; m; m = m->next, total++ ) {
 			const std::string name = Plain( cJSON_GetStringValue( cJSON_GetObjectItem( m, "name" ) ) );
 			const char *id = cJSON_GetStringValue( cJSON_GetObjectItem( m, "map" ) );
 			names.push_back( Lower( name ) + "\n" + Lower( id ? id : "" ) );
-			( q.empty() || names.back().find( q ) != std::string::npos ? order : hidden ).push_back( total );
+			const bool shows = q.empty() || names.back().find( q ) != std::string::npos;
+			( shows ? order : hidden ).push_back( total );
+			users += shows && cJSON_IsTrue( cJSON_GetObjectItem( m, "user" ) );
 			fits.emplace_back();
 			cJSON *types = cJSON_GetObjectItem( m, "types" );
 			for ( cJSON *t = types ? types->child : nullptr; t; t = t->next ) {
@@ -418,6 +423,7 @@ void BuildViews() {
 		order.insert( order.end(), hidden.begin(), hidden.end() );
 		FillView( "skirmish_view", order, shown, &fits );
 		SetNumber( "skirmish.shown", shown );
+		SetNumber( "skirmish.user_shown", users );
 	}
 	SetNumber( "skirmish.count", total );
 }

@@ -86,6 +86,24 @@ int OzE_ReadFileHead( const char *path, void *buffer, int size ) {
 	return got;
 }
 
+int OzE_ReadFileAt( const char *path, int offset, void *buffer, int size ) {
+	fileHandle_t f;
+	int len, got;
+
+	len = FS_FOpenFileRead( path, &f, qfalse );
+	if ( len < 0 || f == FS_INVALID_HANDLE ) {
+		return -1;
+	}
+	// a loose file's seek gives fseek's 0, a pak's the offset: only a negative one failed
+	if ( offset < 0 || offset > len || FS_Seek( f, offset, FS_SEEK_SET ) < 0 ) {
+		FS_FCloseFile( f );
+		return -1;
+	}
+	got = FS_Read( buffer, len - offset < size ? len - offset : size, f );
+	FS_FCloseFile( f );
+	return got;
+}
+
 int OzE_FileExists( const char *path ) {
 	return FS_FOpenFileRead( path, NULL, qfalse ) > 0;
 }

@@ -56,6 +56,8 @@ Vec3 winding_center(const Winding &w);
 std::vector<Winding> brush_windings(const std::vector<Plane> &planes);
 // At least four faces with area and an enclosed volume.
 bool brush_valid(const std::vector<Plane> &planes);
+// The solid's volume (0 if the planes enclose nothing); the planes' normals unit length.
+double brush_volume(const std::vector<Plane> &planes);
 // Unique corners of the solid.
 std::vector<Vec3> brush_vertices(const std::vector<Plane> &planes);
 // Drops planes that make no face. Returns the kept indices into the input.

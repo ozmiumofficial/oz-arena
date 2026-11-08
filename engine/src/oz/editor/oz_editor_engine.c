@@ -71,7 +71,7 @@ typedef struct {
 	int			legs, torso;
 } edFighter_t;
 
-static edFighter_t edFighters[8];
+static edFighter_t edFighters[16];	// spawn points' fighters and the others' in a session (PE)
 
 static const edFighter_t *OzEd_Fighter( const char *model, const char *skin ) {
 	static const char *parts[3] = { "lower", "upper", "head" };
@@ -176,6 +176,51 @@ int OzEd_AddFighter( const char *model, const char *skin, const float origin[3],
 	head.hModel = f->part[2];
 	head.customSkin = f->skin[2];
 	OzEd_Attach( &head, &torso, "tag_head" );
+	re.AddRefEntityToScene( &head, qfalse );
+	return 1;
+}
+
+/*
+================
+OzEd_AddFlyer: another player of an editing session (PE), where their camera is: their fighter standing
+in the air with their eye there, facing their way, the head tilted up or down with their look
+================
+*/
+int OzEd_AddFlyer( const char *model, const char *skin, const float eye[3], float yaw, float pitch ) {
+	const edFighter_t *f = OzEd_Fighter( model, skin );
+	refEntity_t legs, torso, head;
+	vec3_t angles, tilt[3], turned[3];
+
+	if ( !f ) {
+		return 0;
+	}
+	Com_Memset( &legs, 0, sizeof( legs ) );
+	legs.reType = RT_MODEL;
+	VectorSet( angles, 0, yaw, 0 );
+	AnglesToAxis( angles, legs.axis );
+	VectorCopy( eye, legs.origin );
+	legs.origin[2] -= 26;	// a player's eye is 26 over the origin (DEFAULT_VIEWHEIGHT)
+	VectorCopy( legs.origin, legs.oldorigin );
+	VectorCopy( legs.origin, legs.lightingOrigin );
+	legs.renderfx = RF_LIGHTING_ORIGIN | RF_NOSHADOW;
+	legs.shader.rgba[0] = legs.shader.rgba[1] = legs.shader.rgba[2] = legs.shader.rgba[3] = 255;
+	torso = head = legs;
+	legs.hModel = f->part[0];
+	legs.customSkin = f->skin[0];
+	legs.frame = legs.oldframe = f->legs;
+	re.AddRefEntityToScene( &legs, qfalse );
+	torso.hModel = f->part[1];
+	torso.customSkin = f->skin[1];
+	torso.frame = torso.oldframe = f->torso;
+	OzEd_Attach( &torso, &legs, "tag_torso" );
+	re.AddRefEntityToScene( &torso, qfalse );
+	head.hModel = f->part[2];
+	head.customSkin = f->skin[2];
+	OzEd_Attach( &head, &torso, "tag_head" );
+	VectorSet( angles, Com_Clamp( -60, 60, pitch ), 0, 0 );
+	AnglesToAxis( angles, tilt );
+	MatrixMultiply( tilt, head.axis, turned );
+	AxisCopy( turned, head.axis );
 	re.AddRefEntityToScene( &head, qfalse );
 	return 1;
 }
@@ -600,4 +645,186 @@ int OzEd_Run( const char *exe, const char *args, const char *dir, const char *lo
 		OzEd_Wait( 50 );
 	}
 	return code;
+}
+
+/*
+==============================================================================
+
+EDITING TOGETHER (ENGINE_PLAN.md PE): ed_net.h over oz_ice.c and oz_edlink.c
+
+==============================================================================
+*/
+#ifdef USE_OZ_EDLINK
+#include "../online/oz_edlink.h"
+#include "../online/oz_online.h"
+void OzIce_EditPresence( const char *join, const char *detail );
+#endif
+#include "ed_net.h"
+#include <stdlib.h>
+
+int OzEdNet_Available( void ) {
+#ifdef USE_OZ_EDLINK
+	return 1;
+#else
+	return 0;
+#endif
+}
+
+int OzEdNet_Online( void ) {
+#ifdef USE_OZ_EDLINK
+	return OzOnline_Status( NULL, 0 ) == OZ_ONLINE_ONLINE;
+#else
+	return 0;
+#endif
+}
+
+const char *OzEdNet_Me( void ) {
+#ifdef USE_OZ_EDLINK
+	return OzOnline_Online() ? OzIdentity_PlayerId() : "";
+#else
+	return "";
+#endif
+}
+
+const char *OzEdNet_Name( void ) {
+	return Cvar_VariableString( "name" );
+}
+
+const char *OzEdNet_Model( void ) {
+	const char *m = Cvar_VariableString( "model" );
+	return m[0] ? m : "sarge/default";
+}
+
+const char *OzEdNet_Version( void ) {
+#ifdef USE_OZ_EDLINK
+	return OzIce_EditVersion();
+#else
+	return "";
+#endif
+}
+
+void OzEdNet_Host( const char *name, const char *map, int players, int max, const char *password ) {
+#ifdef USE_OZ_EDLINK
+	OzIce_EditHost( name, map, players, max, password );
+#endif
+}
+
+void OzEdNet_Unhost( void ) {
+#ifdef USE_OZ_EDLINK
+	OzIce_EditUnhost();
+	OzEdLink_Clear();
+#endif
+}
+
+void OzEdNet_Join( const char *host, const char *password ) {
+#ifdef USE_OZ_EDLINK
+	OzIce_EditJoin( host, password );
+#endif
+}
+
+void OzEdNet_Leave( const char *pid ) {
+#ifdef USE_OZ_EDLINK
+	OzIce_EditLeave( pid );
+#endif
+}
+
+void OzEdNet_Browse( void ) {
+#ifdef USE_OZ_EDLINK
+	OzIce_EditBrowse();
+#endif
+}
+
+void OzEdNet_Presence( const char *join, const char *detail ) {
+#ifdef USE_OZ_EDLINK
+	OzIce_EditPresence( join, detail );
+#endif
+}
+
+void OzEdNet_Send( const char *pid, const void *data, int len, int fast ) {
+#ifdef USE_OZ_EDLINK
+	OzEdLink_Send( pid, data, len, fast );
+#endif
+}
+
+int OzEdNet_Queued( const char *pid ) {
+#ifdef USE_OZ_EDLINK
+	return OzEdLink_Queued( pid );
+#else
+	return 0;
+#endif
+}
+
+int OzEdNet_Relayed( const char *pid ) {
+#ifdef USE_OZ_EDLINK
+	return OzIce_EditRelayed( pid );
+#else
+	return 0;
+#endif
+}
+
+int OzEdNet_Poll( char *pid, int pidSize, void **data, int *len, int *fast ) {
+#ifdef USE_OZ_EDLINK
+	return OzEdLink_Poll( pid, pidSize, data, len, fast );
+#else
+	return 0;
+#endif
+}
+
+void OzEdNet_Free( void *p ) {
+	free( p );
+}
+
+int OzEdNet_Milliseconds( void ) {
+	return Sys_Milliseconds();
+}
+
+void OzEdNet_Command( const char *text ) {
+	Cbuf_ExecuteText( EXEC_INSERT, text );
+}
+
+int OzEdNet_ClientState( void ) {
+	return cls.state == CA_DISCONNECTED ? 0 : cls.state == CA_ACTIVE ? 2 : 1;
+}
+
+int OzEdNet_ServerRunning( void ) {
+	return com_sv_running && com_sv_running->integer;
+}
+
+const char *OzEdNet_MapName( void ) {
+	// a match joined: its server's map (a joiner's own mapname cvar is the server's, never set here)
+	if ( cls.state >= CA_PRIMED && cl.gameState.dataCount ) {
+		static char map[MAX_QPATH];
+		Q_strncpyz( map, Info_ValueForKey( cl.gameState.stringData + cl.gameState.stringOffsets[CS_SERVERINFO], "mapname" ), sizeof( map ) );
+		return map;
+	}
+	return Cvar_VariableString( "mapname" );
+}
+
+void OzEdNet_SetCvar( const char *name, const char *value ) {
+	Cvar_Set( name, value );
+}
+
+int OzEdNet_PlayerPos( float origin[3], float angles[3] ) {
+	if ( cls.state != CA_ACTIVE ) {
+		return 0;
+	}
+	VectorCopy( cl.snap.ps.origin, origin );
+	VectorCopy( cl.viewangles, angles );
+	return 1;
+}
+
+void OzEdNet_ClearError( void ) {
+	Cvar_Set( "com_errorMessage", "" );
+}
+
+int OzEdNet_GameType( void ) {
+	if ( cls.state != CA_ACTIVE || !cl.gameState.dataCount ) {
+		return -1;
+	}
+	return atoi( Info_ValueForKey( cl.gameState.stringData + cl.gameState.stringOffsets[CS_SERVERINFO], "g_gametype" ) );
+}
+
+int OzEdNet_Spectating( void ) {
+	// baseq3's PERS_TEAM (3) and TEAM_SPECTATOR (3), bg_public.h: Oz's game and every mod's keep them
+	return cls.state == CA_ACTIVE && cl.snap.valid && cl.snap.ps.persistant[3] == 3;
 }

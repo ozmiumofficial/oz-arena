@@ -84,7 +84,15 @@ def skirmish():
         f"{P}.capturelimit = {MD}.rules.capturelimit",
         f"{P}.maxplayers = {P}.n + 1 {GT} {MD}.rules.max_players ? {P}.n + 1 : {MD}.rules.max_players",
     ]
-    t = tokens(P, Q, 4, m="maps[v.i]", i="v.i", show="v.show")
+    m = "maps[v.i]"
+    t = tokens(P, Q, 4, m=m, i="v.i", show="v.show")
+    # the player's own maps (the map editor's compiles: maps[].user) have a section of their own, first;
+    # picking one keeps the mode when the map is made for it, else switches to the first it's made for
+    T = f"{Q}.fit"
+    t["MINE"] = f"v.show ? ({m}.user ? false : {has_type(m, T)}) : false"
+    t["OTHER"] = f"v.show ? ({m}.user ? false : ({has_type(m, T)} ? false : {any_type(m)})) : false"
+    t["USER"] = f"v.show ? {m}.user : false"
+    t["PICK_USER"] = f"{Q}.mapi = v.i; {P}.mi = {has_type(m, T)} ? {P}.mi : ({first_mode(m)}); {Q}.fit = {MD}.fit"
     W = f"{MD}.rules.warmup"
     t["PROGRAM"] = "; ".join(prog)
     t["START"] = (f"!skirmish.ready ? 'sound buzz; toast ' + skirmish.mod_name + ' has to be imported first' : "

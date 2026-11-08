@@ -29,6 +29,9 @@ int			OzEd_RegisterModel( const char *name );	// a model of the game's (an item'
 // A fighter standing (its legs idle, its torso in its stand), as the menus' showcase draws one: model
 // "sarge", skin "default" (or "red", "blue"); feet 24 under origin, facing yaw. 0 when it has no model.
 int			OzEd_AddFighter( const char *model, const char *skin, const float origin[3], float yaw );
+// Another player in an editing session (PE): their fighter with its eye at eye, facing yaw, its head
+// tilted by pitch; 0 when it has no model.
+int			OzEd_AddFlyer( const char *model, const char *skin, const float eye[3], float yaw, float pitch );
 // ortho: a 2D view (RDF_OZ_ORTHO), fovX and fovY its width and height in map units
 void		OzEd_RenderScene( int x, int y, int w, int h, const float origin[3], const float axis[3][3], float fovX, float fovY, int timeMs, int ortho );
 void		OzEd_Fill( int x, int y, int w, int h, const float rgba[4] );	// 2D, under the scene

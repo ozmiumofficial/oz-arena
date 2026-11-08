@@ -44,6 +44,7 @@ ed_new, ed_camera, ed_stats, ed_leave.
 #include "../editor/ed_engine.h"
 #include "../editor/ed_shaders.h"
 #include "../editor/ed_view.h"
+#include "../editor/ed_together.h"
 #include "oz_editor_icons.h"
 
 #include <algorithm>
@@ -274,6 +275,7 @@ void Notify( const std::string &text, bool error ) {
 void Editor_f() {
 	const char *a = OzE_Argv( 1 );
 	std::string err;
+	oz::ed::use_session( false );	// the map editor alone: never the multiplayer one's session (editor_together's)
 	session().notify = Notify;
 	if ( !Rml::StringUtilities::ToLower( a ).compare( "new" ) ) {
 		session().new_map();
@@ -708,7 +710,7 @@ struct LightSlide {
 // .def) by its own name, past its prefix, with spaces
 std::string ClassTitle( const std::string &cn ) {
 	static const std::map<std::string, std::string> names = { { "info_player_start", "Old spawn" }, { "info_player_deathmatch", "Player spawn" },
-		{ "info_player_intermission", "Scoreboard camera" }, { "team_CTF_redplayer", "Red team start" }, { "team_CTF_blueplayer", "Blue team start" },
+		{ "info_player_intermission", "Thumbnail camera" }, { "team_CTF_redplayer", "Red team start" }, { "team_CTF_blueplayer", "Blue team start" },
 		{ "team_CTF_redspawn", "Red respawn" }, { "team_CTF_bluespawn", "Blue respawn" }, { "info_null", "Aim point" }, { "info_notnull", "Target point" },
 		{ "item_botroam", "Bot roam spot" }, { "info_camp", "Bot camp spot" }, { "path_corner", "Train stop" }, { "target_position", "Jump pad target" },
 		{ "misc_teleporter_dest", "Teleporter exit" }, { "trigger_teleport", "Teleporter area" }, { "target_teleporter", "Teleport on fire" },
@@ -1148,6 +1150,12 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 				SetRml( doc, "ed-push-text", "" );
 			}
 		}
+		// the thumbnail camera: the map's picture and its buttons (BuildThumb fills it)
+		bool camera = false;
+		for ( oz::ed::Id e : ents ) {
+			camera |= d.get( e ) && d.get( e )->entity.classname() == "info_player_intermission";
+		}
+		Show( doc, "ed-thumb", camera );
 		// a mover: how a door opens, a lift's travel, a train's path, played
 		{
 			std::string mover;
@@ -1680,17 +1688,34 @@ void BuildObjects( Rml::ElementDocument *doc ) {
 
 void BuildHistory( Rml::ElementDocument *doc ) {
 	const oz::ed::Doc &d = session().doc;
-	const Rml::String key = std::to_string( d.revision ) + "|" + std::to_string( d.undo_size() ) + "|" + std::to_string( d.redo_size() );
+	const Rml::String key = std::to_string( d.revision ) + "|" + std::to_string( d.undo_size() ) + "|" + std::to_string( d.redo_size() ) + "|" +
+		std::to_string( oz::ed::using_together() ? oz::ed::together().seq() : 0 );
 	if ( key == lastHistory ) {
 		return;
 	}
 	lastHistory = key;
 	const std::vector<std::string> done = d.undo_labels(), redo = d.redo_labels();
+	Rml::String others;
+	if ( oz::ed::using_together() && oz::ed::together().live() ) {
+		// editing together: everyone's changes in the host's order, by name; undo goes back through your own alone
+		const oz::ed::Together &t = oz::ed::together();
+		if ( const auto *log = t.history() ) {
+			const size_t from = log->size() > 40 ? log->size() - 40 : 0;
+			others += "<div class=\"chipsub\">EVERYONE'S CHANGES</div>";
+			for ( size_t i = from; i < log->size(); i++ ) {
+				const auto &e = ( *log )[i];
+				const oz::ed::Together::Player *p = t.player( e.player );
+				others += "<div class=\"orow\"><span class=\"mark\" style=\"color: " + Rml::String( oz::ed::Together::color_hex( p ? p->color : 7 ) ) +
+					";\">*</span><span>" + Enc( t.name_of( e.player ) + ": " + e.label ) + "</span></div>";
+			}
+			others += "<div class=\"chipsub\">YOURS: UNDO GOES BACK THROUGH THESE</div>";
+		}
+	}
 	auto row = [&]( size_t n, const std::string &label, const char *cls ) {
 		return "<div class=\"orow " + Rml::String( cls ) + "\" data-hint=\"" + ( n == done.size() ? Rml::String( "Where the map is now" ) : Rml::String( "Click: the map as it was after this" ) ) +
 			"\" onclick=\"append ed history " + std::to_string( n ) + "\"><span class=\"mark\">" + ( n == done.size() ? ">" : "" ) + "</span><span>" + Enc( label ) + "</span></div>";
 	};
-	Rml::String rml = row( 0, "Opened", done.empty() ? "cur" : "" );
+	Rml::String rml = others + row( 0, "Opened", done.empty() ? "cur" : "" );
 	for ( size_t i = 0; i < done.size(); i++ ) {
 		rml += row( i + 1, done[i], i + 1 == done.size() ? "cur" : "" );
 	}
@@ -1986,6 +2011,38 @@ void CloseKeymap( Rml::ElementDocument *doc ) {
 	if ( TypingInside( doc->GetElementById( "ed-keymap" ) ) ) {
 		TypingIn()->Blur();
 	}
+}
+
+// ---------------------------------------------------------------- the thumbnail camera
+
+// The map's picture (levelshots/ed_<name>.jpg) and its camera, the map's intermission point: at the World
+// tab's top, and in the inspector while the camera is selected. Its buttons run ed thumb_set, thumb_view,
+// thumb_shoot (Build > THUMBNAIL has them too).
+Rml::String lastThumb;
+
+void BuildThumb( Rml::ElementDocument *doc ) {
+	oz::ed::Session &s = session();
+	oz::ed::Vec3 o;
+	double yaw = 0, pitch = 0;
+	const bool camera = s.thumb_view( o, yaw, pitch );
+	char view[128];
+	snprintf( view, sizeof view, "%d %g %g %g %g %g %d", camera, o.x, o.y, o.z, yaw, pitch, s.thumb_busy() );
+	const Rml::String key = Rml::String( view ) + "|" + std::to_string( s.thumb_rev ) + "|" + s.compile_name();
+	if ( key == lastThumb ) {
+		return;
+	}
+	lastThumb = key;
+	const std::string img = s.thumb_image();
+	Rml::String rml = "<div class=\"thumbpic\">" + ( img.empty() ? "<span>" + Rml::String( camera ? "NO PICTURE YET" : "NO CAMERA YET" ) + "</span>"
+		: "<img src=\"" + Enc( img ) + "\"/>" ) + "</div><p class=\"thumbnote\">" + Enc( s.thumb_note() ) + "</p><div class=\"row\">"
+		"<button class=\"tb\" data-action=\"thumb_set\" onclick=\"append ed thumb_set\">" + Rml::String( camera ? "Move here" : "Set from view" ) + "</button>";
+	if ( camera ) {
+		rml += "<button class=\"tb\" data-action=\"thumb_view\" onclick=\"append ed thumb_view\">Look through</button>"
+			"<button class=\"tb\" data-action=\"thumb_shoot\" onclick=\"append ed thumb_shoot\">Make thumbnail</button>";
+	}
+	rml += "</div>";
+	SetRml( doc, "ed-thumb-world", rml );
+	SetRml( doc, "ed-thumb", rml );
 }
 
 // ---------------------------------------------------------------- Sky and sun
@@ -2648,7 +2705,7 @@ const struct {
 	const char *name;
 	std::vector<const char *> rows;
 } MENUS[] = {
-	{ "file", { "new", "open", "import", "-", "save", "save_as", "-", "leave" } },
+	{ "file", { "new", "open", "import", "-", "save", "save_as", "-", "@leave_session", "leave" } },	// @: the multiplayer map editor's rows alone
 	{ "edit", { "undo", "redo", "-", "cut", "copy", "paste", "duplicate", "delete", "-", "texture_lock", "grid_smaller", "grid_bigger", "-", "keymap" } },
 	{ "select", { "select", "select_all", "select_none", "-", "hide", "hide_others", "show_all", "-", "lock", "unlock_all", "-", "group", "ungroup",
 		"-", "prefab_save", "show_prefabs", "-", "show_objects" } },
@@ -2663,7 +2720,8 @@ const struct {
 	{ "entity", { "show_entities", "light", "jump_pad", "push_land", "teleporter", "-", "#MOVERS", "door", "door_pair", "lift", "door_button",
 		"door_trigger", "train_path", "mover_play", "-", "to_world", "-", "#DEFRAG", "defrag_start", "defrag_checkpoint", "defrag_finish",
 		"defrag_speed", "defrag_shooter", "defrag_check", "play_defrag" } },
-	{ "build", { "play", "play_here", "play_defrag", "-", "sky_sun", "-", "compile", "compile_stop", "preview", "-", "check_map", "frame_leak", "warnings" } },
+	{ "build", { "play", "play_here", "@play_together", "play_defrag", "-", "#GAME MODE", "mode_ffa", "mode_duel", "mode_tdm", "mode_ctf", "-", "sky_sun", "-", "compile", "compile_stop", "preview", "-", "#THUMBNAIL", "thumb_set", "thumb_view",
+		"thumb_shoot", "-", "check_map", "frame_leak", "warnings" } },
 	{ "help", { "guide", "keymap", "search" } },
 };
 
@@ -2688,6 +2746,9 @@ bool MenuChecked( const std::string &a ) {
 	if ( a.compare( 0, 5, "show_" ) == 0 && a != "show_all" ) {
 		return panel == a.substr( 5 );
 	}
+	if ( a.compare( 0, 5, "mode_" ) == 0 ) {
+		return a.substr( 5 ) == s.game_mode();	// the game mode Play starts the map in
+	}
 	return ( a == "texture_lock" && s.texture_lock ) || ( a == "views" && s.layout == 4 ) || ( a == "preview" && s.previewing() ) ||
 		( a == "select" && s.tool == oz::ed::Tool::Select ) || ( a == "create" && s.tool == oz::ed::Tool::Create ) ||
 		( a == "clip" && s.tool == oz::ed::Tool::Clip ) || ( a == "faces" && s.tool == oz::ed::Tool::Faces );
@@ -2711,7 +2772,7 @@ bool MenuEnabled( const std::string &a ) {
 	}
 	return a == "undo" ? !s.doc.undo_label().empty() : a == "redo" ? !s.doc.redo_label().empty() : a == "compile_stop" ? s.compiling()
 		: a == "frame_leak" ? s.leaking() : a == "warnings" ? !s.compile_warnings().empty() : a == "show_all" ? !s.hidden.empty()
-		: a == "unlock_all" ? !s.locked.empty() : true;
+		: a == "unlock_all" ? !s.locked.empty() : a == "thumb_view" || a == "thumb_shoot" ? s.thumb_camera() != 0 : true;
 }
 
 // The open menu's rows, made again when what they show changes
@@ -2733,7 +2794,13 @@ void BuildMenu( Rml::ElementDocument *doc ) {
 	menuRows.clear();
 	Rml::String rml;
 	for ( const char *row : MENUS[m].rows ) {
-		const std::string r = row;
+		std::string r = row;
+		if ( r[0] == '@' ) {
+			if ( !oz::ed::using_together() ) {
+				continue;	// the multiplayer map editor's row: never in the map editor alone
+			}
+			r = r.substr( 1 );
+		}
 		if ( r == "-" ) {
 			rml += "<div class=\"msep\"></div>";
 			continue;
@@ -3379,6 +3446,7 @@ void Stats_f() {
 	}
 	Printf( "ed_stats panes: %d %s %s\n", s.layout, oz::ed::pane_name( s.solo ), oz::ed::pane_name( s.active_pane() ) );
 	Printf( "ed_stats camera: %.0f %.0f %.0f\n", s.cam.origin.x, s.cam.origin.y, s.cam.origin.z );
+	Printf( "ed_stats thumb: %s\n", s.thumb_stats().c_str() );
 	std::string kept;
 	if ( s.recovery_offer( kept ) ) {
 		Printf( "ed_stats recovery: %s\n", kept.c_str() );
@@ -3554,7 +3622,12 @@ void World_f() {
 
 // ed_back: from a play-test (the pause page's Back to the map editor) to the editor, the map as it was
 void Back_f() {
-	OzE_InsertText( "disconnect\neditor\n" );	// before anything queued after it (a test script)
+	// before anything queued after it (a test script); the multiplayer map editor's play-test goes back to its session
+	if ( oz::ed::using_together() ) {
+		oz::ed::together().back_to_editor();	// a play-test together's host tells its testers first
+		return;
+	}
+	OzE_InsertText( "disconnect\neditor\n" );
 }
 
 void Undo_f() {
@@ -3593,6 +3666,97 @@ Rml::String HoverHint() {
 	return session().hint();
 }
 
+// ---------------------------------------------------------------- the multiplayer map editor (PE)
+
+Rml::String lastTgStatus, lastTgCode, lastTgPeople, lastTgWait, lastTgTitle;
+
+// The session bar, the others' name tags over their fighters, the card while joining or once it ended. In
+// the map editor alone, all of it hidden.
+void DrawTogether( Rml::ElementDocument *doc, const Rml::Vector2f &pos, const Rml::Vector2f &size ) {
+	using oz::ed::Together;
+	Together &t = oz::ed::together();
+	const bool mp = oz::ed::using_together();
+	Show( doc, "ed-tg", mp && t.live() );
+	SetText( doc, "ed-title", mp ? "MULTIPLAYER MAP EDITOR" : "MAP EDITOR", lastTgTitle );
+	const bool waiting = mp && ( t.state == Together::State::Joining || t.state == Together::State::Syncing );
+	const bool ended = mp && t.state == Together::State::Ended;	// Keep the map open: Off, the card gone
+	Show( doc, "ed-tg-wait", waiting || ended );
+	if ( waiting || ended ) {
+		static Rml::String lastWaitTitle;
+		SetText( doc, "ed-tg-wait-title", ended ? "THE SESSION ENDED" : "JOINING", lastWaitTitle );
+		SetText( doc, "ed-tg-wait-text", ended ? t.why + ". The map stays as it was: save it to keep it (File, Save as)." : t.status() + "...", lastTgWait );
+		Show( doc, "ed-tg-keep", ended );
+	}
+	if ( !mp || !t.live() ) {
+		for ( int i = 0; i < 8; i++ ) {
+			Show( doc, ( "ed-tag-" + std::to_string( i ) ).c_str(), false );
+		}
+		return;
+	}
+	SetText( doc, "ed-tg-status", t.status(), lastTgStatus );
+	SetText( doc, "ed-tg-code", "Code " + t.host_pid, lastTgCode );
+	// the players: a dot in their color, the name, the role; Follow; the host's Kick and role
+	const oz::ed::Together::Player *me = t.mine();
+	const bool owner = me && me->role == Together::Role::Owner;
+	Rml::String people;
+	static const char *roles[] = { "host", "editor", "watching" };
+	for ( const auto &kv : t.players ) {
+		const Together::Player &p = kv.second;
+		const bool mine = kv.first == t.me;
+		people += "<div class=\"who\"><span class=\"dot\" style=\"background-color: " + Rml::String( Together::color_hex( p.color ) ) +
+			";\"></span><span class=\"nm\">" + Enc( t.name_of( p.num ) ) + ( mine ? " (you)" : "" ) + "</span><span class=\"rl\">" +
+			roles[(int)p.role % 3] + ( p.pres.testing ? ", play-testing" : "" ) + "</span>";
+		if ( !mine ) {
+			people += "<button class=\"tb" + Rml::String( t.follow == p.num ? " on" : "" ) + "\" id=\"ed-tg-follow-" + std::to_string( p.num ) +
+				"\" data-hint=\"Your camera on theirs, until you move it\" onclick=\"edtfollow " + std::to_string( p.num ) + "\">Follow</button>";
+			if ( owner ) {
+				people += "<button class=\"tb\" id=\"ed-tg-role-" + std::to_string( p.num ) + "\" data-hint=\"" +
+					Rml::String( p.role == Together::Role::Viewer ? "Lets them edit again" : "They watch and play, but don't edit" ) +
+					"\" onclick=\"edtrole " + std::to_string( p.num ) + "\">" + ( p.role == Together::Role::Viewer ? "Editor" : "Viewer" ) +
+					"</button><button class=\"tb\" id=\"ed-tg-kick-" + std::to_string( p.num ) + "\" data-hint=\"Takes them out of the session\" onclick=\"edtkick " +
+					std::to_string( p.num ) + "\">Kick</button>";
+			}
+		}
+		people += "</div>";
+	}
+	if ( people != lastTgPeople ) {
+		lastTgPeople = people;
+		SetRml( doc, "ed-tg-people", people );
+	}
+	// each other player's name over their fighter, where it is in the view
+	oz::ed::Session &s = session();
+	int tag = 0;
+	for ( const auto &kv : t.players ) {
+		const Together::Player &p = kv.second;
+		if ( kv.first == t.me || !p.pres.heard || tag >= 8 || kv.first == t.follow ) {
+			continue;
+		}
+		Rml::Element *e = doc->GetElementById( ( "ed-tag-" + std::to_string( tag ) ).c_str() );
+		tag++;
+		if ( !e ) {
+			continue;
+		}
+		double sx = 0, sy = 0;
+		const oz::ed::Vec3 over = p.pres.eye + oz::ed::Vec3( 0, 0, 22 );
+		const bool shown = s.project( over, sx, sy ) && sx >= pos.x && sy >= pos.y && sx < pos.x + size.x && sy < pos.y + size.y;
+		e->SetClass( "hidden", !shown );
+		if ( !shown ) {
+			continue;
+		}
+		const Rml::String text = t.name_of( p.num ) + ( p.pres.testing ? " (play-testing)" : "" );
+		if ( e->GetInnerRML() != Enc( text ) ) {
+			e->SetInnerRML( Enc( text ) );
+		}
+		e->SetProperty( "border-bottom-color", Together::color_hex( p.color ) );
+		const Rml::Vector2f ts = e->GetBox().GetSize( Rml::BoxArea::Border );
+		e->SetProperty( "left", Rml::CreateString( "%dpx", (int)( sx - ts.x * 0.5 ) ) );
+		e->SetProperty( "top", Rml::CreateString( "%dpx", (int)( sy - ts.y ) ) );
+	}
+	for ( ; tag < 8; tag++ ) {
+		Show( doc, ( "ed-tag-" + std::to_string( tag ) ).c_str(), false );
+	}
+}
+
 }  // namespace
 
 namespace OzUI {
@@ -3618,6 +3782,7 @@ void Editor_Commands() {
 	OzE_AddCommand( "ed_undo", Undo_f );
 	OzE_AddCommand( "ed_redo", Redo_f );
 	OzE_AddCommand( "ed_home", Home_f );
+	Together_Commands();	// the multiplayer map editor's (oz_ui_together.cpp)
 }
 
 bool Editor_Key( int key, bool down ) {
@@ -3823,6 +3988,12 @@ bool Editor_Draw( int width, int height ) {
 		leaving = false;
 		if ( IsPageOpen( "editor" ) ) {
 			CloseAllPages();	// CL_Frame opens the main menu again
+			if ( oz::ed::using_together() ) {
+				// the multiplayer map editor: out of the session (a host's ends), back to its screen
+				oz::ed::together().leave();
+				OpenPageByName( "menu" );
+				OpenPageByName( "together" );
+			}
 			return false;
 		}
 	}
@@ -3893,6 +4064,7 @@ bool Editor_Draw( int width, int height ) {
 		}
 	}
 	SetText( doc, "ed-name", s.name + ( s.doc.dirty ? " *" : "" ), lastName );
+	DrawTogether( doc, pos, size );
 
 	// the tool strip shows the tool in use (Light, Jump pad and Teleport the place tool's own), the
 	// action bar the texture lock
@@ -4097,6 +4269,7 @@ bool Editor_Draw( int width, int height ) {
 		BuildSky( doc );	// as undo and redo change it too; not under a field being typed in
 		LoadThumbs( doc, "ed-sky-tiles" );
 	}
+	BuildThumb( doc );	// the World tab's and the inspector's picture of the map, made again when it changes
 	if ( pickOpen ) {
 		bool inside = false;
 		for ( Rml::Element *f = GetContext()->GetFocusElement(); f; f = f->GetParentNode() ) {

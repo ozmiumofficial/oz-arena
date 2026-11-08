@@ -206,6 +206,68 @@ static Session::SkySun sky_sun_of(const Doc &d) {
 	return s;
 }
 
+// ---------------------------------------------------------------- the game mode a play-test starts in
+
+static const char *const K_MODE = "_oz_mode";
+
+std::string Session::game_mode() const {
+	const Object *w = doc.get(doc.worldspawn());
+	const std::string m = w ? w->entity.get(K_MODE) : "";
+	return m == "duel" || m == "tdm" || m == "ctf" ? m : "ffa";
+}
+
+void Session::set_game_mode(const std::string &mode) {
+	const std::string m = mode == "duel" || mode == "tdm" || mode == "ctf" ? mode : "ffa";
+	if (m == game_mode()) {
+		say("The map plays as " + std::string(mode_label(m)) + " already");
+		return;
+	}
+	const std::vector<Id> world = {doc.worldspawn()};
+	const std::string label = std::string("Game mode: ") + mode_label(m);
+	if (m == "ffa") {
+		remove_key(doc, world, K_MODE, label);  // the default: the file as it was without the key
+	} else {
+		set_key(doc, world, K_MODE, m, label);
+	}
+	const std::string problem = mode_problem();
+	say("Play starts the map as " + std::string(mode_label(m)) + (problem.empty() ? "" : " (" + problem + ")"), !problem.empty());
+}
+
+int Session::game_type() const {
+	const std::string m = game_mode();
+	return m == "duel" ? 1 : m == "tdm" ? 3 : m == "ctf" ? 4 : 0;
+}
+
+const char *Session::mode_label(const std::string &mode) {
+	return mode == "duel" ? "Duel" : mode == "tdm" ? "Team deathmatch" : mode == "ctf" ? "Capture the flag" : "Free for all";
+}
+
+std::string Session::mode_problem() const {
+	if (game_mode() != "ctf") {
+		return "";
+	}
+	bool red = false, blue = false;
+	for (Id id : doc.ids_of(Kind::Entity)) {
+		const std::string cn = doc.get(id)->entity.classname();
+		red |= cn == "team_CTF_redflag";
+		blue |= cn == "team_CTF_blueflag";
+	}
+	if (red && blue) {
+		return "";
+	}
+	return std::string("Capture the flag needs a red flag and a blue flag: ") + (!red && !blue ? "place both" : !red ? "place the red one" : "place the blue one") +
+		" (Entities: team_CTF_redflag, team_CTF_blueflag)";
+}
+
+std::string Session::mode_before_map() const {
+	return "set g_gametype " + std::to_string(game_type()) + "\n";
+}
+
+std::string Session::mode_after_map() const {
+	// a team mode starts everyone as a spectator: onto the team with fewer players, as Custom Match does
+	return game_type() >= 3 ? "wait 40\nteam auto\nwait 20\n" : "";
+}
+
 Session::SkySun Session::sky_sun() const {
 	return sky_sun_of(doc);
 }
@@ -485,6 +547,10 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 		say("A compile is under way: wait for it, or stop it");
 		return false;
 	}
+	if (play && !defrag && !mode_problem().empty()) {
+		say(mode_problem(), true);  // a mode the map can't be played in (Capture the flag without its flags)
+		return false;
+	}
 	const std::string q3map2 = tool_exe("q3map2" OZ_ED_EXE), mbspc = tool_exe("mbspc" OZ_ED_EXE);
 	const std::string baseq3 = OzEd_BaseQ3();
 	if (!OzEd_FileExists(q3map2.c_str()) || baseq3.empty()) {
@@ -509,6 +575,8 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 	WriteOptions wo;
 	wo.title = "compiled by the Oz Arena map editor";
 	Doc boxed = doc;
+	boxed.shared = false;  // a copy for the compile: its sky box and copies are no one's edits (it has no on_local)
+	boxed.lease(0, 0);
 	boxed.on_change = nullptr;
 	boxed.get_selection = nullptr;
 	boxed.set_selection = nullptr;
@@ -688,7 +756,9 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 		j.stages.push_back({"light", q3map2, common + " -light -fast -filter" + m});
 	}
 	// the bots' area file: a play-test has bots too (without one the bot library refuses the map)
-	if (OzEd_FileExists(mbspc.c_str())) {
+	const bool bots = !next_without_bots;
+	next_without_bots = false;
+	if (bots && OzEd_FileExists(mbspc.c_str())) {
 		j.stages.push_back({"bots", mbspc, "-forcesidesvisible -bsp2aas \"" + bsp + "\""});
 	}
 	j.full = full;
@@ -736,8 +806,18 @@ void Session::compile_done(bool ok, const std::string &why) {
 	CompileJob &j = job_;
 	j.running = false;
 	const double secs = (OzE_Milliseconds() - j.t0) / 1000.0;
+	// editing together's Play together takes the compile from here (its map sent, its match hosted)
+	auto hook = std::move(compiled);
+	compiled = nullptr;
+	if (!ok && hook) {
+		hook(false, "", why);
+	}
 	if (!ok) {
 		compile_report_ = "failed: " + why;
+		if (j.thumb) {
+			shot_error_ = "its compile failed";
+			thumb_rev++;
+		}
 		// kept at the top of the warnings' list, which opens: a status note alone was gone in 5 seconds
 		CompileWarning w;
 		w.text = "The compile failed: " + why;
@@ -798,6 +878,10 @@ void Session::compile_done(bool ok, const std::string &why) {
 		compile_report_ += " missing models " + std::to_string(missing.size());
 	}
 	say(note);
+	if (hook) {
+		hook(true, j.dir, j.out);
+		return;
+	}
 	if (j.play && j.defrag) {
 		// under Defrag: the map and its .defi into the user folder's defrag, where the switch finds them;
 		// Defrag's game runs it, its own timer and all; a disconnect comes back to Oz
@@ -817,8 +901,9 @@ void Session::compile_done(bool ok, const std::string &why) {
 		return;
 	}
 	if (j.play) {
-		// a devmap (cheats, so edpos works); from the camera: the player's eye where it was
-		std::string cmd = "devmap " + j.out + "\n";
+		// a devmap (cheats, so edpos works) in the map's game mode (a team mode joins a team); from the camera:
+		// the player's eye where it was
+		std::string cmd = mode_before_map() + "devmap " + j.out + "\n" + mode_after_map();
 		if (j.here) {
 			char pos[160];
 			std::snprintf(pos, sizeof pos, "wait 40\nedpos %.0f %.0f %.0f %.1f %.1f\n", j.cam.origin.x, j.cam.origin.y, j.cam.origin.z - 26,
@@ -826,6 +911,15 @@ void Session::compile_done(bool ok, const std::string &why) {
 			cmd += pos;
 		}
 		OzE_InsertText(cmd.c_str());  // before anything queued after the compile (a test script)
+		return;
+	}
+	// the thumbnail camera's picture from the new compile: Make thumbnail's, and every full compile's
+	if ((j.thumb || j.full) && !j.defrag) {
+		if (thumb_camera()) {
+			start_shot(j.preview || previewing());  // the lit preview loading it already (above), or not
+		} else if (j.thumb) {
+			shot_failed("the thumbnail camera is gone");
+		}
 	}
 }
 
@@ -1130,6 +1224,7 @@ void Session::compile_stop() {
 	}
 	OzEd_Stop(job_.proc);
 	job_.running = false;
+	compiled = nullptr;  // a Play together waiting on it is called off
 	compile_report_ = "stopped";
 	say("Compile stopped");
 }

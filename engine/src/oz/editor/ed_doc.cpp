@@ -90,7 +90,17 @@ std::shared_ptr<Object> Doc::edit(Id id) const {
 }
 
 Id Doc::add(std::shared_ptr<Object> obj) {
-	Id id = next_++;
+	Id id;
+	if (leasing()) {
+		if (lease_next_ >= lease_end_ && spare_end_ > spare_next_) {
+			lease_next_ = spare_next_, lease_end_ = spare_end_;
+			spare_next_ = spare_end_ = 0;
+		}
+		// a block runs out only if the host never answered for the next: past every id there is, then
+		id = lease_next_ < lease_end_ ? lease_next_++ : next_++;
+	} else {
+		id = next_++;
+	}
 	if (obj->kind == Kind::Entity && world_ == 0) {
 		world_ = id;  // q3map takes the first entity as the world, whatever its classname
 	}
@@ -177,15 +187,27 @@ void Doc::end() {
 	}
 	open_.changes = std::move(kept);
 	if (!open_.changes.empty()) {
+		const std::string label = open_.label;
+		const std::vector<Change> made = open_.changes;
 		undo_.push_back(std::move(open_));
 		if (undo_.size() > history_limit) {
 			undo_.erase(undo_.begin());
 		}
 		redo_.clear();
+		open_ = Step{};
+		open_index_.clear();
 		announce(std::move(touched));
+		local(label, made);
+		return;
 	}
 	open_ = Step{};
 	open_index_.clear();
+}
+
+void Doc::local(const std::string &label, const std::vector<Change> &changes) {
+	if (on_local && !changes.empty()) {
+		on_local(label, changes);
+	}
 }
 
 void Doc::record(Id id, ObjectPtr before, ObjectPtr after) {
@@ -193,10 +215,12 @@ void Doc::record(Id id, ObjectPtr before, ObjectPtr after) {
 	revision++;
 	if (depth_ == 0) {
 		// loading, or a change outside any step: it can't be undone, so the history before it is void
-		if (!undo_.empty() || !redo_.empty()) {
+		// (in a session the history stays: the others' changes never touch it, and undo skips what they changed)
+		if ((!undo_.empty() || !redo_.empty()) && !shared) {
 			clear_history();
 		}
 		announce({id});
+		local("", {Change{id, before, after}});
 		return;
 	}
 	auto it = open_index_.find(id);
@@ -225,6 +249,36 @@ void Doc::apply(const Step &s, bool forward) {
 	announce(std::move(touched));
 }
 
+std::vector<Doc::Change> Doc::apply_shared(const Step &s, bool forward) {
+	std::vector<Change> made;
+	std::vector<Id> touched;
+	skipped = 0;
+	for (const Change &c : s.changes) {
+		const ObjectPtr &from = forward ? c.before : c.after;
+		const ObjectPtr &to = forward ? c.after : c.before;
+		auto it = objects_.find(c.id);
+		const ObjectPtr now = it == objects_.end() ? nullptr : it->second;
+		if (now != from) {
+			skipped++;  // someone else changed it since: theirs stays
+			continue;
+		}
+		if (to) {
+			objects_[c.id] = to;
+		} else {
+			objects_.erase(c.id);
+		}
+		windings_.erase(c.id);
+		touched.push_back(c.id);
+		made.push_back(Change{c.id, now, to});
+	}
+	if (!made.empty()) {
+		dirty = true;
+		revision++;
+		announce(std::move(touched));
+	}
+	return made;
+}
+
 bool Doc::undo() {
 	if (undo_.empty() || depth_ > 0) {
 		return false;
@@ -234,7 +288,12 @@ bool Doc::undo() {
 	if (get_selection) {
 		s.sel_after = get_selection();
 	}
-	apply(s, false);
+	if (shared) {
+		local("Undo " + s.label, apply_shared(s, false));
+	} else {
+		skipped = 0;
+		apply(s, false);
+	}
 	if (set_selection) {
 		set_selection(s.sel_before);
 	}
@@ -248,12 +307,75 @@ bool Doc::redo() {
 	}
 	Step s = std::move(redo_.back());
 	redo_.pop_back();
-	apply(s, true);
+	if (shared) {
+		local("Redo " + s.label, apply_shared(s, true));
+	} else {
+		skipped = 0;
+		apply(s, true);
+	}
 	if (set_selection) {
 		set_selection(s.sel_after);
 	}
 	undo_.push_back(std::move(s));
 	return true;
+}
+
+void Doc::apply_remote(const std::vector<std::pair<Id, ObjectPtr>> &objects) {
+	std::vector<Id> touched;
+	for (const auto &kv : objects) {
+		if (kv.second) {
+			objects_[kv.first] = kv.second;
+			next_ = std::max(next_, kv.first + 1);
+			if (kv.second->kind == Kind::Entity && world_ == 0) {
+				world_ = kv.first;
+			}
+		} else {
+			objects_.erase(kv.first);
+		}
+		windings_.erase(kv.first);
+		touched.push_back(kv.first);
+	}
+	if (touched.empty()) {
+		return;
+	}
+	dirty = true;
+	revision++;
+	announce(std::move(touched));
+}
+
+void Doc::reset(Id world, const std::vector<std::pair<Id, ObjectPtr>> &objects) {
+	objects_.clear();
+	windings_.clear();
+	next_ = 1;
+	for (const auto &kv : objects) {
+		if (kv.second) {
+			objects_[kv.first] = kv.second;
+			next_ = std::max(next_, kv.first + 1);
+		}
+	}
+	world_ = world;
+	clear_history();
+	depth_ = 0;
+	open_ = Step{};
+	open_index_.clear();
+	dirty = false;
+	revision++;
+	announce({});
+}
+
+void Doc::lease(Id from, Id end) {
+	if (from == 0 && end == 0) {
+		lease_next_ = lease_end_ = spare_next_ = spare_end_ = 0;  // no more blocks: ids past every id there is, as alone
+		return;
+	}
+	if (end <= from) {
+		return;
+	}
+	if (lease_next_ >= lease_end_) {
+		lease_next_ = from, lease_end_ = end;
+	} else {
+		spare_next_ = from, spare_end_ = end;
+	}
 }
 
 std::string Doc::undo_label() const {

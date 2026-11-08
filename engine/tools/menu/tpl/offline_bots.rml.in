@@ -19,8 +19,11 @@ game, its own timer, no bots.
 The cards are the views' (skirmish_view: v.i is the arena's index in maps, v.show whether the search
 shows it, v.fits the modes it's made for; skirmish_rview the same for skirmish_races): the search box
 and the sort chips change the views' values in C++ (oz_ui_skirmish.cpp), never the cards. A card's id
-is sk_map_<map> (sk_other_<map> in the second list, sk_race_<map> for a race). The map browser lists
-the arenas made for the mode first, then the ones made for the other modes (picking one of those
+is sk_map_<map> (sk_other_<map> in the second list, sk_user_<map> under User generated, sk_race_<map>
+for a race). The map browser lists the player's own maps first, under User generated (maps[].user:
+the map editor's compiles, oz_ui_menu.cpp; shown while skirmish.user_shown, the ones the search finds,
+is above 0; picking one made for other modes than the mode's switches to the first it's made for),
+then the arenas made for the mode, then the ones made for the other modes (picking one of those
 switches to the first mode it's made for). A mode change keeps the arena when it's made for the new
 mode, else picks the mode's own (modes[].pick): the arrows and the value run that themselves, Left and
 Right spin in C++ and the key's release checks. RmlUi's expressions have no loops, so the checks over an arena's types (up
@@ -65,6 +68,17 @@ startmatch adds ('' is no bot).
 							<span class="hint">{{ skirmish.shown == skirmish.count ? skirmish.count + (skirmish.mod == 'defrag' ? ' race maps' : ' arenas') : skirmish.shown + ' of ' + skirmish.count }}</span>
 						</div>
 						<div class="cards" data-if="skirmish.mod != 'defrag'">
+							<div data-if="skirmish.user_shown &gt; 0">
+								<div class="othersh usersh">User generated: the maps you compiled in the map editor</div>
+								<div class="grid">
+									<button class="card" data-for="v : skirmish_view" data-if="@@USER@@" data-attr-id="'sk_user_' + maps[v.i].map" data-class-sel="v.i == create_match_pick.skirmish.mapi" data-attrif-autofocus="v.i == create_match_pick.skirmish.mapi" data-event-click="@@PICK_USER@@">
+										<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (maps[v.i].tile != '' ? ', image(' + maps[v.i].tile + ' fill)' : '')"/>
+										<div class="fits" data-if="maps[v.i].nobots"><span>No bots</span></div>
+										<div class="cap"><div class="n">{{ maps[v.i].name | plain }}</div><div class="id">{{ maps[v.i].map }}</div></div>
+									</button>
+								</div>
+								<div class="othersh">Arenas made for {{ create_match.modes[create_match.skirmish.mi].name }}</div>
+							</div>
 							<div class="grid">
 								<button class="card" data-for="v : skirmish_view" data-if="@@MINE@@" data-attr-id="'sk_map_' + maps[v.i].map" data-class-sel="v.i == create_match_pick.skirmish.mapi" data-attrif-autofocus="v.i == create_match_pick.skirmish.mapi" data-event-click="create_match_pick.skirmish.mapi = v.i">
 									<div class="img" data-style-decorator="'linear-gradient(0deg, #000000e6 0%, #00000033 50%, #00000000 100%)' + (maps[v.i].tile != '' ? ', image(' + maps[v.i].tile + ' fill)' : '')"/>

@@ -48,7 +48,7 @@ void Session::autosave_write() {
 	WriteOptions wo;
 	wo.title = name + ", kept by the Oz Arena map editor's autosave";
 	const std::string text = write_map(doc, wo);
-	const std::string map = autosave_dir() + "/autosave.map", info = autosave_dir() + "/autosave.txt";
+	const std::string map = autosave_dir() + "/" + autosave_name + ".map", info = autosave_dir() + "/" + autosave_name + ".txt";
 	// what it was: its file, its name, when
 	const std::string about = path + "\n" + name + "\n" + std::to_string((long long)std::time(nullptr)) + "\n";
 	OzEd_MakeDirs(map.c_str());
@@ -58,13 +58,16 @@ void Session::autosave_write() {
 }
 
 void Session::autosave_clear() {
-	std::remove((autosave_dir() + "/autosave.map").c_str());
-	std::remove((autosave_dir() + "/autosave.txt").c_str());
+	std::remove((autosave_dir() + "/" + autosave_name + ".map").c_str());
+	std::remove((autosave_dir() + "/" + autosave_name + ".txt").c_str());
 	autosave_rev_ = doc.revision;
 	autosave_due_ = 0;
 }
 
 bool Session::recovery_offer(std::string &what) {
+	if (no_recovery) {
+		return false;
+	}
 	if (!recovery_looked_) {
 		// the first look of a session: what an earlier one left (it closed or crashed unsaved) is moved aside,
 		// so this session's autosaves, 20 s after its first change, can't write over it

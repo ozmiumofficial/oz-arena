@@ -48,6 +48,9 @@ friend's Join button can follow.
 #include "oz_online.h"
 #include "cJSON.h"
 #include <juice/juice.h>
+#ifdef USE_OZ_EDLINK
+#include "oz_edlink.h"
+#endif
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -94,6 +97,7 @@ typedef struct {
 	int			created, connectedAt;
 	volatile int	lastRecv;			// Sys_Milliseconds of the last packet (libjuice's thread)
 	char		password[64];
+	qboolean	edit;					// an editing session's link (PE): no game connection of its own, oz_edlink.c's channel
 } iceLink_t;
 
 typedef struct {
@@ -138,6 +142,16 @@ static struct {
 	char		last[1024];
 	int			checkedAt;
 } host;
+
+// the editing session this player hosts (PE): listed as mode "edit" (one listing a player: never beside a match's)
+static struct {
+	qboolean	on;
+	char		name[64], map[64], password[64];
+	int			players, max;
+	char		last[1024];
+	int			checkedAt;
+	char		join[64], detail[96];	// presence while editing together: "edit:<host>", "Editing <map>"
+} edit;
 
 static juice_server_t	*testServer;
 static char		stunHost[128];
@@ -233,6 +247,8 @@ static iceLink_t *NewLink( const char *pid, qboolean hosting ) {
 }
 
 
+static int SlotOf( const iceLink_t *l );
+
 static void FreeLink( iceLink_t *l, const char *why ) {
 	if ( !l->used ) {
 		return;
@@ -240,6 +256,15 @@ static void FreeLink( iceLink_t *l, const char *why ) {
 	if ( why ) {
 		Com_Printf( "ice: link with %s closed (%s)\n", l->pid, why );
 	}
+#ifdef USE_OZ_EDLINK
+	if ( l->edit ) {
+		if ( l->connectedAt ) {
+			OzEdLink_Down( SlotOf( l ), l->gen, l->pid, why );
+		} else if ( !l->hosting ) {
+			OzEdLink_Failed( l->pid, why ? why : "The link closed." );
+		}
+	}
+#endif
 	if ( l->agent ) {
 		juice_destroy( l->agent );		// no callback runs after it returns
 	}
@@ -259,6 +284,14 @@ static int SlotOf( const iceLink_t *l ) {
 
 // a joiner's link that ends before its game connection went out: the menus say why
 static void JoinFailed( const iceLink_t *l, const char *reason ) {
+	if ( l->used && l->edit ) {
+#ifdef USE_OZ_EDLINK
+		if ( !l->hosting && !l->connectedAt ) {
+			OzEdLink_Failed( l->pid, reason );
+		}
+#endif
+		return;
+	}
 	if ( l->used && !l->hosting && !l->connectSent ) {
 		JoinState( "failed", l->pid, reason );
 	}
@@ -412,6 +445,20 @@ void OzIce_SendPacket( int length, const void *data, const netadr_t *to ) {
 }
 
 
+// editing together's channel (oz_edlink.c): a packet on the link in that slot, if it's still that link and up
+qboolean OzIce_SendSlot( int slot, int gen, const void *data, int len ) {
+	iceLink_t *l;
+	if ( slot < 0 || slot >= ICE_LINKS ) {
+		return qfalse;
+	}
+	l = &links[slot];
+	if ( !l->used || l->gen != gen || !l->agent || ( l->state != JUICE_STATE_CONNECTED && l->state != JUICE_STATE_COMPLETED ) ) {
+		return qfalse;
+	}
+	return juice_send( l->agent, (const char *)data, len ) == JUICE_ERR_SUCCESS;
+}
+
+
 qboolean OzIce_GetPacket( netadr_t *from, void *data, int *length, int maxsize ) {
 	qboolean got = qfalse;
 	int now = Sys_Milliseconds();
@@ -430,6 +477,20 @@ qboolean OzIce_GetPacket( netadr_t *from, void *data, int *length, int maxsize )
 		if ( !l->used || l->gen != p->gen || p->length > maxsize ) {
 			continue;
 		}
+#ifdef USE_OZ_EDLINK
+		if ( OzEdLink_Is( p->data, p->length ) ) {
+			// editing together's channel: never id's netcode's (a match on the same link goes on beside it)
+			int slot = p->slot, gen = p->gen, length = p->length;
+			char pid[24];
+			byte copy[ICE_PACKET_MAX];
+			Q_strncpyz( pid, l->pid, sizeof( pid ) );
+			memcpy( copy, p->data, length );
+			Unlock( &lock );
+			OzEdLink_Input( slot, gen, pid, copy, length );
+			Lock( &lock );
+			continue;
+		}
+#endif
 		Com_Memset( from, 0, sizeof( *from ) );
 		from->type = NA_ICE;
 		from->ipv._4[0] = 0xff;
@@ -708,13 +769,15 @@ static void Unhost( void ) {
 	OzUpnp_Close();
 #endif
 	for ( i = 0; i < ICE_LINKS; i++ ) {
-		if ( links[i].used && links[i].hosting ) {
+		if ( links[i].used && links[i].hosting && !links[i].edit ) {	// an editing session's stay: it isn't the match's
 			FreeLink( &links[i], "no longer hosting" );
 		}
 	}
 	Com_Printf( "ice: listing taken down\n" );
 }
 
+
+static void EditRequest( const char *peer, const char *name, const char *password, const char *version );
 
 // net_request {peer, name, password, version}
 static void Request( const cJSON *m ) {
@@ -727,6 +790,11 @@ static void Request( const cJSON *m ) {
 	cJSON *r;
 
 	if ( !cJSON_IsString( peer ) ) {
+		return;
+	}
+	if ( edit.on ) {
+		EditRequest( peer->valuestring, cJSON_IsString( name ) ? name->valuestring : "Player",
+			cJSON_IsString( password ) ? password->valuestring : "", cJSON_IsString( version ) ? version->valuestring : "" );
 		return;
 	}
 	if ( !host.on || !com_sv_running->integer ) {
@@ -968,6 +1036,12 @@ static void LinkConnected( iceLink_t *l ) {
 	// the types only: the addresses stay out of the console
 	Com_sprintf( l->pair, sizeof( l->pair ), "local %s, remote %s", TypeOf( local ), TypeOf( remote ) );
 	Com_Printf( "ice: connected to %s, %s (%s) in %i ms\n", l->pid, l->relayed ? "relayed" : "direct", l->pair, l->connectedAt - l->created );
+	if ( l->edit ) {
+#ifdef USE_OZ_EDLINK
+		OzEdLink_Up( SlotOf( l ), l->gen, l->pid, l->relayed );
+#endif
+		return;
+	}
 	if ( !l->hosting && !l->connectSent ) {
 		l->connectSent = qtrue;
 		Cvar_Set( "oz_net_link", l->relayed ? "relayed" : "direct" );
@@ -1033,6 +1107,202 @@ static void DrainEvents( void ) {
 
 
 /*
+==============================================================================
+
+EDITING TOGETHER (PE): the session's listing, its joins, its links
+
+==============================================================================
+*/
+
+const char *OzIce_EditVersion( void ) {
+	static char v[32];
+	Com_sprintf( v, sizeof( v ), "oz-ed1 %s", OZ_VERSION );	// the hub keeps 24 characters
+	return v;
+}
+
+
+// net_host {name, mode "edit", map, players, max, password, version, rtt, relay}
+static void EditListing( qboolean force ) {
+	cJSON *m = Msg( "net_host" );
+	char *text;
+	cJSON_AddStringToObject( m, "name", edit.name );
+	cJSON_AddStringToObject( m, "mode", "edit" );
+	cJSON_AddStringToObject( m, "map", edit.map );
+	cJSON_AddNumberToObject( m, "players", edit.players );
+	cJSON_AddNumberToObject( m, "max", edit.max );
+	cJSON_AddBoolToObject( m, "password", edit.password[0] != '\0' );
+	cJSON_AddBoolToObject( m, "ranked", qfalse );
+	cJSON_AddStringToObject( m, "version", OzIce_EditVersion() );
+	cJSON_AddNumberToObject( m, "rtt", OzOnline_Rtt() );
+	cJSON_AddStringToObject( m, "address", "" );
+	cJSON_AddBoolToObject( m, "relay", HideIp() );
+	text = cJSON_PrintUnformatted( m );
+	if ( text && ( force || strcmp( text, edit.last ) ) ) {
+		Q_strncpyz( edit.last, text, sizeof( edit.last ) );
+		if ( OzOnline_Send( text ) ) {
+			Com_Printf( "ice: editing session listed: %s on %s, %i of %i\n", edit.name, edit.map, edit.players, edit.max );
+		}
+	}
+	if ( text ) {
+		cJSON_free( text );
+	}
+	cJSON_Delete( m );
+}
+
+
+// the session's map, its name, how many are in: listed (again when it changes); its links stay as they are
+void OzIce_EditHost( const char *name, const char *map, int players, int max, const char *password ) {
+	const qboolean was = edit.on;
+	if ( host.on ) {
+		Unhost();	// one listing a player: the session's (a play-test hosted from here needs none: its players are linked)
+	}
+	edit.on = qtrue;
+	Q_strncpyz( edit.name, name, sizeof( edit.name ) );
+	Q_strncpyz( edit.map, map, sizeof( edit.map ) );
+	Q_strncpyz( edit.password, password ? password : "", sizeof( edit.password ) );
+	edit.players = players;
+	edit.max = max;
+	Com_sprintf( edit.join, sizeof( edit.join ), "edit:%s%s", OzIdentity_PlayerId(), edit.password[0] ? " locked" : "" );
+	Com_sprintf( edit.detail, sizeof( edit.detail ), "Editing %s", map );
+	EditListing( !was );
+}
+
+
+void OzIce_EditUnhost( void ) {
+	int i;
+	if ( edit.on ) {
+		edit.on = qfalse;
+		edit.last[0] = '\0';
+		SendJson( Msg( "net_unhost" ) );
+		Com_Printf( "ice: editing session unlisted\n" );
+	}
+	for ( i = 0; i < ICE_LINKS; i++ ) {
+		if ( links[i].used && links[i].edit ) {
+			cJSON *m = Msg( "net_leave" );
+			cJSON_AddStringToObject( m, "peer", links[i].pid );
+			SendJson( m );
+			FreeLink( &links[i], "the session ended" );
+		}
+	}
+	edit.join[0] = edit.detail[0] = '\0';
+}
+
+
+// a joiner asking for the session (the hub's net_request, while edit.on)
+static void EditRequest( const char *peer, const char *name, const char *password, const char *version ) {
+	const char *refuse = NULL;
+	iceLink_t *l;
+	cJSON *r;
+	int i, in = 1;
+
+	for ( i = 0; i < ICE_LINKS; i++ ) {
+		in += links[i].used && links[i].edit && links[i].hosting && strcmp( links[i].pid, peer );
+	}
+	if ( edit.password[0] && strcmp( password, edit.password ) ) {
+		refuse = "Wrong password.";
+	} else if ( in >= edit.max ) {
+		refuse = "The session is full.";
+	} else if ( version[0] && strcmp( version, OzIce_EditVersion() ) ) {
+		refuse = va( "The session is on %s; you have %s.", OzIce_EditVersion() + 7, !Q_stricmpn( version, "oz-ed1 ", 7 ) ? version + 7 : version );
+	}
+	if ( refuse ) {
+		r = Msg( "net_reject" );
+		cJSON_AddStringToObject( r, "peer", peer );
+		cJSON_AddStringToObject( r, "reason", refuse );
+		SendJson( r );
+		Com_Printf( "ice: refused %s: %s\n", peer, refuse );
+		return;
+	}
+	l = FindLink( peer );
+	if ( l ) {
+		FreeLink( l, "joining again" );
+	}
+	l = NewLink( peer, qtrue );
+	if ( !l ) {
+		return;
+	}
+	l->edit = qtrue;
+	Q_strncpyz( l->name, name, sizeof( l->name ) );
+	AskRelay();
+	r = Msg( "net_accept" );
+	cJSON_AddStringToObject( r, "peer", l->pid );
+	cJSON_AddNumberToObject( r, "expires_in", relay.have ? MAX( 0, ( relay.expires - Sys_Milliseconds() ) / 1000 ) : 3600 );
+	SendJson( r );
+	Com_Printf( "ice: %s (%s) is joining the editing session\n", l->name, l->pid );
+}
+
+
+void OzIce_EditJoin( const char *pid, const char *password ) {
+	iceLink_t *l;
+	cJSON *m;
+	if ( OzOnline_Status( NULL, 0 ) != OZ_ONLINE_ONLINE ) {
+#ifdef USE_OZ_EDLINK
+		OzEdLink_Failed( pid, "The online service isn't connected." );
+#endif
+		return;
+	}
+	l = FindLink( pid );
+	if ( l ) {
+		FreeLink( l, "joining again" );
+	}
+	l = NewLink( pid, qfalse );
+	if ( !l ) {
+		return;
+	}
+	l->edit = qtrue;
+	m = Msg( "net_join" );
+	cJSON_AddStringToObject( m, "host", pid );
+	cJSON_AddStringToObject( m, "password", password ? password : "" );
+	cJSON_AddStringToObject( m, "version", OzIce_EditVersion() );
+	SendJson( m );
+	Com_Printf( "ice: asking %s to join the editing session%s\n", pid, HideIp() ? " (Hide my IP: relayed)" : "" );
+}
+
+
+void OzIce_EditLeave( const char *pid ) {
+	iceLink_t *l = FindLink( pid );
+	cJSON *m;
+	if ( !l || !l->edit ) {
+		return;
+	}
+	m = Msg( "net_leave" );
+	cJSON_AddStringToObject( m, "peer", pid );
+	SendJson( m );
+	FreeLink( l, "left the session" );
+}
+
+
+void OzIce_EditBrowse( void ) {
+	if ( OzOnline_Status( NULL, 0 ) == OZ_ONLINE_ONLINE ) {
+		SendJson( Msg( "net_browse" ) );
+	}
+}
+
+
+int OzIce_EditRelayed( const char *pid ) {
+	const iceLink_t *l = FindLink( pid );
+	return l && l->relayed;
+}
+
+
+// presence while in a session (oz_online_engine.c): a host's own, or the session a joiner is in
+void OzIce_EditPresence( const char *join, const char *detail ) {
+	Q_strncpyz( edit.join, join ? join : "", sizeof( edit.join ) );
+	Q_strncpyz( edit.detail, detail ? detail : "", sizeof( edit.detail ) );
+}
+
+
+qboolean OzIce_EditPresenceOf( const char **join, const char **detail ) {
+	if ( !edit.detail[0] ) {
+		return qfalse;
+	}
+	*join = edit.join;
+	*detail = edit.detail;
+	return qtrue;
+}
+
+
+/*
 ==================
 OzIce_Frame
 
@@ -1060,7 +1330,7 @@ void OzIce_Frame( void ) {
 			FreeLink( l, "it didn't connect in time" );
 		} else if ( l->connectedAt && now - l->lastRecv > ICE_IDLE_MS ) {
 			FreeLink( l, "nothing heard" );
-		} else if ( !l->hosting && l->connectSent ) {
+		} else if ( !l->hosting && l->connectSent && !l->edit ) {
 			// the joiner's game connection is the link's reason to be: when it ends, so does the link
 			if ( cls.state == CA_ACTIVE ) {
 				l->wasActive = qtrue;
@@ -1073,6 +1343,14 @@ void OzIce_Frame( void ) {
 			}
 		}
 	}
+
+#ifdef USE_OZ_EDLINK
+	OzEdLink_Frame();
+	if ( edit.on && now - edit.checkedAt > 1000 ) {
+		edit.checkedAt = now;
+		EditListing( qfalse );
+	}
+#endif
 
 	if ( host.on ) {
 		if ( !com_sv_running->integer ) {

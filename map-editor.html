@@ -109,8 +109,9 @@
       <li><a href="#play"><span>XIII</span>Compile and play</a></li>
       <li><a href="#files"><span>XIV</span>Opening and saving</a></li>
       <li><a href="#defrag"><span>XV</span>Defrag courses</a></li>
-      <li><a href="#custom-keys"><span>XVI</span>Your own keys</a></li>
-      <li><a href="#keys"><span>XVII</span>Every key</a></li>
+      <li><a href="#together"><span>XVI</span>Build together</a></li>
+      <li><a href="#custom-keys"><span>XVII</span>Your own keys</a></li>
+      <li><a href="#keys"><span>XVIII</span>Every key</a></li>
     </ol>
   </details>
 </aside>
@@ -121,7 +122,7 @@
 <section id="open" aria-labelledby="open-title">
   <p class="kicker"><span class="rune">I</span> Open the editor</p>
   <h2 id="open-title">From the main menu, one click</h2>
-  <p>Pick <b>Map Editor</b> in the main menu. The first time, it opens on a new map: a small lit room with a light and a spawn point, ready to play as it is. The editor draws with the Oz renderer, the one Oz picks by default; if you've switched to another one, the status line tells you to switch back under Settings, Video, Renderer.</p>
+  <p>Pick <b>Map Editor</b> in the main menu, then <b>Single Player</b>. (<b>Multiplayer</b> builds one map with friends, live: see <a href="#together">Build together</a>.) The first time, it opens on a new map: a small lit room with a light and a spawn point, ready to play as it is. The editor draws with the Oz renderer, the one Oz picks by default; if you've switched to another one, the status line tells you to switch back under Settings, Video, Renderer.</p>
   <p>A card comes up the first time too, with six steps to a map you can play (look around, build, shape, paint, fill it, play). <b>Got it</b> closes it, and <kbd>F1</kbd> or Help, Getting started brings it back whenever you want it.</p>
 
   <figure class="shot framed">
@@ -433,8 +434,8 @@
         <rect class="cutter" x="214" y="52" width="32" height="56"/>
         <rect class="solid" x="162" y="168" width="52" height="36"/><rect class="solid" x="246" y="168" width="52" height="36"/>
         <!-- merge -->
-        <rect class="sel-face solidsel" x="334" y="70" width="40" height="40"/><rect class="sel-face solidsel" x="386" y="50" width="40" height="60"/>
-        <polygon class="solid" points="334,216 334,176 386,156 426,156 426,216"/>
+        <rect class="sel-face solidsel" x="334" y="60" width="44" height="50"/><rect class="sel-face solidsel" x="378" y="60" width="48" height="50"/>
+        <rect class="solid" x="334" y="166" width="92" height="50"/>
         <!-- clip -->
         <polygon class="drop-part" points="482,50 568,50 498,110 482,110"/>
         <polygon class="sel-face solidsel" points="568,50 578,50 578,110 498,110"/>
@@ -461,7 +462,7 @@
   <ul>
     <li><b>Hollow</b> (<kbd>Ctrl+Shift+H</kbd>) turns each selected brush into a room: walls one grid step thick (8 units at least) around its inside. Draw a box the size of the room you want, hollow it, and you have floor, walls and ceiling.</li>
     <li><b>Subtract</b> (<kbd>Ctrl+Shift+X</kbd>) carves the selected brushes out of every brush they overlap, then deletes them. Push a block through a wall and subtract it to make a doorway or a window.</li>
-    <li><b>Merge</b> (<kbd>Ctrl+J</kbd>) makes the selected brushes one: the smallest shape without dents that holds them all.</li>
+    <li><b>Merge</b> (<kbd>Ctrl+J</kbd>) joins the selected brushes that together already make one brush shape: two blocks side by side, a row of floor tiles. It never fills space between them, so an L or blocks with a gap stay as they are.</li>
     <li><b>Stairs</b> (<kbd>Ctrl+Shift+T</kbd>) turns each selected wedge into solid stairs climbing its slope, each step about 8 units high. Clip a box corner to corner first to get the wedge.</li>
   </ul>
   <h3>Turn and mirror</h3>
@@ -588,7 +589,7 @@
     <figcaption><b>Jump pad</b> The pad is one object: a click selects all of it, a double-click one piece. Selected, Inspect reads out its throw, for example <i>The throw: 755 a second, 256 up, 640 across, 1.6 s in the air</i>.</figcaption>
     <p class="scroll-hint">Scroll the diagram sideways</p>
   </figure>
-  <p>After the second click the Select tool is back with the new pad selected. Drag its landing ring to move where it lands; the throw re-aims as you drag, all in one undo step. <b>Land here</b> in the Inspect tab (or the Entity menu) lets you click a new landing spot, and <b>Higher</b> and <b>Lower</b> raise or drop the arc by 32 units while it still lands in the same place.</p>
+  <p>After the second click the Select tool is back with the new pad selected. Drag its landing ring to move where it lands; the throw re-aims as you drag, all in one undo step. Drag the diamond at the top of the arc up or down to throw higher or lower: it keeps landing in the same place, stops 40 units under the roof, and won't go to a height where the throw would hit something on the way. <b>Land here</b> in the Inspect tab (or the Entity menu) lets you click a new landing spot, and <b>Higher</b> and <b>Lower</b> raise or drop the arc by 32 units while it still lands in the same place.</p>
 
   <figure class="shot framed">
     <img src="img/editor_jumppad.jpg" alt="A selected jump pad in a test room, its arc and landing ring drawn, and the Inspect tab reading out the throw: 696 a second, 202 up, 581 across, 1.5 s in the air, with Land here, Higher and Lower" loading="lazy" width="1600" height="900">
@@ -748,6 +749,8 @@
     <li><b>Compile</b> (<kbd>Ctrl+F5</kbd>): the whole compile, with visibility and the full, softer light. Use it for the finished look and before you share the map.</li>
     <li><b>Lit preview</b> (<kbd>F6</kbd>): the editor's view shows the map lit by its own lights, from the last compile. Changes you make meanwhile are drawn over it; <kbd>F6</kbd> again goes back to the plain view.</li>
   </ul>
+  <h3>The game mode</h3>
+  <p><b>Build, Game mode</b> picks what Play starts the map as: <b>Free for all</b>, <b>Duel</b>, <b>Team deathmatch</b> or <b>Capture the flag</b>. The map keeps it (it's saved in the map file), and the status line names it. In the two team modes you're put on a team as you come in. Capture the flag needs a red flag and a blue flag (the Entities tab's flags): without them, Play says which one is missing.</p>
   <figure class="shot framed">
     <img src="img/editor.jpg" alt="The Longest Yard open in the map editor in Lit preview, lit as in the game against its starry sky, jump pad arcs drawn over it, the heavy armor selected and its keys in the Inspect tab" loading="lazy" width="1600" height="900">
     <figcaption>A stock arena opened in the editor, compiled in 12 seconds and seen in Lit preview, with its heavy armor selected. The compile's warnings wait behind the button in the action bar.</figcaption>
@@ -848,8 +851,37 @@
 </section>
 
 <!-- ============================================================ XVI -->
+<section id="together" aria-labelledby="together-title">
+  <p class="kicker"><span class="rune">XVI</span> Build together</p>
+  <h2 id="together-title">One map, up to 8 builders, live</h2>
+  <p>Pick <b>Map Editor</b> in the main menu, then <b>Multiplayer</b>. It's the same editor, with the same tools, keys and menus, working on a map you share. It keeps its own map, camera and autosave, so whatever you have open in Single Player stays as it was.</p>
+  <ul>
+    <li><b>Host</b> a session from a new map, one of your maps or one of the game's. Give it a name, a password if you want one, and how many can join (2 to 8). It's listed for everyone, and your friends see "Editing" and a <b>Join</b> button in Friends.</li>
+    <li><b>Join</b> from the list of open sessions, from a friend in Friends, or by typing a session's code (the host's session bar shows it, and <b>Code</b> and <b>Link</b> copy it to send).</li>
+  </ul>
+  <p>Everyone sees every change as it's made. Each builder is drawn as their fighter flying where their camera is, facing where they're looking, with their name over them in their color. You also see where they're pointing, what they've selected, and what they're dragging or drawing. Something another builder is dragging can't be grabbed until they let go: the status line says who has it.</p>
+  <figure class="shot framed">
+    <img src="img/editor_together.jpg" alt="A shared map in the multiplayer map editor: another builder shown as their fighter floating in the room with their name over them, a line where they're looking, and the session bar listing both players with Follow, Viewer and Kick" loading="lazy" width="1600" height="900">
+    <figcaption>Another builder, flying where their camera is. The session bar lists who's in.</figcaption>
+  </figure>
+  <h3>The session bar</h3>
+  <p>The box in the view's top right lists everyone in the session. <b>Follow</b> puts your camera on someone else's until you move it. The host can make someone a <b>Viewer</b> (they fly around and play, but don't edit) and back, or <b>Kick</b> them. <b>Leave session</b> leaves it; when the host leaves, the session ends for everyone. If the host's game closes or their connection drops, the next player in takes the session over and everyone carries on.</p>
+  <h3>Undo, history and saving</h3>
+  <ul>
+    <li><b>Undo is your own.</b> It undoes your steps only. If someone else has changed an object since, undo leaves their change and the status line says so.</li>
+    <li><b>History</b> shows everyone's changes by name, above your own steps.</li>
+    <li><b>Saving is yours:</b> Save writes the session's map to your own PC, when you choose. Nobody saves on anyone else's.</li>
+  </ul>
+  <h3>Play together</h3>
+  <p><b>Play together</b> (<kbd>Ctrl+Shift+F5</kbd>, in the Build menu) compiles the map on your PC, sends it to everyone in the session, and hosts the match from your PC. Everyone is brought into it, in the map's <a href="#play">game mode</a>. When you choose <b>Back to the map editor</b>, everyone comes back to the editor with the session as it was. While you play, the others can keep editing: <b>Reload the map</b> in the pause menu brings in their changes for everyone, and puts each player back where they stood. <b>Play</b> (<kbd>F5</kbd>) on your own still works at any time without leaving the session.</p>
+  <div class="know">
+    <p>Everyone in a session needs the same version of Oz Arena. Textures, models and sounds aren't sent: if one builder uses something from a map pack another doesn't have, it shows as missing for that player.</p>
+  </div>
+</section>
+
+<!-- ============================================================ XVII -->
 <section id="custom-keys" aria-labelledby="custom-keys-title">
-  <p class="kicker"><span class="rune">XVI</span> Your own keys</p>
+  <p class="kicker"><span class="rune">XVII</span> Your own keys</p>
   <h2 id="custom-keys-title">Change any key, or bring Radiant's</h2>
   <h3>Search</h3>
   <p><b>Search</b> (<kbd>F3</kbd>, or Search in the action bar) finds any action by its name, by what it does or by its keys. The best matches come first; <kbd>Up</kbd> and <kbd>Down</kbd> move the highlight, <kbd>Enter</kbd> does it, <kbd>Esc</kbd> closes the box.</p>
@@ -871,7 +903,7 @@
 
 <!-- ============================================================ XVII -->
 <section id="keys" aria-labelledby="keys-title">
-  <p class="kicker"><span class="rune">XVII</span> Every key</p>
+  <p class="kicker"><span class="rune">XVIII</span> Every key</p>
   <h2 id="keys-title">The key reference</h2>
   <p>The editor's own keys, as it ships. If you've changed yours, the menus and tips show yours.</p>
   <div class="me-filter">
@@ -964,6 +996,7 @@
       <tr class="grp"><th colspan="2" scope="colgroup">Play and files</th></tr>
       <tr><th><kbd>F5</kbd></th><td>Play</td></tr>
       <tr><th><kbd>Shift+F5</kbd></th><td>Play from here</td></tr>
+      <tr><th><kbd>Ctrl+Shift+F5</kbd></th><td>Play together (Multiplayer)</td></tr>
       <tr><th><kbd>Ctrl+F5</kbd></th><td>Compile</td></tr>
       <tr><th><kbd>Ctrl+N</kbd></th><td>New map</td></tr>
       <tr><th><kbd>Ctrl+O</kbd></th><td>Open map</td></tr>

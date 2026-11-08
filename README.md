@@ -180,10 +180,11 @@ A map editor built into the game: **Map Editor** in the main menu, then **Single
 
 The multiplayer map editor puts up to 8 players on one map, live, peer-to-peer. It's the same editor, with its own map, camera and autosave, apart from the single-player one.
 
-- **Host or join:** host from a new map, one of your maps or a game map, with a name, an optional password and up to 8 players. Join from the list of open sessions, from a friend in Friends, or with a session's code.
-- **See each other work:** every change shows for everyone as it's made. Each builder flies around as their fighter, with their name over them, and you see where they point, what they've selected and what they're dragging. Something another builder is dragging can't be grabbed until they let go.
+- **Host or join:** host from a new map, one of your maps or a game map, with a name, an optional password and up to 8 players. Join from the list of open sessions, from a friend in Friends, or with a session's code. In a party, the party follows its leader into the session.
+- **See each other work:** every change shows for everyone as it's made. Each builder flies around as their fighter, with their name over them, and you see where they point, what they've selected and what they're dragging. A face another builder pushes or corners they drag change in their color as they go, and each change that arrives is outlined in their color for a moment, so nothing pops in out of nowhere. Something another builder is dragging can't be grabbed until they let go.
 - **Your own undo and saves:** undo only undoes your own changes. History shows everyone's by name. Save writes the map to your own PC.
 - **Play together** (Ctrl+Shift+F5): compiles the map on your PC, sends it to everyone and hosts the match; Back to the map editor brings everyone back. While some play, others keep editing, and Reload brings the changes in with everyone kept in place.
+- **Play in Defrag together** (Build menu): the same, under Defrag, with its timer. Everyone who has Defrag installed joins; the others are told and keep editing.
 - **The host can leave:** if the host's game closes, the next player takes the session over. The host can make players viewers or kick them.
 
 Everyone in a session needs the same version of Oz Arena. Textures, models and sounds aren't sent: what one player's install lacks shows as missing for them.

@@ -2720,7 +2720,7 @@ const struct {
 	{ "entity", { "show_entities", "light", "jump_pad", "push_land", "teleporter", "-", "#MOVERS", "door", "door_pair", "lift", "door_button",
 		"door_trigger", "train_path", "mover_play", "-", "to_world", "-", "#DEFRAG", "defrag_start", "defrag_checkpoint", "defrag_finish",
 		"defrag_speed", "defrag_shooter", "defrag_check", "play_defrag" } },
-	{ "build", { "play", "play_here", "@play_together", "play_defrag", "-", "#GAME MODE", "mode_ffa", "mode_duel", "mode_tdm", "mode_ctf", "-", "sky_sun", "-", "compile", "compile_stop", "preview", "-", "#THUMBNAIL", "thumb_set", "thumb_view",
+	{ "build", { "play", "play_here", "@play_together", "play_defrag", "@play_defrag_together", "-", "#GAME MODE", "mode_ffa", "mode_duel", "mode_tdm", "mode_ctf", "-", "sky_sun", "-", "compile", "compile_stop", "preview", "-", "#THUMBNAIL", "thumb_set", "thumb_view",
 		"thumb_shoot", "-", "check_map", "frame_leak", "warnings" } },
 	{ "help", { "guide", "keymap", "search" } },
 };

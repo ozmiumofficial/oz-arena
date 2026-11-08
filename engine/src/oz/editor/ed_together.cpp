@@ -34,6 +34,11 @@ const int PRESENCE_BEAT_MS = 500;  // and twice a second while nothing does: the
 const int PRESENCE_GONE_MS = 6000; // a player silent this long is drawn faded
 const int SELECT_MS = 200;         // a selection sent at most five times a second
 const int HOST_SILENT_MS = 8000;   // a host heard nothing from this long is gone: someone takes over
+const int PLAY_SILENT_MS = 30000;  // in a play-test together and for PLAY_AFTER_MS after it (its switches back)
+const int PLAY_AFTER_MS = 15000;
+const int GHOST_MS = 100;          // a reshaping drag's objects sent at most ten times a second
+const int RECENT_MS = 1500;        // what another player changed stays outlined this long, fading
+const size_t GHOST_MAX = 128;      // a drag's objects sent as ghosts at most (a big group's push: the first ones)
 }  // namespace
 
 Session &solo_session() {
@@ -308,9 +313,9 @@ void Together::attach() {
 			note("The session's map stays the session's: leave the session to open another (File, Leave session)");
 			return true;
 		}
-		if (action == "play_together") {
+		if (action == "play_together" || action == "play_defrag_together") {
 			std::string why;
-			if (!play_together(why)) {
+			if (!play_together(why, action == "play_defrag_together")) {
 				together_session().notify(why, true);
 			}
 			return true;
@@ -388,6 +393,14 @@ void Together::start_sharing(uint32_t num, uint32_t seq) {
 	};
 	rep_->on_remote = [this](const sync::Edit &e, const std::vector<Id> &ids) {
 		Session &s2 = together_session();
+		// outlined a moment in their color, so a change never just appears; their drag's ghost is done with
+		if (e.player && e.player != me) {
+			const int at = OzEdNet_Milliseconds();
+			for (Id id : ids) {
+				recent_[id] = {e.player, at};
+			}
+			ghosts_.erase(e.player);
+		}
 		// what someone else changed leaves this player's selection when it's gone
 		bool gone = false;
 		for (Id id : ids) {
@@ -931,6 +944,40 @@ void Together::on_message(const std::string &pid, const sync::Bytes &b) {
 			others_built_ = -1;
 			return;
 		}
+		case M_GHOST: {
+			if (!p) {
+				return;
+			}
+			r.var();  // their own number: the link says who
+			std::vector<std::pair<Id, ObjectPtr>> objs;
+			const uint64_t n = r.var();
+			for (uint64_t i = 0; i < n && r.ok && i < GHOST_MAX; i++) {
+				const Id id = r.i32();
+				ObjectPtr o = sync::get_object(r);
+				if (!o) {
+					return;
+				}
+				objs.emplace_back(id, o);
+			}
+			if (objs.empty()) {
+				ghosts_.erase(from);
+			} else {
+				ghosts_[from] = std::move(objs);
+			}
+			// passed on to the others with the player the link says
+			sync::Writer g;
+			g.u8(M_GHOST);
+			g.var(from);
+			const auto it = ghosts_.find(from);
+			const size_t count = it == ghosts_.end() ? 0 : it->second.size();
+			g.var(count);
+			for (size_t i = 0; i < count; i++) {
+				g.i32(it->second[i].first);
+				sync::put_object(g, *it->second[i].second);
+			}
+			to_all(g, from);
+			return;
+		}
 		case M_BYE:
 			if (p) {
 				OzEdNet_Leave(pid.c_str());
@@ -1072,6 +1119,25 @@ void Together::on_message(const std::string &pid, const sync::Bytes &b) {
 		others_built_ = -1;
 		return;
 	}
+	case M_GHOST: {
+		const uint32_t who = uint32_t(r.var());
+		std::vector<std::pair<Id, ObjectPtr>> objs;
+		const uint64_t n = r.var();
+		for (uint64_t i = 0; i < n && r.ok && i < GHOST_MAX; i++) {
+			const Id id = r.i32();
+			ObjectPtr o = sync::get_object(r);
+			if (!o) {
+				return;
+			}
+			objs.emplace_back(id, o);
+		}
+		if (objs.empty() || who == me) {
+			ghosts_.erase(who);
+		} else {
+			ghosts_[who] = std::move(objs);
+		}
+		return;
+	}
 	case M_BYE:
 	case M_KICK: {
 		const std::string reason = r.str();
@@ -1205,6 +1271,61 @@ void Together::send_selection() {
 	}
 }
 
+// A drag that reshapes objects as it goes (a face pushed, corners dragged, a jump pad's landing or arc) changes
+// them in this player's document only until it's let go: the others see them as they are, ten times a second
+// while they change, and nothing once it ends (the edit itself then comes, outlined).
+void Together::ghost_tick() {
+	Session &s = together_session();
+	const int now = OzEdNet_Milliseconds();
+	Vec3 delta;
+	const bool reshaping = s.dragging() && !s.move_ghost(delta) && !s.held_ids().empty();
+	if (!reshaping) {
+		if (ghost_on_) {
+			ghost_on_ = false;
+			ghost_rev_ = ~0ull;
+			sync::Writer w;
+			w.u8(M_GHOST);
+			w.var(me);
+			w.var(0);
+			if (hosting) {
+				to_all(w);
+			} else {
+				to_host(w);
+			}
+		}
+		return;
+	}
+	if (s.doc.revision == ghost_rev_ || now - ghost_at_ < GHOST_MS) {
+		return;
+	}
+	ghost_rev_ = s.doc.revision;
+	ghost_at_ = now;
+	ghost_on_ = true;
+	std::vector<Id> ids = s.held_ids();
+	if (ids.size() > GHOST_MAX) {
+		ids.resize(GHOST_MAX);
+	}
+	sync::Writer w;
+	w.u8(M_GHOST);
+	w.var(me);
+	size_t count = 0;
+	for (Id id : ids) {
+		count += s.doc.get(id) != nullptr;
+	}
+	w.var(count);
+	for (Id id : ids) {
+		if (const Object *o = s.doc.get(id)) {
+			w.i32(id);
+			sync::put_object(w, *o);
+		}
+	}
+	if (hosting) {
+		to_all(w);
+	} else {
+		to_host(w);
+	}
+}
+
 void Together::claims_tick() {
 	Session &s = together_session();
 	if (claimed_.empty() || s.dragging()) {
@@ -1237,11 +1358,12 @@ bool safe_pak_file(const std::string &f) {
 	if (f.size() < 10 || f.compare(0, 3, "ed_") != 0) {
 		return false;
 	}
-	const std::string ext = f.substr(f.size() - 4);
-	if (ext != ".bsp" && ext != ".aas") {
+	const bool defi = f.size() > 5 && f.compare(f.size() - 5, 5, ".defi") == 0;
+	const std::string ext = defi ? ".defi" : f.substr(f.size() - 4);
+	if (ext != ".bsp" && ext != ".aas" && ext != ".defi") {
 		return false;
 	}
-	const std::string stem = f.substr(0, f.size() - 4);
+	const std::string stem = f.substr(0, f.size() - ext.size());
 	const size_t r = stem.rfind("_r");
 	if (r == std::string::npos || r + 2 >= stem.size()) {
 		return false;
@@ -1270,6 +1392,16 @@ bool read_file(const std::string &path, std::string &out) {
 	return true;
 }
 
+// where a play-test's file goes: the player's own maps folder; under Defrag its folder (maps, and scripts for
+// the map's info), where the switch to Defrag finds them
+std::string play_file_path(const std::string &name, bool defrag) {
+	if (!defrag) {
+		return maps_dir() + "/" + name;
+	}
+	const bool defi = name.size() > 5 && name.compare(name.size() - 5, 5, ".defi") == 0;
+	return std::string(OzEd_HomePath()) + "/defrag/" + (defi ? "scripts/" : "maps/") + name;
+}
+
 std::string random_password() {
 	char buf[16];
 	std::snprintf(buf, sizeof buf, "%08x", unsigned(OzEdNet_Milliseconds()) * 2654435761u ^ 0x5bd1e995u);
@@ -1278,8 +1410,11 @@ std::string random_password() {
 
 }  // namespace
 
-bool Together::play_together(std::string &why) {
+bool Together::play_together(std::string &why, bool defrag) {
 	Session &s = together_session();
+	if (defrag && !s.defrag_ready(why)) {
+		return false;  // Oz never installs it (decision 24): the player brings their own
+	}
 	if (!live()) {
 		why = "Play together is a session's: host or join one";
 		return false;
@@ -1296,7 +1431,7 @@ bool Together::play_together(std::string &why) {
 		why = "Leave the match first";
 		return false;
 	}
-	if (!s.mode_problem().empty()) {
+	if (!defrag && !s.mode_problem().empty()) {
 		why = s.mode_problem();  // Capture the flag without its flags
 		return false;
 	}
@@ -1304,6 +1439,7 @@ bool Together::play_together(std::string &why) {
 	play.stage = 1;
 	play.starter = me;
 	play.rev = seq();
+	play.defrag = defrag;
 	s.compiled = [this](bool ok, const std::string &dir, const std::string &out) { play_compiled(ok, dir, out, false); };
 	s.next_without_bots = true;  // no bots in a play-test together: their file only slows it (and a rough map can fail it)
 	if (!s.compile(false, false, false)) {
@@ -1312,7 +1448,7 @@ bool Together::play_together(std::string &why) {
 		why = "The map didn't start compiling";
 		return false;
 	}
-	note("Compiling the map on your PC to play it together");
+	note(defrag ? "Compiling the map on your PC to play it together under Defrag" : "Compiling the map on your PC to play it together");
 	return true;
 }
 
@@ -1335,11 +1471,20 @@ void Together::play_compiled(bool ok, const std::string &dir, const std::string 
 		note("Play together: the compiled map isn't there");
 		return;
 	}
-	const bool bots = read_file(dir + "/maps/" + out + ".aas", aas);
-	OzEd_MakeDirs((maps_dir() + "/x").c_str());
-	OzEd_WriteOSFile((maps_dir() + "/" + map + ".bsp").c_str(), bsp.data(), int(bsp.size()));
+	const bool defrag = play.defrag;
+	const bool bots = !defrag && read_file(dir + "/maps/" + out + ".aas", aas);  // Defrag runs without bots
+	const sync::Bytes defi = defrag ? s.defrag_defi(map) : sync::Bytes();
+	auto keep = [&](const std::string &name, const sync::Bytes &data) {
+		const std::string path = play_file_path(name, defrag);
+		OzEd_MakeDirs(path.c_str());
+		OzEd_WriteOSFile(path.c_str(), data.data(), int(data.size()));
+	};
+	keep(map + ".bsp", bsp);
 	if (bots) {
-		OzEd_WriteOSFile((maps_dir() + "/" + map + ".aas").c_str(), aas.data(), int(aas.size()));
+		keep(map + ".aas", aas);
+	}
+	if (defrag) {
+		keep(map + ".defi", defi);
 	}
 	// the map to everyone, then (once the match is up) where to join it
 	auto send_file = [&](const std::string &name, const sync::Bytes &data) {
@@ -1347,6 +1492,7 @@ void Together::play_compiled(bool ok, const std::string &dir, const std::string 
 		w.u8(M_PAK);
 		w.str(name);
 		w.bytes(sync::pack(data));
+		w.u8(defrag ? 1 : 0);
 		if (hosting) {
 			to_all(w);
 		} else {
@@ -1356,6 +1502,9 @@ void Together::play_compiled(bool ok, const std::string &dir, const std::string 
 	send_file(map + ".bsp", bsp);
 	if (bots) {
 		send_file(map + ".aas", aas);
+	}
+	if (defrag) {
+		send_file(map + ".defi", defi);
 	}
 	play.map = map;
 	play.rev = seq();
@@ -1382,6 +1531,17 @@ void Together::play_compiled(bool ok, const std::string &dir, const std::string 
 	play.stage = 2;
 	// a listen server in the map's game mode: the files are loose in the players' maps folders, so it isn't pure;
 	// cheats for edpos. A team mode's players go on a team as they come in (team_tick).
+	if (defrag) {
+		// Defrag's game on this PC (oz_playmod: back to Oz when the match ends), then the map; the lines after
+		// the switch wait for it
+		// (Defrag's game asks its host's own player for the password too: Quake III's lets the local player by).
+		// A listen server under Defrag takes remote players only in a multiplayer game type, set by hand
+		// (df_gametype 5, multiplayer defrag: its auto-config picks one only on a dedicated server)
+		OzEdNet_Command(("oz_playmod defrag\nset sv_pure 0\nset g_password " + play.password + "\nset password " + play.password +
+			"\nset sv_hostname \"" + name_of(me) + "'s Defrag play-test\"\nset sv_maxclients " + std::to_string(sync::MAX_PLAYERS) +
+			"\nset df_gametype 5\nmap " + map + "\n").c_str());
+		return;
+	}
 	OzEdNet_Command(("set sv_pure 0\nset g_password " + play.password + "\nset sv_hostname \"" + name_of(me) + "'s play-test\"\n" +
 		s.mode_before_map() + "devmap " + map + "\n").c_str());
 }
@@ -1411,18 +1571,28 @@ void Together::join_play() {
 		play.stage = 0;
 		return;
 	}
+	std::string why;
+	if (play.defrag && !together_session().defrag_ready(why)) {
+		// Oz never installs Defrag (decision 24): this player keeps editing
+		note(name_of(play.starter) + " is playing the map under Defrag: install Defrag (Mod Library) to join. You stay in the session, editing.");
+		log("together: not joining the Defrag play-test: %s\n", why.c_str());
+		play.stage = 0;
+		return;
+	}
 	play.stage = 4;
 	play.was_active = false;
-	OzEdNet_SetCvar("password", play.password.c_str());
 	// linked to the match's host already (they host the session, or we do and they're our joiner): over that link;
-	// else the online service links us, as any join
+	// else the online service links us, as any join. Under Defrag: Defrag's game first (oz_playmod: back to Oz
+	// after), the password set after the switch (a switch empties it)
 	const bool linked = (!hosting && play.host_pid == host_pid) || (hosting && num_of(play.host_pid));
-	if (linked) {
-		OzEdNet_Command(("connect ice:" + play.host_pid + "\n").c_str());
+	const std::string join = linked ? "connect ice:" + play.host_pid + "\n" : "oz_join " + play.host_pid + " " + play.password + "\n";
+	if (play.defrag) {
+		OzEdNet_Command(("oz_playmod defrag\nset password " + play.password + "\n" + join).c_str());
 	} else {
-		OzEdNet_Command(("oz_join " + play.host_pid + " " + play.password + "\n").c_str());
+		OzEdNet_SetCvar("password", play.password.c_str());
+		OzEdNet_Command(join.c_str());
 	}
-	note("Joining " + name_of(play.starter) + "'s play-test");
+	note("Joining " + name_of(play.starter) + (play.defrag ? "'s Defrag play-test" : "'s play-test"));
 }
 
 void Together::on_play(const std::string &from, uint8_t type, sync::Reader &r, const sync::Bytes &b) {
@@ -1438,12 +1608,14 @@ void Together::on_play(const std::string &from, uint8_t type, sync::Reader &r, c
 		const std::string name = r.str();
 		const sync::Bytes packed = r.bytes();
 		sync::Bytes raw;
+		const bool defrag = r.left() ? r.u8() != 0 : false;
 		if (!r.ok || !safe_pak_file(name) || !sync::unpack(packed, raw)) {
 			log("together: a play-test file didn't arrive whole (%s)\n", name.c_str());
 			return;
 		}
-		OzEd_MakeDirs((maps_dir() + "/x").c_str());
-		OzEd_WriteOSFile((maps_dir() + "/" + name).c_str(), raw.data(), int(raw.size()));
+		const std::string path = play_file_path(name, defrag);
+		OzEd_MakeDirs(path.c_str());
+		OzEd_WriteOSFile(path.c_str(), raw.data(), int(raw.size()));
 		log("together: play-test file %s, %zu KB\n", name.c_str(), raw.size() / 1024);
 		return;
 	}
@@ -1455,6 +1627,7 @@ void Together::on_play(const std::string &from, uint8_t type, sync::Reader &r, c
 		p.map = r.str();
 		p.password = r.str();
 		p.rev = uint32_t(r.var());
+		p.defrag = r.left() ? r.u8() != 0 : false;
 		if (!r.ok || starter == me) {
 			return;
 		}
@@ -1517,6 +1690,15 @@ void Together::back_to_editor() {
 	OzEdNet_Command("disconnect\neditor_together\n");
 }
 
+bool Together::hold_disconnect() {
+	if (!live() || play.stage != 3 || play.starter != me || play.told_end || play.reloading || !OzEdNet_ServerRunning()) {
+		return false;
+	}
+	back_to_editor();
+	log("together: leaving the play-test: the testers are told first, the match ends in a moment\n");
+	return play.told_end;
+}
+
 void Together::reload() {
 	if (play.stage == 3 && play.starter == me) {
 		Session &s = together_session();
@@ -1545,7 +1727,7 @@ void Together::reload() {
 }
 
 bool Together::reload_offered() const {
-	return (play.stage == 3 || play.stage == 4) && !play.reloading && seq() > play.rev;
+	return (play.stage == 3 || play.stage == 4) && !play.reloading && !play.defrag && seq() > play.rev;
 }
 
 // In a play-test together: where this player stands is kept while the match runs on its map; after a Reload's
@@ -1610,6 +1792,7 @@ void Together::play_tick() {
 			w.str(play.map);
 			w.str(play.password);
 			w.var(play.rev);
+			w.u8(play.defrag ? 1 : 0);
 			if (hosting) {
 				to_all(w);
 			} else {
@@ -1635,6 +1818,10 @@ void Together::play_tick() {
 				} else {
 					to_host(w);
 				}
+				// left some other way than Back to the map editor (Defrag's own menu has no such item): back
+				// to the session's editor all the same, once any switch back to Oz is done
+				OzEdNet_ClearError();
+				OzEdNet_Command("editor_together\n");
 			}
 			if (play.listed) {
 				OzEdNet_Command("oz_unhost\n");
@@ -1700,7 +1887,19 @@ void Together::frame() {
 	}
 	Session &s = together_session();
 	migrate_tick();
-	if (!hosting && !migrating_ && host_heard_ && OzEdNet_Milliseconds() - host_heard_ > HOST_SILENT_MS) {
+	// silence is counted only while this game runs: a stall of its own (a map load, a mod switch) left the host's
+	// messages waiting, not unsent. A play-test's loads and switches (Defrag's: two, with the renderer and the
+	// menus started again) stall the host too, so the host gets longer then
+	const int now = OzEdNet_Milliseconds();
+	if (last_frame_ && now - last_frame_ > 1000 && host_heard_) {
+		host_heard_ += now - last_frame_;
+	}
+	last_frame_ = now;
+	if (play.stage) {
+		played_at_ = now;
+	}
+	const int silent = played_at_ && now - played_at_ < PLAY_AFTER_MS ? PLAY_SILENT_MS : HOST_SILENT_MS;
+	if (!hosting && !migrating_ && host_heard_ && now - host_heard_ > silent) {
 		migrate("The host stopped answering");
 	}
 	if (!live()) {
@@ -1713,6 +1912,7 @@ void Together::frame() {
 	send_presence();
 	send_selection();
 	claims_tick();
+	ghost_tick();
 	play_tick();
 	// a new block of ids well before this one runs out
 	if (!s.doc.lease_spare() && s.doc.lease_left() < sync::BLOCK / 2) {
@@ -1746,6 +1946,50 @@ void Together::frame() {
 }
 
 // ---------------------------------------------------------------- drawing the others
+
+// An object's edges as the editor's 2D views draw them: a brush's faces, a curve's net of control points, a
+// point entity's box (a brush entity's brushes are objects of their own). in_doc: id is the document's object
+// (its faces' polygons cached there), else they're worked out from its planes.
+void Together::draw_shape(Overlay &out, const Object &o, Id id, bool in_doc, const Vec3 &off, const unsigned char c[4]) {
+	if (o.kind == Kind::Brush) {
+		std::vector<q3map::Winding> made;
+		if (!in_doc) {
+			std::vector<Plane> planes;
+			for (const Face &f : o.brush.faces) {
+				planes.push_back(f.plane);
+			}
+			made = q3map::brush_windings(planes);
+		}
+		const std::vector<q3map::Winding> &ws = in_doc ? together_session().doc.windings(id) : made;
+		for (q3map::Winding w : ws) {
+			for (Vec3 &v : w) {
+				v = v + off;
+			}
+			out.outline(w, c);
+		}
+	} else if (o.kind == Kind::Patch) {
+		const Patch &pt = o.patch;
+		auto at = [&](int col, int row) {
+			const size_t i = size_t(row * pt.width + col) * 5;
+			return i + 2 < pt.ctrl.size() ? Vec3(pt.ctrl[i], pt.ctrl[i + 1], pt.ctrl[i + 2]) + off : off;
+		};
+		for (int row = 0; row < pt.height; row++) {
+			for (int col = 0; col < pt.width; col++) {
+				if (col + 1 < pt.width) {
+					out.line(at(col, row), at(col + 1, row), c);
+				}
+				if (row + 1 < pt.height) {
+					out.line(at(col, row), at(col, row + 1), c);
+				}
+			}
+		}
+	} else {
+		Vec3 lo, hi;
+		if (point_box(o, lo, hi)) {
+			out.box_edges(lo + off, hi + off, c);
+		}
+	}
+}
 
 void Together::draw(bool is3d) {
 	if (!live()) {
@@ -1785,8 +2029,9 @@ void Together::draw(bool is3d) {
 				others_.line(a - Vec3(0, k, 0), a + Vec3(0, k, 0), c);
 				others_.line(a - Vec3(0, 0, k), a + Vec3(0, 0, k), c);
 			}
-			// their selection, outlined in their color; moved with their drag
-			const Vec3 d = p.pres.moving ? p.pres.delta : Vec3();
+			// their selection: a box round each, faint while they aren't dragging it
+			unsigned char faint[4] = {c[0], c[1], c[2], uint8_t(c[3] / 3)};
+			const bool moving = p.pres.moving;
 			size_t shown = 0;
 			Bounds all;
 			for (Id id : p.sel) {
@@ -1798,30 +2043,56 @@ void Together::draw(bool is3d) {
 					continue;
 				}
 				all.add(b.lo), all.add(b.hi);
-				if (shown++ < 96) {
-					others_.box_edges(b.lo + d, b.hi + d, c);
+				if (!moving && shown++ < 96) {
+					others_.box_edges(b.lo, b.hi, faint);
 				}
 			}
-			if (shown > 96 && !all.empty()) {
-				others_.box_edges(all.lo + d, all.hi + d, c);
+			if (!moving && shown > 96 && !all.empty()) {
+				others_.box_edges(all.lo, all.hi, faint);
+			}
+			// a move they're making: what they hold drawn as it is, where it's going (their offset so far),
+			// and where it was, faint
+			if (moving) {
+				size_t n = 0;
+				for (const auto &cl : claims_) {
+					const Object *o = cl.second == kv.first ? s.doc.get(cl.first) : nullptr;
+					if (o && n++ < 160) {
+						draw_shape(others_, *o, cl.first, true, p.pres.delta, c);
+						draw_shape(others_, *o, cl.first, true, Vec3(), faint);
+					}
+				}
+			}
+			// a reshape they're making (a face pushed, corners dragged, a pad's landing or arc): the shapes as
+			// they last sent them, the old ones faint under them
+			auto g = ghosts_.find(kv.first);
+			if (g != ghosts_.end()) {
+				for (const auto &obj : g->second) {
+					if (obj.second) {
+						draw_shape(others_, *obj.second, obj.first, false, Vec3(), c);
+					}
+					if (const Object *o = s.doc.get(obj.first)) {
+						draw_shape(others_, *o, obj.first, true, Vec3(), faint);
+					}
+				}
 			}
 			if (p.pres.box) {
-				others_.box_edges(p.pres.b.lo, p.pres.b.hi, c);
+				others_.box_edges(p.pres.b.lo, p.pres.b.hi, c);  // the brush they're drawing
 			}
 		}
-		// objects someone else is dragging: their outline in that player's color
-		for (const auto &kv : claims_) {
-			if (kv.second == me) {
+		// what the others just changed: outlined in their color, fading over a second and a half
+		for (auto it = recent_.begin(); it != recent_.end();) {
+			const int age = now - it->second.second;
+			const Player *p = player(it->second.first);
+			const Object *o = s.doc.get(it->first);
+			if (age > RECENT_MS || !p || !o) {
+				it = recent_.erase(it);
 				continue;
 			}
-			const Player *p = player(kv.second);
-			if (!p || !s.doc.get(kv.first)) {
-				continue;
-			}
-			const Bounds b = bounds_of(s.doc, kv.first);
-			if (!b.empty()) {
-				others_.box_edges(b.lo - Vec3(2, 2, 2), b.hi + Vec3(2, 2, 2), color_of(p->color));
-			}
+			unsigned char c[4];
+			std::memcpy(c, color_of(p->color), 4);
+			c[3] = uint8_t(255 * (RECENT_MS - age) / RECENT_MS);
+			draw_shape(others_, *o, it->first, true, Vec3(), c);
+			++it;
 		}
 		others_.end();
 		eyes_.end();
@@ -1886,9 +2157,13 @@ std::string Together::stats() const {
 	static const char *roles[] = {"owner", "editor", "viewer"};
 	const Session &s = together_session();
 	char buf[512];
-	std::snprintf(buf, sizeof buf, "together: %s%s, me %u, seq %u, waiting %zu, objects %zu, players %zu, claims %zu, lease %d left%s%s",
-		states[int(state)], hosting ? " hosting" : "", me, seq(), waiting(), s.doc.size(), players.size(), claims_.size(),
-		int(s.doc.lease_left()), why.empty() ? "" : ", why: ", why.c_str());
+	size_t ghost_objects = 0;
+	for (const auto &g : ghosts_) {
+		ghost_objects += g.second.size();
+	}
+	std::snprintf(buf, sizeof buf, "together: %s%s, me %u, seq %u, waiting %zu, objects %zu, players %zu, claims %zu, ghosts %zu, outlined %zu, lease %d left%s%s",
+		states[int(state)], hosting ? " hosting" : "", me, seq(), waiting(), s.doc.size(), players.size(), claims_.size(), ghost_objects,
+		recent_.size(), int(s.doc.lease_left()), why.empty() ? "" : ", why: ", why.c_str());
 	std::string out = buf;
 	for (const auto &kv : players) {
 		const Player &p = kv.second;
@@ -1906,4 +2181,11 @@ std::string Together::stats() const {
 // every client frame (cl_main.c), whatever is on the screen
 extern "C" void OzEd_TogetherFrame(void) {
 	oz::ed::together().frame();
+}
+
+// the disconnect command (cl_main.c): a play-test's host leaving it some way other than Back to the map editor
+// (Defrag's own menu, the console) tells the testers first, as Back to the map editor does, and the match ends
+// 0.8 s later. Without it the server went down under them: an error drop in each tester's game
+extern "C" int OzEd_TogetherDisconnect(void) {
+	return oz::ed::together().hold_disconnect() ? 1 : 0;
 }

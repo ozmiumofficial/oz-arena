@@ -1,0 +1,23 @@
+Oz: a corpse never blocks a mover (g_mover.c G_MoverPush). id's game backs a mover out whenever it can't push
+something it meets, and a corpse's box pinched against a wall or turned into a rotating arm stopped a func_rotating
+every frame: the arms stood still and jerked back and forth. Players see the corpse's ragdoll, which the mover
+pushes as a kinematic body in the client's physics; the box is left where it is and falls.
+
+diff --git a/code/game/g_mover.c b/code/game/g_mover.c
+index 78a8d29..56085c3 100644
+--- a/code/game/g_mover.c
++++ b/code/game/g_mover.c
+@@ -383,6 +383,13 @@ qboolean G_MoverPush( gentity_t *pusher, vec3_t move, vec3_t amove, gentity_t **
+ 
+ 		// the move was blocked an entity
+ 
++		// Oz: a corpse never blocks a mover. Players see its ragdoll, which the mover pushes; its box,
++		// pinched against a wall or turned into an arm, held a func_rotating back a frame at a time for good
++		if ( check->r.contents == CONTENTS_CORPSE ) {
++			check->s.groundEntityNum = ENTITYNUM_NONE;
++			continue;
++		}
++
+ 		// bobbing entities are instant-kill and never get blocked
+ 		if ( pusher->s.pos.trType == TR_SINE || pusher->s.apos.trType == TR_SINE ) {
+ 			G_Damage( check, pusher, pusher, NULL, NULL, 99999, 0, MOD_CRUSH );

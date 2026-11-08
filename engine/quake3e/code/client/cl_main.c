@@ -1721,6 +1721,10 @@ CL_Disconnect_f
 ==================
 */
 void CL_Disconnect_f( void ) {
+	// Oz: a play-test together's host leaving it (Defrag's own menu, the console): the testers are told first
+	if ( OzEd_TogetherDisconnect() ) {
+		return;
+	}
 	SCR_StopCinematic();
 	Cvar_Set( "ui_singlePlayerActive", "0" );
 	if ( cls.state != CA_DISCONNECTED && cls.state != CA_CINEMATIC ) {

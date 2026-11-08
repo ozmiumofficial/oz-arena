@@ -74,6 +74,7 @@ typedef struct {
 	float		joints[IQM_MAX_JOINTS * 12];			// and now
 	int			startTime, burnStart;
 	float		lyingZ, sinkZ;	// the corpse's height lying still, and at sinkTime
+	float		sinkXY[2];		// and where it lay across at sinkTime: the server's sink only lowers it
 	int			sinkTime;		// when its fall or sinking was last measured
 	vec3_t		gathered;		// where the map's solids around it were last gathered
 	float		point1[OZ_RAGDOLL_BODIES][3];	// each joint's point in its parent's space, as it was made (meters)
@@ -1108,18 +1109,25 @@ const float *R_OzRagdollFighter( const ozRig_t *rig, const trRefEntity_t *legs, 
 	// which in one frame looked like a fall at any frame rate over 30
 	if ( frame == rig->deadFrame[0] || frame == rig->deadFrame[1] || frame == rig->deadFrame[2] ) {
 		float z = legs->e.origin[2];
+		float across = t->lyingZ < -1e8f ? 0.0f : sqrtf( Square( legs->e.origin[0] - t->sinkXY[0] ) + Square( legs->e.origin[1] - t->sinkXY[1] ) );
 		if ( t->lyingZ < -1e8f || z > t->lyingZ ) {
 			t->lyingZ = t->sinkZ = z;
 			t->sinkTime = now;
+			t->sinkXY[0] = legs->e.origin[0];
+			t->sinkXY[1] = legs->e.origin[1];
 		} else if ( now - t->sinkTime >= OZ_RAGDOLL_SINK_SPAN ) {
-			if ( t->sinkZ - z > OZ_RAGDOLL_SINK_RATE * ( now - t->sinkTime ) * 0.001f ) {
-				t->lyingZ = z;		// falling
+			// a corpse sliding down a ramp or carried by a mover drops slowly too, but moves across as it does:
+			// the server's sink lowers it straight down (bodies on a ramp burned a second after they landed)
+			if ( t->sinkZ - z > OZ_RAGDOLL_SINK_RATE * ( now - t->sinkTime ) * 0.001f || across > 0.5f ) {
+				t->lyingZ = z;		// falling, sliding or carried
 			} else if ( z < t->lyingZ - 0.5f && !t->burnStart ) {
 				t->burnStart = now;
 				NoteBurn( t, now, "sinking" );
 			}
 			t->sinkZ = z;
 			t->sinkTime = now;
+			t->sinkXY[0] = legs->e.origin[0];
+			t->sinkXY[1] = legs->e.origin[1];
 		}
 	}
 	if ( !t->burnStart && r_ozCorpseBurn->value > 0.0f && now - t->startTime > r_ozCorpseBurn->value * 1000.0f ) {

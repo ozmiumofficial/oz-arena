@@ -93,6 +93,7 @@ public:
 	uint32_t seq() const { return rep_ ? rep_->seq() : 0; }
 	const std::vector<sync::Replica::Entry> *history() const { return rep_ ? &rep_->log : nullptr; }
 	std::string name_of(uint32_t num) const;
+	const std::string &password() const { return password_; }  // the session's (a joiner has it from the roster)
 
 	// ---- playing together (PE steps 5 and 6). The player who starts it compiles the session's map on their own
 	// PC, sends it to the others, hosts the match from their PC (a listen server: one BSP for all, so collision
@@ -114,12 +115,16 @@ public:
 		int ending_at = 0;         // the starter going back: the testers told, the match ends a moment after
 		int team_since = 0, team_asked = 0;  // a team mode: when this player was first seen a spectator, and last put on a team
 		bool told_end = false;
+		bool defrag = false;       // Play in Defrag together: under Defrag, its timer and all; only players who have Defrag join
 	} play;
-	bool play_together(std::string &why);  // Ctrl+Shift+F5
+	bool play_together(std::string &why, bool defrag = false);  // Ctrl+Shift+F5; defrag: Play in Defrag together
 	void reload();                         // Reload (the match's host does it; a tester asks)
 	// Back to the map editor (the pause menu's): the match's host tells the testers first, so they leave it
 	// themselves before its server goes (a server gone under a client is an error drop)
 	void back_to_editor();
+	// the disconnect command while this player hosts a play-test together (Defrag's own menu, the console): held
+	// and turned into Back to the map editor, so the testers are told first; true when held
+	bool hold_disconnect();
 	bool reload_offered() const;           // a tester's match is older than the session's map
 	bool playing_together() const { return play.stage != 0; }
 
@@ -127,7 +132,18 @@ private:
 	enum Msg : uint8_t {
 		M_HELLO = 1, M_WELCOME, M_ROSTER, M_EDIT, M_SEQ, M_LEASE_ASK, M_LEASE, M_CLAIM, M_CLAIMS, M_CLAIM_NO,
 		M_SELECT, M_BYE, M_KICK, M_PAK, M_PLAY, M_PLAYEND, M_RELOAD_ASK, M_RELOAD,
+		M_GHOST,  // what a player's drag looks like now (a face pushed, corners dragged): the objects as they are mid-drag
 	};
+	// Seeing a drag as it happens: a drag that reshapes (a push, corners, a pad's landing or arc) sends its objects
+	// as they are, ten times a second; a move's offset comes with presence. What another player just changed is
+	// outlined in their color for a moment, so nothing appears out of nowhere.
+	void ghost_tick();
+	void draw_shape(Overlay &out, const Object &o, Id id, bool in_doc, const Vec3 &offset, const unsigned char color[4]);
+	std::map<uint32_t, std::vector<std::pair<Id, ObjectPtr>>> ghosts_;  // the others' drags, as they last sent them
+	std::map<Id, std::pair<uint32_t, int>> recent_;                        // what the others just changed: who, when
+	uint64_t ghost_rev_ = ~0ull;
+	int ghost_at_ = 0;
+	bool ghost_on_ = false;
 	void on_play(const std::string &from, uint8_t type, sync::Reader &r, const sync::Bytes &b);  // M_PAK ... M_RELOAD
 	void play_compiled(bool ok, const std::string &dir, const std::string &out, bool reload);
 	void play_tick();
@@ -174,6 +190,8 @@ private:
 	void migrate_tick();
 	bool migrating_ = false;
 	int migrate_until_ = 0, retry_at_ = 0, host_heard_ = 0;
+	int last_frame_ = 0;   // this game's last frame: a stall of its own (a map load, a mod switch) isn't the host's silence
+	int played_at_ = 0;    // the last frame a play-test together was on: the games stall in its loads and switches
 	Id known_block_ = sync::BLOCK;   // the next id block the host may give, as its rosters say
 	int joined_at_ = 0;
 	int last_note_ = 0;

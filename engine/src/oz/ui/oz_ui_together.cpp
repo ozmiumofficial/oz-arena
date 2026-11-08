@@ -529,6 +529,20 @@ void Together_HubMessage( const char *type, const cJSON *m ) {
 
 void Together_Frame() {
 	Together &t = together();
+	// a party leader in a session (hosting it, or joined): the party follows them in, once (the hub takes the
+	// follow only while the session's listing is up, so it goes after the host's listing or the joiner's welcome)
+	static std::string followed;
+	const std::string key = t.live() ? t.host_pid + "|" + t.session_name : "";
+	if ( key != followed ) {
+		followed = key;
+		if ( !key.empty() ) {
+			const Rml::String text = Social_FollowText( "edit", t.host_pid.c_str(), t.password().c_str() );
+			if ( !text.empty() ) {
+				OzE_ExecuteNow( text.c_str() );
+				Printf( "together: the party follows into the session\n" );
+			}
+		}
+	}
 	if ( t.changed_rev == lastRev ) {
 		return;
 	}

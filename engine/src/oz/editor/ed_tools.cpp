@@ -91,6 +91,7 @@ const std::vector<Action> &actions() {
 		{"mode_duel", "Duel", "", "Play starts the map as a duel: one against one, the rest waiting their turn (the map keeps its mode)"},
 		{"mode_tdm", "Team deathmatch", "", "Play starts the map as team deathmatch: red against blue, each player put on a team as they come in (the map keeps its mode)"},
 		{"mode_ctf", "Capture the flag", "", "Play starts the map as capture the flag: it needs a red flag and a blue flag (team_CTF_redflag, team_CTF_blueflag); players go on teams as they come in"},
+		{"play_defrag_together", "Play in Defrag together", "", "Compiles the session's map on your PC and hosts it under Defrag, its timer and all: everyone in the session who has Defrag joins, the rest keep editing (the multiplayer map editor's)"},
 		{"leave_session", "Leave session", "", "Leaves the editing session (as its host, ends it for everyone); the map stays as it is, to save"},
 		{"compile", "Compile", "Ctrl+F5", "The whole compile in the background (BSP, vis, full light, the bots' file) into maps/ed_<name>.bsp in your files"},
 		{"preview", "Lit preview", "F6", "The map lit by its own lights, as the last compile made it (a quick compile first when the map changed); F6 again leaves it"},
@@ -588,7 +589,7 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 	if (intercept && intercept(action, a)) {
 		return true;  // editing together's own (a session's map stays the session's)
 	}
-	if (action == "play_together" || action == "leave_session") {
+	if (action == "play_together" || action == "play_defrag_together" || action == "leave_session") {
 		say("That's the multiplayer map editor's, in a session (main menu, Map Editor, Multiplayer)");
 		return true;
 	}
@@ -1188,6 +1189,30 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 			}
 			button(1, false);
 			force_mods(-1);
+		}
+	} else if (action == "hold_at" || action == "drag_to" || action == "let_go") {
+		// test hooks for a drag held across frames: ed hold_at x y z [mods] presses there, ed drag_to x y z
+		// moves the held pointer there, ed let_go lets it go (editing together's live ghosts)
+		if (action == "let_go") {
+			button(1, false);
+			force_mods(-1);
+			return true;
+		}
+		double sx, sy;
+		if (!project(Vec3(arg(a, 0), arg(a, 1), arg(a, 2)), sx, sy)) {
+			say("ed " + action + ": that point is behind the camera", true);
+			return true;
+		}
+		const int x = int(std::lround(sx)), y = int(std::lround(sy));
+		if (action == "hold_at") {
+			force_mods(int(arg(a, 3)));
+			pointer(x, y);
+			button(1, true);
+		} else {
+			const int x0 = mx_, y0 = my_;
+			for (int i = 1; i <= 8; i++) {
+				pointer(x0 + (x - x0) * i / 8, y0 + (y - y0) * i / 8);
+			}
 		}
 	} else if (action == "select_ids") {
 		std::vector<Id> ids;

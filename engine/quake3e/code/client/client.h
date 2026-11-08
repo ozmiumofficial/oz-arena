@@ -475,6 +475,7 @@ void CL_OzMusicFrame( void );	// Oz: the menu's music (cl_oz_music.c)
 void CL_OzOnlineInit( void );	// Oz: online services (engine/src/oz/online/oz_online_engine.c)
 void CL_OzOnlineFrame( void );
 void OzEd_TogetherFrame( void );	// Oz: the multiplayer map editor's session (engine/src/oz/editor/ed_together.cpp)
+int OzEd_TogetherDisconnect( void );	// Oz: the disconnect command held while this player hosts a play-test together
 void CL_OzOnlineShutdown( qboolean quit );
 void CL_ReadDemoMessage( void );
 void CL_StopRecord_f( void );

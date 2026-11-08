@@ -23,6 +23,7 @@ into the match the leader hosts (party_follow, net_follow).
 #include "oz_emoji.h"
 #include "oz_ui.h"
 #include "cJSON.h"
+#include "../editor/ed_together.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -50,6 +51,13 @@ std::map<std::string, std::string> matchNames;	// a host's player id -> what its
 int browsedAt = -100000;						// when the Server Browser last asked for the open matches
 struct { std::string host, name, line; int est = 0; } quick;	// the match Quick Play joins or offers
 std::string followHost;							// the party leader's match being joined (its toast is the follow's)
+// The party leader's follow (net_follow) names a host but not what they host: a match or an editing session
+// (the multiplayer map editor's, PE). The listings are asked first, and the follow joins whichever it is.
+struct PendingFollow {
+	std::string host, password, who;
+	int at = 0;
+} pendingFollow;
+void JoinFollowed( bool edit );
 
 // a player model as the hub has it ("sarge" or "sarge/blue") -> its icon's folder
 std::string Model( const cJSON *m ) {
@@ -439,6 +447,13 @@ void Browser( const cJSON *m ) {
 		}
 	}
 	const bool hide = atoi( OzE_CvarString( "oz_network_hide_ip" ) ) != 0;
+	if ( !pendingFollow.host.empty() ) {
+		bool edit = false;
+		cJSON_ArrayForEach( r, cJSON_GetObjectItemCaseSensitive( m, "matches" ) ) {
+			edit = edit || ( Str( r, "host" ) == pendingFollow.host && !strcmp( Str( r, "mode" ), "edit" ) );
+		}
+		JoinFollowed( edit );
+	}
 	cJSON *out = cJSON_CreateArray();
 	cJSON_ArrayForEach( r, cJSON_GetObjectItemCaseSensitive( m, "matches" ) ) {
 		if ( !strcmp( Str( r, "mode" ), "edit" ) ) {
@@ -596,10 +611,37 @@ void Follow( const cJSON *m ) {
 		Servers_FollowServer( server.c_str(), password.c_str() );
 		return;
 	}
-	Printf( "UI: party: following %s into their match\n", who.c_str() );
-	Menu_Toast( ( "Joining " + who + "'s match" ).c_str(), "info" );
-	followHost = host;
-	OzE_ExecuteNow( ( "oz_join " + host + " \"" + password + "\"\n" ).c_str() );
+	if ( oz::ed::together().active() ) {
+		Printf( "UI: party: %s is somewhere else, and this player is in an editing session: not followed\n", who.c_str() );
+		Menu_Toast( ( who + " moved on. Join them from Friends when you leave your session." ).c_str(), "info" );
+		return;
+	}
+	// a match or an editing session: the listings say which (asked now; JoinFollowed once they answer)
+	pendingFollow.host = host;
+	pendingFollow.password = password;
+	pendingFollow.who = who;
+	pendingFollow.at = OzE_Milliseconds();
+	Browse();
+}
+
+// the followed leader's host found in the listings (or not, and given up waiting): into their editing session,
+// or their match as before
+void JoinFollowed( bool edit ) {
+	const PendingFollow f = pendingFollow;
+	pendingFollow = PendingFollow();
+	if ( f.host.empty() ) {
+		return;
+	}
+	if ( edit ) {
+		Printf( "UI: party: following %s into their editing session\n", f.who.c_str() );
+		Menu_Toast( ( "Joining " + f.who + "'s editing session" ).c_str(), "info" );
+		OzE_ExecuteNow( ( "edt_join " + f.host + " \"" + f.password + "\"\n" ).c_str() );
+		return;
+	}
+	Printf( "UI: party: following %s into their match\n", f.who.c_str() );
+	Menu_Toast( ( "Joining " + f.who + "'s match" ).c_str(), "info" );
+	followHost = f.host;
+	OzE_ExecuteNow( ( "oz_join " + f.host + " \"" + f.password + "\"\n" ).c_str() );
 }
 
 /*
@@ -820,12 +862,18 @@ Rml::String Social_FollowText( const char *kind, const char *key, const char *pa
 	if ( !strcmp( kind, "server" ) ) {
 		return std::string( "hub party_follow server " ) + key + " password \"" + password + "\"\n";
 	}
+	if ( !strcmp( kind, "edit" ) ) {	// an editing session the leader hosts or joined: its host's listing
+		return std::string( "hub party_follow host " ) + key + " password \"" + password + "\"\n";
+	}
 	return "hub party_follow host " + myId + " password \"" + password + "\"\n";
 }
 
 // each frame while a page is open: the Server Browser's list kept fresh (every 15 s, as the hub
 // allows), Quick Play's region (Settings may have changed it underneath), the connection screen
 void Social_Frame() {
+	if ( !pendingFollow.host.empty() && OzE_Milliseconds() - pendingFollow.at > 6000 ) {
+		JoinFollowed( false );	// the listings never answered: the match, as the follow always went
+	}
 	if ( IsPageOpen( "server_browser" ) && Online() && OzE_Milliseconds() - browsedAt > 15000 ) {
 		Browse();
 	}

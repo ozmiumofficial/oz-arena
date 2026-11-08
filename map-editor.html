@@ -858,8 +858,10 @@
   <ul>
     <li><b>Host</b> a session from a new map, one of your maps or one of the game's. Give it a name, a password if you want one, and how many can join (2 to 8). It's listed for everyone, and your friends see "Editing" and a <b>Join</b> button in Friends.</li>
     <li><b>Join</b> from the list of open sessions, from a friend in Friends, or by typing a session's code (the host's session bar shows it, and <b>Code</b> and <b>Link</b> copy it to send).</li>
+    <li><b>In a party,</b> the party follows its leader: when the leader hosts or joins a session, everyone in the party joins it too. Anyone already in another session stays there and is told where the leader went.</li>
   </ul>
   <p>Everyone sees every change as it's made. Each builder is drawn as their fighter flying where their camera is, facing where they're looking, with their name over them in their color. You also see where they're pointing, what they've selected, and what they're dragging or drawing. Something another builder is dragging can't be grabbed until they let go: the status line says who has it.</p>
+  <p>Nothing appears out of nowhere. When another builder moves something, you see it move with their drag. When they push a face, drag corners or move a jump pad's landing, the shape changes in their color as they go. And every change that arrives from someone else is outlined in their color for a moment, then fades, so you can see what just changed and who did it.</p>
   <figure class="shot framed">
     <img src="img/editor_together.jpg" alt="A shared map in the multiplayer map editor: another builder shown as their fighter floating in the room with their name over them, a line where they're looking, and the session bar listing both players with Follow, Viewer and Kick" loading="lazy" width="1600" height="900">
     <figcaption>Another builder, flying where their camera is. The session bar lists who's in.</figcaption>
@@ -874,6 +876,8 @@
   </ul>
   <h3>Play together</h3>
   <p><b>Play together</b> (<kbd>Ctrl+Shift+F5</kbd>, in the Build menu) compiles the map on your PC, sends it to everyone in the session, and hosts the match from your PC. Everyone is brought into it, in the map's <a href="#play">game mode</a>. When you choose <b>Back to the map editor</b>, everyone comes back to the editor with the session as it was. While you play, the others can keep editing: <b>Reload the map</b> in the pause menu brings in their changes for everyone, and puts each player back where they stood. <b>Play</b> (<kbd>F5</kbd>) on your own still works at any time without leaving the session.</p>
+  <h3>Play in Defrag together</h3>
+  <p><b>Play in Defrag together</b> (Build menu) does the same under Defrag, with its timer running the course for everyone. Everyone in the session who has Defrag installed is brought into it; anyone who doesn't is told they need it, and keeps editing. Leave the match from Defrag's own menu and everyone comes back to the editor, as with Back to the map editor. Oz never downloads Defrag for you: each player installs it into their Quake III Arena folder as usual (see <a href="#defrag">Timed runs</a>).</p>
   <div class="know">
     <p>Everyone in a session needs the same version of Oz Arena. Textures, models and sounds aren't sent: if one builder uses something from a map pack another doesn't have, it shows as missing for that player.</p>
   </div>

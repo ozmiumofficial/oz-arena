@@ -196,6 +196,7 @@ bool Servers_Back();						// the server card was open: Back closed it
 void Servers_MatchesChanged();				// the hub's peer-to-peer rows came again
 void Servers_JoinedMatch( const char *host, const char *name );	// a peer-to-peer match joined: the history's
 std::string Servers_Name( const char *address );	// a server row's name, "" when it isn't one
+std::string Servers_ModeName( const std::string &kind, int gt );	// a mode as "cpma", "defrag" or id's game numbers it
 void Servers_FollowServer( const char *address, const char *password );	// the party leader joined a community server: join it too (net_follow)
 
 // ---- oz_ui_skirmish.cpp: Skirmish's mod picker, search and sorts, and Defrag's race maps

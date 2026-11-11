@@ -359,6 +359,10 @@ int OzE_InIdPak( const char *path ) {
 	return FS_FileIsInIdPak( path );
 }
 
+void OzE_EngineCvar( const char *name ) {
+	Com_OzEngineCvar( name );
+}
+
 char **OzE_ListFiles( const char *dir, const char *ext, int *count ) {
 	return FS_ListFiles( dir, ext, count );
 }

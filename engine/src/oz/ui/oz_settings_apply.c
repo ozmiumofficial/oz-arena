@@ -375,15 +375,38 @@ defaults were applied over the window, the sound device and the anti-aliasing ev
 few whose engine cvar isn't saved (atStart) are applied at those looks too.
 ================
 */
+/*
+The engine cvars the settings above set, which are the player's under every mod as the settings are
+(common.c Com_OzEngineCvar): left in each mod's own config, a mod switch put CPMA's back under the
+player's oz_ settings (another shadow quality, bloom, rate). Add a cvar here when an apply sets a new one.
+*/
+static const char *const appliedCvars[] = {
+	"r_ozRenderScale", "r_ozUpscaler", "r_ozContrast", "r_sunShadows", "r_shadowMapSize", "r_shadowFilter",
+	"r_cubeMapping", "r_ozAO", "r_ssao", "r_ozBloom", "r_ozModernFighters", "r_lodbias", "r_ozColorblind",
+	"s_volEffects", "s_volAnnouncer", "s_volMenu", "s_announcer", "s_alDevice",
+	"joy_threshold", "j_lookTurns", "cl_toggleCrouch", "j_side_axis", "j_forward_axis", "j_yaw_axis", "j_pitch_axis",
+	"cg_autoswitch", "rate", "com_introplayed"
+};
+
 void OzSettings_Frame( void ) {
 	static qboolean started;
 	static int restarts;
 	const qboolean resync = restarts != com_ozGameRestarts;
 	ozSetting_t *s;
+	int i;
 
 	restarts = com_ozGameRestarts;
 	if ( !started ) {
 		FirstWindow();
+		for ( i = 0; i < ARRAY_LEN( appliedCvars ); i++ ) {
+			Com_OzEngineCvar( appliedCvars[i] );
+		}
+	}
+	// Oz places the gun under every cgame (oz_hud_view.c PlaceGun), from the Gun settings. CPMA's own
+	// cg_gunOffset moved it again first: a CPMA bundle's config (8,2.7,-3.5) put it higher and nearer the
+	// middle than in Oz's own game and Defrag
+	if ( resync && !Q_stricmp( FS_GetCurrentGameDir(), "cpma" ) && Q_stricmp( Cvar_VariableString( "oz_gameplay_draw_gun" ), "hidden" ) ) {
+		Set( "cg_gunOffset", "0,0,0" );
 	}
 	for ( s = settings; s < settings + ARRAY_LEN( settings ); s++ ) {
 		if ( !s->cv ) {

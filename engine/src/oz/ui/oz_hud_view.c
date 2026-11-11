@@ -67,7 +67,29 @@ static polyVert_t	gunQuads[MAX_GUN_QUADS][4];	// quads added after the gun (Plac
 static qhandle_t	gunQuadShaders[MAX_GUN_QUADS];
 static int			numGunQuads;
 
+/*
+cl_ozViewLog <n>: the next n world scenes' entities and quads as the cgame adds them, then the view they
+render with ("ozview log: ..."). How a mod's cgame draws its gun and beam is looked at (CPMA's lightning).
+*/
+static cvar_t *cl_ozViewLog;
+
+static qboolean ViewLogging( void ) {
+	if ( !cl_ozViewLog ) {
+		cl_ozViewLog = Cvar_Get( "cl_ozViewLog", "0", CVAR_TEMP );
+	}
+	return cl_ozViewLog->integer > 0;
+}
+
+static void ViewLogEntity( const char *kind, const refEntity_t *ent ) {
+	if ( ViewLogging() ) {
+		Com_Printf( "ozview log: %s type %d model %d shader %d fx 0x%x origin %.1f %.1f %.1f old %.1f %.1f %.1f radius %.1f\n",
+			kind, ent->reType, ent->hModel, ent->customShader, ent->renderfx, ent->origin[0], ent->origin[1], ent->origin[2],
+			ent->oldorigin[0], ent->oldorigin[1], ent->oldorigin[2], ent->radius );
+	}
+}
+
 int OzView_Gun( const refEntity_t *ent ) {
+	ViewLogEntity( "gun", ent );
 	InitCvars();
 	if ( Q_stricmp( oz_gameplay_draw_gun->string, "hidden" ) && numGunParts < MAX_GUN_PARTS ) {
 		gunBeam[numGunParts] = qfalse;
@@ -80,6 +102,11 @@ int OzView_Gun( const refEntity_t *ent ) {
 int OzView_Polys( qhandle_t shader, int numVerts, const polyVert_t *verts, int numPolys ) {
 	int i;
 
+	if ( ViewLogging() && numVerts > 0 ) {
+		Com_Printf( "ozview log: polys shader %d verts %d polys %d first %.1f %.1f %.1f last %.1f %.1f %.1f\n", shader, numVerts,
+			numPolys, verts[0].xyz[0], verts[0].xyz[1], verts[0].xyz[2], verts[numVerts * numPolys - 1].xyz[0],
+			verts[numVerts * numPolys - 1].xyz[1], verts[numVerts * numPolys - 1].xyz[2] );
+	}
 	if ( !numGunParts || numVerts != 4 || numPolys < 1 || numGunQuads + numPolys > MAX_GUN_QUADS ) {
 		return 1;
 	}
@@ -1096,9 +1123,41 @@ r_ozRagdollTest (a cheat) the fighters dropped into their ragdolls are alive, an
 one's gun where its living hand is, floating over the body (a dead player has none: the game drops it).
 =================
 */
+/*
+A mod's own lightning beam from the player's gun (CPMA's, cg_trueLightning and cg_altLightning): it
+starts at a point of the mod's own a little before the eye, never at the gun's flash, so it stayed in the
+middle of the view while Oz drew the gun where the player put it (Ozmium, 2026-11-10: "the LG is not
+coming from the barrel"). A beam starting within reach of a gun part that has a flash tag is that gun's:
+its start goes to the muzzle, and it moves with the gun as id's does from its flash (PlaceGun).
+*/
+#define GUN_BEAM_REACH	64.0f
+
+static qboolean GunMuzzle( vec3_t start ) {
+	orientation_t	tag;
+	int				i, k;
+
+	for ( i = 0; i < numGunParts; i++ ) {
+		const refEntity_t *g = &gunParts[i];
+
+		if ( gunBeam[i] || g->reType != RT_MODEL || !g->hModel || Distance( g->origin, start ) > GUN_BEAM_REACH ) {
+			continue;
+		}
+		if ( !re.LerpTag( &tag, g->hModel, g->oldframe, g->frame, 1.0f - g->backlerp, "tag_flash" ) ) {
+			continue;
+		}
+		VectorCopy( g->origin, start );
+		for ( k = 0; k < 3; k++ ) {
+			VectorMA( start, tag.origin[k], g->axis[k], start );
+		}
+		return qtrue;
+	}
+	return qfalse;
+}
+
 int OzView_Entity( refEntity_t *ent ) {
 	int i, owner, team = 0;
 
+	ViewLogEntity( "entity", ent );
 	if ( ent->reType == RT_MODEL && ent->hModel > 0 && ent->hModel < MAX_NOTED_MODELS && notedWeapon[ent->hModel] &&
 		 ( ent->renderfx & RF_LIGHTING_ORIGIN ) && !( ent->renderfx & RF_FIRST_PERSON ) &&
 		 Cvar_VariableIntegerValue( "r_ozRagdollTest" ) ) {
@@ -1111,6 +1170,11 @@ int OzView_Entity( refEntity_t *ent ) {
 				gunParts[numGunParts++] = *ent;
 				return 0;
 			}
+		}
+		if ( numGunParts < MAX_GUN_PARTS && GunMuzzle( ent->origin ) ) {
+			gunBeam[numGunParts] = qtrue;
+			gunParts[numGunParts++] = *ent;
+			return 0;
 		}
 		return 1;
 	}
@@ -1157,6 +1221,13 @@ void OzView_ClearScene( void ) {
 cvar_t *cl_ozProbe;
 
 void OzView_RenderScene( const refdef_t *fd ) {
+	if ( ViewLogging() && !( fd->rdflags & RDF_NOWORLDMODEL ) ) {
+		Com_Printf( "ozview log: view %.1f %.1f %.1f fwd %.3f %.3f %.3f left %.3f %.3f %.3f up %.3f %.3f %.3f fov %.1f %.1f gun parts %d\n",
+			fd->vieworg[0], fd->vieworg[1], fd->vieworg[2], fd->viewaxis[0][0], fd->viewaxis[0][1], fd->viewaxis[0][2],
+			fd->viewaxis[1][0], fd->viewaxis[1][1], fd->viewaxis[1][2], fd->viewaxis[2][0], fd->viewaxis[2][1], fd->viewaxis[2][2],
+			fd->fov_x, fd->fov_y, numGunParts );
+		Cvar_Set( "cl_ozViewLog", va( "%d", cl_ozViewLog->integer - 1 ) );
+	}
 	if ( numGunParts && !( fd->rdflags & RDF_NOWORLDMODEL ) ) {
 		InitCvars();
 		PlaceGun( fd );

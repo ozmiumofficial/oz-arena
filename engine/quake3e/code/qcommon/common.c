@@ -3197,6 +3197,40 @@ static const char *const com_engineCvars[] = {
 
 
 /*
+Oz: the rest of the player's settings are one set for every mod too (Ozmium, 2026-11-10): every cvar
+the Settings page shows (engine/ui/settings.json, which oz_ui_settings.cpp names here as it loads) and
+every engine cvar those settings set (oz_settings_apply.c). Saved per mod, a Skirmish under CPMA came
+up with CPMA's field of view, another graphics preset, the gun where CPMA's config had it and a
+stranger's sensitivity. Unlike the list above, one the file doesn't hold yet keeps what the configs
+set: the file is first written with them at the next write, from Oz's own game's values.
+*/
+#define MAX_OZ_ENGINE_EXTRA	512
+static char *com_ozEngineExtra[MAX_OZ_ENGINE_EXTRA];
+static int com_ozNumEngineExtra;
+
+void Com_OzEngineCvar( const char *name ) {
+	int i;
+
+	if ( !name || !name[0] ) {
+		return;
+	}
+	for ( i = 0; i < ARRAY_LEN( com_engineCvars ); i++ ) {
+		if ( !Q_stricmp( com_engineCvars[i], name ) ) {
+			return;
+		}
+	}
+	for ( i = 0; i < com_ozNumEngineExtra; i++ ) {
+		if ( !Q_stricmp( com_ozEngineExtra[i], name ) ) {
+			return;
+		}
+	}
+	if ( com_ozNumEngineExtra < MAX_OZ_ENGINE_EXTRA ) {
+		com_ozEngineExtra[com_ozNumEngineExtra++] = CopyString( name );
+	}
+}
+
+
+/*
 A renderer picked on the command line (a test's or a shortcut's +set cl_renderer) lasts that run:
 the file keeps the player's own choice, what it held before or what the Settings page picked since.
 */
@@ -3222,6 +3256,165 @@ static void Com_WriteEngineConfig( void ) {
 		FS_Printf( f, "seta cl_renderer \"%s\"" Q_NEWLINE, renderer );
 	}
 	Cvar_WriteNamed( f, com_engineCvars, ARRAY_LEN( com_engineCvars ) );
+	Cvar_WriteNamed( f, (const char *const *)com_ozEngineExtra, com_ozNumEngineExtra );
+	FS_FCloseFile( f );
+}
+
+
+/*
+==================
+Oz: the binds every mod shares (Ozmium, 2026-11-10)
+
+Each mod kept its own binds in its q3config.cfg, so a CPMA match took the CPMA bundle's template's (Q
+said a smiley in chat, the mouse wheel jumped, middle click dropped the gun). OZ_BINDS_CFG, beside
+ozengine.cfg, holds the player's binds and the scripts they run (a bind's vstr cvars, which a mod switch
+deletes as user-made), written with every config write and run after a mod's config, so the binds are
+the same in Oz's own game, CPMA and Defrag; a bind changed under a mod (Settings, its own menu) is
+changed for all of them. A mod still saves binds in its own q3config.cfg, which this overrides.
+==================
+*/
+#define MAX_OZ_BIND_SCRIPTS 256
+
+// the user-made cvars a text runs through vstr, set, seta or toggle, and the ones those run in turn
+static int Com_BindScripts( const char *text, const char **names, int count, int depth ) {
+	char buf[MAX_STRING_CHARS], word[MAX_CVAR_VALUE_STRING];
+	const char *p;
+	int i, flags;
+
+	if ( depth > 8 ) {
+		return count;
+	}
+	Q_strncpyz( buf, text, sizeof( buf ) );
+	for ( p = buf; *p; ) {
+		const char *verb;
+		qboolean takes;
+
+		while ( *p == ' ' || *p == ';' || *p == '"' || *p == '\t' ) {
+			p++;
+		}
+		verb = p;
+		while ( *p && *p != ' ' && *p != ';' && *p != '"' && *p != '\t' ) {
+			p++;
+		}
+		takes = !Q_stricmpn( verb, "vstr ", 5 ) || !Q_stricmpn( verb, "set ", 4 ) || !Q_stricmpn( verb, "seta ", 5 )
+			|| !Q_stricmpn( verb, "toggle ", 7 ) || !Q_stricmpn( verb, "sets ", 5 ) || !Q_stricmpn( verb, "setu ", 5 );
+		if ( !takes ) {
+			while ( *p && *p != ';' ) {
+				p++;
+			}
+			continue;
+		}
+		while ( *p == ' ' || *p == '\t' ) {
+			p++;
+		}
+		for ( i = 0; *p && *p != ' ' && *p != ';' && *p != '"' && *p != '\t' && i < (int)sizeof( word ) - 1; ) {
+			word[i++] = *p++;
+		}
+		word[i] = '\0';
+		flags = word[0] ? Cvar_Flags( word ) : CVAR_NONEXISTENT;
+		if ( flags == CVAR_NONEXISTENT || !( flags & CVAR_USER_CREATED ) ) {
+			continue;	// a game's or the engine's own cvar stays each mod's
+		}
+		for ( i = 0; i < count && Q_stricmp( names[i], word ); i++ ) {
+		}
+		if ( i < count || count >= MAX_OZ_BIND_SCRIPTS ) {
+			continue;
+		}
+		names[count++] = CopyString( word );
+		count = Com_BindScripts( Cvar_VariableString( word ), names, count, depth + 1 );
+	}
+	return count;
+}
+
+static void Com_WriteBinds( void ) {
+	const char *names[MAX_OZ_BIND_SCRIPTS];
+	fileHandle_t f;
+	int key, count = 0, i;
+
+	f = FS_SV_FOpenFileWrite( OZ_BINDS_CFG );
+	if ( f == FS_INVALID_HANDLE ) {
+		Com_Printf( "Couldn't write %s.\n", OZ_BINDS_CFG );
+		return;
+	}
+	FS_Printf( f, "// Oz Arena: the binds every mod shares, generated, do not modify" Q_NEWLINE );
+	for ( key = 0; key < MAX_KEYS; key++ ) {
+		const char *b = Key_GetBinding( key );
+		if ( b && b[0] ) {
+			count = Com_BindScripts( b, names, count, 0 );
+		}
+	}
+	// the scripts first: a bind may name one as it's made (none does today, but exec order is cheap)
+	Cvar_WriteNamed( f, names, count );
+	Key_WriteBindings( f );
+	FS_FCloseFile( f );
+	for ( i = 0; i < count; i++ ) {
+		Z_Free( (void *)names[i] );
+	}
+}
+
+
+/*
+The shared binds after a mod's configs. Before the file exists (a player's first run since it came),
+Oz's own game's binds stand: they're what the configs just loaded there, and under a mod its binds
+come from oz/q3config.cfg (its bind lines, and the script cvars it sets that don't exist here yet).
+*/
+static void Com_ExecuteBinds( void ) {
+	fileHandle_t f;
+	char *text, *line, *next;
+	int len;
+
+	len = FS_SV_FOpenFileRead( OZ_BINDS_CFG, &f );
+	if ( f != FS_INVALID_HANDLE ) {
+		if ( len > 0 ) {
+			text = Z_Malloc( len + 1 );
+			FS_Read( text, len, f );
+			text[len] = '\0';
+			Cbuf_InsertText( text );
+			Cbuf_Execute();
+			Z_Free( text );
+		}
+		FS_FCloseFile( f );
+		return;
+	}
+	if ( !Q_stricmp( FS_GetCurrentGameDir(), "oz" ) ) {
+		return;
+	}
+	len = FS_SV_FOpenFileRead( "oz/" Q3CONFIG_CFG, &f );
+	if ( f == FS_INVALID_HANDLE ) {
+		return;
+	}
+	if ( len > 0 ) {
+		text = Z_Malloc( len + 1 );
+		FS_Read( text, len, f );
+		text[len] = '\0';
+		for ( line = text; line && *line; line = next ) {
+			char name[MAX_CVAR_VALUE_STRING];
+			int i;
+
+			next = strchr( line, '\n' );
+			if ( next ) {
+				*next++ = '\0';
+			}
+			if ( line[0] && line[strlen( line ) - 1] == '\r' ) {
+				line[strlen( line ) - 1] = '\0';
+			}
+			if ( !Q_stricmpn( line, "seta ", 5 ) ) {
+				for ( i = 0; line[5 + i] && line[5 + i] != ' ' && i < (int)sizeof( name ) - 1; i++ ) {
+					name[i] = line[5 + i];
+				}
+				name[i] = '\0';
+				if ( Cvar_Flags( name ) != CVAR_NONEXISTENT ) {
+					continue;	// Oz's own game's settings are ozengine.cfg's; only the scripts come over
+				}
+			} else if ( Q_stricmpn( line, "bind ", 5 ) && Q_stricmpn( line, "unbindall", 9 ) ) {
+				continue;
+			}
+			Cbuf_InsertText( va( "%s\n", line ) );
+			Cbuf_Execute();
+		}
+		Z_Free( text );
+		Com_Printf( "Binds: Oz Arena's, from oz/" Q3CONFIG_CFG "\n" );
+	}
 	FS_FCloseFile( f );
 }
 
@@ -3346,6 +3539,7 @@ static void Com_ExecuteCfg( void )
 		Cbuf_Execute();
 #ifndef DEDICATED
 		Com_ExecuteEngineConfig();	// Oz: one window, renderer and sound for every mod
+		Com_ExecuteBinds();			// Oz: and one set of binds
 		Com_AddNewBinds();
 #endif
 	}
@@ -4547,6 +4741,7 @@ void Com_WriteConfiguration( void ) {
 	Com_WriteConfigToFile( Q3CONFIG_CFG );
 #ifndef DEDICATED
 	Com_WriteEngineConfig();	// Oz: the settings every mod shares
+	Com_WriteBinds();			// Oz: and the binds
 #endif
 
 #ifndef DEDICATED

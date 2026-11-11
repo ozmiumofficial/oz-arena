@@ -54,7 +54,7 @@ startmatch adds ('' is no bot).
 			<div class="cols">
 				<div class="main">
 					<div class="browser">
-						<div class="tabs sktabs">
+						<div class="tabs sktabs nokeys">
 							<button id="sk_mod_oz" class="tab" data-class-active="skirmish.mod == 'oz'" data-event-click="skirmish.mod = 'oz'"><span>Oz Arena</span><span class="under"/></button>
 							<button id="sk_mod_cpma" class="tab" data-if="skirmish.have.cpma.state != 'none'" data-class-active="skirmish.mod == 'cpma'" data-event-click="skirmish.mod = 'cpma'"><span>CPMA</span><span class="under"/></button>
 							<button id="sk_mod_defrag" class="tab" data-if="skirmish.have.defrag.state != 'none'" data-class-active="skirmish.mod == 'defrag'" data-event-click="skirmish.mod = 'defrag'"><span>Defrag</span><span class="under"/></button>
@@ -153,7 +153,7 @@ startmatch adds ('' is no bot).
 					<div class="grow"/>
 					<p class="warn" data-if="skirmish.mod != 'defrag' &amp;&amp; @@NOT_FITS_SEL@@">{{ create_match.modes[create_match.skirmish.mi].name }} needs an arena made for it: pick one of the first ones.</p>
 					<div class="fightwrap" data-attr-onclick="@@START@@">
-						<button id="sk_fight" class="btn primary fight" data-event-click="@@PROGRAM@@"><span>{{ skirmish.mod == 'defrag' ? 'Race' : 'Fight' }}</span></button>
+						<button id="sk_fight" class="btn primary fight" data-event-click="@@PROGRAM@@"><span>{{ skirmish.mod == 'defrag' ? 'Race' : (skirmish.mod == 'cpma' ? 'Fight in CPMA' : 'Fight') }}</span></button>
 					</div>
 				</div>
 			</div>

@@ -75,6 +75,7 @@ void		OzE_Free( void *p );
 char		**OzE_ListFiles( const char *dir, const char *ext, int *count );	// free with OzE_FreeFileList
 char		**OzE_ListTree( const char *dir, const char *ext, int *count );	// its subfolders' too (the map editor's pick lists)
 int			OzE_InIdPak( const char *path );	// one of id's paks (baseq3/pak0 to pak8) has the file
+void		OzE_EngineCvar( const char *name );	// the cvar is the same under every mod (ozengine.cfg)
 void		OzE_FreeFileList( char **list );
 int			OzE_ClientState( void );			// 0 disconnected (the main menu), 1 connecting or loading, 2 in a match
 // the connection under way, for the connection screen (P8): 0 none (or loading, or a demo), 1 asking

@@ -5066,6 +5066,11 @@ and a click on one opens that player's card in the left column, where your match
 same row closes it). Letting go of Tab ends it. The card is theirs large, this match's numbers and
 their career: yours from your profile, a bot's skill, another Oz player's from the hub, with Add friend
 (the hub's roster of the Oz players seated in the match, oz_online_engine.c).
+
+At the match's end (the results, or the board over them while Tab is held) the cursor is up by itself,
+no right click (Ozmium, 2026-11-10: no mouse on the end of the match's screen): a click on a standing
+opens its card in the middle of the results, right click closes it, letting go of Tab keeps the cursor,
+and a click on nothing is the fire button's, which says you're ready for the next match.
 */
 typedef struct {
 	float	x, y, w, h;
@@ -5085,6 +5090,8 @@ static struct {
 	int			addedAt;		// cls.realtime of the last Add friend, for the hub's answer
 	char		layout[96];		// the layout last printed, and the card's state (tests)
 	char		cardState[96];
+	qboolean	atEnd;			// what drew last was the match's end: the results, or the board at the intermission
+	qboolean	byEnd;			// the match's end has the mouse: no right click put it there, none takes it back
 } boardMouse;
 
 static void BoardMouseReset( void ) {
@@ -5095,22 +5102,27 @@ static void BoardMouseReset( void ) {
 static void BoardMouseOff( void ) {
 	if ( boardMouse.on ) {
 		boardMouse.on = qfalse;
-		OzE_StartLocalSound( "sound/misc/menu3.wav" );
+		if ( !boardMouse.byEnd ) {
+			OzE_StartLocalSound( "sound/misc/menu3.wav" );
+		}
 		Com_Printf( "ozhud board: mouse off\n" );
 	}
+	boardMouse.byEnd = qfalse;
 	boardMouse.hover = boardMouse.selected = -1;
 }
 
-// the board is up and was drawn, and nothing else has the keys (the console, a menu, the chat line)
+// the board or the match's end is up and was drawn, and nothing else has the keys (the console, a menu,
+// the chat line)
 static qboolean BoardUp( void ) {
-	return cg.showScores && OzHud_Active() && !Key_GetCatcher() && cls.framecount - boardMouse.drawnAt <= 2;
+	return ( cg.showScores || boardMouse.atEnd ) && OzHud_Active() && !Key_GetCatcher() && cls.framecount - boardMouse.drawnAt <= 2;
 }
 
 static qboolean Inside( const boardRect_t *r, float x, float y ) {
 	return r->w > 0 && x >= r->x && x < r->x + r->w && y >= r->y && y < r->y + r->h;
 }
 
-static void BoardClick( void ) {
+// a click: Add friend, or a row's card opened or closed (qfalse: it was on nothing)
+static qboolean BoardClick( void ) {
 	int i;
 
 	if ( Inside( &boardMouse.button, boardMouse.x, boardMouse.y ) ) {
@@ -5120,7 +5132,7 @@ static void BoardClick( void ) {
 #endif
 		boardMouse.addedAt = cls.realtime ? cls.realtime : 1;
 		OzE_StartLocalSound( "sound/misc/menu2.wav" );
-		return;
+		return qtrue;
 	}
 	for ( i = 0; i < boardMouse.numRows; i++ ) {
 		if ( Inside( &boardMouse.rows[i], boardMouse.x, boardMouse.y ) ) {
@@ -5129,9 +5141,44 @@ static void BoardClick( void ) {
 			boardMouse.cardState[0] = 0;
 			OzE_StartLocalSound( boardMouse.selected >= 0 ? "sound/misc/menu1.wav" : "sound/misc/menu3.wav" );
 			Com_Printf( boardMouse.selected >= 0 ? "ozhud board: card %d\n" : "ozhud board: card %d closed\n", client );
-			return;
+			return qtrue;
 		}
 	}
+	return qfalse;
+}
+
+// the board or the match's end drew this frame: at the match's end the cursor comes up by itself, and
+// the rows the last frame drew light up under it
+static void BoardDrawn( const playerState_t *ps ) {
+	int i, hover = -1;
+
+	boardMouse.drawnAt = cls.framecount;
+	boardMouse.atEnd = ps->pm_type == PM_INTERMISSION && !cg.demoPlayback;
+	if ( boardMouse.selected >= 0 && !cgs.clientinfo[boardMouse.selected].infoValid ) {
+		boardMouse.selected = -1;	// they left
+	}
+	if ( boardMouse.atEnd && BoardUp() ) {
+		if ( !boardMouse.on ) {
+			boardMouse.on = qtrue;
+			boardMouse.x = cls.glconfig.vidWidth * 0.5f;
+			boardMouse.y = cls.glconfig.vidHeight * 0.5f;
+			boardMouse.hover = -1;
+			Com_Printf( "ozhud board: mouse on at the match's end\n" );
+		}
+		boardMouse.byEnd = qtrue;
+	}
+	if ( !boardMouse.on ) {
+		return;
+	}
+	for ( i = 0; i < boardMouse.numRows; i++ ) {
+		if ( Inside( &boardMouse.rows[i], boardMouse.x, boardMouse.y ) ) {
+			hover = boardMouse.rows[i].client;
+		}
+	}
+	if ( hover >= 0 && hover != boardMouse.hover ) {
+		OzE_StartLocalSound( "sound/misc/menu2.wav" );
+	}
+	boardMouse.hover = hover;
 }
 
 // CL_MouseEvent: while the board has the mouse it moves the cursor, not the view (1)
@@ -5165,7 +5212,14 @@ int OzHud_BoardKey( int key ) {
 		return 0;
 	}
 	if ( key == K_MOUSE2 ) {
-		if ( boardMouse.on ) {
+		if ( boardMouse.byEnd ) {
+			// the match's end keeps its cursor: right click closes the card
+			if ( boardMouse.selected >= 0 ) {
+				Com_Printf( "ozhud board: card %d closed\n", boardMouse.selected );
+				OzE_StartLocalSound( "sound/misc/menu3.wav" );
+				boardMouse.selected = -1;
+			}
+		} else if ( boardMouse.on ) {
 			BoardMouseOff();
 		} else {
 			boardMouse.on = qtrue;
@@ -5181,8 +5235,8 @@ int OzHud_BoardKey( int key ) {
 		return 0;
 	}
 	if ( key == K_MOUSE1 ) {
-		BoardClick();
-		return 1;
+		// at the match's end a click on nothing is the fire button's: ready for the next match
+		return BoardClick() || !boardMouse.byEnd;
 	}
 	return ( key >= K_MOUSE3 && key <= K_MOUSE5 ) || key == K_MWHEELUP || key == K_MWHEELDOWN;
 }
@@ -5222,13 +5276,20 @@ static void Board_f( void ) {
 	}
 }
 
-// ozboard_point <client> | button: the cursor to the middle of that player's row or the card's button,
-// through the board's own mouse (tests, which run without a mouse)
+// ozboard_point <client> | button | <x> <y>: the cursor to the middle of that player's row, the card's
+// button, or a place on the screen (fractions of its width and height), through the board's own mouse
+// (tests, which run without a mouse)
 static void BoardPoint_f( void ) {
 	const char	*what = Cmd_Argv( 1 );
 	const int	client = atoi( what );
 	int			i;
 
+	if ( Cmd_Argc() > 2 ) {
+		const float x = atof( Cmd_Argv( 1 ) ) * cls.glconfig.vidWidth, y = atof( Cmd_Argv( 2 ) ) * cls.glconfig.vidHeight;
+		OzHud_BoardMouse( (int)( ( x - boardMouse.x ) * 1080.0f / cls.glconfig.vidHeight ), (int)( ( y - boardMouse.y ) * 1080.0f / cls.glconfig.vidHeight ) );
+		Com_Printf( "ozboard: pointing at %d %d\n", (int)boardMouse.x, (int)boardMouse.y );
+		return;
+	}
 	if ( !Q_stricmp( what, "button" ) ) {
 		if ( boardMouse.button.w > 0 ) {
 			OzHud_BoardMouse( (int)( ( boardMouse.button.x + boardMouse.button.w * 0.5f - boardMouse.x ) * 1080.0f / cls.glconfig.vidHeight ),
@@ -5795,22 +5856,7 @@ static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 #ifdef USE_OZ_ONLINE
 	OzOnline_WantRoster();		// who's an Oz player here, for their cards
 #endif
-	boardMouse.drawnAt = cls.framecount;
-	if ( boardMouse.selected >= 0 && !cgs.clientinfo[boardMouse.selected].infoValid ) {
-		boardMouse.selected = -1;	// they left
-	}
-	if ( boardMouse.on ) {
-		int hover = -1;
-		for ( i = 0; i < boardMouse.numRows; i++ ) {
-			if ( Inside( &boardMouse.rows[i], boardMouse.x, boardMouse.y ) ) {
-				hover = boardMouse.rows[i].client;
-			}
-		}
-		if ( hover >= 0 && hover != boardMouse.hover ) {
-			OzE_StartLocalSound( "sound/misc/menu2.wav" );
-		}
-		boardMouse.hover = hover;
-	}
+	BoardDrawn( ps );
 
 	// the layout
 	for ( i = 0; i < numEntries; i++ ) {
@@ -5942,7 +5988,8 @@ static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 			listW - label - 38 * u );
 	}
 	Col( c, DIM, 0.9f );
-	Text( FONT_LABEL, px + pw * 0.5f, py + ph - 26 * u, boardMouse.on ? ( ps->pm_type == PM_INTERMISSION
+	Text( FONT_LABEL, px + pw * 0.5f, py + ph - 26 * u, boardMouse.byEnd ? "CLICK A PLAYER FOR THEIR CARD     FIRE  CONTINUE"
+		: boardMouse.on ? ( ps->pm_type == PM_INTERMISSION
 		? "CLICK A PLAYER FOR THEIR CARD     RIGHT CLICK  BACK" : "CLICK A PLAYER FOR THEIR CARD     RIGHT CLICK  BACK TO PLAY" )
 		: ps->pm_type == PM_INTERMISSION ? "FIRE  CONTINUE     RIGHT CLICK  PLAYER CARDS" : "RIGHT CLICK  PLAYER CARDS     RELEASE TAB TO PLAY",
 		14 * u, c, ALIGN_CENTER );
@@ -5961,7 +6008,7 @@ static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 			Com_Printf( "ozhud board: layout %s\n", layout );
 		}
 	}
-	if ( boardMouse.on ) {
+	if ( boardMouse.on && BoardUp() ) {	// not under the console or a menu, which have the system's cursor
 		BoardCursor();
 	}
 }
@@ -6367,7 +6414,12 @@ static void DrawResults( float W, float H, const playerState_t *ps ) {
 		Col( c, WHITE, 0.75f * Clamp01( t / 0.3f ) );
 		Text( FONT_MEDIUM, W * 0.5f, H * 0.2f, sub, H * 0.028f, c, ALIGN_CENTER );
 	}
-	// the standings
+	// the standings, which the cursor clicks for a card (the rows the last frame drew)
+	BoardDrawn( ps );
+#ifdef USE_OZ_ONLINE
+	OzOnline_WantRoster();		// who's an Oz player here, for their cards
+#endif
+	boardMouse.numRows = 0;
 	y = H * 0.25f;
 	for ( i = 0; i < cg.numScores && y < H * 0.85f; i++ ) {
 		const ozScore_t	*s = &cg.scores[i];
@@ -6375,6 +6427,19 @@ static void DrawResults( float W, float H, const playerState_t *ps ) {
 		const float		ch = H * 0.075f, cw = W * 0.19f;
 		if ( s->client < 0 || s->client >= MAX_CLIENTS || s->team == TEAM_SPECTATOR ) {
 			continue;
+		}
+		if ( ra > 0 ) {
+			boardRect_t *r = &boardMouse.rows[boardMouse.numRows++];
+			r->x = W * 0.03f - 12 * u;
+			r->y = y;
+			r->w = H * 0.05f + 28 + cw + H * 0.07f + 24 * u;
+			r->h = ch;
+			r->client = s->client;
+			if ( boardMouse.on && ( s->client == boardMouse.hover || s->client == boardMouse.selected ) ) {
+				Col( c, WHITE, 0.1f * ra );
+				Rect( r->x, r->y, r->w, r->h, c );
+				Rect( r->x, r->y, 3 * u, r->h, RED );
+			}
 		}
 		Col( c, WHITE, 0.8f * ra );
 		Text( FONT_NUM, W * 0.03f, y + ch * 0.5f + H * 0.014f, va( "%d", n + 1 ), H * 0.04f, c, ALIGN_LEFT );
@@ -6403,6 +6468,12 @@ static void DrawResults( float W, float H, const playerState_t *ps ) {
 		}
 		DrawXP( W, H, t );
 	}
+	// the card a click opened, in the middle, between the standings and the medals (as wide as the board's)
+	boardMouse.button.w = 0;
+	if ( boardMouse.selected >= 0 ) {
+		const float bw = ( W * 0.92f < 1780 * u ? W * 0.92f : 1780 * u ) * 0.33f;
+		DrawPlayerPanel( ( W - bw ) * 0.5f, H * 0.25f, bw, boardMouse.selected, ps );
+	}
 	Col( c, WHITE, 0.5f );
 	if ( xp.a.campaign && Awarded() ) {
 		// the single player game never leaves its intermission: back to the campaign once the XP has shown
@@ -6413,9 +6484,13 @@ static void DrawResults( float W, float H, const playerState_t *ps ) {
 			xp.a.campaign = 0;
 			OzProgress_CampaignContinue();
 		}
-		return;
+	} else {
+		Text( FONT_LABEL, W * 0.5f, H * 0.94f, boardMouse.byEnd ? "CLICK A PLAYER FOR THEIR CARD     TAB  SCOREBOARD" : "TAB  SCOREBOARD",
+			H * 0.022f, c, ALIGN_CENTER );
 	}
-	Text( FONT_LABEL, W * 0.5f, H * 0.94f, "TAB  SCOREBOARD", H * 0.022f, c, ALIGN_CENTER );
+	if ( boardMouse.on && BoardUp() ) {	// not under the console or a menu, which have the system's cursor
+		BoardCursor();
+	}
 }
 
 // A frame the HUD doesn't draw (cg_draw2D 0, a mod's menu up): the results' clock runs all the same, and a
@@ -6454,13 +6529,13 @@ static qboolean CampaignResultsKey( int key ) {
 }
 
 // +scores / -scores, which the game code takes: the board shows while it's held, and letting go takes
-// the board's mouse back
+// the board's mouse back, but at the match's end, whose results keep it
 void OzHud_ScoresKey( int down ) {
 	cg.showScores = down ? qtrue : qfalse;
 	if ( OzHud_KeepsKeys() ) {	// keys the game code took before
 		Key_SetCatcher( Key_GetCatcher() & ~KEYCATCH_CGAME );
 	}
-	if ( !down ) {
+	if ( !down && !boardMouse.byEnd ) {
 		BoardMouseOff();
 	}
 }

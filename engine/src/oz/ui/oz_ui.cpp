@@ -1518,8 +1518,10 @@ int OzUI_NativeMenus( void ) {
 	return NativeMenus();
 }
 
+// Escape in a match: Oz's pause page under every mod, as the HUD (decision 21). Under CPMA and Defrag
+// it opened their own in-game menu over the Oz HUD; the page has a button for it (ui_modmenu)
 int OzUI_PauseMenu( void ) {
-	if ( !NativeMenus() || OzE_PlayingDemo() ) {
+	if ( !initialized || !atoi( OzE_CvarString( "ui_nativeMenu" ) ) || !OzE_Renderer() || OzE_PlayingDemo() ) {
 		return 0;
 	}
 	OpenPage( FindPage( "pause" ) );

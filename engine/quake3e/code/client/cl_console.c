@@ -268,6 +268,22 @@ static void Con_ToggleMenu_f( void ) {
 
 /*
 ================
+Con_ModMenu_f
+
+Oz: ui_modmenu, the mod's own in-game menu (CPMA's, Defrag's), from Oz's pause page: Escape opens
+the pause page under every mod (OzUI_PauseMenu)
+================
+*/
+static void Con_ModMenu_f( void ) {
+	if ( !uivm || cls.state != CA_ACTIVE || clc.demoplaying ) {
+		return;
+	}
+	VM_Call( uivm, 1, UI_SET_ACTIVE_MENU, UIMENU_INGAME );
+}
+
+
+/*
+================
 Con_MessageMode_f
 ================
 */
@@ -635,6 +651,7 @@ void Con_Init( void )
 	Cmd_SetCommandCompletionFunc( "condump", Cmd_CompleteTxtName );
 	Cmd_AddCommand( "toggleconsole", Con_ToggleConsole_f );
 	Cmd_AddCommand( "togglemenu", Con_ToggleMenu_f );	// Oz
+	Cmd_AddCommand( "ui_modmenu", Con_ModMenu_f );	// Oz
 	Cmd_AddCommand( "messagemode", Con_MessageMode_f );
 	Cmd_AddCommand( "messagemode2", Con_MessageMode2_f );
 	Cmd_AddCommand( "messagemode3", Con_MessageMode3_f );
@@ -658,6 +675,7 @@ void Con_Shutdown( void )
 	Cmd_RemoveCommand( "condump" );
 	Cmd_RemoveCommand( "toggleconsole" );
 	Cmd_RemoveCommand( "togglemenu" );	// Oz
+	Cmd_RemoveCommand( "ui_modmenu" );	// Oz
 	Cmd_RemoveCommand( "messagemode" );
 	Cmd_RemoveCommand( "messagemode2" );
 	Cmd_RemoveCommand( "messagemode3" );

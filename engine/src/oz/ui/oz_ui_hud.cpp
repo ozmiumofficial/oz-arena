@@ -455,6 +455,25 @@ void Hud_Shutdown() {
 
 using namespace OzUI;
 
+/*
+The HUD's own icons (weapons, items, medals, flags, crosshairs) as id's paks have them, under every mod:
+CPMA's paks replace nearly all of them, and a map pack can in Oz's own game (files.c FS_IdPakFile). An
+icon id's paks don't have (a mod's own item) is read as it is.
+*/
+static Rml::String HudImageSource( const char *name ) {
+	static const char *const ids[] = { "icons/", "menu/medals/", "gfx/2d/crosshair" };
+	for ( const char *prefix : ids ) {
+		if ( !strncmp( name, prefix, strlen( prefix ) ) ) {
+			const Rml::String n = name;
+			if ( OzE_InIdPak( ( n + ".tga" ).c_str() ) || OzE_InIdPak( ( n + ".jpg" ).c_str() ) ) {
+				return "$q3/" + n;	// qcommon.h OZ_ID_PREFIX
+			}
+			break;
+		}
+	}
+	return name;
+}
+
 extern "C" {
 
 int OzUI_HudAvailable( void ) {
@@ -477,7 +496,7 @@ int OzUI_HudImage( const char *name ) {
 	}
 	imageIndex[name] = (int)imageNames.size();
 	imageNames.push_back( name );
-	images.push_back( m->LoadTexture( name ) );
+	images.push_back( m->LoadTexture( HudImageSource( name ) ) );
 	imagesAsked.push_back( rendererStart );
 	readAhead.push_back( (int)images.size() - 1 );
 	return (int)images.size();

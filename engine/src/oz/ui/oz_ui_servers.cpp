@@ -1465,6 +1465,11 @@ void ModImport( const std::string &how, const std::string &given ) {
 
 namespace OzUI {
 
+// a mode as a game numbers it ("cpma", "defrag", else id's), for the pause page's title
+std::string Servers_ModeName( const std::string &kind, int gt ) {
+	return ModeName( kind, gt );
+}
+
 // the server rows' actions (Menu_Run asks here before the online pages'): true when taken
 //   servers               ask the master servers again (the Refresh button, with browse)
 //   serverjoin <address> [locked]  join a server (one with a password asks for it first: locked from Friends)

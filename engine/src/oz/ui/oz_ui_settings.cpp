@@ -321,6 +321,11 @@ void Settings_Init() {
 			OzE_CvarCreate( e.cvar.c_str(), e.def.c_str(), e.restart, e.tip.c_str(), numeric ? lo.c_str() : nullptr,
 				numeric ? hi.c_str() : nullptr, e.type == "int" && e.scale == 1.0f );
 		}
+		// every setting the page shows is the player's under every mod (common.c Com_OzEngineCvar): Oz's own
+		// and the game's alike, so a CPMA match keeps the field of view, sensitivity and gun the player set
+		if ( !e.cvar.empty() && e.wired ) {
+			OzE_EngineCvar( e.cvar.c_str() );
+		}
 		entries.push_back( e );
 	}
 

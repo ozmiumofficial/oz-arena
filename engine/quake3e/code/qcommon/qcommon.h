@@ -740,6 +740,9 @@ unsigned	FS_OzSearchStamp( void );	// Oz: changes when the search path's paks or
 
 // Oz: the engine-wide settings (video, sound), beside the mod folders; each mod's q3config.cfg keeps the rest
 #define OZ_ENGINE_CFG "ozengine.cfg"
+#define OZ_BINDS_CFG "ozbinds.cfg"		// Oz: the binds every mod shares (Com_WriteBinds)
+#define OZ_ID_PREFIX "$q3/"				// Oz: a file as id's own paks have it (files.c FS_IdPakFile)
+void Com_OzEngineCvar( const char *name );	// Oz: one more cvar for every mod, in OZ_ENGINE_CFG (the Settings page's)
 
 #ifdef DEDICATED
 #define Q3CONFIG_CFG "q3config_server.cfg"

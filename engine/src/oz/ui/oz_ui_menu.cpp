@@ -1234,12 +1234,14 @@ public:
 
 static MenuListener menuListener;
 
-// Q and E, the shoulder buttons: the next tab of the top page's tab bar
+// Q and E, the shoulder buttons: the next tab of the top page's tab bar. A bar marked "nokeys"
+// changes only by a click: Skirmish's Oz Arena / CPMA / Defrag picks the game Fight starts, and an E
+// pressed out of habit started a CPMA match the player never chose (Ozmium, 2026-11-10).
 bool Menu_Tab( Rml::ElementDocument *doc, int dir ) {
 	Rml::ElementList bars;
 	doc->GetElementsByClassName( bars, "tabs" );
 	for ( Rml::Element *bar : bars ) {
-		if ( !bar->IsVisible() ) {
+		if ( !bar->IsVisible() || bar->IsClassSet( "nokeys" ) ) {
 			continue;
 		}
 		std::vector<Rml::Element *> tabs;
@@ -1538,7 +1540,8 @@ static void PauseTeams( bool warmup ) {
 	bool spectate = false, forfeit = false;
 
 	const bool known = OzE_TeamInfo( &t ) && !t.intermission && t.gametype != 2 && t.team >= 0 && t.team <= 3;
-	const bool teams = t.gametype >= 3, duel = t.gametype == 1;
+	// CPMA's Hoonymode (-1) is a duel; its 5 to 9 (Clan Arena, Freeze Tag, Capture Strike, NTF, 2v2) are team modes
+	const bool teams = t.gametype >= 3, duel = t.gametype == 1 || ( t.gametype == -1 && !StrICmp( OzE_GameDir(), "cpma" ) );
 	const bool watching = t.team == 3;
 	if ( known && teams ) {
 		const int red = t.count[1], blue = t.count[2];
@@ -1649,7 +1652,12 @@ static void PauseFrame() {
 	char clock[32];
 	seconds = seconds < 0 ? 0 : seconds;
 	snprintf( clock, sizeof( clock ), "%d:%02d", seconds / 60, seconds % 60 );
-	Menu_SetString( "pause.title", ( Rml::String( gametype >= 0 && gametype < 5 ? modes[gametype] : "Match" ) + "  -  " + name ).c_str() );
+	// under a mod, its own modes (CPMA's Clan Arena, Defrag's runs), and a button for its own menu (ui_modmenu)
+	const Rml::String game = OzE_GameDir();
+	const bool ozGame = OzE_IsOzGame() != 0;
+	const Rml::String mode = !ozGame ? Servers_ModeName( game, gametype ) : gametype >= 0 && gametype < 5 ? modes[gametype] : "Match";
+	Menu_SetString( "pause.title", ( mode + "  -  " + name ).c_str() );
+	Menu_SetString( "pause.mod_menu", ozGame ? "" : !StrICmp( game.c_str(), "cpma" ) ? "CPMA menu" : !StrICmp( game.c_str(), "defrag" ) ? "Defrag menu" : "Mod menu" );
 	Menu_Set( "pause.clock", clock );
 	Menu_Set( "pause.warmup", warmup ? "true" : "false" );
 	Menu_Set( "pause.can_restart", local ? "true" : "false" );

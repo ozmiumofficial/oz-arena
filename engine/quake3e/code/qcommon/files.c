@@ -1955,6 +1955,38 @@ static fileInPack_t *FS_OzClientModFile( const char *filename, long fullHash, pa
 
 /*
 ===========
+FS_IdPakFile
+
+Oz: "$q3/<name>" (OZ_ID_PREFIX) is <name> as id's own paks (baseq3/pak0 to pak8) have it, whatever
+paks come before them. The HUD draws its icons by such names: under CPMA its z-cpma-pak153.pk3
+replaced every weapon, item and medal icon, and a map pack in baseq3 could do the same in Oz's own
+game. CPMA's cgame still gets its own by the plain names. pak0 is on every pure server's list.
+===========
+*/
+static fileInPack_t *FS_IdPakFile( const char *filename, long fullHash, pack_t **pak ) {
+	const searchpath_t *search;
+	fileInPack_t *f;
+	char name[ MAX_OSPATH ];
+
+	for ( search = fs_searchpaths; search; search = search->next ) {
+		if ( !search->pack || Q_stricmp( search->pack->pakGamename, BASEGAME ) || !FS_PakIsPure( search->pack ) ) {
+			continue;
+		}
+		Com_sprintf( name, sizeof( name ), "%s/%s", search->pack->pakGamename, search->pack->pakBasename );	// FS_idPak's va()
+		if ( !FS_idPak( name, BASEGAME, NUM_ID_PAKS ) ) {
+			continue;
+		}
+		if ( ( f = FS_FindFileInPak( search->pack, filename, fullHash ) ) != NULL ) {
+			*pak = search->pack;
+			return f;
+		}
+	}
+	return NULL;
+}
+
+
+/*
+===========
 FS_FOpenFileRead
 
 Finds the file in the search path.
@@ -2002,6 +2034,19 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			*file = FS_INVALID_HANDLE;
 		}
 		return -1;
+	}
+
+	// Oz: "$q3/<name>", the file as id's own paks have it (FS_IdPakFile); one they don't have is <name>
+	if ( !Q_strncmp( filename, OZ_ID_PREFIX, sizeof( OZ_ID_PREFIX ) - 1 ) ) {
+		filename += sizeof( OZ_ID_PREFIX ) - 1;
+		fullHash = FS_HashFileName( filename, 0U );
+		pakFile = FS_IdPakFile( filename, fullHash, &pak );
+		if ( pakFile != NULL ) {
+			if ( file == NULL ) {
+				return pakFile->size;
+			}
+			return FS_OpenFileInPak( file, pak, pakFile, uniqueFILE );
+		}
 	}
 
 	// we will calculate full hash only once then just mask it by current pack->hashSize

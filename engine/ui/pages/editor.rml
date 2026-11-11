@@ -269,6 +269,12 @@
 		#sec-shape .note, #ed-mover .note { font-size: 0.82rem; color: #9b8f84; align-self: center; margin-left: 0.4rem; }
 		.bad { color: #ff8a6e; }
 		.mat { position: relative; }
+		/* a material dragged from the browser: under the pointer, never in the way of what's under it */
+		.dragmat { position: absolute; display: flex; align-items: center; pointer-events: none; z-index: 50; padding: 0.25rem 0.55rem 0.25rem 0.25rem;
+			background-color: #1d1917f0; border: 1dp #ff4a1c80; border-radius: 6dp; }
+		.dragmat.hidden { display: none; }
+		.dragmat .sw { width: 2.6rem; height: 2.6rem; margin: 0 0.45rem 0 0; }
+		.dragmat span { font-size: 0.8rem; color: #f1e9e0; white-space: nowrap; }
 		.esec { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; color: #b5a99d; margin: 1rem 0 0.45rem 0; padding-bottom: 0.38rem; border-bottom: 1dp #ffecdc14; }
 		/* the Entities panel: the card saying what's armed, each section's line, names that wrap */
 		.einfo { margin: 0.55rem 0 0.2rem 0; padding: 0.55rem 0.7rem; background-color: #ffecdc0a; border: 1dp #ffecdc14; border-radius: 6dp; }
@@ -285,6 +291,9 @@
 		.folder .n { color: #7d7168; margin-left: 0.3rem; }
 		.pager { justify-content: center; }
 		#ed-pick-chips .chip .n { color: #7d7168; margin-left: 0.2rem; }
+		#ed-chips .chip.k { font-size: 0.74rem; padding: 0.14rem 0.5rem; margin: 0 0.24rem 0.24rem 0; }
+		#ed-chips .chip .n { color: #7d7168; margin-left: 0.25rem; }
+		#ed-chips .chip.on .n { color: #ffb8a3; }
 		#ed-pick-rows .srow .pn { width: 15rem; flex-shrink: 0; color: #e6ddd3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 0.6rem; }
 		.pfs { display: flex; flex-wrap: wrap; }
 		.pfbox { display: block; width: 10.4rem; margin: 0 0.3rem 0.6rem 0; }
@@ -365,6 +374,18 @@
 		.ask input.text { width: 100%; height: 2.3rem; margin-bottom: 0.6rem; border-radius: 4dp; background-color: #100d0c; border-color: #ffecdc1f; }
 		.ask input.text:focus, .search input.text:focus { border-color: #ff4a1caa; }
 		.recover.hidden, .ask.hidden { display: none; }
+		/* GLOW in Inspect: a glowing material's brightness and light */
+		#ed-glow .row { display: flex; align-items: center; margin: 0 0 0.3rem 0; }
+		#ed-glow .lbl { width: 5.6rem; }
+		#ed-glow .val { width: 3.4rem; text-align: center; color: #f1e9e0; }
+		#ed-glow .val.own { color: #9b8f84; }
+		#ed-glow p { font-size: 0.8rem; color: #9b8f84; margin: 0.1rem 0 0.4rem 0; }
+		.sub.hidden, #ed-glow.hidden { display: none; }
+		/* the material pictures' card, as the editor opens (oz_ui_thumbs.cpp) */
+		.ask .box.loading { width: 30rem; }
+		.loading .track { display: block; position: relative; height: 0.45rem; margin: 0.2rem 0 0.5rem 0; background-color: #ffecdc14; border-radius: 3dp; }
+		.loading .track div { display: block; position: absolute; left: 0; top: 0; height: 100%; width: 0%; background-color: #e8381a; border-radius: 3dp; }
+		.loading p.n { font-size: 0.85rem; color: #9b8f84; margin: 0 0 0.7rem 0; }
 		/* the getting started card */
 		.ask .box.guide { width: 40rem; }
 		.guide .steps .row { display: flex; align-items: flex-start; margin: 0 0 0.6rem 0; }
@@ -627,7 +648,7 @@
 		<button class="tb ib" data-action="subtract" onclick="append ed subtract"><span class="ic" data-icon="subtract"></span><span>Subtract</span></button>
 		<button class="tb ib" data-action="merge" onclick="append ed merge"><span class="ic" data-icon="merge"></span><span>Merge</span></button>
 		<div class="sep"></div>
-		<button class="tb ib io" data-action="pick_material" onclick="append ed pick_material"><span class="ic" data-icon="eyedropper"></span></button>
+		<button class="tb ib io" id="ed-eyedrop" data-action="pick_material" onclick="append ed pick_material"><span class="ic" data-icon="eyedropper"></span></button>
 		<button class="tb ib io" data-action="paint" onclick="append ed paint"><span class="ic" data-icon="paint"></span></button>
 		<button class="tb ib on" id="tool-lock" data-action="texture_lock" onclick="append ed texture_lock"><span class="ic" data-icon="lock"></span><span>Texture lock</span><span class="mtog"><span class="knob"></span></span></button>
 		<div class="sep wide"></div>
@@ -637,7 +658,7 @@
 		<button class="tb ib leak hidden" id="ed-leak" data-action="frame_leak" onclick="append ed frame_leak"><span class="ic" data-icon="leak"></span><span>Show the leak</span></button>
 		<button class="tb ib warn hidden" id="ed-warnings" data-action="warnings" onclick="append ed warnings"><span class="ic" data-icon="warning"></span><span id="ed-warnings-n">Warnings</span></button>
 		<button class="tb ib field wide" id="ed-search-btn" data-action="search" onclick="append ed search"><span class="ic" data-icon="search"></span><span>Search</span><kbd data-keys="search">F3</kbd></button>
-		<button class="tb ib" id="ed-preview" data-action="preview" onclick="append ed preview"><span class="ic" data-icon="sun"></span><span>Lit preview</span></button>
+		<button class="tb ib" id="ed-lighting" data-action="lighting" onclick="append ed lighting"><span class="ic" data-icon="sun"></span><span>Lighting off</span></button>
 		<button class="tb ib out" id="ed-compile" data-action="compile" onclick="append ed compile"><span class="ic" data-icon="hammer"></span><span>Compile</span></button>
 		<button class="tb ib out hidden" id="ed-stop" data-action="compile_stop" onclick="append ed compile_stop"><span class="ic" data-icon="stop"></span><span>Stop</span></button>
 		<button class="tb ib play" id="ed-play" data-action="play" onclick="append ed play"><span class="ic" data-icon="play"></span><span>Play</span><kbd data-keys="play">F5</kbd></button>
@@ -649,6 +670,7 @@
 		<button class="st" id="tool-create" data-action="create" onclick="append ed create"><span class="ic" data-icon="brush"></span><span class="tn">Brush</span><kbd data-keys="create">B</kbd></button>
 		<button class="st" id="tool-clip" data-action="clip" onclick="append ed clip"><span class="ic" data-icon="clip"></span><span class="tn">Clip</span><kbd data-keys="clip">C</kbd></button>
 		<button class="st" id="tool-faces" data-action="faces" onclick="append ed faces"><span class="ic" data-icon="faces"></span><span class="tn">Faces</span><kbd data-keys="faces">T</kbd></button>
+		<button class="st" id="tool-paint" data-action="paint_tool" onclick="append ed paint_tool"><span class="ic" data-icon="roller"></span><span class="tn">Paint</span><kbd data-keys="paint_tool">Shift+P</kbd></button>
 		<span class="group">PLACE</span>
 		<button class="st" id="tool-place" data-hint="Entity: pick one in the Entities panel (pickups, spawns, triggers ...), then click where it goes" onclick="append ed panel entities"><span class="ic" data-icon="entity"></span><span class="tn">Entity</span></button>
 		<button class="st" id="tool-light" data-action="light" onclick="append ed light"><span class="ic" data-icon="light"></span><span class="tn">Light</span><kbd data-keys="light">L</kbd></button>
@@ -659,7 +681,7 @@
 	<div class="side">
 		<div class="ptabs">
 			<button class="ptab on" id="tab-inspect" data-hint="What's selected: its material, texture mapping, place and keys" onclick="append ed panel inspect">Inspect</button>
-			<button class="ptab" id="tab-materials" data-hint="Every material in your game's files: click one to paint the selection with it" onclick="append ed panel materials">Materials</button>
+			<button class="ptab" id="tab-materials" data-hint="Every material in your game's files: click one to pick it up, drag one onto a face to paint it" onclick="append ed panel materials">Materials</button>
 			<button class="ptab" id="tab-entities" data-hint="Pickups, spawns, lights, triggers and the rest: click one, then where it goes" onclick="append ed panel entities">Entities</button>
 			<button class="ptab" id="tab-prefabs" data-hint="Your prefabs: select brushes and entities, name them, save; click one to put it in any map" onclick="append ed panel prefabs">Prefabs</button>
 			<button class="ptab" id="tab-objects" data-hint="Everything in the map, by entity: click selects, double-click frames" onclick="append ed panel objects">Objects</button>
@@ -670,13 +692,22 @@
 		<div class="pbody" id="panel-inspect">
 			<p class="what" id="ed-what">Nothing is selected</p>
 
+			<div id="sec-paintarea" class="hidden">
+				<h2>PAINT AREA</h2>
+				<p id="ed-paintarea-note"></p>
+				<div class="row">
+					<button class="tb ib" id="ed-paintarea-go" data-action="paint_area" onclick="append ed paint_area"><span class="ic" data-icon="roller"></span><span>Paint area</span><kbd data-keys="apply">Enter</kbd></button>
+					<button class="tb" data-action="paint_area_clear" onclick="append ed paint_area_clear">Clear</button>
+				</div>
+			</div>
+
 			<div id="sec-help">
 				<h2>GETTING STARTED</h2>
 				<div class="steps">
 					<div class="row"><span class="n">1</span><span class="k">Hold the right mouse button to look; W A S D fly, Q and E go down and up</span></div>
 					<div class="row"><span class="n">2</span><span class="k">Brush <kbd data-keys="create">B</kbd>: drag a footprint, move up for the height, click</span></div>
 					<div class="row"><span class="n">3</span><span class="k">Click to select, drag to move; Shift+drag a face pushes or pulls it</span></div>
-					<div class="row"><span class="n">4</span><span class="k">Materials tab: click one to paint what's selected</span></div>
+					<div class="row"><span class="n">4</span><span class="k">Materials tab: click one to pick it up, then the paint tool (Shift+P) or P paints; or drag one onto a face</span></div>
 					<div class="row"><span class="n">5</span><span class="k">Entities tab: click a pickup or spawn, then where it goes</span></div>
 					<div class="row"><span class="n">6</span><span class="k">Play <kbd data-keys="play">F5</kbd> runs around in it; Esc, then Back to the map editor, comes back</span></div>
 				</div>
@@ -702,6 +733,8 @@
 				</div>
 				<div class="sub">COLOR</div>
 				<div class="row tints" id="ed-tints"></div>
+				<div class="sub" id="ed-glow-sub">GLOW</div>
+				<div id="ed-glow"></div>
 			</div>
 
 			<div id="sec-mapping">
@@ -747,6 +780,11 @@
 						<button class="tb ib io" data-action="tex_flip_s" onclick="append ed tex_flip_s"><span class="ic" data-icon="flip_across"></span></button>
 						<button class="tb ib io" data-action="tex_flip_t" onclick="append ed tex_flip_t"><span class="ic" data-icon="flip_down"></span></button>
 					</div>
+				</div>
+				<div class="row">
+					<span class="lbl">Fix</span>
+					<button class="tb" data-action="tex_natural" onclick="append ed tex_natural">Natural size</button>
+					<button class="tb" data-action="tex_wrap" onclick="append ed tex_wrap">Wrap corners</button>
 				</div>
 				<div class="row">
 					<span class="lbl"></span>
@@ -869,6 +907,7 @@
 					<div class="row"><kbd>1 - 9</kbd><span class="k">grid 1 to 256; [ ] halve, double</span></div>
 					<div class="row"><kbd data-keys="pick_material">I</kbd><span class="k">take the material under the pointer</span></div>
 					<div class="row"><kbd data-keys="paint">P</kbd><span class="k">paint the current material</span></div>
+					<div class="row"><kbd data-keys="paint_tool">Shift+P</kbd><span class="k">paint tool: drag across a row of faces</span></div>
 					<div class="row"><kbd data-keys="views">V</kbd><span class="k">four views: 3D, top, front, side</span></div>
 					<div class="row"><kbd data-keys="undo">Ctrl+Z</kbd><span class="k">undo</span></div>
 					<div class="row"><kbd data-keys="search">F3</kbd><span class="k">search every action by name</span></div>
@@ -882,7 +921,7 @@
 				<div class="sw" id="ed-cur-sw"></div>
 				<div>
 					<span class="matname" id="ed-cur-name"></span>
-					<p>New brushes and Paint (P) use it. Click one below to paint the selection with it.</p>
+					<p>New brushes, Paint (P) and the paint tool use it. Click one below to pick it up, or drag one onto a face to paint it.</p>
 				</div>
 			</div>
 			<div class="row">
@@ -930,7 +969,7 @@
 		</div>
 
 		<div class="pbody hidden" id="panel-world">
-			<p class="note" id="ed-sky-note">The map's picture, sky and light, saved with it. Lit preview (F6) or Play shows the sky and light.</p>
+			<p class="note" id="ed-sky-note">The map's picture, sky and light, saved with it. The view shows the sky's light as you change it.</p>
 			<div class="esec">THUMBNAIL</div>
 			<div id="ed-thumb-world"></div>
 			<div class="esec">LIGHT</div>
@@ -1000,6 +1039,19 @@
 				<button class="tb primary" id="ed-saveas-ok" onclick="append ed panel saveas_run">Save</button>
 				<button class="tb quiet" id="ed-saveas-cancel" onclick="append ed panel saveas_close">Cancel</button>
 			</div>
+		</div>
+	</div>
+
+	<div class="dragmat hidden" id="ed-dragmat"><div class="sw" id="ed-dragmat-sw"></div><span id="ed-dragmat-name"></span></div>
+
+	<div class="ask hidden" id="ed-loading">
+		<div class="box loading">
+			<h2>GETTING THE MATERIALS READY</h2>
+			<p id="ed-loading-what">Listing the game's materials</p>
+			<div class="track"><div id="ed-loading-bar"></div></div>
+			<p class="n" id="ed-loading-n"></p>
+			<p class="dim">Every material's picture is read once and kept, so the Materials tab's pages show at once. The first time takes a while; after that, only new map packs are read.</p>
+			<p class="dim">Esc goes back to the main menu; the reading goes on when you come back.</p>
 		</div>
 	</div>
 

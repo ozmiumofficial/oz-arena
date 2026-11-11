@@ -17,6 +17,8 @@ ui/pages, their data and their actions.
     set <path> <v>   a value (a string)          next           the showcase's next subject
     url <link>       an https link in the player's browser (Discord, GitHub, Steam's hosts only)
     startmatch <p>   an offline match            host <path>    the same match, hosted online (P8)
+    setting <key> <path>  a setting from the model's value there, as it is (the Profile's name)
+    addtext <path> <text> text added to the model's text there
     and the online pages' own: browse, join, joinask, askcancel, unjoin, quick, quickjoin,
     quickcancel, quickhost (oz_ui_social.cpp); servers, serverjoin, sbsort (oz_ui_servers.cpp);
     Skirmish's skimport and race (oz_ui_skirmish.cpp)
@@ -209,6 +211,18 @@ bool Menu_Set( const char *path, const char *value ) {
 	return true;
 }
 
+// a text, kept as it is: Menu_Set reads "007" as the number 7 and "true" as a bool, so a player named
+// 007 showed as 7. Names, errors, toasts and anything else people or servers wrote go in through this
+bool Menu_SetString( const char *path, const char *value ) {
+	cJSON *j = Menu_Node( path );
+	if ( !j || cJSON_IsArray( j ) || cJSON_IsObject( j ) ) {
+		return false;
+	}
+	jsonScalar.Set( j, Rml::Variant( Rml::String( value ? value : "" ) ) );	// copied first: value may be this node's own text
+	Menu_Dirty( path );
+	return true;
+}
+
 // the node's payload replaced by src's (src is consumed); the node itself stays, as the model holds it
 static void Replace( cJSON *dst, cJSON *src ) {
 	cJSON *c;
@@ -252,7 +266,7 @@ extern "C" void OzUI_UpdateOffer( const char *version, const char *name, const c
 }
 
 extern "C" void OzUI_UpdateStatus( const char *text, int failed ) {
-	Menu_Set( "update.status", text );
+	Menu_SetString( "update.status", text );
 	if ( failed ) {
 		PlaySound( Sound::Buzz );
 		Menu_Toast( text, "warn" );
@@ -274,11 +288,11 @@ static void UpdateFrame() {
 		return;	// shown over the main menu only: never over a match, the splash or a question
 	}
 	update.pending = false;
-	Menu_Set( "update.version", update.version.c_str() );
-	Menu_Set( "update.name", update.name.c_str() );
-	Menu_Set( "update.published", update.published.c_str() );
-	Menu_Set( "update.channel", update.channel.c_str() );
-	Menu_Set( "update.status", "" );
+	Menu_SetString( "update.version", update.version.c_str() );
+	Menu_SetString( "update.name", update.name.c_str() );
+	Menu_SetString( "update.published", update.published.c_str() );
+	Menu_SetString( "update.channel", update.channel.c_str() );
+	Menu_SetString( "update.status", "" );
 	cJSON *notes = cJSON_CreateArray();
 	for ( const Rml::String &n : update.notes ) {
 		cJSON_AddItemToArray( notes, cJSON_CreateString( n.c_str() ) );
@@ -717,7 +731,7 @@ static void FillPlayer() {
 	const size_t slash = modelName.find( '/' );
 	const Rml::String skin = slash == Rml::String::npos ? "default" : modelName.substr( slash + 1 );
 	modelName = modelName.substr( 0, slash );
-	Menu_Set( "player.name", name[0] ? name : "Player" );
+	Menu_SetString( "player.name", name[0] ? name : "Player" );	// as text: a player named 007 showed as 7
 	Menu_Set( "player.model", modelName.c_str() );
 	Menu_Set( "player.icon", ( "/models/players/" + modelName + "/icon_" + skin ).c_str() );
 	Menu_Set( "player.version", "dev " __DATE__ );	// the engine's version string names Quake3e; the release numbers come with P14
@@ -764,7 +778,7 @@ void Menu_Toast( const char *text, const char *tone ) {
 		}
 	}
 	const Rml::String p = Rml::CreateString( "toasts.%d.", slot );
-	Menu_Set( ( p + "text" ).c_str(), text );
+	Menu_SetString( ( p + "text" ).c_str(), text );
 	Menu_Set( ( p + "tone" ).c_str(), tone );
 	Menu_Set( ( p + "until" ).c_str(), Rml::CreateString( "%d", OzE_Milliseconds() + 4200 ).c_str() );
 	Menu_Set( ( p + "show" ).c_str(), "true" );
@@ -792,7 +806,6 @@ static const char *SoonText( const Rml::String &what ) {
 		{ "ranked", "Ranked queues come with matchmaking (P8b)." },
 		{ "matchmaking", "Matchmaking comes with P8b." },
 		{ "friends", "Friends and parties come with the online services (P7)." },
-		{ "replays", "Replays come with the replay system (P10)." },
 		{ "editor", "The map editor comes later (P13)." },
 		{ "dedicated", "Dedicated servers come with P9." },
 		{ "lan", "LAN hosting comes with the LAN browser (P9)." },
@@ -868,11 +881,33 @@ host <path>: the same match hosted online (P8): its name and password (name, pas
 server's, and once the map is up, oz_host lists it in the hub's directory (oz_ice.c). A party leader's
 party follows them in: the hub's party_follow goes once the listing is up (Social_FollowText).
 */
+// A map's, bot's or mod's name on its way into a console command: letters and digits, and the few
+// others given. The names come from arena and bot scripts and from file names, a downloaded pak's too,
+// and the command buffer splits at every ; and line end: a name with one ran what followed it.
+static bool SafeName( const char *s, const char *others ) {
+	if ( !s || !*s ) {
+		return false;
+	}
+	for ( ; *s; s++ ) {
+		if ( !isalnum( (unsigned char)*s ) && !strchr( others, *s ) ) {
+			return false;
+		}
+	}
+	return true;
+}
+
 static void StartMatch( const char *path, bool online = false ) {
 	cJSON *m = Menu_Node( path );
 	if ( !cJSON_IsObject( m ) || !cJSON_GetStringValue( cJSON_GetObjectItem( m, "map" ) ) ) {
 		PlaySound( Sound::Buzz );
 		Printf( "^3UI: startmatch %s: no match there\n", path );
+		return;
+	}
+	const char *modName = cJSON_GetStringValue( cJSON_GetObjectItem( m, "mod" ) );
+	if ( !SafeName( cJSON_GetStringValue( cJSON_GetObjectItem( m, "map" ) ), "_-+./" ) || ( modName && *modName && !SafeName( modName, "_-." ) ) ) {
+		PlaySound( Sound::Buzz );
+		Menu_Toast( "That map's name has characters a match can't start with.", "warn" );
+		Printf( "^3UI: startmatch %s: refused, the map's or the mod's name isn't a plain name\n", path );
 		return;
 	}
 	const char *password = cJSON_GetStringValue( cJSON_GetObjectItem( m, "password" ) );
@@ -919,22 +954,35 @@ static void StartMatch( const char *path, bool online = false ) {
 	// hub sends it only to a listed match's party)
 	text += Rml::String( cmd ) + ( online ? "oz_host\n" + Social_FollowText( "host", "", password ? password : "" ) : "" ) + "wait 30\n";
 	cJSON *list = cJSON_GetObjectItem( m, "bots" );
+	bool refused = false;
 	for ( cJSON *b = list ? list->child : nullptr; b; b = b->next ) {
 		const char *name = cJSON_IsString( b ) ? b->valuestring : cJSON_GetStringValue( cJSON_GetObjectItem( b, "name" ) );
 		if ( name && *name ) {
 			char line[128];
 			cJSON *bs = cJSON_IsObject( b ) ? cJSON_GetObjectItem( b, "skill" ) : nullptr;
 			const char *team = cJSON_IsObject( b ) ? cJSON_GetStringValue( cJSON_GetObjectItem( b, "team" ) ) : nullptr;
+			if ( !SafeName( name, "_-" ) || strlen( name ) > 64 || ( team && *team && !SafeName( team, "" ) ) ) {
+				// a bot script's name with a ; or a space in it: left out (the match still starts)
+				Printf( "^3UI: startmatch: a bot's name isn't a plain name, left out\n" );
+				refused = true;
+				continue;
+			}
 			const int skill = cJSON_IsNumber( bs ) ? bs->valueint : cJSON_IsString( bs ) ? atoi( bs->valuestring ) : (int)num( "skill", 3 );
 			snprintf( line, sizeof( line ), "addbot %s %d %s\nwait 5\n", name, skill, team ? team : "" );
 			text += line;
 		}
 	}
 	OzE_InsertText( text.c_str() );
+	if ( refused ) {
+		Menu_Toast( "A bot was left out: its name has characters a command can't carry.", "warn" );
+	}
 }
 
 // {path} in an action is that value of the model's ("cmd map {create_match.map}")
-static Rml::String Substitute( const Rml::String &command ) {
+// A value is filled in after the action was split at its ';', so it never starts an action of its own.
+// *unsafe: a value held a ; a quotation mark or a line end, which would start a new console command
+// (or close a quoted one) in an action that hands its text to the console
+static Rml::String Substitute( const Rml::String &command, bool *unsafe ) {
 	Rml::String out;
 	for ( size_t i = 0; i < command.size(); i++ ) {
 		const size_t close = command[i] == '{' ? command.find( '}', i ) : Rml::String::npos;
@@ -942,7 +990,11 @@ static Rml::String Substitute( const Rml::String &command ) {
 			out += command[i];
 			continue;
 		}
-		out += Menu_Get( command.substr( i + 1, close - i - 1 ).c_str() );
+		const char *value = Menu_Get( command.substr( i + 1, close - i - 1 ).c_str() );
+		if ( strpbrk( value, ";\"\r\n" ) ) {
+			*unsafe = true;
+		}
+		out += value;
 		i = close;
 	}
 	return out;
@@ -952,12 +1004,26 @@ void Menu_Run( const Rml::String &commands, Rml::Element *element ) {
 	Rml::StringList list;
 	Rml::StringUtilities::ExpandString( list, commands, ';' );
 	for ( const Rml::String &raw : list ) {
-		Rml::String command = Substitute( raw );
+		bool unsafe = false;
+		Rml::String command = Substitute( raw, &unsafe );
 		const size_t first = command.find_first_not_of( " \t\r\n" );
 		command = first == Rml::String::npos ? "" : command.substr( first, command.find_last_not_of( " \t\r\n" ) - first + 1 );
 		const size_t sp = command.find( ' ' );
 		const Rml::String verb = command.substr( 0, sp );
 		const Rml::String arg = sp == Rml::String::npos ? "" : command.substr( sp + 1 );
+
+		// only the actions that show or keep a text take such a value; the rest may reach the console
+		if ( unsafe && verb != "toast" && verb != "refuse" && verb != "copy" && verb != "set" ) {
+			PlaySound( Sound::Buzz );
+			Printf( "^3UI: %s refused: a value in it has a character a command can't carry\n", verb.c_str() );
+			continue;
+		}
+		// a line end in a console action's own text would be a second command (text built by a data binding)
+		if ( ( verb == "cmd" || verb == "append" ) && arg.find_first_of( "\r\n" ) != Rml::String::npos ) {
+			PlaySound( Sound::Buzz );
+			Printf( "^3UI: %s refused: a line end in its command\n", verb.c_str() );
+			continue;
+		}
 
 		if ( verb == "page" ) {
 			OpenPageByName( arg.c_str() );
@@ -1048,6 +1114,23 @@ void Menu_Run( const Rml::String &commands, Rml::Element *element ) {
 			if ( a.size() > s ) {
 				Settings_Set( a[s].c_str(), value.c_str() );
 			}
+		} else if ( verb == "setting" ) {
+			// setting <key> <path>: the setting takes the model's value there, as it is. The Profile's name went
+			// through the console instead (cmd ui_settings_set ...), whose tokenizer cut it at a ; or // and
+			// dropped quotation marks. Nothing while the value is empty (a name field cleared to type another), as before
+			const size_t s2 = arg.find( ' ' );
+			const Rml::String value = s2 == Rml::String::npos ? "" : Menu_Get( arg.substr( s2 + 1 ).c_str() );
+			if ( !value.empty() ) {
+				Settings_Set( arg.substr( 0, s2 ).c_str(), value.c_str() );
+			}
+		} else if ( verb == "addtext" ) {
+			// addtext <path> <text>: the text added to the end of the model's text there (a name's color code)
+			const size_t s2 = arg.find( ' ' );
+			if ( s2 != Rml::String::npos ) {
+				const Rml::String path = arg.substr( 0, s2 );
+				const Rml::String value = Rml::String( Menu_Get( path.c_str() ) ) + arg.substr( s2 + 1 );
+				Menu_SetString( path.c_str(), value.c_str() );
+			}
 		} else if ( verb == "startmatch" ) {
 			StartMatch( arg.c_str() );
 		} else if ( verb == "host" ) {
@@ -1067,6 +1150,7 @@ void Menu_Run( const Rml::String &commands, Rml::Element *element ) {
 		} else if ( Profile_Action( verb, arg ) ) {	// the Profile and Campaign pages' (oz_ui_profile.cpp)
 		} else if ( Skirmish_Action( verb, arg ) ) {	// Skirmish's mods and races (oz_ui_skirmish.cpp)
 		} else if ( Mods_Action( verb, arg ) ) {	// the Mod Library (oz_ui_mods.cpp)
+		} else if ( Replays_Action( verb, arg ) ) {	// the Replays page and the Profile's Recent matches (oz_ui_replays.cpp)
 		} else if ( Together_Action( verb, arg ) ) {	// the multiplayer map editor's session screen (oz_ui_together.cpp)
 		} else if ( Servers_Action( verb, arg, element ) ) {	// the Server Browser's community servers (oz_ui_servers.cpp)
 		} else if ( Social_Action( verb, arg, element ) ) {	// the Server Browser's and Friends' joins (oz_ui_social.cpp)
@@ -1235,6 +1319,9 @@ bool Menu_Back( const char *page ) {
 	if ( !strcmp( page, "mods" ) && Mods_Back() ) {	// the Mod Library's import card or remove question closes first
 		return true;
 	}
+	if ( !strcmp( page, "replays" ) && Replays_Back() ) {	// the Replays page's delete question closes first
+		return true;
+	}
 	if ( !strcmp( page, "menu" ) ) {
 		if ( Menu_UpdateShown() ) {
 			Menu_UpdateClose();	// the update offer: Later
@@ -1326,7 +1413,7 @@ void Menu_Q3Import( bool apply ) {
 		cJSON_Delete( lines );
 	}
 	Menu_Dirty( "q3import" );
-	Menu_Set( "q3import.from", OzQ3Import_From() );
+	Menu_SetString( "q3import.from", OzQ3Import_From() );
 	Menu_Set( "q3import.kept", OzQ3Import_Kept()[0] ? ( Rml::String( "Kept as Oz has them: " ) + OzQ3Import_Kept() + "." ).c_str() :
 		"Graphics, frame rate and network stay as Oz has them." );
 	OpenPageByName( "q3import" );
@@ -1398,6 +1485,7 @@ void Menu_Opened( const char *name ) {
 	Servers_Opened( name );
 	Skirmish_Opened( name );
 	Mods_Opened( name );
+	Replays_Opened( name );
 	Together_Opened( name );
 	if ( !strcmp( name, "leaderboards" ) ) {	// both scopes from the online hub (P7); offline, "hub" says so in the console
 		const Rml::String tab = Menu_Get( "leaderboards.tab" );
@@ -1436,16 +1524,17 @@ static void RotateNews() {
 The pause menu's team choices, for the game type and the team you're on (OzE_TeamInfo): Join game
 (the free for all, or the side id's PickTeam would give: the one with fewer players, else the one
 behind, else blue), Switch team, Spectate, and in a duel your place in the line to play. Each is the
-game's own "team" command, which id's game, Oz's and CPMA's take, on pure servers too. In a full duel
-id's game makes a joiner a spectator again, so a waiting spectator gets the line's note instead of a
-Join; and a duelist who spectates gives the other the win (SetTeam), so that asks first. The line's
-place and its rules are id's (Oz's game and baseq3 servers): under a mod the note only says the duel
-is full. None in single player or at the intermission.
+game's own "team" command, which id's game, Oz's, CPMA's and A51's take, on pure servers too. A
+spectator always has a Join. In a full duel under Oz's game (its serverinfo's g_ruleset) every
+spectator is in id's line already, so Join there only says your place, beside the line's note; under
+another game code (A51's line takes only players with /autoqueue on) Join sends "team free", which
+asks for the next place. A duelist who spectates gives the other the win (SetTeam), so that asks
+first. None in single player or at the intermission.
 */
 static void PauseTeams( bool warmup ) {
 	static const char *const sides[] = { "free", "red", "blue", "spectator" };
 	ozTeamInfo_t t;
-	Rml::String join, joinHint, flip, flipHint, spectateHint, status, queueTitle, queueText;
+	Rml::String join, joinHint, joinToast, flip, flipHint, spectateHint, status, queueTitle, queueText;
 	bool spectate = false, forfeit = false;
 
 	const bool known = OzE_TeamInfo( &t ) && !t.intermission && t.gametype != 2 && t.team >= 0 && t.team <= 3;
@@ -1470,6 +1559,13 @@ static void PauseTeams( bool warmup ) {
 			join = "free";
 			joinHint = "A place in the duel is open";
 			status = "You're watching";
+		} else if ( watching && !t.ozRules ) {
+			// another game code's duel (A51's line is each player's /autoqueue): "team free" asks it for the next place
+			join = "free";
+			joinHint = "Ask for the next place in the duel";
+			status = "You're watching";
+			queueTitle = "The duel is full";
+			queueText = "Join game asks the server for the next place.";
 		} else if ( watching ) {
 			Rml::String ends;
 			if ( t.fraglimit > 0 && t.timelimit > 0 ) {
@@ -1480,10 +1576,10 @@ static void PauseTeams( bool warmup ) {
 				ends = Rml::CreateString( " (at %d:00)", t.timelimit );
 			}
 			status = "You're waiting to play";
-			if ( !OzE_IsOzGame() ) {	// a mod's own duel rules (CPMA lists its spectators, but its line isn't id's)
-				queueTitle = "The duel is full";
-				queueText = "Join game shows here when a place opens.";
-			} else if ( t.line == 1 ) {
+			// Oz's game puts every spectator in id's line already: Join game says where you are
+			join = "line";
+			joinHint = "You're in line: you come in when a place opens";
+			if ( t.line == 1 ) {
 				queueTitle = "You're next in line";
 				queueText = "You play the winner when this duel ends" + ends + ".";
 			} else if ( t.line > 1 ) {
@@ -1494,6 +1590,7 @@ static void PauseTeams( bool warmup ) {
 				queueTitle = "In line to play";
 				queueText = "Each duel's winner stays on, its loser goes to the back of the line, and the next in line comes in.";
 			}
+			joinToast = queueTitle + ". The duel is full: you come in when a place opens.";
 		} else {
 			status = "";
 			forfeit = !warmup;
@@ -1516,6 +1613,7 @@ static void PauseTeams( bool warmup ) {
 	Menu_Set( "pause.status", status.c_str() );
 	Menu_Set( "pause.join", join.c_str() );
 	Menu_Set( "pause.join_hint", joinHint.c_str() );
+	Menu_Set( "pause.join_toast", joinToast.c_str() );
 	Menu_Set( "pause.switch", flip.c_str() );
 	Menu_Set( "pause.switch_hint", flipHint.c_str() );
 	Menu_Set( "pause.can_spectate", spectate ? "true" : "false" );
@@ -1551,14 +1649,14 @@ static void PauseFrame() {
 	char clock[32];
 	seconds = seconds < 0 ? 0 : seconds;
 	snprintf( clock, sizeof( clock ), "%d:%02d", seconds / 60, seconds % 60 );
-	Menu_Set( "pause.title", ( Rml::String( gametype >= 0 && gametype < 5 ? modes[gametype] : "Match" ) + "  -  " + name ).c_str() );
+	Menu_SetString( "pause.title", ( Rml::String( gametype >= 0 && gametype < 5 ? modes[gametype] : "Match" ) + "  -  " + name ).c_str() );
 	Menu_Set( "pause.clock", clock );
 	Menu_Set( "pause.warmup", warmup ? "true" : "false" );
 	Menu_Set( "pause.can_restart", local ? "true" : "false" );
 	// a map editor's play-test (P13), or a play-test together a tester joined (PE); its Reload once the session's map changed
 	Menu_Set( "pause.editor", ( local || oz::ed::together().playing_together() ) && !strncmp( map, "ed_", 3 ) ? "true" : "false" );
 	Menu_Set( "pause.edreload", oz::ed::together().reload_offered() ? "true" : "false" );
-	Menu_Set( "pause.standings.0.name", Menu_Get( "player.name" ) );
+	Menu_SetString( "pause.standings.0.name", Menu_Get( "player.name" ) );
 	Menu_Set( "pause.standings.0.score", Rml::CreateString( "%d", score ).c_str() );
 	PauseTeams( warmup != 0 );
 }
@@ -1573,6 +1671,7 @@ void Menu_Frame() {
 	Crosshair_Frame();
 	Gun_Frame();
 	Together_Frame();
+	Replays_Frame();
 	if ( focusFirst && menuDoc && !strcmp( TopPageName(), "menu" ) ) {
 		Rml::Element *f = GetContext()->GetFocusElement();
 		Rml::Element *first = menuDoc->GetElementById( "main_play" );
@@ -1584,7 +1683,7 @@ void Menu_Frame() {
 	const char *kind = "";
 	const char *name = OzE_ShowcaseSubject( &kind );
 	if ( name && strcmp( name, Menu_Get( "subject.name" ) ) ) {
-		Menu_Set( "subject.name", name );
+		Menu_SetString( "subject.name", name );
 		Menu_Set( "subject.kind", kind );
 	}
 	ExpireToasts();
@@ -1832,6 +1931,7 @@ void Menu_Commands() {
 	Prog::Commands();
 	Skirmish_Commands();
 	Mods_Commands();
+	Replays_Commands();
 	OzE_AddCommand( "ui_menu_get", []() {
 		Printf( "ui_menu_get: %s = %s\n", OzE_Argv( 1 ), Menu_Get( OzE_Argv( 1 ) ) );
 	} );

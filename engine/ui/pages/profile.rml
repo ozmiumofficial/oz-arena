@@ -229,6 +229,8 @@
 		/* ---- Matches (the stats recorder's reports, as the hub's Stats object has them) */
 		.mtl { flex: 1; min-width: 0; }
 		.mrow { display: flex; align-items: center; margin-bottom: 0.375rem; padding: 0.5rem 0.75rem; border: 1dp #ffffff0f; border-radius: 2dp; background-color: #0000004d; }
+		.mrow .mwatch { flex-shrink: 0; width: 5rem; margin-left: 0.75rem; }
+		.mrow .mwatch button.btn.small { padding: 0.3rem 0.6rem; font-size: 0.7rem; }
 		.mrow .mw { flex-shrink: 0; width: 7rem; margin-right: 0.75rem; font-size: 0.7rem; letter-spacing: 0.05em; color: #5d554f; }
 		.mrow .mm { flex: 1; min-width: 0; margin-right: 0.75rem; }
 		.mrow .mn { font-size: 0.85rem; color: #e6ddd2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -506,12 +508,12 @@ profileskin), the color the menu's rim light and the rail trail (profileaccent).
 					<div class="section first"><span class="t">Name</span><span class="rule"/></div>
 					<input id="profile_name" class="text wide" type="text" maxlength="32" data-value="player.name"
 						data-event-change="profile.name_dirty = true"
-						data-attr-onkeyup="profile.name_dirty ? 'cmd ui_settings_set profile/name {player.name}; set profile.name_dirty false' : ''"/>
+						data-attr-onkeyup="profile.name_dirty ? 'setting profile/name player.name; set profile.name_dirty false' : ''"/>
 					<div class="namerow">
 						<span class="preview" data-rml="player.name | q3name"/>
 						<div class="codes">
 							<button class="code" data-for="c : profile.codes" data-style-color="c.color"
-								data-attr-onclick="'set player.name ' + player.name + c.code + '; cmd ui_settings_set profile/name ' + player.name + c.code">{{ c.code }}</button>
+								data-attr-onclick="'addtext player.name ' + c.code + '; setting profile/name player.name'">{{ c.code }}</button>
 						</div>
 					</div>
 					<div class="section"><span class="t">Character</span><span class="rule"/></div>
@@ -678,6 +680,7 @@ profileskin), the color the menu's rim light and the rail trail (profileaccent).
 						<span class="mk">{{ m.kd }}</span>
 						<span class="mx">{{ m.xp }}</span>
 						<span class="mt" data-style-color="m.color" data-style-border-color="m.color">{{ m.trust }}</span>
+						<span class="mwatch"><button class="btn small" data-if="m.replay != ''" data-attr-id="'match_watch_' + i" data-attr-onclick="'replay_play ' + m.replay">Watch</button></span>
 					</div>
 				</div>
 			</div>

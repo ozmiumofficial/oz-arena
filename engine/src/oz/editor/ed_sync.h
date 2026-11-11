@@ -31,6 +31,13 @@ namespace oz::ed::sync {
 inline constexpr const char *PROTOCOL = "oz-ed1";
 inline constexpr Id BLOCK = 1 << 20;  // ids a lease holds; a map with more objects than this isn't one
 inline constexpr int MAX_PLAYERS = 8;
+// What a peer's object may hold (get_object refuses more): a brush's faces, an entity's keys and their sizes.
+inline constexpr uint64_t MAX_FACES = 4096;
+inline constexpr uint64_t MAX_KEYS = 4096;
+inline constexpr size_t MAX_KEY_SIZE = 1024;
+inline constexpr size_t MAX_VALUE_SIZE = 65536;
+// The most unpack() gives back: four times the channel's largest message (a play-test's BSP deflates to less)
+inline constexpr uint64_t UNPACK_MAX = uint64_t(256) << 20;
 
 using Bytes = std::string;  // binary
 
@@ -133,6 +140,9 @@ public:
 	};
 	std::vector<Entry> log;
 	size_t log_limit = 400;
+	// An edit of the host's order never came (its number was skipped): what this copy holds may not be the
+	// session's any more. The session asks the host for the map again (ed_together.cpp); start() clears it.
+	bool lost = false;
 
 private:
 	void local(const std::string &label, const std::vector<Doc::Change> &changes);
@@ -160,7 +170,8 @@ public:
 	void take(const Edit &e);
 	void start(uint32_t seq) { seq_ = seq; }
 	uint32_t seq() const { return seq_; }
-	// The next block of ids for a player; the host's own first.
+	// The next block of ids for a player; the host's own first. from = end = 0 once the ids have run out:
+	// check end > from before Doc::lease (which takes 0, 0 as "no more blocks").
 	void grant(Id &from, Id &end);
 	void set_viewer(uint32_t player, bool viewer);
 	bool viewer(uint32_t player) const { return viewers_.count(player) != 0; }

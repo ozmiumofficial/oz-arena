@@ -9,7 +9,9 @@ so the engine reads baseq3 from the folder above), and downloads GitHub's latest
 ozmiumofficial/oz-arena: the game zip and every pk3 asset (the world packs) into oz\. Paks already in
 place at the release's size aren't downloaded again; a stopped download carries on where it stopped.
 With the release's files beside it (OzArena-<version>-windows.zip and the pak_oz_*.pk3), it installs
-from those instead, offline.
+from those instead when started with /offline, when GitHub can't be reached, or when they are GitHub's
+latest release or newer (an older zip left beside it never downgrades an install); world packs already
+installed are never deleted then. Downloads are checked against the release's SHA-256.
 
 It adds a Start Menu shortcut (and a desktop one if asked), the ozarena:// links, and an entry in
 Apps & features whose uninstaller ("Uninstall Oz Arena.exe" in the install) removes what Setup put

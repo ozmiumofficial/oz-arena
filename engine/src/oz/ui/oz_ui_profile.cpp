@@ -661,7 +661,7 @@ void FillCharacter() {
 	if ( Menu_Node( "profile.skins" ) ) {
 		ReplaceNode( "profile.skins", SkinList( pm.first ) );
 	}
-	Menu_Set( "profile.skin", pm.second.c_str() );
+	Menu_SetString( "profile.skin", pm.second.c_str() );
 	AccentFromCvar();
 }
 
@@ -672,7 +672,7 @@ void SetModel( const std::string &model, const std::string &skin ) {
 	OzE_CvarSet( "model", v.c_str() );
 	OzE_CvarSet( "headmodel", v.c_str() );
 	Settings_Set( "profile/skin", skin.c_str() );
-	Menu_Set( "player.model", model.c_str() );
+	Menu_SetString( "player.model", model.c_str() );
 	Menu_Set( "player.icon", ( "/models/players/" + model + "/icon_" + skin ).c_str() );
 	FillCharacter();
 }
@@ -1172,6 +1172,7 @@ void MatchHistory( const cJSON *m ) {
 		{ "corroborated", { "CORROBORATED", "#7fd36a" } }, { "verified", { "VERIFIED", "#4aa8ff" } }, { "disputed", { "DISPUTED", "#e0a030" } },
 		{ "self", { "SELF-REPORTED", "#8d847c" } } };
 	cJSON *rows = cJSON_CreateArray();
+	const std::map<int, std::string> recorded = Replays_ByMatch();	// the recordings, by the hub's match number (P10)
 	const cJSON *x;
 	cJSON_ArrayForEach( x, Get( m, "matches" ) ) {
 		const time_t at = (time_t)( Num( Get( x, "at" ) ) / 1000 );
@@ -1194,6 +1195,8 @@ void MatchHistory( const cJSON *m ) {
 		Add( o, "place", F( "%s of %d", Ordinal( (int)Num( Get( x, "place" ) ) ).c_str(), (int)Num( Get( x, "players" ) ) ) );
 		Add( o, "kd", F( "%d / %d", (int)Num( Get( x, "frags" ) ), (int)Num( Get( x, "deaths" ) ) ) );
 		Add( o, "xp", counted ? F( "+%d online XP", (int)Num( Get( x, "shared_xp" ) ) ) : Num( Get( x, "xp" ) ) > 0 ? F( "+%d XP", (int)Num( Get( x, "xp" ) ) ) : "" );
+		const auto rec = recorded.find( (int)Num( Get( x, "match" ) ) );
+		Add( o, "replay", rec == recorded.end() ? "" : rec->second );
 		Add( o, "trust_id", Str( x, "trust", "self" ) );
 		Add( o, "trust", tr->second.first );
 		Add( o, "color", tr->second.second );
@@ -1292,7 +1295,7 @@ void Campaign_Fill() {
 void Changed() {
 	// the top bar's player chip: the card's title, the level, the rank once placed
 	cJSON *shown = ShownCard(), *ranked = Ranked();
-	Menu_Set( "player.title", Str( Part( "titles", Str( shown, "title" ) ), "name" ).c_str() );
+	Menu_SetString( "player.title", Str( Part( "titles", Str( shown, "title" ) ), "name" ).c_str() );
 	Menu_Set( "player.level", std::to_string( LevelFor( TotalXp() ).level ).c_str() );
 	Menu_Set( "player.rank", cJSON_IsTrue( Get( ranked, "placed" ) ) ? Str( Get( ranked, "rank" ), "label" ).c_str() : "Unranked" );
 	cJSON_Delete( shown );

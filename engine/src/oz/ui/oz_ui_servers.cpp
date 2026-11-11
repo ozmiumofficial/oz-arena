@@ -71,6 +71,7 @@ std::vector<Server> answers;			// every answer, parsed, before folding
 std::vector<Server> lanServers;			// the LAN broadcast's answers
 std::map<std::string, Server> previous;	// a refresh's last answers, listed until each server answers again
 int parsedGen = -1;
+int parsedAt = -100000;					// OzE_Milliseconds of the last Parse
 bool matchesChanged;					// the hub's rows came again: their shown flags
 int builtAt = -100000;
 std::string builtWith;					// the filters and the sweep's state the rows were built with
@@ -1120,9 +1121,30 @@ std::string NameKey( const std::string &name ) {
 	return key;
 }
 
+// an address as connect takes it and nothing else: it goes into a console command, which a ';', a quote or a new line
+// in it would end (addresses come from saved files, friends' presence and the party leader too, each checked where
+// it arrives; this is the last door)
+bool AddressText( const std::string &address ) {
+	if ( address.empty() ) {
+		return false;
+	}
+	for ( const char c : address ) {
+		if ( !isalnum( (unsigned char)c ) && ( c == '\0' || !strchr( ".-_:[]", c ) ) ) {
+			return false;
+		}
+	}
+	return true;
+}
+
 // connect, with the server's password or none, the pages closed for the connection screen
 void Connect( const std::string &joined, const Server *s, const std::string &password ) {
 	std::string address = joined;
+	if ( !AddressText( address ) || password.find_first_of( "\"\r\n" ) != std::string::npos ) {
+		Printf( "UI: not joining: \"%s\" isn't a server's address, or its password can't be passed on\n",
+			AddressText( address ) ? address.c_str() : "?" );
+		Refuse( "That isn't a server's address." );
+		return;
+	}
 	if ( s && s->protocol != 68 ) {
 		// a favorite, the history or a row folded apart may name the game's other address (Better): join its Quake III
 		// one, the same server on the same machine. Not by the player counts, which change between answers, nor the name
@@ -1607,10 +1629,17 @@ void Servers_Frame() {
 	if ( Rml::Element *list = doc ? doc->GetElementById( "sb_list" ) : nullptr ) {
 		list->SetClass( "moving", false );	// the frame after a Refocus drew without the fade
 	}
+	// while the sweep runs every answer changes the generation, and parsing them all again each frame cost more with
+	// each one (1,200 answers a frame at its end): then at most every REBUILD_MS, as the rows are built
 	const int gen = OzServers_Generation();
 	if ( gen != parsedGen ) {
-		Parse();
-		parsedGen = gen;
+		const ozServersState_t sweep = OzServers_State( nullptr, nullptr, nullptr );
+		const int now = OzE_Milliseconds();
+		if ( ( sweep != OZS_MASTERS && sweep != OZS_SERVERS ) || now - parsedAt >= REBUILD_MS ) {
+			Parse();
+			parsedGen = gen;
+			parsedAt = now;
+		}
 	}
 	const Filters f = Read();
 	if ( f.tab == "lan" && lastTab != "lan" ) {
@@ -1621,7 +1650,7 @@ void Servers_Frame() {
 	for ( const auto &p : Friends() ) {
 		where += p.first + " " + std::to_string( p.second.size() ) + ";";
 	}
-	const std::string with = Key( f ) + "\x01" + where + std::to_string( savedGen ) + "\x01" + std::to_string( gen );
+	const std::string with = Key( f ) + "\x01" + where + std::to_string( savedGen ) + "\x01" + std::to_string( parsedGen );	// what was parsed, not what's newest
 	const bool filters = Key( f ) != builtWith.substr( 0, builtWith.find( '\x01' ) );
 	if ( ( with != builtWith || matchesChanged ) && ( filters || matchesChanged || OzE_Milliseconds() - builtAt >= REBUILD_MS ) ) {
 		matchesChanged = false;

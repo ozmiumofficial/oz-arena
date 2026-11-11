@@ -714,6 +714,11 @@ static void CL_ParseGamestate( msg_t *msg ) {
 	CL_SystemInfoChanged( qtrue );
 
 	// stop recording now so the demo won't have an unnecessary level load at the end.
+#ifdef USE_OZ_UI
+	if ( CL_OzDemo_StopAtGamestate() && !clc.demoplaying ) {
+		CL_StopRecord_f();	// Oz: the recording of the last map on another server (P10)
+	}
+#endif
 	if ( cl_autoRecordDemo->integer && clc.demorecording ) {
 		if ( !clc.demoplaying ) {
 			CL_StopRecord_f();
@@ -826,7 +831,18 @@ static void CL_ParseDownload( msg_t *msg ) {
 
 		if (clc.downloadSize < 0)
 		{
-			Com_Error( ERR_DROP, "%s", MSG_ReadString( msg ) );
+			// Oz: the server won't send this pak (it has downloads off, or can't find the file). That
+			// ended the join with the server's sentence; the pak is left out instead and the rest go
+			// on, and a map still missing is asked of the map archives (CL_NextDownload, CL_FetchMap).
+			const char *why = MSG_ReadString( msg );
+			if ( !CL_OzDownloadRefused() ) {
+				Com_Error( ERR_DROP, "%s", why );
+				return;
+			}
+			Com_Printf( S_COLOR_YELLOW "%s\n", why );
+			Com_Printf( "%s: the server refused to send it, left out\n", clc.downloadName );
+			*clc.downloadTempName = *clc.downloadName = '\0';	// nothing arrived: no checksum to compare
+			CL_NextDownload();
 			return;
 		}
 	}

@@ -19,6 +19,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -28,6 +29,15 @@ Session &solo_session();      // the map editor alone's
 Session &together_session();  // the multiplayer map editor's
 void use_session(bool together);  // which one session() is: the page shows it
 bool using_together();
+
+// The session's map written to <maps folder>/<name>_kept_<date>_<time>.map when it has unsaved changes: called
+// before a session's map is replaced (hosting on a new or another map, a join's welcome), which used to
+// throw it away with no question. The file's name, "" when there was nothing unsaved (or it couldn't be written).
+std::string keep_unsaved_map(Session &s);
+// The multiplayer editor's autosave left by an earlier run that closed or crashed (never offered back, as a
+// session's map is its host's): moved to <maps folder>/together_recovered_<date>_<time>.map. Its name, "" when
+// there's none.
+std::string recover_together_autosave();
 
 class Together {
 public:
@@ -49,6 +59,8 @@ public:
 		Presence pres;
 		std::vector<Id> sel;
 		bool linked = false;  // the host: a joiner whose link is up and who has the session
+		int blocks = 0;       // the host: the id blocks given to them (no more than a few: see lease_for)
+		int welcomed_at = 0;  // the host: when the session's map last went to them (ms)
 	};
 
 	State state = State::Off;
@@ -127,13 +139,32 @@ public:
 	bool hold_disconnect();
 	bool reload_offered() const;           // a tester's match is older than the session's map
 	bool playing_together() const { return play.stage != 0; }
+	// The host's game is about to stand still (its own play-test's map load): the others are told, so they
+	// don't take the silence for a host gone and take the session over
+	void busy();
 
 private:
 	enum Msg : uint8_t {
 		M_HELLO = 1, M_WELCOME, M_ROSTER, M_EDIT, M_SEQ, M_LEASE_ASK, M_LEASE, M_CLAIM, M_CLAIMS, M_CLAIM_NO,
 		M_SELECT, M_BYE, M_KICK, M_PAK, M_PLAY, M_PLAYEND, M_RELOAD_ASK, M_RELOAD,
 		M_GHOST,  // what a player's drag looks like now (a face pushed, corners dragged): the objects as they are mid-drag
+		M_RESYNC, // a joiner to the host: an edit never came (or didn't read), send the session's map again
+		M_BUSY,   // the host to everyone: its game stands still for a moment (a map load of its own)
 	};
+	// A joiner whose copy missed an edit of the host's order (ed_sync.h's Replica::lost) asks for the session
+	// again; until the welcome comes its own edits wait and the host's are left alone (the map coming has them)
+	void ask_resync(const char *why);
+	bool resync_ = false;
+	int resync_at_ = 0;
+	std::set<uint32_t> answered_;  // its own edits answered while it waited: not sent again
+	// the host: an id block for a player, false when they've had their share or the ids ran out
+	bool lease_for(Player &p, Id &from, Id &end);
+	uint32_t play_starter_ = 0;   // the host: the joiner whose play-test together is on (0: none, or not known)
+	// a play-test's files on this PC (the map under its revision's name, the bots' file, Defrag's info), so
+	// older revisions go as newer ones come and all of them when the play-test or the session ends
+	void play_file(const std::string &name, const sync::Bytes &data, bool defrag);
+	void drop_play_files();
+	std::vector<std::pair<std::string, std::string>> play_files_;  // path, the map's name with its revision
 	// Seeing a drag as it happens: a drag that reshapes (a push, corners, a pad's landing or arc) sends its objects
 	// as they are, ten times a second; a move's offset comes with presence. What another player just changed is
 	// outlined in their color for a moment, so nothing appears out of nowhere.
@@ -164,7 +195,7 @@ private:
 	void roster();                         // the host: who's in, to everyone
 	void put_roster(sync::Writer &w) const;
 	bool get_roster(sync::Reader &r);
-	void welcome(Player &p);
+	void welcome(Player &p, bool again = false);  // again: the map sent once more to a player already in (M_RESYNC)
 	void send_presence();
 	void send_selection();
 	void claims_tick();

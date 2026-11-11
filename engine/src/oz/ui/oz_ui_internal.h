@@ -168,6 +168,7 @@ void Menu_Toast( const char *text, const char *tone );
 void Menu_Run( const Rml::String &commands, Rml::Element *element );
 const char *Menu_Get( const char *path );
 bool Menu_Set( const char *path, const char *value );
+bool Menu_SetString( const char *path, const char *value );	// a text as it is: a name, an error, a toast ("007" stays 007)
 
 // ---- oz_ui_crosshair.cpp: the crosshair editor (crosshair.rml) and the <crosshair> element the HUD draws
 void Crosshair_Init();						// the element's instancer
@@ -210,6 +211,14 @@ void Together_Opened( const char *page );
 bool Together_Action( const Rml::String &verb, const Rml::String &arg );	// edthost, edtjoin, edtcode, edtbrowse ...
 void Together_HubMessage( const char *type, const cJSON *m );	// net_matches: the "edit" listings
 void Together_Frame();
+
+// ---- oz_ui_replays.cpp (P10): the Replays page
+bool Replays_Action( const Rml::String &verb, const Rml::String &arg );	// replay_pick, replay_watch, replay_play, replay_fav, replay_delete...
+void Replays_Opened( const char *page );
+bool Replays_Back();						// the delete question was open: Back closed it
+void Replays_Frame();						// the name typed is saved a moment after the last key
+void Replays_Commands();					// ui_replays, for tests
+std::map<int, std::string> Replays_ByMatch();	// the hub's match numbers' recordings (the Profile's Recent matches)
 
 bool Mods_Action( const Rml::String &verb, const Rml::String &arg );	// modlib_import, modlib_go, modlib_play, modlib_remove...
 void Mods_Opened( const char *page );
@@ -303,6 +312,18 @@ struct FocusWalkResult {
 // "/@thumb/<image>" sources the renderer couldn't load this run (oz_ui_render.cpp), by image path: the
 // map editor's browser leaves those materials out. ThumbFailedRev() goes up with each new one.
 bool ThumbFailed( const std::string &image );
+void ThumbMarkFailed( const std::string &image );	// the thumbnail cache knows it has no picture
+
+// ---- oz_ui_thumbs.cpp: the map editor's thumbnails, every material's read once into a cache file and
+// held while the game runs. Thumbs_Frame does a slice of the work each frame the editor is open, until
+// Thumbs_Ready; Thumbs_Progress says what it's doing (false once ready).
+void Thumbs_Frame();
+bool Thumbs_Ready();
+bool Thumbs_Progress( std::string &what, int &done, int &total );
+// a UI texture made from the cache (0: not held, so the renderer makes it; missing: the cache knows it has no picture)
+int Thumbs_Texture( const std::string &image, int &w, int &h, bool &missing );
+bool Thumbs_Held( const std::string &image );	// in the cache: its tile shows in the frame it's asked for
+std::string Thumbs_Stats();
 
 // The info blocks of the game's scripts: first (scripts/arenas.txt, scripts/bots.txt), then every scripts/*<ext>
 // (oz_ui_menu.cpp), each block's keys in lowercase

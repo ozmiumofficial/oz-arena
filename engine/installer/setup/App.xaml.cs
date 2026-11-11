@@ -22,7 +22,9 @@ namespace OzSetup
 
             var args = e.Args.ToList();
             string self = Process.GetCurrentProcess().MainModule.FileName;
-            if (args.Contains("/uninstall") && !args.Contains("/fromtemp"))
+            // (not the copy started again with administrator rights: the Setup that started it waits for
+            // it to finish, and a copy of a copy would leave at once)
+            if (args.Contains("/uninstall") && !args.Contains("/fromtemp") && !args.Contains("/elevated"))
             {
                 // the uninstaller can't delete itself while it runs: a copy in %TEMP% does the work
                 string dir = args.FirstOrDefault(a => a.StartsWith("/dir="))?.Substring(5) ?? Path.GetDirectoryName(self);

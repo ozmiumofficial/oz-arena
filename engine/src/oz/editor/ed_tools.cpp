@@ -28,6 +28,9 @@ const std::vector<Action> &actions() {
 		{"create", "Create brush", "B", "Drag a footprint on a surface or the grid, then move the mouse to set the height"},
 		{"clip", "Clipper", "C", "Click two points on a brush to cut through them (a third tilts the cut); Tab: the side kept; Enter cuts"},
 		{"faces", "Faces tool", "T", "Click faces to pick them (Shift adds, Ctrl toggles, double-click: the brush's), drag to push; the arrows move their texture, the panel maps it"},
+		{"paint_tool", "Paint tool", "Shift+P", "A click paints the face under the pointer with the current material (Shift+click: its whole brush; a curve whole). Or drag an area on the surface of blocks, on the grid, as when making a brush; it stays marked, and Enter paints the current material on that area alone, the blocks cut on its edges (Ctrl: every face facing that way inside it, at any depth, as stairs' treads). Alt+click takes a material; the faces painted stay picked for the panel"},
+		{"paint_area", "Paint area", "", "Paints the paint tool's marked area with the current material: only the faces inside it, each block cut on the area's edges (Enter or P does it too)"},
+		{"paint_area_clear", "Clear the area", "", "Lets the paint tool's marked area go, nothing painted"},
 		{"jump_pad", "Jump pad", "J", "Click the floor where the player steps, then where the player lands: an invisible trigger and its target, no block, one object (a click takes it all, a double-click one piece)"},
 		{"teleporter", "Teleporter", "K", "Click the entrance, then the exit: a trigger_teleport and its misc_teleporter_dest, linked"},
 		{"light", "Light", "L", "Click a surface: a light a grid step off it"},
@@ -35,7 +38,7 @@ const std::vector<Action> &actions() {
 		{"to_world", "To the world", "", "Puts the selected brushes of an entity (a door, a trigger) back in the world"},
 		{"flag", "Spawnflag", "", "ed flag <bit>: a spawnflag of the selected entities, on or off"},
 		{"key_new", "Add a key", "", "ed key_new <key>: one of the class's keys, at the game's default"},
-		{"pick_material", "Eyedropper", "I", "The material of the face under the pointer becomes the current one; in the faces tool, Alt+click"},
+		{"pick_material", "Eyedropper", "I", "The material of the face under the pointer becomes the current one; the button: then click a face; Alt+click in any tool"},
 		{"paint", "Paint", "P", "Paints the current material onto the picked faces, or every face of the selected brushes and curves"},
 		{"tex_fit", "Fit", "", "Stretches the texture once across each face (ed tex_fit [across] [down])"},
 		{"tex_left", "Align left", "", "Puts each face's left edge on an edge of its texture"},
@@ -46,6 +49,8 @@ const std::vector<Action> &actions() {
 		{"tex_flip_s", "Flip across", "", "Mirrors the texture left to right on each face, in place"},
 		{"tex_flip_t", "Flip up and down", "", "Mirrors the texture top to bottom on each face, in place"},
 		{"tex_reset", "Reset mapping", "", "The texture back on the default projection at half scale"},
+		{"tex_natural", "Natural size", "", "Puts each face's texture back at the game's own size (a texel half a unit, as id's maps), its turn and its place kept: a texture painted at another's size, or stretched on a slanted face"},
+		{"tex_wrap", "Wrap round corners", "", "Wraps the biggest face's texture onto the faces beside it across the edges they share, as if unfolded flat: no seam and no stretch round chamfers and corners (the picked faces, or the selected brushes' walls)"},
 		{"tex_rotate_left", "Turn texture left", "Ctrl+Left", "Turns the texture 15 degrees counter-clockwise on each face"},
 		{"tex_rotate_right", "Turn texture right", "Ctrl+Right", "Turns the texture 15 degrees clockwise on each face"},
 		{"tex_scale_up", "Texture bigger", "Ctrl+Up", "Doubles the texture's scale on each face"},
@@ -79,6 +84,9 @@ const std::vector<Action> &actions() {
 		{"stairs", "Stairs", "Ctrl+Shift+T", "Turns each selected wedge into solid stairs climbing its slope, each step about 8 units high; ed stairs <steps> for an exact count"},
 		{"merge", "Merge", "Ctrl+J","Joins the selected brushes that together make one brush shape (side by side, a row of tiles); never fills space between them"},
 		{"tint", "Color", "", "ed tint <r g b> | none: colors the picked faces (or every face of the selected brushes): the texture is multiplied by it, in the view and the game"},
+		{"glow", "Glow", "", "ed glow <brightness %> [light %]: a glowing material's glow on the picked faces (or the selected brushes'), brighter or dimmer, and the light it casts on the map; 100 100 is its own"},
+		{"glow_step", "Glow step", "", "ed glow_step brightness|light <1|-1>: the glow's brightness, or the light it casts, a step up or down (0, 25, 50, 75, 100, 125, 150, 200, 300, 400 %)"},
+		{"glow_reset", "Glow as its own", "", "The glowing materials on the picked faces (or the selected brushes') back to their own glow and light"},
 		{"collision", "Collision", "", "The selected brushes' collision on or off: off, players and shots pass through them (they still draw, and still block light). Every brush collides at first, liquids aside"},
 		{"detail", "Detail", "Ctrl+Shift+D", "Marks the selected brushes detail, or structural again: detail (trim, pillars, props) doesn't cut the map up for visibility, so it compiles faster and runs smoother; walls that hold the map in stay structural"},
 		{"texture_lock", "Texture lock", "Ctrl+T", "On: textures move, turn and mirror with their brushes. Off: they stay put in the world"},
@@ -94,13 +102,13 @@ const std::vector<Action> &actions() {
 		{"play_defrag_together", "Play in Defrag together", "", "Compiles the session's map on your PC and hosts it under Defrag, its timer and all: everyone in the session who has Defrag joins, the rest keep editing (the multiplayer map editor's)"},
 		{"leave_session", "Leave session", "", "Leaves the editing session (as its host, ends it for everyone); the map stays as it is, to save"},
 		{"compile", "Compile", "Ctrl+F5", "The whole compile in the background (BSP, vis, full light, the bots' file) into maps/ed_<name>.bsp in your files"},
-		{"preview", "Lit preview", "F6", "The map lit by its own lights, as the last compile made it (a quick compile first when the map changed); F6 again leaves it"},
+		{"lighting", "Lighting off", "F6", "The map without its own light, in the view's light alone; F6 again lights it. The view lights the map by its lights, glowing materials and sky as Play does, and lights it again as you change it"},
 		{"compile_stop", "Stop compiling", "", "Stops the compile under way"},
 		{"thumb_set", "Set thumbnail camera", "", "The map's thumbnail camera where you look from, the way you look: the menus, the loading screen and the scoreboard show the picture it takes (it's the map's intermission spot, the camera at a match's end too)"},
 		{"thumb_view", "Look through thumbnail camera", "", "The 3D view through the thumbnail camera, its picture framed (4:3, 90 degrees across); moving the view leaves it"},
 		{"thumb_shoot", "Make thumbnail", "", "Takes the map's thumbnail (levelshots/ed_<name>.jpg, and beside the saved map) from its camera, lit as the last compile lit it (a quick compile first when the map changed); Compile takes it too"},
 		{"frame_leak", "Show the leak", "", "The camera onto the leak's line: from an entity out to the void through the gap"},
-		{"sky_sun", "Sky and sun", "", "World: the map's sky and its light (the sky around the map; the sun's color, brightness, height and direction; ambient light). Lit preview or Play shows them"},
+		{"sky_sun", "Sky and sun", "", "World: the map's sky and its light (the sky around the map; the sun's color, brightness, height and direction; ambient light). The view shows them as you change them"},
 		{"warnings", "Warnings", "", "The last compile's or check's warnings, a failed compile first: pick one to select and frame what it's about"},
 		{"warning", "Frame a warning", "", "ed warning <n>: selects and frames what the last compile's warning n is about"},
 		{"hide", "Hide", "H", "Hides the selection from every view (the map keeps it: it compiles and saves)"},
@@ -236,6 +244,9 @@ bool Session::key(int key, bool down, bool over) {
 			return true;
 		}
 		if (down && over) {
+			if (drag_ != Drag::None) {
+				return true;  // no look while a drag is under way: the left button's release would be lost to it
+			}
 			looking_ = true;
 			OzEd_SetLooking(1);
 			return true;
@@ -248,6 +259,12 @@ bool Session::key(int key, bool down, bool over) {
 		return over;
 	}
 	if (looking_) {
+		if (!down && (key == K_MOUSE1 || key == K_MOUSE3) && press_button_ == (key == K_MOUSE1 ? 1 : 3)) {
+			// a button let go while looking still ends its drag: swallowed, the drag went on following the
+			// pointer with no button held
+			button(key == K_MOUSE1 ? 1 : 3, false);
+			return true;
+		}
 		if (down && (key == K_MWHEELUP || key == K_MWHEELDOWN)) {
 			// the wheel while flying sets the speed, as in Radiant and TrenchBroom
 			fly_scale = std::max(0.125, std::min(8.0, fly_scale * (key == K_MWHEELUP ? 1.25 : 0.8)));
@@ -297,7 +314,7 @@ bool Session::key(int key, bool down, bool over) {
 		grid = double(1 << (key - '1'));
 		return true;
 	}
-	if (tool == Tool::Faces && faces_key(key, m)) {
+	if (face_mode() && faces_key(key, m)) {
 		return true;
 	}
 	if (key == K_ESCAPE && !m) {
@@ -309,6 +326,16 @@ bool Session::key(int key, bool down, bool over) {
 		return true;
 	}
 	return key == K_ESCAPE;
+}
+
+void Session::release_all() {
+	if (looking_) {
+		looking_ = false;
+		OzEd_SetLooking(0);  // the mouse let go of, the cursor back
+	}
+	if (drag_ != Drag::None) {
+		cancel_drag();  // as Escape calls it off
+	}
 }
 
 // ---------------------------------------------------------------- the actions
@@ -502,6 +529,7 @@ void Session::remove_selection() {
 }
 
 void Session::set_tool(Tool t) {
+	eyedrop_armed_ = false;
 	if (drag_ != Drag::None) {
 		cancel_drag();
 	}
@@ -513,14 +541,22 @@ void Session::set_tool(Tool t) {
 	if (t != Tool::Place) {
 		place_class.clear();
 	}
-	if (t == Tool::Faces && tool != Tool::Faces) {
+	const bool to_faces = t == Tool::Faces || t == Tool::Paint;
+	if (t == Tool::Faces && !face_mode()) {
 		// the selected brushes' faces become the picked faces
 		std::vector<FaceRef> refs = target_faces();
 		corners.clear();
 		select_none();
 		tool = t;
 		select_faces(refs, SelMode::Set);
-	} else if (t != Tool::Faces && tool == Tool::Faces) {
+	} else if (t == Tool::Paint && !face_mode()) {
+		// the selection let go: a stroke picks what it paints, so a material clicked in the browser never
+		// paints a selected brush's every face
+		corners.clear();
+		select_none();
+		tool = t;
+		select_faces({}, SelMode::Set);
+	} else if (!to_faces && tool == Tool::Faces) {
 		// and back: the picked faces' brushes (with their entities) become the selection
 		std::vector<Id> ids;
 		for (const FaceRef &r : faces) {
@@ -531,13 +567,24 @@ void Session::set_tool(Tool t) {
 		select_faces({}, SelMode::Set);
 		tool = t;
 		select(ids, SelMode::Set);
+	} else if (!to_faces && tool == Tool::Paint) {
+		select_faces({}, SelMode::Set);  // the painted faces let go, nothing selected
 	}
+	if (t != Tool::Paint) {
+		area_.on = false;
+	}
+	// between the faces tool and the paint tool the picked faces stay picked
 	tool = t;
 }
 
 bool Session::cancel() {
 	if (drag_ != Drag::None) {
 		cancel_drag();
+		return true;
+	}
+	if (eyedrop_armed_) {
+		eyedrop_armed_ = false;
+		say("Eyedropper put away");
 		return true;
 	}
 	if (tool == Tool::Create && create_state_ != 0) {
@@ -555,6 +602,14 @@ bool Session::cancel() {
 	}
 	if (tool == Tool::Faces && !faces.empty()) {
 		set_tool(Tool::Select);  // back to selecting, the picked faces' brushes selected
+		return true;
+	}
+	if (tool == Tool::Paint && area_.on) {
+		area_.on = false;  // the marked area first, the tool kept
+		return true;
+	}
+	if (tool == Tool::Paint && !faces.empty()) {
+		select_faces({}, SelMode::Set);  // then the painted faces
 		return true;
 	}
 	if (tool != Tool::Select) {
@@ -619,8 +674,45 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 	if (movers_action(action, a)) {
 		return true;
 	}
-	if (action == "preview") {
-		toggle_preview();
+	if (action == "lighting") {
+		set_live_light(!live_light);
+		return true;
+	}
+	if (action == "light_wait") {
+		live_.wait();  // a test hook: until every face's light is in
+		return true;
+	}
+	if (action == "compile_quick") {
+		compile(false, false, false);  // a test hook: Play's compile (BSP, quick light, bots) without playing
+		return true;
+	}
+	if (action == "light_at" && a.size() >= 3) {
+		// a test hook: the live light's texel on the face through a point (its plane within a unit, the point on it)
+		const Vec3 p(std::atof(a[0].c_str()), std::atof(a[1].c_str()), std::atof(a[2].c_str()));
+		for (Id id : doc.ids_of(Kind::Brush)) {
+			const Object *o = doc.get(id);
+			const auto &ws = doc.windings(id);
+			for (size_t i = 0; i < o->brush.faces.size() && i < ws.size(); i++) {
+				if (ws[i].size() < 3 || std::fabs(o->brush.faces[i].plane.dist(p)) > 1) {
+					continue;
+				}
+				Bounds b;
+				for (const Vec3 &q : ws[i]) {
+					b.add(q);
+				}
+				if (p.x < b.lo.x - 1 || p.y < b.lo.y - 1 || p.z < b.lo.z - 1 || p.x > b.hi.x + 1 || p.y > b.hi.y + 1 || p.z > b.hi.z + 1) {
+					continue;
+				}
+				uint8_t rgb[3];
+				if (live_.sample(id, int(i), p, rgb)) {
+					char buf[160];
+					std::snprintf(buf, sizeof buf, "ed light_at %g %g %g: %d %d %d (brush %d face %d)\n", p.x, p.y, p.z, rgb[0], rgb[1], rgb[2], id, int(i));
+					OzE_Print(buf);
+					return true;
+				}
+			}
+		}
+		OzE_Print("ed light_at: no lit face there\n");
 		return true;
 	}
 	if (action == "thumb_set" || action == "thumb_shoot") {
@@ -851,9 +943,10 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 	if (entities_action(action, a)) {
 		return true;
 	}
-	if (tool == Tool::Faces && (action == "delete" || action == "duplicate" || action == "cut" || action.compare(0, 6, "rotate") == 0 ||
+	if (face_mode() && (action == "delete" || action == "duplicate" || action == "cut" || action.compare(0, 6, "rotate") == 0 ||
 			action.compare(0, 5, "flip_") == 0 || action.compare(0, 6, "nudge_") == 0 || action == "hollow" || action == "subtract" || action == "merge" || action == "stairs")) {
-		say("That works on brushes: Esc leaves the faces tool with their brushes selected");
+		say(tool == Tool::Paint ? "That works on brushes: Esc twice leaves the paint tool, then select them"
+			: "That works on brushes: Esc leaves the faces tool with their brushes selected");
 		return true;
 	}
 	if (action == "select") {
@@ -884,7 +977,7 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 	} else if (action == "paste") {
 		paste();
 	} else if (action == "select_all") {
-		if (tool == Tool::Faces) {
+		if (face_mode()) {
 			std::vector<FaceRef> all;
 			for (Id id : doc.ids_of(Kind::Brush)) {
 				for (size_t i = 0; pickable(id) && i < doc.get(id)->brush.faces.size(); i++) {
@@ -952,6 +1045,59 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 			doc.put(kv.first, o);
 		}
 		doc.end();
+	} else if (action == "glow" || action == "glow_step" || action == "glow_reset") {
+		// a glowing material's glow and the light it casts, on the faces of it (the others keep theirs)
+		std::vector<FaceRef> t;
+		for (const FaceRef &r : target_faces()) {
+			if (shaders_lib().glow_adjustable(shader_name(doc.get(r.first)->brush.faces[size_t(r.second)].shader))) {
+				t.push_back(r);
+			}
+		}
+		if (t.empty()) {
+			say(target_faces().empty() ? "Select brushes, or pick faces with the faces tool (T), of a glowing material (a light fixture, a glowing trim)"
+				: "None of these materials glows: GLOW is for a light fixture's or a glowing trim's", true);
+			return true;
+		}
+		int brightness = 100, light = 100;
+		face_glow(doc.get(t[0].first)->brush.faces[size_t(t[0].second)], brightness, light);
+		if (action == "glow_reset") {
+			brightness = light = 100;
+		} else if (action == "glow") {
+			brightness = int(std::lround(arg(a, 0, brightness)));
+			light = int(std::lround(arg(a, 1, light)));
+		} else {
+			static const int steps[] = {0, 25, 50, 75, 100, 125, 150, 200, 300, 400};
+			int &v = !a.empty() && a[0] == "light" ? light : brightness;
+			const bool up = arg(a, 1, 1) > 0;
+			int next = v;
+			for (int s : steps) {
+				if (up && s > v) {
+					next = s;
+					break;
+				}
+				if (!up && s < v) {
+					next = s;
+				}
+			}
+			v = next;
+		}
+		brightness = std::max(0, std::min(brightness, 4000));
+		light = std::max(0, std::min(light, 4000));
+		std::map<Id, std::vector<int>> by;
+		for (const FaceRef &r : t) {
+			by[r.first].push_back(r.second);
+		}
+		doc.begin("Glow " + std::to_string(brightness) + "%, light " + std::to_string(light) + "%");
+		for (auto &kv : by) {
+			auto o = doc.edit(kv.first);
+			for (int i : kv.second) {
+				set_face_glow(o->brush.faces[size_t(i)], brightness, light);
+			}
+			doc.put(kv.first, o);
+		}
+		doc.end();
+		say(brightness == 100 && light == 100 ? "The glow as the material's own" : "Glow " + std::to_string(brightness) + "% of its own, its light " +
+			std::to_string(light) + "%");
 	} else if (action == "collision") {
 		// on unless every selected brush is off: the click turns them all the other way
 		std::vector<Id> brushes;
@@ -1092,8 +1238,10 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 			create_commit();
 		} else if (tool == Tool::Clip) {
 			clip_apply();
+		} else if (tool == Tool::Paint) {
+			paint_area_apply();
 		} else {
-			say("Enter makes the brush (create tool, B) or cuts (clipper, C)");
+			say("Enter makes the brush (create tool, B), cuts (clipper, C) or paints the area (paint tool, Shift+P)");
 		}
 	} else if (action == "clip_side") {
 		if (tool != Tool::Clip) {
@@ -1156,6 +1304,8 @@ bool Session::run(const std::string &action, const std::vector<std::string> &a) 
 			button(1, false);
 			force_mods(-1);
 		}
+	} else if (action == "pointer_px") {
+		pointer(int(arg(a, 0)), int(arg(a, 1)));  // a test hook: the pointer at a window pixel (on a button: off the view)
 	} else if (action == "click_at" || action == "drag_at" || action == "hover_at") {
 		// test hooks at map points, wherever the camera is: ed click_at x y z [mods],
 		// ed drag_at x0 y0 z0 x1 y1 z1 [mods], ed hover_at x y z
@@ -1563,7 +1713,7 @@ bool Session::size_tag(std::string &text, double &sx, double &sy) const {
 		const Bounds b = selection_bounds();
 		if ((drag_ == Drag::Push || drag_ == Drag::Corners) && !b.empty()) {
 			const Vec3 s = b.hi - b.lo;
-			std::snprintf(buf, sizeof buf, "%s Â· %g x %g x %g", drag_note_.c_str(), s.x, s.y, s.z);
+			std::snprintf(buf, sizeof buf, "%s · %g x %g x %g", drag_note_.c_str(), s.x, s.y, s.z);
 		} else {
 			std::snprintf(buf, sizeof buf, "%s", drag_note_.c_str());
 		}
@@ -1578,6 +1728,9 @@ bool Session::size_tag(std::string &text, double &sx, double &sy) const {
 std::string Session::hint() const {
 	if (looking_) {
 		return "Looking: W A S D to fly, Q and E down and up, Shift faster, Ctrl slower";
+	}
+	if (drag_ == Drag::Paint) {
+		return paint_hint();
 	}
 	if (!drag_note_.empty()) {
 		return drag_note_ + (drag_ == Drag::Move ? " \xc2\xb7 Alt: up and down \xc2\xb7 Ctrl: off the grid \xc2\xb7 Esc: cancel" : " \xc2\xb7 Ctrl: off the grid \xc2\xb7 Esc: cancel");
@@ -1601,6 +1754,9 @@ std::string Session::hint() const {
 	}
 	if (tool == Tool::Faces) {
 		return faces_hint();
+	}
+	if (tool == Tool::Paint) {
+		return paint_hint();
 	}
 	if (tool == Tool::Place) {
 		return place_hint();

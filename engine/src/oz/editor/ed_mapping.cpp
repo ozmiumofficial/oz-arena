@@ -2,6 +2,7 @@
 #include "ed_ops.h"
 #include "ed_texmap.h"
 
+#include <algorithm>
 #include <cmath>
 #include <map>
 
@@ -202,6 +203,16 @@ bool remapped(const Doc &doc, Face &f, const Winding &w, const Vec3 &origin, con
 	case MapOp::Reset:
 		world_mapping(doc, f, origin, w);
 		return true;
+	case MapOp::Natural: {
+		// texels a unit along the face, each way (the parts of the axes along the normal draw nothing)
+		const Vec3 &n = f.plane.n;
+		const double ls = (f.st.s - n * f.st.s.dot(n)).length() * tw, lt = (f.st.t - n * f.st.t.dot(n)).length() * th;
+		if (ls < 1e-12 || lt < 1e-12) {
+			return false;
+		}
+		a[0] = 2 / ls, a[1] = 2 / lt;  // about texel 0, so the texture stays on the world where it was
+		break;
+	}
 	case MapOp::Field: {
 		const int i = e.which;
 		if (i < 0 || i > 4 || (i >= 3 && e.a == 0)) {
@@ -346,10 +357,10 @@ bool map_patches(Doc &doc, const std::vector<Id> &patches, const MapEdit &e, con
 				}
 				break;
 			case MapOp::Flip: (e.which ? t : s) = 2 * (e.which ? mt : ms) - (e.which ? t : s); break;
-			default: done = e.op == MapOp::Reset; break;
+			default: done = e.op == MapOp::Reset || e.op == MapOp::Natural; break;
 			}
 		}
-		if (e.op == MapOp::Reset) {
+		if (e.op == MapOp::Reset || e.op == MapOp::Natural) {  // a curve's own size is its natural texture's
 			natural_texture(doc, p);
 		}
 		if (done) {
@@ -361,22 +372,44 @@ bool map_patches(Doc &doc, const std::vector<Id> &patches, const MapEdit &e, con
 	return any;
 }
 
+void painted(const Doc &doc, Face &f, const Winding &w, const Vec3 &origin, ShaderId shader) {
+	int nw, nh, ow, oh;
+	doc.tex_dims(shader, nw, nh);
+	doc.tex_dims(f.shader, ow, oh);
+	f.shader = shader;
+	if (world_grid(f)) {
+		world_mapping(doc, f, origin, w);  // a dev texture lines up with the world's grid
+	} else if (f.form == TexForm::Primitives || !f.raw_valid) {
+		// counted in repeats: the old texture's texels kept in the world, in the new one's repeats
+		const double ks = double(ow) / nw, kt = double(oh) / nh;
+		f.st.s = f.st.s * ks, f.st.s0 *= ks;
+		f.st.t = f.st.t * kt, f.st.t0 *= kt;
+		doc.derive_raw(f, f.raw_valid ? f.form : doc.plain_form, origin, w);
+	} else {
+		doc.derive_st(f, origin);  // Quake and Valve 220 count in texels already
+	}
+}
+
 bool paint(Doc &doc, const std::vector<FaceRef> &faces, const std::vector<Id> &patches, ShaderId shader, const std::string &label) {
+	int nw, nh;
+	doc.tex_dims(shader, nw, nh);
 	doc.begin(label);
 	bool any = each_face(doc, faces, label, [&](Face &f, const Winding &w, const Vec3 &origin) {
-		f.shader = shader;
-		if (world_grid(f)) {
-			world_mapping(doc, f, origin, w);  // a dev texture lines up with the world's grid
-		} else {
-			doc.derive_st(f, origin);
-		}
+		painted(doc, f, w, origin, shader);
 		return true;
 	});
 	for (Id id : patches) {
 		const Object *o = doc.get(id);
 		if (o && o->kind == Kind::Patch && o->patch.shader != shader) {
 			auto np = std::make_shared<Object>(*o);
+			int ow, oh;
+			doc.tex_dims(np->patch.shader, ow, oh);
 			np->patch.shader = shader;
+			// a curve's coordinates are repeats: the texels keep their size
+			for (size_t i = 0; i + 4 < np->patch.ctrl.size(); i += 5) {
+				np->patch.ctrl[i + 3] *= double(ow) / nw;
+				np->patch.ctrl[i + 4] *= double(oh) / nh;
+			}
 			doc.put(id, np);
 			any = true;
 		}
@@ -385,7 +418,187 @@ bool paint(Doc &doc, const std::vector<FaceRef> &faces, const std::vector<Id> &p
 	return any;
 }
 
-bool copy_mapping(Doc &doc, const std::vector<FaceRef> &faces, const Face &src, const Vec3 &src_origin, const std::string &label) {
+static Vec3 centroid(const Winding &w) {
+	Vec3 c;
+	for (const Vec3 &q : w) {
+		c = c + q;
+	}
+	return w.empty() ? c : c * (1.0 / double(w.size()));
+}
+
+// How far along the edges of wa a stretch lies on wb (on wb's plane and inside its polygon): the
+// longest, its middle and its direction. An edge of one polygon running across the other's middle
+// counts too: a chamfer's wedge set against a wall whose face runs on behind it.
+static void edge_on(const Winding &wa, const Winding &wb, const Plane &pb, double &best, Vec3 &p, Vec3 &d) {
+	const Vec3 cb = centroid(wb);
+	for (size_t i = 0; i < wa.size(); i++) {
+		const Vec3 &a0 = wa[i], &a1 = wa[(i + 1) % wa.size()];
+		const double la = (a1 - a0).length();
+		if (la < 0.5 || std::fabs(pb.n.dot(a0) - pb.d) > 0.05 || std::fabs(pb.n.dot(a1) - pb.d) > 0.05) {
+			continue;
+		}
+		const Vec3 da = (a1 - a0) * (1 / la);
+		double lo = 0, hi = la;
+		for (size_t j = 0; j < wb.size() && hi - lo > 0; j++) {
+			const Vec3 &e0 = wb[j], &e1 = wb[(j + 1) % wb.size()];
+			Vec3 m = pb.n.cross(e1 - e0);
+			const double ml = m.length();
+			if (ml < 1e-9) {
+				continue;
+			}
+			m = m * (1 / ml);
+			if (m.dot(cb - e0) < 0) {
+				m = m * -1;  // toward the polygon's inside
+			}
+			// m . (a0 + t da - e0) >= -0.05
+			const double c0 = m.dot(a0 - e0) + 0.05, c1 = m.dot(da);
+			if (std::fabs(c1) < 1e-12) {
+				if (c0 < 0) {
+					hi = lo;
+				}
+			} else if (c1 > 0) {
+				lo = std::max(lo, -c0 / c1);
+			} else {
+				hi = std::min(hi, -c0 / c1);
+			}
+		}
+		if (hi - lo > best) {
+			best = hi - lo;
+			p = a0 + da * ((lo + hi) * 0.5);
+			d = da;
+		}
+	}
+}
+
+// The line two faces' polygons meet along (more than half a unit of it): a point on it and its direction.
+static bool shared_line(const Face &a, const Winding &wa, const Face &b, const Winding &wb, Vec3 &p, Vec3 &d) {
+	double best = 0.5;
+	const double start = best;
+	edge_on(wa, wb, b.plane, best, p, d);
+	edge_on(wb, wa, a.plane, best, p, d);
+	return best > start;
+}
+
+// Across the line (p, d) in a face's plane n: the way into the part of its polygon w a player sees.
+// A polygon on both sides of the line (a face running on behind the other face) shows the part in
+// front of the other face's plane.
+static Vec3 into(const Winding &w, const Vec3 &n, const Vec3 &p, const Vec3 &d, const Vec3 &other_n) {
+	Vec3 u = n.cross(d);
+	double lo = 0, hi = 0;
+	for (const Vec3 &q : w) {
+		const double x = u.dot(q - p);
+		lo = std::min(lo, x), hi = std::max(hi, x);
+	}
+	if (hi > 0.05 && lo < -0.05) {
+		return other_n.dot(u) >= 0 ? u : u * -1;
+	}
+	return hi >= -lo ? u : u * -1;
+}
+
+bool unfold_st(const Face &a, const Winding &wa, int tw_a, int th_a, const Face &b, const Winding &wb, int tw_b, int th_b, StAxes &out) {
+	Vec3 p, d;
+	const Vec3 &na = a.plane.n, &nb = b.plane.n;
+	if (wa.size() < 3 || wb.size() < 3 || na.dot(nb) < -0.999 || !shared_line(a, wa, b, wb, p, d)) {
+		return false;
+	}
+	// across the line in each plane: ua leaving a's polygon, ub going into b's
+	const Vec3 ua = into(wa, na, p, d, nb) * -1, ub = into(wb, nb, p, d, na);
+	const Vec3 ka = d.cross(ua), kb = d.cross(ub);
+	// the turn about the line laying a's plane onto b's: d stays, ua goes to ub
+	auto turn = [&](const Vec3 &x) { return d * d.dot(x) + ub * ua.dot(x) + kb * ka.dot(x); };
+	auto carry = [&](const Vec3 &axis, double base, double k, Vec3 &axis_out, double &base_out) {
+		const Vec3 in = axis - na * axis.dot(na);  // the same on a's plane: its part along the normal goes to the base
+		const double in0 = base + axis.dot(na) * a.plane.d;
+		const Vec3 r = turn(in);
+		axis_out = r * k;
+		base_out = (in0 + in.dot(p) - r.dot(p)) * k;  // the same texel on the line on both faces
+	};
+	carry(a.st.s, a.st.s0, double(tw_a) / tw_b, out.s, out.s0);
+	carry(a.st.t, a.st.t0, double(th_a) / th_b, out.t, out.t0);
+	return true;
+}
+
+bool wrap_faces(Doc &doc, const std::vector<FaceRef> &faces, const std::string &label) {
+	struct Item {
+		FaceRef ref;
+		Face face;
+		Winding w;
+		bool reached = false;
+	};
+	std::vector<Item> items;
+	for (const FaceRef &r : faces) {
+		const Object *o = doc.get(r.first);
+		if (!o || o->kind != Kind::Brush || r.second < 0 || r.second >= int(o->brush.faces.size())) {
+			continue;
+		}
+		const std::vector<Winding> &ws = doc.windings(r.first);
+		const Face &f = o->brush.faces[size_t(r.second)];
+		if (size_t(r.second) >= ws.size() || ws[size_t(r.second)].size() < 3 || world_grid(f) ||
+				std::any_of(items.begin(), items.end(), [&](const Item &it) { return it.ref == r; })) {
+			continue;
+		}
+		items.push_back({r, f, ws[size_t(r.second)]});
+	}
+	if (items.size() < 2) {
+		return false;
+	}
+	// face to face through the edges they share, the first face's neighbors first
+	items[0].reached = true;
+	std::vector<size_t> order = {0};
+	for (size_t at = 0; at < order.size(); at++) {
+		const Item a = items[order[at]];
+		int aw, ah;
+		doc.tex_dims(a.face.shader, aw, ah);
+		for (size_t j = 0; j < items.size(); j++) {
+			Item &b = items[j];
+			if (b.reached) {
+				continue;
+			}
+			int bw, bh;
+			doc.tex_dims(b.face.shader, bw, bh);
+			StAxes st;
+			if (unfold_st(a.face, a.w, aw, ah, b.face, b.w, bw, bh, st)) {
+				b.face.st = st;
+				b.reached = true;
+				order.push_back(j);
+			}
+		}
+	}
+	// each reached face's numbers made again from its new coordinates, a brush at a time
+	std::map<Id, std::vector<size_t>> by;
+	for (size_t k = 1; k < order.size(); k++) {
+		by[items[order[k]].ref.first].push_back(order[k]);
+	}
+	bool any = false;
+	doc.begin(label);
+	for (const auto &kv : by) {
+		const Object *o = doc.get(kv.first);
+		const Vec3 origin = origin_for(doc, *o);
+		auto nb = std::make_shared<Object>(*o);
+		bool changed = false;
+		for (size_t k : kv.second) {
+			Face &f = nb->brush.faces[size_t(items[k].ref.second)];
+			Face g = f;
+			g.st = items[k].face.st;
+			doc.derive_raw(g, g.raw_valid ? g.form : doc.plain_form, origin, items[k].w);
+			if (!same_face(g, f)) {
+				f = g;
+				changed = true;
+			}
+		}
+		if (changed) {
+			doc.put(kv.first, nb);
+			any = true;
+		}
+	}
+	doc.end();
+	return any;
+}
+
+bool copy_mapping(Doc &doc, const std::vector<FaceRef> &faces, const Face &src, const Vec3 &src_origin, const std::string &label,
+		const Winding *src_w) {
+	int sw, sh;
+	doc.tex_dims(src.shader, sw, sh);
 	return each_face(doc, faces, label, [&](Face &f, const Winding &w, const Vec3 &origin) {
 		Face g = src;
 		g.plane = f.plane;
@@ -396,6 +609,7 @@ bool copy_mapping(Doc &doc, const std::vector<FaceRef> &faces, const Face &src, 
 		g.contents = f.contents, g.flags = f.flags, g.value = f.value;
 		const bool same_frame = origin.x == src_origin.x && origin.y == src_origin.y && origin.z == src_origin.z;
 		const double along = src.plane.n.dot(f.plane.n);
+		StAxes wrapped;
 		if (along > 1 - 1e-6) {
 			if (same_frame && along >= 1 - 1e-15) {
 				doc.derive_st(g, origin);  // the same numbers give the same texture coordinates
@@ -403,6 +617,10 @@ bool copy_mapping(Doc &doc, const std::vector<FaceRef> &faces, const Face &src, 
 				g.st = src.st;  // the texture runs on across
 				doc.derive_raw(g, src.form, origin, w);
 			}
+		} else if (src_w && !world_grid(g) && unfold_st(src, *src_w, sw, sh, g, w, sw, sh, wrapped)) {
+			// a face beside it: the texture wrapped round the edge they share
+			g.st = wrapped;
+			doc.derive_raw(g, src.raw_valid ? src.form : doc.plain_form, origin, w);
 		} else {
 			// its numbers on this plane, from where the source is mapped
 			fix_valve_axes(g);

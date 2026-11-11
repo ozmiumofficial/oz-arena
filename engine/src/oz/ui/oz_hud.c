@@ -30,6 +30,7 @@ the Godot build never recorded (frags by weapon, pickups, deaths by cause, the r
 #include "oz_hud_items.h"
 #include "oz_progress.h"
 #include "oz_ui_engine.h"
+#include "../replay/oz_replay_lib.h"
 #ifdef USE_OZ_ONLINE
 #include "../online/oz_online.h"
 #include "../online/oz_stats.h"
@@ -75,6 +76,8 @@ static struct {
 	int				scoresRequestTime;
 	int				scoresParsed;		// scoreboards parsed so far (the recorder waits for one after the intermission)
 	qboolean		scoresFull;			// the last was baseq3's: accuracy, medals and time (not CPMA's)
+	int				scoresTime;			// cg.time as the last one was parsed (how old the list is)
+	qboolean		scoresMisfit;		// a "scores" in another layout came on this map (said once)
 	int				warmup;
 	char			centerPrint[1024];
 	int				centerPrintTime;
@@ -443,13 +446,69 @@ static float Text( int font, float x, float y, const char *s, float size, const 
 	return TextFlags( font, x, y, s, size, color, align | TEXT_NOCODES, 0.35f, 0 );
 }
 
+static int HexDigit( char c );
+
+// OSP's color codes, which its servers' names and prints carry (oz_ui_hud.cpp's Runs draws them the same
+// way): the characters of the one at s, a '^', or 0 for one of id's or none. ^xRRGGBB (^X) is a color of its
+// own, given in rgb, only with its six hex digits; ^B ^b ^F ^f ^N ^n switch OSP's blinking and change no
+// color (rgb[0] is -1). Read as id's codes they each picked a color by 3 bits and the hex digits showed as
+// text. Under every mod: id's game has no such codes, and on its servers a name with one is rare
+static int OspCode( const char *s, int *rgb ) {
+	int	i;
+
+	rgb[0] = -1;
+	if ( s[0] != '^' ) {
+		return 0;
+	}
+	if ( s[1] == 'x' || s[1] == 'X' ) {
+		for ( i = 2; i < 8; i++ ) {
+			if ( !( ( s[i] >= '0' && s[i] <= '9' ) || ( s[i] >= 'a' && s[i] <= 'f' ) || ( s[i] >= 'A' && s[i] <= 'F' ) ) ) {
+				return 0;
+			}
+		}
+		for ( i = 0; i < 3; i++ ) {
+			rgb[i] = HexDigit( s[2 + i * 2] ) * 16 + HexDigit( s[3 + i * 2] );
+		}
+		return 8;
+	}
+	if ( s[1] == 'B' || s[1] == 'b' || s[1] == 'F' || s[1] == 'f' || s[1] == 'N' || s[1] == 'n' ) {
+		return 2;
+	}
+	return 0;
+}
+
+// a name without its color codes, OSP's too (Q_CleanStr alone left ^xRRGGBB's hex digits in the name)
+static void CleanName( char *name ) {
+	char	*d = name;
+	const char *s = name;
+	int		rgb[3], n;
+
+	while ( *s ) {
+		n = OspCode( s, rgb );
+		if ( n ) {
+			s += n;
+		} else {
+			*d++ = *s++;
+		}
+	}
+	*d = 0;
+	Q_CleanStr( name );
+}
+
 // whether a text shows black letters: a color code that picks black (id's ColorIndex keeps 3 bits: ^0,
-// ^8, ^p, ^x ...) with something but spaces after it
+// ^8, ^p ...; a dark ^xRRGGBB of OSP's) with something but spaces after it
 static qboolean HasBlack( const char *s ) {
 	qboolean black = qfalse;
+	int		rgb[3], n;
 
 	for ( ; *s; s++ ) {
-		if ( s[0] == '^' && s[1] && s[1] != '^' ) {
+		n = OspCode( s, rgb );
+		if ( n ) {
+			if ( rgb[0] >= 0 ) {
+				black = rgb[0] < 0x60 && rgb[1] < 0x60 && rgb[2] < 0x60;
+			}
+			s += n - 1;
+		} else if ( s[0] == '^' && s[1] && s[1] != '^' ) {
 			black = ( ( s[1] - '0' ) & 7 ) == 0;
 			s++;
 		} else if ( black && *s != ' ' ) {
@@ -650,6 +709,7 @@ static cvar_t	*oz_accessibility_reduced_flashing;	// no pulses or blinks, softer
 static cvar_t	*con_notifyTime;
 // the competitive options the engine can give every mod (P6 item 5)
 static cvar_t	*oz_audio_hit_sound, *oz_gameplay_draw_gun, *oz_gameplay_gun_offset, *oz_gameplay_bright_skins;
+static cvar_t	*oz_gameplay_enemy_outline, *oz_gameplay_outline_color;
 static cvar_t	*oz_gameplay_enemy_color, *oz_gameplay_team_color, *oz_mouse_zoom_sensitivity, *oz_controls_toggle_zoom;
 // the game code's own cvars the HUD follows (a mod registers its own under the same names)
 static cvar_t	*cg_crosshairSize, *cg_drawRewards, *cg_centertime, *cg_drawCrosshairNames;
@@ -703,6 +763,8 @@ static const hudCvar_t hudCvars[] = {
 	{ &oz_gameplay_gun_offset, "oz_gameplay_gun_offset", "0", CVAR_ARCHIVE },
 	{ &oz_gameplay_bright_skins, "oz_gameplay_bright_skins", "0", CVAR_ARCHIVE },
 	{ &oz_gameplay_enemy_color, "oz_gameplay_enemy_color", "#4cff33", CVAR_ARCHIVE },
+	{ &oz_gameplay_enemy_outline, "oz_gameplay_enemy_outline", "0", CVAR_ARCHIVE },
+	{ &oz_gameplay_outline_color, "oz_gameplay_outline_color", "#ff2a2a", CVAR_ARCHIVE },
 	{ &oz_gameplay_team_color, "oz_gameplay_team_color", "#ffffff", CVAR_ARCHIVE },
 	{ &oz_mouse_zoom_sensitivity, "oz_mouse_zoom_sensitivity", "1.0", CVAR_ARCHIVE },
 	{ &oz_controls_toggle_zoom, "oz_controls_toggle_zoom", "0", CVAR_ARCHIVE },
@@ -758,6 +820,15 @@ static void ParseColor( const char *s, float *out ) {
 	for ( i = 0; i < n; i++ ) {
 		out[i] = ( HexDigit( s[i * 2] ) * 16 + HexDigit( s[i * 2 + 1] ) ) / 255.0f;
 	}
+}
+
+// How long a print stays in the list, seconds: 6, or the player's own con_notifytime once they changed it
+// from its default (Quake3e's notify lines, which the list stands for, took it; the list never did)
+static float NotifyLife( void ) {
+	if ( con_notifyTime->value > 0 && con_notifyTime->value != (float)atof( con_notifyTime->resetString ) ) {
+		return con_notifyTime->value;
+	}
+	return 6.0f;
 }
 
 // ================================================================ state
@@ -878,8 +949,10 @@ static struct {
 	// death
 	qboolean	dead;
 	int			deathTime;
-	// scores
+	// scores: the slow ask's time, and the final board's asks at the intermission (how many, when, and
+	// cg.scoresParsed before the first)
 	int			scoresAsked;
+	int			finalAsks, finalAskedAt, finalParsed;
 	int			fps, fpsFrames, fpsTime;
 	// item timers: the major items seen on the map (by entity), and when each is back (game time, 0 up)
 	int			timerItems[16], timerEnts[16], timerBack[16];
@@ -1095,8 +1168,9 @@ static void EntityEvent( const entityState_t *es, int event, qboolean mine ) {
 		}
 		break;
 	case EV_FIRE_WEAPON:
-		// g_weapon.c's accuracy_shots: the gauntlet and the grapple don't count
-		if ( mine && es->weapon > WP_NONE && es->weapon < NAMES ) {
+		// g_weapon.c's accuracy_shots: the gauntlet and the grapple don't count. Your own only: following
+		// someone, their shots went into your match record
+		if ( mine && OwnPlay() && es->weapon > WP_NONE && es->weapon < NAMES ) {
 			hud.shots[es->weapon]++;
 			hud.lastFired = es->weapon;
 		}
@@ -1275,6 +1349,12 @@ static void ParseScores( void ) {
 	int	i, n = atoi( Cmd_Argv( 1 ) );
 
 	if ( n < 0 || n > MAX_CLIENTS || Cmd_Argc() < 4 + n * 14 ) {
+		// a mod's own layout under baseq3's name: the board would stay as it was with no word of why
+		if ( !cg.scoresMisfit ) {
+			cg.scoresMisfit = qtrue;
+			Com_DPrintf( "ozhud: a scores command for %d players in %d words isn't baseq3's layout: the board keeps the list it has\n",
+				n, Cmd_Argc() );
+		}
 		return;
 	}
 	for ( i = 0; i < n; i++ ) {
@@ -1288,6 +1368,7 @@ static void ParseScores( void ) {
 	moreScores.from = moreScores.to = 0;
 	cg.numScores = i;
 	cg.scoresParsed++;
+	cg.scoresTime = cg.time;
 	cg.scoresFull = qtrue;
 }
 
@@ -1305,6 +1386,7 @@ static void ParseCpmaScores( void ) {
 	memset( cg.scores, 0, sizeof( cg.scores[0] ) * n );
 	cg.numScores = n;
 	cg.scoresParsed++;
+	cg.scoresTime = cg.time;
 	cg.scoresFull = qfalse;
 	for ( i = 0; i < n; i++ ) {
 		ozScore_t *s = &cg.scores[i];
@@ -1352,6 +1434,7 @@ static void ParseCpmaDuel( void ) {
 	}
 	cg.numScores = n;
 	cg.scoresParsed++;
+	cg.scoresTime = cg.time;
 	cg.scoresFull = qfalse;
 }
 
@@ -1518,17 +1601,21 @@ int OzHud_ServerCommand( const char *text ) {
 		return 0;
 	}
 	if ( !strcmp( cmd, "print" ) ) {
-		char	line[256];
-		char	*nl;
-		Q_strncpyz( line, Cmd_Argv( 1 ), sizeof( line ) );
-		nl = strchr( line, '\n' );
-		if ( nl ) {
-			*nl = 0;
-		}
-		if ( line[0] ) {
-			AddNotify( line );
-			if ( Defrag() ) {
-				DefragPrint( line );
+		// every line of the print, not its first alone: a mod's answers come several lines to a print (OSP's,
+		// CPMA's), many starting with a newline, and those showed nothing on screen
+		char	text[1024];
+		char	*line, *nl;
+		Q_strncpyz( text, Cmd_Argv( 1 ), sizeof( text ) );
+		for ( line = text; line; line = nl ) {
+			nl = strchr( line, '\n' );
+			if ( nl ) {
+				*nl++ = 0;
+			}
+			if ( line[0] ) {
+				AddNotify( line );
+				if ( Defrag() ) {
+					DefragPrint( line );
+				}
 			}
 		}
 		return 0;
@@ -1673,6 +1760,8 @@ static void Emoji_f( void );
 static void Board_f( void );
 static void BoardPoint_f( void );
 static void BoardMouseReset( void );
+static void ResetNoted( void );
+static qboolean CampaignResultsKey( int key );
 
 void OzHud_Init( void ) {
 	if ( hudInit ) {
@@ -1693,6 +1782,9 @@ void OzHud_Init( void ) {
 	Cmd_AddCommand( "ozboard_point", BoardPoint_f );
 }
 
+// the configstrings as ReadConfigstrings last read them (dataCount -1: not yet)
+static gameState_t	csSeen;
+
 // a new map or server: nothing of the last one carries over
 void OzHud_Reset( void ) {
 	const qboolean showScores = cg.showScores;	// a Tab held through a vid_restart stays held
@@ -1703,6 +1795,8 @@ void OzHud_Reset( void ) {
 	memset( &moreScores, 0, sizeof( moreScores ) );
 	memset( &shotEv, 0, sizeof( shotEv ) );
 	BoardMouseReset();
+	ResetNoted();
+	csSeen.dataCount = -1;		// the configstrings are read again: cg's part of them went with the memset
 	cg.showScores = showScores;
 	hud.jump = -1;
 	hud.pushed = qtrue;
@@ -1716,12 +1810,16 @@ void OzHud_Reset( void ) {
 	df.time = -1;
 }
 
+// whether the HUD follows the match (its events, scores and record), drawn or not
+static qboolean Following( void ) {
+	return hudInit && oz_hud->integer && cgvm && cls.state == CA_ACTIVE && cl.snap.valid && OzUI_HudAvailable();
+}
+
 // not off while paused: the game code's menu pauses a local match (cl_paused), and its HUD and board
 // would show through under the menu. A mod's own menu (KEYCATCH_CGAME) gets the screen back, but not
 // while a demo plays: CPMA holds the keys for its demo controls the whole time
 int OzHud_Active( void ) {
-	return hudInit && oz_hud->integer && cgvm && cls.state == CA_ACTIVE && cl.snap.valid
-		&& ( clc.demoplaying || !( Key_GetCatcher() & KEYCATCH_CGAME ) ) && OzUI_HudAvailable();
+	return Following() && ( clc.demoplaying || !( Key_GetCatcher() & KEYCATCH_CGAME ) );
 }
 
 int OzHud_HideCgame2D( void ) {
@@ -1750,6 +1848,15 @@ static void ReadConfigstrings( void ) {
 	const char	*fs;
 	int			i;
 
+	// only when one changed: read every frame, the 64 players' strings were searched four times each. The
+	// client builds the whole block again at every change (CL_ConfigstringModified), so the same bytes at the
+	// same offsets are the same strings
+	if ( csSeen.dataCount == cl.gameState.dataCount && cl.gameState.dataCount >= 0 && cl.gameState.dataCount <= MAX_GAMESTATE_CHARS
+		&& !memcmp( csSeen.stringOffsets, cl.gameState.stringOffsets, sizeof( csSeen.stringOffsets ) )
+		&& !memcmp( csSeen.stringData, cl.gameState.stringData, cl.gameState.dataCount ) ) {
+		return;
+	}
+	csSeen = cl.gameState;
 	cgs.gametype = atoi( Info_ValueForKey( info, "g_gametype" ) );
 	cgs.timelimit = atoi( Info_ValueForKey( info, "timelimit" ) );
 	cgs.fraglimit = atoi( Info_ValueForKey( info, "fraglimit" ) );
@@ -1769,6 +1876,11 @@ static void ReadConfigstrings( void ) {
 		ozClientInfo_t	*ci = &cgs.clientinfo[i];
 		const char		*p = CS( CS_PLAYERS + i );
 		char			model[MAX_QPATH], *slash;
+		// a slot's frags and deaths are its player's: one who left took them along, or the next player in
+		// the slot started with them on the board
+		if ( ci->infoValid != ( p[0] != 0 ) ) {
+			hud.kills[i] = hud.deaths[i] = 0;
+		}
 		ci->infoValid = p[0] != 0;
 		if ( !ci->infoValid ) {
 			continue;
@@ -2009,6 +2121,16 @@ static void GuessDamage( int w, int add ) {
 		if ( splash && ( ev == EV_MISSILE_HIT || ev == EV_MISSILE_MISS || ev == EV_MISSILE_MISS_METAL ) ) {
 			GuessBlast( list, &num, shotEv.e[i].pos, splash * quad, radius, ev == EV_MISSILE_HIT ? target : -1, handicap );
 		}
+	}
+	if ( w == WP_RAILGUN ) {
+		// One rail does an enemy its damage once, and a snapshot holds one rail of yours at most. A game that
+		// counts that hit twice in PERS_HITS (a mod's, damaging in two steps), or a second trail event for
+		// the same shot, made every rail's number 200 through the rules below
+		for ( i = 0; i < num; i++ ) {
+			list[i].hits = 1;
+			list[i].amount = list[i].last;
+		}
+		add = 1;
 	}
 	if ( !num ) {
 		// nothing in the snapshot names the target (pellets, the gauntlet, an event out of view): the enemy
@@ -3039,12 +3161,14 @@ static void DrawStatus( float W, const playerState_t *ps ) {
 			FlagIcon( rx, by, bw, bh, 1, cgs.blueflag );
 		}
 	} else if ( ps->persistant[PERS_TEAM] == TEAM_SPECTATOR ) {
-		// a free spectator: the leader and the runner-up
+		// a free spectator: the leader and the runner-up, their live scores the configstrings' (the list is
+		// only as new as the last board; baseq3's comes best first, as CS_SCORES1 and 2 are)
 		int i;
 		for ( i = 0; i < cg.numScores && i < 2; i++ ) {
+			const int live = !cg.scoresFull ? SCORE_NOT_PRESENT : i ? cgs.scores2 : cgs.scores1;
 			PlayerName( cg.scores[i].client, label, sizeof( label ) );
 			Upper( label );
-			ScoreBox( i ? rx : lx, by, bw, bh, label, cg.scores[i].score, INK, qfalse );
+			ScoreBox( i ? rx : lx, by, bw, bh, label, live != SCORE_NOT_PRESENT ? live : cg.scores[i].score, INK, qfalse );
 		}
 	} else {
 		const int other = OtherPlayer( ps->clientNum );
@@ -3101,9 +3225,9 @@ static qboolean ChatEmoji( void ) {
 // force where it was cut
 static int Wrap( const char *text, float fs, float width, char out[][CHAT_TEXT], int max ) {
 	char		line[CHAT_TEXT], word[CHAT_TEXT], test[CHAT_TEXT * 2];
-	char		color[3];
+	char		color[9];		// "^7", or OSP's "^xRRGGBB"
 	const char	*s = text, *p;
-	int			n = 0, len;
+	int			n = 0, len, rgb[3], osp;
 
 	line[0] = 0;
 	color[0] = 0;
@@ -3129,10 +3253,18 @@ static int Wrap( const char *text, float fs, float width, char out[][CHAT_TEXT],
 		if ( line[0] && CTextWidth( FONT_MEDIUM, test, fs ) > width ) {
 			// the color in force at the end of the line carries on
 			for ( p = line; *p; p++ ) {
-				if ( p[0] == '^' && p[1] && p[1] != '^' ) {
+				osp = OspCode( p, rgb );
+				if ( osp ) {
+					if ( rgb[0] >= 0 ) {
+						memcpy( color, p, osp );
+						color[osp] = 0;
+					}
+					p += osp - 1;
+				} else if ( p[0] == '^' && p[1] && p[1] != '^' ) {
 					color[0] = '^';
 					color[1] = p[1];
 					color[2] = 0;
+					p++;
 				}
 			}
 			Q_strncpyz( out[n++], line, sizeof( out[0] ) );
@@ -3163,7 +3295,8 @@ static void DrawChat( float x, float y, float w, float h ) {
 	const float	wrapW = w - pad * 2;
 	char		field[MAX_SAY_TEXT + 64], line[CHAT_TEXT];
 	int			mode = 0, cursor = 0, numShown = 0, maxLines, i, j;
-	const float	life = con_notifyTime->value * 1000;
+	// con_notifytime 0 or -1 (no notify lines, or lines that stay, in Quake3e's console) showed no chat at all
+	const float	life = ( con_notifyTime->value > 0 ? con_notifyTime->value : 3.0f ) * 1000;
 	const qboolean emoji = ChatEmoji();
 	float		inputH, bottom, ly, c[4];
 	qboolean	typing;
@@ -3404,7 +3537,7 @@ static void DrawMessages( float W, float H, float vitX, float vitY, float ammoX,
 	// server prints, top left
 	y = 40 * u;
 	for ( i = 0; i < hud.numNotify; i++ ) {
-		Col( c, INK, Clamp01( ( 6.0f - hud.notify[i].t ) / 0.5f ) );
+		Col( c, INK, Clamp01( ( NotifyLife() - hud.notify[i].t ) / 0.5f ) );
 		CText( FONT_MEDIUM, 34 * u, y, hud.notify[i].text, 18 * u, c, ALIGN_LEFT, 0 );
 		y += 24 * u;
 	}
@@ -3658,6 +3791,15 @@ int OzHud_LocalSound( int sfx ) {
 static char		modelIsPlayer[MAX_NOTED_MODELS / 8];	// models/players/... handles, one bit each
 static qboolean	zoomToggled;
 
+// a new map (OzHud_Reset, before the game code registers its sounds again): the winners' lines start over
+// (64 held, and every map load added its own until none fit), and a zoom toggled in on the last map isn't
+// taken for one on this
+static void ResetNoted( void ) {
+	numWinnerNames = 0;
+	memset( soundWinner, 0, sizeof( soundWinner ) );
+	zoomToggled = qfalse;
+}
+
 void OzHud_NoteModel( int model, const char *name ) {
 	OzView_NoteModel( model, name );	// each part's model and animations, for the forced enemy model
 	if ( model <= 0 || model >= MAX_NOTED_MODELS || !name ) {
@@ -3714,10 +3856,18 @@ int OzHud_EnemyBody( const refEntity_t *ent, int *team ) {
 // configstring 873 to 1, which none of A51's other modes does (read from what its servers send:
 // ozents, configstrings; 2026-11-03)
 static qboolean A51FreezeTag( void ) {
-	const char *info = CS( CS_SERVERINFO );
+	// worked out once a frame: every part of every player's body asks (FrozenBody), and each time the
+	// serverinfo was searched twice
+	static int		frame = -1;
+	static qboolean	is;
 
-	return cls.state == CA_ACTIVE && atoi( Info_ValueForKey( info, "g_gametype" ) ) >= GT_TEAM
-		&& Info_ValueForKey( info, "clientversion" )[0] && !strcmp( CS( 873 ), "1" );
+	if ( frame != cls.framecount ) {
+		const char *info = CS( CS_SERVERINFO );
+		frame = cls.framecount;
+		is = cls.state == CA_ACTIVE && atoi( Info_ValueForKey( info, "g_gametype" ) ) >= GT_TEAM
+			&& Info_ValueForKey( info, "clientversion" )[0] && !strcmp( CS( 873 ), "1" );
+	}
+	return is;
 }
 
 // A51's Freeze Tag freezes a player as a body in a death pose (EF_DEAD, the body queue's entity once the
@@ -3767,6 +3917,41 @@ static void FrozenBody( refEntity_t *ent ) {
 	re.AddRefEntityToScene( &shell, qfalse );
 }
 
+// Gameplay > Enemy outline: an enemy's body as it is (its own model and skin, or the forced one), with a
+// rim in Outline color around it: a second entity in each renderer's internal oz_outline. Enemies only;
+// teammates stay plain, so the rim alone tells who to shoot
+static void EnemyOutline( const refEntity_t *ent ) {
+	static qhandle_t	outline;
+	static int			outlineGeneration = -1;
+	refEntity_t			rim;
+	float				c[4];
+	int					owner;
+
+	if ( !oz_gameplay_enemy_outline->integer || ent->reType != RT_MODEL || ent->hModel <= 0 || ent->hModel >= MAX_NOTED_MODELS
+		|| !( modelIsPlayer[ent->hModel >> 3] & ( 1 << ( ent->hModel & 7 ) ) ) || ( ent->renderfx & ( RF_THIRD_PERSON | RF_FIRST_PERSON ) ) ) {
+		return;
+	}
+	owner = BodyOwner( ent );
+	if ( owner < 0 || owner == cl.snap.ps.clientNum
+		|| ( cgs.gametype >= GT_TEAM && cgs.clientinfo[owner].team == cl.snap.ps.persistant[PERS_TEAM] ) ) {
+		return;
+	}
+	if ( outlineGeneration != OzE_RendererGeneration() ) {
+		outlineGeneration = OzE_RendererGeneration();
+		outline = re.RegisterShader( "oz_outline" );
+	}
+	ParseColor( oz_gameplay_outline_color->string, c );
+	rim = *ent;
+	rim.customShader = outline;
+	rim.customSkin = 0;
+	rim.renderfx |= RF_NOSHADOW;
+	rim.shader.rgba[0] = ToByte( c[0] );
+	rim.shader.rgba[1] = ToByte( c[1] );
+	rim.shader.rgba[2] = ToByte( c[2] );
+	rim.shader.rgba[3] = 255;
+	re.AddRefEntityToScene( &rim, qfalse );
+}
+
 int OzHud_RefEntity( refEntity_t *ent ) {
 	FrozenBody( ent );
 	if ( !OzHud_Active() ) {
@@ -3811,6 +3996,7 @@ int OzHud_RefEntity( refEntity_t *ent ) {
 			ent->shader.rgba[3] = 255;
 		}
 	}
+	EnemyOutline( ent );
 	return 1;
 }
 
@@ -3978,6 +4164,22 @@ static void TopSpeed( const playerState_t *ps, float ups ) {
 	}
 }
 
+// the HUD's own "score" commands, told from the player's: the reliable sequence after the last one, and
+// when (cls.realtime) a command that wasn't the HUD's last went out
+static struct {
+	int		sequence;
+	int		ownAt;
+} asked;
+
+static void AskScores( void ) {
+	// between the frame's check and here a command of the player's may have gone out
+	if ( clc.reliableSequence != asked.sequence ) {
+		asked.ownAt = cls.realtime;
+	}
+	CL_AddReliableCommand( "score", qfalse );
+	asked.sequence = clc.reliableSequence;
+}
+
 static void Update( const playerState_t *ps ) {
 	int		i;
 	float	vel;
@@ -4041,7 +4243,7 @@ static void Update( const playerState_t *ps ) {
 	for ( i = 0; i < hud.numNotify; i++ ) {
 		hud.notify[i].t += hud.dt;
 	}
-	while ( hud.numNotify && hud.notify[0].t >= 6.0f ) {
+	while ( hud.numNotify && hud.notify[0].t >= NotifyLife() ) {
 		for ( i = 1; i < hud.numNotify; i++ ) {
 			hud.notify[i - 1] = hud.notify[i];
 		}
@@ -4089,23 +4291,58 @@ static void Update( const playerState_t *ps ) {
 		hud.deathTime = cg.time;
 	}
 	hud.dead = ps->pm_type == PM_DEAD;
-	// distance covered, alive, without teleports and respawns
-	if ( ps->pm_type == PM_NORMAL && hud.lastValid && !( ( ps->eFlags ^ hud.lastFlags ) & EF_TELEPORT_BIT ) ) {
+	// distance covered, alive, without teleports and respawns; your own (a followed player's went into your record)
+	if ( ps->pm_type == PM_NORMAL && OwnPlay() && hud.lastValid && !( ( ps->eFlags ^ hud.lastFlags ) & EF_TELEPORT_BIT ) ) {
 		const float step = Distance( ps->origin, hud.lastOrigin );
 		if ( step < 128 ) {
 			hud.distance += step;
 		}
 	}
-	hud.lastValid = ps->pm_type == PM_NORMAL;
+	hud.lastValid = ps->pm_type == PM_NORMAL && OwnPlay();
 	VectorCopy( ps->origin, hud.lastOrigin );
 	hud.lastFlags = ps->eFlags;
-	// the others' names and scores beside yours: the scores every 2.5 s (the scoreboard asks
-	// every 2 s on its own while it's up)
-	if ( cg.time - hud.scoresAsked > 2500 || cg.time < hud.scoresAsked ) {
-		hud.scoresAsked = cg.time;
-		cg.scoresRequestTime = cg.time;	// so +scores keeps the list it has (CG_ScoresDown empties it otherwise)
-		if ( !cg.demoPlayback ) {
-			CL_AddReliableCommand( "score", qfalse );
+	// what the player sent last (typed, a bind's, a menu's): any reliable command that isn't the HUD's own
+	if ( clc.reliableSequence != asked.sequence ) {
+		asked.sequence = clc.reliableSequence;
+		asked.ownAt = cls.realtime;
+	}
+	/*
+	The scores, without a poll. The HUD asked every 2.5 s all match long, and id's 1.32 and ioquake3 servers
+	(sv_floodProtect) ignore a client's command that comes within a second of its last one, ignored or not: about
+	two in five of what a player typed (say, callvote, team, a mod's commands) was thrown away with no word. Now,
+	as id's cgame: the board asks while it's up, the pause page while it shows a duel's line, and the match's end
+	asks once. Between boards the status boxes take their numbers from the configstrings and the player's own
+	state, and the game sends a list at each of your deaths and at the intermission by itself.
+	One slow ask is left, outside team games only: the name beside your score (the leader's or the runner-up's)
+	comes from the list alone. Every 30 s at most, never while the list is fresher than that, the console or
+	the chat line is open, or within 1.5 s of a command of the player's own.
+	*/
+	if ( ps->pm_type == PM_INTERMISSION ) {
+		// the final board (the results, the XP, the match record, the replay's standings): asked as the
+		// intermission begins, and twice more 3 s apart should no answer come (a say just before it)
+		if ( !hud.finalAsks || ( hud.finalAsks < 3 && cg.scoresParsed == hud.finalParsed
+				&& ( cg.time - hud.finalAskedAt > 3000 || cg.time < hud.finalAskedAt ) ) ) {
+			if ( !hud.finalAsks ) {
+				hud.finalParsed = cg.scoresParsed;
+			}
+			hud.finalAsks++;
+			hud.finalAskedAt = cg.time;
+			cg.scoresRequestTime = cg.time;
+			if ( !cg.demoPlayback ) {
+				AskScores();
+			}
+		}
+	} else {
+		hud.finalAsks = 0;
+		if ( ( cg.time - hud.scoresAsked > 30000 || cg.time < hud.scoresAsked )
+				&& ( cg.time - cg.scoresTime > 30000 || cg.time < cg.scoresTime || !cg.scoresParsed ) ) {
+			if ( cg.demoPlayback || cgs.gametype >= GT_TEAM ) {
+				hud.scoresAsked = cg.time;
+			} else if ( !( Key_GetCatcher() & ( KEYCATCH_CONSOLE | KEYCATCH_MESSAGE ) ) && cls.realtime - asked.ownAt > 1500 ) {
+				hud.scoresAsked = cg.time;
+				cg.scoresRequestTime = cg.time;	// the board, going up now, waits its 2 s for this one's answer
+				AskScores();
+			}
 		}
 	}
 	// cg_playerstate.c CG_CheckAmmo: about five seconds of fire left is low, none is empty
@@ -4150,13 +4387,46 @@ static void Update( const playerState_t *ps ) {
 	}
 }
 
+/*
+Whether the match is one the player played, and since when: the first snapshot of their own play (OwnPlay)
+outside the intermission, under this map load and start time (as Awarded keys a match). The XP, the match
+record and the time played all ask it: a player who joined a server at its scoreboard got a last place, XP
+and a signed report for a match they never played, with the whole match's length as their time in it.
+*/
+static struct {
+	int			server, start;		// cl.serverId and the level's start time
+	qboolean	seen;
+	int			since;				// that first snapshot's server time
+} played;
+
+static void NotePlayed( const playerState_t *ps ) {
+	if ( played.server != cl.serverId || played.start != cgs.levelStartTime ) {
+		played.server = cl.serverId;
+		played.start = cgs.levelStartTime;
+		played.seen = qfalse;
+	}
+	if ( !played.seen && ps->pm_type != PM_INTERMISSION && OwnPlay() ) {
+		played.seen = qtrue;
+		played.since = cl.snap.serverTime;
+	}
+}
+
+// seconds of the match the player was in
+static int PlayedSeconds( void ) {
+	const int ms = played.seen ? cl.snap.serverTime - played.since : 0;
+	return ms > 0 ? ms / 1000 : 0;
+}
+
 static void DrawScoreboard( float W, float H, const playerState_t *ps );
 static void DrawResults( float W, float H, const playerState_t *ps );
 static void AwardXP( const playerState_t *ps );
 static void RecordMatch( const playerState_t *ps );
+static void ResultsUndrawn( const playerState_t *ps );
 static int resultsStart;
 #define CAMPAIGN_RESULTS	12.0f	// seconds of a campaign arena's results before the campaign page
+#define CAMPAIGN_SKIP		1.5f	// and before Enter or Space may end them sooner (a key held from the match)
 static int boardShown;		// frames since the board was last drawn, counting down
+static int boardLogFrom;	// cg.time the board went up, until its lines are logged (0)
 
 // cg_draw.c CG_ScanForCrosshairEntity: the player in front of the crosshair, if the world doesn't hide
 // them (a ray against the players' boxes in the snapshot, then the world between)
@@ -4247,7 +4517,10 @@ void OzHud_Draw( void ) {
 	qboolean			barOn, classic, speedOn, arc, playing, spectator;
 	int64_t				prof;	// frametime's details
 
-	if ( !OzHud_Active() ) {
+	// The match is followed while a mod's own menu has the screen too (OzHud_Active), only not drawn: the
+	// events were read just while the HUD drew, so the frags, deaths and hits of that time never reached the
+	// feed, the board or the match record
+	if ( !Following() ) {
 		return;
 	}
 	// what a cgame knows, from the client
@@ -4266,13 +4539,24 @@ void OzHud_Draw( void ) {
 	ReadConfigstrings();
 	ReadEvents();
 	ScanForCrosshairEntity( ps );
-	LoadImages();
-	LoadCards();
+	if ( OzHud_Active() ) {
+		LoadImages();
+		LoadCards();
+	}
+	NotePlayed( ps );
 	Update( ps );
+	if ( Defrag() ) {
+		DefragUpdate( ps );
+	}
+	if ( ps->pm_type == PM_INTERMISSION ) {
+		AwardXP( ps );	// drawn or not: with cg_draw2D 0 a campaign arena's end gave nothing
+	}
 	RecordMatch( ps );
 	Com_ProfDetail( "hud update", prof );
-	if ( !cg_draw2D->integer ) {
-		return;		// the screen is the world's, as id's cgame leaves it; the HUD keeps following the match
+	if ( !OzHud_Active() || !cg_draw2D->integer ) {
+		// the screen is a mod's menu's, or the world's as id's cgame leaves it; the HUD keeps following the match
+		ResultsUndrawn( ps );
+		return;
 	}
 	p = oz_hud_preset->string;
 	hud.preset = !Q_stricmp( p, "competitive" ) ? 1 : !Q_stricmp( p, "minimal" ) ? 2 : !Q_stricmp( p, "classic" ) ? 3 : 0;
@@ -4337,11 +4621,8 @@ void OzHud_Draw( void ) {
 	if ( ps->pm_type != PM_INTERMISSION ) {
 		DrawStatus( W, ps );
 	}
-	if ( Defrag() ) {
-		DefragUpdate( ps );
-		if ( ps->pm_type != PM_INTERMISSION && !cg.scoreBoardShowing ) {
-			DrawDefragTimer( W, ps );
-		}
+	if ( Defrag() && ps->pm_type != PM_INTERMISSION && !cg.scoreBoardShowing ) {
+		DrawDefragTimer( W, ps );
 	}
 	if ( oz_hud_kill_feed->integer && ps->pm_type != PM_INTERMISSION ) {
 		DrawFeed( feedX, feedY, feedW );
@@ -4393,9 +4674,6 @@ void OzHud_Draw( void ) {
 			top = H * 0.6f - 30 * u;
 		}
 		DrawCaptions( W, top );
-	}
-	if ( ps->pm_type == PM_INTERMISSION ) {
-		AwardXP( ps );	// with the scoreboard up too
 	}
 	if ( ps->pm_type == PM_INTERMISSION && !cg.showScores ) {
 		DrawResults( W, H, ps );
@@ -4877,6 +5155,9 @@ int OzHud_BoardMouse( int dx, int dy ) {
 // CL_KeyDownEvent, a key about to run its binding: right click under Tab gives the board the mouse or
 // takes it back, and while the board has it, the mouse's buttons are its clicks (1: the key is the board's)
 int OzHud_BoardKey( int key ) {
+	if ( CampaignResultsKey( key ) ) {
+		return 1;
+	}
 	if ( !BoardUp() ) {
 		if ( boardMouse.on ) {
 			BoardMouseOff();
@@ -4936,7 +5217,7 @@ static void Board_f( void ) {
 		const boardRect_t	*r = &boardMouse.rows[i];
 		char				name[MAX_QPATH];
 		PlayerName( r->client, name, sizeof( name ) );
-		Q_CleanStr( name );
+		CleanName( name );
 		Com_Printf( "ozboard: row %d at %d %d %d %d: %s\n", r->client, (int)r->x, (int)r->y, (int)r->w, (int)r->h, name );
 	}
 }
@@ -5336,6 +5617,7 @@ int OzE_TeamInfo( ozTeamInfo_t *t ) {
 	t->fraglimit = atoi( Info_ValueForKey( info, "fraglimit" ) );
 	t->timelimit = atoi( Info_ValueForKey( info, "timelimit" ) );
 	t->capturelimit = atoi( Info_ValueForKey( info, "capturelimit" ) );
+	t->ozRules = Info_ValueForKey( info, "g_ruleset" )[0] != 0;
 	t->redScore = atoi( CS( CS_SCORES1 ) );
 	t->blueScore = atoi( CS( CS_SCORES2 ) );
 	t->team = TEAM_SPECTATOR;
@@ -5357,6 +5639,15 @@ int OzE_TeamInfo( ozTeamInfo_t *t ) {
 	t->intermission = cl.snap.ps.pm_type == PM_INTERMISSION;
 	if ( t->gametype == GT_TOURNAMENT && t->team == TEAM_SPECTATOR ) {
 		int ahead = 0;
+		// the line is the last scores' order: asked for while the pause page shows it (it calls this), every 2 s
+		// as the board asks while it's up, now that nothing asks all match long
+		// (by the real clock: a paused local match's stands still)
+		static int	lineAsked;
+		if ( Following() && !t->intermission && ( cls.realtime - lineAsked > 2000 || cls.realtime < lineAsked ) ) {
+			lineAsked = cls.realtime;
+			cg.scoresRequestTime = cl.serverTime;
+			AskScores();
+		}
 		for ( i = 0; i < cg.numScores; i++ ) {
 			const int c = cg.scores[i].client;
 			if ( c == me ) {
@@ -5465,8 +5756,15 @@ static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 	static panel_t	measure;
 
 	if ( !boardShown && cg.numScores > 0 ) {
-		// what the board shows, in the console, for the HUD test to check against the server's log
+		boardLogFrom = cg.time ? cg.time : 1;
+	}
+	// what the board shows, in the console, for the HUD test to check against the server's log: once each time
+	// it goes up, with a list no older than the 2.5 s the scores were once asked at (the answer to the board's
+	// own ask, a few frames on; after 1.5 s whatever it has, should none come)
+	if ( boardLogFrom && cg.numScores > 0 && ( cg.demoPlayback || ps->pm_type == PM_INTERMISSION
+			|| ( cg.scoresParsed && cg.time - cg.scoresTime <= 2500 ) || cg.time - boardLogFrom > 1500 || cg.time < boardLogFrom ) ) {
 		int wp, shots = 0, hits = 0, damage = 0;
+		boardLogFrom = 0;
 		for ( wp = 1; wp < NAMES; wp++ ) {
 			damage += hud.damage[wp];
 			if ( wp != WP_GAUNTLET && wp != WP_GRAPPLING_HOOK ) {
@@ -5490,9 +5788,9 @@ static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 	if ( cg.numScores > 0 ) {
 		boardShown = 2;
 	}
-	if ( cg.time - cg.scoresRequestTime > 2000 && !cg.demoPlayback && ps->pm_type != PM_INTERMISSION ) {
+	if ( ( cg.time - cg.scoresRequestTime > 2000 || cg.time < cg.scoresRequestTime ) && !cg.demoPlayback && ps->pm_type != PM_INTERMISSION ) {
 		cg.scoresRequestTime = cg.time;
-		CL_AddReliableCommand( "score", qfalse );
+		AskScores();
 	}
 #ifdef USE_OZ_ONLINE
 	OzOnline_WantRoster();		// who's an Oz player here, for their cards
@@ -5674,9 +5972,18 @@ static void DrawScoreboard( float W, float H, const playerState_t *ps ) {
 // award_match, the campaign's own lines too), from the end of the match as this client sees it
 
 static struct {
-	int			awardedFor;				// the level start time it was given for
+	int			awardedFor;				// the level start time it was given for, + 1
+	int			awardedServer;			// and the map load it was (cl.serverId)
 	ozAward_t	a;
 } xp;
+
+// Whether this match has had its XP. A match is its map load and its start time together: id's game
+// starts every map on a fresh server at 0 (each campaign arena, so by the start time alone the second
+// arena of a session was taken for the first: no XP, no win saved, and no way back to the campaign),
+// and a vid_restart in the intermission changes neither
+static qboolean Awarded( void ) {
+	return xp.awardedFor == cgs.levelStartTime + 1 && xp.awardedServer == cl.serverId;
+}
 
 // ---------------------------------------------------------------- the record's names
 
@@ -5775,7 +6082,15 @@ static void AwardXP( const playerState_t *ps ) {
 	char			map[MAX_QPATH];
 	int				i;
 
-	if ( xp.awardedFor == cgs.levelStartTime + 1 || ps->persistant[PERS_TEAM] == TEAM_SPECTATOR ) {
+	// your own match only: not one you watch or follow someone through, nor one you came into at its end
+	if ( Awarded() || !OwnPlay() || !played.seen ) {
+		return;
+	}
+	// by the match's last standings, not a list from a board minutes ago (nothing asks all match long now):
+	// the one the game sends with the intermission, else the answer to the HUD's own ask then (Update), else,
+	// once its three asks got none, the list there is
+	if ( !cg.demoPlayback && cg.scoresParsed == hud.finalParsed && !( cg.scoresParsed && cg.time - cg.scoresTime <= 2500 )
+		&& !( hud.finalAsks >= 3 && cg.time - hud.finalAskedAt > 3000 ) ) {
 		return;
 	}
 	memset( &m, 0, sizeof( m ) );
@@ -5807,11 +6122,12 @@ static void AwardXP( const playerState_t *ps ) {
 	m.killed = ps->persistant[PERS_KILLED];
 	m.model = cgs.clientinfo[ps->clientNum].modelName;
 	m.skin = cgs.clientinfo[ps->clientNum].skinName;
-	m.seconds = ( cg.snap ? cg.snap->serverTime - cgs.levelStartTime : 0 ) / 1000;
+	m.seconds = PlayedSeconds();	// from your first snapshot in it, not the level's start
 	m.topSpeed = (int)hud.topSpeed;
 	CareerCounts( &m );
 	if ( OzProgress_MatchEnd( &m, cg.demoPlayback, &xp.a ) ) {
 		xp.awardedFor = cgs.levelStartTime + 1;
+		xp.awardedServer = cl.serverId;
 		Com_Printf( "ozhud: top speed %d ups (%d with pushes)\n", m.topSpeed, (int)hud.pushedTop );
 	}
 }
@@ -5825,6 +6141,7 @@ while spectating or following someone.
 */
 static struct {
 	int		recordedFor;		// the level start time it was recorded for, + 1
+	int		recordedServer;		// and the map load (cl.serverId), as the XP's (Awarded)
 	int		intermissionAt;		// cls.realtime the intermission was first seen, 0 outside one
 	int		scoresAt;			// cg.scoresParsed then
 } record;
@@ -5839,13 +6156,14 @@ static void RecordMatch( const playerState_t *ps ) {
 		record.intermissionAt = 0;
 		return;
 	}
-	if ( record.recordedFor == cgs.levelStartTime + 1 || cg.demoPlayback || !OwnPlay() ) {
+	if ( ( record.recordedFor == cgs.levelStartTime + 1 && record.recordedServer == cl.serverId ) || cg.demoPlayback || !OwnPlay()
+		|| !played.seen ) {
 		return;
 	}
 	if ( !record.intermissionAt ) {
+		// the final board is asked for as the intermission begins (Update), once for everything that reads it
 		record.intermissionAt = cls.realtime ? cls.realtime : 1;
-		record.scoresAt = cg.scoresParsed;
-		CL_AddReliableCommand( "score", qfalse );
+		record.scoresAt = hud.finalAsks ? hud.finalParsed : cg.scoresParsed;
 		return;
 	}
 	if ( cg.scoresParsed == record.scoresAt ) {
@@ -5856,7 +6174,7 @@ static void RecordMatch( const playerState_t *ps ) {
 	r.map = map;
 	r.gametype = cgs.gametype;
 	r.start = cgs.levelStartTime;
-	r.seconds = ( cl.snap.serverTime - cgs.levelStartTime ) / 1000;
+	r.seconds = PlayedSeconds();
 	r.me = ps->clientNum;
 	r.place = -1;
 	for ( i = 0; i < cg.numScores && r.numRows < OZ_RECORD_ROWS - 2; i++ ) {	// the standings, best first
@@ -5893,7 +6211,7 @@ static void RecordMatch( const playerState_t *ps ) {
 	}
 	r.frags = hud.kills[ps->clientNum];
 	r.deaths = hud.deaths[ps->clientNum];
-	r.xp = xp.awardedFor == cgs.levelStartTime + 1 ? xp.a.gain : 0;
+	r.xp = Awarded() ? xp.a.gain : 0;
 	r.railStreak = hud.railBest;
 	r.distance = (int)hud.distance;
 	r.speed = (int)hud.topSpeed;
@@ -5919,9 +6237,43 @@ static void RecordMatch( const playerState_t *ps ) {
 	CountAdd( &r.medals, "captures", ps->persistant[PERS_CAPTURES] );
 	OzStats_Record( &r );
 	record.recordedFor = cgs.levelStartTime + 1;
+	record.recordedServer = cl.serverId;
 #else
 	(void)ps;
 #endif
+}
+
+// the standings as the server last sent them (Tab's board, or the intermission's), for the replay library
+// (cl_oz_demos.c): best first, spectators out; no rows before this map's first board
+int OzHud_Standings( ozLibStandings_t *s ) {
+	int	i;
+
+	memset( s, 0, sizeof( *s ) );
+	s->me = cl.snap.ps.clientNum;
+	s->gametype = cgs.gametype;
+	Q_strncpyz( s->mode, GametypeName(), sizeof( s->mode ) );
+	if ( !cg.scoresParsed ) {
+		return 0;
+	}
+	for ( i = 0; i < cg.numScores && s->numRows < OZ_LIB_ROWS; i++ ) {
+		const ozScore_t	*sc = &cg.scores[i];
+		ozLibRow_t		*row = &s->rows[s->numRows];
+		if ( sc->client < 0 || sc->client >= MAX_CLIENTS || sc->team == TEAM_SPECTATOR || !cgs.clientinfo[sc->client].infoValid ) {
+			continue;
+		}
+		row->client = sc->client;
+		row->score = sc->score;
+		row->team = sc->team;
+		row->bot = cgs.clientinfo[sc->client].botSkill > 0;
+		PlayerName( sc->client, row->name, sizeof( row->name ) );
+		s->numRows++;
+	}
+	if ( cgs.gametype >= GT_TEAM && cgs.scores1 != SCORE_NOT_PRESENT && cgs.scores2 != SCORE_NOT_PRESENT ) {
+		s->teams = 1;
+		s->red = cgs.scores1;
+		s->blue = cgs.scores2;
+	}
+	return s->numRows;
 }
 
 // the XP lines one after another, then the bar filling, with a flash for every level crossed
@@ -5935,7 +6287,7 @@ static void DrawXP( float W, float H, float t ) {
 	static const vec4_t bar = { 1.0f, 0.7f, 0.15f, 1 };
 	static const vec4_t gain = { 1, 0.85f, 0.4f, 1 };
 
-	if ( xp.awardedFor != cgs.levelStartTime + 1 ) {
+	if ( !Awarded() ) {
 		return;		// a campaign match waits a moment for the game's postgame
 	}
 	for ( i = 0; i < xp.a.numLines; i++ ) {
@@ -6052,10 +6404,11 @@ static void DrawResults( float W, float H, const playerState_t *ps ) {
 		DrawXP( W, H, t );
 	}
 	Col( c, WHITE, 0.5f );
-	if ( xp.a.campaign && xp.awardedFor == cgs.levelStartTime + 1 ) {
+	if ( xp.a.campaign && Awarded() ) {
 		// the single player game never leaves its intermission: back to the campaign once the XP has shown
 		const float left = CAMPAIGN_RESULTS - t;
-		Text( FONT_LABEL, W * 0.5f, H * 0.94f, va( "TAB  SCOREBOARD     BACK TO THE CAMPAIGN IN %d", (int)( left > 0 ? left + 0.99f : 0 ) ), H * 0.022f, c, ALIGN_CENTER );
+		Text( FONT_LABEL, W * 0.5f, H * 0.94f, va( "TAB  SCOREBOARD     ENTER  CONTINUE     BACK TO THE CAMPAIGN IN %d",
+			(int)( left > 0 ? left + 0.99f : 0 ) ), H * 0.022f, c, ALIGN_CENTER );
 		if ( left <= 0 && !cg.demoPlayback ) {
 			xp.a.campaign = 0;
 			OzProgress_CampaignContinue();
@@ -6063,6 +6416,41 @@ static void DrawResults( float W, float H, const playerState_t *ps ) {
 		return;
 	}
 	Text( FONT_LABEL, W * 0.5f, H * 0.94f, "TAB  SCOREBOARD", H * 0.022f, c, ALIGN_CENTER );
+}
+
+// A frame the HUD doesn't draw (cg_draw2D 0, a mod's menu up): the results' clock runs all the same, and a
+// campaign arena still goes back to the campaign after its count. With cg_draw2D 0 it never left
+static void ResultsUndrawn( const playerState_t *ps ) {
+	if ( boardShown > 0 ) {
+		boardShown--;
+	}
+	if ( ps->pm_type != PM_INTERMISSION ) {
+		resultsStart = 0;
+		return;
+	}
+	if ( !resultsStart ) {
+		resultsStart = cg.time;
+	}
+	if ( xp.a.campaign && Awarded() && !cg.demoPlayback && cg.time - resultsStart >= (int)( CAMPAIGN_RESULTS * 1000 ) ) {
+		xp.a.campaign = 0;
+		OzProgress_CampaignContinue();
+	}
+}
+
+// A campaign arena's results have no page of their own, so no buttons: Enter or Space goes back to the
+// campaign without waiting out the count (OzHud_BoardKey, ahead of the key's binding)
+static qboolean CampaignResultsKey( int key ) {
+	if ( key != K_ENTER && key != K_KP_ENTER && key != K_SPACE ) {
+		return qfalse;
+	}
+	if ( !xp.a.campaign || !Awarded() || cg.demoPlayback || cg.showScores || !resultsStart
+		|| cg.time - resultsStart < (int)( CAMPAIGN_SKIP * 1000 ) ) {
+		return qfalse;
+	}
+	xp.a.campaign = 0;
+	Com_Printf( "ozhud: campaign results left with a key\n" );
+	OzProgress_CampaignContinue();
+	return qtrue;
 }
 
 // +scores / -scores, which the game code takes: the board shows while it's held, and letting go takes
@@ -6179,7 +6567,7 @@ void OzHud_CompleteName( char *line, int size, int *cursor ) {
 			continue;
 		}
 		Q_strncpyz( name, Info_ValueForKey( info, "n" ), sizeof( name ) );
-		Q_CleanStr( name );
+		CleanName( name );
 		if ( Q_stricmpn( name, word, len ) ) {
 			continue;
 		}

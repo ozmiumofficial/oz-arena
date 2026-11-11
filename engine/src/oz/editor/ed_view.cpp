@@ -10,6 +10,9 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <map>
+#include <set>
+#include <tuple>
 
 extern "C" {
 #include "../ui/oz_ui_engine.h"
@@ -61,6 +64,16 @@ struct Batch {
 	std::vector<unsigned short> indexes;
 };
 
+// What was left out of the view at a limit since the map was opened: faces and curves past 65,535 vertexes
+// of one material in a cell, lines and shapes past 65,535 in one of an overlay's looks, and meshes the
+// renderer had no slot for. They used to go without a word: said once a map (Session::frame), and counted
+// in ed_stats.
+struct Caps {
+	int faces = 0, overlay = 0, meshes = 0;
+	bool said = false;
+};
+Caps g_caps;
+
 ozEdVertex_t vertex(const Vec3 &p, double s, double t, const Vec3 &n, const Vec3 &tan, double w, const unsigned char *color) {
 	ozEdVertex_t v{};
 	v.xyz[0] = float(p.x), v.xyz[1] = float(p.y), v.xyz[2] = float(p.z);
@@ -95,6 +108,37 @@ bool before(const Vec3 &a, const Vec3 &b) {
 int shader_handle(const char *name) {
 	const ozEdRender_t *r = OzEd_Renderer();
 	return r ? r->RegisterShader(name) : 0;
+}
+
+// A face's material as drawn: its glow copy when it has a glow of its own (GLOW in Inspect)
+ShaderId drawn_shader(const Face &f) {
+	int brightness, light;
+	if (!face_glow(f, brightness, light)) {
+		return f.shader;
+	}
+	static std::map<std::tuple<ShaderId, int, int>, ShaderId> made;
+	const auto key = std::make_tuple(f.shader, brightness, light);
+	auto it = made.find(key);
+	if (it == made.end()) {
+		it = made.emplace(key, shader_id(shaders_lib().glow_variant(shader_name(f.shader), brightness, light))).first;
+	}
+	return it->second;
+}
+
+// A glow copy given to the renderer before it's asked for (once a renderer start): its script is the editor's own
+void define_glow(const ozEdRender_t *r, const std::string &name) {
+	static std::set<std::string> given;
+	static int generation = -1;
+	if (generation != OzE_RendererGeneration()) {
+		given.clear();
+		generation = OzE_RendererGeneration();
+	}
+	if (r->DefineShader && given.insert(name).second) {
+		const std::string text = shaders_lib().oz_script(name);
+		if (!text.empty()) {
+			r->DefineShader(name.c_str(), text.c_str());
+		}
+	}
 }
 }  // namespace
 
@@ -191,9 +235,29 @@ const Mesher::Material &Mesher::material(ShaderId s) {
 		}
 	}
 	if (look == Look::Normal && r) {
+		if (name.compare(0, 17, "textures/oz_glow/") == 0) {
+			define_glow(r, name);  // a face's GLOW: the material's glow copy
+		}
 		m.shader = r->RegisterShader(name.c_str());
+		m.name = name;
 	}
 	return materials_[s] = m;
+}
+
+int Mesher::lit_shader(ShaderId s, int page) {
+	material(s);
+	Material &m = materials_[s];
+	if (m.name.empty()) {
+		return 0;
+	}
+	auto it = m.lit.find(page);
+	if (it != m.lit.end()) {
+		return it->second;
+	}
+	const ozEdRender_t *r = OzEd_Renderer();
+	const int h = r && r->RegisterLitShader ? r->RegisterLitShader(m.name.c_str(), page) : 0;
+	m.lit[page] = h;
+	return h;
 }
 
 // The 2D views' lines: each brush's edges once (a face's polygon goes one way round, its neighbor's
@@ -205,6 +269,8 @@ void Mesher::build_wire(const Doc &doc, Cell &cell) {
 		if (lv.size() + 2 <= 65534) {
 			lv.push_back(vertex(a, 0, 0, n, Vec3(1, 0, 0), 1, c));
 			lv.push_back(vertex(b, 0, 0, n, Vec3(1, 0, 0), 1, c));
+		} else {
+			g_caps.overlay++;
 		}
 	};
 	for (Id id : cell.ids) {
@@ -269,7 +335,11 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 	};
 	// the selection's tint (overlay), or a non-solid face's wash (any mesher that draws materials)
 	auto add_tint = [&](const Batch &from, size_t first_vert, size_t first_index, const unsigned char *color = nullptr) {
-		if (!(overlay || color) || tint.verts.size() + (from.verts.size() - first_vert) > 65535) {
+		if (!(overlay || color)) {
+			return;
+		}
+		if (tint.verts.size() + (from.verts.size() - first_vert) > 65535) {
+			g_caps.faces++;  // its tint, at least
 			return;
 		}
 		unsigned short base = (unsigned short)tint.verts.size();
@@ -293,15 +363,30 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 			const auto &ws = doc.windings(id);
 			const bool nocollide = is_nocollide(*o);
 			for (size_t i = 0; i < o->brush.faces.size() && i < ws.size(); i++) {
-				const Face &f = o->brush.faces[i];
+				const Face *as = face_as ? face_as(id, int(i)) : &o->brush.faces[i];
+				if (!as) {
+					continue;
+				}
+				const Face &f = *as;
 				const q3map::Winding &w = ws[i];
 				if (w.size() < 3) {
 					continue;
 				}
-				const Material &mat = material(f.shader);
+				const ShaderId ds = mats ? drawn_shader(f) : f.shader;
+				const Material &mat = material(ds);
+				// lit by the live light's texels where it has them, else as the view light lights it
+				int page = -1, handle = mat.shader;
+				float lu = 0, lv = 0;
+				bool lit = mats && light && light->face_lm(id, int(i), w[0], page, lu, lv);
+				if (lit) {
+					const int h = lit_shader(ds, page);
+					lit = h != 0;
+					handle = lit ? h : handle;
+				}
 				scratch = Batch();
-				Batch &b = mats ? batches[mat.shader] : scratch;
+				Batch &b = mats ? batches[handle] : scratch;
 				if (b.verts.size() + w.size() > 65535) {
+					g_caps.faces++;
 					continue;  // a cell this dense would need a split; it's never been seen
 				}
 				Vec3 tan;
@@ -310,7 +395,10 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 				const size_t fv = b.verts.size(), fi = b.indexes.size();
 				unsigned short base = (unsigned short)b.verts.size();
 				for (const Vec3 &p : w) {
-					b.verts.push_back(vertex(p, f.st.s.dot(p) + f.st.s0, f.st.t.dot(p) + f.st.t0, f.plane.n, tan, sign, mat.color));
+					b.verts.push_back(vertex(p + f.plane.n * lift, f.st.s.dot(p) + f.st.s0, f.st.t.dot(p) + f.st.t0, f.plane.n, tan, sign, mat.color));
+					if (lit && light->face_lm(id, int(i), p, page, lu, lv)) {
+						b.verts.back().lm[0] = lu, b.verts.back().lm[1] = lv;
+					}
 				}
 				// id's renderers take a triangle clockwise from its front as facing the camera (GL_Cull
 				// culls GL_FRONT): the kernel's polygons go the other way
@@ -348,9 +436,18 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 			const Patch &pt = o->patch;
 			q3map::PatchMesh m = patch_mesh(pt, PATCH_TOLERANCE);
 			const Material &mat = material(pt.shader);
+			int page = -1, handle = mat.shader;
+			float lu = 0, lv = 0;
+			bool lit = mats && light && light->patch_lm(id, 0, page, lu, lv);
+			if (lit) {
+				const int h = lit_shader(pt.shader, page);
+				lit = h != 0;
+				handle = lit ? h : handle;
+			}
 			scratch = Batch();
-			Batch &b = mats ? batches[mat.shader] : scratch;
+			Batch &b = mats ? batches[handle] : scratch;
 			if (m.verts.empty() || b.verts.size() + m.verts.size() > 65535) {
+				g_caps.faces += m.verts.empty() ? 0 : 1;
 				continue;
 			}
 			const size_t fv = b.verts.size(), fi = b.indexes.size();
@@ -360,6 +457,9 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 				Vec3 u, v;
 				q3map::default_texture_axes(n, u, v);
 				b.verts.push_back(vertex(m.verts[k].p, m.verts[k].s, m.verts[k].t, n, (u - n * u.dot(n)).normalized(), 1, mat.color));
+				if (lit && light->patch_lm(id, int(k), page, lu, lv)) {
+					b.verts.back().lm[0] = lu, b.verts.back().lm[1] = lv;
+				}
 			}
 			for (int r = 0; r + 1 < m.height; r++) {
 				for (int c = 0; c + 1 < m.width; c++) {
@@ -425,6 +525,8 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 		} else {
 			h = r->CreateMesh(0);
 			if (!h) {
+				g_caps.meshes++;
+				verts.clear(), indexes.clear(), ranges.clear();  // not carried into the next mesh, past its 65,535 vertexes
 				return;
 			}
 			cell.meshes.push_back(h);
@@ -468,6 +570,7 @@ void Mesher::build(const Doc &doc, Cell &cell) {
 			cell.lines = r->CreateMesh(1);
 		}
 		const size_t n = std::min(edges.size(), size_t(32766)) & ~size_t(1);  // both copies in one mesh
+		g_caps.overlay += edges.size() > n ? 1 : 0;
 		std::vector<ozEdVertex_t> lv(edges.begin(), edges.begin() + n);
 		for (size_t k = 0; k < n; k++) {
 			ozEdVertex_t v = edges[k];
@@ -548,6 +651,7 @@ unsigned short Overlay::vert(Part &p, const Vec3 &at, const unsigned char c[4]) 
 void Overlay::line(const Vec3 &a, const Vec3 &b, const unsigned char c[4], const char *look) {
 	Part &p = lines_[look];
 	if (p.v.size() + 2 > 65535) {
+		g_caps.overlay++;
 		return;
 	}
 	p.i.push_back(vert(p, a, c));
@@ -557,6 +661,7 @@ void Overlay::line(const Vec3 &a, const Vec3 &b, const unsigned char c[4], const
 void Overlay::tri(const Vec3 &a, const Vec3 &b, const Vec3 &c, const unsigned char col[4], const char *look) {
 	Part &p = tris_[look];
 	if (p.v.size() + 3 > 65535) {
+		g_caps.overlay++;
 		return;
 	}
 	unsigned short i0 = vert(p, a, col), i1 = vert(p, b, col), i2 = vert(p, c, col);
@@ -566,6 +671,7 @@ void Overlay::tri(const Vec3 &a, const Vec3 &b, const Vec3 &c, const unsigned ch
 void Overlay::quad(const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d, const unsigned char col[4], const char *look) {
 	Part &p = tris_[look];
 	if (p.v.size() + 4 > 65535) {
+		g_caps.overlay++;
 		return;
 	}
 	unsigned short i0 = vert(p, a, col), i1 = vert(p, b, col), i2 = vert(p, c, col), i3 = vert(p, d, col);
@@ -581,6 +687,7 @@ static void box_corners(const Vec3 &lo, const Vec3 &hi, Vec3 c[8]) {
 void Overlay::box_edges(const Vec3 &lo, const Vec3 &hi, const unsigned char c[4], const char *look) {
 	Part &p = lines_[look];
 	if (p.v.size() + 8 > 65535) {
+		g_caps.overlay++;
 		return;
 	}
 	Vec3 k[8];
@@ -598,6 +705,7 @@ void Overlay::box_edges(const Vec3 &lo, const Vec3 &hi, const unsigned char c[4]
 void Overlay::box_faces(const Vec3 &lo, const Vec3 &hi, const unsigned char c[4], const char *look) {
 	Part &p = tris_[look];
 	if (p.v.size() + 8 > 65535) {
+		g_caps.overlay++;
 		return;
 	}
 	Vec3 k[8];
@@ -618,6 +726,7 @@ void Overlay::box_faces(const Vec3 &lo, const Vec3 &hi, const unsigned char c[4]
 void Overlay::polygon(const Winding &w, const unsigned char c[4], const char *look) {
 	Part &p = tris_[look];
 	if (w.size() < 3 || p.v.size() + w.size() > 65535) {
+		g_caps.overlay += w.size() < 3 ? 0 : 1;
 		return;
 	}
 	unsigned short base = (unsigned short)p.v.size();
@@ -647,6 +756,7 @@ void Overlay::end() {
 		for (auto &kv : parts) {
 			Part &p = kv.second;
 			if (p.i.empty() || v.size() + p.v.size() > 65535) {
+				g_caps.overlay += p.i.empty() ? 0 : 1;  // all the looks share one mesh's 65,535
 				continue;
 			}
 			unsigned short base = (unsigned short)v.size();
@@ -756,6 +866,12 @@ Session::Session() {
 	chosen_.include = [this](Id id) { return sel.count(id) != 0; };
 	chosen_.materials = [this](Id id) { return !lit_ || changed_since(id); };
 	chosen_.overlay = true;
+	paint_preview_.include = [this](Id id) { return id == preview_id_ && visible(id); };
+	paint_preview_.face_as = [this](Id id, int face) -> const Face * {
+		auto it = preview_faces_.find({id, face});
+		return it != preview_faces_.end() ? &it->second : nullptr;
+	};
+	paint_preview_.lift = 0.25;  // over the face it shows painted, whichever draws first
 	// the 2D views draw every brush's lines, the selection's after them in its color (moving with a drag)
 	wire_.include = [this](Id id) { return !sel.count(id) && visible(id); };
 	wire_.wire = true;
@@ -767,12 +883,42 @@ Session::Session() {
 }
 
 void Session::attach() {
+	live_.forget();  // another document: its revisions count from the start again
+	sky_light_rev_ = ~0ull;
+	// and so for everything else kept by the document's revision: a new document's can equal the old one's,
+	// which left the old map's links, arcs, light, outlines and panels up over the new one
+	static uint64_t serial;
+	doc_serial = ++serial;
+	arcs_.clear();
+	arc_lands_.clear();
+	links_doc_ = ~0ull;
+	movers_doc_ = ~0ull;
+	live_rev_ = ~0ull;
+	probes_rev_ = ~0ull;
+	faces_doc_rev_ = ~0ull;
+	hover_doc_rev_ = ~0ull;
+	hover_built_ = -1;
+	paint_built_.clear();
+	preview_key_.clear();
+	sun_built_.clear();
+	shapes_.clear();
+	patch_cache_.clear();
+	g_caps = Caps();
+	light_full_seen_ = live_.place_failures();
+	light_full_said_ = false;
+	// a drag under way was the old document's (its open step went with it): nothing of it is put back into this one
+	drag_ = Drag::None;
+	press_button_ = 0;
+	copy_move_ = false;
+	start_.clear();
+	pad_made_.clear();
+	drag_note_.clear();
 	doc.tex_size = [](ShaderId s, int &w, int &h) { shaders_lib().size(shader_name(s), w, h); };
 	doc.on_change = [this](const std::vector<Id> &ids) { changed(ids); };
 	doc.get_selection = [this]() { return selected(); };
 	doc.set_selection = [this](const std::vector<Id> &ids) {
-		if (tool == Tool::Faces) {
-			return;  // the faces tool keeps its faces (those still there)
+		if (face_mode()) {
+			return;  // the faces and paint tools keep their faces (those still there)
 		}
 		corners.clear();
 		std::vector<Id> there;
@@ -802,6 +948,7 @@ void Session::say(const std::string &text, bool error) {
 }
 
 void Session::new_map() {
+	compile_stop();  // the old map's compile has nothing to give the new one
 	doc = Doc();
 	attach();
 	doc.plain_form = TexForm::Valve;  // TrenchBroom's "Quake 3 (Valve)", which NetRadiant-custom and q3map2 read too
@@ -865,6 +1012,7 @@ bool Session::open(const std::string &file, std::string &error) {
 		error = rep.error;
 		return false;
 	}
+	compile_stop();  // the old map's compile has nothing to give this one
 	doc = std::move(d);
 	attach();
 	hidden.clear();
@@ -1117,9 +1265,10 @@ void Session::frame(int x, int y, int w, int h) {
 		generation_ = OzE_RendererGeneration();
 		world_.reset();
 		chosen_.reset();
+		paint_preview_.reset();
 		wire_.reset();
 		wire_sel_.reset();
-		for (Overlay *o : {&ents_, &ents_sel_, &hover_lines_, &preview_, &faces_lines_, &links_, &place_preview_, &leak_lines_, &sun_lines_}) {
+		for (Overlay *o : {&ents_, &ents_sel_, &hover_lines_, &preview_, &faces_lines_, &paint_lines_, &links_, &place_preview_, &leak_lines_, &sun_lines_}) {
 			o->reset();
 		}
 		for (Overlay &o : pane_handles_) {
@@ -1187,6 +1336,7 @@ void Session::frame(int x, int y, int w, int h) {
 	use_pane(active_);  // the tools' view: the pane the pointer works in
 	const bool flat = layout == 4 || solo != Pane::Cam;  // a 2D pane shows
 	live_world();
+	live_frame();  // the live light: before the meshes, which read its texels' places
 
 	// the lit preview, on or off: every mesh again
 	if (previewing() != lit_) {
@@ -1212,6 +1362,7 @@ void Session::frame(int x, int y, int w, int h) {
 	if (pending_all_) {
 		world_.changed(doc, {});
 		chosen_.changed(doc, {});
+		paint_preview_.changed(doc, {});
 		wire_.changed(doc, {});
 		wire_sel_.changed(doc, {});
 		pending_all_ = false;
@@ -1221,6 +1372,7 @@ void Session::frame(int x, int y, int w, int h) {
 		pending_.erase(std::unique(pending_.begin(), pending_.end()), pending_.end());
 		world_.changed(doc, pending_);
 		chosen_.changed(doc, pending_);
+		paint_preview_.changed(doc, pending_);
 		wire_.changed(doc, pending_);
 		wire_sel_.changed(doc, pending_);
 		pending_.clear();
@@ -1230,6 +1382,11 @@ void Session::frame(int x, int y, int w, int h) {
 	if (flat) {
 		wire_.flush(doc);
 		wire_sel_.flush(doc);
+	}
+	if (!g_caps.said && (g_caps.faces || g_caps.overlay || g_caps.meshes)) {
+		g_caps.said = true;  // once a map: what the view left out at one of its limits
+		printf_engine("editor: the view is at a limit: %d faces or curves, %d lines or shapes, %d meshes not drawn (the map itself is whole)\n",
+			g_caps.faces, g_caps.overlay, g_caps.meshes);
 	}
 
 	// what the pointer is over
@@ -1249,6 +1406,8 @@ void Session::frame(int x, int y, int w, int h) {
 	build_hover();
 	build_preview();
 	build_faces();
+	build_paint_area();
+	build_paint_preview();
 	build_links();
 	build_movers();
 	build_place_preview();
@@ -1342,6 +1501,158 @@ void Session::live_world() {
 	r->SetViewLight(live_ambient_, live_directed_, live_dir_);
 }
 
+void Session::set_live_light(bool on) {
+	if (on == live_light) {
+		return;
+	}
+	live_light = on;
+	say(on ? "Lighting on: the map lit by its own lights and sky, as Play lights it, and lit again as you change it"
+	       : "Lighting off: the map in the view's own light (F6 lights it again)");
+}
+
+LightMat Session::light_mat(ShaderId s) {
+	auto it = light_mats_.find(s);
+	if (it != light_mats_.end()) {
+		return it->second;
+	}
+	std::string name = shader_name(s);
+	if (name.compare(0, 9, "textures/") != 0) {
+		name = "textures/" + name;
+	}
+	ShaderLib &lib = shaders_lib();
+	const Look look = lib.look(name);
+	std::string script = lib.script(name);
+	for (char &c : script) {
+		c = char(std::tolower((unsigned char)c));
+	}
+	auto has = [&](const char *word) { return script.find(word) != std::string::npos; };
+	LightMat m;
+	m.sky = look == Look::Sky;
+	const bool trans = script_has(script, "surfaceparm", "trans");
+	m.blocks = (look == Look::Normal && !trans) || look == Look::Caulk || look == Look::Nodraw || look == Look::Sky;
+	// q3map2 gives a surface texels when its shader draws a lightmap (a bare image's default one does)
+	m.lightmapped = look == Look::Normal && lib.drawable(name) && (script.empty() || has("$lightmap")) && !script_has(script, "surfaceparm", "nolightmap");
+	m.light = lib.surface_light(name);
+	double c[3];
+	if (m.light > 0) {
+		if (script_numbers(script, "q3map_lightrgb", c, 3)) {
+			for (int i = 0; i < 3; i++) {
+				m.color[i] = c[i];
+			}
+		} else {
+			// q3map2's: the light image's average (q3map_lightImage, else the editor image), brightest at 1
+			std::string img = script_word(script, "q3map_lightimage");
+			if (img.empty()) {
+				img = lib.image(name);
+			}
+			const ozUiRender_t *ur = OzE_Renderer();
+			static std::vector<unsigned char> buf(64 * 64 * 4);
+			int w = 0, h = 0, format = 0;
+			const int n = ur && ur->ReadThumbnail && !img.empty() ? ur->ReadThumbnail(img.c_str(), 32, &w, &h, &format, buf.data(), int(buf.size())) : 0;
+			if (n > 0 && format == OZ_UI_THUMB_RGBA8 && w > 0 && h > 0 && w * h * 4 <= int(buf.size())) {
+				double sum[3] = {0, 0, 0};
+				for (int k = 0; k < w * h; k++) {
+					for (int i = 0; i < 3; i++) {
+						sum[i] += buf[size_t(k) * 4 + i];
+					}
+				}
+				const double mx = std::max({sum[0], sum[1], sum[2]});
+				for (int i = 0; i < 3 && mx > 0; i++) {
+					m.color[i] = sum[i] / mx;
+				}
+			}
+		}
+		const double mx = std::max({m.color[0], m.color[1], m.color[2]});
+		for (int i = 0; i < 3; i++) {
+			m.color[i] = mx > 0 ? m.color[i] / mx : 1;
+		}
+	}
+	if (script_numbers(script, "q3map_lightsubdivide", c, 1) && c[0] > 0) {
+		m.subdivide = c[0];
+	}
+	return light_mats_[s] = m;
+}
+
+void Session::live_frame() {
+	const ozEdRender_t *r = OzEd_Renderer();
+	if (!r) {
+		return;
+	}
+	if (!live_.face_mat) {
+		live_.face_mat = [this](const Face &f) { return light_mat(drawn_shader(f)); };
+		live_.mat = [this](ShaderId s) { return light_mat(s); };
+	}
+	if (live_light != live_built_) {
+		live_built_ = live_light;
+		pending_all_ = true;  // every mesh again, lit or not
+		probes_rev_ = ~0ull;
+		if (!live_light && r->SetLightProbes) {
+			r->SetLightProbes(nullptr, 0);
+		}
+	}
+	world_.light = chosen_.light = paint_preview_.light = live_light ? &live_ : nullptr;
+	if (!live_light) {
+		return;
+	}
+	// lights being dragged light the map where they are as they go
+	LiveLight::Moved moved;
+	if (drag_ == Drag::Move && !copy_move_ && (delta_.x != 0 || delta_.y != 0 || delta_.z != 0)) {
+		for (Id id : sel) {
+			const Object *o = doc.get(id);
+			double x, y, z;
+			if (o && o->kind == Kind::Entity && o->entity.classname() == "light" &&
+					std::sscanf(o->entity.get("origin").c_str(), "%lf %lf %lf", &x, &y, &z) == 3) {
+				moved.emplace_back(id, Vec3(x, y, z) + delta_);
+			}
+		}
+		std::sort(moved.begin(), moved.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
+	}
+	if (sky_light_rev_ != doc.revision) {
+		sky_light_rev_ = doc.revision;
+		sky_light_ = sky_light();
+	}
+	live_.frame(doc, sky_light_, cam.origin, moved);
+	if (!light_full_said_ && live_.place_failures() > light_full_seen_) {
+		// the light's pages are full: the faces past them draw unlit. Said once a map (they went dark without a word)
+		light_full_said_ = true;
+		say(std::to_string(live_.place_failures() - light_full_seen_) + " faces unlit: light pages full (Play's compile lights them all)", true);
+	}
+	for (Id id : live_.take_relaid()) {
+		if (id == 0) {
+			pending_all_ = true;
+		} else {
+			pending_.push_back(id);
+		}
+	}
+	// the models' light: a probe at each point entity
+	if (probes_rev_ != doc.revision) {
+		probes_rev_ = doc.revision;
+		std::vector<Vec3> pts;
+		for (Id id : doc.ids_of(Kind::Entity)) {
+			const Entity &e = doc.get(id)->entity;
+			const std::string cn = e.classname();
+			double x, y, z;
+			if (cn == "light" || cn == "worldspawn" || std::sscanf(e.get("origin").c_str(), "%lf %lf %lf", &x, &y, &z) != 3) {
+				continue;
+			}
+			pts.emplace_back(x, y, z + (cn.compare(0, 11, "info_player") == 0 || cn.compare(0, 9, "team_CTF_") == 0 ? 0 : 16));
+		}
+		live_.set_probe_points(pts);
+	}
+	if (live_.probes_changed() && r->SetLightProbes) {
+		std::vector<ozEdLightProbe_t> out;
+		for (const LiveLight::Probe &p : live_.probes()) {
+			ozEdLightProbe_t q{};
+			q.origin[0] = float(p.at.x), q.origin[1] = float(p.at.y), q.origin[2] = float(p.at.z);
+			for (int i = 0; i < 3; i++) {
+				q.ambient[i] = p.ambient[i], q.directed[i] = p.directed[i], q.dir[i] = p.dir[i];
+			}
+			out.push_back(q);
+		}
+		r->SetLightProbes(out.data(), int(out.size()));
+	}
+}
+
 void Session::draw_pane(Pane p, int now) {
 	use_pane(p);
 	const Rect &r = panes_[int(p)];
@@ -1363,6 +1674,7 @@ void Session::draw_pane(Pane p, int now) {
 		}
 		world_.draw(zero, ident);
 		chosen_.draw(moved, ident);
+		paint_preview_.draw(zero, ident);
 		if (grid_mesh_) {
 			OzEd_AddModel(grid_mesh_, zero, ident, 0, nullptr);
 		}
@@ -1378,6 +1690,7 @@ void Session::draw_pane(Pane p, int now) {
 	ents_.draw(zero, ident);
 	ents_sel_.draw(moved, ident);
 	faces_lines_.draw(zero, ident);
+	paint_lines_.draw(zero, ident);
 	links_.draw(zero, ident);
 	movers_.draw(zero, ident);
 	place_preview_.draw(zero, ident);
@@ -1476,6 +1789,21 @@ std::string Session::render_stats() const {
 	return buf;
 }
 
+std::string Session::limit_stats() const {
+	std::string out;
+	if (g_caps.faces || g_caps.overlay || g_caps.meshes) {
+		// counted each time a mesh or an overlay was built since the map was opened
+		char buf[160];
+		std::snprintf(buf, sizeof buf, "not drawn: %d faces, %d overlay, %d meshes", g_caps.faces, g_caps.overlay, g_caps.meshes);
+		out = buf;
+	}
+	const int unlit = live_.place_failures() - light_full_seen_;  // since the map was opened
+	if (unlit > 0) {
+		out += (out.empty() ? "" : "; ") + std::to_string(unlit) + " faces unlit: light pages full";
+	}
+	return out;
+}
+
 bool Session::renderer_ok() const {
 	return OzEd_Renderer() != nullptr;
 }
@@ -1501,8 +1829,8 @@ std::string Session::status() const {
 		}
 	}
 	std::string picked;
-	if (tool == Tool::Faces && !faces.empty()) {
-		picked = "Picked: " + std::to_string(faces.size()) + (faces.size() == 1 ? " face" : " faces") + " \xc2\xb7 ";
+	if (face_mode() && !faces.empty()) {
+		picked = (tool == Tool::Paint ? "Painted: " : "Picked: ") + std::to_string(faces.size()) + (faces.size() == 1 ? " face" : " faces") + " \xc2\xb7 ";
 	} else if (!sel.empty()) {
 		int b = 0, p = 0, e = 0;
 		for (Id id : sel) {

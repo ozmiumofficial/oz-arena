@@ -26,11 +26,17 @@ names it instead.
 #include "../../../quake3e/code/client/client.h"
 #include "oz_online.h"
 #include "oz_stats.h"
+#include "../replay/oz_replay_lib.h"
 #include "cJSON.h"
 #include <time.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 #define PENDING_MAX		32			// reports kept while offline; the oldest goes first
 #define RESEND_MS		15000		// a report the hub didn't answer goes again
+#define SIGN_WAIT_MAX	3600000		// a report that can't be signed is tried again less and less often, up to this
 
 #ifdef USE_OZ_ICE
 const char *OzIce_HostKey( void );
@@ -46,6 +52,7 @@ static int			numPending;
 static qboolean		loaded;
 static char			sentRid[24];	// the report in flight, "" for none
 static int			sentAt;
+static int			signWait;		// after a report couldn't be signed: how long until the next try, 0 when the last one signed
 static cvar_t		*oz_match_id;
 
 
@@ -56,26 +63,51 @@ static const char *PendingPath( void ) {
 }
 
 
+// a file moved over another, replacing it (rename alone doesn't replace on Windows)
+static qboolean MoveOver( const char *from, const char *to ) {
+#ifdef _WIN32
+	return MoveFileExA( from, to, MOVEFILE_REPLACE_EXISTING ) != 0;
+#else
+	return rename( from, to ) == 0;
+#endif
+}
+
+
 static void Save( void ) {
-	cJSON	*list = cJSON_CreateArray();
-	char	*text;
-	FILE	*f;
-	int		i;
+	cJSON		*list = cJSON_CreateArray();
+	char		*text;
+	char		path[MAX_OSPATH], tmp[MAX_OSPATH];
+	FILE		*f;
+	qboolean	ok = qfalse;
+	int			i;
 
 	for ( i = 0; i < numPending; i++ ) {
 		cJSON_AddItemToArray( list, cJSON_CreateString( pending[i].text ) );
 	}
 	text = cJSON_Print( list );
 	cJSON_Delete( list );
-	FS_CreatePath( PendingPath() );
-	f = Sys_FOpen( PendingPath(), "wb" );
-	if ( f && text ) {
-		fwrite( text, 1, strlen( text ), f );
-	}
+	// Written beside the file and moved over it. Written in place, a crash or a full disk during the write
+	// left a cut-off file, and every report waiting for the hub was lost with it
+	Q_strncpyz( path, PendingPath(), sizeof( path ) );
+	Q_strncpyz( tmp, path, sizeof( tmp ) );
+	Q_strcat( tmp, sizeof( tmp ), ".tmp" );
+	FS_CreatePath( path );
+	f = text ? Sys_FOpen( tmp, "wb" ) : NULL;
 	if ( f ) {
-		fclose( f );
-	} else {
-		Com_Printf( S_COLOR_YELLOW "ozstats: couldn't write %s\n", PendingPath() );
+		const size_t len = strlen( text );
+		ok = fwrite( text, 1, len, f ) == len;
+		if ( fclose( f ) != 0 ) {
+			ok = qfalse;
+		}
+		if ( ok ) {
+			ok = MoveOver( tmp, path );
+		}
+		if ( !ok ) {
+			remove( tmp );
+		}
+	}
+	if ( !ok ) {
+		Com_Printf( S_COLOR_YELLOW "ozstats: couldn't write %s\n", path );
 	}
 	cJSON_free( text );
 }
@@ -87,6 +119,10 @@ static void Add( const char *text ) {
 
 	if ( cJSON_IsString( rid ) ) {
 		if ( numPending == PENDING_MAX ) {
+			Com_Printf( S_COLOR_YELLOW "ozstats: %d reports are waiting for the hub: the oldest, %s, is dropped\n", PENDING_MAX, pending[0].rid );
+			if ( !strcmp( sentRid, pending[0].rid ) ) {
+				sentRid[0] = '\0';
+			}
 			Z_Free( pending[0].text );
 			memmove( pending, pending + 1, sizeof( pending[0] ) * ( PENDING_MAX - 1 ) );
 			numPending--;
@@ -114,12 +150,24 @@ static void Load( void ) {
 	fseek( f, 0, SEEK_END );
 	len = ftell( f );
 	fseek( f, 0, SEEK_SET );
+	if ( len < 0 ) {
+		len = 0;
+	}
 	buf = Z_Malloc( len + 1 );
 	len = (long)fread( buf, 1, len, f );
 	buf[len] = '\0';
 	fclose( f );
 	list = cJSON_Parse( buf );
 	Z_Free( buf );
+	if ( !cJSON_IsArray( list ) ) {
+		// a file that is there but can't be read is kept aside: the next save would have replaced it
+		char path[MAX_OSPATH], bad[MAX_OSPATH];
+		Q_strncpyz( path, PendingPath(), sizeof( path ) );
+		Q_strncpyz( bad, FS_BuildOSPath( Cvar_VariableString( "fs_homepath" ), "profile", "stats_pending.bad.json" ), sizeof( bad ) );
+		if ( MoveOver( path, bad ) ) {
+			Com_Printf( S_COLOR_YELLOW "ozstats: stats_pending.json couldn't be read; kept as stats_pending.bad.json\n" );
+		}
+	}
 	cJSON_ArrayForEach( x, list ) {
 		if ( cJSON_IsString( x ) ) {
 			Add( x->valuestring );
@@ -262,6 +310,7 @@ void OzStats_Record( const ozMatchRecord_t *r ) {
 	}
 	Add( text );
 	Save();
+	CL_OzLib_MatchRecorded( rid, r->won, r->place );	// the replay or demo of this match carries it (P10)
 	Com_Printf( "ozstats: recorded %s on %s (%s), place %d of %d, %d frags, %d deaths\n", ModeOf( r->gametype ), r->map, server,
 		r->place + 1, r->numRows - ( r->numRows && r->rows[r->numRows - 1].client < 0 ? 2 : 0 ), r->frags, r->deaths );
 	// the whole report, for engine/tests/stats_test.py (a console line holds a few players' report)
@@ -292,15 +341,23 @@ void OzStats_Frame( void ) {
 	if ( !loaded ) {
 		Load();
 	}
-	if ( !numPending || ( sentRid[0] && Sys_Milliseconds() - sentAt < RESEND_MS ) ) {
+	if ( !numPending || ( sentRid[0] && Sys_Milliseconds() - sentAt < ( signWait ? signWait : RESEND_MS ) ) ) {
 		return;
 	}
 	if ( !OzIdentity_Sign( pending[0].text, sig, sizeof( sig ) ) ) {
-		Com_Printf( S_COLOR_YELLOW "ozstats: couldn't sign the report\n" );
+		// tried again later and later (it was every 15 seconds for as long as the game ran), and said once
+		if ( !signWait ) {
+			Com_Printf( S_COLOR_YELLOW "ozstats: couldn't sign the report\n" );
+			Com_Printf( S_COLOR_YELLOW "ozstats: the reports wait until one can be signed\n" );
+			signWait = RESEND_MS;
+		} else {
+			signWait = signWait >= SIGN_WAIT_MAX / 2 ? SIGN_WAIT_MAX : signWait * 2;
+		}
 		sentAt = Sys_Milliseconds();
 		Q_strncpyz( sentRid, pending[0].rid, sizeof( sentRid ) );
 		return;
 	}
+	signWait = 0;
 	m = cJSON_CreateObject();
 	cJSON_AddStringToObject( m, "type", "stats_report" );
 	cJSON_AddStringToObject( m, "report", pending[0].text );
@@ -341,6 +398,7 @@ void OzStats_HubMessage( const char *type, const struct cJSON *m ) {
 		if ( cJSON_IsTrue( cJSON_GetObjectItemCaseSensitive( m, "ok" ) ) ) {
 			Com_Printf( "ozstats: report %s stored: match %d, %s (%d of %d reports agree)\n", rid, Num( m, "match" ), Str( m, "trust" ),
 				Num( m, "agreed" ), Num( m, "reports" ) );
+			CL_OzLib_MatchStored( rid, Num( m, "match" ) );	// the Profile's row finds its recording by the match (P10)
 		} else {
 			Com_Printf( S_COLOR_YELLOW "ozstats: report %s refused: %s\n", rid, Str( m, "reason" ) );
 		}

@@ -17,6 +17,7 @@
 
 #include "ed_doc.h"
 
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -156,7 +157,13 @@ std::vector<Id> stairs(Doc &doc, const std::vector<Id> &ids, int count, double r
 std::vector<Id> merge(Doc &doc, const std::vector<Id> &ids, std::string &note);
 // Copies with new ids, moved by offset. A copied entity takes copies of its brushes; a brush whose
 // entity isn't copied stays in it. The copies' ids, objects and brushes, in file order.
-using Clip = std::vector<std::pair<Id, ObjectPtr>>;  // objects with the ids they had
+// The objects with the ids they had. owner_class: for a brush or curve copied without its entity, that
+// entity's classname as it was (by its id): a paste keeps the brush in the entity with that id only while
+// it's still an entity of that class. The clipboard outlives New and Open, where the same id is another
+// object: a pasted brush became a light's, or a brush's, and was left out of the saved file.
+struct Clip : std::vector<std::pair<Id, ObjectPtr>> {
+	std::map<Id, std::string> owner_class;
+};
 Clip copy_of(const Doc &doc, const std::vector<Id> &ids);
 std::vector<Id> paste(Doc &doc, const Clip &clip, const Vec3 &offset, const std::string &label);
 // Deletes ids, an entity with its brushes; a brush entity left without brushes goes too. The world stays.

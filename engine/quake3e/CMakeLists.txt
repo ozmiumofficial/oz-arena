@@ -430,7 +430,9 @@ IF(RMLUI_LIBRARY)
 	TARGET_SOURCES(client PRIVATE ${OZ_UI_DIR}/oz_ui_engine.c ${OZ_UI_DIR}/oz_ui_showcase.c ${OZ_UI_DIR}/oz_hud.c ${OZ_UI_DIR}/oz_emoji.c ${OZ_UI_DIR}/oz_hud_mods.c ${OZ_UI_DIR}/oz_hud_view.c ${OZ_UI_DIR}/oz_settings_apply.c
 		${OZ_UI_DIR}/../online/oz_servers.c ${OZ_UI_DIR}/oz_mods.c	# the Server Browser's community servers and the mods players bring (P8b)
 		${OZ_UI_DIR}/oz_races.c	# Defrag's race maps, for Skirmish's mod picker
-		${OZ_UI_DIR}/oz_q3import.c)	# a player's Quake III config, imported
+		${OZ_UI_DIR}/oz_q3import.c	# a player's Quake III config, imported
+		${OZ_UI_DIR}/../replay/cl_oz_demos.c)	# matches on other servers recorded as your view, and the replay library (P10)
+	TARGET_INCLUDE_DIRECTORIES(client PRIVATE ${CJSON_DIR})
 	TARGET_COMPILE_DEFINITIONS(client PRIVATE USE_OZ_UI)
 	TARGET_COMPILE_DEFINITIONS(qcommon PRIVATE USE_OZ_UI)	# sv_game.c hands the campaign its postgame (P12)
 	TARGET_COMPILE_DEFINITIONS(q3ui PRIVATE USE_OZ_UI)
@@ -459,7 +461,7 @@ ENDIF()
 IF(JOLT_DIR AND TARGET ${RENDERER_PREFIX}_oz${RENDEXT})
 	FOREACH(OPT USE_STATIC_MSVC_RUNTIME_LIBRARY OVERRIDE_CXX_FLAGS INTERPROCEDURAL_OPTIMIZATION ENABLE_ALL_WARNINGS GENERATE_DEBUG_SYMBOLS
 			DEBUG_RENDERER_IN_DEBUG_AND_RELEASE PROFILER_IN_DEBUG_AND_RELEASE ENABLE_OBJECT_STREAM
-			FLOATING_POINT_EXCEPTIONS_ENABLED ENABLE_INSTALL USE_AVX USE_AVX2 USE_LZCNT USE_TZCNT USE_F16C USE_FMADD)
+			FLOATING_POINT_EXCEPTIONS_ENABLED ENABLE_INSTALL USE_SSE4_1 USE_SSE4_2 USE_AVX USE_AVX2 USE_LZCNT USE_TZCNT USE_F16C USE_FMADD)
 		SET(${OPT} OFF CACHE BOOL "" FORCE)
 	ENDFOREACH()
 	ADD_SUBDIRECTORY(${JOLT_DIR}/Build ${CMAKE_CURRENT_BINARY_DIR}/jolt EXCLUDE_FROM_ALL)

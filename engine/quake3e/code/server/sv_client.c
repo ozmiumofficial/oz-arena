@@ -1394,10 +1394,13 @@ static int SV_WriteDownloadToClient( client_t *cl )
 		cl->download = FS_INVALID_HANDLE;
 
 		// We open the file here
+		// Oz: a referenced pak of the Maps folder is listed as baseq3/<pak> but lies in fs_mapspath
+		// (FS_SV_OzOpenMapsPak): a host whose map was there dropped every joiner without it
 		if ( !(sv_allowDownload->integer & DLF_ENABLE) ||
 			(sv_allowDownload->integer & DLF_NO_UDP) ||
 			idPack || unreferenced ||
-			( cl->downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &cl->download ) ) < 0 ) {
+			( ( cl->downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &cl->download ) ) < 0 &&
+			  ( cl->downloadSize = FS_SV_OzOpenMapsPak( cl->downloadName, &cl->download ) ) < 0 ) ) {
 
 			// cannot auto-download file
 			if(unreferenced)
@@ -2407,3 +2410,33 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
 //		Com_Printf( "WARNING: Junk at end of packet for client %i\n", cl - svs.clients );
 //	}
 }
+
+
+#ifdef USE_OZ_ICE
+/*
+=================
+SV_OzIceLinkLost
+
+Oz: a peer-to-peer joiner's link is gone (its game crashed, its network changed): its client goes now.
+Left to sv_timeout it held its seat for 200 s, a duel's play slot included, and the player coming
+back on a new link was a second client beside it. The address is the link's slot and generation
+(oz_ice.c FreeLink).
+=================
+*/
+void SV_OzIceLinkLost( const netadr_t *adr ) {
+	client_t *cl;
+	int i;
+
+	if ( !com_sv_running->integer || !svs.clients ) {
+		return;
+	}
+	for ( i = 0, cl = svs.clients; i < sv.maxclients; i++, cl++ ) {
+		if ( cl->state < CS_CONNECTED || cl->netchan.remoteAddress.type != NA_ICE ) {
+			continue;
+		}
+		if ( cl->netchan.remoteAddress.ipv._4[2] == adr->ipv._4[2] && cl->netchan.remoteAddress.ipv._4[3] == adr->ipv._4[3] ) {
+			SV_DropClient( cl, "lost the connection" );
+		}
+	}
+}
+#endif

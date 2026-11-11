@@ -2187,6 +2187,10 @@ static image_t *R_CreateImage2( const char *name, byte *pic, int width, int heig
 	if ( tr.numImages == MAX_DRAWIMAGES ) {
 		ri.Error( ERR_DROP, "R_CreateImage: MAX_DRAWIMAGES hit");
 	}
+	// Oz: said once before the limit drops the game (once a renderer start: the count starts over there)
+	if ( tr.numImages == MAX_DRAWIMAGES / 10 * 9 ) {
+		ri.Printf( PRINT_WARNING, "WARNING: %i images loaded, the renderer takes %i\n", tr.numImages, MAX_DRAWIMAGES );
+	}
 
 	image = tr.images[tr.numImages] = ri.Hunk_Alloc( sizeof( *image ) + namelen + 1, h_low );
 	qglGenTextures(1, &image->texnum);
@@ -2528,36 +2532,53 @@ static void R_LoadImage( const char *name, byte **pic, int *width, int *height, 
 
 /*
 ===============
-R_OzThumbnail
+R_OzThumbnailData
 
 Oz: the map editor's texture browser (ENGINE_PLAN.md P13): an image at most size texels across, as
-a texture of its own that the caller deletes; 0 when there's no such image. A .dds keeps its
-compression and gives the mip level that fits (its sRGB formats read as plain, as the UI draws
-everything); other images are boxed down. Drawn opaque: many of id's images have an empty alpha.
+bytes into buffer (oz_ui_thumbs.cpp keeps them): its OZ_UI_THUMB_* format, size and byte count; 0
+when there's no such image, -1 when it can't be kept (larger than bufferSize, or a compressed format
+the cache doesn't hold). A .dds keeps its compression and gives the mip level that fits (its sRGB
+formats read as plain, as the UI draws everything); other images are boxed down, made opaque (many of
+id's images have an empty alpha).
 ===============
 */
-GLuint R_OzThumbnail( const char *name, int size, int *outWidth, int *outHeight )
+extern int r_ozSoftImageErrors;	// tr_image_tga.c
+
+int R_OzThumbnailData( const char *name, int size, int *outWidth, int *outHeight, int *outFormat, byte *buffer, int bufferSize )
 {
 	byte	*pic;
-	int		width, height, numMips, level;
+	int		width, height, numMips, level, bytes, format;
 	GLenum	picFormat;
-	GLuint	tex;
 
+	r_ozSoftImageErrors = 1;	// a map pack's broken image: none there, the game goes on
 	R_LoadImage( name, &pic, &width, &height, &picFormat, &numMips );
+	r_ozSoftImageErrors = 0;
 	if ( !pic || width <= 0 || height <= 0 ) {
 		if ( pic ) ri.Free( pic );
 		return 0;
 	}
 	switch ( picFormat ) {
 	case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT: picFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT; break;
+	case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: picFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT; break;
 	case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT: picFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT; break;
 	case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: picFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; break;
 	case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB: picFormat = GL_COMPRESSED_RGBA_BPTC_UNORM_ARB; break;
 	case GL_SRGB8_ALPHA8_EXT: picFormat = GL_RGBA8; break;
 	default: break;
 	}
-	qglGenTextures( 1, &tex );
-	if ( picFormat != GL_RGBA8 ) {
+	switch ( picFormat ) {
+	case GL_RGBA8: format = OZ_UI_THUMB_RGBA8; break;
+	case GL_COMPRESSED_RGB_S3TC_DXT1_EXT: case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT: format = OZ_UI_THUMB_BC1; break;
+	case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT: format = OZ_UI_THUMB_BC2; break;
+	case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT: format = OZ_UI_THUMB_BC3; break;
+	case GL_COMPRESSED_RGBA_BPTC_UNORM_ARB: format = OZ_UI_THUMB_BC7; break;
+	default: format = OZ_UI_THUMB_NONE; break;
+	}
+	if ( format == OZ_UI_THUMB_NONE ) {
+		ri.Free( pic );
+		return -1;
+	}
+	if ( format != OZ_UI_THUMB_RGBA8 ) {
 		// the whole mips in the file past the ones too big
 		byte *data = pic;
 		for ( level = 0; level + 1 < numMips && ( width > size || height > size ); level++ ) {
@@ -2565,15 +2586,22 @@ GLuint R_OzThumbnail( const char *name, int size, int *outWidth, int *outHeight 
 			width = MAX( 1, width >> 1 );
 			height = MAX( 1, height >> 1 );
 		}
-		qglTextureImage2DEXT( tex, GL_TEXTURE_2D, 0, picFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
-		qglCompressedTextureSubImage2DEXT( tex, GL_TEXTURE_2D, 0, 0, 0, width, height, picFormat, CalculateMipSize( width, height, picFormat ), data );
-		qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+		bytes = CalculateMipSize( width, height, picFormat );
+		if ( bytes > bufferSize ) {
+			ri.Free( pic );
+			return -1;
+		}
+		Com_Memcpy( buffer, data, bytes );
 	} else {
 		// boxed down by a whole factor, the alpha made opaque
 		const int k = MAX( 1, ( MAX( width, height ) + size - 1 ) / size );
 		const int w = MAX( 1, width / k ), h = MAX( 1, height / k );
-		byte *out = ri.Malloc( w * h * 4 );
 		int x, y, i, j, c;
+		bytes = w * h * 4;
+		if ( bytes > bufferSize ) {
+			ri.Free( pic );
+			return -1;
+		}
 		for ( y = 0; y < h; y++ ) {
 			for ( x = 0; x < w; x++ ) {
 				int sum[3] = { 0, 0, 0 };
@@ -2586,16 +2614,106 @@ GLuint R_OzThumbnail( const char *name, int size, int *outWidth, int *outHeight 
 					}
 				}
 				for ( c = 0; c < 3; c++ ) {
-					out[( y * w + x ) * 4 + c] = (byte)( sum[c] / ( k * k ) );
+					buffer[( y * w + x ) * 4 + c] = (byte)( sum[c] / ( k * k ) );
 				}
-				out[( y * w + x ) * 4 + 3] = 255;
+				buffer[( y * w + x ) * 4 + 3] = 255;
 			}
 		}
-		qglTextureImage2DEXT( tex, GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, out );
-		ri.Free( out );
 		width = w;
 		height = h;
 	}
+	ri.Free( pic );
+	*outWidth = width;
+	*outHeight = height;
+	*outFormat = format;
+	return bytes;
+}
+
+
+/*
+===============
+R_OzThumbnailTexture
+
+Oz: a texture of its own (the caller deletes it) from R_OzThumbnailData's bytes, drawn opaque; 0 when
+the format isn't one of them.
+===============
+*/
+GLuint R_OzThumbnailTexture( int format, int width, int height, const byte *data, int size )
+{
+	GLenum	gl;
+	GLuint	tex;
+
+	switch ( format ) {
+	case OZ_UI_THUMB_RGBA8: gl = GL_RGBA8; break;
+	case OZ_UI_THUMB_BC1: gl = GL_COMPRESSED_RGB_S3TC_DXT1_EXT; break;
+	case OZ_UI_THUMB_BC2: gl = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT; break;
+	case OZ_UI_THUMB_BC3: gl = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT; break;
+	case OZ_UI_THUMB_BC7: gl = GL_COMPRESSED_RGBA_BPTC_UNORM_ARB; break;
+	default: return 0;
+	}
+	if ( width <= 0 || height <= 0 || !data || size <= 0 ) {
+		return 0;
+	}
+	qglGenTextures( 1, &tex );
+	if ( gl == GL_RGBA8 ) {
+		qglTextureImage2DEXT( tex, GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
+	} else {
+		qglTextureImage2DEXT( tex, GL_TEXTURE_2D, 0, gl, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+		qglCompressedTextureSubImage2DEXT( tex, GL_TEXTURE_2D, 0, 0, 0, width, height, gl, size, data );
+	}
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0 );
+	return tex;
+}
+
+
+/*
+===============
+R_OzThumbnail
+
+Oz: the map editor's texture browser (ENGINE_PLAN.md P13): R_OzThumbnailData's copy as a texture of
+its own that the caller deletes; 0 when there's no such image. One that can't be kept as bytes (a
+.dds with no small mip, a format the cache doesn't hold) is made whole, as before the cache.
+===============
+*/
+GLuint R_OzThumbnail( const char *name, int size, int *outWidth, int *outHeight )
+{
+	static byte	buffer[256 * 256 * 4];
+	byte	*pic;
+	int		width, height, numMips, format, bytes;
+	GLenum	picFormat;
+	GLuint	tex;
+
+	bytes = R_OzThumbnailData( name, size, &width, &height, &format, buffer, sizeof( buffer ) );
+	if ( bytes > 0 ) {
+		tex = R_OzThumbnailTexture( format, width, height, buffer, bytes );
+		*outWidth = width;
+		*outHeight = height;
+		return tex;
+	}
+	if ( bytes == 0 ) {
+		return 0;
+	}
+	// whole, in whatever format it came
+	r_ozSoftImageErrors = 1;
+	R_LoadImage( name, &pic, &width, &height, &picFormat, &numMips );
+	r_ozSoftImageErrors = 0;
+	if ( !pic || width <= 0 || height <= 0 ) {
+		if ( pic ) ri.Free( pic );
+		return 0;
+	}
+	qglGenTextures( 1, &tex );
+	if ( picFormat == GL_RGBA8 || picFormat == GL_SRGB8_ALPHA8_EXT ) {
+		qglTextureImage2DEXT( tex, GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic );
+	} else {
+		qglTextureImage2DEXT( tex, GL_TEXTURE_2D, 0, picFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+		qglCompressedTextureSubImage2DEXT( tex, GL_TEXTURE_2D, 0, 0, 0, width, height, picFormat, CalculateMipSize( width, height, picFormat ), pic );
+	}
+	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
 	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 	qglTextureParameteriEXT( tex, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );

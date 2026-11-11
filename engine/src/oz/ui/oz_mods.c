@@ -50,6 +50,9 @@ mods table names each mod and the engine extensions it uses, and never holds a d
 #endif
 
 #define MAX_IMPORT_FILES	4096
+#define IMPORT_LIST			"imported_mods.txt"	// in <fs_homepath>/oz: the mods OzMods_Import brought, a folder name a line
+
+static void ForgetReady( void );	// what OzMods_Ready found in the folders' paks: looked into again
 
 typedef struct {
 	char	path[MAX_OSPATH];	// in the zip, or under the folder chosen ('/' between folders)
@@ -73,6 +76,20 @@ static qboolean Refused( const char *rel ) {
 	}
 	for ( i = 0; i < ARRAY_LEN( programs ); i++ ) {
 		if ( Ext( rel, programs[i] ) ) {
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+// the game's own folders and the user folder's: never a mod's to import into, to list or to remove
+static const char *const ownFolders[] = { "baseq3", "oz", "profile", "online", "replays", "demos", "screenshots", "maps", "cache", "pb",
+	"editor", "custom_textures" };
+
+static qboolean OwnFolder( const char *name ) {
+	int i;
+	for ( i = 0; i < ARRAY_LEN( ownFolders ); i++ ) {
+		if ( !Q_stricmp( name, ownFolders[i] ) ) {
 			return qtrue;
 		}
 	}
@@ -120,18 +137,31 @@ static const char *ModBase( const char *mod ) {
 	return bestPaks ? best : NULL;
 }
 
+static int writeFailed;	// files of this import that couldn't be written
+
+// A file into the mod's folder. One that can't be written whole (a full disk) is deleted and counted:
+// the import used to call a cut-off pak imported.
 static qboolean WriteOut( const char *mod, const char *rel, const void *data, int len ) {
-	const char *ospath = FS_BuildOSPath( Cvar_VariableString( "fs_homepath" ), mod, rel );
+	char ospath[MAX_OSPATH];
+	qboolean ok;
 	FILE *f;
 
+	Q_strncpyz( ospath, FS_BuildOSPath( Cvar_VariableString( "fs_homepath" ), mod, rel ), sizeof( ospath ) );
 	FS_CreatePath( ospath );
 	f = Sys_FOpen( ospath, "wb" );
 	if ( !f ) {
+		writeFailed++;
 		return qfalse;
 	}
-	fwrite( data, 1, len, f );
-	fclose( f );
-	return qtrue;
+	ok = len <= 0 || fwrite( data, 1, len, f ) == (size_t)len;
+	if ( fclose( f ) != 0 ) {
+		ok = qfalse;
+	}
+	if ( !ok ) {
+		remove( ospath );
+		writeFailed++;
+	}
+	return ok;
 }
 
 // every file of an open zip under base (the mod's folder in it) into the mod's folder: how many
@@ -269,14 +299,28 @@ static int ImportFolder( const char *source, const char *mod, char *message, int
 // download folder may not), its files listed; NULL when it isn't a zip. The copy goes with unzClose.
 static unzFile OpenZip( const char *source, const char *mod, wchar_t *to, int toSize ) {
 	wchar_t from[MAX_OSPATH * 2];
-	const char *copy = FS_BuildOSPath( Cvar_VariableString( "fs_homepath" ), mod, "import.zip.tmp" );
+	char direct[MAX_OSPATH];
+	BOOL lossy = FALSE;
+	const char *copy;
 	unzFile z;
 
-	FS_CreatePath( copy );
+	to[0] = 0;		// no copy made yet (the callers delete it when there is one)
 	Wide( source, from, ARRAY_LEN( from ) );
+	// A path that fits the system's code page is opened where it is. Every zip used to be copied whole into
+	// the user folder, once for the guess and again for the import.
+	if ( WideCharToMultiByte( CP_ACP, WC_NO_BEST_FIT_CHARS, from, -1, direct, sizeof( direct ), NULL, &lossy ) > 0 && !lossy ) {
+		if ( !( z = unzOpen( direct ) ) ) {
+			return NULL;
+		}
+		ListZip( z );
+		return z;
+	}
+	copy = FS_BuildOSPath( Cvar_VariableString( "fs_homepath" ), mod, "import.zip.tmp" );
+	FS_CreatePath( copy );
 	MultiByteToWideChar( CP_ACP, 0, copy, -1, to, toSize );
 	if ( !CopyFileW( from, to, FALSE ) || !( z = unzOpen( copy ) ) ) {
 		DeleteFileW( to );
+		to[0] = 0;
 		return NULL;
 	}
 	ListZip( z );
@@ -296,12 +340,16 @@ static int ImportZip( const char *source, const char *mod, char *message, int si
 	if ( !( base = ModBase( mod ) ) ) {
 		Com_sprintf( message, size, "There are no paks in that zip." );
 		unzClose( z );
-		DeleteFileW( to );
+		if ( to[0] ) {
+			DeleteFileW( to );
+		}
 		return -1;
 	}
 	n = UnzipInto( z, base, mod );
 	unzClose( z );
-	DeleteFileW( to );
+	if ( to[0] ) {
+		DeleteFileW( to );
+	}
 	return n;
 }
 #else
@@ -384,6 +432,106 @@ static int ImportZip( const char *source, const char *mod, char *message, int si
 
 /*
 ==================
+The mods Oz's import brought: their folder names, a line each, in <fs_homepath>/oz/imported_mods.txt.
+Remove deletes only those. A mod's folder in the user folder with paks in it isn't always an import:
+it may hold only what a server sent, beside the player's settings and demos under a mod in the install.
+==================
+*/
+static void ReadImported( char *buf, int size ) {
+	FILE *f = Sys_FOpen( FS_BuildOSPath( Cvar_VariableString( "fs_homepath" ), "oz", IMPORT_LIST ), "rb" );
+	int n = 0;
+
+	if ( f ) {
+		n = (int)fread( buf, 1, size - 1, f );
+		fclose( f );
+	}
+	buf[n > 0 ? n : 0] = '\0';
+}
+
+// the next line of the list into line; NULL at its end
+static const char *ImportedLine( const char *p, char *line, int size ) {
+	const char *e;
+
+	while ( *p == '\r' || *p == '\n' ) {
+		p++;
+	}
+	if ( !*p ) {
+		return NULL;
+	}
+	for ( e = p; *e && *e != '\r' && *e != '\n'; e++ ) {
+	}
+	Q_strncpyz( line, p, MIN( size, (int)( e - p ) + 1 ) );
+	return e;
+}
+
+int OzMods_Imported( const char *mod );	// the Mod Library's rows ask too (oz_ui_mods.cpp)
+
+int OzMods_Imported( const char *mod ) {
+	char list[4096], line[MAX_QPATH];
+	const char *p = list;
+
+	if ( !mod || !*mod ) {
+		return 0;
+	}
+	ReadImported( list, sizeof( list ) );
+	while ( ( p = ImportedLine( p, line, sizeof( line ) ) ) != NULL ) {
+		if ( !Q_stricmp( line, mod ) ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+// the mod put on the list, or taken off it
+static void MarkImported( const char *mod, qboolean on ) {
+	char list[4096], out[4096 + MAX_QPATH + 8], line[MAX_QPATH], path[MAX_OSPATH], tmp[MAX_OSPATH];
+	const char *p = list;
+	qboolean ok;
+	size_t len;
+	FILE *f;
+
+	ReadImported( list, sizeof( list ) );
+	out[0] = '\0';
+	while ( ( p = ImportedLine( p, line, sizeof( line ) ) ) != NULL ) {
+		if ( Q_stricmp( line, mod ) ) {
+			Q_strcat( out, sizeof( out ), line );
+			Q_strcat( out, sizeof( out ), "\n" );
+		}
+	}
+	if ( on ) {
+		Q_strncpyz( line, mod, sizeof( line ) );
+		Q_strcat( out, sizeof( out ), line );
+		Q_strcat( out, sizeof( out ), "\n" );
+	}
+	// written beside the list and moved over it, so a write cut short never loses the list
+	Q_strncpyz( path, FS_BuildOSPath( Cvar_VariableString( "fs_homepath" ), "oz", IMPORT_LIST ), sizeof( path ) );
+	Q_strncpyz( tmp, path, sizeof( tmp ) );
+	Q_strcat( tmp, sizeof( tmp ), ".tmp" );
+	FS_CreatePath( tmp );
+	f = Sys_FOpen( tmp, "wb" );
+	if ( !f ) {
+		Com_Printf( S_COLOR_YELLOW "oz_mods: couldn't write %s\n", path );
+		return;
+	}
+	len = strlen( out );
+	ok = fwrite( out, 1, len, f ) == len;
+	if ( fclose( f ) != 0 ) {
+		ok = qfalse;
+	}
+#ifdef _WIN32
+	ok = ok && MoveFileExA( tmp, path, MOVEFILE_REPLACE_EXISTING ) != 0;
+#else
+	ok = ok && rename( tmp, path ) == 0;
+#endif
+	if ( !ok ) {
+		remove( tmp );
+		Com_Printf( S_COLOR_YELLOW "oz_mods: couldn't write %s\n", path );
+	}
+}
+
+
+/*
+==================
 OzMods_Import
 
 A mod the player got (a zip, a pak, or a folder) into <fs_homepath>/<mod>: how many files, or -1 with
@@ -394,7 +542,9 @@ int OzMods_Import( const char *source, const char *mod, char *message, int size 
 	int n = -1;
 
 	message[0] = '\0';
-	if ( !*mod || strchr( mod, '/' ) || strchr( mod, '\\' ) || strstr( mod, ".." ) || FS_InvalidGameDir( mod ) ) {
+	writeFailed = 0;
+	// never into the game's own folders or the user folder's (profile, replays ...): a mod is its own folder
+	if ( !*mod || strchr( mod, '/' ) || strchr( mod, '\\' ) || strstr( mod, ".." ) || FS_InvalidGameDir( mod ) || OwnFolder( mod ) ) {
 		Com_sprintf( message, size, "That isn't a mod's folder name." );
 		return -1;
 	}
@@ -452,11 +602,17 @@ int OzMods_Import( const char *source, const char *mod, char *message, int size 
 		}
 	}
 #endif
+	if ( writeFailed > 0 && ( n >= 0 || !message[0] ) ) {
+		Com_sprintf( message, size, "%d of its files couldn't be written to your user folder: the import isn't whole. Is the disk full?", writeFailed );
+		n = -1;
+	}
 	if ( n == 0 ) {
 		Com_sprintf( message, size, "Nothing in it could be taken." );
 		n = -1;
 	}
 	if ( n > 0 ) {
+		MarkImported( mod, qtrue );	// Remove asks for it
+		ForgetReady();
 		Com_sprintf( message, size, "%d %s into %s.", n, n == 1 ? "file" : "files", mod );
 		OzServers_ForgetMods();	// the Server Browser finds it now
 	}
@@ -501,29 +657,107 @@ int OzMods_InInstall( const char *mod, char *path, int size ) {
 ==================
 OzMods_Ready
 
-The mod's game code where a switch to it finds it: a pak named for the mod (z-cpma-pak153.pk3,
-zz-defrag_vm_191.pk3) in its folder of the user folder, the base path or the Steam install
+The mod's game code where a switch to it finds it: a pak with vm/cgame.qvm or vm/qagame.qvm in it
+(z-cpma-pak153.pk3, zz-defrag_vm_191.pk3) in its folder of the user folder, the base path or the Steam
+install. A pak's name alone said so before: a map pack named defrag_pack1.pk3 in the user folder's
+defrag made Defrag ready with no Defrag there. The paks named for the mod are looked into first, in
+every folder, then the others; what a folder's paks held is kept until its listing changes.
 ==================
 */
+static qboolean PakHasCode( const char *ospath ) {
+	unzFile z = unzOpen( ospath );
+	qboolean found;
+
+	if ( !z ) {
+		return qfalse;
+	}
+	found = unzLocateFile( z, "vm/cgame.qvm", 2 ) == UNZ_OK || unzLocateFile( z, "vm/qagame.qvm", 2 ) == UNZ_OK;
+	unzClose( z );
+	return found;
+}
+
+typedef struct {
+	char		dir[MAX_OSPATH];
+	unsigned	sum;		// of the paks' names
+	int			count;
+	int			looked;		// 1: the paks named for the mod were looked into, 2: the others too
+	qboolean	found;
+} readyDir_t;
+
+static readyDir_t	readyDirs[16];
+static int			nextReadyDir;
+
+static void ForgetReady( void ) {
+	memset( readyDirs, 0, sizeof( readyDirs ) );
+	nextReadyDir = 0;
+}
+
+static qboolean DirHasCode( const char *dir, const char *mod, qboolean all ) {
+	readyDir_t *c = NULL;
+	unsigned sum = 0;
+	char **list;
+	int n, i, pass;
+	qboolean found;
+
+	list = Sys_ListFiles( dir, ".pk3", NULL, &n, qfalse );
+	if ( !list || n <= 0 ) {
+		Sys_FreeFileList( list );
+		return qfalse;
+	}
+	for ( i = 0; i < n; i++ ) {
+		const char *p;
+		for ( p = list[i]; *p; p++ ) {
+			sum = sum * 31 + (byte)*p;
+		}
+		sum = sum * 31 + '/';
+	}
+	for ( i = 0; i < ARRAY_LEN( readyDirs ); i++ ) {
+		if ( readyDirs[i].dir[0] && !Q_stricmp( readyDirs[i].dir, dir ) ) {
+			c = &readyDirs[i];
+		}
+	}
+	if ( !c ) {
+		c = &readyDirs[nextReadyDir];
+		nextReadyDir = ( nextReadyDir + 1 ) % ARRAY_LEN( readyDirs );
+		Q_strncpyz( c->dir, dir, sizeof( c->dir ) );
+		c->count = -1;
+	}
+	if ( c->count != n || c->sum != sum ) {
+		c->count = n;
+		c->sum = sum;
+		c->looked = 0;
+		c->found = qfalse;
+	}
+	for ( pass = c->looked; pass < ( all ? 2 : 1 ) && !c->found; pass++ ) {
+		// from the last: a mod's code pak is named to sort after its other paks
+		for ( i = n - 1; i >= 0 && !c->found; i-- ) {
+			if ( ( Q_stristr( list[i], mod ) != NULL ) == ( pass == 0 ) ) {
+				char path[MAX_OSPATH];
+				Com_sprintf( path, sizeof( path ), "%s%c%s", dir, PATH_SEP, list[i] );
+				c->found = PakHasCode( path );
+			}
+		}
+		c->looked = pass + 1;
+	}
+	found = c->found;
+	Sys_FreeFileList( list );
+	return found;
+}
+
 int OzMods_Ready( const char *mod ) {
 	const char *roots[] = { Cvar_VariableString( "fs_homepath" ), Cvar_VariableString( "fs_basepath" ), Cvar_VariableString( "fs_steampath" ) };
-	int i, j;
+	int i, pass;
 
-	for ( i = 0; i < ARRAY_LEN( roots ); i++ ) {
-		char dir[MAX_OSPATH];
-		char **list;
-		int n, found = 0;
-		if ( !*roots[i] ) {
-			continue;
-		}
-		Com_sprintf( dir, sizeof( dir ), "%s%c%s", roots[i], PATH_SEP, mod );
-		list = Sys_ListFiles( dir, ".pk3", NULL, &n, qfalse );
-		for ( j = 0; j < n && !found; j++ ) {
-			found = Q_stristr( list[j], mod ) != NULL;
-		}
-		Sys_FreeFileList( list );
-		if ( found ) {
-			return 1;
+	for ( pass = 0; pass < 2; pass++ ) {
+		for ( i = 0; i < ARRAY_LEN( roots ); i++ ) {
+			char dir[MAX_OSPATH];
+			if ( !*roots[i] ) {
+				continue;
+			}
+			Com_sprintf( dir, sizeof( dir ), "%s%c%s", roots[i], PATH_SEP, mod );
+			if ( DirHasCode( dir, mod, pass == 1 ) ) {
+				return 1;
+			}
 		}
 	}
 	return 0;
@@ -730,7 +964,6 @@ first (an imported copy), each once; then the nested copies the file system does
 */
 int OzMods_List( ozModInfo_t *out, int max ) {
 	const char *roots[] = { Cvar_VariableString( "fs_homepath" ), Cvar_VariableString( "fs_basepath" ), Cvar_VariableString( "fs_steampath" ) };
-	static const char *skip[] = { "baseq3", "oz", "profile", "online", "replays", "demos", "screenshots", "maps", "cache", "pb" };
 	int r, i, j, n = 0;
 
 	for ( r = 0; r < ARRAY_LEN( roots ) && n < max; r++ ) {
@@ -748,9 +981,7 @@ int OzMods_List( ozModInfo_t *out, int max ) {
 			if ( !strcmp( name, "." ) || !strcmp( name, ".." ) || FS_InvalidGameDir( name ) ) {
 				continue;
 			}
-			for ( j = 0; j < ARRAY_LEN( skip ); j++ ) {
-				known |= !Q_stricmp( name, skip[j] );
-			}
+			known = OwnFolder( name );
 			for ( j = 0; j < n; j++ ) {
 				known |= !Q_stricmp( out[j].dir, name );	// listed from a root before this one
 			}
@@ -860,7 +1091,9 @@ why. Never the game's own folders, and never a mod in the install (the base path
 */
 int OzMods_Remove( const char *mod, char *message, int size ) {
 	message[0] = '\0';
-	if ( !*mod || FS_InvalidGameDir( mod ) || !Q_stricmp( mod, BASEGAME ) || !Q_stricmp( mod, DEFAULT_GAME ) ) {
+	// never the game's own folders nor the user folder's: "oz_mod_remove profile" deleted the career
+	if ( !*mod || FS_InvalidGameDir( mod ) || !Q_stricmp( mod, BASEGAME ) || !Q_stricmp( mod, DEFAULT_GAME ) || OwnFolder( mod ) ||
+			strchr( mod, '/' ) || strchr( mod, '\\' ) || strstr( mod, ".." ) ) {
 		Com_sprintf( message, size, "That isn't a mod's folder." );
 		return -1;
 	}
@@ -880,7 +1113,15 @@ int OzMods_Remove( const char *mod, char *message, int size ) {
 			Com_sprintf( message, size, "%s isn't an imported mod: only those in your user folder can be removed.", mod );
 			return -1;
 		}
+		// only a folder Oz's own import made or added to: another may hold what a server sent, with the
+		// player's settings and demos under a mod that is in the install
+		if ( !OzMods_Imported( mod ) ) {
+			Com_sprintf( message, size, "%s isn't an imported mod: Remove deletes only what Import brought.", mod );
+			return -1;
+		}
 		n = RemoveTree( w );
+		MarkImported( mod, qfalse );
+		ForgetReady();
 		OzServers_ForgetMods();
 		Com_sprintf( message, size, "%s removed from your user folder (%d %s).", mod, n, n == 1 ? "file" : "files" );
 		Com_Printf( "oz_mod_remove: %s\n", message );
@@ -926,7 +1167,9 @@ int OzMods_Guess( const char *source, char *mod, int size ) {
 				return 0;
 			}
 			unzClose( z );
-			DeleteFileW( to );
+			if ( to[0] ) {
+				DeleteFileW( to );
+			}
 		}
 		folder[0] = '\0';
 		for ( i = 0; i < numFiles; i++ ) {
@@ -1058,11 +1301,31 @@ static void Mods_f( void ) {
 	}
 }
 
+// a zip's copy left in a mod's folder by an import the game didn't live through
+static void RemoveStaleCopies( void ) {
+	char home[MAX_OSPATH];
+	char **dirs;
+	int n, i;
+
+	Q_strncpyz( home, Cvar_VariableString( "fs_homepath" ), sizeof( home ) );
+	if ( !home[0] ) {
+		return;
+	}
+	dirs = Sys_ListFiles( home, "/", NULL, &n, qtrue );
+	for ( i = 0; dirs && i < n; i++ ) {
+		if ( strcmp( dirs[i], "." ) && strcmp( dirs[i], ".." ) && !strchr( dirs[i], '/' ) && !strchr( dirs[i], '\\' ) ) {
+			remove( FS_BuildOSPath( home, dirs[i], "import.zip.tmp" ) );
+		}
+	}
+	Sys_FreeFileList( dirs );
+}
+
 void OzMods_Init( void ) {
 	static qboolean done;
 
 	if ( !done ) {
 		done = qtrue;
+		RemoveStaleCopies();
 		Cmd_AddCommand( "oz_mod_import", ModImport_f );
 		Cmd_AddCommand( "oz_mod_remove", ModRemove_f );
 		Cmd_AddCommand( "oz_mods", Mods_f );

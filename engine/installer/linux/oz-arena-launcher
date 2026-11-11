@@ -37,6 +37,7 @@ SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "$0")"
 # dialogs: zenity, kdialog, or the terminal
 # ------------------------------------------------------------------------------------------------
 UI=""
+XMSG=""
 pick_ui() {
 	if [ -n "${OZ_LAUNCHER_UI:-}" ]; then UI="$OZ_LAUNCHER_UI"; return; fi
 	if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
@@ -44,14 +45,26 @@ pick_ui() {
 		if command -v kdialog >/dev/null 2>&1; then UI=kdialog; return; fi
 	fi
 	if [ -t 0 ] && [ -t 1 ]; then UI=tty; return; fi
+	# neither, and no terminal (started from the menu): X's own message box asks the questions, so a
+	# click on the menu entry never does nothing at all
+	if [ -n "${DISPLAY:-}" ]; then
+		if command -v gxmessage >/dev/null 2>&1; then UI=xmessage; XMSG=gxmessage; return; fi
+		if command -v xmessage >/dev/null 2>&1; then UI=xmessage; XMSG=xmessage; return; fi
+	fi
 	UI=none
 }
+
+# What a desktop without zenity or kdialog is told, where the launcher can't go on without one.
+NEED_UI="The launcher shows its windows with zenity (or kdialog on KDE), and found neither.
+
+Install the package \"zenity\" and start Oz Arena again, or run oz-arena-launcher in a terminal."
 
 ui_info() {   # title, text
 	case "$UI" in
 	zenity) zenity --info --title="$1" --text="$2" --width=460 2>/dev/null ;;
 	kdialog) kdialog --title "$1" --msgbox "$2" 2>/dev/null ;;
 	tty) printf '\n== %s ==\n%s\n' "$1" "$2" ;;
+	xmessage) "$XMSG" -center -title "$1" "$2" >/dev/null 2>&1 ;;
 	*) printf '%s: %s\n' "$1" "$2" >&2; command -v notify-send >/dev/null 2>&1 && notify-send "$1" "$2" ;;
 	esac
 	return 0
@@ -62,6 +75,7 @@ ui_error() {
 	zenity) zenity --error --title="$1" --text="$2" --width=480 2>/dev/null ;;
 	kdialog) kdialog --title "$1" --error "$2" 2>/dev/null ;;
 	tty) printf '\n!! %s !!\n%s\n' "$1" "$2" >&2 ;;
+	xmessage) "$XMSG" -center -title "$1" "$2" >/dev/null 2>&1 ;;
 	*) printf '%s: %s\n' "$1" "$2" >&2; command -v notify-send >/dev/null 2>&1 && notify-send -u critical "$1" "$2" ;;
 	esac
 	return 0
@@ -76,7 +90,11 @@ ui_question() {   # title, text, yes label, no label: 0 for yes
 		printf '\n== %s ==\n%s\n[%s / %s] (y/n) ' "$1" "$2" "$3" "$4"
 		read -r r || return 1
 		case "$r" in [yY]*) return 0 ;; *) return 1 ;; esac ;;
-	*) return 1 ;;
+	xmessage) "$XMSG" -center -title "$1" -buttons "$3:0,$4:1" -default "$3" "$2" >/dev/null 2>&1 ;;
+	*)
+		# nothing to ask with: say what's missing instead of taking a silent no
+		ui_error "$1" "$NEED_UI"
+		return 1 ;;
 	esac
 }
 
@@ -86,6 +104,7 @@ ui_folder() {   # title: prints the chosen folder; 1 when cancelled
 	zenity) f="$(zenity --file-selection --directory --title="$1" --filename="$HOME/" 2>/dev/null)" ;;
 	kdialog) f="$(kdialog --title "$1" --getexistingdirectory "$HOME" 2>/dev/null)" ;;
 	tty) printf '\n%s\nFolder: ' "$1" >&2; read -r f || f="" ;;
+	*) ui_error "$APP" "$NEED_UI" ;;   # X's message box can't pick a folder
 	esac
 	[ -n "$f" ] || return 1
 	printf '%s\n' "${f/#\~/$HOME}"
@@ -124,22 +143,18 @@ die() { ui_error "$APP" "$1"; exit 1; }
 # ------------------------------------------------------------------------------------------------
 # finding Quake III Arena
 # ------------------------------------------------------------------------------------------------
-# A folder holding baseq3 with pak0.pk3 (any case: a copy from a CD or Windows may be PAK0.PK3).
+# A folder holding baseq3 with pak0.pk3 (the pak in any case: a copy from a CD or Windows may be
+# PAK0.PK3). The folder itself must be spelled baseq3: the game opens it by that name alone, so a
+# BASEQ3 or Baseq3 the launcher accepted left the game without its files.
 is_q3() {
-	[ -n "$1" ] && [ -d "$1" ] || return 1
-	local b
-	for b in "$1"/[bB][aA][sS][eE][qQ]3; do
-		[ -d "$b" ] || continue
-		[ -n "$(find "$b" -maxdepth 1 -iname 'pak0.pk3' -print -quit 2>/dev/null)" ] && return 0
-	done
-	return 1
+	[ -n "$1" ] && [ -d "$1/baseq3" ] || return 1
+	[ -n "$(find "$1/baseq3" -maxdepth 1 -iname 'pak0.pk3' -print -quit 2>/dev/null)" ]
 }
 
-# The baseq3 folder's own name in that copy (baseq3 almost always).
+# The baseq3 folder's name as that copy spells it (BASEQ3, Baseq3), or nothing when it has none.
 base_of() {
 	local b
 	for b in "$1"/[bB][aA][sS][eE][qQ]3; do [ -d "$b" ] && { basename "$b"; return; }; done
-	echo baseq3
 }
 
 steam_roots() {
@@ -184,8 +199,8 @@ find_elsewhere() {   # GOG copies in Wine prefixes and the usual game folders, a
 	for d in "$HOME/Games" "$HOME/GOG Games" "$HOME/.wine/drive_c" "$HOME/.local/share/lutris" "$HOME/.var/app/net.lutris.Lutris" \
 		"$HOME/.var/app/com.heroicgameslauncher.hgl" "$HOME/.local/share/bottles"; do
 		[ -d "$d" ] || continue
-		hit="$(find "$d" -maxdepth 7 -iname 'pak0.pk3' -ipath '*baseq3*' -print -quit 2>/dev/null)"
-		[ -n "$hit" ] && { dirname "$(dirname "$hit")"; return; }
+		hit="$(find "$d" -maxdepth 7 -iname 'pak0.pk3' -path '*/baseq3/*' -print -quit 2>/dev/null)"
+		[ -n "$hit" ] && is_q3 "$(dirname "$(dirname "$hit")")" && { dirname "$(dirname "$hit")"; return; }
 	done
 }
 
@@ -203,12 +218,17 @@ conf_set() {
 }
 
 locate_q3() {   # asks for the folder until it holds baseq3 or the player gives up
-	local f
+	local f b
 	while :; do
 		f="$(ui_folder "Choose your Quake III Arena folder (the one that holds baseq3)")" || return 1
 		[ "$(basename "$f" | tr 'A-Z' 'a-z')" = "baseq3" ] && f="$(dirname "$f")"
 		is_q3 "$f" && { echo "$f"; return 0; }
-		ui_error "$APP" "There's no baseq3 folder with pak0.pk3 in:\n$f\n\nChoose the folder that holds baseq3." || return 1
+		b="$(base_of "$f")"
+		if [ -n "$b" ] && [ "$b" != "baseq3" ]; then
+			ui_error "$APP" "The game's folder in:\n$f\nis spelled $b. Oz Arena reads it only as baseq3, in small letters.\n\nRename $b to baseq3, then choose the folder again." || return 1
+		else
+			ui_error "$APP" "There's no baseq3 folder with pak0.pk3 in:\n$f\n\nChoose the folder that holds baseq3." || return 1
+		fi
 	done
 }
 
@@ -235,11 +255,12 @@ q3_dir() {   # the saved folder, a found one, or the player's choice
 # ------------------------------------------------------------------------------------------------
 # releases
 # ------------------------------------------------------------------------------------------------
+HTTP_WAIT=30   # seconds a question to GitHub may take; the check before playing sets 5
 http_get() {   # url: the body on stdout
 	if command -v curl >/dev/null 2>&1; then
-		curl -fsSL --connect-timeout 10 --max-time 30 -A "$UA" -H "Accept: application/vnd.github+json" "$1"
+		curl -fsSL --connect-timeout 10 --max-time "$HTTP_WAIT" -A "$UA" -H "Accept: application/vnd.github+json" "$1"
 	elif command -v wget >/dev/null 2>&1; then
-		wget -q -T 30 -U "$UA" --header="Accept: application/vnd.github+json" -O - "$1"
+		wget -q -t 1 -T "$HTTP_WAIT" -U "$UA" --header="Accept: application/vnd.github+json" -O - "$1"
 	else
 		return 1
 	fi
@@ -253,7 +274,19 @@ remote_size() {   # url: Content-Length after redirects
 	fi
 }
 
-# The latest release: REL_VERSION, and REL_ASSETS ("name url sha256" lines, - when GitHub gives none: the Linux tarball and every .pk3).
+# One REL_ASSETS line for a release file the launcher installs (the Linux tarball, a .pk3), or nothing.
+asset_line() {   # url, sha256 or nothing, size
+	local n="${1##*/}" d="$2" s="$3"
+	[ -n "$1" ] || return 0
+	case "$d" in *[!0-9a-f]*) d="" ;; esac
+	[ "${#d}" = 64 ] || d="-"
+	case "$s" in ''|*[!0-9]*) s=0 ;; esac
+	case "$n" in OzArena-*-linux.tar.gz|*.pk3) echo "$n $d $s $1" ;; esac
+}
+
+# The latest release: REL_VERSION, and REL_ASSETS, a line for the Linux tarball and for every .pk3:
+# "name sha256 size url", the SHA-256 - when GitHub gives none, the size 0 when it gives none. The
+# url is last: a --from folder's path may hold spaces.
 REL_VERSION=""; REL_ASSETS=""; REL_OFFLINE=0
 fetch_release() {
 	local json
@@ -262,26 +295,31 @@ fetch_release() {
 		t="$(ls -1 "$FROM"/OzArena-*-linux.tar.gz 2>/dev/null | sort | tail -n 1)"
 		[ -n "$t" ] || die "There's no OzArena-<version>-linux.tar.gz in $FROM."
 		REL_VERSION="$(basename "$t" | sed 's/^OzArena-\(.*\)-linux\.tar\.gz$/\1/')"
-		REL_ASSETS="$(basename "$t") file://$t"
+		REL_ASSETS="$(basename "$t") - $(file_size "$t") file://$t"
 		for t in "$FROM"/pak_oz_*.pk3; do [ -f "$t" ] && REL_ASSETS="$REL_ASSETS
-$(basename "$t") file://$t"; done
+$(basename "$t") - $(file_size "$t") file://$t"; done
 		REL_OFFLINE=1
 		return 0
 	fi
 	json="$(http_get "https://api.github.com/repos/$REPO/releases/latest")" || return 1
 	REL_VERSION="$(printf '%s' "$json" | grep -o '"tag_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n 1 | sed 's/.*"\([^"]*\)"$/\1/')"
-	# each asset's digest comes before its browser_download_url in GitHub's JSON: "name url sha256" lines
-	REL_ASSETS="$(printf '%s' "$json" | grep -o '"\(digest\|browser_download_url\)"[[:space:]]*:[[:space:]]*\("[^"]*"\|null\)' |
+	# GitHub's JSON gives each asset its name first, then its size, digest and browser_download_url
+	# (in whatever order): a line for each asset as the next one's name comes, and for the last
+	REL_ASSETS="$(printf '%s' "$json" |
+		grep -o '"\(name\|size\|digest\|browser_download_url\)"[[:space:]]*:[[:space:]]*\("[^"]*"\|null\|[0-9][0-9]*\)' |
 		sed 's/^"\([a-z_]*\)"[[:space:]]*:[[:space:]]*"\{0,1\}\([^"]*\)"\{0,1\}$/\1 \2/' |
-		while read -r k v; do
-			if [ "$k" = "digest" ]; then
-				case "$v" in sha256:*) d="${v#sha256:}" ;; *) d="" ;; esac
-				continue
-			fi
-			n="${v##*/}"
-			case "$n" in OzArena-*-linux.tar.gz|*.pk3) echo "$n $v ${d:--}" ;; esac
-			d=""
-		done)"
+		{
+			u=""; d=""; s=0
+			while read -r k v; do
+				case "$k" in
+				name) asset_line "$u" "$d" "$s"; u=""; d=""; s=0 ;;
+				size) s="$v" ;;
+				digest) case "$v" in sha256:*) d="${v#sha256:}" ;; *) d="" ;; esac ;;
+				browser_download_url) u="$v" ;;
+				esac
+			done
+			asset_line "$u" "$d" "$s"
+		})"
 	[ -n "$REL_VERSION" ] || return 1
 	REL_VERSION="${REL_VERSION#v}"   # the tag's v0.7.5-beta is the tarball's 0.7.5-beta
 	return 0
@@ -297,8 +335,14 @@ file_size() { stat -c %s "$1" 2>/dev/null || echo 0; }
 # pack remade at the same size, v0.7.7, is fetched anew). Without sha256sum, the size alone.
 pak_current() {   # dest, size, sha256 or -
 	[ -f "$1" ] && [ "$2" -gt 0 ] && [ "$(file_size "$1")" = "$2" ] || return 1
-	[ -n "$3" ] && [ "$3" != "-" ] && command -v sha256sum >/dev/null 2>&1 || return 0
-	[ "$(sha256sum "$1" | awk '{print $1}')" = "$3" ]
+	sha_ok "$1" "$3"
+}
+
+# A file against the release's SHA-256: 0 when it matches, or when there's nothing to check it with
+# (no digest in the release, no sha256sum on this PC).
+sha_ok() {   # file, sha256 or -
+	[ -n "$2" ] && [ "$2" != "-" ] && command -v sha256sum >/dev/null 2>&1 || return 0
+	[ "$(sha256sum "$1" | awk '{print $1}')" = "$2" ]
 }
 
 # One file into part, resumed from what part holds; prints "percent" and "# text" lines for ui_progress.
@@ -311,6 +355,8 @@ download() {   # url, part, size, label, done_before, total
 		return 0
 	fi
 	while :; do
+		# all there from an earlier run: asking for the rest of a whole file is an error to the server
+		[ "$size" -gt 0 ] && [ "$(file_size "$part")" = "$size" ] && return 0
 		if command -v curl >/dev/null 2>&1; then
 			curl -fsSL -C - --connect-timeout 15 --retry 3 -A "$UA" -o "$part" "$url" &
 		else
@@ -350,33 +396,55 @@ describe() {
 
 # The install itself, its progress on stdout. Errors go to $STAGE/error.
 do_install() {
-	local stage="$DIR/$STAGE_NAME" total=0 done_bytes=0 name url size dest tarball list keep f n
+	local stage="$DIR/$STAGE_NAME" total=0 done_bytes=0 name url size sha dest tarball list keep f n part label ok try complete
 	trap '' PIPE   # a closed progress window fails the writes instead of killing the install mid-file
 	mkdir -p "$DIR/oz" "$stage" || { echo "Can't write to $DIR." > "$stage/error"; return 1; }
 	rm -f "$stage/error"
 	list="$stage/assets"
 	: > "$list"
-	# what this run fetches: the tarball, and each pak not already in place at its size
-	while read -r name url sha; do
+	# what this run fetches: the tarball, and each pak not already in place as the release has it
+	while read -r name sha size url; do
 		[ -n "$name" ] || continue
-		size="$(case "$url" in file://*) file_size "${url#file://}" ;; *) remote_size "$url" ;; esac)"
+		# the size is the release's own; only a listing without one is asked of the server (an answer
+		# of 0 there used to switch every check off)
+		case "$size" in ''|*[!0-9]*) size=0 ;; esac
+		[ "$size" -gt 0 ] || size="$(case "$url" in file://*) file_size "${url#file://}" ;; *) remote_size "$url" ;; esac)"
+		case "$size" in ''|*[!0-9]*) size=0 ;; esac
 		dest="$DIR/oz/$name"
 		case "$name" in OzArena-*) ;; *) pak_current "$dest" "$size" "${sha:--}" && continue ;; esac
-		echo "$name $url $size" >> "$list"
+		echo "$name ${sha:--} $size $url" >> "$list"
 		total=$((total + size))
 	done <<< "$REL_ASSETS"
 
-	# 1. into the staging folder (resumed if a run was stopped)
-	while read -r name url size; do
+	# 1. into the staging folder (resumed if a run was stopped), each checked against the release's
+	# size and SHA-256; one that doesn't match is fetched once more from its start
+	while read -r name sha size url; do
 		[ -n "$name" ] || continue
-		if [ -f "$stage/$name" ] && [ "$size" -gt 0 ] && [ "$(file_size "$stage/$name")" = "$size" ]; then
+		label="$(describe "$name")"
+		# a part is named for the size the release gives: one an older release of that name left is
+		# dropped, never carried on from
+		part="$stage/$name.$size.part"
+		for f in "$stage/$name".*.part "$stage/$name.part"; do
+			[ -f "$f" ] && [ "$f" != "$part" ] && rm -f "$f"
+		done
+		if [ -f "$stage/$name" ] && [ "$size" -gt 0 ] && [ "$(file_size "$stage/$name")" = "$size" ] && sha_ok "$stage/$name" "$sha"; then
 			done_bytes=$((done_bytes + size)); continue
 		fi
-		download "$url" "$stage/$name.part" "$size" "$(describe "$name")" "$done_bytes" "$total" ||
-			{ echo "Downloading $(describe "$name") stopped. Run the launcher again and it carries on where it left off." > "$stage/error"; return 1; }
-		[ "$size" -gt 0 ] && [ "$(file_size "$stage/$name.part")" != "$size" ] &&
-			{ rm -f "$stage/$name.part"; echo "$(describe "$name") came down the wrong size. Run the launcher again to fetch it anew." > "$stage/error"; return 1; }
-		mv -f "$stage/$name.part" "$stage/$name"
+		rm -f "$stage/$name"
+		ok=0
+		for try in 1 2; do
+			download "$url" "$part" "$size" "$label" "$done_bytes" "$total" ||
+				{ echo "Downloading $label stopped. Run the launcher again and it carries on where it left off." > "$stage/error"; return 1; }
+			if [ "$size" -gt 0 ] && [ "$(file_size "$part")" != "$size" ]; then
+				rm -f "$part"; continue
+			fi
+			echo "# Checking $label"
+			if sha_ok "$part" "$sha"; then ok=1; break; fi
+			rm -f "$part"
+		done
+		[ "$ok" = 1 ] ||
+			{ echo "$label came down twice and neither was the file the release lists (its size or checksum is wrong). Try again later; if it stays, tell us at https://github.com/$REPO/issues." > "$stage/error"; return 1; }
+		mv -f "$part" "$stage/$name"
 		done_bytes=$((done_bytes + size))
 	done < "$list"
 
@@ -392,24 +460,31 @@ do_install() {
 	# 3. the world paks into oz/, beside the tarball's
 	echo "# Placing the world textures"
 	keep=" $(cd "$stage" && tar -tzf "./$tarball" | sed -n 's#^[^/]*/oz/\(.*\.pk3\)$#\1#p' | tr '\n' ' ')"
-	while read -r name url; do
+	complete=0
+	while read -r name _; do
 		case "$name" in *.pk3)
 			[ -f "$stage/$name" ] && mv -f "$stage/$name" "$DIR/oz/$name"
 			keep="$keep$name " ;;
 		esac
+		case "$name" in pak_oz_world*.pk3) complete=1 ;; esac
 	done <<< "$REL_ASSETS"
 
-	# 4. an older version's Oz paks and renderers this one doesn't ship (never the player's own)
+	# 4. an older version's Oz paks and renderers this one doesn't ship (never the player's own).
+	# Only when the release lists its world packs: one caught while its files were still going up
+	# lists none, and took the installed packs away. From a folder (--from) the installed world
+	# packs always stay: the folder may hold the game alone.
 	for f in "$DIR"/oz/pak_oz_*.pk3 "$DIR"/oz/zz-oz-*.pk3; do
+		[ "$complete" = 1 ] || break
 		[ -f "$f" ] || continue
 		n="$(basename "$f")"
+		case "$n" in pak_oz_world*) [ "$REL_OFFLINE" = 1 ] && continue ;; esac
 		case "$keep" in *" $n "*) ;; *) rm -f "$f" ;; esac
 	done
 
 	# 5. what makes it an installed game: the record, the menu entry, the links
 	echo "# Adding the menu entry"
 	chmod +x "$DIR/$GAME_EXE" "$DIR/OzArena.ded.x86_64" "$DIR/oz-arena-launcher" 2>/dev/null
-	mkdir -p "$DIR/Maps"
+	mkdir -p "$DIR/Maps" "$DIR/baseq3"   # baseq3: the player's own paks for the base game (the game reads it beside itself)
 	{
 		echo "version=$REL_VERSION"
 		echo "q3=$Q3"
@@ -420,8 +495,16 @@ do_install() {
 	return 0
 }
 
+# A path as one quoted argument of a menu entry's Exec line, by the Desktop Entry spec: inside the
+# quotes \ " ` and $ take a backslash, then every backslash doubles (a string value's own escape)
+# and % is %%. A folder named with a $ or a % made an entry that started nothing.
+desktop_exec() {
+	printf '"%s"' "$(printf '%s' "$1" | sed -e 's/[\\"`$]/\\&/g' -e 's/\\/\\\\/g' -e 's/%/%%/g')"
+}
+
 desktop_entry() {
-	local apps="$DATA_HOME/applications" icons="$DATA_HOME/icons/hicolor/256x256/apps" desk
+	local apps="$DATA_HOME/applications" icons="$DATA_HOME/icons/hicolor/256x256/apps" desk launcher
+	launcher="$(desktop_exec "$DIR/oz-arena-launcher")"
 	mkdir -p "$apps" "$icons"
 	[ -f "$DIR/oz-arena.png" ] && cp -f "$DIR/oz-arena.png" "$icons/oz-arena.png"
 	cat > "$apps/oz-arena.desktop" <<EOF
@@ -430,7 +513,7 @@ Type=Application
 Name=$APP
 GenericName=Arena shooter
 Comment=A mod for Quake III Arena
-Exec="$DIR/oz-arena-launcher" --link %u
+Exec=$launcher --link %u
 Icon=oz-arena
 Terminal=false
 Categories=Game;ActionGame;
@@ -441,15 +524,15 @@ Actions=Update;Locate;Uninstall;
 
 [Desktop Action Update]
 Name=Check for updates
-Exec="$DIR/oz-arena-launcher" --install
+Exec=$launcher --install
 
 [Desktop Action Locate]
 Name=Choose the Quake III Arena folder
-Exec="$DIR/oz-arena-launcher" --locate
+Exec=$launcher --locate
 
 [Desktop Action Uninstall]
 Name=Uninstall Oz Arena
-Exec="$DIR/oz-arena-launcher" --uninstall
+Exec=$launcher --uninstall
 EOF
 	command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$apps" >/dev/null 2>&1
 	command -v xdg-mime >/dev/null 2>&1 && xdg-mime default oz-arena.desktop x-scheme-handler/ozarena >/dev/null 2>&1
@@ -465,10 +548,15 @@ EOF
 
 install_or_update() {   # quiet=1: only when there's something newer, and say nothing when offline; 2: update without asking (--update)
 	local quiet="${1:-0}" have size total=0 name url
+	# the check before playing never holds the game up long: on a dead network it used to wait out
+	# the whole 30 seconds at every start
+	[ "$quiet" = 1 ] && HTTP_WAIT=5
 	if ! fetch_release; then
+		HTTP_WAIT=30
 		[ "$quiet" = 1 ] && return 0
 		die "GitHub didn't answer, so the latest release couldn't be read. Check your connection and try again."
 	fi
+	HTTP_WAIT=30
 	[ -n "$(tarball_asset)" ] || { [ "$quiet" = 1 ] && return 0; die "The latest release ($REL_VERSION) has no Linux game yet. Try again in a little while."; }
 	have="$(installed_version)"
 	if [ "$have" = "$REL_VERSION" ] && [ -x "$DIR/$GAME_EXE" ]; then
@@ -486,6 +574,13 @@ install_or_update() {   # quiet=1: only when there's something newer, and say no
 Your Quake III Arena: $Q3
 Oz Arena goes in: $DIR
 $( [ "$total" -gt 0 ] && echo "The download is about $total GB; if it stops, run the launcher again and it carries on." )" "Install" "Cancel" || exit 0
+	fi
+	# OZ_ARENA_DIR naming a folder with other things in it, and no install of the launcher's (its
+	# record, or the staging folder of one that was stopped): never there. Uninstall removes "tools",
+	# "LICENSE" and more from the install folder by name.
+	if [ -n "${OZ_ARENA_DIR:-}" ] && [ -d "$DIR" ] && [ ! -f "$DIR/$MANIFEST" ] && [ ! -d "$DIR/$STAGE_NAME" ] &&
+		[ -n "$(ls -A "$DIR" 2>/dev/null)" ]; then
+		die "OZ_ARENA_DIR names a folder that already holds other files:\n$DIR\n\nOz Arena installs only into an empty folder, or one it installed into before. Name an empty folder, or leave OZ_ARENA_DIR unset."
 	fi
 	mkdir -p "$DIR/$STAGE_NAME"
 	do_install | ui_progress "Installing $APP $REL_VERSION"
@@ -510,7 +605,8 @@ play() {
 	cd "$DIR" || die "Can't open $DIR."
 	# the game's own folder first, for its SDL2 and OpenAL Soft; then Steam's runtime can't shadow them
 	# the launcher asks about updates itself (install_or_update 1), so the game doesn't ask again
-	LD_LIBRARY_PATH="$DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "./$GAME_EXE" +set fs_steampath "$Q3" +set oz_update_check 0 "$@" 2> >(tee "$log" >&2)
+	# started by its whole path, so --update's wait for a running game finds it by that path
+	LD_LIBRARY_PATH="$DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$DIR/$GAME_EXE" +set fs_steampath "$Q3" +set oz_update_check 0 "$@" 2> >(tee "$log" >&2)
 	rc=$?
 	if [ "$rc" -ne 0 ]; then
 		sleep 0.2
@@ -523,6 +619,18 @@ ${err:-it exited with code $rc}
 The log: $log"
 	fi
 	return "$rc"
+}
+
+# An ozarena:// link the game may be handed (the menu entry's %u, or --link).
+valid_link() {
+	local LC_ALL=C re='^ozarena://[][A-Za-z0-9._:/-]+$'
+	[[ "$1" =~ $re ]]
+}
+
+# The game that started this launcher (Update now), or any game of this install, still running.
+game_running() {
+	[ "$(cat "/proc/$PPID/comm" 2>/dev/null)" = "$GAME_EXE" ] && return 0
+	pgrep -f -- "$DIR/$GAME_EXE" >/dev/null 2>&1
 }
 
 uninstall() {
@@ -540,7 +648,7 @@ Your settings, career, replays and maps stay in $USER_DIR." "Uninstall" "Cancel"
 		cd "$DIR" || exit 1
 		rm -rf oz/pak_oz_*.pk3 oz/zz-oz-*.pk3 OzArena.x86_64 OzArena.ded.x86_64 OzArena_*_x86_64.so \
 			libSDL2-2.0.so.0 libopenal.so.1 tools LICENSE oz-arena.png "$MANIFEST" "$STAGE_NAME" oz-arena-launcher
-		rmdir oz Maps 2>/dev/null
+		rmdir oz Maps baseq3 2>/dev/null
 	)
 	rmdir "$DIR" 2>/dev/null
 	rm -f "$CONF"
@@ -582,12 +690,20 @@ Q3="$(q3_dir)" || exit 0
 case "$MODE" in
 install) install_or_update 0; exit 0 ;;
 update)
-	# from the game's Update now (oz_update.c), which quits as this starts: let it close first
-	for _ in $(seq 1 50); do pgrep -f "$DIR/$GAME_EXE" >/dev/null 2>&1 || break; sleep 0.2; done
+	# from the game's Update now (oz_update.c), which quits as this starts: let it close first. The
+	# game is this launcher's parent then ($PPID keeps its number after it has gone); the search by
+	# path alone never matched a game started as ./OzArena.x86_64, so the update ran over a game
+	# still closing.
+	for _ in $(seq 1 50); do game_running || break; sleep 0.2; done
 	install_or_update 2
 	play; exit $? ;;
 play) play "${ARGS[@]}"; exit $? ;;
 link)
+	# a link is a host, a port, a match's id: letters, digits and . _ : / [ ] - only. Anything else
+	# (a space, a +, a ;) would reach the game as commands of its own, so it never gets there.
+	if [ -n "$LINK" ] && ! valid_link "$LINK"; then
+		die "That isn't an Oz Arena link:\n$LINK\n\nA link starts with ozarena:// and holds only letters, digits and . _ : / [ ] -"
+	fi
 	[ -x "$DIR/$GAME_EXE" ] || install_or_update 0
 	# an empty %u is the menu entry itself: the usual start
 	if [ -n "$LINK" ]; then play +oz_link "$LINK"; else

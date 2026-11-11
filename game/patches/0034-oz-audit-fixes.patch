@@ -1,0 +1,162 @@
+Oz: fixes from the audit of 2026-11-10 that belong to no earlier patch's own lines. The cgame follows the server's
+g_ruleset (CG_QL, cg_predict.c: the systeminfo's g_ruleset and weapon_reload_* cvars, through bg_misc.c's
+BG_QLRules): on a g_ruleset ql server it predicts Quake Live's refire times and draws the 20 pellets in fixed rings
+the game traces (CG_ShotgunPattern), where it predicted id's times and drew id's 11 random pellets; under id's
+rules, and on id's game, Pmove gets no rules as before. The game's commands the cgame has no use for ("readyup",
+"ptaunt", "itemtimer") are no longer printed as unknown. The game reads the Quake Live rules again only when one of
+their cvars changed (G_QLUpdateCvars read ten string cvars every server frame), and "callvote map" refuses a map
+the server doesn't have before the vote starts.
+
+diff --git a/code/game/g_cmds.c b/code/game/g_cmds.c
+--- a/code/game/g_cmds.c
++++ b/code/game/g_cmds.c
+@@ -1375,6 +1375,20 @@ void Cmd_CallVote_f( gentity_t *ent ) {
+ 		return;
+ 	}
+ 
++	// Oz: a map the server doesn't have is refused now: the vote used to pass and then change nothing
++	if ( !Q_stricmp( arg1, "map" ) ) {
++		fileHandle_t	f = 0;
++		int				len = trap_FS_FOpenFile( va( "maps/%s.bsp", arg2 ), &f, FS_READ );
++
++		if ( f ) {
++			trap_FS_FCloseFile( f );
++		}
++		if ( len <= 0 ) {
++			trap_SendServerCommand( ent-g_entities, "print \"The server doesn't have that map.\n\"" );
++			return;
++		}
++	}
++
+ 	// if there is still a vote to be executed
+ 	if ( level.voteExecuteTime ) {
+ 		// don't start a vote when map change or restart is in progress
+diff --git a/code/game/g_ql.c b/code/game/g_ql.c
+--- a/code/game/g_ql.c
++++ b/code/game/g_ql.c
+@@ -166,15 +166,25 @@ void G_QLRegisterCvars( void ) {
+ }
+ 
+ void G_QLUpdateCvars( void ) {
+-	int		i;
++	static qboolean	rulesRead;
++	static int		readMods;
++	int		i, mods;
+ 
+ 	for ( i = 0 ; i < ARRAY_LEN( qlCvars ) ; i++ ) {
+ 		trap_Cvar_Update( qlCvars[i].vmCvar );
+ 	}
++	// Oz: read again only when one of them changed (this runs every server frame, and the rules are ten
++	// string cvars)
++	mods = g_ruleset.modificationCount;
+ 	for ( i = 0 ; i < bg_numQLPmoveCvars && i < ARRAY_LEN( qlPmoveCvars ) ; i++ ) {
+ 		trap_Cvar_Update( &qlPmoveCvars[i] );
++		mods += qlPmoveCvars[i].modificationCount;
++	}
++	if ( !rulesRead || mods != readMods ) {
++		rulesRead = qtrue;
++		readMods = mods;
++		BG_QLRules( &qlRules, G_QLCvarString );
+ 	}
+-	BG_QLRules( &qlRules, G_QLCvarString );
+ }
+ 
+ qboolean G_QL( void ) {
+diff --git a/code/cgame/cg_servercmds.c b/code/cgame/cg_servercmds.c
+--- a/code/cgame/cg_servercmds.c
++++ b/code/cgame/cg_servercmds.c
+@@ -1178,6 +1178,12 @@ static void CG_ServerCommand( void ) {
+ 		return;
+ 	}
+ 
++	// Oz: commands of Oz's game that only the HUD reads, or nothing yet: a player's ready state, a podium
++	// taunt, an item's return for spectators. Not unknown
++	if ( !strcmp( cmd, "readyup" ) || !strcmp( cmd, "ptaunt" ) || !strcmp( cmd, "itemtimer" ) ) {
++		return;
++	}
++
+ 	CG_Printf( "Unknown client game command: %s\n", cmd );
+ }
+ 
+diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
+--- a/code/cgame/cg_weapons.c
++++ b/code/cgame/cg_weapons.c
+@@ -2137,6 +2137,20 @@ static void CG_ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, int othe
+ 	PerpendicularVector( right, forward );
+ 	CrossProduct( forward, right, up );
+ 
++	// Oz: on a server playing g_ruleset ql, its 20 pellets in fixed rings (g_weapon.c ShotgunPattern): id's
++	// 11 random ones were drawn there, none where the server's went
++	if ( CG_QL() ) {
++		for ( i = 0 ; i < QL_SHOTGUN_COUNT ; i++ ) {
++			BG_QLShotgunPellet( i, &r, &u );
++			VectorMA( origin, 8192 * 16, forward, end);
++			VectorMA (end, r, right, end);
++			VectorMA (end, u, up, end);
++
++			CG_ShotgunPellet( origin, end, otherEntNum );
++		}
++		return;
++	}
++
+ 	// generate the "random" spread pattern
+ 	for ( i = 0 ; i < DEFAULT_SHOTGUN_COUNT ; i++ ) {
+ 		r = Q_crandom( &seed ) * DEFAULT_SHOTGUN_SPREAD * 16;
+diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
+--- a/code/cgame/cg_local.h
++++ b/code/cgame/cg_local.h
+@@ -1420,6 +1420,7 @@ sfxHandle_t	CG_CustomSound( int clientNum, const char *soundName );
+ //
+ // cg_predict.c
+ //
++qboolean CG_QL( void );		// Oz: the server plays g_ruleset ql
+ void CG_BuildSolidList( void );
+ int	CG_PointContents( const vec3_t point, int passEntityNum );
+ void CG_Trace( trace_t *result, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, 
+diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
+--- a/code/cgame/cg_predict.c
++++ b/code/cgame/cg_predict.c
+@@ -34,6 +34,34 @@ static	centity_t	*cg_solidEntities[MAX_ENTITIES_IN_SNAPSHOT];
+ static	int			cg_numTriggerEntities;
+ static	centity_t	*cg_triggerEntities[MAX_ENTITIES_IN_SNAPSHOT];
+ 
++/*
++=================
++CG_QL
++
++Oz: the server's rules, from its systeminfo (g_ruleset and the weapon_reload_* cvars of bg_misc.c
++BG_QLRules, which Oz's game puts there; id's game has neither and plays id's rules). The cgame never read
++them: on a g_ruleset ql server it predicted id's refire times and drew id's shotgun pellets.
++=================
++*/
++static pmoveRules_t	cg_qlRules;
++
++static const char *CG_QLCvar( const char *name ) {
++	return Info_ValueForKey( CG_ConfigString( CS_SYSTEMINFO ), name );
++}
++
++qboolean CG_QL( void ) {
++	return Q_stricmp( CG_QLCvar( "g_ruleset" ), "ql" ) == 0;
++}
++
++// what Pmove gets: none under id's rules, as before
++static const pmoveRules_t *CG_QLPmoveRules( void ) {
++	if ( !CG_QL() ) {
++		return NULL;
++	}
++	BG_QLRules( &cg_qlRules, CG_QLCvar );
++	return &cg_qlRules;
++}
++
+ /*
+ ====================
+ CG_BuildSolidList
+@@ -689,6 +717,8 @@ void CG_PredictPlayerState( void ) {
+ 		}
+ 	}
+ 
++	cg_pmove.rules = CG_QLPmoveRules();	// Oz: the server's refire times under g_ruleset ql
++
+ 	// run cmds
+ 	moved = qfalse;
+ 	for ( cmdNum = first ; cmdNum <= current ; cmdNum++ ) {

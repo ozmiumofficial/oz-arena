@@ -95,7 +95,7 @@ void SetString( const char *path, const std::string &v ) {
 		cJSON_SetValuestring( j, v.c_str() );
 		Menu_Dirty( path );
 	} else if ( j && !cJSON_IsString( j ) ) {
-		Menu_Set( path, v.c_str() );
+		Menu_SetString( path, v.c_str() );	// a session named "007" stays 007
 	}
 }
 
@@ -146,6 +146,15 @@ bool Host( const std::string &how, const std::string &what, const std::string &n
 	if ( !OzEdNet_Online() ) {
 		Menu_Toast( "Hosting needs the online service, and it isn't connected.", "warn" );
 		return false;
+	}
+	// The multiplayer editor's map with unsaved changes (an ended session's, kept open to save) is about to be
+	// replaced by the one hosted: written aside first. It was thrown away with no question, and its autosave
+	// is never offered back.
+	if ( how == "new" || how == "open" || how == "import" ) {
+		const std::string kept = oz::ed::keep_unsaved_map( s );
+		if ( !kept.empty() ) {
+			Menu_Toast( ( "Your unsaved map was kept as " + kept + " (in your maps)." ).c_str(), "info" );
+		}
 	}
 	if ( how == "new" ) {
 		s.new_map();
@@ -374,6 +383,19 @@ void Together_Commands() {
 void Together_Opened( const char *page ) {
 	if ( strcmp( page, "together" ) ) {
 		return;
+	}
+	// The first time the session screen opens in a run: an autosave of the multiplayer editor's still there is
+	// an earlier run's that closed or crashed with unsaved changes (this run's own would mean a changed map
+	// here already). A session never offers it back, so it's moved among the player's maps, and said.
+	static bool lookedForLeftover;
+	if ( !lookedForLeftover ) {
+		lookedForLeftover = true;
+		if ( !together().active() && !together_session().doc.dirty ) {
+			const std::string kept = oz::ed::recover_together_autosave();
+			if ( !kept.empty() ) {
+				Menu_Toast( ( "The map your last session left unsaved was kept as " + kept + " (in your maps)." ).c_str(), "info" );
+			}
+		}
 	}
 	FillMine();
 	Menu_Set( "together.online", OzEdNet_Online() ? "true" : "false" );

@@ -23,6 +23,12 @@ lines), and the signature is RSASSA-PKCS1-v1_5 over SHA-256, as Godot's Crypto.s
 #include <vector>
 #include <filesystem>
 
+#ifndef _WIN32
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 namespace {
 
 mbedtls_pk_context		key;
@@ -81,15 +87,39 @@ bool ReadFile( const std::filesystem::path &p, std::string &out ) {
 	return true;
 }
 
+// The key, written beside itself and renamed over: written in place, a crash or a full disk mid-write left half a
+// key, and the player was someone else from then on. On Linux it's the player's alone to read (0600).
 bool WriteFile( const std::filesystem::path &p, const std::string &data ) {
 	std::error_code ec;
 	std::filesystem::create_directories( p.parent_path(), ec );
-	FILE *f = OpenPath( p, true );
+	std::filesystem::path tmp = p;
+	tmp += ".tmp";
+#ifdef _WIN32
+	FILE *f = OpenPath( tmp, true );
+#else
+	const int fd = open( tmp.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600 );
+	FILE *f = nullptr;
+	if ( fd >= 0 ) {
+		fchmod( fd, 0600 );		// a file left from before keeps its old mode otherwise
+		f = fdopen( fd, "wb" );
+		if ( !f ) {
+			close( fd );
+		}
+	}
+#endif
 	if ( !f ) {
 		return false;
 	}
 	bool ok = fwrite( data.data(), 1, data.size(), f ) == data.size();
-	fclose( f );
+	ok = fflush( f ) == 0 && ok;
+	ok = fclose( f ) == 0 && ok;
+	if ( ok ) {
+		std::filesystem::rename( tmp, p, ec );	// over the old file, on Windows too
+		ok = !ec;
+	}
+	if ( !ok ) {
+		std::filesystem::remove( tmp, ec );
+	}
 	return ok;
 }
 
@@ -119,6 +149,9 @@ int OzIdentity_Load( const char *path, const char *importFrom, char *error, int 
 		snprintf( error, errorSize, "%s", why );
 		return 0;
 	};
+	if ( error && errorSize > 0 ) {
+		error[0] = '\0';
+	}
 	if ( ready ) {
 		return 1;
 	}
@@ -126,19 +159,43 @@ int OzIdentity_Load( const char *path, const char *importFrom, char *error, int 
 		return fail( "No random numbers for a key." );
 	}
 	mbedtls_pk_init( &key );
-	const std::filesystem::path mine = std::filesystem::u8path( path );
+	const std::filesystem::path mine = std::filesystem::path( std::string( path ) );
 	std::string pem;
-	if ( ReadFile( mine, pem ) ) {
-		if ( !Parse( pem ) ) {
+	bool have = ReadFile( mine, pem ), spoiled = false;
+	if ( have && !Parse( pem ) ) {
+		// A key file that isn't a key (cut short by a crash, a full disk): it used to end online play on this PC for
+		// good. It's kept beside as identity.key.bad, and the player gets a new identity, as on a first run.
+		std::error_code ec;
+		std::filesystem::path bad = mine;
+		bad += ".bad";
+		std::filesystem::rename( mine, bad, ec );
+		if ( ec ) {
 			return fail( "The online identity file can't be read." );
 		}
-	} else if ( importFrom && importFrom[0] && ReadFile( std::filesystem::u8path( importFrom ), pem ) && Parse( pem ) ) {
+		mbedtls_pk_free( &key );
+		mbedtls_pk_init( &key );
+		have = false;
+		spoiled = true;
+	}
+	if ( have ) {
+#ifndef _WIN32
+		std::error_code ec;
+		std::filesystem::permissions( mine, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write,
+			std::filesystem::perm_options::replace, ec );	// a key from before it was made 0600
+#endif
+	} else if ( importFrom && importFrom[0] && ReadFile( std::filesystem::path( std::string( importFrom ) ), pem ) && Parse( pem ) ) {
 		WriteFile( mine, pem );		// the Godot build's player, kept as is
+		if ( spoiled ) {
+			snprintf( error, errorSize, "The online identity file couldn't be read. It is kept as identity.key.bad, and the earlier build's identity is used." );
+		}
 	} else {
 		mbedtls_pk_free( &key );
 		mbedtls_pk_init( &key );
 		if ( !Generate( pem ) || !WriteFile( mine, pem ) ) {
 			return fail( "Couldn't create this PC's online identity." );
+		}
+		if ( spoiled ) {
+			snprintf( error, errorSize, "The online identity file couldn't be read. It is kept as identity.key.bad, and this PC has a new identity: friends have to be added again." );
 		}
 	}
 

@@ -64,6 +64,24 @@ static std::string postgame;							// the game's last "postgame", until a match 
 static std::string lastMovie;
 static bool campaignResults;							// the results on screen are a campaign arena's
 static int waitStart;									// when a campaign match's end first waited for its postgame
+static std::string startedMap;							// the arena CampaignStart started ("" for none): only that one earns campaign credit
+static int startedSkill;								// the campaign's skill as that arena started
+static int skillOverride;								// MatchEnd's skill while a real match ends (startedSkill), 0 for the campaign's own
+static std::map<std::string, std::filesystem::file_time_type> stamps;	// each career file's time as this game last read or wrote it
+
+// A map's name as it may go into a console command (CampaignStart's spmap): letters, digits and _ - + . /
+// only. Arena names come out of paks' arena scripts: one with a ; or a line break would run as its own command.
+static bool CommandSafe( const std::string &name ) {
+	if ( name.empty() || name.size() > 63 ) {
+		return false;
+	}
+	for ( const unsigned char c : name ) {
+		if ( !( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) || c == '_' || c == '-' || c == '+' || c == '.' || c == '/' ) ) {
+			return false;
+		}
+	}
+	return true;
+}
 
 // ---------------------------------------------------------------- JSON helpers
 
@@ -527,7 +545,7 @@ std::string StatValue( const std::string &id, const cJSON *profile ) {
 // ---------------------------------------------------------------- the career (q3_profile.gd)
 
 std::filesystem::path Folder() {
-	return std::filesystem::u8path( OzE_CvarString( "fs_homepath" ) ) / "profile";
+	return std::filesystem::path( std::string( OzE_CvarString( "fs_homepath" ) ) ) / "profile";
 }
 
 cJSON *ReadJson( const std::filesystem::path &p ) {
@@ -544,14 +562,54 @@ void WriteJson( const std::filesystem::path &p, const cJSON *j ) {
 	char *text = cJSON_Print( j );
 	std::error_code ec;
 	std::filesystem::create_directories( p.parent_path(), ec );
-	std::ofstream f( p, std::ios::binary | std::ios::trunc );
-	if ( f && text ) {
-		f << text;
+	// Written beside the file and renamed over it. Written in place, a crash, a power cut or a full disk
+	// during the write left a cut-off file: the next launch read it as no career (level 1) and the next
+	// save put that over the player's progress
+	std::filesystem::path tmp = p;
+	tmp += ".tmp";
+	bool ok = false;
+	{
+		std::ofstream f( tmp, std::ios::binary | std::ios::trunc );
+		if ( f && text ) {
+			f << text;
+			f.flush();
+			ok = (bool)f;
+		}
 	}
-	if ( !f ) {
-		Printf( "^3profile: couldn't write %s\n", p.u8string().c_str() );
+	if ( ok ) {
+		std::filesystem::rename( tmp, p, ec );
+		ok = !ec;
+	}
+	if ( !ok ) {
+		Printf( "^3profile: couldn't write %s\n", p.string().c_str() );
+		std::filesystem::remove( tmp, ec );
 	}
 	cJSON_free( text );
+}
+
+// A career file's time, as this game read or wrote it just now
+static void Stamp( const std::filesystem::path &p ) {
+	std::error_code ec;
+	const std::filesystem::file_time_type t = std::filesystem::last_write_time( p, ec );
+	if ( ec ) {
+		stamps.erase( p.string() );
+	} else {
+		stamps[p.string()] = t;
+	}
+}
+
+// Two games running at once share one career, and the last to save wins: what the other earned since is
+// lost. Said in the console when this save replaces a file another game wrote (the two aren't merged).
+static void WarnIfChanged( const std::filesystem::path &p ) {
+	const auto s = stamps.find( p.string() );
+	if ( s == stamps.end() ) {
+		return;
+	}
+	std::error_code ec;
+	const std::filesystem::file_time_type t = std::filesystem::last_write_time( p, ec );
+	if ( !ec && t != s->second ) {
+		Printf( "^3profile: another running game saved %s since this one read it; this save replaces what that one wrote\n", p.filename().string().c_str() );
+	}
 }
 
 // the first run from the player's own user folder takes the Godot build's career and campaign
@@ -560,7 +618,7 @@ static void Import() {
 	if ( !atoi( OzE_CvarString( "oz_profile_import" ) ) || !OzE_IsPlayerHome() || !appdata || !appdata[0] ) {
 		return;
 	}
-	const std::filesystem::path from = std::filesystem::u8path( appdata ) / "Godot" / "app_userdata" / "Q3Remaster";
+	const std::filesystem::path from = std::filesystem::path( std::string( appdata ) ) / "Godot" / "app_userdata" / "Q3Remaster";
 	std::error_code ec;
 	if ( !std::filesystem::exists( from / "profile.json", ec ) ) {
 		return;
@@ -571,7 +629,7 @@ static void Import() {
 			std::filesystem::copy_file( from / name, Folder() / name, std::filesystem::copy_options::skip_existing, ec );
 		}
 	}
-	Printf( "profile: imported the Godot build's career from %s\n", from.u8string().c_str() );
+	Printf( "profile: imported the Godot build's career from %s\n", from.string().c_str() );
 }
 
 static void AddIn( cJSON *st, const char *k, const std::string &sub, long long n );
@@ -605,8 +663,16 @@ cJSON *Profile() {
 				Import();
 			}
 			prof = ReadJson( Folder() / "profile.json" );
+			Stamp( Folder() / "profile.json" );
 		}
 		if ( !cJSON_IsObject( prof ) ) {
+			// a career file that is there but can't be read is kept aside before a new one takes its place
+			std::error_code bad;
+			if ( !memoryOnly && std::filesystem::exists( Folder() / "profile.json", bad ) ) {
+				std::filesystem::copy_file( Folder() / "profile.json", Folder() / "profile.bad.json",
+					std::filesystem::copy_options::overwrite_existing, bad );
+				Printf( "^3profile: profile.json couldn't be read; kept as profile.bad.json, starting a new career\n" );
+			}
 			cJSON_Delete( prof );
 			prof = NewProfile();
 		}
@@ -634,7 +700,10 @@ cJSON *Profile() {
 void Save() {
 	version++;
 	if ( !memoryOnly ) {
-		WriteJson( Folder() / "profile.json", Profile() );
+		cJSON *p = Profile();	// read first when it wasn't yet: its time is taken as it's read
+		WarnIfChanged( Folder() / "profile.json" );
+		WriteJson( Folder() / "profile.json", p );
+		Stamp( Folder() / "profile.json" );
 		Changed();
 	}
 }
@@ -918,6 +987,19 @@ cJSON *Campaign() {
 	if ( !camp ) {
 		camp = NewCampaign( 3 );
 		cJSON *d = memoryOnly ? nullptr : ( Profile(), ReadJson( CampaignPath() ) );	// the profile first: it imports both
+		if ( !memoryOnly ) {
+			Stamp( CampaignPath() );
+		}
+		if ( d && !cJSON_IsObject( d ) ) {
+			cJSON_Delete( d );	// JSON, but not a campaign: its entries have no names to take
+			d = nullptr;
+		}
+		// a campaign file that is there but can't be read is kept aside before the next save replaces it
+		std::error_code bad;
+		if ( !memoryOnly && !d && std::filesystem::exists( CampaignPath(), bad ) ) {
+			std::filesystem::copy_file( CampaignPath(), Folder() / "campaign.bad.json", std::filesystem::copy_options::overwrite_existing, bad );
+			Printf( "^3profile: campaign.json couldn't be read; kept as campaign.bad.json, the campaign starts over\n" );
+		}
 		const cJSON *e;
 		cJSON_ArrayForEach( e, d ) {
 			SetItem( camp, e->string, cJSON_Duplicate( e, 1 ) );
@@ -932,7 +1014,10 @@ cJSON *Campaign() {
 void SaveCampaign() {
 	version++;
 	if ( !memoryOnly ) {
-		WriteJson( CampaignPath(), Campaign() );
+		cJSON *c = Campaign();
+		WarnIfChanged( CampaignPath() );
+		WriteJson( CampaignPath(), c );
+		Stamp( CampaignPath() );
 		Changed();
 	}
 }
@@ -955,13 +1040,35 @@ void SetCampaignSkill( int skill ) {
 	}
 }
 
+// id's campaign arenas, as the catalog's campaign achievements name them (q3dm0 ... q3tourney6)
+static std::set<std::string> CampaignArenas() {
+	std::set<std::string> out;
+	const cJSON *a, *m;
+	cJSON_ArrayForEach( a, Achievements() ) {
+		cJSON_ArrayForEach( m, Get( Get( a, "progress" ), "campaign" ) ) {
+			if ( cJSON_IsString( m ) ) {
+				out.insert( m->valuestring );
+			}
+		}
+	}
+	return out;
+}
+
 // the "single" arenas in file order: Training first, the Final last, the rest tiers of four
 void SetArenas( const cJSON *maps ) {
 	std::vector<const cJSON *> training, rest, final;
 	const cJSON *m;
 	tiers.clear();
+	// From the installed game, only id's campaign arenas make tiers. A map pack's "single" arena used to
+	// join them: it moved every arena after it a place, could pay a tier's bonus again, and as the last
+	// tier stood in for the Final. The test vectors bring their own arenas and take them all.
+	const std::set<std::string> own = memoryOnly ? std::set<std::string>() : CampaignArenas();
 	cJSON_ArrayForEach( m, maps ) {
 		if ( !Contains( Get( m, "types" ), "single" ) ) {
+			continue;
+		}
+		const std::string map = Str( m, "map" );
+		if ( !CommandSafe( map ) || ( !own.empty() && !own.count( map ) ) ) {
 			continue;
 		}
 		std::string special = Str( m, "special" );
@@ -1068,9 +1175,12 @@ static std::string RecordResult( const std::string &map, int skill, bool won, co
 	if ( tier < 0 || wasComplete || !TierComplete( tier ) ) {
 		return "";
 	}
+	// the campaign is complete on the Final's tier alone (SetArenas names only that one "Final"): without a
+	// final arena among the arenas, the last tier used to stand in for it
+	const bool final = tier == (int)tiers.size() - 1 && tiers[tier].name == "Final";
 	SetItem( lastResult, "tier", cJSON_CreateString( tiers[tier].name.c_str() ) );
-	SetItem( lastResult, "campaign", cJSON_CreateBool( tier == (int)tiers.size() - 1 ) );
-	return tier == (int)tiers.size() - 1 ? "end" : Fmt( "tier%d", tier + 1 );
+	SetItem( lastResult, "campaign", cJSON_CreateBool( final ) );
+	return final ? "end" : Fmt( "tier%d", tier + 1 );
 }
 
 // the campaign XP lines for the last result
@@ -1168,7 +1278,7 @@ cJSON *MatchEnd( const cJSON *m ) {
 	}
 	std::string movie;
 	cJSON *extra = cJSON_CreateArray();
-	const int skill = CampaignSkill();
+	const int skill = skillOverride > 0 ? skillOverride : CampaignSkill();	// a real match's: the skill it started at
 	if ( campaign ) {
 		if ( !cJSON_GetArraySize( awards ) ) {
 			cJSON_Delete( awards );
@@ -1313,7 +1423,7 @@ static cJSON *EvalProfile( const cJSON *profile, const cJSON *cards ) {
 
 // runs the vectors in memory: the saved career and campaign stay as they are
 static void Vectors_f() {
-	std::ifstream f( std::filesystem::u8path( OzE_Argv( 1 ) ), std::ios::binary );
+	std::ifstream f( std::filesystem::path( std::string( OzE_Argv( 1 ) ) ), std::ios::binary );
 	std::stringstream ss;
 	ss << f.rdbuf();
 	cJSON *v = cJSON_Parse( ss.str().c_str() );
@@ -1432,13 +1542,45 @@ void CampaignStart( const std::string &map ) {
 		Printf( "campaign: %s %s\n", map.c_str(), tier < 0 ? "isn't a campaign arena" : "is locked" );
 		return;
 	}
+	if ( !CommandSafe( map ) ) {	// SetArenas takes no such arena; checked again where the name goes into a command
+		PlaySound( Sound::Buzz );
+		Printf( "campaign: that arena's name can't go into a command\n" );
+		return;
+	}
 	postgame.clear();
+	// What earns campaign credit at the match's end: this arena, started here with its tier open, at this
+	// skill. The cvar alone said so before: set in the console it gave credit for any arena, tier open or
+	// not, and the skill recorded was the one set when the match ended.
+	startedMap = map;
+	startedSkill = CampaignSkill();
 	OzE_CvarSet( "oz_campaign_map", map.c_str() );
 	CloseAllPages();
 	// ui_spLevel.c's start: spmap is the game's single player (g_gametype 2, no warmup, 8 clients), which
 	// spawns the arena's bots at g_spSkill with its limits; tests play with cheats (oz_campaign_devmap 1)
-	OzE_InsertText( Fmt( "set g_spSkill %d; %s %s\n", CampaignSkill(), atoi( OzE_CvarString( "oz_campaign_devmap" ) ) ? "spdevmap" : "spmap",
+	OzE_InsertText( Fmt( "set g_spSkill %d; %s %s\n", startedSkill, atoi( OzE_CvarString( "oz_campaign_devmap" ) ) ? "spdevmap" : "spmap",
 		map.c_str() ).c_str() );
+}
+
+// the arena CampaignStart started, while it is still the campaign's ("" once its results were left)
+static const std::string &StartedArena() {
+	return startedMap;
+}
+
+static int StartedSkill() {
+	return startedSkill;
+}
+
+static void ForgetStarted() {
+	startedMap.clear();
+	startedSkill = 0;
+}
+
+// MatchEnd for a real match: a campaign arena's result at the skill it started with
+static cJSON *MatchEndAt( const cJSON *m, int skill ) {
+	skillOverride = skill;
+	cJSON *xp = MatchEnd( m );
+	skillOverride = 0;
+	return xp;
 }
 
 } // namespace Prog
@@ -1547,8 +1689,9 @@ void OzProgress_LocalCareer( int *matches, int *wins, int *frags, int *deaths, i
 int OzProgress_CampaignMatch( void ) {
 	char map[64];
 	int gametype = 0, seconds, warmup, score, local;
+	// the arena CampaignStart started (its tier was open then), not only what the cvar names: anyone can set a cvar
 	return OzE_MatchInfo( map, sizeof( map ), &gametype, &seconds, &warmup, &score, &local ) && local && gametype == 2
-		&& !StrICmp( map, OzE_CvarString( "oz_campaign_map" ) );
+		&& !StrICmp( map, OzE_CvarString( "oz_campaign_map" ) ) && !StartedArena().empty() && !StrICmp( map, StartedArena().c_str() );
 }
 
 void OzProgress_Postgame( const char *args ) {
@@ -1573,6 +1716,7 @@ int OzProgress_MatchEnd( const ozMatchEnd_t *e, int demo, ozAward_t *out ) {
 			return 0;
 		}
 	}
+	waitStart = 0;	// this match's wait is over: kept, the second campaign arena of a run never waited for its postgame
 	cJSON *m = cJSON_CreateObject();
 	cJSON_AddStringToObject( m, "map", e->map );
 	cJSON_AddStringToObject( m, "mode", ModeName( e->gametype, e->map ) );
@@ -1619,7 +1763,7 @@ int OzProgress_MatchEnd( const ozMatchEnd_t *e, int demo, ozAward_t *out ) {
 	cJSON *saved = demo ? cJSON_Duplicate( Profile(), 1 ) : nullptr, *savedCamp = demo ? cJSON_Duplicate( Campaign(), 1 ) : nullptr;
 	const bool wasMemory = memoryOnly;
 	memoryOnly = memoryOnly || demo;
-	cJSON *xp = MatchEnd( m );
+	cJSON *xp = MatchEndAt( m, campaign ? StartedSkill() : 0 );
 	memoryOnly = wasMemory;
 	if ( demo ) {
 		cJSON_Delete( prof );
@@ -1668,6 +1812,7 @@ void OzProgress_CampaignContinue( void ) {
 	campaignResults = false;
 	pendingPage = "campaign";
 	OzE_CvarSet( "oz_campaign_map", "" );
+	ForgetStarted();
 	std::string cmd = "disconnect\n";
 	if ( !lastMovie.empty() && atoi( OzE_CvarString( "oz_gameplay_tier_movies" ) ) ) {
 		cmd += "cinematic " + lastMovie + ".RoQ\n";

@@ -99,6 +99,12 @@ public:
 			OzE_Free( clip );
 		}
 	}
+
+	// RmlUi's own keeps the text inside the game only: Copy code, a friend code, a session's link and
+	// Ctrl+C in a field never reached the system's clipboard, which is also where paste reads from
+	void SetClipboardText( const Rml::String &text ) override {
+		OzE_SetClipboard( text.c_str() );
+	}
 };
 
 /*
@@ -1362,7 +1368,12 @@ static void FollowClientState() {
 	}
 	const int state = OzE_ClientState();
 	const char *first = stack[0]->name;
-	if ( ( ( !strcmp( first, "menu" ) || !strcmp( first, "splash" ) || !strcmp( first, "editor" ) ) && state != 0 ) || ( !strcmp( first, "pause" ) && state != 2 )
+	// A new window size applied from the pause menu's Settings restarts the renderer, which loads the
+	// match's pictures again (state 1): the pause menu stays through that with Settings and the question
+	// over it. Closed, nobody was asked, and the window went back 15 s later
+	const bool restart = state == 1 && Settings_DisplayPending();
+	if ( ( ( !strcmp( first, "menu" ) || !strcmp( first, "splash" ) || !strcmp( first, "editor" ) ) && state != 0 )
+		|| ( !strcmp( first, "pause" ) && state != 2 && !restart )
 		|| ( !strcmp( first, "connect" ) && !Connecting() ) ) {
 		CloseAll();
 	}
@@ -1375,7 +1386,7 @@ static void ShowError() {
 	if ( !message[0] || stack.empty() || strcmp( stack[0]->name, "menu" ) || IsPageOpen( "error" ) ) {
 		return;
 	}
-	Menu_Set( "error.text", message );
+	Menu_SetString( "error.text", message );	// a server's words, as text
 	OpenPage( FindPage( "error" ) );
 }
 
@@ -1440,6 +1451,7 @@ void OzUI_Shutdown( void ) {
 		return;
 	}
 	CloseAll();
+	OzE_Pause( 0 );		// no frame comes to lift it
 	Hud_Shutdown();
 	Renderer().RendererShutdown();
 	Rml::Shutdown();
@@ -1564,6 +1576,10 @@ void OzUI_Draw( void ) {
 		}
 	}
 	FollowClientState();
+	// a match on this PC's own server stands still under the pause menu and the pages opened from it
+	// (bots went on fragging while a player read Settings); not under the crosshair and gun editors,
+	// which show their changes on the running match
+	OzE_Pause( !stack.empty() && !strcmp( stack[0]->name, "pause" ) && !IsPageOpen( "crosshair" ) && !IsPageOpen( "gun" ) );
 	ShowError();
 	AccessFrame();
 	Settings_Frame();	// also with every page closed: a renderer setting's restart when Settings closes

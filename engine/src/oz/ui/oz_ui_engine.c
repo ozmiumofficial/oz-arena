@@ -45,6 +45,47 @@ int OzE_SettingsRestart( void ) {
 	return OzSettings_TakeRestart();
 }
 
+void OzSettings_NeedRestart( void );	// oz_settings_apply.c
+
+void OzE_SettingsNeedRestart( void ) {
+	OzSettings_NeedRestart();
+}
+
+/*
+The pause menu pauses a match on this PC's own server. The native pause page opens before the call
+where the game code's menu set cl_paused, and nothing else set it: bots went on fragging and the clock
+ran while a player read Settings, and a campaign arena could be lost from the pause menu. The server
+itself pauses only with one human in it (SV_CheckPaused). Asked every frame the UI draws: on while the
+pause pages want it, and off again when they don't, when the match isn't running (a map load, a renderer
+restart: the cgame needs a snapshot to come back) or isn't local. A paused client sends nothing, so
+the pause also lifts for the moment a command waits to go to the server (the pause menu's own "team",
+the HUD asking the scores for a duel's line every 2 s): 64 of them unsent would drop the player with
+"Client command overflow". cl_ozPause 0 leaves the match running (tests that drive a match from the
+pause menu).
+*/
+void OzE_Pause( int on ) {
+	static cvar_t	*cl_ozPause;
+	static qboolean	ours;
+
+	if ( !cl_ozPause ) {
+		cl_ozPause = Cvar_Get( "cl_ozPause", "1", CVAR_ARCHIVE_ND );
+		Cvar_CheckRange( cl_ozPause, "0", "1", CV_INTEGER );
+		Cvar_SetDescription( cl_ozPause, "The pause menu pauses a match on your own server while you're its only player (0: the match runs on)." );
+	}
+	if ( on && cl_ozPause->integer && cls.state == CA_ACTIVE && !clc.demoplaying && com_sv_running && com_sv_running->integer
+		&& clc.reliableSequence == clc.reliableAcknowledge ) {
+		if ( !cl_paused->integer ) {
+			Cvar_Set( "cl_paused", "1" );
+		}
+		ours = qtrue;
+	} else if ( ours ) {
+		ours = qfalse;
+		if ( cl_paused->integer ) {
+			Cvar_Set( "cl_paused", "0" );
+		}
+	}
+}
+
 int OzE_Monitors( void ) {
 	return OzSettings_Monitors();
 }
@@ -106,6 +147,60 @@ int OzE_ReadFileAt( const char *path, int offset, void *buffer, int size ) {
 
 int OzE_FileExists( const char *path ) {
 	return FS_FOpenFileRead( path, NULL, qfalse ) > 0;
+}
+
+unsigned OzE_ImageStamp( const char *image, int *pak ) {
+	static const char *const exts[] = { "dds", "tga", "jpg", "png", "jpeg" };
+	char		base[MAX_QPATH], name[MAX_QPATH];
+	const char	*ext = COM_GetExtension( image ), *custom;
+	unsigned	h = 2166136261u;
+	int			i, len, sum, any = 0;
+
+	*pak = 0;
+#define OZ_MIX( v ) ( h = ( h ^ (unsigned)( v ) ) * 16777619u )
+	COM_StripExtension( image, base, sizeof( base ) );
+	for ( i = -1; i < (int)ARRAY_LEN( exts ); i++ ) {
+		if ( i < 0 ) {
+			if ( !*ext || !Q_stricmp( ext, "dds" ) || !Q_stricmp( ext, "tga" ) || !Q_stricmp( ext, "jpg" ) ||
+				 !Q_stricmp( ext, "png" ) || !Q_stricmp( ext, "jpeg" ) ) {
+				continue;	// among the ones below
+			}
+			Q_strncpyz( name, image, sizeof( name ) );
+		} else {
+			Com_sprintf( name, sizeof( name ), "%s.%s", base, exts[i] );
+		}
+		len = FS_FOpenFileRead( name, NULL, qfalse );
+		if ( len < 0 ) {
+			continue;
+		}
+		sum = 0;
+		FS_FileIsInPAK( name, &sum, NULL );
+		OZ_MIX( i + 2 );
+		OZ_MIX( len );
+		OZ_MIX( sum );
+		if ( !any ) {
+			*pak = sum;
+		}
+		any = 1;
+	}
+	custom = OzTex_Find( image, "dds png tga jpg jpeg" );
+	if ( custom ) {
+		for ( i = 0; custom[i]; i++ ) {
+			OZ_MIX( tolower( (unsigned char)custom[i] ) );
+		}
+		OZ_MIX( FS_FOpenFileRead( custom, NULL, qfalse ) );
+		any = 1;
+	}
+#undef OZ_MIX
+	return any ? ( h ? h : 1 ) : 0;
+}
+
+void *OzE_FOpenOS( const char *path, const char *mode ) {
+	return Sys_FOpen( path, mode );
+}
+
+unsigned OzE_SearchStamp( void ) {
+	return FS_OzSearchStamp();
 }
 
 int OzE_IsPlayerHome( void ) {
@@ -244,8 +339,16 @@ void OzE_SetBinding( int key, const char *command ) {
 	Key_SetBinding( key, command );
 }
 
+char *Sys_GetClipboardText( void );	// sdl_glimp.c: whole, line ends taken out (the console's read stops at the first)
+
 char *OzE_GetClipboard( void ) {
-	return Sys_GetClipboardData();
+	return Sys_GetClipboardText();
+}
+
+void Sys_SetClipboardText( const char *text );	// sdl_glimp.c
+
+void OzE_SetClipboard( const char *text ) {
+	Sys_SetClipboardText( text );
 }
 
 void OzE_Free( void *p ) {

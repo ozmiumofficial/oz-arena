@@ -68,7 +68,7 @@ startmatch adds ('' is no bot).
 							<span class="hint">{{ skirmish.shown == skirmish.count ? skirmish.count + (skirmish.mod == 'defrag' ? ' race maps' : ' arenas') : skirmish.shown + ' of ' + skirmish.count }}</span>
 						</div>
 						<div class="cards" data-if="skirmish.mod != 'defrag'">
-							<div data-if="skirmish.user_shown &gt; 0">
+							<div data-if="skirmish.mod == 'oz' &amp;&amp; skirmish.user_shown &gt; 0">
 								<div class="othersh usersh">User generated: the maps you compiled in the map editor</div>
 								<div class="grid">
 									<button class="card" data-for="v : skirmish_view" data-if="@@USER@@" data-attr-id="'sk_user_' + maps[v.i].map" data-class-sel="v.i == create_match_pick.skirmish.mapi" data-attrif-autofocus="v.i == create_match_pick.skirmish.mapi" data-event-click="@@PICK_USER@@">

@@ -32,6 +32,7 @@ the player is doing (presence) and who they are (profile), and hands what the hu
 #ifdef USE_OZ_UI
 #include "../ui/oz_progress.h"
 void OzUI_OnlineStatus( int status, const char *reason );
+int OzUI_OnlineNotice( const char *reason );	// a toast, once per sentence; 0 while the menus can't show one yet
 void OzUI_HubMessage( const char *type, const cJSON *msg );
 static int		careerSent = -1;	// the career's version the hub last heard (P12)
 #endif
@@ -52,6 +53,8 @@ void OzUpdate_ClientShutdown( qboolean quit );
 static cvar_t	*oz_online, *oz_online_import, *oz_online_debug;
 static cvar_t	*oz_network_online, *oz_network_online_server;		// the Settings page's (engine/ui/settings.json)
 static int		lastStatus = -1;
+static int		lastGeneration;		// the hub connection (OzOnline_Generation) the presence, seat and profile went to
+static char		menuNotice[256];	// why online isn't as it was (the identity, a refusal), until the menus have shown it
 static char		lastPresence[512];
 static int		nameModified = -1;
 static qboolean	started;
@@ -94,9 +97,16 @@ static void Start( void ) {
 	} else if ( oz_online_import->integer && appdata && appdata[0] ) {
 		Com_sprintf( importPath, sizeof( importPath ), "%s\\Godot\\app_userdata\\Q3Remaster\\online\\identity.key", appdata );
 	}
+	error[0] = '\0';
 	if ( !OzIdentity_Load( keyPath, importPath, error, sizeof( error ) ) ) {
 		Com_Printf( S_COLOR_YELLOW "online: %s\n", error );
+		Q_strncpyz( menuNotice, error, sizeof( menuNotice ) );	// the menus say why there's no online play
 		return;
+	}
+	if ( error[0] ) {
+		// the key file couldn't be read and a new identity was made: the player hears it, not only the console
+		Com_Printf( S_COLOR_YELLOW "online: %s\n", error );
+		Q_strncpyz( menuNotice, error, sizeof( menuNotice ) );
 	}
 	OzOnline_Start( Server(), Cvar_VariableString( "name" ), Cvar_VariableString( "model" ), "#db2410" );
 	started = qtrue;
@@ -627,13 +637,20 @@ void CL_OzOnlineFrame( void ) {
 				Start();
 			}
 		}
-		if ( !started ) {
-			return;
-		}
+	}
+#ifdef USE_OZ_UI
+	if ( menuNotice[0] && OzUI_OnlineNotice( menuNotice ) ) {
+		menuNotice[0] = '\0';
+	}
+#endif
+	if ( !started ) {
+		return;
 	}
 	status = OzOnline_Status( reason, sizeof( reason ) );
-	if ( status != lastStatus ) {
+	// a new connection too, when the frame never saw the old one go (a stall, a map load): the hub's socket is new
+	if ( status != lastStatus || ( status == OZ_ONLINE_ONLINE && OzOnline_Generation() != lastGeneration ) ) {
 		if ( status == OZ_ONLINE_ONLINE ) {
+			lastGeneration = OzOnline_Generation();
 			Com_Printf( "online: connected to %s as %s\n", Server(), OzIdentity_PlayerId() );
 			Presence( qtrue );
 			Seat( qtrue );	// a new connection has no seat
@@ -645,7 +662,9 @@ void CL_OzOnlineFrame( void ) {
 		} else if ( status == OZ_ONLINE_OFFLINE && lastStatus == OZ_ONLINE_ONLINE && reason[0] ) {
 			Com_Printf( "online: %s\n", reason );
 		} else if ( status == OZ_ONLINE_OFFLINE && OzOnline_CloseCode() >= 4000 ) {
+			// the hub refused this game (the PC's clock, an old version): the menus say why, once
 			Com_Printf( S_COLOR_YELLOW "online: %s\n", reason );
+			Q_strncpyz( menuNotice, reason, sizeof( menuNotice ) );
 		}
 		lastStatus = status;
 #ifdef USE_OZ_UI
@@ -802,7 +821,15 @@ static void CL_OzLink_f( void ) {
 		if ( addr[0] && addr[strlen( addr ) - 1] == '/' ) {
 			addr[strlen( addr ) - 1] = '\0';
 		}
-		Cbuf_AddText( va( "connect %s\n", addr ) );
+		// A link comes from a web page or a chat: only what an address is made of goes to the console.
+		// Unchecked, "connect/1.2.3.4;unbindall" ran its second command (the buffer splits on ; and newlines)
+		for ( i = 0; addr[i]; i++ ) {
+			if ( !isalnum( (unsigned char)addr[i] ) && !strchr( ".-_:[]", addr[i] ) ) {
+				Com_Printf( "oz_link: not a server's address: %s\n", addr );
+				return;
+			}
+		}
+		Cbuf_AddText( va( "connect \"%s\"\n", addr ) );
 	} else {
 		Com_Printf( "oz_link: not a link Oz Arena knows: %s\n", link );
 	}

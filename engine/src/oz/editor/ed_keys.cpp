@@ -120,11 +120,25 @@ static const std::vector<std::pair<const char *, const char *>> &radiant() {
 	return keys;
 }
 
+// One keymap for the map editor alone and the multiplayer one: each session used to read keymap.cfg once
+// and keep its own copy, so keys changed in one were written over by the other's stale copy at its next
+// change, in the same run. The file is read once; a session copies the shared map when another changed it.
+static std::map<std::string, std::string> g_keymap;
+static bool g_keymap_read = false;
+static int g_keymap_serial = 1;
+
 void Session::load_keymap() {
-	if (keymap_loaded_) {
+	if (keymap_loaded_ && keymap_serial_ == g_keymap_serial) {
 		return;
 	}
 	keymap_loaded_ = true;
+	keymap_serial_ = g_keymap_serial;
+	if (g_keymap_read) {
+		keymap_ = g_keymap;
+		keymap_rev++;
+		return;
+	}
+	g_keymap_read = true;
 	keymap_.clear();
 	char *text = nullptr;
 	const int len = OzEd_ReadOSFile(keymap_file().c_str(), &text);
@@ -142,10 +156,14 @@ void Session::load_keymap() {
 		}
 		keymap_[line.substr(0, eq)] = line.substr(eq + 3);
 	}
+	g_keymap = keymap_;
 	keymap_rev++;
 }
 
 void Session::save_keymap() {
+	g_keymap = keymap_;  // the other session's too, when it next asks for a key
+	g_keymap_read = true;
+	keymap_serial_ = ++g_keymap_serial;
 	std::string out = "// the map editor's keys, the player's own over its defaults: action = keys (\"\" none)\n";
 	for (const auto &kv : keymap_) {
 		out += kv.first + " = " + kv.second + "\n";

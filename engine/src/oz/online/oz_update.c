@@ -44,6 +44,7 @@ qboolean IN_OpenURL( const char *url );	// sdl_input.c
 
 static cvar_t		*oz_update_check, *oz_update_url, *oz_update_skip;
 static qboolean		asked;			// once a run: a mod switch restarts the client, not the check
+static qboolean		decided;		// whether to ask was settled, since oz_update_check last changed
 static qboolean		reported;		// the answer handled
 static qboolean		downloading;
 static ozRelease_t	latest;
@@ -128,10 +129,31 @@ static qboolean RunSetup( const wchar_t *exe ) {
 	return qtrue;
 }
 
+// The download's folder in %TEMP%, taken away again when the update doesn't go on from it (the download failed,
+// it wasn't the release's file, Setup didn't start): each try left an OzArenaUpdate-<n> folder behind.
+static void DropDownload( void ) {
+	wchar_t exe[MAX_OSPATH], *slash;
+
+	if ( !setupPath[0] ) {
+		return;
+	}
+	exe[0] = 0;
+	MultiByteToWideChar( CP_UTF8, 0, setupPath, -1, exe, MAX_OSPATH );
+	exe[MAX_OSPATH - 1] = 0;
+	setupPath[0] = '\0';
+	DeleteFileW( exe );
+	slash = wcsrchr( exe, L'\\' );
+	if ( slash ) {
+		*slash = 0;
+		RemoveDirectoryW( exe );	// only when it's empty
+	}
+}
+
 static void Downloaded( void ) {
 	wchar_t exe[MAX_OSPATH];
 	MultiByteToWideChar( CP_UTF8, 0, setupPath, -1, exe, MAX_OSPATH );
 	if ( !RunSetup( exe ) ) {
+		DropDownload();
 		Status( "Setup didn't start.", qtrue );
 		OpenPage();
 		return;
@@ -148,6 +170,8 @@ static void Now( void ) {
 		OpenPage();	// not an install Setup made: never Setup over a dev build or a hand-made folder
 		return;
 	}
+	// The installer comes from Oz's own GitHub downloads, over https, and nowhere else. Only a release asked of
+	// another address (oz_update_url: the command line alone sets it, a test's stand-in) may name its own.
 	ours = !Q_stricmp( oz_update_url->string, OZ_UPDATE_DEFAULT_URL );
 	if ( latest.setup[0] && ( !ours || !Q_stricmpn( latest.setup, OZ_UPDATE_DOWNLOADS, strlen( OZ_UPDATE_DOWNLOADS ) ) ) ) {
 		GetTempPathW( MAX_PATH, temp );
@@ -156,7 +180,8 @@ static void Now( void ) {
 		CreateDirectoryW( folder, NULL );	// a folder of its own: Setup installs from files beside it when there are any
 		WideCharToMultiByte( CP_UTF8, 0, folder, -1, setupPath, sizeof( setupPath ) - 24, NULL, NULL );
 		Q_strcat( setupPath, sizeof( setupPath ), "\\OzArenaSetup.exe" );
-		OzUpdate_Download( latest.setup, setupPath );
+		// checked against the release's own word of the file before it runs: its size, its SHA-256 when given
+		OzUpdate_Download( latest.setup, setupPath, latest.setupSize, latest.setupSha256 );
 		downloading = qtrue;
 		lastPercent = -1;
 		Status( "Downloading the installer...", qfalse );
@@ -175,6 +200,9 @@ static void Now( void ) {
 }
 
 #else	// Linux: the launcher beside the game
+
+static void DropDownload( void ) {
+}
 
 static void Downloaded( void ) {
 }
@@ -256,6 +284,16 @@ void OzUpdate_Frame( void ) {
 	int state;
 
 	if ( !asked ) {
+		// Settled once, and again only when oz_update_check changes: Wanted asks the Windows shell for the user
+		// folder (Sys_DefaultHomePath), which a game that isn't to ask did every frame of the session.
+		if ( oz_update_check->modified ) {
+			oz_update_check->modified = qfalse;
+			decided = qfalse;
+		}
+		if ( decided ) {
+			return;
+		}
+		decided = qtrue;
 		if ( !Wanted() ) {
 			return;
 		}
@@ -301,6 +339,7 @@ void OzUpdate_Frame( void ) {
 		}
 		downloading = qfalse;
 		if ( state == OZ_UPDATE_FAILED ) {
+			DropDownload();
 			Status( va( "The installer didn't download (%s).", error ), qtrue );
 			OpenPage();
 			return;
@@ -313,7 +352,8 @@ void OzUpdate_Frame( void ) {
 void OzUpdate_Init( void ) {
 	oz_update_check = Cvar_Get( "oz_update_check", "auto", 0 );
 	Cvar_SetDescription( oz_update_check, "Ask GitHub for a newer release at launch:\n auto - only from your own user folder\n 1 - always\n 0 - never" );
-	oz_update_url = Cvar_Get( "oz_update_url", OZ_UPDATE_DEFAULT_URL, 0 );
+	// command line only, and no game code or server may set it: the answer names the installer Update now runs
+	oz_update_url = Cvar_Get( "oz_update_url", OZ_UPDATE_DEFAULT_URL, CVAR_INIT | CVAR_PROTECTED );
 	Cvar_SetDescription( oz_update_url, "The latest release's JSON (GitHub's releases/latest)." );
 	oz_update_skip = Cvar_Get( "oz_update_skip", "", CVAR_ARCHIVE );
 	Cvar_SetDescription( oz_update_skip, "The release Skip this version passed over: not offered again at launch." );

@@ -112,6 +112,7 @@ static	qboolean	noGameRestart = qfalse;
 // (CPMA refuses clients that aren't running it yet, before Quake3e's own switch could happen)
 static qboolean		cl_connectGameCheck;
 static int			cl_connectGameCheckTime;
+static char			cl_connectGameChallenge[ 16 ];	// Oz: sent with that getinfo; only its echo is believed
 static qboolean		cl_connectAfterSwitch;
 
 #ifdef USE_CURL
@@ -291,6 +292,9 @@ void CL_StopRecord_f( void ) {
 		}
 
 		FS_Rename( tempName, finalName );
+#ifdef USE_OZ_UI
+		CL_OzDemo_Stopped( finalName );	// Oz: the match it holds goes in the replay library (P10)
+#endif
 	}
 
 	if ( !clc.demorecording ) {
@@ -1488,6 +1492,15 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 		return qfalse;
 	}
 
+#ifdef USE_CURL
+	// Oz: the map this connection was fetching from the map archives (CL_FetchMap) is given up with
+	// it. Left running after a cancelled join, the next join of the server found the download busy
+	// ("already downloading") and stopped with "couldn't be downloaded".
+	if ( download.mapAutoDownload && Com_DL_InProgress( &download ) ) {
+		Com_DL_Cleanup( &download );
+	}
+#endif
+
 	// send a disconnect message to the server
 	// send it a few times in case one is dropped
 	if ( cls.state >= CA_CONNECTED && cls.state != CA_CINEMATIC && !clc.demoplaying ) {
@@ -1898,6 +1911,11 @@ static void CL_Connect_f( void ) {
 	cl_connectGameCheck = ( cls.state == CA_CONNECTING && !cl_connectAfterSwitch );
 	cl_connectGameCheckTime = cls.realtime;
 	cl_connectAfterSwitch = qfalse;
+	{
+		unsigned int r;
+		Com_RandomBytes( (byte*)&r, sizeof( r ) );
+		Com_sprintf( cl_connectGameChallenge, sizeof( cl_connectGameChallenge ), "oz%08x", r );
+	}
 
 	Key_SetCatcher( 0 );
 	clc.connectTime = cls.realtime - RECONNECT_TIMEOUT; // CL_CheckForResend() will fire immediately
@@ -2239,7 +2257,11 @@ static void CL_DownloadsComplete( void ) {
 				clc.downloadRestart = qfalse;
 			}
 			clc.cURLDisconnected = qfalse;
-			CL_Reconnect_f();
+			// Oz: in front of whatever is queued, as the UI's own commands (a script's waits held the join back)
+			if ( cl_reconnectArgs->string[0] != '\0' && Q_stricmp( cl_reconnectArgs->string, "localhost" ) ) {
+				Cvar_Set( "ui_singlePlayerActive", "0" );
+				Cbuf_InsertText( va( "connect %s\n", cl_reconnectArgs->string ) );
+			}
 			return;
 		}
 	}
@@ -2372,6 +2394,109 @@ static void CL_BeginDownload( const char *localName, const char *remoteName ) {
 }
 
 
+#ifdef USE_CURL
+/*
+=================
+CL_OzRedirectFailed, CL_OzNoRedirect
+
+Oz: the paks a server's site (sv_dlURL) failed to give, by the server's name as connected to. A
+failed one ended the join with "Download Error", though the server would have sent the pak itself and
+the player may have had the map already (a Freeze Tag server whose sv_dlURL named an address its site
+had left). The download by cURL disconnects first and reconnects after, so the next gamestate lists the
+pak again: it then goes the other way (CL_NextDownload).
+=================
+*/
+static char cl_ozNoRedirectServer[ MAX_OSPATH ];
+static char cl_ozNoRedirect[ MAX_INFO_STRING ];	// @<local name>@<local name>...@
+
+static qboolean CL_OzNoRedirect( const char *localName ) {
+	char key[ MAX_OSPATH ];
+
+	if ( !cl_ozNoRedirect[0] || Q_stricmp( cl_ozNoRedirectServer, cls.servername ) ) {
+		return qfalse;
+	}
+	Com_sprintf( key, sizeof( key ), "@%s@", localName );
+	return Q_stristr( cl_ozNoRedirect, key ) != NULL;
+}
+
+void CL_OzRedirectFailed( const char *localName ) {
+	if ( !localName[0] ) {
+		return;
+	}
+	if ( Q_stricmp( cl_ozNoRedirectServer, cls.servername ) ) {
+		Q_strncpyz( cl_ozNoRedirectServer, cls.servername, sizeof( cl_ozNoRedirectServer ) );
+		cl_ozNoRedirect[0] = '\0';
+	}
+	if ( CL_OzNoRedirect( localName ) ) {
+		return;
+	}
+	if ( !cl_ozNoRedirect[0] ) {
+		Q_strncpyz( cl_ozNoRedirect, "@", sizeof( cl_ozNoRedirect ) );
+	}
+	if ( strlen( cl_ozNoRedirect ) + strlen( localName ) + 2 > sizeof( cl_ozNoRedirect ) ) {
+		return;		// a list this long: the rest are asked of the site again
+	}
+	Q_strcat( cl_ozNoRedirect, sizeof( cl_ozNoRedirect ), localName );
+	Q_strcat( cl_ozNoRedirect, sizeof( cl_ozNoRedirect ), "@" );
+}
+#endif
+
+
+/*
+=================
+CL_OzServerRefused, CL_OzDownloadRefused
+
+Oz: the paks a server refused to send over the connection (CL_ParseDownload), by the server's name as
+connected to, kept as the site's failures are (CL_OzRedirectFailed). A refusal ended the join with the
+server's sentence ("not found on server for autodownloading", "autodownloading is disabled"), though
+the player may have had the map already or the map archives had it. The pak is left out now, and the
+next gamestate lists it again: CL_NextDownload passes it by, so it is asked once.
+=================
+*/
+static char cl_ozRefusedServer[ MAX_OSPATH ];
+static char cl_ozRefused[ MAX_INFO_STRING ];	// @<local name>@<local name>...@
+
+static qboolean CL_OzServerRefused( const char *localName ) {
+	char key[ MAX_OSPATH ];
+
+	if ( !cl_ozRefused[0] || Q_stricmp( cl_ozRefusedServer, cls.servername ) ) {
+		return qfalse;
+	}
+	Com_sprintf( key, sizeof( key ), "@%s@", localName );
+	return Q_stristr( cl_ozRefused, key ) != NULL;
+}
+
+// the download in progress (clc.downloadName) was refused: qfalse if it can't be remembered
+qboolean CL_OzDownloadRefused( void ) {
+	const char *localName = clc.downloadName;
+
+	if ( !localName[0] ) {
+		return qfalse;
+	}
+	if ( Q_stricmp( cl_ozRefusedServer, cls.servername ) ) {
+		Q_strncpyz( cl_ozRefusedServer, cls.servername, sizeof( cl_ozRefusedServer ) );
+		cl_ozRefused[0] = '\0';
+	}
+	if ( CL_OzServerRefused( localName ) ) {
+		return qtrue;
+	}
+	if ( strlen( cl_ozRefused ) + strlen( localName ) + 3 > sizeof( cl_ozRefused ) ) {
+		return qfalse;	// it would be asked again at every gamestate
+	}
+	if ( !cl_ozRefused[0] ) {
+		Q_strncpyz( cl_ozRefused, "@", sizeof( cl_ozRefused ) );
+	}
+	Q_strcat( cl_ozRefused, sizeof( cl_ozRefused ), localName );
+	Q_strcat( cl_ozRefused, sizeof( cl_ozRefused ), "@" );
+	return qtrue;
+}
+
+
+#ifdef USE_CURL
+static qboolean CL_FetchMap( void );
+#endif
+static void CL_CheckMap( void );
+
 /*
 =================
 CL_NextDownload
@@ -2390,8 +2515,10 @@ void CL_NextDownload( void )
 	{
 		const char *zippath = FS_BuildOSPath(Cvar_VariableString("fs_homepath"), clc.downloadName, NULL );
 
-		if(!FS_CompareZipChecksum(zippath))
+		if(!FS_CompareZipChecksum(zippath)) {
+			FS_OzRemoveBadPak( zippath );	// Oz: it stayed in the folder and loaded at the next start
 			Com_Error(ERR_DROP, "Incorrect checksum for file: %s", clc.downloadName);
+		}
 	}
 
 	*clc.downloadTempName = *clc.downloadName = '\0';
@@ -2420,8 +2547,28 @@ void CL_NextDownload( void )
 		else
 			s = localName + strlen(localName); // point at the null byte
 
+		// Oz: the server refused this pak on this connection or an earlier one (CL_OzDownloadRefused)
+		if ( CL_OzServerRefused( localName ) ) {
+			Com_Printf( "%s: the server refused to send it, left out\n", localName );
+			memmove( clc.downloadList, s, strlen( s ) + 1 );
+			CL_NextDownload();
+			return;
+		}
+
 #ifdef USE_CURL
-		if(!(cl_allowDownload->integer & DLF_NO_REDIRECT)) {
+		if ( CL_OzNoRedirect( localName ) ) {
+			// Oz: the server's site failed to give this pak (CL_OzRedirectFailed): the server itself is
+			// asked, where it sends files; else the pak is left out, and the map archives are asked for
+			// a map still missing (CL_FetchMap)
+			if ( !( clc.sv_allowDownload & DLF_ENABLE ) || ( clc.sv_allowDownload & DLF_NO_UDP ) || ( cl_allowDownload->integer & DLF_NO_UDP ) ) {
+				Com_Printf( "%s: the server sends no files itself, left out\n", localName );
+				memmove( clc.downloadList, s, strlen( s ) + 1 );
+				CL_NextDownload();
+				return;
+			}
+			Com_Printf( "%s: asking the server itself\n", localName );
+		}
+		else if(!(cl_allowDownload->integer & DLF_NO_REDIRECT)) {
 			if(clc.sv_allowDownload & DLF_NO_REDIRECT) {
 				Com_Printf("WARNING: server does not "
 					"allow download redirection "
@@ -2469,6 +2616,22 @@ void CL_NextDownload( void )
 		memmove( clc.downloadList, s, strlen(s) + 1 );
 
 		return;
+	}
+
+	// Oz: nothing was downloaded, so no new gamestate is coming (CL_DownloadsComplete) and the paks
+	// still listed were all left out above: a map among them comes from the map archives, or the join
+	// stops here saying why, not at CM_LoadMap
+	if ( !clc.downloadRestart
+#ifdef USE_CURL
+		&& !clc.cURLUsed
+#endif
+		) {
+#ifdef USE_CURL
+		if ( CL_FetchMap() ) {
+			return;
+		}
+#endif
+		CL_CheckMap();
 	}
 
 	CL_DownloadsComplete();
@@ -2533,6 +2696,17 @@ static qboolean CL_FetchMap( void ) {
 		return qfalse;
 	}
 	Q_strncpyz( clc.mapFetched, mapname, sizeof( clc.mapFetched ) );
+	// Oz: this map is on its way already (the player's own dlmap): the join waits for that download
+	// in place of failing on "already downloading"
+	if ( Com_DL_InProgress( &download ) && !Q_stricmp( download.Name, mapname ) ) {
+		if ( !download.mapAutoDownload ) {
+			download.mapAutoDownload = qtrue;	// its end goes on with the join (Com_DL_Perform)
+			Cvar_Set( "cl_downloadName", download.Name );
+			Cvar_SetIntegerValue( "cl_downloadTime", cls.realtime );
+		}
+		cls.state = CA_CONNECTED;
+		return qtrue;
+	}
 	if ( CL_Download( "dlmap", mapname, qtrue ) ) {
 		cls.state = CA_CONNECTED; // prevent continue loading and shows the ui download progress screen
 		return qtrue;
@@ -2672,7 +2846,7 @@ static void CL_CheckForResend( void ) {
 		// Oz: ask for the server's mod before the challenge; connect as we are if it doesn't answer
 		if ( cl_connectGameCheck ) {
 			if ( cls.realtime - cl_connectGameCheckTime < 1500 ) {
-				NET_OutOfBandPrint( NS_CLIENT, &clc.serverAddress, "getinfo ozgame" );
+				NET_OutOfBandPrint( NS_CLIENT, &clc.serverAddress, "getinfo %s", cl_connectGameChallenge );
 				break;
 			}
 			cl_connectGameCheck = qfalse;
@@ -3006,6 +3180,8 @@ static void CL_ConnectGameInfo( const char *infoString ) {
 	char args[ MAX_CVAR_VALUE_STRING ];
 	char password[ MAX_CVAR_VALUE_STRING ];
 	char previous[ MAX_QPATH ];
+	char oldGame[ MAX_QPATH ];
+	qboolean oldGameSet;
 
 	cl_connectGameCheck = qfalse;
 	Q_strncpyz( game, Info_ValueForKey( infoString, "game" ), sizeof( game ) );
@@ -3023,12 +3199,24 @@ static void CL_ConnectGameInfo( const char *infoString ) {
 	Q_strncpyz( previous, Cvar_VariableString( "fs_game" ), sizeof( previous ) );
 	Com_Printf( "%s runs %s, switching mods\n", cls.servername, game );
 
+	// a way back set already (a match under a mod that came from Oz's menus) is kept across the switch:
+	// the disconnect inside it restored that game and forgot it, so the way back became the mod we
+	// were in, and leaving the server left the menus under that mod (as CL_DemoMapDownloaded keeps it)
+	oldGameSet = cl_oldGameSet;
+	Q_strncpyz( oldGame, cl_oldGame, sizeof( oldGame ) );
+	cl_oldGameSet = qfalse;
+
 	Cvar_Set( "fs_game", game );
 	Com_GameRestart( 0, qtrue );
 	Cvar_Set( "password", password );	// the server's password (the Server Browser's prompt): the restart reset it
 
 	// set after the switch: the disconnect inside it would restore the old game at once
-	if ( !cl_oldGameSet ) {
+	if ( oldGameSet ) {
+		if ( Q_stricmp( oldGame, game ) ) {	// not when the server runs the game to come back to
+			cl_oldGameSet = qtrue;
+			Q_strncpyz( cl_oldGame, oldGame, sizeof( cl_oldGame ) );
+		}
+	} else if ( !cl_oldGameSet ) {
 		cl_oldGameSet = qtrue;
 		Q_strncpyz( cl_oldGame, previous, sizeof( cl_oldGame ) );
 	}
@@ -3196,7 +3384,12 @@ static qboolean CL_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 	// server responding to an info broadcast
 	if ( !Q_stricmp(c, "infoResponse") ) {
 		if ( cl_connectGameCheck && cls.state == CA_CONNECTING && NET_CompareAdr( from, &clc.serverAddress ) ) {
-			CL_ConnectGameInfo( MSG_ReadString( msg ) );	// Oz
+			// Oz: the answer to this connection's own question only (the echoed challenge): any other
+			// packet with the server's address on it could have switched mods
+			const char *info = MSG_ReadString( msg );
+			if ( cl_connectGameChallenge[0] && !strcmp( Info_ValueForKey( info, "challenge" ), cl_connectGameChallenge ) ) {
+				CL_ConnectGameInfo( info );
+			}
 			return qfalse;
 		}
 		CL_ServerInfoPacket( from, msg );
@@ -3548,6 +3741,9 @@ void CL_Frame( int msec, int realMsec ) {
 			CL_StopRecord_f();
 		}
 	}
+#ifdef USE_OZ_UI
+	CL_OzDemo_Frame();	// Oz: a match on another server, recorded as your view (P10)
+#endif
 
 	// decide the simulation time
 	cls.frametime = msec;
@@ -4681,6 +4877,7 @@ void CL_Init( void ) {
 	OzHud_Init();	// Oz: the HUD (P6)
 	OzServers_Init();	// Oz: the community servers (P8b)
 	OzMods_Init();		// Oz: the mods a player brings (decision 24)
+	CL_OzDemo_Init();	// Oz: matches on other servers recorded as your view (P10)
 #endif
 #ifdef USE_OZ_ONLINE
 	CL_OzOnlineInit();	// Oz: online services (ENGINE_PLAN.md P7)

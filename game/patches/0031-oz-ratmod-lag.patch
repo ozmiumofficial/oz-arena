@@ -20,7 +20,6 @@ gametypes and everything else that isn't lag. Debug lines: g_delagMissileDebug 1
 the cgame.
 
 diff --git a/code/cgame/cg_ents.c b/code/cgame/cg_ents.c
-index 5a68ea8..520b8c6 100644
 --- a/code/cgame/cg_ents.c
 +++ b/code/cgame/cg_ents.c
 @@ -417,6 +417,11 @@ static void CG_Missile( centity_t *cent ) {
@@ -62,7 +61,6 @@ index 5a68ea8..520b8c6 100644
  	if ( cent->currentState.modelindex == TEAM_RED ) {
  		col = 1;
 diff --git a/code/cgame/cg_event.c b/code/cgame/cg_event.c
-index 921945e..2442078 100644
 --- a/code/cgame/cg_event.c
 +++ b/code/cgame/cg_event.c
 @@ -966,22 +966,45 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
@@ -131,7 +129,6 @@ index 921945e..2442078 100644
  
  	CG_EntityEvent( cent, cent->lerpOrigin );
 diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
-index f91772d..6526ca1 100644
 --- a/code/cgame/cg_local.h
 +++ b/code/cgame/cg_local.h
 @@ -161,6 +161,24 @@ typedef struct {
@@ -240,7 +237,7 @@ index f91772d..6526ca1 100644
  void CG_MissileHitPlayer( int weapon, vec3_t origin, vec3_t dir, int entityNum );
  void CG_ShotgunFire( entityState_t *es );
  void CG_Bullet( vec3_t origin, int sourceEntityNum, vec3_t normal, qboolean flesh, int fleshEntityNum );
-@@ -1424,6 +1479,22 @@ void CG_RailTrail( clientInfo_t *ci, vec3_t start, vec3_t end );
+@@ -1424,6 +1479,23 @@ void CG_RailTrail( clientInfo_t *ci, vec3_t start, vec3_t end );
  qboolean CG_UnlaggedPredicted( const entityState_t *es, int shooter, int weapon );
  void CG_PredictWeaponEffects( centity_t *cent );
  void CG_ProjectileNudge( centity_t *cent );
@@ -257,13 +254,14 @@ index f91772d..6526ca1 100644
 +int CG_ProjectileNudgeTimeshift( centity_t *cent );
 +int CG_ReliablePing( void );
 +void CG_ParseRatServerinfo( const char *info );
++void CG_OzRestoreTimeNudge( void );
 +qboolean CG_MissileExploded( const entityState_t *es );
 +int CG_MissileTrailTime( centity_t *cent );
 +predictedMissileStatus_t *CG_EventMissileStatus( centity_t *cent );
  
  void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi );
  void CG_AddViewWeapon (playerState_t *ps);
-@@ -1450,6 +1521,7 @@ void	CG_ImpactMark( qhandle_t markShader,
+@@ -1450,6 +1522,7 @@ void	CG_ImpactMark( qhandle_t markShader,
  void	CG_InitLocalEntities( void );
  localEntity_t	*CG_AllocLocalEntity( void );
  void	CG_FreeLocalEntity( localEntity_t *le );
@@ -272,7 +270,6 @@ index f91772d..6526ca1 100644
  
  //
 diff --git a/code/cgame/cg_localents.c b/code/cgame/cg_localents.c
-index 34d5b8b..b6d3c4d 100644
 --- a/code/cgame/cg_localents.c
 +++ b/code/cgame/cg_localents.c
 @@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -330,7 +327,6 @@ index 34d5b8b..b6d3c4d 100644
  /*
  ====================================================================================
 diff --git a/code/cgame/cg_main.c b/code/cgame/cg_main.c
-index 3ff3036..00d5919 100644
 --- a/code/cgame/cg_main.c
 +++ b/code/cgame/cg_main.c
 @@ -300,6 +300,19 @@ static cvarTable_t cvarTable[] = {
@@ -353,8 +349,15 @@ index 3ff3036..00d5919 100644
  #ifdef MISSIONPACK
  	{ &cg_redTeamName, "g_redteam", DEFAULT_REDTEAM_NAME, CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_USERINFO },
  	{ &cg_blueTeamName, "g_blueteam", DEFAULT_BLUETEAM_NAME, CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_USERINFO },
+@@ -1978,6 +1991,7 @@ Called before every level change or subsystem restart
+ void CG_Shutdown( void ) {
+ 	// some mods may need to do cleanup work here,
+ 	// like closing files or archiving session data
++	CG_OzRestoreTimeNudge();	// Oz: the cl_timeNudge a g_allowTimenudge 0 server took away (cg_unlagged.c)
+ }
+ 
+ 
 diff --git a/code/cgame/cg_oz_fx.c b/code/cgame/cg_oz_fx.c
-index 4ff0095..7653c82 100644
 --- a/code/cgame/cg_oz_fx.c
 +++ b/code/cgame/cg_oz_fx.c
 @@ -1722,6 +1722,7 @@ plasma and the BFG, beside id's smoke.
@@ -417,7 +420,6 @@ index 4ff0095..7653c82 100644
  
  /*
 diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
-index ea5b367..7da2562 100644
 --- a/code/cgame/cg_predict.c
 +++ b/code/cgame/cg_predict.c
 @@ -339,6 +339,21 @@ static void CG_TouchItem( centity_t *cent ) {
@@ -487,7 +489,7 @@ index ea5b367..7da2562 100644
  		} else if ( ent->eType == ET_PUSH_TRIGGER ) {
  			BG_TouchJumpPad( &cg.predictedPlayerState, ent );
  		}
-@@ -505,6 +547,7 @@ void CG_PredictPlayerState( void ) {
+@@ -507,6 +549,7 @@ void CG_PredictPlayerState( void ) {
  	qboolean	checked;
  
  	cg.hyperspace = qfalse;	// will be set if touching a trigger_teleport
@@ -496,7 +498,6 @@ index ea5b367..7da2562 100644
  	// Oz: the last frame drew the player between two fixed steps: predict from where it really was
  	if ( cg.ozStepShift ) {
 diff --git a/code/cgame/cg_servercmds.c b/code/cgame/cg_servercmds.c
-index beb7739..c22f579 100644
 --- a/code/cgame/cg_servercmds.c
 +++ b/code/cgame/cg_servercmds.c
 @@ -202,6 +202,7 @@ void CG_ParseServerinfo( void ) {
@@ -508,7 +509,6 @@ index beb7739..c22f579 100644
  	Com_sprintf( cgs.mapname, sizeof( cgs.mapname ), "maps/%s.bsp", mapname );
  	Q_strncpyz( cgs.redTeam, Info_ValueForKey( info, "g_redTeam" ), sizeof(cgs.redTeam) );
 diff --git a/code/cgame/cg_snapshot.c b/code/cgame/cg_snapshot.c
-index ce5faca..d5a966b 100644
 --- a/code/cgame/cg_snapshot.c
 +++ b/code/cgame/cg_snapshot.c
 @@ -40,6 +40,15 @@ static void CG_ResetEntity( centity_t *cent ) {
@@ -528,7 +528,6 @@ index ce5faca..d5a966b 100644
  	VectorCopy (cent->currentState.origin, cent->lerpOrigin);
  	VectorCopy (cent->currentState.angles, cent->lerpAngles);
 diff --git a/code/cgame/cg_unlagged.c b/code/cgame/cg_unlagged.c
-index bebe264..2faf8b8 100644
 --- a/code/cgame/cg_unlagged.c
 +++ b/code/cgame/cg_unlagged.c
 @@ -31,10 +31,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -626,7 +625,7 @@ index bebe264..2faf8b8 100644
  			|| s->otherEntityNum == cg.predictedPlayerState.clientNum ) {
  		return;
  	}
-@@ -271,3 +322,586 @@ void CG_ProjectileNudge( centity_t *cent ) {
+@@ -271,3 +322,617 @@ void CG_ProjectileNudge( centity_t *cent ) {
  	CG_Trace( &tr, cent->lerpOrigin, vec3_origin, vec3_origin, ahead, s->number, MASK_SHOT );
  	VectorCopy( tr.endpos, cent->lerpOrigin );
  }
@@ -691,10 +690,41 @@ index bebe264..2faf8b8 100644
 +	cgs.predictedMissileNudge = atoi( Info_ValueForKey( info, "g_delagMissileBaseNudge" ) );
 +	allow = Info_ValueForKey( info, "g_allowTimenudge" );
 +	cgs.allowTimenudge = !*allow || atoi( allow );
++	// Ratmod's g_allowTimenudge 0. Oz: the player's own cl_timeNudge is kept (cg_ozSavedTimeNudge, archived
++	// in case the game doesn't get to put it back) and comes back as the cgame shuts down or a server allows
++	// it again: it used to stay 0 for good after one such server
++	trap_Cvar_Register( NULL, "cg_ozSavedTimeNudge", "", CVAR_ARCHIVE );
 +	trap_Cvar_VariableStringBuffer( "cl_timeNudge", nudge, sizeof( nudge ) );
-+	if ( !cgs.allowTimenudge && atoi( nudge ) != 0 ) {
-+		trap_Cvar_Set( "cl_timeNudge", "0" );	// Ratmod's g_allowTimenudge 0
++	if ( !cgs.allowTimenudge ) {
++		if ( atoi( nudge ) != 0 ) {
++			trap_Cvar_Set( "cg_ozSavedTimeNudge", nudge );
++			trap_Cvar_Set( "cl_timeNudge", "0" );
++		}
++	} else {
++		CG_OzRestoreTimeNudge();
 +	}
++}
++
++
++/*
++===================
++CG_OzRestoreTimeNudge
++
++The cl_timeNudge a g_allowTimenudge 0 server took away, back (CG_Shutdown, CG_ParseRatServerinfo)
++===================
++*/
++void CG_OzRestoreTimeNudge( void ) {
++	char	nudge[16], saved[16];
++
++	trap_Cvar_VariableStringBuffer( "cg_ozSavedTimeNudge", saved, sizeof( saved ) );
++	if ( !saved[0] ) {
++		return;
++	}
++	trap_Cvar_VariableStringBuffer( "cl_timeNudge", nudge, sizeof( nudge ) );
++	if ( atoi( nudge ) == 0 ) {		// else the player has set another since
++		trap_Cvar_Set( "cl_timeNudge", saved );
++	}
++	trap_Cvar_Set( "cg_ozSavedTimeNudge", "" );
 +}
 +
 +
@@ -1214,7 +1244,6 @@ index bebe264..2faf8b8 100644
 +	bolt->renderfx = cg_weapons[weapon].missileRenderfx | RF_NOSHADOW;
 +}
 diff --git a/code/cgame/cg_view.c b/code/cgame/cg_view.c
-index 05b95b5..95cb407 100644
 --- a/code/cgame/cg_view.c
 +++ b/code/cgame/cg_view.c
 @@ -844,6 +844,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
@@ -1226,7 +1255,6 @@ index 05b95b5..95cb407 100644
  	CG_AddViewWeapon( &cg.predictedPlayerState );
  
 diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
-index 5cd7888..d7df875 100644
 --- a/code/cgame/cg_weapons.c
 +++ b/code/cgame/cg_weapons.c
 @@ -23,6 +23,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -1393,10 +1421,9 @@ index 5cd7888..d7df875 100644
  	default:
  		break;
 diff --git a/code/game/g_active.c b/code/game/g_active.c
-index 330dfb7..f56d1c5 100644
 --- a/code/game/g_active.c
 +++ b/code/game/g_active.c
-@@ -1019,6 +1019,9 @@ void ClientThink_real( gentity_t *ent ) {
+@@ -1031,6 +1031,9 @@ void ClientThink_real( gentity_t *ent ) {
  	// touch other objects
  	ClientImpacts( ent, &pm );
  
@@ -1407,7 +1434,6 @@ index 330dfb7..f56d1c5 100644
  	if (ent->client->ps.eventSequence != oldEventSequence) {
  		ent->eventTime = level.time;
 diff --git a/code/game/g_cmds.c b/code/game/g_cmds.c
-index 135ac76..b1d8f5f 100644
 --- a/code/game/g_cmds.c
 +++ b/code/game/g_cmds.c
 @@ -69,7 +69,10 @@ void DeathmatchScoreboardMessage( gentity_t *ent ) {
@@ -1423,7 +1449,6 @@ index 135ac76..b1d8f5f 100644
  
  		if( cl->accuracy_shots ) {
 diff --git a/code/game/g_local.h b/code/game/g_local.h
-index 010236f..7519285 100644
 --- a/code/game/g_local.h
 +++ b/code/game/g_local.h
 @@ -174,6 +174,11 @@ struct gentity_s {
@@ -1438,7 +1463,7 @@ index 010236f..7519285 100644
  };
  
  
-@@ -750,6 +755,20 @@ extern	vmCvar_t	g_proxMineTimeout;
+@@ -754,6 +759,20 @@ extern	vmCvar_t	g_proxMineTimeout;
  extern	vmCvar_t	g_localTeamPref;
  extern	vmCvar_t	g_delagHitscan;
  extern	vmCvar_t	g_delagMax;
@@ -1459,7 +1484,7 @@ index 010236f..7519285 100644
  
  //
  // g_unlagged.c (Oz: Unlagged 2.01's lag compensation)
-@@ -763,6 +782,24 @@ void G_ResetHistory( gentity_t *ent );
+@@ -767,6 +786,28 @@ void G_ResetHistory( gentity_t *ent );
  void G_DoTimeShiftFor( gentity_t *ent );
  void G_UndoTimeShiftFor( gentity_t *ent );
  void G_UnTimeShiftClient( gentity_t *ent );
@@ -1476,6 +1501,10 @@ index 010236f..7519285 100644
 +#define	DELAG_MAX_BACKTRACK	( g_delagMissileMaxLatency.integer + 1000 / g_ozSvFps * 2 )	// g_ozSvFps is never 0
 +extern int	g_ozSvFps;
 +void G_SetMissileLaunchTime( gentity_t *self, gentity_t *bolt );
++int G_RealTime( void );		// level.time, also while a missile's delag run has it turned back
++void G_UnlaggedClientClear( int clientNum );
++void G_UnlaggedTeleported( gentity_t *ent );
++int G_UnlaggedFloor( gentity_t *ent, int time );
 +void G_MissileRunDelag( gentity_t *ent, int stepmsec );
 +void G_ImmediateLaunchMissile( gentity_t *ent );
 +void G_ImmediateRunClientMissiles( gentity_t *client );
@@ -1485,7 +1514,6 @@ index 010236f..7519285 100644
  void	trap_Print( const char *text );
  void	trap_Error( const char *text ) Q_NO_RETURN;
 diff --git a/code/game/g_main.c b/code/game/g_main.c
-index c486b8b..3146960 100644
 --- a/code/game/g_main.c
 +++ b/code/game/g_main.c
 @@ -85,6 +85,23 @@ vmCvar_t	g_listEntity;
@@ -1512,7 +1540,7 @@ index c486b8b..3146960 100644
  #ifdef MISSIONPACK
  vmCvar_t	g_obeliskHealth;
  vmCvar_t	g_obeliskRegenPeriod;
-@@ -187,7 +204,27 @@ static cvarTable_t		gameCvarTable[] = {
+@@ -189,7 +206,27 @@ static cvarTable_t		gameCvarTable[] = {
  
  	// Oz: Unlagged's lag compensation: instant hits where the shooter saw them, no further back than g_delagMax ms
  	{ &g_delagHitscan, "g_delagHitscan", "1", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qtrue },
@@ -1541,7 +1569,7 @@ index c486b8b..3146960 100644
  
  };
  
-@@ -497,6 +534,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
+@@ -499,6 +536,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
  	// parse the key/value pairs and spawn gentities
  	G_SpawnEntitiesFromString();
  
@@ -1550,7 +1578,7 @@ index c486b8b..3146960 100644
  	// general initialization
  	G_FindTeams();
  
-@@ -1195,7 +1234,10 @@ void LogExit( const char *string ) {
+@@ -1197,7 +1236,10 @@ void LogExit( const char *string ) {
  			continue;
  		}
  
@@ -1562,7 +1590,7 @@ index c486b8b..3146960 100644
  
  		G_LogPrintf( "score: %i  ping: %i  client: %i %s\n", cl->ps.persistant[PERS_SCORE], ping, level.sortedClients[i],	cl->pers.netname );
  #ifdef MISSIONPACK
-@@ -1843,6 +1885,15 @@ void G_RunFrame( int levelTime ) {
+@@ -1845,6 +1887,15 @@ void G_RunFrame( int levelTime ) {
  	level.previousTime = level.time;
  	level.time = levelTime;
  	G_UnlaggedFrameStart();	// Oz: Unlagged's lag compensation (g_unlagged.c)
@@ -1578,7 +1606,7 @@ index c486b8b..3146960 100644
  
  	// get any cvar changes
  	G_UpdateCvars();
-@@ -1888,6 +1939,12 @@ void G_RunFrame( int levelTime ) {
+@@ -1890,6 +1941,12 @@ void G_RunFrame( int levelTime ) {
  		}
  
  		if ( ent->s.eType == ET_MISSILE ) {
@@ -1592,10 +1620,9 @@ index c486b8b..3146960 100644
  			continue;
  		}
 diff --git a/code/game/g_misc.c b/code/game/g_misc.c
-index 169022d..782da04 100644
 --- a/code/game/g_misc.c
 +++ b/code/game/g_misc.c
-@@ -124,7 +124,10 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
+@@ -124,7 +124,12 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
  
  	// Oz: Unlagged's history starts again past the teleporter, so no shot takes him back through it
  	// (Unlagged reset it before he moved)
@@ -1603,15 +1630,16 @@ index 169022d..782da04 100644
 +	// Ratmod's g_delagAllowHitsAfterTele 1 (its default) keeps it: what the shooter saw before the teleport counts
 +	if ( !g_delagAllowHitsAfterTele.integer ) {
 +		G_ResetHistory( player );
++	} else {
++		G_UnlaggedTeleported( player );	// no shot finds him between the two places
 +	}
  }
  
  
 diff --git a/code/game/g_missile.c b/code/game/g_missile.c
-index 76278dc..9dad55e 100644
 --- a/code/game/g_missile.c
 +++ b/code/game/g_missile.c
-@@ -24,6 +24,138 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+@@ -24,6 +24,161 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  
  #define	MISSILE_PRESTEP_TIME	50
  
@@ -1632,16 +1660,28 @@ index 76278dc..9dad55e 100644
 +==============================================================================
 +*/
 +
++// The delag run below turns level.time back while a missile flies its first frames. What it does on the way
++// still happens now: an event stamped with the turned back time was cleared as too old before any snapshot
++// carried it (no explosion, no obituary for a shooter 300 ms behind), a kill's reward, the victim's respawn
++// delay and the time shift's "saved this frame" mark went by it too. Those read the time here.
++static int	delagRealTime;
++static int	delagRunning;
++
++int G_RealTime( void ) {
++	return delagRunning ? delagRealTime : level.time;
++}
++
 +void G_SetMissileLaunchTime( gentity_t *self, gentity_t *bolt ) {
 +	bolt->needsDelag = qfalse;
 +	bolt->missileRan = 0;
-+	if ( !self || !self->client ) {
-+		bolt->s.pos.trTime = level.time;
-+		bolt->launchTime = bolt->s.pos.trTime;
-+		return;
-+	}
-+	if ( !g_delagMissiles.integer ) {
++	if ( !self || !self->client || !g_delagMissiles.integer ) {
++		// id's 50 ms ahead, for a map's shooter (shooter_rocket...) too; its nails start at the frame's time
 +		bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;
++#ifdef MISSIONPACK
++		if ( bolt->s.weapon == WP_NAILGUN ) {
++			bolt->s.pos.trTime = level.time;
++		}
++#endif
 +		bolt->launchTime = bolt->s.pos.trTime;
 +		return;
 +	}
@@ -1656,6 +1696,12 @@ index 76278dc..9dad55e 100644
 +		bolt->s.pos.trTime = level.time - g_delagMissileMaxLatency.integer;
 +	} else if ( bolt->s.pos.trTime > level.time ) {
 +		// no projectiles from the future: evaluated at level.time it would move backwards from its launch
++		bolt->s.pos.trTime = level.time;
++	}
++
++	// Oz: nor from further back than his measured ping allows (g_unlagged.c)
++	bolt->s.pos.trTime = G_UnlaggedFloor( self, bolt->s.pos.trTime );
++	if ( bolt->s.pos.trTime > level.time ) {
 +		bolt->s.pos.trTime = level.time;
 +	}
 +
@@ -1687,11 +1733,16 @@ index 76278dc..9dad55e 100644
 +			continue;
 +		}
 +		G_TimeShiftAllClients( t, ent->parent );
++		if ( !delagRunning ) {
++			delagRealTime = levelTimeSaved;
++		}
++		delagRunning++;
 +		level.time = t + stepmsec;
 +		level.previousTime = t;
 +		G_RunMissile( ent );
 +		level.time = levelTimeSaved;
 +		level.previousTime = prevTimeSaved;
++		delagRunning--;
 +		G_UnTimeShiftAllClients( ent->parent );
 +	}
 +	if ( g_delagMissileDebug.integer ) {
@@ -1750,7 +1801,7 @@ index 76278dc..9dad55e 100644
  /*
  ================
  G_BounceMissile
-@@ -420,12 +552,24 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
+@@ -420,12 +575,24 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace ) {
  
  	ent->freeAfterEvent = qtrue;
  
@@ -1779,7 +1830,7 @@ index 76278dc..9dad55e 100644
  
  	// splash damage (doesn't apply to person directly hit)
  	if ( ent->splashDamage ) {
-@@ -450,6 +594,11 @@ void G_RunMissile( gentity_t *ent ) {
+@@ -450,6 +617,11 @@ void G_RunMissile( gentity_t *ent ) {
  	trace_t		tr;
  	int			passent;
  
@@ -1791,7 +1842,7 @@ index 76278dc..9dad55e 100644
  	// get current position
  	BG_EvaluateTrajectory( &ent->s.pos, level.time, origin );
  
-@@ -492,7 +641,7 @@ void G_RunMissile( gentity_t *ent ) {
+@@ -492,7 +664,7 @@ void G_RunMissile( gentity_t *ent ) {
  			return;
  		}
  		G_MissileImpact( ent, &tr );
@@ -1800,7 +1851,7 @@ index 76278dc..9dad55e 100644
  			return;		// exploded
  		}
  	}
-@@ -543,7 +692,7 @@ gentity_t *fire_plasma (gentity_t *self, vec3_t start, vec3_t dir) {
+@@ -543,7 +715,7 @@ gentity_t *fire_plasma (gentity_t *self, vec3_t start, vec3_t dir) {
  	bolt->target_ent = NULL;
  
  	bolt->s.pos.trType = TR_LINEAR;
@@ -1809,7 +1860,7 @@ index 76278dc..9dad55e 100644
  	VectorCopy( start, bolt->s.pos.trBase );
  	G_QLMissile( bolt, WP_PLASMAGUN, dir, 2000 );	// q3core: Quake Live's numbers
  	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
-@@ -586,7 +735,7 @@ gentity_t *fire_grenade (gentity_t *self, vec3_t start, vec3_t dir) {
+@@ -586,7 +758,7 @@ gentity_t *fire_grenade (gentity_t *self, vec3_t start, vec3_t dir) {
  	bolt->target_ent = NULL;
  
  	bolt->s.pos.trType = TR_GRAVITY;
@@ -1818,7 +1869,7 @@ index 76278dc..9dad55e 100644
  	VectorCopy( start, bolt->s.pos.trBase );
  	G_QLMissile( bolt, WP_GRENADE_LAUNCHER, dir, 700 );	// q3core: Quake Live's numbers
  	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
-@@ -628,7 +777,7 @@ gentity_t *fire_bfg (gentity_t *self, vec3_t start, vec3_t dir) {
+@@ -628,7 +800,7 @@ gentity_t *fire_bfg (gentity_t *self, vec3_t start, vec3_t dir) {
  	bolt->target_ent = NULL;
  
  	bolt->s.pos.trType = TR_LINEAR;
@@ -1827,7 +1878,7 @@ index 76278dc..9dad55e 100644
  	VectorCopy( start, bolt->s.pos.trBase );
  	G_QLMissile( bolt, WP_BFG, dir, 2000 );	// q3core: Quake Live's numbers
  	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
-@@ -669,7 +818,7 @@ gentity_t *fire_rocket (gentity_t *self, vec3_t start, vec3_t dir) {
+@@ -669,7 +841,7 @@ gentity_t *fire_rocket (gentity_t *self, vec3_t start, vec3_t dir) {
  	bolt->target_ent = NULL;
  
  	bolt->s.pos.trType = TR_LINEAR;
@@ -1836,7 +1887,7 @@ index 76278dc..9dad55e 100644
  	VectorCopy( start, bolt->s.pos.trBase );
  	G_QLMissile( bolt, WP_ROCKET_LAUNCHER, dir, 900 );	// q3core: Quake Live's numbers
  	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
-@@ -702,7 +851,7 @@ gentity_t *fire_grapple (gentity_t *self, vec3_t start, vec3_t dir) {
+@@ -702,7 +874,7 @@ gentity_t *fire_grapple (gentity_t *self, vec3_t start, vec3_t dir) {
  	hook->target_ent = NULL;
  
  	hook->s.pos.trType = TR_LINEAR;
@@ -1845,7 +1896,7 @@ index 76278dc..9dad55e 100644
  	hook->s.otherEntityNum = self->s.number; // use to match beam in client
  	VectorCopy( start, hook->s.pos.trBase );
  	VectorScale( dir, 800, hook->s.pos.trDelta );
-@@ -745,7 +894,7 @@ gentity_t *fire_nail( gentity_t *self, vec3_t start, vec3_t forward, vec3_t righ
+@@ -745,7 +917,7 @@ gentity_t *fire_nail( gentity_t *self, vec3_t start, vec3_t forward, vec3_t righ
  	bolt->target_ent = NULL;
  
  	bolt->s.pos.trType = TR_LINEAR;
@@ -1854,7 +1905,7 @@ index 76278dc..9dad55e 100644
  	VectorCopy( start, bolt->s.pos.trBase );
  
  	r = random() * M_PI * 2.0f;
-@@ -803,7 +952,7 @@ gentity_t *fire_prox( gentity_t *self, vec3_t start, vec3_t dir ) {
+@@ -803,7 +975,7 @@ gentity_t *fire_prox( gentity_t *self, vec3_t start, vec3_t dir ) {
  	bolt->s.generic1 = self->client->sess.sessionTeam;
  
  	bolt->s.pos.trType = TR_GRAVITY;
@@ -1864,7 +1915,6 @@ index 76278dc..9dad55e 100644
  	VectorScale( dir, 700, bolt->s.pos.trDelta );
  	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
 diff --git a/code/game/g_ql.c b/code/game/g_ql.c
-index c52603b..6cf0b84 100644
 --- a/code/game/g_ql.c
 +++ b/code/game/g_ql.c
 @@ -328,3 +328,31 @@ void G_QLSpawnLoadout( gentity_t *ent ) {
@@ -1900,7 +1950,6 @@ index c52603b..6cf0b84 100644
 +	}
 +}
 diff --git a/code/game/g_trigger.c b/code/game/g_trigger.c
-index f43163a..c08ce50 100644
 --- a/code/game/g_trigger.c
 +++ b/code/game/g_trigger.c
 @@ -294,6 +294,45 @@ void trigger_teleporter_touch (gentity_t *self, gentity_t *other, trace_t *trace
@@ -1950,10 +1999,17 @@ index f43163a..c08ce50 100644
  Allows client side prediction of teleportation events.
  Must point at a target_position, which will be the teleport destination.
 diff --git a/code/game/g_unlagged.c b/code/game/g_unlagged.c
-index 83f183d..6879936 100644
 --- a/code/game/g_unlagged.c
 +++ b/code/game/g_unlagged.c
-@@ -63,6 +63,11 @@ static struct {
+@@ -50,6 +50,7 @@ typedef struct {
+ 	vec3_t		mins, maxs;
+ 	vec3_t		currentOrigin;
+ 	int			leveltime;
++	qboolean	teleported;			// Oz: the first record past a teleporter: no place between it and the one before
+ } clientHistory_t;
+ 
+ static struct {
+@@ -63,9 +64,81 @@ static struct {
  	int				historyHead;
  	clientHistory_t	history[NUM_CLIENT_HISTORY];
  	clientHistory_t	saved;				// where he was before a time shift
@@ -1962,10 +2018,81 @@ index 83f183d..6879936 100644
 +	int				realPing;
 +	qboolean		ozDelag;			// his cgame knows Ratmod's exploded missiles (cg_ozDelagVersion)
 +	int				eqDelay;			// the ping equalizer's hold on his packets (sv_ozEqDelays)
++	qboolean		teleported;			// he went through a teleporter since the last record (G_UnlaggedTeleported)
++	int				resetTime;			// when his history began (G_ResetHistory: a spawn)
  } ul[MAX_CLIENTS];
  
- static int	frameStartTime;		// trap_Milliseconds() as this server frame began
-@@ -86,6 +91,10 @@ void G_UnlaggedUserinfo( gentity_t *ent, const char *userinfo ) {
+-static int	frameStartTime;		// trap_Milliseconds() as this server frame began
++static int		frameStartTime;		// trap_Milliseconds() as this server frame began
++static qboolean	eqWritten;			// sv_ozEqDelays holds what ul[].eqDelay says
++
++
++/*
++============
++G_UnlaggedClientClear
++
++Oz: a client slot's state starts empty (ClientConnect, ClientDisconnect): the next player in it began with the
++last one's ping samples and equalizer hold, and after a map change the engine still held packets by a list
++this game, starting from zero, saw nothing to change in
++============
++*/
++void G_UnlaggedClientClear( int clientNum ) {
++	if ( clientNum < 0 || clientNum >= MAX_CLIENTS ) {
++		return;
++	}
++	memset( &ul[clientNum], 0, sizeof( ul[clientNum] ) );
++	ul[clientNum].delag = 1;
++	eqWritten = qfalse;
++}
++
++
++/*
++============
++G_UnlaggedTeleported
++
++Oz: he went through a teleporter and his history is kept (g_delagAllowHitsAfterTele 1): his next record is
++marked, so a shot from between the two finds him where its shooter still saw him, at the teleporter, and not
++somewhere on the line through the map between the two places
++============
++*/
++void G_UnlaggedTeleported( gentity_t *ent ) {
++	const int	n = ent - g_entities;
++
++	if ( n >= 0 && n < MAX_CLIENTS ) {
++		ul[n].teleported = qtrue;
++	}
++}
++
++
++/*
++============
++G_UnlaggedFloor
++
++Oz: the earliest time a shot of his may be taken back to. A command's time is the client's own word: a
++changed client could claim g_delagMax of lag with a ping of 20. What the engine measured bounds it: his ping,
++the equalizer's hold, a server frame and 100 ms for the snapshots he draws between and a late packet. Not
++while the engine has no ping for him yet (999), nor for the server's own player
++============
++*/
++int G_UnlaggedFloor( gentity_t *ent, int time ) {
++	const int	n = ent - g_entities;
++	int			frame, earliest;
++
++	if ( n < 0 || n >= MAX_CLIENTS || !ent->client || ent->client->pers.localClient || ( ent->r.svFlags & SVF_BOT )
++			|| ent->client->ps.ping < 0 || ent->client->ps.ping >= 999 ) {
++		return time;
++	}
++	frame = level.time - level.previousTime;
++	if ( frame <= 0 || frame > 200 ) {
++		frame = 50;
++	}
++	earliest = G_RealTime() - ( ent->client->ps.ping + ul[n].eqDelay + frame + 100 );
++	return time < earliest ? earliest : time;
++}
+ 
+ 
+ /*
+@@ -86,6 +159,10 @@ void G_UnlaggedUserinfo( gentity_t *ent, const char *userinfo ) {
  	ul[n].delag = *s ? atoi( s ) : 1;
  	// negative values would let people shoot others *long* after they had left the area, on purpose
  	ul[n].cmdTimeNudge = Com_Clamp( 0, 999, atoi( Info_ValueForKey( userinfo, "cg_cmdTimeNudge" ) ) );
@@ -1976,7 +2103,7 @@ index 83f183d..6879936 100644
  }
  
  
-@@ -106,6 +115,130 @@ void G_UnlaggedClientThink( gentity_t *ent, int serverTime ) {
+@@ -106,6 +183,133 @@ void G_UnlaggedClientThink( gentity_t *ent, int serverTime ) {
  	ul[n].attackTime = serverTime;
  	// keep track of this for later - we'll use this to decide whether or not to extrapolate this client
  	ul[n].lastUpdateFrame = level.framenum;
@@ -2089,8 +2216,11 @@ index 83f183d..6879936 100644
 +		ul[i].eqDelay = want;
 +		Q_strcat( list, sizeof( list ), va( "%i ", want ) );
 +	}
-+	if ( changed ) {
++	// also the first time after the game starts and after a client came or went: the engine may still hold
++	// packets by the list of the map before, or for the player who had the slot
++	if ( changed || !eqWritten ) {
 +		trap_Cvar_Set( "sv_ozEqDelays", list );
++		eqWritten = qtrue;
 +	}
 +}
 +
@@ -2107,7 +2237,72 @@ index 83f183d..6879936 100644
  }
  
  
-@@ -261,7 +394,7 @@ G_TimeShiftAllClients
+@@ -140,9 +344,14 @@ void G_ResetHistory( gentity_t *ent ) {
+ 		VectorCopy( ent->r.maxs, ul[n].history[i].maxs );
+ 		VectorCopy( ent->r.currentOrigin, ul[n].history[i].currentOrigin );
+ 		ul[n].history[i].leveltime = time;
++		ul[n].history[i].teleported = qfalse;
+ 	}
+ 	// and this is as good a time as any to clear the saved state
+ 	ul[n].saved.leveltime = 0;
++	// Oz: the records before now are made up: a shot from before he was here leaves him where he is
++	// (G_TimeShiftClient), and doesn't find him at a spawn point its shooter saw empty
++	ul[n].resetTime = level.time;
++	ul[n].teleported = qfalse;
+ }
+ 
+ 
+@@ -170,6 +379,8 @@ static void G_StoreHistory( gentity_t *ent ) {
+ 	VectorCopy( ent->s.pos.trBase, ul[n].history[head].currentOrigin );
+ 	SnapVector( ul[n].history[head].currentOrigin );
+ 	ul[n].history[head].leveltime = level.time;
++	ul[n].history[head].teleported = ul[n].teleported;
++	ul[n].teleported = qfalse;
+ }
+ 
+ 
+@@ -201,6 +412,11 @@ static void G_TimeShiftClient( gentity_t *ent, int time ) {
+ 	const int	n = ent - g_entities;
+ 	int			j, k;
+ 
++	// Oz: from before his history began (he spawned since): he stays where he is
++	if ( time < ul[n].resetTime ) {
++		return;
++	}
++
+ 	// find two entries in the history whose times sandwich "time"
+ 	// assumes no two adjacent records have the same timestamp
+ 	j = k = ul[n].historyHead;
+@@ -220,12 +436,13 @@ static void G_TimeShiftClient( gentity_t *ent, int time ) {
+ 	// if we got past the first iteration above, we've sandwiched (or wrapped)
+ 	if ( j != k ) {
+ 		// make sure it doesn't get re-saved
+-		if ( ul[n].saved.leveltime != level.time ) {
++		// (Oz: G_RealTime: a missile's delag run turns level.time back between the shift and its undo)
++		if ( ul[n].saved.leveltime != G_RealTime() ) {
+ 			// save the current origin and bounding box
+ 			VectorCopy( ent->r.mins, ul[n].saved.mins );
+ 			VectorCopy( ent->r.maxs, ul[n].saved.maxs );
+ 			VectorCopy( ent->r.currentOrigin, ul[n].saved.currentOrigin );
+-			ul[n].saved.leveltime = level.time;
++			ul[n].saved.leveltime = G_RealTime();
+ 		}
+ 
+ 		// if we haven't wrapped back to the head, we've sandwiched, so
+@@ -234,6 +451,12 @@ static void G_TimeShiftClient( gentity_t *ent, int time ) {
+ 			float	frac = (float)( time - ul[n].history[j].leveltime ) /
+ 				(float)( ul[n].history[k].leveltime - ul[n].history[j].leveltime );
+ 
++			// Oz: a teleporter between the two: the shooter's screen kept him at the first until the second
++			// came (the cgame doesn't lerp through a teleport)
++			if ( ul[n].history[k].teleported ) {
++				frac = 0;
++			}
++
+ 			// interpolate between the two origins to give position at time index "time"
+ 			TimeShiftLerp( frac, ul[n].history[j].currentOrigin, ul[n].history[k].currentOrigin, ent->r.currentOrigin );
+ 
+@@ -261,7 +484,7 @@ G_TimeShiftAllClients
  Move ALL clients back to where they were at the specified "time", except for "skip"
  =====================
  */
@@ -2116,7 +2311,7 @@ index 83f183d..6879936 100644
  	gentity_t	*ent;
  	int			i;
  
-@@ -300,6 +433,10 @@ void G_DoTimeShiftFor( gentity_t *ent ) {
+@@ -300,10 +523,16 @@ void G_DoTimeShiftFor( gentity_t *ent ) {
  	if ( ( ul[n].delag & 1 ) || ( ul[n].delag & flag ) ) {
  		// do the full lag compensation, except what the client nudges
  		time = ul[n].attackTime + ul[n].cmdTimeNudge;
@@ -2127,7 +2322,22 @@ index 83f183d..6879936 100644
  		// Oz: no further back than g_delagMax
  		if ( time < level.time - g_delagMax.integer ) {
  			time = level.time - g_delagMax.integer;
-@@ -344,7 +481,7 @@ G_UnTimeShiftAllClients
+ 		}
++		// nor than his measured ping allows
++		time = G_UnlaggedFloor( ent, time );
+ 	} else {
+ 		// do just 50ms
+ 		time = level.previousTime + ul[n].frameOffset;
+@@ -324,7 +553,7 @@ void G_UnTimeShiftClient( gentity_t *ent ) {
+ 	const int n = ent - g_entities;
+ 
+ 	// if it was saved
+-	if ( n >= 0 && n < MAX_CLIENTS && ul[n].saved.leveltime == level.time ) {
++	if ( n >= 0 && n < MAX_CLIENTS && ul[n].saved.leveltime == G_RealTime() ) {
+ 		// move it back
+ 		VectorCopy( ul[n].saved.mins, ent->r.mins );
+ 		VectorCopy( ul[n].saved.maxs, ent->r.maxs );
+@@ -344,7 +573,7 @@ G_UnTimeShiftAllClients
  Move ALL the clients back to where they were before the time shift, except for "skip"
  =======================
  */
@@ -2137,7 +2347,6 @@ index 83f183d..6879936 100644
  	int			i;
  
 diff --git a/code/game/g_weapon.c b/code/game/g_weapon.c
-index 8a3accd..5696eae 100644
 --- a/code/game/g_weapon.c
 +++ b/code/game/g_weapon.c
 @@ -261,6 +261,7 @@ void BFG_Fire ( gentity_t *ent ) {
@@ -2188,3 +2397,102 @@ index 8a3accd..5696eae 100644
  
  //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
  }
+diff --git a/code/game/g_utils.c b/code/game/g_utils.c
+--- a/code/game/g_utils.c
++++ b/code/game/g_utils.c
+@@ -474,7 +474,7 @@ void G_FreeEntity( gentity_t *ed ) {
+ 
+ 	memset (ed, 0, sizeof(*ed));
+ 	ed->classname = "freed";
+-	ed->freetime = level.time;
++	ed->freetime = G_RealTime();	// Oz: as G_TempEntity's
+ 	ed->inuse = qfalse;
+ }
+ 
+@@ -495,7 +495,7 @@ gentity_t *G_TempEntity( vec3_t origin, int event ) {
+ 	e->s.eType = ET_EVENTS + event;
+ 
+ 	e->classname = "tempEntity";
+-	e->eventTime = level.time;
++	e->eventTime = G_RealTime();	// Oz: not the time a missile's delag run turned back (g_missile.c)
+ 	e->freeAfterEvent = qtrue;
+ 
+ 	VectorCopy( origin, snapped );
+@@ -589,14 +589,14 @@ void G_AddEvent( gentity_t *ent, int event, int eventParm ) {
+ 		bits = ( bits + EV_EVENT_BIT1 ) & EV_EVENT_BITS;
+ 		ent->client->ps.externalEvent = event | bits;
+ 		ent->client->ps.externalEventParm = eventParm;
+-		ent->client->ps.externalEventTime = level.time;
++		ent->client->ps.externalEventTime = G_RealTime();	// Oz: as G_TempEntity's
+ 	} else {
+ 		bits = ent->s.event & EV_EVENT_BITS;
+ 		bits = ( bits + EV_EVENT_BIT1 ) & EV_EVENT_BITS;
+ 		ent->s.event = event | bits;
+ 		ent->s.eventParm = eventParm;
+ 	}
+-	ent->eventTime = level.time;
++	ent->eventTime = G_RealTime();
+ }
+ 
+ 
+diff --git a/code/game/g_combat.c b/code/game/g_combat.c
+--- a/code/game/g_combat.c
++++ b/code/game/g_combat.c
+@@ -522,7 +522,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
+ 				// add the sprite over the player's head
+ 				attacker->client->ps.eFlags &= ~(EF_AWARD_IMPRESSIVE | EF_AWARD_EXCELLENT | EF_AWARD_GAUNTLET | EF_AWARD_ASSIST | EF_AWARD_DEFEND | EF_AWARD_CAP );
+ 				attacker->client->ps.eFlags |= EF_AWARD_GAUNTLET;
+-				attacker->client->rewardTime = level.time + REWARD_SPRITE_TIME;
++				attacker->client->rewardTime = G_RealTime() + REWARD_SPRITE_TIME;
+ 
+ 				// also play humiliation on target
+ 				self->client->ps.persistant[PERS_PLAYEREVENTS] ^= PLAYEREVENT_GAUNTLETREWARD;
+@@ -530,16 +530,17 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
+ 
+ 			// check for two kills in a short amount of time
+ 			// if this is close enough to the last kill, give a reward sound
+-			if ( level.time - attacker->client->lastKillTime < CARNAGE_REWARD_TIME ) {
++			// (Oz: G_RealTime: a kill by a missile in its delag run, g_missile.c, is a kill now)
++			if ( G_RealTime() - attacker->client->lastKillTime < CARNAGE_REWARD_TIME ) {
+ 				// play excellent on player
+ 				attacker->client->ps.persistant[PERS_EXCELLENT_COUNT]++;
+ 
+ 				// add the sprite over the player's head
+ 				attacker->client->ps.eFlags &= ~(EF_AWARD_IMPRESSIVE | EF_AWARD_EXCELLENT | EF_AWARD_GAUNTLET | EF_AWARD_ASSIST | EF_AWARD_DEFEND | EF_AWARD_CAP );
+ 				attacker->client->ps.eFlags |= EF_AWARD_EXCELLENT;
+-				attacker->client->rewardTime = level.time + REWARD_SPRITE_TIME;
++				attacker->client->rewardTime = G_RealTime() + REWARD_SPRITE_TIME;
+ 			}
+-			attacker->client->lastKillTime = level.time;
++			attacker->client->lastKillTime = G_RealTime();
+ 
+ 		}
+ 	} else {
+@@ -624,7 +625,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
+ 
+ 	// don't allow respawn until the death anim is done
+ 	// g_forcerespawn may force spawning at some later time
+-	self->client->respawnTime = level.time + ( G_QL() ? g_respawn_delay_min.integer : 1700 );
++	self->client->respawnTime = G_RealTime() + ( G_QL() ? g_respawn_delay_min.integer : 1700 );
+ 
+ 	// remove powerups
+ 	memset( self->client->ps.powerups, 0, sizeof(self->client->ps.powerups) );
+diff --git a/code/game/g_client.c b/code/game/g_client.c
+--- a/code/game/g_client.c
++++ b/code/game/g_client.c
+@@ -934,6 +934,7 @@ char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
+ //	areabits = client->areabits;
+ 
+ 	memset( client, 0, sizeof(*client) );
++	G_UnlaggedClientClear( clientNum );	// Oz: nothing of the player who had this slot before (g_unlagged.c)
+ 
+ 	client->pers.connected = CON_CONNECTING;
+ 
+@@ -1278,6 +1279,7 @@ void ClientDisconnect( int clientNum ) {
+ 	if (!ent->client || ent->client->pers.connected == CON_DISCONNECTED) {
+ 		return;
+ 	}
++	G_UnlaggedClientClear( clientNum );	// Oz: his ping samples and the equalizer's hold go with him
+ 
+ 	// stop any following clients
+ 	for ( i = 0 ; i < level.maxclients ; i++ ) {

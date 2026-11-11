@@ -34,6 +34,7 @@ option) any later version.
 #define OZ_RAGDOLL_TRACKS		64
 #define OZ_RAGDOLL_STEP			( 1000.0f / 120.0f )	// ms: 120 Hz, as the Godot build's physics
 #define OZ_RAGDOLL_MAX_STEPS	30			// a slow frame catches up at most 250 ms
+#define OZ_RAGDOLL_BUDGET_US	4000.0f		// ...and with steps worth this long at least, or half the time caught up
 #define OZ_RAGDOLL_MATCH		64.0f		// legs move less than this between two frames
 #define OZ_RAGDOLL_FORGET		1000		// ms unseen before a track is dropped
 #define OZ_RAGDOLL_SPEED		900.0f		// the fastest a part starts, units/s
@@ -101,6 +102,7 @@ typedef struct {
 static ozTrack_t	tracks[OZ_RAGDOLL_TRACKS];
 static int			sceneCount, lastSceneTime;
 static float		physTime;		// ms the physics has stepped to
+static float		stepCostUs[2];	// what a step took on average in the last two frames that stepped
 static qboolean		physUp;
 static ozMover_t	movers[OZ_RAGDOLL_MOVERS], wasMovers[OZ_RAGDOLL_MOVERS];
 static int			numMovers, numWasMovers;
@@ -488,7 +490,7 @@ static void WakeNearMovers( const ozTrack_t *t ) {
 // the physics steps up to the scene's time, the movers going from where the last scene had them to this one's
 static void Step( int now ) {
 	float gravity = ri.Cvar_VariableIntegerValue( "g_gravity" ) / OZ_RAGDOLL_METER;
-	int64_t prof;
+	int64_t prof, spent = 0;
 	int i, s, steps, ragdolls = 0;
 
 	for ( i = 0; i < OZ_RAGDOLL_TRACKS; i++ ) {
@@ -505,6 +507,27 @@ static void Step( int now ) {
 		if ( steps > OZ_RAGDOLL_MAX_STEPS ) {
 			physTime = now - OZ_RAGDOLL_MAX_STEPS * OZ_RAGDOLL_STEP;
 			steps = OZ_RAGDOLL_MAX_STEPS;
+		}
+		// the steps also get a time budget, by what a step cost in the last frames (the cheaper of the
+		// last two, so one slow step alone cuts nothing): on a slow PC with many bodies awake, catching
+		// up made the frame longer, which asked for more steps in the next. Past the budget the physics
+		// runs slow instead (time is dropped, as over the step cap). Half the time caught up always
+		// fits, so a steady low frame rate on a PC that keeps up is never cut
+		if ( steps > 1 && stepCostUs[0] > 0.0f && stepCostUs[1] > 0.0f ) {
+			const float cost = MIN( stepCostUs[0], stepCostUs[1] );
+			float budget = ( now - physTime ) * 500.0f;		// us
+			int afford;
+			if ( budget < OZ_RAGDOLL_BUDGET_US ) {
+				budget = OZ_RAGDOLL_BUDGET_US;
+			}
+			afford = (int)( budget / cost );
+			if ( afford < 1 ) {
+				afford = 1;
+			}
+			if ( steps > afford ) {
+				physTime = now - afford * OZ_RAGDOLL_STEP;
+				steps = afford;
+			}
 		}
 		if ( gravity <= 0.0f ) {
 			gravity = 800.0f / OZ_RAGDOLL_METER;
@@ -540,6 +563,11 @@ static void Step( int now ) {
 			stats.steps++;
 			stats.stepUs += ri.Microseconds() - began;
 			stats.worstStepUs = MAX( stats.worstStepUs, ri.Microseconds() - began );
+			spent += ri.Microseconds() - began;
+		}
+		if ( steps > 0 ) {
+			stepCostUs[1] = stepCostUs[0];
+			stepCostUs[0] = (float)spent / steps;
 		}
 		ri.ProfDetail( "rag step", prof );
 		physTime += steps * OZ_RAGDOLL_STEP;

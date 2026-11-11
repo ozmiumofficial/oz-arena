@@ -23,19 +23,22 @@ enum { OZ_ONLINE_OFFLINE, OZ_ONLINE_CONNECTING, OZ_ONLINE_ONLINE };
 
 // The player's key: `path` (made with its folder if missing), first imported from `importFrom` when
 // that file exists (the Godot build's user://online/identity.key), else generated. 0 on failure, with
-// the reason in `error`.
+// the reason in `error`. A key file that can't be read is kept as <path>.bad and a new identity made:
+// that returns 1 with a sentence for the player in `error` ("" otherwise).
 int			OzIdentity_Load( const char *path, const char *importFrom, char *error, int errorSize );
 const char	*OzIdentity_PublicKey( void );		// base64 DER (SubjectPublicKeyInfo), as the hub's x-key
 const char	*OzIdentity_PlayerId( void );		// the first 20 hex digits of SHA-256 of that DER, as the hub's
 int			OzIdentity_Sign( const char *text, char *b64, int size );	// base64 RSA-SHA256 PKCS#1 v1.5
 
 // Connects to `base` ("wss://..." or "ws://127.0.0.1:8787"; "/hub" is added), and reconnects with
-// backoff until OzOnline_Stop, except when the hub refuses the identity (4001) or the version (4002).
+// backoff until OzOnline_Stop, except when the hub refuses the version (4002). A refused identity (4001:
+// the PC's clock was off, a sign-in the hub had seen) is tried again every 30 s.
 // `name`, `model` and `color` go in the handshake, as the Godot build sends them.
 void		OzOnline_Start( const char *base, const char *name, const char *model, const char *color );
 void		OzOnline_Stop( void );
 int			OzOnline_Status( char *reason, int size );	// OZ_ONLINE_*, and why it's offline
 int			OzOnline_CloseCode( void );					// the hub's close code, 0 if none
+int			OzOnline_Generation( void );				// counts the connections that came up: a new one has none of the last one's listing, seat or presence
 int			OzOnline_Rtt( void );						// the last ping's round trip, ms
 int			OzOnline_Send( const char *json );			// a message (a JSON object with "type"); 0 when not online
 int			OzOnline_Receive( char *buf, int size );	// the next message from the hub, 0 when none
@@ -79,6 +82,7 @@ typedef struct {
 	char		page[256];			// its page on GitHub
 	char		setup[512];			// OzArenaSetup.exe's download, "" without one
 	long long	setupSize, size;	// the installer's bytes; every asset's
+	char		setupSha256[72];	// the installer's SHA-256 in hex, "" when the release's JSON gives none
 	char		notes[OZ_UPDATE_NOTES][160];	// the body's top-level bullets, plain
 	int			numNotes;
 	char		error[128];			// why the check failed
@@ -86,7 +90,9 @@ typedef struct {
 
 void		OzUpdate_Check( const char *url );				// releases/latest's JSON, on a thread
 int			OzUpdate_Checked( ozRelease_t *out );			// OZ_UPDATE_*; out filled once DONE or FAILED
-void		OzUpdate_Download( const char *url, const char *path );	// a file, on a thread
+// a file, on a thread: `path` in UTF-8; it must come `size` bytes long (0: not known) with that SHA-256
+// ("": not known), or it is removed and the download fails
+void		OzUpdate_Download( const char *url, const char *path, long long size, const char *sha256 );
 int			OzUpdate_Downloaded( long long *done, long long *total, char *error, int size );	// OZ_UPDATE_*
 int			OzUpdate_Compare( const char *a, const char *b );	// versions ("v0.7.6-beta", "0.7.5-beta"): -1, 0, 1
 void		OzUpdate_Shutdown( void );						// stops a download, waits for the threads

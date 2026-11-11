@@ -312,6 +312,27 @@ void S_TransferStereo16( unsigned long *pbuf, int endtime )
 
 /*
 ===================
+S_OzLimit
+
+Oz: the mixer's sum above OZ_LIMIT_KNEE (0.8 of full scale), bent toward full scale instead of cut
+off there. It meets the untouched part at the knee with the same slope, and never passes full scale.
+===================
+*/
+#define OZ_LIMIT_FULL	0x7fff00	// what the transfer clamps to
+#define OZ_LIMIT_KNEE	6710681		// 0.8 of it
+
+static int S_OzLimit( int val )
+{
+	const double room = (double)( OZ_LIMIT_FULL - OZ_LIMIT_KNEE );
+	const double over = ( fabs( (double)val ) - (double)OZ_LIMIT_KNEE ) / room;
+	const int out = OZ_LIMIT_KNEE + (int)( room * tanh( over ) );
+
+	return val < 0 ? -out : out;
+}
+
+
+/*
+===================
 S_TransferPaintBuffer
 
 ===================
@@ -335,6 +356,57 @@ static void S_TransferPaintBuffer( int endtime, byte *buffer )
 			paintbuffer[i].left = paintbuffer[i].right = sin((s_paintedtime+i)*0.1)*20000*256;
 	}
 
+	// Oz: s_showClip 1 prints, once a second, how loud the summed mix got and how much of it was over
+	// full scale (measured before s_limiter below; with s_limiter 0 what is over is clamped, which is heard as crackling). The
+	// future is painted again every update, so samples count more than once: read the share, not the count
+	{
+		static cvar_t *s_showClip;
+		static int clipPeak, clipCount, clipTotal, clipAt;
+
+		if ( !s_showClip ) {
+			s_showClip = Cvar_Get( "s_showClip", "0", 0 );
+		}
+		if ( s_showClip->integer ) {
+			count = endtime - s_paintedtime;
+			for ( i = 0; i < count; i++ ) {
+				const int l = paintbuffer[i].left, r = paintbuffer[i].right;
+				const int al = l < 0 ? -l : l, ar = r < 0 ? -r : r;
+				if ( al > clipPeak ) clipPeak = al;
+				if ( ar > clipPeak ) clipPeak = ar;
+				clipCount += ( l > 0x7fff00 || l < -32768 * 256 ) + ( r > 0x7fff00 || r < -32768 * 256 );
+			}
+			clipTotal += count * 2;
+			if ( Sys_Milliseconds() - clipAt >= 1000 && clipTotal > 0 ) {
+				Com_Printf( "s_showClip: peak %.2f of full scale, %.2f%% of the mix clipped\n",
+					clipPeak / 8388608.0f, 100.0f * clipCount / clipTotal );
+				clipPeak = clipCount = clipTotal = 0;
+				clipAt = Sys_Milliseconds();
+			}
+		}
+	}
+
+	// Oz: s_limiter 1 (the default) rounds off what the transfer below would cut at full scale: many
+	// loud sounds at once crackled. A sample under 0.8 of full scale passes exactly as it was, so
+	// only the peaks change. Done on the sum itself, after s_showClip's meter, so every output format
+	// (and the stereo 16-bit fast paths) gets it. 0: the plain cut, as before
+	{
+		static cvar_t *s_limiter;
+
+		if ( !s_limiter ) {
+			s_limiter = Cvar_Get( "s_limiter", "1", CVAR_ARCHIVE_ND );
+			Cvar_SetDescription( s_limiter, "Rounds off the loudest peaks of the mixed sound instead of cutting them at full scale. 0: cut them, as before." );
+		}
+		if ( s_limiter->integer ) {
+			p = (int *) paintbuffer;
+			count = ( endtime - s_paintedtime ) * 2;
+			for ( i = 0; i < count; i++ ) {
+				if ( p[i] > OZ_LIMIT_KNEE || p[i] < -OZ_LIMIT_KNEE ) {
+					p[i] = S_OzLimit( p[i] );
+				}
+			}
+		}
+	}
+
 	if ( dma.samplebits == 16 && dma.channels == 2 )
 	{	// optimized case
 		S_TransferStereo16( pbuf, endtime );
@@ -343,11 +415,35 @@ static void S_TransferPaintBuffer( int endtime, byte *buffer )
 	{	// general case
 		p = (int *) paintbuffer;
 		count = (endtime - s_paintedtime) * dma.channels;
-		out_mask = dma.samples - 1; 
+		out_mask = dma.samples - 1;
 		out_idx = ( s_paintedtime * dma.channels ) & out_mask;
 		step = 3 - dma.channels;
 
-		if ( dma.samplebits == 32 && dma.isfloat )
+		if ( dma.channels > 2 )
+		{
+			// Oz: a device with more than two channels (the SDL device is never opened that way; a
+			// guard). The step above goes negative there and the loops below read before the paint
+			// buffer: left and right go to a frame's first two channels, silence to the rest
+			const int channels = (int) dma.channels;
+			for ( i = 0; i < count; i++ )
+			{
+				const int c = i % channels;
+				val = ( c < 2 ) ? p[ ( i / channels ) * 2 + c ] : 0;
+				if (val > 0x7fff00) {
+					val = 0x7fff00;
+				} else if (val < -32768 * 256) {
+					val = -32768 * 256;
+				}
+				if ( dma.samplebits == 32 && dma.isfloat )
+					((float *) pbuf)[out_idx] = (float)(val + 128) * ( 1.0f / (32768.0f * 256.0f - 128.0f) );
+				else if ( dma.samplebits == 16 )
+					((short *) pbuf)[out_idx] = val >> 8;
+				else if ( dma.samplebits == 8 )
+					((unsigned char *) pbuf)[out_idx] = (val >> 16) + 128;
+				out_idx = (out_idx + 1) & out_mask;
+			}
+		}
+		else if ( dma.samplebits == 32 && dma.isfloat )
 		{
 			const float rdiv = 1.0f / (32768.0f * 256.0f - 128.0f); // 8388480.0f
 			float *out = (float *) pbuf;

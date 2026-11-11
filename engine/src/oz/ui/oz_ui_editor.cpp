@@ -68,7 +68,7 @@ bool leaving;          // ed_leave: closed at the next frame, outside any event
 std::string note;      // what the editor last said, shown in the status line a while
 bool noteError;
 int noteUntil;
-Rml::String lastStatus, lastName, lastHint, lastSizeTag, lastTools;
+Rml::String lastStatus, lastName, lastHint, lastSizeTag, lastTools, lastPaintArea;
 uint64_t lastSel = ~0ull;
 
 // the panel
@@ -78,10 +78,15 @@ std::vector<std::string> shownKeys;	// the inspector's key rows, by index
 // the materials browser
 Rml::String matView = "all";		// map, favorites, recent, dev, all, folders, folder:<name>, packs
 int matPage;
+int matKind = -1;		// the kind shown (oz::ed::MatKind's bit), -1 every kind
+int matShown;			// how many the view holds, after the kind and look
+int matStyle;			// 0 any look, 1 Tech (id's base_), 2 Gothic
 Rml::String lastMats;
 std::vector<std::string> recent;
 std::string lastShader;
 std::unordered_set<std::string> thumbsLoaded;
+Rml::String lastLoadWhat, lastLoadN;	// the material pictures' card (oz_ui_thumbs.cpp)
+bool pressHook;			// ed press: a test's key, which the card doesn't hold
 // the outliner
 std::set<int> expanded;
 int objPage;
@@ -148,9 +153,63 @@ bool OverView( Rml::ElementDocument *doc ) {
 	return hover && view && ( hover == view || hover->GetParentNode() == view );
 }
 
+// A material dragged from the browser onto a face: pressed on a swatch, it's a drag once the mouse has
+// gone a few pixels (a click still picks it up); let go over the view, the face under it is painted.
+struct MatDrag {
+	std::string name;	// the swatch pressed on; empty: none
+	int x = 0, y = 0;	// where
+	bool active = false;
+};
+MatDrag matDrag;
+int mouseX, mouseY;	// the pointer, as Editor_Mouse last had it
+bool pageUp;			// the page was drawn last frame (Editor_Draw): gone, a look or a drag is ended
+uint64_t shownSerial;	// the document the panels were last built for (oz::ed::Session::doc_serial)
+
+// The material of the browser's swatch under the pointer ("" when none).
+std::string MatUnder() {
+	for ( Rml::Element *e = GetContext()->GetHoverElement(); e; e = e->GetParentNode() ) {
+		if ( e->IsClassSet( "mat" ) && e->HasAttribute( "data-mat" ) ) {
+			return e->GetAttribute<Rml::String>( "data-mat", "" );
+		}
+	}
+	return "";
+}
+
+void EndMatDrag() {
+	matDrag = MatDrag();
+	session().drop_material.clear();
+}
+
 Rml::Element *TypingIn() {
 	Rml::Element *focus = GetContext()->GetFocusElement();
-	return focus && ( focus->GetTagName() == "input" || focus->GetTagName() == "textarea" ) ? focus : nullptr;
+	if ( !focus || ( focus->GetTagName() != "input" && focus->GetTagName() != "textarea" ) ) {
+		return nullptr;
+	}
+	// a slider keeps the focus after it's dragged, and takes no typing: counted as a text field, a light's
+	// Intensity or Range slider left the tools' keys dead until a click in the view
+	if ( focus->GetTagName() == "input" && focus->GetAttribute<Rml::String>( "type", "text" ) == "range" ) {
+		return nullptr;
+	}
+	return focus;
+}
+
+// A name that can go in a button's command as it is: the console splits its text at ; and at a new line,
+// and a quotation mark ends an argument (a material's, a folder's or a sky's name comes from shader
+// scripts, pak files, the map or another player).
+bool CommandSafe( const std::string &name ) {
+	for ( const char c : name ) {
+		if ( c == ';' || c == '"' || (unsigned char)c < ' ' || c == 127 ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+// A tile that runs an editor action with a name (a material, a folder, a sky, a class, a key, a prefab):
+// data-ed-run holds the action's own words, data-ed-arg the name, which RunListener hands to the action as
+// one argument. Such a name never goes through the console's text, where a ; in it began another command.
+Rml::String RunAttr( const char *verb, const std::string &name ) {
+	return Rml::String( " data-ed-run=\"" ) + verb + "\" data-ed-arg=\"" + Rml::StringUtilities::EncodeRml( name ) + "\"";
 }
 
 // A text field inside e has the focus.
@@ -337,7 +396,7 @@ Rml::String SwatchRml( const std::string &name, double box, Rml::String &style, 
 	if ( tool ) {
 		style = Rml::String( "border-color: " ) + tool + ";";	// a sky or a fog keeps its own picture, in its color's frame
 	}
-	if ( lazy && !thumbsLoaded.count( src ) ) {
+	if ( lazy && !thumbsLoaded.count( src ) && !Thumbs_Held( lib.image( name ) ) ) {	// held: made at once from the cache
 		return "<img data-src=\"" + Enc( src ) + "\" style=\"" + size + "\"/>";
 	}
 	return "<img src=\"" + Enc( src ) + "\" style=\"" + size + "\"/>";
@@ -411,10 +470,12 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 	const std::string search = Lower( InputValue( doc, "ed-msearch" ) );
 	const std::string current = Lower( session().shader );
 	LoadFavorites();
-	char key[200];
-	snprintf( key, sizeof key, "%s|%d|%s|%s|%llu|%d|%d", matView.c_str(), matPage, search.c_str(), current.c_str(),
-		matView == "map" ? (unsigned long long)session().doc.revision : 0ull, (int)favorites.size(), ThumbFailedRev() );
-	if ( key == lastMats ) {
+	// (a string as long as its parts: cut at 200 characters, a long search or material name hid what follows
+	// them, and a change there didn't build the tiles again)
+	const Rml::String key = matView + "|" + std::to_string( matPage ) + "|" + search + "|" + current + "|" +
+		std::to_string( matView == "map" ? (unsigned long long)session().doc.revision : 0ull ) + "|" + std::to_string( favorites.size() ) + "|" +
+		std::to_string( ThumbFailedRev() ) + "|" + std::to_string( matKind ) + "|" + std::to_string( matStyle );
+	if ( key == lastMats && !session().want_mat_show ) {
 		return;
 	}
 	lastMats = key;
@@ -434,7 +495,6 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 	chip( "folders", inFolder ? Enc( matView.substr( 7 ) ) + " +" : Rml::String( "Folders +" ),
 		matView == "folders" || inFolder );
 	chip( "packs", "Map packs", matView == "packs" );
-	SetRml( doc, "ed-chips", chips );
 	// the current material's favorite button
 	bool fav = false;
 	for ( const std::string &f : favorites ) {
@@ -456,10 +516,11 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 				rml += "<p>From the map packs in your game's folder:</p>";
 			}
 			for ( const auto &kv : folders[k] ) {
-				rml += "<button class=\"folder\" onclick=\"append ed panel mats folder:" + Enc( kv.first ) + "\">" + Enc( kv.first ) +
+				rml += "<button class=\"folder\"" + RunAttr( "panel mats", "folder:" + kv.first ) + ">" + Enc( kv.first ) +
 					"<span class=\"n\">" + std::to_string( kv.second ) + "</span></button>";
 			}
 		}
+		SetRml( doc, "ed-chips", chips );
 		SetRml( doc, "ed-mats", rml );
 		SetRml( doc, "ed-mpager", "" );
 		return;
@@ -495,7 +556,91 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 		oz::ed::ShaderLib &lib = oz::ed::shaders_lib();
 		names.erase( std::remove_if( names.begin(), names.end(), [&]( const std::string &n ) { return ThumbFailed( lib.image( n ) ); } ), names.end() );
 	}
+	// the kinds and looks (oz::ed::MatKind, MatStyle): what's in view counted for the chips, then narrowed
+	if ( matView != "dev" ) {
+		static std::unordered_map<std::string, const oz::ed::Material *> byName;
+		static const oz::ed::Material *byNameOf;
+		if ( byNameOf != ( all.empty() ? nullptr : &all[0] ) || byName.size() > all.size() ) {
+			byName.clear();
+			for ( const oz::ed::Material &m : all ) {
+				byName[Lower( m.name )] = &m;
+			}
+			byNameOf = all.empty() ? nullptr : &all[0];
+		}
+		auto of = [&]( const std::string &n ) -> const oz::ed::Material * {
+			auto it = byName.find( Lower( n ) );
+			return it != byName.end() ? it->second : nullptr;
+		};
+		int counts[oz::ed::MK_COUNT] = {};
+		int looks[3] = {};
+		for ( const std::string &n : names ) {
+			const oz::ed::Material *m = of( n );
+			if ( !m ) {
+				continue;
+			}
+			if ( matKind < 0 || ( m->kinds & ( 1u << matKind ) ) ) {
+				looks[int( m->style )]++;
+			}
+			if ( matStyle && int( m->style ) != matStyle ) {
+				continue;
+			}
+			for ( int b = 0; b < oz::ed::MK_COUNT; b++ ) {
+				counts[b] += ( m->kinds >> b ) & 1;
+			}
+		}
+		static const char *const kindHints[oz::ed::MK_COUNT] = {
+			"Walls: panels, blocks, bricks, concrete", "Floors and tiles", "Ceilings", "Trims, borders and baseboards: the bands along walls",
+			"Lights: fixtures, glowing trims, anything that lights the map", "Doors, arches and buttons", "Pipes, pillars, beams and cables",
+			"Rock, dirt, wood and organic surfaces", "Water, lava and slime", "Glass, grates and other see-through ones", "Skies",
+			"Effects: jump pads, teleporters, flames, beams, fog", "Team colors (capture the flag)", "Tools: caulk, clip, trigger, hint ...",
+			"Everything else" };
+		chips += "<div class=\"chipsub\">KIND</div>";
+		chips += Rml::String( "<button class=\"chip k" ) + ( matKind < 0 ? " on" : "" ) + "\" onclick=\"append ed panel mkind all\">Every kind</button>";
+		for ( int b = 0; b < oz::ed::MK_COUNT; b++ ) {
+			if ( !counts[b] && b != matKind ) {
+				continue;
+			}
+			chips += Rml::String( "<button class=\"chip k" ) + ( b == matKind ? " on" : "" ) + "\" data-hint=\"" + Enc( kindHints[b] ) +
+				"\" onclick=\"append ed panel mkind " + oz::ed::mat_kind_name( b ) + "\">" + oz::ed::mat_kind_label( b ) +
+				"<span class=\"n\">" + std::to_string( counts[b] ) + "</span></button>";
+		}
+		if ( looks[1] || looks[2] || matStyle ) {
+			// id's two looks: a map keeps to one
+			static const char *const lookNames[3] = { "any", "tech", "gothic" }, *const lookLabels[3] = { "Any look", "Tech", "Gothic" };
+			static const char *const lookHints[3] = { "Every look", "Tech: id's base_ materials, metal and machinery",
+				"Gothic: id's gothic_ materials, stone and iron" };
+			chips += "<div class=\"chipsub\">LOOK</div>";
+			for ( int k = 0; k < 3; k++ ) {
+				chips += Rml::String( "<button class=\"chip k" ) + ( matStyle == k ? " on" : "" ) + "\" data-hint=\"" + lookHints[k] +
+					"\" onclick=\"append ed panel mstyle " + lookNames[k] + "\">" + lookLabels[k] +
+					( k ? "<span class=\"n\">" + std::to_string( looks[k] ) + "</span>" : Rml::String() ) + "</button>";
+			}
+		}
+		if ( matKind >= 0 || matStyle ) {
+			names.erase( std::remove_if( names.begin(), names.end(), [&]( const std::string &n ) {
+				const oz::ed::Material *m = of( n );
+				return !m || ( matKind >= 0 && !( m->kinds & ( 1u << matKind ) ) ) || ( matStyle && int( m->style ) != matStyle );
+			} ), names.end() );
+		}
+	}
+	SetRml( doc, "ed-chips", chips );
+	matShown = int( names.size() );
 	const int pages = std::max( 1, int( ( names.size() + MAT_PAGE - 1 ) / MAT_PAGE ) );
+	if ( session().want_mat_show ) {
+		// the eyedropper took a material: turn to its page, or show the map's materials when this view hasn't it
+		session().want_mat_show = false;
+		const auto at = std::find_if( names.begin(), names.end(), [&]( const std::string &n ) { return Lower( n ) == current; } );
+		if ( at != names.end() ) {
+			matPage = int( ( at - names.begin() ) / MAT_PAGE );
+		} else if ( matView != "map" && search.empty() ) {
+			matView = "map";
+			matPage = 0;
+			session().want_mat_show = true;
+			lastMats.clear();
+			BuildMaterials( doc );
+			return;
+		}
+	}
 	matPage = std::min( matPage, pages - 1 );
 	Rml::String rml;
 	for ( size_t i = size_t( matPage ) * MAT_PAGE; i < names.size() && i < size_t( matPage + 1 ) * MAT_PAGE; i++ ) {
@@ -505,16 +650,17 @@ void BuildMaterials( Rml::ElementDocument *doc ) {
 		const Rml::String sw = SwatchRml( n, 5.4, style, true );
 		const bool tool = style.find( "background" ) != Rml::String::npos;
 		const std::string toolHelp = ToolHelp( n );
-		const std::string hint = n + ( !toolHelp.empty() ? ": " + toolHelp + "." : "" ) + " Click paints the selection with it, and new brushes use it";
-		rml += "<div class=\"mat" + Rml::String( Lower( n ) == current ? " on" : "" ) + "\" data-hint=\"" + Enc( hint ) +
-			"\" onclick=\"append ed paint " + Enc( n ) + "\"><div class=\"sw" +
+		const std::string hint = n + ( !toolHelp.empty() ? ": " + toolHelp + "." : "" ) + " Click picks it up: the paint tool paints it (a click, a face; a drag, an area), P paints the selection with it, and new brushes use it. Drag it onto a face to paint that face (Shift: its brush)";
+		rml += "<div class=\"mat" + Rml::String( Lower( n ) == current ? " on" : "" ) + "\" data-mat=\"" + Enc( n ) + "\" data-hint=\"" + Enc( hint ) +
+			"\"" + RunAttr( "paint", n ) + "><div class=\"sw" +
 			( tool ? " tool" : "" ) + "\"" + ( style.empty() ? "" : " style=\"" + style + "\"" ) + ">" + sw + "</div>" +
 			"<span class=\"mn\">" +
 			Enc( slash == std::string::npos ? n : n.substr( slash + 1 ) ) + "</span></div>";
 	}
 	if ( names.empty() ) {
 		rml = matView == "recent" && search.empty() ? "<p>The materials you paint or pick show here.</p>"
-			: matView == "favorites" && search.empty() ? "<p>None yet: click a material, then Add to favorites.</p>" : "<p>No material matches.</p>";
+			: matView == "favorites" && search.empty() ? "<p>None yet: click a material, then Add to favorites.</p>"
+			: matKind >= 0 || matStyle ? "<p>None of this kind here: Every kind and Any look show them all.</p>" : "<p>No material matches.</p>";
 	}
 	SetRml( doc, "ed-mats", rml );
 	Rml::String pager;
@@ -619,6 +765,9 @@ Rml::String HexColor( const std::string &v ) {
 Rml::String TypedControls( const std::string &k, const oz::ed::KeyDef &kd, const std::string &v ) {
 	const Rml::String key = Enc( k );
 	Rml::String out;
+	if ( !CommandSafe( k ) || k.find( ' ' ) != std::string::npos ) {
+		return out;	// its buttons' commands carry the key's name: one the console would split gets none (its fields still set it)
+	}
 	auto button = [&]( const Rml::String &label, const Rml::String &verb, const Rml::String &hint, bool on ) {
 		out += "<button class=\"tb" + Rml::String( on ? " on" : "" ) + "\" data-hint=\"" + hint + "\" onclick=\"append ed panel " + verb + "\">" + label + "</button>";
 	};
@@ -878,8 +1027,7 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 	oz::ed::Session &s = session();
 	const std::vector<oz::ed::FaceRef> faces = s.target_faces();
 	const std::vector<oz::ed::Id> patches = s.target_patches();
-	char key[200];
-	snprintf( key, sizeof key, "%llu|%llu|%d|%s", (unsigned long long)s.sel_rev, (unsigned long long)s.doc.revision, (int)s.tool, s.shader.c_str() );
+	const Rml::String key = std::to_string( s.sel_rev ) + "|" + std::to_string( s.doc.revision ) + "|" + std::to_string( (int)s.tool ) + "|" + s.shader;
 	if ( key == lastInspect ) {
 		return;
 	}
@@ -887,7 +1035,10 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 
 	// what's selected
 	Rml::String what;
-	if ( s.tool == oz::ed::Tool::Faces ) {
+	if ( s.tool == oz::ed::Tool::Paint ) {
+		what = faces.empty() ? "Paint tool: drag an area on a block's surface, on the grid; Enter paints it " + s.shader
+			: std::to_string( faces.size() ) + ( faces.size() == 1 ? " face painted" : " faces painted" );
+	} else if ( s.tool == oz::ed::Tool::Faces ) {
 		what = faces.empty() ? "Faces tool: click faces to pick them" : std::to_string( faces.size() ) + ( faces.size() == 1 ? " face picked" : " faces picked" );
 	} else if ( s.sel.empty() ) {
 		what = "Nothing is selected: the basics, then the map's own keys";
@@ -999,6 +1150,54 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		}
 		SetRml( doc, "ed-tints", faces.empty() ? Rml::String( "<p>Pick faces or select brushes to color them</p>" ) : rml );
 	}
+	// Glow: a glowing material's (a light fixture, a glowing trim) brightness, and the light it casts on the
+	// map, in percent of its own; shown while one of the faces is of such a material
+	{
+		oz::ed::ShaderLib &lib = oz::ed::shaders_lib();
+		bool glows = false, lights = false;
+		std::set<int> bs, ls;
+		for ( const oz::ed::FaceRef &r : faces ) {
+			const oz::ed::Face &f = d.get( r.first )->brush.faces[size_t( r.second )];
+			const std::string n = oz::ed::shader_name( f.shader );
+			if ( !lib.glow_adjustable( n ) ) {
+				continue;
+			}
+			glows = glows || lib.glows( n );
+			lights = lights || lib.surface_light( n ) > 0;
+			int b = 100, l = 100;
+			oz::ed::face_glow( f, b, l );
+			bs.insert( b );
+			ls.insert( l );
+		}
+		const bool shown = glows || lights;
+		Show( doc, "ed-glow-sub", shown );
+		Show( doc, "ed-glow", shown );
+		if ( shown ) {
+			auto row = [&]( const char *label, const char *which, const std::set<int> &v, const char *hint ) {
+				const Rml::String val = v.size() == 1 ? std::to_string( *v.begin() ) + "%" : Rml::String( "mixed" );
+				const bool own = v.size() == 1 && *v.begin() == 100;
+				return Rml::String( "<div class=\"row\" data-hint=\"" ) + hint + "\"><span class=\"lbl\">" + label + "</span>" +
+					"<button class=\"tb\" onclick=\"append ed glow_step " + which + " -1\">-</button>" +
+					"<span class=\"val" + ( own ? " own" : "" ) + "\">" + val + "</span>" +
+					"<button class=\"tb\" onclick=\"append ed glow_step " + which + " 1\">+</button></div>";
+			};
+			Rml::String rml;
+			if ( glows ) {
+				rml += row( "Brightness", "brightness", bs, "How bright its glow draws, in percent of the material's own: 0 puts it out; past 100 it blooms (the Oz renderer)" );
+			}
+			if ( lights ) {
+				rml += row( "Light cast", "light", ls, "How much light it gives the map when compiled, in percent of the material's own: 0 casts none" );
+			}
+			const bool own = bs.size() == 1 && *bs.begin() == 100 && ls.size() == 1 && *ls.begin() == 100;
+			if ( !own ) {
+				rml += "<div class=\"row\"><span class=\"lbl\"></span><button class=\"tb\" data-action=\"glow_reset\" onclick=\"append ed glow_reset\">As its own</button></div>";
+			}
+			if ( lights ) {
+				rml += "<p>The view shows the light it casts as you change it.</p>";
+			}
+			SetRml( doc, "ed-glow", rml );
+		}
+	}
 	if ( !on.empty() ) {
 		SetRml( doc, "ed-face-mat", Enc( on.size() == 1 ? *on.begin() : std::to_string( on.size() ) + " materials" ) );
 		SetSwatch( doc, "ed-face-sw", on.size() == 1 ? *on.begin() : "", 3.8 );
@@ -1065,7 +1264,7 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 		SetRml( doc, "ed-tex-note", Enc( note ) );
 	}
 
-	Show( doc, "sec-transform", !s.sel.empty() && s.tool != oz::ed::Tool::Faces );
+	Show( doc, "sec-transform", !s.sel.empty() && !s.face_mode() );
 	Show( doc, "sec-help", s.sel.empty() && s.faces.empty() );
 	Show( doc, "sec-keyhelp", s.sel.empty() && s.faces.empty() );
 	// carving and curves for the selected brushes, reshaping for the selected curves
@@ -1076,8 +1275,8 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 			curves |= o->kind == oz::ed::Kind::Patch;
 		}
 	}
-	Show( doc, "sec-shape", brushes && s.tool != oz::ed::Tool::Faces );
-	Show( doc, "sec-curve", curves && s.tool != oz::ed::Tool::Faces );
+	Show( doc, "sec-shape", brushes && !s.face_mode() );
+	Show( doc, "sec-curve", curves && !s.face_mode() );
 
 	// the keys of the selection's entities: each key's value where they all have the same
 	Rml::Element *keysBox = doc->GetElementById( "ed-keys" );
@@ -1264,7 +1463,7 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 					continue;
 				}
 				( filter ? filters : adds ) += "<button class=\"chip\" data-hint=\"" + Enc( k.name + ": " + k.help +
-					( k.def.empty() ? "" : " (the game's default: " + k.def + ")" ) ) + "\" onclick=\"append ed key_new " + Enc( k.name ) + "\">+ " +
+					( k.def.empty() ? "" : " (the game's default: " + k.def + ")" ) ) + "\"" + RunAttr( "key_new", k.name ) + ">+ " +
 					Enc( ChipLabel( k.name ) ) + "</button>";
 			}
 			if ( !filters.empty() ) {
@@ -1328,12 +1527,23 @@ void BuildInspector( Rml::ElementDocument *doc ) {
 // a click puts the prefab where the pointer is, DELETE twice deletes it.
 void BuildPrefabs( Rml::ElementDocument *doc ) {
 	oz::ed::Session &s = session();
-	const std::vector<std::string> names = s.prefab_names();
-	std::vector<std::string> thumbs;
+	// the folder is listed when a prefab is saved, deleted or gets its picture (prefab_rev) and when the tab
+	// opens, not every frame: each prefab's thumbnail was a listing of the folder of its own
+	static std::vector<std::string> names, thumbs;
+	static int listedRev = -1, listedAt;
+	const int now = OzE_Milliseconds();
+	if ( listedRev != s.prefab_rev || now - listedAt > 500 || lastPrefabs.empty() ) {
+		names = s.prefab_names();
+		thumbs.clear();
+		for ( const std::string &n : names ) {
+			thumbs.push_back( s.prefab_thumb( n ) );	// one without a picture is queued for one, which bumps prefab_rev
+		}
+		listedRev = s.prefab_rev;
+	}
+	listedAt = now;
 	Rml::String key = std::to_string( s.prefab_rev ) + "|" + prefabDeleting;
-	for ( const std::string &n : names ) {
-		thumbs.push_back( s.prefab_thumb( n ) );
-		key += "|" + n + "=" + thumbs.back();
+	for ( size_t i = 0; i < names.size(); i++ ) {
+		key += "|" + names[i] + "=" + thumbs[i];
 	}
 	if ( key == lastPrefabs ) {
 		return;
@@ -1344,11 +1554,11 @@ void BuildPrefabs( Rml::ElementDocument *doc ) {
 		const Rml::String n = Enc( names[i] );
 		const bool armed = prefabDeleting == names[i];
 		rml += "<div class=\"pfbox\"><div class=\"pf\" id=\"ed-pf-" + n + "\" data-hint=\"Puts the prefab " + n +
-			" in the map, where the pointer is\" onclick=\"append ed prefab_insert " + n + "\"><div class=\"pfsw\">" +
+			" in the map, where the pointer is\"" + RunAttr( "prefab_insert", names[i] ) + "><div class=\"pfsw\">" +
 			( thumbs[i].empty() ? Rml::String( "<span>DRAWING ...</span>" ) : "<img src=\"" + Enc( thumbs[i] ) + "\"/>" ) +
 			"</div><span class=\"mn\">" + n + "</span></div><button class=\"pfdel" + ( armed ? " armed" : "" ) +
 			"\" data-hint=\"" + ( armed ? "Click again to delete the prefab " + n + " for good" : "Deletes the prefab " + n + " (click twice)" ) +
-			"\" onclick=\"append ed panel prefab_del " + n + "\">" + ( armed ? "Delete for good?" : "Delete" ) + "</button></div>";
+			"\"" + RunAttr( "panel prefab_del", names[i] ) + ">" + ( armed ? "Delete for good?" : "Delete" ) + "</button></div>";
 	}
 	SetRml( doc, "ed-prefabs", rml.empty() ? Rml::String( "<p class=\"note\">None yet.</p>" ) : rml );
 }
@@ -1485,7 +1695,7 @@ void BuildEntities( Rml::ElementDocument *doc ) {
 			rml += "<div class=\"mat" + Rml::String( on ? " on" : "" ) + "\" data-hint=\"" +
 				Enc( title + " (" + d.name + "): " + ( d.item ? "a pickup" : d.help ) + ( d.mod.empty() ? "" : " (" + d.mod + ")" ) +
 					( d.brush ? ". Click, then click in the view for a box of it; with brushes selected, makes them one" : ". Click, then where it goes" ) ) +
-				"\" onclick=\"append ed place " + Enc( d.name ) + "\"><div class=\"sw" + ( style.empty() ? "" : " tool" ) + "\"" +
+				"\"" + RunAttr( "place", d.name ) + "><div class=\"sw" + ( style.empty() ? "" : " tool" ) + "\"" +
 				( style.empty() ? "" : " style=\"" + style + "\"" ) + ">" + sw + "</div>" +
 				( d.mod.empty() || d.mod == "Defrag" ? "" : "<span class=\"badge\">" + Enc( Rml::StringUtilities::ToUpper( d.mod ) ) + "</span>" ) +
 				"<span class=\"mn\">" + Enc( title ) + "</span></div>";
@@ -2092,12 +2302,13 @@ void BuildSky( Rml::ElementDocument *doc ) {
 		const bool on = n == ss.sky;
 		const Rml::String badge = n == def ? "DEFAULT" : n == ss.painted ? "PAINTED" : "";
 		tiles += "<div class=\"mat" + Rml::String( on ? " on" : "" ) + "\" id=\"ed-sky-t-" + std::to_string( i ) + "\" data-hint=\"" + Enc( n ) +
-			": the sky around the map\" onclick=\"append ed sky sky " + Enc( n ) + "\"><div class=\"sw\"" + ( style.empty() ? "" : " style=\"" + style + "\"" ) +
-			">" + sw + "</div>" + ( badge.empty() ? "" : "<span class=\"badge\">" + badge + "</span>" ) + "<span class=\"mn\">" + Enc( n.substr( 6 ) ) + "</span></div>";
+			": the sky around the map\"" + RunAttr( "sky sky", n ) + "><div class=\"sw\"" + ( style.empty() ? "" : " style=\"" + style + "\"" ) +
+			">" + sw + "</div>" + ( badge.empty() ? "" : "<span class=\"badge\">" + badge + "</span>" ) + "<span class=\"mn\">" +
+			Enc( n.size() > 6 ? n.substr( 6 ) : n ) + "</span></div>";	// a map's own _oz_sky can be any text, shorter than "skies/" too
 	}
 	SetRml( doc, "ed-sky-tiles", tiles );
 	const std::string why = ss.chosen ? "picked here" : !ss.painted.empty() && ss.sky == ss.painted ? "painted on the map's brushes" : "the default";
-	SetRml( doc, "ed-sky-now", Enc( "SKY: " + Rml::StringUtilities::ToUpper( ss.sky.substr( 6 ) ) + " (" + why + ")" ) );
+	SetRml( doc, "ed-sky-now", Enc( "SKY: " + Rml::StringUtilities::ToUpper( ss.sky.size() > 6 ? ss.sky.substr( 6 ) : ss.sky ) + " (" + why + ")" ) );
 
 	// the light
 	Rml::String rml = "<div class=\"srow\"><span class=\"sl\">Light from</span>"
@@ -2710,17 +2921,17 @@ const struct {
 	{ "select", { "select", "select_all", "select_none", "-", "hide", "hide_others", "show_all", "-", "lock", "unlock_all", "-", "group", "ungroup",
 		"-", "prefab_save", "show_prefabs", "-", "show_objects" } },
 	{ "view", { "views", "view_next", "-", "frame_selection", "frame_all", "-", "#SHOW", "filter_tools", "filter_triggers", "filter_sky", "filter_entities",
-		"filter_curves", "-", "preview", "-", "#PANEL", "show_inspect", "show_materials", "show_entities", "show_prefabs", "show_objects", "show_history" } },
-	{ "brush", { "create", "clip", "faces", "-", "collision", "detail", "-", "hollow", "subtract", "merge", "stairs", "-", "rotate_left", "rotate_right", "rotate_left_15", "rotate_right_15",
+		"filter_curves", "-", "lighting", "-", "#PANEL", "show_inspect", "show_materials", "show_entities", "show_prefabs", "show_objects", "show_history" } },
+	{ "brush", { "create", "clip", "faces", "paint_tool", "-", "collision", "detail", "-", "hollow", "subtract", "merge", "stairs", "-", "rotate_left", "rotate_right", "rotate_left_15", "rotate_right_15",
 		"-", "flip_x", "flip_y", "flip_z" } },
 	{ "curve", { "#FROM THE SELECTED BRUSHES", "curve_cylinder", "curve_cone", "curve_arch", "curve_bevel", "curve_plane", "-", "#THE SELECTED CURVES",
 		"curve_more_columns", "curve_fewer_columns", "curve_more_rows", "curve_fewer_rows", "curve_invert", "curve_caps", "curve_thicken" } },
-	{ "texture", { "show_materials", "pick_material", "paint", "-", "uv", "tex_fit", "tex_left", "tex_right", "tex_top", "tex_bottom", "tex_center",
-		"-", "tex_flip_s", "tex_flip_t", "tex_rotate_left", "tex_rotate_right", "tex_scale_up", "tex_scale_down", "tex_reset" } },
+	{ "texture", { "show_materials", "pick_material", "paint", "paint_tool", "paint_area", "-", "uv", "tex_fit", "tex_left", "tex_right", "tex_top", "tex_bottom", "tex_center",
+		"-", "tex_flip_s", "tex_flip_t", "tex_rotate_left", "tex_rotate_right", "tex_scale_up", "tex_scale_down", "-", "tex_natural", "tex_wrap", "tex_reset" } },
 	{ "entity", { "show_entities", "light", "jump_pad", "push_land", "teleporter", "-", "#MOVERS", "door", "door_pair", "lift", "door_button",
 		"door_trigger", "train_path", "mover_play", "-", "to_world", "-", "#DEFRAG", "defrag_start", "defrag_checkpoint", "defrag_finish",
 		"defrag_speed", "defrag_shooter", "defrag_check", "play_defrag" } },
-	{ "build", { "play", "play_here", "@play_together", "play_defrag", "@play_defrag_together", "-", "#GAME MODE", "mode_ffa", "mode_duel", "mode_tdm", "mode_ctf", "-", "sky_sun", "-", "compile", "compile_stop", "preview", "-", "#THUMBNAIL", "thumb_set", "thumb_view",
+	{ "build", { "play", "play_here", "@play_together", "play_defrag", "@play_defrag_together", "-", "#GAME MODE", "mode_ffa", "mode_duel", "mode_tdm", "mode_ctf", "-", "sky_sun", "-", "compile", "compile_stop", "-", "#THUMBNAIL", "thumb_set", "thumb_view",
 		"thumb_shoot", "-", "check_map", "frame_leak", "warnings" } },
 	{ "help", { "guide", "keymap", "search" } },
 };
@@ -2749,9 +2960,10 @@ bool MenuChecked( const std::string &a ) {
 	if ( a.compare( 0, 5, "mode_" ) == 0 ) {
 		return a.substr( 5 ) == s.game_mode();	// the game mode Play starts the map in
 	}
-	return ( a == "texture_lock" && s.texture_lock ) || ( a == "views" && s.layout == 4 ) || ( a == "preview" && s.previewing() ) ||
-		( a == "select" && s.tool == oz::ed::Tool::Select ) || ( a == "create" && s.tool == oz::ed::Tool::Create ) ||
-		( a == "clip" && s.tool == oz::ed::Tool::Clip ) || ( a == "faces" && s.tool == oz::ed::Tool::Faces );
+	return ( a == "texture_lock" && s.texture_lock ) || ( a == "views" && s.layout == 4 ) || ( a == "lighting" && !s.live_light ) ||
+		( a == "pick_material" && s.eyedropping() ) || ( a == "select" && s.tool == oz::ed::Tool::Select ) || ( a == "create" && s.tool == oz::ed::Tool::Create ) ||
+		( a == "clip" && s.tool == oz::ed::Tool::Clip ) || ( a == "faces" && s.tool == oz::ed::Tool::Faces ) ||
+		( a == "paint_tool" && s.tool == oz::ed::Tool::Paint );
 }
 
 // Greyed: an action that has nothing to work on now (it still runs, and says why it did nothing)
@@ -2760,6 +2972,9 @@ bool MenuEnabled( const std::string &a ) {
 	const bool sel = !s.sel.empty();
 	if ( a.compare( 0, 6, "curve_" ) == 0 ) {
 		return sel;
+	}
+	if ( a == "paint_area" ) {
+		return s.paint_area_on();
 	}
 	if ( a.compare( 0, 4, "tex_" ) == 0 || a == "uv" || a == "paint" ) {
 		return !s.target_faces().empty() || !s.target_patches().empty();
@@ -2784,7 +2999,7 @@ void BuildMenu( Rml::ElementDocument *doc ) {
 	oz::ed::Session &s = session();
 	const Rml::String key = menuOpen + "|" + std::to_string( menuAt ) + "|" + std::to_string( s.sel_rev ) + "|" + std::to_string( s.doc.revision ) + "|" +
 		std::to_string( (int)s.tool ) + std::to_string( s.texture_lock ) + std::to_string( s.layout ) + std::to_string( s.filters ) +
-		std::to_string( s.previewing() ) + std::to_string( s.compiling() ) + std::to_string( s.leaking() ) + "|" + panel + "|" +
+		std::to_string( s.previewing() ) + std::to_string( s.live_light ) + std::to_string( s.eyedropping() ) + std::to_string( s.compiling() ) + std::to_string( s.leaking() ) + "|" + panel + "|" +
 		std::to_string( s.keymap_rev ) + "|" + std::to_string( s.compile_warnings().size() ) + std::to_string( s.hidden.size() ) +
 		std::to_string( s.locked.size() ) + std::to_string( s.show_rev );
 	if ( key == lastMenu ) {
@@ -3168,6 +3383,17 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		RunSaveAs( doc );
 		return true;
 	}
+	if ( what == "drag_mat" && !args.empty() ) {
+		// a test hook: ed drag_mat <material> [mods] as if dragged from the browser and let go where the
+		// editor's pointer is (ed hover_at first); ed drag_mat <material> hold: dragged, not let go yet
+		if ( args.size() > 1 && args[1] == "hold" ) {
+			s.drop_material = args[0] == "-" ? "" : args[0];	// "-": the drag given up
+			return true;
+		}
+		s.drop_material = args[0];
+		s.drop_at_pointer( args.size() > 1 ? atoi( args[1].c_str() ) : 0 );
+		return true;
+	}
 	if ( what == "press" && !args.empty() ) {
 		const int k = OzE_KeyNum( args[0].c_str() );
 		if ( k < 0 ) {
@@ -3175,10 +3401,12 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 			return true;
 		}
 		s.force_mods( args.size() > 1 ? atoi( args[1].c_str() ) : 0 );
+		pressHook = true;
 		if ( !Editor_Key( k, true ) ) {
 			Printf( "ed press: %s went to the page\n", args[0].c_str() );
 		}
 		Editor_Key( k, false );
+		pressHook = false;
 		s.force_mods( -1 );
 		return true;
 	}
@@ -3218,6 +3446,17 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 		matPage = 0;
 	} else if ( a == "mpage" && args.size() > 1 ) {
 		matPage = std::max( 0, matPage + atoi( args[1].c_str() ) );
+	} else if ( a == "mkind" && args.size() > 1 ) {
+		matKind = -1;
+		for ( int b = 0; b < oz::ed::MK_COUNT; b++ ) {
+			if ( args[1] == oz::ed::mat_kind_name( b ) ) {
+				matKind = b;
+			}
+		}
+		matPage = 0;
+	} else if ( a == "mstyle" && args.size() > 1 ) {
+		matStyle = args[1] == "tech" ? 1 : args[1] == "gothic" ? 2 : 0;
+		matPage = 0;
 	} else if ( a == "opage" && args.size() > 1 ) {
 		objPage = std::max( 0, objPage + atoi( args[1].c_str() ) );
 	} else if ( a == "expand" && args.size() > 1 ) {
@@ -3365,6 +3604,44 @@ bool Typed( const std::string &what, const std::vector<std::string> &args, Rml::
 	return true;
 }
 
+// A click on a tile made with RunAttr: its action run here with the tile's name as one argument, as ed
+// <action> <name> runs it (the page's own verbs first, then the session's actions).
+class RunListener : public Rml::EventListener {
+public:
+	void ProcessEvent( Rml::Event &event ) override {
+		for ( Rml::Element *e = event.GetTargetElement(); e; e = e->GetParentNode() ) {
+			if ( !e->HasAttribute( "data-ed-run" ) ) {
+				continue;
+			}
+			const std::string verb = e->GetAttribute<Rml::String>( "data-ed-run", "" );
+			std::vector<std::string> words;
+			size_t at = 0;
+			while ( at < verb.size() ) {
+				const size_t space = verb.find( ' ', at );
+				if ( space != at ) {
+					words.push_back( verb.substr( at, space == std::string::npos ? std::string::npos : space - at ) );
+				}
+				if ( space == std::string::npos ) {
+					break;
+				}
+				at = space + 1;
+			}
+			if ( words.empty() || !EditorDoc() ) {
+				return;
+			}
+			const std::string what = words[0];
+			words.erase( words.begin() );
+			words.push_back( e->GetAttribute<Rml::String>( "data-ed-arg", "" ) );
+			session().notify = Notify;
+			if ( !Typed( what, words, nullptr ) && !session().run( what, words ) ) {
+				Printf( "ed: no action %s (ed lists them)\n", what.c_str() );
+			}
+			return;
+		}
+	}
+};
+RunListener runListener;
+
 void Ed_f() {
 	if ( OzE_Argc() < 2 ) {
 		Printf( "ed <action> [args]: the map editor's actions:\n" );
@@ -3441,12 +3718,21 @@ void Stats_f() {
 	}
 	Printf( "ed_stats: %s; %s; %s; selected:%s%s; material %s; undo %d redo %d; compile %s\n", s.name.c_str(), s.status().c_str(), s.render_stats().c_str(),
 		picked.c_str(), box, s.shader.c_str(), (int)s.doc.undo_size(), (int)s.doc.redo_size(), s.compile_report().empty() ? "none" : s.compile_report().c_str() );
+	if ( !s.limit_stats().empty() ) {
+		Printf( "ed_stats limits: %s\n", s.limit_stats().c_str() );
+	}
 	if ( !s.asking.empty() ) {
 		Printf( "ed_stats asking: %s\n", s.asking.c_str() );
 	}
 	Printf( "ed_stats panes: %d %s %s\n", s.layout, oz::ed::pane_name( s.solo ), oz::ed::pane_name( s.active_pane() ) );
 	Printf( "ed_stats camera: %.0f %.0f %.0f\n", s.cam.origin.x, s.cam.origin.y, s.cam.origin.z );
 	Printf( "ed_stats thumb: %s\n", s.thumb_stats().c_str() );
+	Printf( "ed_stats preview: %s\n", s.paint_preview_text().empty() ? "none" : s.paint_preview_text().c_str() );
+	Printf( "ed_stats light: %s, %d faces on %d pages, %d to go, %d lights, %d threads, last %.0f ms\n", s.live_light ? "on" : "off",
+		s.live().surfaces(), s.live().pages(), s.live().pending(), s.live().lights(), s.live().threads(), s.live().last_ms() );
+	Printf( "ed_stats %s\n", Thumbs_Stats().c_str() );
+	Printf( "ed_stats mats: view %s, kind %s, look %d, %d shown, page %d\n", matView.c_str(), matKind < 0 ? "every" : oz::ed::mat_kind_name( matKind ),
+		matStyle, matShown, matPage + 1 );
 	std::string kept;
 	if ( s.recovery_offer( kept ) ) {
 		Printf( "ed_stats recovery: %s\n", kept.c_str() );
@@ -3520,8 +3806,10 @@ void Stats_f() {
 		const std::vector<oz::ed::Winding> &ws = s.doc.windings( faces[0].first );
 		const bool ok = oz::ed::tex_fields( s.doc, f, size_t( faces[0].second ) < ws.size() ? ws[size_t( faces[0].second )] : oz::ed::Winding{},
 			oz::ed::origin_for( s.doc, *o ), tf );
-		Printf( "ed_stats face: %d %d %s %s shift %g %g rotate %g scale %g %g\n", faces[0].first, faces[0].second,
-			oz::ed::shader_name( f.shader ).c_str(), ok ? "" : "(skewed)", tf.v[0], tf.v[1], tf.v[2], tf.v[3], tf.v[4] );
+		int glowB = 100, glowL = 100;
+		oz::ed::face_glow( f, glowB, glowL );
+		Printf( "ed_stats face: %d %d %s %s shift %g %g rotate %g scale %g %g glow %d %d\n", faces[0].first, faces[0].second,
+			oz::ed::shader_name( f.shader ).c_str(), ok ? "" : "(skewed)", tf.v[0], tf.v[1], tf.v[2], tf.v[3], tf.v[4], glowB, glowL );
 	}
 	// the first selected curve: its size, which way it faces at its middle, its texture's range
 	for ( oz::ed::Id id : s.sel ) {
@@ -3589,6 +3877,21 @@ void Materials_f() {
 			}
 		}
 		Printf( "ed_materials broken: %d of %d, checked in %d ms\n", bad, (int)all.size(), OzE_Milliseconds() - t0 );
+		return;
+	}
+	if ( filter == "kind" && OzE_Argc() > 2 ) {
+		// ed_materials kind <walls|floors|lights ...>: the browser's kind, each with its look
+		int bit = -1, n = 0;
+		for ( int b = 0; b < oz::ed::MK_COUNT; b++ ) {
+			bit = Lower( OzE_Argv( 2 ) ) == oz::ed::mat_kind_name( b ) ? b : bit;
+		}
+		for ( const oz::ed::Material &m : all ) {
+			if ( bit >= 0 && ( m.kinds & ( 1u << bit ) ) ) {
+				n++;
+				Printf( "  %s%s%s\n", m.name.c_str(), m.stock ? "" : " (map pack)", m.style == oz::ed::MatStyle::Tech ? " tech" : m.style == oz::ed::MatStyle::Gothic ? " gothic" : "" );
+			}
+		}
+		Printf( "ed_materials kind %s: %d\n", OzE_Argv( 2 ), n );
 		return;
 	}
 	std::map<std::string, int> folders[2];
@@ -3790,8 +4093,39 @@ bool Editor_Key( int key, bool down ) {
 	if ( !doc ) {
 		return false;
 	}
+	if ( !Thumbs_Ready() && !pressHook ) {
+		// the material pictures' card: the editor waits for them (the console still opens). Escape goes back
+		// to the main menu: a first run reads thousands of pictures, and there was no way out but the console
+		if ( down && ( key == K_ESCAPE || key == K_PAD0_B ) ) {
+			session().notify = Notify;
+			session().run( "leave", {} );
+		}
+		return true;
+	}
 	if ( session().looking() || session().dragging() ) {
 		session().key( key, down, true );
+		return true;
+	}
+	if ( key == K_MOUSE1 && down ) {
+		const std::string m = MatUnder();
+		matDrag = MatDrag();
+		if ( !m.empty() ) {
+			matDrag.name = m, matDrag.x = mouseX, matDrag.y = mouseY;	// the page still takes the press: a click picks it up
+		}
+	} else if ( key == K_MOUSE1 && !matDrag.name.empty() ) {
+		const bool was = matDrag.active;
+		const std::string m = matDrag.name;
+		EndMatDrag();
+		if ( was ) {
+			if ( OverView( doc ) ) {
+				session().drop_material = m;
+				session().notify = Notify;
+				session().drop_at_pointer( OzE_KeyDown( K_SHIFT ) ? oz::ed::Session::SHIFT : 0 );
+			}
+			return false;	// the page has the release too (no click: it's over another element)
+		}
+	} else if ( down && key == K_ESCAPE && matDrag.active ) {
+		EndMatDrag();	// the drag given up
 		return true;
 	}
 	if ( down && ( key == K_MOUSE1 || key == K_MOUSE2 || key == K_MOUSE3 ) ) {
@@ -3943,6 +4277,14 @@ bool Editor_Key( int key, bool down ) {
 			return false;
 		}
 	}
+	if ( key == K_LEFTARROW || key == K_RIGHTARROW || key == K_UPARROW || key == K_DOWNARROW || key == K_HOME || key == K_END ) {
+		// a slider with the focus (a light's Intensity, Range or Cone) keeps the keys that step it and move
+		// off it; every other key is the editor's again (TypingIn)
+		Rml::Element *focus = GetContext()->GetFocusElement();
+		if ( focus && focus->GetTagName() == "input" && focus->GetAttribute<Rml::String>( "type", "text" ) == "range" ) {
+			return false;
+		}
+	}
 	if ( down && key == K_F10 ) {
 		OpenMenu( doc, "file" );	// the menus from the keyboard (the arrows and Enter work them)
 		return true;
@@ -3978,6 +4320,11 @@ bool EditorShortcut( int key ) {
 }
 
 void Editor_Mouse( int x, int y ) {
+	mouseX = x, mouseY = y;
+	if ( !matDrag.name.empty() && !matDrag.active && std::hypot( x - matDrag.x, y - matDrag.y ) > 6 && OzE_KeyDown( K_MOUSE1 ) ) {
+		matDrag.active = true;
+		session().drop_material = matDrag.name;	// the face under the pointer shows it from now
+	}
 	if ( EditorDoc() ) {
 		session().pointer( x, y );
 	}
@@ -3999,6 +4346,15 @@ bool Editor_Draw( int width, int height ) {
 	}
 	Rml::ElementDocument *doc = IsPageOpen( "editor" ) && OzE_ClientState() == 0 ? EditorDoc() : nullptr;
 	if ( !doc ) {
+		if ( pageUp ) {
+			// closed, covered by another page, or a play-test began: the right button's release never reaches
+			// the editor now, so the look ends here (the mouse stayed captured: no cursor in the pause menu, the
+			// camera spinning on return) and a drag under way is called off
+			pageUp = false;
+			session().release_all();
+			EndMatDrag();
+		}
+		lastPrefabs.clear();
 		shownPanel.clear();	// the page is made again when it opens: everything shows anew
 		lastInspect.clear();
 		lastKeysRml.clear();
@@ -4012,8 +4368,11 @@ bool Editor_Draw( int width, int height ) {
 		lastHint.clear();
 		lastSizeTag.clear();
 		lastTools.clear();
+		lastPaintArea = "-";
 		lastKeyHelp.clear();
 		lastPanes.clear();
+		lastLoadWhat.clear();
+		lastLoadN.clear();
 		lastFilters = ~0u;
 		lastSel = ~0ull;
 		searchOpen = keymapOpen = warnsOpen = pickOpen = uvOpen = skyOpen = false;	// hidden in the page as made
@@ -4026,12 +4385,57 @@ bool Editor_Draw( int width, int height ) {
 	}
 	oz::ed::Session &s = session();
 	s.notify = Notify;
+	pageUp = true;
+	if ( s.doc_serial != shownSerial ) {
+		// another map (New, Open, a session's): what the panels show is keyed on the document's revision, and
+		// the new document's can equal the old one's, which left the old map's rows and values up
+		shownSerial = s.doc_serial;
+		lastInspect.clear();
+		lastKeysRml.clear();
+		lastMats.clear();
+		lastObjects.clear();
+		lastHistory.clear();
+		lastMenu.clear();
+		lastPick.clear();
+		lastUv.clear();
+		lastSky.clear();
+		lastSel = ~0ull;
+	}
+	// every material's picture ready before the editor is used (oz_ui_thumbs.cpp): a slice of the work
+	// a frame, its card showing how far it got; the browser's pages then show whole at once. Once
+	// ready, the kept pictures are checked against the game's files a little a frame.
+	const bool wasReady = Thumbs_Ready();
+	Thumbs_Frame();
+	if ( !wasReady ) {
+		std::string what;
+		int done = 0, total = 0;
+		const bool busy = Thumbs_Progress( what, done, total );
+		Show( doc, "ed-loading", busy );
+		if ( busy ) {
+			char n[96] = "";
+			if ( total > 0 ) {
+				snprintf( n, sizeof n, "%d of %d", done, total );
+			}
+			SetText( doc, "ed-loading-what", what, lastLoadWhat );
+			SetText( doc, "ed-loading-n", n, lastLoadN );
+			if ( Rml::Element *bar = doc->GetElementById( "ed-loading-bar" ) ) {
+				char wd[32];
+				snprintf( wd, sizeof wd, "%.1f%%", total > 0 ? 100.0 * done / total : 0.0 );
+				bar->SetProperty( "width", wd );
+			}
+		} else {
+			lastMats.clear();	// the browser's tiles from the cache now
+		}
+	}
 	Rml::Element *view = doc->GetElementById( "viewport" );
 	if ( !view ) {
 		return true;
 	}
 	const Rml::Vector2f pos = view->GetAbsoluteOffset( Rml::BoxArea::Border );
 	const Rml::Vector2f size = view->GetBox().GetSize( Rml::BoxArea::Border );
+	// what's drawn over the view: a thumbnail's screenshot would have it in the picture
+	s.page_over = !menuOpen.empty() || searchOpen || pickOpen || saveAsOpen || guideOpen || keymapOpen || warnsOpen || uvOpen || !s.asking.empty() ||
+		!Thumbs_Ready();
 	s.frame( (int)pos.x, (int)pos.y, (int)size.x, (int)size.y );
 	const bool noting = !note.empty() && OzE_Milliseconds() < noteUntil;
 	if ( !s.renderer_ok() ) {
@@ -4068,14 +4472,21 @@ bool Editor_Draw( int width, int height ) {
 
 	// the tool strip shows the tool in use (Light, Jump pad and Teleport the place tool's own), the
 	// action bar the texture lock
+	// the paint tool's marked area: its size and faces, and the button that paints it
+	const Rml::String area = s.paint_area_on() ? Rml::String( s.paint_area_text() + " \xc2\xb7 " + s.shader ) : Rml::String();
+	if ( area != lastPaintArea ) {
+		lastPaintArea = area;
+		Show( doc, "sec-paintarea", !area.empty() );
+		SetRml( doc, "ed-paintarea-note", Enc( area ) );
+	}
 	const Rml::String tools = Rml::CreateString( "%d %d %s", (int)s.tool, s.texture_lock ? 1 : 0, s.place_class.c_str() );
 	if ( tools != lastTools ) {
 		lastTools = tools;
 		const bool place = s.tool == oz::ed::Tool::Place;
 		const std::string &pc = s.place_class;
 		const bool own = pc == "light" || pc == "jump_pad" || pc == "teleporter";
-		static const char *ids[] = { "tool-select", "tool-create", "tool-clip", "tool-faces", "tool-place" };
-		for ( int i = 0; i < 5; i++ ) {
+		static const char *ids[] = { "tool-select", "tool-create", "tool-clip", "tool-faces", "tool-place", "tool-paint" };	// oz::ed::Tool's order
+		for ( int i = 0; i < 6; i++ ) {
 			if ( Rml::Element *e = doc->GetElementById( ids[i] ) ) {
 				e->SetClass( "on", (int)s.tool == i && !( place && own ) );
 			}
@@ -4146,8 +4557,31 @@ bool Editor_Draw( int width, int height ) {
 	Show( doc, "ed-warnings", !s.compile_warnings().empty() && !s.compiling() );
 	static Rml::String lastWarnings;
 	SetText( doc, "ed-warnings-n", s.compile_warnings().size() == 1 ? "1 warning" : std::to_string( s.compile_warnings().size() ) + " warnings", lastWarnings );
-	if ( Rml::Element *e = doc->GetElementById( "ed-preview" ) ) {
-		e->SetClass( "on", s.previewing() );
+	if ( Rml::Element *e = doc->GetElementById( "ed-lighting" ) ) {
+		e->SetClass( "on", !s.live_light );	// Lighting off, on while the map shows without its light
+	}
+	if ( Rml::Element *e = doc->GetElementById( "ed-eyedrop" ) ) {
+		e->SetClass( "on", s.eyedropping() );	// armed: the next click on a face takes its material
+	}
+	if ( matDrag.active && !OzE_KeyDown( K_MOUSE1 ) ) {
+		EndMatDrag();
+	}
+	{
+		static std::string lastDrag;
+		const std::string dragging = matDrag.active ? matDrag.name : "";
+		if ( dragging != lastDrag ) {
+			lastDrag = dragging;
+			Show( doc, "ed-dragmat", !dragging.empty() );
+			if ( !dragging.empty() ) {
+				SetSwatch( doc, "ed-dragmat-sw", dragging, 2.6 );
+				static Rml::String lastName;
+				SetText( doc, "ed-dragmat-name", dragging, lastName );
+			}
+		}
+		if ( Rml::Element *chip = matDrag.active ? doc->GetElementById( "ed-dragmat" ) : nullptr ) {
+			chip->SetProperty( "left", Rml::CreateString( "%dpx", mouseX + 16 ) );
+			chip->SetProperty( "top", Rml::CreateString( "%dpx", mouseY + 16 ) );
+		}
 	}
 	// the Size fields show the selection's size as it changes
 	const uint64_t selKey = s.sel_rev * 1000003ull + s.doc.revision;
@@ -4330,8 +4764,15 @@ void Editor_Opened( Rml::ElementDocument *doc ) {
 	lastMenu.clear();
 	tipFor = nullptr;
 	session().binding.clear();
+	session().release_all();	// no look or drag left over from before the page was made
+	lastPrefabs.clear();
+	lastLoadWhat.clear();
+	lastLoadN.clear();
 	FillIcons( doc );
+	Show( doc, "ed-loading", !Thumbs_Ready() );
 	doc->AddEventListener( Rml::EventId::Change, &slideListener );
+	doc->RemoveEventListener( Rml::EventId::Click, &runListener );	// once, however often the page opens
+	doc->AddEventListener( Rml::EventId::Click, &runListener );
 	if ( Rml::Element *v = doc->GetElementById( "ed-uv-view" ) ) {
 		for ( Rml::EventId id : { Rml::EventId::Dragstart, Rml::EventId::Drag, Rml::EventId::Dragend, Rml::EventId::Mousescroll } ) {
 			v->AddEventListener( id, &uvListener );

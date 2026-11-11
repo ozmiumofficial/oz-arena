@@ -53,6 +53,8 @@ typedef struct {
 // the server (sv_oz_replay.c)
 void SV_OzReplayFrame( void );					// after the server's game frames, every SV_Frame
 void SV_OzReplayStop( const char *why );		// a map ends: the server shuts down or loads another
+void SV_OzReplayRestart( void );				// map_restart, before it: after an intermission the next match gets its own file
+const char *SV_OzReplayCurrent( void );			// the file being written, "" for none
 
 // the client (cl_oz_replay.c)
 void CL_OzReplay_Init( void );

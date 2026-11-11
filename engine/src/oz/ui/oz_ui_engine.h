@@ -19,6 +19,8 @@ void		OzE_ProfEnd( int part, long long start );	// part: 0 ui update, 1 ui draw 
 void		OzE_ProfDetail( const char *name, long long start );	// a named piece of a slow frame (Com_ProfDetail)
 void		OzE_PumpEvents( void );		// takes the window's messages in a long command, so Windows doesn't call it hung
 int			OzE_SettingsRestart( void );	// a renderer setting waits for a vid_restart (taken: the next call says 0)
+void		OzE_SettingsNeedRestart( void );	// a setting bound straight to a latched renderer cvar changed: it waits for that restart too
+void		OzE_Pause( int on );			// every frame: the pause pages want a local match paused (cl_paused), or not
 int			OzE_Monitors( void );			// how many monitors
 void		OzE_AudioDevices( char *list, int size );	// the sound output devices' names, one a line
 
@@ -29,6 +31,13 @@ int			OzE_ReadFileAt( const char *path, int offset, void *buffer, int size );	//
 void		OzE_WriteFile( const char *path, const void *data, int size );	// in the home path's game folder
 int			OzE_FileExists( const char *path );		// in the search path or the UI pak, without reading it
 int			OzE_IsPlayerHome( void );				// fs_homepath is the player's own user folder (not a test's)
+// the map editor's thumbnail cache (oz_ui_thumbs.cpp): a number for an image's files (each one the
+// renderer or q3map2 may read for it, a custom texture's too, their sizes and the paks holding them)
+// that changes when any of them does; 0 when none is there. *pak: the pak holding the first, so a
+// pak's images are read together
+unsigned	OzE_ImageStamp( const char *image, int *pak );
+void		*OzE_FOpenOS( const char *path, const char *mode );	// an OS path as a FILE *; fclose it
+unsigned	OzE_SearchStamp( void );	// changes when the search path's paks or folders do (FS_OzSearchStamp)
 
 int			OzE_CvarExists( const char *name );
 const char	*OzE_CvarString( const char *name );
@@ -59,6 +68,7 @@ int			OzE_KeyNum( const char *name );
 const char	*OzE_Binding( int key );
 void		OzE_SetBinding( int key, const char *command );
 char		*OzE_GetClipboard( void );			// free with OzE_Free
+void		OzE_SetClipboard( const char *text );	// onto the system's clipboard (UTF-8)
 void		OzE_Free( void *p );
 
 // P5, the menus
@@ -84,6 +94,7 @@ typedef struct {
 	int		line;			// a duel's waiting spectator: your place in the line to play (1 next), 0 not known
 	int		following;		// watching a player (not flying free)
 	int		intermission;	// the match is over (the scores screen)
+	int		ozRules;		// the server runs Oz's game code (its serverinfo has g_ruleset): a duel's line is id's
 } ozTeamInfo_t;
 int			OzE_TeamInfo( ozTeamInfo_t *t );
 const char	*OzE_GameDir( void );				// the running mod ("oz" is Oz's own game)

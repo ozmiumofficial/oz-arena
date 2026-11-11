@@ -5,9 +5,11 @@ Oz Arena: the online hub's connection (ENGINE_PLAN.md P7). GPL-2.0.
 One WebSocket to the hub over libcurl's WebSocket API (CURLOPT_CONNECT_ONLY 2, curl_ws_send and
 curl_ws_recv), on a thread of its own so a slow lookup or TLS handshake never holds a frame. The
 thread signs each handshake (identity.cpp), sends {"type":"ping"} every 10 s and times the pong,
-and after a lost connection tries again in 1, 2, 4 ... 30 s. A hub that refuses the identity (close
-code 4001) or the game's version (4002) isn't retried. Messages go both ways through queues the
-client's frame empties (OzOnline_Receive) and fills (OzOnline_Send).
+and after a lost connection tries again in 1, 2, 4 ... 30 s. A hub that refuses the game's version
+(close code 4002) isn't retried; one that refuses the identity (4001: the PC's clock was off, a
+sign-in it had seen) is, every 30 s. A connection counts as up once the hub has said something on it
+(a refused one upgrades too, then closes). Messages go both ways through queues the client's frame
+empties (OzOnline_Receive) and fills (OzOnline_Send).
 ===========================================================================
 */
 #define NOMINMAX
@@ -36,6 +38,8 @@ namespace {
 const int		PING_EVERY_MS = 10000;
 const int		CLOSE_IDENTITY = 4001, CLOSE_OUTDATED = 4002;
 const size_t	MAX_QUEUE = 512;		// messages kept for the frame; past it the oldest go
+const int		QUIET_UP_MS = 1500;		// a hub that says nothing first is up after this long without a close
+const int		REFUSED_RETRY_S = 30;	// between tries after a refused identity
 
 struct Hub {
 	std::mutex				lock;
@@ -47,6 +51,7 @@ struct Hub {
 	std::string				reason;
 	int						closeCode = 0;
 	std::atomic<int>		rtt{ 100 };
+	std::atomic<int>		generation{ 0 };	// the connections that came up
 	std::string				url, name, model, color;
 } hub;
 
@@ -54,6 +59,21 @@ void SetStatus( int status, const std::string &reason ) {
 	std::lock_guard<std::mutex> g( hub.lock );
 	hub.status = status;
 	hub.reason = reason;
+}
+
+// The connection is up. Each one is a new socket to the hub, with none of the last one's listing, seat or
+// presence: the generation tells the game to send them again.
+void Up() {
+	std::lock_guard<std::mutex> g( hub.lock );
+	hub.status = OZ_ONLINE_ONLINE;
+	hub.reason.clear();
+	hub.generation++;
+}
+
+// libcurl's progress callback: quitting (or going offline) ends a lookup or a handshake under way at once.
+// Without it OzOnline_Stop waited out the 10 s connect timeout, the game's window frozen.
+int Stopping( void *, curl_off_t, curl_off_t, curl_off_t, curl_off_t ) {
+	return hub.stop ? 1 : 0;
 }
 
 // Godot's String.uri_encode: everything but unreserved characters, percent-encoded
@@ -134,6 +154,8 @@ int Session( std::string &why, bool &wasOnline ) {
 	curl_easy_setopt( c, CURLOPT_CONNECTTIMEOUT, 10L );
 	curl_easy_setopt( c, CURLOPT_SSL_OPTIONS, (long)CURLSSLOPT_REVOKE_BEST_EFFORT );
 	curl_easy_setopt( c, CURLOPT_USERAGENT, "OzArena" );
+	curl_easy_setopt( c, CURLOPT_NOPROGRESS, 0L );
+	curl_easy_setopt( c, CURLOPT_XFERINFOFUNCTION, Stopping );
 
 	int code = 0;
 	CURLcode r = curl_easy_perform( c );
@@ -143,8 +165,9 @@ int Session( std::string &why, bool &wasOnline ) {
 		curl_easy_cleanup( c );
 		return 0;
 	}
-	SetStatus( OZ_ONLINE_ONLINE, "" );
-	wasOnline = true;
+	// Not up yet: a hub that refuses the identity or the version upgrades too, then closes with its reason.
+	// Up at the hub's first message (it sends the player's picture at once), or after a moment without a close.
+	const long long upgraded = TickMs();
 
 	curl_socket_t sock = CURL_SOCKET_BAD;
 	curl_easy_getinfo( c, CURLINFO_ACTIVESOCKET, &sock );
@@ -180,6 +203,10 @@ int Session( std::string &why, bool &wasOnline ) {
 						hub.rtt = (int)std::max( 1LL, std::min( 2000LL, TickMs() - pingSent ) );
 						pingSent = 0;
 					}
+					if ( !wasOnline ) {
+						wasOnline = true;
+						Up();
+					}
 					Deliver( std::move( frame ) );
 					frame.clear();
 				}
@@ -187,6 +214,10 @@ int Session( std::string &why, bool &wasOnline ) {
 		}
 		if ( !open ) {
 			break;
+		}
+		if ( !wasOnline && TickMs() - upgraded > QUIET_UP_MS ) {
+			wasOnline = true;
+			Up();
 		}
 		// everything the game queued, and the ping
 		std::deque<std::string> out;
@@ -205,6 +236,10 @@ int Session( std::string &why, bool &wasOnline ) {
 				size_t sent = 0;
 				r = curl_ws_send( c, m.data() + off, m.size() - off, &sent, 0, CURLWS_TEXT );
 				if ( r == CURLE_AGAIN ) {
+					if ( hub.stop ) {
+						open = false;	// a socket that takes nothing more never held up quitting
+						break;
+					}
 					std::this_thread::sleep_for( std::chrono::milliseconds( 2 ) );
 					continue;
 				}
@@ -259,10 +294,14 @@ void Run() {
 			hub.reason = why;
 			hub.outbox.clear();		// meant for the connection that's gone (the frame sends the state again)
 		}
-		if ( hub.stop || code == CLOSE_IDENTITY || code == CLOSE_OUTDATED ) {
+		if ( hub.stop || code == CLOSE_OUTDATED ) {
 			break;
 		}
-		if ( wasOnline && TickMs() - began > 10000 ) {
+		if ( code == CLOSE_IDENTITY ) {
+			// A PC clock that was off and has since been set, a sign-in the hub had seen: the next handshake is a
+			// new one and may pass. It used to end online play until the game was started again.
+			backoff = REFUSED_RETRY_S;
+		} else if ( wasOnline && TickMs() - began > 10000 ) {
 			backoff = 1;
 		}
 		if ( !Waited( backoff * 1000 ) ) {
@@ -331,6 +370,10 @@ int OzOnline_CloseCode( void ) {
 
 int OzOnline_Rtt( void ) {
 	return hub.rtt;
+}
+
+int OzOnline_Generation( void ) {
+	return hub.generation;
 }
 
 int OzOnline_Send( const char *json ) {

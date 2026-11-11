@@ -158,7 +158,7 @@
         <path class="ui-ic" transform="translate(499 48)" d="M-4.5-4.5H-0.8V-0.8H-4.5Z M0.8-4.5H4.5V-0.8H0.8Z M-4.5 0.8H-0.8V4.5H-4.5Z M0.8 0.8H4.5V4.5H0.8Z"/>
         <rect class="ui-btn" x="511" y="40" width="39" height="16" rx="3"/><path class="ui-ic" transform="translate(519 48)" d="M-4.5-1.5V-4.5H-1.5 M1.5-4.5H4.5V-1.5 M4.5 1.5V4.5H1.5 M-1.5 4.5H-4.5V1.5"/><text class="t-tiny t-ink" x="526" y="51">Frame</text>
         <rect class="ui-search" x="555" y="40" width="48" height="16" rx="3"/><path class="ui-ic" transform="translate(563 48)" d="M1.6-1A2.6 2.6 0 1 1 -3.6 -1A2.6 2.6 0 1 1 1.6 -1Z M0.8 1L4 4.2"/><text class="t-tiny t-faint" x="570" y="51">Search</text>
-        <rect class="ui-btn" x="607" y="40" width="58" height="16" rx="3"/><path class="ui-ic" transform="translate(615 48)" d="M2 0A2 2 0 1 1 -2 0A2 2 0 1 1 2 0Z M0-5V-3.6 M0 3.6V5 M-5 0H-3.6 M3.6 0H5 M-3.5-3.5L-2.5-2.5 M2.5 2.5L3.5 3.5 M-3.5 3.5L-2.5 2.5 M2.5-2.5L3.5-3.5"/><text class="t-tiny t-ink" x="622" y="51">Lit preview</text>
+        <rect class="ui-btn" x="607" y="40" width="58" height="16" rx="3"/><path class="ui-ic" transform="translate(615 48)" d="M2 0A2 2 0 1 1 -2 0A2 2 0 1 1 2 0Z M0-5V-3.6 M0 3.6V5 M-5 0H-3.6 M3.6 0H5 M-3.5-3.5L-2.5-2.5 M2.5 2.5L3.5 3.5 M-3.5 3.5L-2.5 2.5 M2.5-2.5L3.5-3.5"/><text class="t-tiny t-ink" x="622" y="51">Lighting off</text>
         <rect class="ui-btn" x="669" y="40" width="45" height="16" rx="3"/><path class="ui-ic" transform="translate(677 48)" d="M-4 4.5L0.5 0 M-1.5-2L1.5-5L4.5-2L1.5 1Z"/><text class="t-tiny t-ink" x="684" y="51">Compile</text>
         <rect class="ui-play" x="717" y="40" width="37" height="16" rx="3"/><path class="ui-ic light" transform="translate(724 48)" d="M-2.5-3.5L3.5 0L-2.5 3.5Z"/><text class="t-tiny t-onred" x="731" y="51">Play</text>
         <!-- tool strip: a card for each tool, its icon, name and key -->
@@ -198,7 +198,7 @@
           <text x="512" y="157"><tspan class="t-glow">1</tspan>  Hold the right button to look</text>
           <text x="512" y="173"><tspan class="t-glow">2</tspan>  Brush: drag a footprint, then up</text>
           <text x="512" y="189"><tspan class="t-glow">3</tspan>  Click to select, drag to move</text>
-          <text x="512" y="205"><tspan class="t-glow">4</tspan>  Materials tab: click to paint</text>
+          <text x="512" y="205"><tspan class="t-glow">4</tspan>  Materials tab: pick a material</text>
           <text x="512" y="221"><tspan class="t-glow">5</tspan>  Entities tab: pick, then click</text>
           <text x="512" y="237"><tspan class="t-glow">6</tspan>  Play F5 runs around in it</text>
         </g>
@@ -482,7 +482,7 @@
   <h2 id="materials-title">Paint it from your own install</h2>
   <p>Every surface has a <b>material</b>: a texture and how it draws. The editor lists every material in your game's files, the stock ones and every map pack you've installed.</p>
   <h3>The Materials tab</h3>
-  <p>At the top is the <b>current material</b>, which new brushes and Paint use. Click any material below to paint the selection with it and make it current. The chips along the top switch what the list shows:</p>
+  <p>At the top is the <b>current material</b>, which new brushes and Paint use. Click any material below to pick it up: it becomes current, and nothing is painted until you paint it (<kbd>P</kbd> for the selection, or the paint tool). The chips along the top switch what the list shows:</p>
   <ul>
     <li><b>In this map</b>: every material the map already uses.</li>
     <li><b>Favorites</b>: materials you keep at hand. <b>Add to favorites</b> puts the current material there; pressed again it takes it out.</li>
@@ -494,14 +494,16 @@
 
   <figure class="shot framed">
     <img src="img/editor_materials.jpg" alt="A room blocked out in plain colored grid textures, a selected block painted teal, and the Materials tab showing the current material and the twelve dev textures" loading="lazy" width="1600" height="900">
-    <figcaption>A blockout in the dev textures. The selected block is teal, which is now the current material at the top of the tab.</figcaption>
+    <figcaption>A blockout in the dev textures. The selected block is painted teal, the current material shown at the top of the tab.</figcaption>
   </figure>
 
   <h3>Eyedropper and Paint</h3>
   <ul>
-    <li><b>Eyedropper</b> (<kbd>I</kbd>): the material of the face under the pointer becomes the current one.</li>
+    <li><b>Eyedropper</b> (<kbd>I</kbd>, or <kbd>Alt</kbd>+click in any tool): the material of the face under the pointer becomes the current one. The eyedropper button does it too: click it, then click a face.</li>
     <li><b>Paint</b> (<kbd>P</kbd>): puts the current material on the picked faces, or on every face of the selected brushes and curves. Painting keeps each face's texture scale and position.</li>
-    <li>In the Faces tool, <kbd>Alt</kbd>+click is the eyedropper and <kbd>Alt+Shift</kbd>+click paints the face under the pointer. Copied onto a face in the same plane, a texture carries straight on across the join.</li>
+    <li><b>The paint tool</b> (<kbd>Shift+P</kbd>): click a face to paint it with the current material, <kbd>Shift</kbd>+click to paint its whole brush, or drag an area on a block's surface and press <kbd>Enter</kbd> to paint just that area. The face under the pointer shows the material before you click.</li>
+    <li><b>Drag a material</b> from the Materials tab onto a face in the view to paint that face (<kbd>Shift</kbd>: its whole brush), whatever tool you're in. The face shows it as you move over it; <kbd>Esc</kbd> gives the drag up.</li>
+    <li><kbd>Alt+Shift</kbd>+click paints the face under the pointer with the eyedropped face's texture position. Copied onto a face in the same plane, a texture carries straight on across the join.</li>
   </ul>
 
   <h3>The Faces tool</h3>
@@ -691,7 +693,7 @@
 <section id="sky" aria-labelledby="sky-title">
   <p class="kicker"><span class="rune">XII</span> Sky and sun</p>
   <h2 id="sky-title">The sky around the map, and its light</h2>
-  <p>The <b>World</b> tab (also Build, Sky and sun) sets the map's sky and the light it gives. It's saved with the map, and you see it in the Lit preview (<kbd>F6</kbd>) and when you play.</p>
+  <p>The <b>World</b> tab (also Build, Sky and sun) sets the map's sky and the light it gives. It's saved with the map, and the view shows it as you change it, as it does when you play.</p>
   <ul>
     <li><b>Sky</b>: a tile for each of the game's skies, the current one marked. A new map starts with gray clouds and a white sun.</li>
     <li><b>Light from</b>: <b>These settings</b> lights the map with the sun and sky glow below; <b>The sky's own</b> uses the light the sky came with, as the stock maps are lit.</li>
@@ -717,10 +719,10 @@
   <figure class="diagram">
     <div class="plate">
       <svg class="dg" viewBox="0 0 760 252" role="img" aria-labelledby="d-compile-t">
-        <title id="d-compile-t">Three ways to compile: Play builds the level, a quick light and the bots' file, then drops you in; Compile builds the level, visibility, the full light and the bots' file; Lit preview shows the last compile's light in the editor</title>
+        <title id="d-compile-t">Two ways to compile, and the live light: Play builds the level, a quick light and the bots' file, then drops you in; Compile builds the level, visibility, the full light and the bots' file; the live light shows the map in the view lit as Play lights it, as you edit, with no compile</title>
         <rect class="box" x="20" y="28" width="150" height="56"/><text class="t-head" x="34" y="52">PLAY</text><text class="t-num t-amber" x="34" y="72">F5</text>
         <rect class="box" x="20" y="108" width="150" height="56"/><text class="t-head" x="34" y="132">COMPILE</text><text class="t-num t-amber" x="34" y="152">Ctrl+F5</text>
-        <rect class="box" x="20" y="188" width="150" height="56"/><text class="t-head" x="34" y="212">LIT PREVIEW</text><text class="t-num t-amber" x="34" y="232">F6</text>
+        <rect class="box" x="20" y="188" width="150" height="56"/><text class="t-head" x="34" y="212">LIVE LIGHT</text><text class="t-num t-amber" x="34" y="232">always on</text>
         <g>
           <rect class="box" x="196" y="36" width="118" height="40"/><text class="t-small t-ink mid" x="255" y="61">BUILD THE LEVEL</text>
           <rect class="box" x="336" y="36" width="118" height="40"/><text class="t-small t-ink mid" x="395" y="61">QUICK LIGHT</text>
@@ -730,8 +732,8 @@
           <rect class="box" x="336" y="116" width="118" height="40"/><text class="t-small t-ink mid" x="395" y="141">VISIBILITY, FULL LIGHT</text>
           <rect class="box" x="476" y="116" width="118" height="40"/><text class="t-small t-ink mid" x="535" y="141">BOTS' FILE</text>
           <rect class="box" x="616" y="108" width="124" height="56"/><text class="t-small t-ink mid" x="678" y="132">THE FINISHED MAP</text><text class="t-small mid" x="678" y="150">in your files</text>
-          <rect class="box" x="196" y="196" width="398" height="40"/><text class="t-small t-ink mid" x="395" y="214">THE LAST COMPILE, LIT BY ITS OWN LIGHTS</text><text class="t-small t-faint mid" x="395" y="229">a quick compile first if the map has changed</text>
-          <rect class="box hot" x="616" y="188" width="124" height="56"/><text class="t-small t-hot mid" x="678" y="212">IN THE VIEW</text><text class="t-small mid" x="678" y="230">F6 again: back</text>
+          <rect class="box" x="196" y="196" width="398" height="40"/><text class="t-small t-ink mid" x="395" y="214">PLAY'S LIGHT, WORKED OUT AS YOU EDIT</text><text class="t-small t-faint mid" x="395" y="229">lights, glowing materials, sun and sky, with shadows</text>
+          <rect class="box hot" x="616" y="188" width="124" height="56"/><text class="t-small t-hot mid" x="678" y="212">IN THE VIEW</text><text class="t-small mid" x="678" y="230">F6: Lighting off</text>
         </g>
         <g>
           <path class="route" d="M172 56H190M316 56H330M456 56H470M596 56H610" marker-end="url(#a-amber)"/>
@@ -740,20 +742,20 @@
         </g>
       </svg>
     </div>
-    <figcaption><b>Three ways to compile</b> All three run while you keep editing; the status line shows the stage and the seconds, and Stop ends it.</figcaption>
+    <figcaption><b>Two ways to compile, and the live light</b> Both compiles run while you keep editing; the status line shows the stage and the seconds, and Stop ends it. The live light needs no compile.</figcaption>
     <p class="scroll-hint">Scroll the diagram sideways</p>
   </figure>
   <ul>
     <li><b>Play</b> (<kbd>F5</kbd>): a quick compile, then you're in the map at a spawn point. A blockout is ready in moments.</li>
     <li><b>Play from here</b> (<kbd>Shift+F5</kbd>): the same, starting with your eye where the editor's camera is. The fastest way to test one jump.</li>
     <li><b>Compile</b> (<kbd>Ctrl+F5</kbd>): the whole compile, with visibility and the full, softer light. Use it for the finished look and before you share the map.</li>
-    <li><b>Lit preview</b> (<kbd>F6</kbd>): the editor's view shows the map lit by its own lights, from the last compile. Changes you make meanwhile are drawn over it; <kbd>F6</kbd> again goes back to the plain view.</li>
+    <li><b>The live light</b>: the editor's view always shows the map lit by its own lights, glowing materials, sun and sky, the light Play's compile gives it, with the same shadows. Change a light, a brush or the sky and that part of the map is lit again in a moment; drag a light and the room lights up where it goes. <b>Lighting off</b> (<kbd>F6</kbd>) shows the map in the view's plain light, <kbd>F6</kbd> again lights it.</li>
   </ul>
   <h3>The game mode</h3>
   <p><b>Build, Game mode</b> picks what Play starts the map as: <b>Free for all</b>, <b>Duel</b>, <b>Team deathmatch</b> or <b>Capture the flag</b>. The map keeps it (it's saved in the map file), and the status line names it. In the two team modes you're put on a team as you come in. Capture the flag needs a red flag and a blue flag (the Entities tab's flags): without them, Play says which one is missing.</p>
   <figure class="shot framed">
-    <img src="img/editor.jpg" alt="The Longest Yard open in the map editor in Lit preview, lit as in the game against its starry sky, jump pad arcs drawn over it, the heavy armor selected and its keys in the Inspect tab" loading="lazy" width="1600" height="900">
-    <figcaption>A stock arena opened in the editor, compiled in 12 seconds and seen in Lit preview, with its heavy armor selected. The compile's warnings wait behind the button in the action bar.</figcaption>
+    <img src="img/editor.jpg" alt="The Longest Yard open in the map editor, lit as in the game against its starry sky, jump pad arcs drawn over it, the heavy armor selected and its keys in the Inspect tab" loading="lazy" width="1600" height="900">
+    <figcaption>A stock arena opened in the editor, lit as Play lights it, with its heavy armor selected. The compile's warnings wait behind the button in the action bar.</figcaption>
   </figure>
   <figure class="shot framed">
     <img src="img/editor_play.jpg" alt="Running around a compiled test room with the game's HUD, a rocket launcher on the floor and a pool of light on the far wall" loading="lazy" width="1600" height="900">
@@ -934,7 +936,7 @@
       <tr><th><kbd>1</kbd> – <kbd>9</kbd></th><td>Grid 1, 2, 4, 8, 16, 32, 64, 128, 256</td></tr>
       <tr><th><kbd>[</kbd> <kbd>]</kbd></th><td>Smaller grid / bigger grid</td></tr>
       <tr><th><kbd>Ctrl</kbd>+wheel</th><td>Grid smaller or bigger</td></tr>
-      <tr><th><kbd>F6</kbd></th><td>Lit preview on and off</td></tr>
+      <tr><th><kbd>F6</kbd></th><td>Lighting off and on again</td></tr>
     </tbody>
     <tbody>
       <tr class="grp"><th colspan="2" scope="colgroup">Tools</th></tr>
@@ -985,7 +987,7 @@
       <tr><th><kbd>U</kbd></th><td>UV editor</td></tr>
       <tr><th><kbd>Ctrl+Left</kbd> / <kbd>Ctrl+Right</kbd></th><td>Turn the texture 15 degrees</td></tr>
       <tr><th><kbd>Ctrl+Up</kbd> / <kbd>Ctrl+Down</kbd></th><td>Texture bigger / smaller</td></tr>
-      <tr><th><kbd>Alt</kbd>+click</th><td>Faces tool: eyedropper</td></tr>
+      <tr><th><kbd>Alt</kbd>+click</th><td>Eyedropper, in any tool</td></tr>
       <tr><th><kbd>Alt+Shift</kbd>+click</th><td>Paint one face</td></tr>
     </tbody>
     <tbody>

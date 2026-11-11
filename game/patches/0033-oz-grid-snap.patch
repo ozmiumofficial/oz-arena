@@ -1,0 +1,274 @@
+Oz: the prediction rounds the player's velocity as the server's game does (cg_predict.c CG_OzGridSnap, bg_pmove.c
+bg_gridSnap). id's game rounds it to whole units after every command, which makes its movement depend on the frame
+rate: at 1,000 fps a jump falls with a gravity of 1000, at 125 with 750. Area 51's servers (2026-11-10, read from
+their snapshots with cl_ozProbe 4 at 125, 250, 500 and 1,000 fps: pmove_fixed 0 in the systeminfo, sv_fps 40) move a
+player above 125 fps another way: his velocity is rounded only at the 8 ms marks of the server's clock, so he falls
+and jumps as 125 fps does (a 48-unit jump at every frame rate), and between marks a snapshot shows the speed
+unrounded (whole at the last mark, less the gravity of the milliseconds since). At 125 fps they round after every
+command, as id's. Oz's cgame predicted id's way there: no miss at 125 fps, a miss at most snapshots while moving
+above it. The cgame now tells the two ways apart from the snapshots (in the air, and running; cg_ozGridSnap -1; 0
+id's way, 1 the marks') and predicts with the server's: a move is cut at the marks, and only a piece that ends on
+one rounds. A fall that ends within a quarter unit of a level floor just lands there (no overbounce, as Area 51's
+snapshots show): cut at the marks, half the predicted landings at 500 fps bounced, a 17 unit miss each.
+
+Live on Area 51's Duel behind 48 ms (cg_showmiss): at 500 fps strafe jumps missed at 64 and 76 of 96 snapshots id's
+way, 1 and 1 this way; running 25 and 7, then 0; at 1,000 fps a walk with jumps and strafes 266 of 428, then 10 of
+469 (those left were the bot's hits). Oz's own servers move in fixed 8 ms steps (0022); g_ozGridSnap 1 with
+pmove_fixed 0 makes the game move this way too, for server_cvars_test.py's stand-in (176 misses id's way, 2 this
+way). cg_showmiss 3 prints each miss's direction and both speeds.
+
+diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
+--- a/code/game/bg_pmove.c
++++ b/code/game/bg_pmove.c
+@@ -1192,6 +1192,14 @@ static void PM_GroundTrace( void ) {
+ 
+ 	pm->ps->groundEntityNum = trace.entityNum;
+ 
++	// Oz: bg_gridSnap: on such a server a fall that ends within the ground trace's quarter unit of a level floor
++	// just lands (Area 51's snapshots, 2026-11-10). id's keeps the falling speed there, and the walk that follows
++	// turns it into a bounce or a push along the floor (the overbounce); cut at the marks, half the predicted
++	// landings at 500 fps ended that way, a 17 unit miss each
++	if ( bg_gridSnap && trace.plane.normal[2] > 0.999f && pm->ps->velocity[2] < 0 ) {
++		pm->ps->velocity[2] = 0;
++	}
++
+ 	// don't reset the z velocity for slopes
+ //	pm->ps->velocity[2] = 0;
+ 
+@@ -1840,6 +1848,13 @@ PmoveSingle
+ */
+ void trap_SnapVector( float *v );
+ 
++// Oz: some community servers' games (Area 51's, seen from its snapshots: game patch 0033) round a player's
++// velocity to whole units only at the 8 ms marks of the server's clock, where id's rounds it after every
++// command: so every frame rate falls and jumps as 125 fps does. The cgame sets this to predict
++// as such a server moves; the game never does
++int			bg_gridSnap;
++static qboolean	ozSnap;
++
+ void PmoveSingle (pmove_t *pmove) {
+ 	pm = pmove;
+ 
+@@ -1905,6 +1920,8 @@ void PmoveSingle (pmove_t *pmove) {
+ 	} else if ( pml.msec > 200 ) {
+ 		pml.msec = 200;
+ 	}
++	// Oz: bg_gridSnap: only a move that crosses an 8 ms mark of the server's clock rounds the velocity
++	ozSnap = !bg_gridSnap || pmove->cmd.serverTime / 8 != pm->ps->commandTime / 8;
+ 	pm->ps->commandTime = pmove->cmd.serverTime;
+ 
+ 	// save old org in case we get stuck
+@@ -2019,10 +2036,40 @@ void PmoveSingle (pmove_t *pmove) {
+ 	PM_WaterEvents();
+ 
+ 	// snap some parts of playerstate to save network bandwidth
+-	trap_SnapVector( pm->ps->velocity );
++	if ( ozSnap ) {
++		trap_SnapVector( pm->ps->velocity );
++	}
+ }
+ 
+ 
++/*
++================
++PM_OzGridMove
++
++Oz: Pmove for a server that rounds the velocity at the 8 ms marks of its clock (bg_gridSnap): the move runs in
++pieces that end at each mark, where the velocity is rounded as one 125 fps frame's would be, and what is left
++past the last mark runs unrounded, as such a server's snapshots show it
++================
++*/
++static void PM_OzGridMove( pmove_t *pmove, int finalTime ) {
++	pmove->ps->pmove_framecount = (pmove->ps->pmove_framecount+1) & ((1<<PS_PMOVEFRAMECOUNTBITS)-1);
++	while ( pmove->ps->commandTime != finalTime ) {
++		int		msec = finalTime - pmove->ps->commandTime;
++
++		if ( msec > 8 - pmove->ps->commandTime % 8 ) {
++			msec = 8 - pmove->ps->commandTime % 8;
++		}
++		pmove->cmd.serverTime = pmove->ps->commandTime + msec;
++		if ( pmove->stepFrom ) {
++			*pmove->stepFrom = *pmove->ps;
++		}
++		PmoveSingle( pmove );
++		if ( pmove->ps->pm_flags & PMF_JUMP_HELD ) {
++			pmove->cmd.upmove = 20;
++		}
++	}
++}
++
+ /*
+ ================
+ Pmove
+@@ -2044,6 +2091,12 @@ void Pmove (pmove_t *pmove) {
+ 		pmove->ps->commandTime = finalTime - 1000;
+ 	}
+ 
++	// Oz: bg_gridSnap: the move is cut at the 8 ms marks, each piece up to a mark rounding the velocity
++	if ( bg_gridSnap && !pmove->pmove_fixed ) {
++		PM_OzGridMove( pmove, finalTime );
++		return;
++	}
++
+ 	pmove->ps->pmove_framecount = (pmove->ps->pmove_framecount+1) & ((1<<PS_PMOVEFRAMECOUNTBITS)-1);
+ 
+ 	// chop the move up if it is too long, to prevent framerate
+diff --git a/code/game/bg_public.h b/code/game/bg_public.h
+--- a/code/game/bg_public.h
++++ b/code/game/bg_public.h
+@@ -227,6 +227,7 @@ typedef struct {
+ // if a full pmove isn't done on the client, you can just update the angles
+ void PM_UpdateViewAngles( playerState_t *ps, const usercmd_t *cmd );
+ void Pmove (pmove_t *pmove);
++extern int	bg_gridSnap;	// Oz: bg_pmove.c
+ 
+ //===================================================================================
+ 
+diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
+--- a/code/cgame/cg_predict.c
++++ b/code/cgame/cg_predict.c
+@@ -288,6 +288,12 @@ static void CG_CheckPredictionError( const playerState_t *oldPlayerState ) {
+ 		if ( len > 0.1 ) {
+ 			if ( cg_showmiss.integer ) {
+ 				CG_Printf("Prediction miss: %f\n", len);
++				if ( cg_showmiss.integer > 2 ) {	// Oz: which way, and the speeds on both sides
++					CG_Printf( "miss at %d: %.2f %.2f %.2f, speed predicted %.1f %.1f %.1f, the server's %.1f %.1f %.1f, flags 0x%x 0x%x\n",
++						oldPlayerState->commandTime, delta[0], delta[1], delta[2], oldPlayerState->velocity[0], oldPlayerState->velocity[1],
++						oldPlayerState->velocity[2], cg.predictedPlayerState.velocity[0], cg.predictedPlayerState.velocity[1],
++						cg.predictedPlayerState.velocity[2], oldPlayerState->pm_flags, cg.predictedPlayerState.pm_flags );
++				}
+ 			}
+ 			if ( cg_errorDecay.integer ) {
+ 				int		t;
+@@ -510,6 +516,108 @@ int CG_OldestCmd( int current, usercmd_t *cmd ) {
+ }
+ 
+ 
++/*
++=================
++CG_OzGridSnap
++
++Oz: how the server's game rounds a player's velocity, worked out from what its snapshots show. id's game
++rounds it to whole units after every command, so the snapshot's is always whole in the air (but for the
++moment of a push). Some community servers' games (Area 51's, 2026-11-10) round it only as a move crosses an
++8 ms mark of the server's clock, so every frame rate falls and jumps as 125 fps does: above 125 fps most
++commands cross none, and the snapshot shows the fall's speed whole at the last mark less the gravity of the
++milliseconds since. Predicting such a server id's way missed at most snapshots in the air above 125 fps
++(1,000 fps falls with a gravity of 1000 id's way, 750 there).
++
++So each new snapshot of the player in the air, at a command time past a mark, is looked at: a falling speed
++that is whole only once those milliseconds' gravity is put back says the server rounds at the marks; one
++that is whole as it is, after a command of the player's own that crossed no mark, says it rounds every
++command. Running says it sooner: id's way the speed across the floor is whole in every snapshot, this way only
++at a mark. Two more of the first than of the second turn bg_gridSnap on, and as many back turn it off; a speed
++that isn't whole at a mark turns it off at once (a game that never rounds).
++cg_ozGridSnap -1 is this, 0 never (id's), 1 always; cg_showmiss prints the change.
++=================
++*/
++static void CG_OzGridSnap( void ) {
++	static vmCvar_t	mode;
++	static qboolean	registered;
++	static int		looked, score;
++	const playerState_t *ps;
++	usercmd_t		cmd;
++	float			back, whole, put, side;
++	int				ms, n, current, on;
++
++	if ( !registered ) {
++		trap_Cvar_Register( &mode, "cg_ozGridSnap", "-1", 0 );
++		registered = qtrue;
++	}
++	trap_Cvar_Update( &mode );
++	if ( mode.integer >= 0 ) {
++		bg_gridSnap = mode.integer != 0;
++		return;
++	}
++	ps = &cg.snap->ps;
++	if ( cg.snap->serverTime == looked ) {
++		return;
++	}
++	looked = cg.snap->serverTime;
++	ms = ps->commandTime & 7;
++	if ( ps->pm_type != PM_NORMAL || ( ps->pm_flags & PMF_ALL_TIMES ) ) {
++		return;		// a push's speed is unrounded on any server
++	}
++	on = bg_gridSnap;
++	// running: id's way the speed across the floor is whole in every snapshot; this way only at a mark. And a
++	// speed that isn't whole at a mark is neither way (a game that never rounds)
++	side = fabs( ps->velocity[0] - floor( ps->velocity[0] + 0.5 ) ) + fabs( ps->velocity[1] - floor( ps->velocity[1] + 0.5 ) );
++	if ( ms == 0 ) {
++		if ( side > 0.02 || fabs( ps->velocity[2] - floor( ps->velocity[2] + 0.5 ) ) > 0.02 ) {
++			score = 0;
++			bg_gridSnap = 0;
++		}
++	} else if ( ps->groundEntityNum != ENTITYNUM_NONE ) {
++		if ( side > 0.02 && score < 4 ) {
++			score++;
++		}
++	}
++	back = ms * ps->gravity * 0.001f;
++	if ( ps->groundEntityNum != ENTITYNUM_NONE || fabs( back - floor( back + 0.5 ) ) < 0.05 || fabs( ps->velocity[2] ) < 2 ) {
++		back = -1;	// nothing in the fall to tell them apart by
++	}
++	whole = fabs( ps->velocity[2] - floor( ps->velocity[2] + 0.5 ) );
++	put = ps->velocity[2] + back;
++	put = fabs( put - floor( put + 0.5 ) );
++	if ( back < 0 ) {
++		// the floor's evidence only
++	} else if ( whole > 0.02 && put < 0.01 ) {
++		if ( score < 4 ) {
++			score++;
++		}
++	} else if ( whole < 0.01 && score > 0 ) {
++		// whole as it is: id's way if the command it ended with crossed no mark
++		current = trap_GetCurrentCmdNumber();
++		for ( n = current; n > current - CMD_BACKUP + 1 && n > 1; n-- ) {
++			if ( !trap_GetUserCmd( n, &cmd ) || cmd.serverTime < ps->commandTime ) {
++				break;
++			}
++			if ( cmd.serverTime == ps->commandTime ) {
++				if ( trap_GetUserCmd( n - 1, &cmd ) && cmd.serverTime / 8 == ps->commandTime / 8
++						&& cmd.serverTime < ps->commandTime ) {
++					score--;
++				}
++				break;
++			}
++		}
++	}
++	if ( score >= 2 ) {
++		bg_gridSnap = 1;
++	} else if ( score == 0 ) {
++		bg_gridSnap = 0;
++	}
++	if ( bg_gridSnap != on && cg_showmiss.integer ) {
++		CG_Printf( "grid snap %s: the server rounds the velocity %s\n", bg_gridSnap ? "on" : "off",
++			bg_gridSnap ? "at 8 ms marks" : "after every command" );
++	}
++}
++
+ /*
+ =================
+ CG_PredictPlayerState
+@@ -576,6 +684,8 @@ void CG_PredictPlayerState( void ) {
+ 		return;
+ 	}
+ 
++	CG_OzGridSnap();	// Oz: round the velocity as this server's game does
++
+ 	// prepare for pmove
+ 	cg_pmove.ps = &cg.predictedPlayerState;
+ 	cg_pmove.trace = CG_Trace;
+diff --git a/code/game/g_main.c b/code/game/g_main.c
+--- a/code/game/g_main.c
++++ b/code/game/g_main.c
+@@ -1881,6 +1881,10 @@ void G_RunFrame( int levelTime ) {
+ 		return;
+ 	}
+ 
++	// Oz: g_ozGridSnap 1 (with pmove_fixed 0): the velocity rounded at the 8 ms marks, as the cgame predicts some
++	// community servers (bg_pmove.c bg_gridSnap). For engine/tests/server_cvars_test.py's stand-in of one
++	bg_gridSnap = trap_Cvar_VariableIntegerValue( "g_ozGridSnap" ) != 0;
++
+ 	level.framenum++;
+ 	level.previousTime = level.time;
+ 	level.time = levelTime;

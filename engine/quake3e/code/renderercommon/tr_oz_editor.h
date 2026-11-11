@@ -19,6 +19,10 @@ others leave GetEditorRender NULL, and the editor asks for the oz renderer.
   and height it sees in map units, from the view's origin forward out to 2 * OZ_ED_FAR.
 - Meshes live until freed or until the renderer shuts down; the editor builds them again at the next
   renderer start (a vid_restart, a map load).
+- The live light (version 2): lightmap pages the editor bakes itself (q3map2's light, as Play's compile
+  makes it). Shaders from RegisterLitShader draw as the world draws them, their lightmap stages reading
+  a page at each vertex's lm; models in the scene take the light probe nearest them. Pages and probes
+  go with the renderer too.
 
 Plain C with no engine types, so the client's C++ can include it.
 ===========================================================================
@@ -26,7 +30,7 @@ Plain C with no engine types, so the client's C++ can include it.
 #ifndef TR_OZ_EDITOR_H
 #define TR_OZ_EDITOR_H
 
-#define OZ_ED_RENDER_VERSION	1
+#define OZ_ED_RENDER_VERSION	2
 #define OZ_ED_FAR				32768.0f	// an RDF_OZ_EDITOR scene's far clip
 #define RDF_OZ_EDITOR			0x0400		// the editor's 3D view (with RDF_NOWORLDMODEL)
 #define RDF_OZ_ORTHO			0x0800		// with RDF_OZ_EDITOR: a 2D view (fov_x, fov_y: its size in map units)
@@ -40,10 +44,18 @@ Plain C with no engine types, so the client's C++ can include it.
 typedef struct {
 	float			xyz[3];
 	float			st[2];
+	float			lm[2];		// where it reads its range's lightmap page (0..1), for a lit shader's range
 	float			normal[3];
 	float			tangent[4];	// along s; w: the bitangent's sign (along t)
 	unsigned char	color[4];
 } ozEdVertex_t;
+
+// The live light at a point, for the models there: as SetViewLight's.
+typedef struct {
+	float			origin[3];
+	float			ambient[3], directed[3];
+	float			dir[3];
+} ozEdLightProbe_t;
 
 typedef struct {
 	int				shader;		// a handle from RegisterShader
@@ -68,6 +80,23 @@ typedef struct ozEdRender_s {
 	// The light an RDF_OZ_EDITOR scene's models get: ambient and directed in 0..255, and the
 	// direction the directed light comes from (toward it).
 	void	(*SetViewLight)( const float ambient[3], const float directed[3], const float dir[3] );
+
+	// A shader made from a script's block ("name { ... }") and registered under name for the renderer's
+	// life: the map editor's glow variants, a material's script with its glow changed. Its handle, 0
+	// when the text doesn't parse.
+	int		(*DefineShader)( const char *name, const char *text );
+
+	// ---- the live light (version 2)
+	// A lightmap page of width x height texels, black: its number from 0, -1 when there's no room.
+	int		(*CreateLightmap)( int width, int height );
+	// Texels of a page as q3map2 writes them into a BSP (RGB rows, 0..255 before the map's overbright
+	// shift), the renderer shifting them as it does a map's.
+	void	(*UploadLightmap)( int lightmap, int x, int y, int width, int height, const unsigned char *rgb );
+	// A shader as the world draws it with that page as its lightmap; 0 when there's no such page.
+	int		(*RegisterLitShader)( const char *name, int lightmap );
+	// The scene's models (not the editor's meshes) take the nearest probe within 96 units of their
+	// lighting origin in place of the view light. count 0: the view light for every model.
+	void	(*SetLightProbes)( const ozEdLightProbe_t *probes, int count );
 } ozEdRender_t;
 
 #endif

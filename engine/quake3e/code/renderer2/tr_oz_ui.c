@@ -654,6 +654,26 @@ static int UI_LoadThumbnail( const char *name, int size, int *width, int *height
 }
 
 
+// Oz: the map editor's thumbnail cache (oz_ui_thumbs.cpp): a thumbnail's bytes, and a texture from them
+static int UI_ReadThumbnail( const char *name, int size, int *width, int *height, int *format, void *buffer, int bufferSize ) {
+	if ( !tr.registered || !UI_Init() ) {
+		return -1;	// not now: nothing to keep as missing
+	}
+	return R_OzThumbnailData( name, size, width, height, format, buffer, bufferSize );
+}
+
+
+static int UI_CreateThumbnail( int format, int width, int height, const void *data, int dataSize ) {
+	GLuint tex;
+
+	if ( !tr.registered || !UI_Init() ) {
+		return 0;
+	}
+	tex = R_OzThumbnailTexture( format, width, height, data, dataSize );
+	return tex ? UI_AddTexture( tex, qtrue, qtrue ) : 0;
+}
+
+
 // Oz: an image the menus show small (a level shot's tile), reduced as far as keeps it atLeast across; into
 // a handle given out before (the page's stand-in while it waited), or a new one
 static int UI_LoadReduced( const char *name, int atLeast, int *width, int *height, int into ) {
@@ -1380,7 +1400,9 @@ static const ozUiRender_t uiRender = {
 	UI_SaveLayerAsTexture,
 	UI_SaveLayerAsMask,
 	UI_LoadThumbnail,
-	UI_LoadReduced
+	UI_LoadReduced,
+	UI_ReadThumbnail,
+	UI_CreateThumbnail
 };
 
 

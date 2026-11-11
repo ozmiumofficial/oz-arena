@@ -536,13 +536,24 @@ def main():
             print("  not relit: %s" % e, flush=True)
             continue
         os.makedirs(os.path.join(STAGE, "maps", m), exist_ok=True)
-        open(os.path.join(STAGE, "maps", m, "oz_relight.bsp"), "wb").write(bsp)
+        open(os.path.join(STAGE, "maps", m, "oz_relight.bsp"), "wb").write(q3relight.light_only(bsp))
         q3relight.save_scales(m, scales)
         print("  " + q3relight.describe(ida, bsp, scales), flush=True)
     for m, scale in q3relight.saved_scales().items():   # maps kept on id's lightmaps leave the pak
         if scale is None and os.path.isfile(os.path.join(STAGE, "maps", m, "oz_relight.bsp")):
             os.remove(os.path.join(STAGE, "maps", m, "oz_relight.bsp"))
     relights = ["maps/%s/oz_relight.bsp" % m for m in envs if os.path.isfile(os.path.join(STAGE, "maps", m, "oz_relight.bsp"))]
+    # A relight staged before they were cut down is id's whole map with new light: only the lumps the
+    # renderer reads go in the pak (q3relight.light_only), so those are cut down where they lie.
+    cut = 0
+    for p in relights:
+        staged = os.path.join(STAGE, p)
+        data = open(staged, "rb").read()
+        if not q3relight.is_light_only(data):
+            open(staged, "wb").write(q3relight.light_only(data))
+            cut += 1
+    if cut:
+        print("%d relights staged as whole maps cut down to their light" % cut)
     print("relit maps:", ", ".join(p.split("/")[1] for p in relights) or "none")
 
     # pack: everything the jobs and scripts name, split into pk3s under --split-mb

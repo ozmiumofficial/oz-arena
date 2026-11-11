@@ -92,11 +92,13 @@ diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
  /*
  ===================
  CG_TouchItem
-@@ -415,9 +473,18 @@ void CG_PredictPlayerState( void ) {
+@@ -415,9 +473,20 @@ void CG_PredictPlayerState( void ) {
  	qboolean	moved;
  	usercmd_t	oldestCmd;
  	usercmd_t	latestCmd;
 +	playerState_t	stepFrom;
++	qboolean	tapOn;
++	int			tapRun, tapButtons, tapTime;
 +	vec3_t		stepBack;
 +	qboolean	checked;
  
@@ -111,17 +113,60 @@ diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
  	// if this is the first frame we must guarantee
  	// predictedPlayerState is valid even if there is some
  	// other error condition
-@@ -498,6 +565,9 @@ void CG_PredictPlayerState( void ) {
+@@ -498,6 +567,41 @@ void CG_PredictPlayerState( void ) {
  
  	cg_pmove.pmove_fixed = pmove_fixed.integer;// | cg_pmove_fixed.integer;
  	cg_pmove.pmove_msec = pmove_msec.integer;
 +	stepFrom = cg.predictedPlayerState;
 +	cg_pmove.stepFrom = &stepFrom;
 +	checked = qfalse;
++
++	// Oz: under pmove_fixed the server drops a command inside the step the last one ran, and keeps a
++	// button pressed in it for the next command that runs (g_active.c ClientThink_real: a tap of fire
++	// on the mouse wheel at 1000 fps), where its game says so in the systeminfo (pmove_ozTaps; id's and
++	// older games drop the press). The same here, worked out again each frame from the commands
++	// themselves: those of the snapshot's own step first, the first of which ran it, then the loop's.
++	// The server never sees a command no later than the one before it (the engine drops it)
++	tapOn = cg_pmove.pmove_fixed && atoi( Info_ValueForKey( CG_ConfigString( CS_SYSTEMINFO ), "pmove_ozTaps" ) );
++	tapRun = tapButtons = 0;
++	tapTime = cg.predictedPlayerState.commandTime - cg_pmove.pmove_msec;
++	if ( tapOn ) {
++		usercmd_t	cmd;
++		qboolean	ran = qfalse;
++
++		for ( cmdNum = first; cmdNum > 1 && cmdNum > current - CMD_BACKUP + 1; cmdNum-- ) {
++			if ( !trap_GetUserCmd( cmdNum - 1, &cmd ) || cmd.serverTime <= tapTime || cmd.serverTime > latestCmd.serverTime ) {
++				break;
++			}
++		}
++		for ( ; cmdNum < first; cmdNum++ ) {
++			if ( !trap_GetUserCmd( cmdNum, &cmd ) || cmd.serverTime <= tapTime ) {
++				continue;
++			}
++			tapTime = cmd.serverTime;
++			if ( !ran ) {
++				ran = qtrue;
++				tapRun = cmd.buttons;
++			} else {
++				tapButtons |= cmd.buttons & ~tapRun & OZ_TAP_BUTTONS;
++			}
++		}
++	}
  
  	// run cmds
  	moved = qfalse;
-@@ -525,52 +595,8 @@ void CG_PredictPlayerState( void ) {
+@@ -511,6 +615,10 @@ void CG_PredictPlayerState( void ) {
+ 
+ 		// don't do anything if the time is before the snapshot player time
+ 		if ( cg_pmove.cmd.serverTime <= cg.predictedPlayerState.commandTime ) {
++			if ( tapOn && cg_pmove.cmd.serverTime > tapTime && cg_pmove.cmd.serverTime <= latestCmd.serverTime ) {
++				tapTime = cg_pmove.cmd.serverTime;
++				tapButtons |= cg_pmove.cmd.buttons & ~tapRun & OZ_TAP_BUTTONS;
++			}
+ 			continue;
+ 		}
+ 
+@@ -525,60 +633,23 @@ void CG_PredictPlayerState( void ) {
  		// to predict several commands to get to the point
  		// we want to compare
  		if ( cg.predictedPlayerState.commandTime == oldPlayerState.commandTime ) {
@@ -176,7 +221,23 @@ diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
  		}
  
  		// don't predict gauntlet firing, which is only supposed to happen
-@@ -592,15 +618,53 @@ void CG_PredictPlayerState( void ) {
+ 		// when it actually inflicts damage
+ 		cg_pmove.gauntletHit = qfalse;
+ 
++		if ( tapOn ) {
++			tapTime = cg_pmove.cmd.serverTime;
++			tapRun = cg_pmove.cmd.buttons;
++			cg_pmove.cmd.buttons |= tapButtons;
++			tapButtons = 0;
++		}
++
+ 		if ( cg_pmove.pmove_fixed ) {
+-			cg_pmove.cmd.serverTime = ((cg_pmove.cmd.serverTime + pmove_msec.integer-1) / pmove_msec.integer) * pmove_msec.integer;
++			cg_pmove.cmd.serverTime =((cg_pmove.cmd.serverTime + pmove_msec.integer-1) / pmove_msec.integer) * pmove_msec.integer;
+ 		}
+ 
+ 		Pmove (&cg_pmove);
+@@ -592,15 +663,53 @@ void CG_PredictPlayerState( void ) {
  		//CG_CheckChangedPredictableEvents(&cg.predictedPlayerState);
  	}
  
@@ -234,7 +295,7 @@ diff --git a/code/cgame/cg_predict.c b/code/cgame/cg_predict.c
  	}
  
  	// adjust for the movement of the groundentity
-@@ -623,6 +687,12 @@ void CG_PredictPlayerState( void ) {
+@@ -623,6 +732,12 @@ void CG_PredictPlayerState( void ) {
  			cg.eventSequence = cg.predictedPlayerState.eventSequence;
  		}
  	}
@@ -300,7 +361,7 @@ diff --git a/code/game/bg_pmove.c b/code/game/bg_pmove.c
 diff --git a/code/game/bg_public.h b/code/game/bg_public.h
 --- a/code/game/bg_public.h
 +++ b/code/game/bg_public.h
-@@ -220,6 +220,8 @@ typedef struct {
+@@ -220,8 +220,14 @@ typedef struct {
  	// these will be different functions during game and cgame
  	void		(*trace)( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask );
  	int			(*pointcontents)( const vec3_t point, int passEntityNum );
@@ -308,16 +369,67 @@ diff --git a/code/game/bg_public.h b/code/game/bg_public.h
 +	playerState_t	*stepFrom;		// Oz: if set, the state as Pmove's last step started
  } pmove_t;
  
++// Oz: the buttons whose press is kept when pmove_fixed drops the command it came in (g_active.c
++// ClientThink_real, cg_predict.c CG_PredictPlayerState)
++#define OZ_TAP_BUTTONS	( BUTTON_ATTACK | BUTTON_USE_HOLDABLE )
++
  // if a full pmove isn't done on the client, you can just update the angles
+ void PM_UpdateViewAngles( playerState_t *ps, const usercmd_t *cmd );
+ void Pmove (pmove_t *pmove);
 diff --git a/code/game/g_main.c b/code/game/g_main.c
 --- a/code/game/g_main.c
 +++ b/code/game/g_main.c
-@@ -177,7 +177,7 @@ static cvarTable_t		gameCvarTable[] = {
+@@ -177,7 +177,9 @@ static cvarTable_t		gameCvarTable[] = {
  	{ &g_proxMineTimeout, "g_proxMineTimeout", "20000", 0, 0, qfalse },
  #endif
  	{ &g_smoothClients, "g_smoothClients", "1", 0, 0, qfalse},
 -	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO, 0, qfalse},
++	// Oz: tells the cgame this game keeps a tap's press under pmove_fixed (g_active.c ClientThink_real)
++	{ NULL, "pmove_ozTaps", "1", CVAR_SYSTEMINFO | CVAR_ROM, 0, qfalse },
 +	{ &pmove_fixed, "pmove_fixed", "1", CVAR_SYSTEMINFO, 0, qfalse},	// Oz: movement the same at every frame rate
  	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, 0, qfalse},
  
  	{ &g_rankings, "g_rankings", "0", 0, 0, qfalse},
+diff --git a/code/game/g_active.c b/code/game/g_active.c
+--- a/code/game/g_active.c
++++ b/code/game/g_active.c
+@@ -350,6 +350,9 @@ void SpectatorThink( gentity_t *ent, usercmd_t *ucmd ) {
+ 		pm.tracemask = MASK_PLAYERSOLID & ~CONTENTS_BODY;	// spectators can fly through bodies
+ 		pm.trace = trap_Trace;
+ 		pm.pointcontents = trap_PointContents;
++		// Oz: fixed steps as a player's (ClientThink_real), which is how the cgame predicts a spectator's flight
++		pm.pmove_fixed = pmove_fixed.integer | client->pers.pmoveFixed;
++		pm.pmove_msec = pmove_msec.integer;
+ 
+ 		// perform a pmove
+ 		Pmove (&pm);
+@@ -811,8 +814,17 @@ void ClientThink_real( gentity_t *ent ) {
+ 	// following others may result in bad times, but we still want
+ 	// to check for follow toggles
+ 	if ( msec < 1 && client->sess.spectatorState != SPECTATOR_FOLLOW ) {
++		// Oz: under pmove_fixed a command inside the step the last one ran is dropped here, 7 in 8 at
++		// 1000 fps, and a button pressed and let go inside them (fire on the mouse wheel) never fired.
++		// The press is kept for the next command that runs; Oz's cgame predicts the same (pmove_ozTaps)
++		if ( pmove_fixed.integer || client->pers.pmoveFixed ) {
++			client->ozTapButtons |= ucmd->buttons & ~client->ozRunButtons & OZ_TAP_BUTTONS;
++		}
+ 		return;
+ 	}
++	client->ozRunButtons = ucmd->buttons;
++	ucmd->buttons |= client->ozTapButtons;
++	client->ozTapButtons = 0;
+ 	if ( msec > 200 ) {
+ 		msec = 200;
+ 	}
+diff --git a/code/game/g_local.h b/code/game/g_local.h
+--- a/code/game/g_local.h
++++ b/code/game/g_local.h
+@@ -270,6 +270,8 @@ struct gclient_s {
+ 	int			buttons;
+ 	int			oldbuttons;
+ 	int			latched_buttons;
++	int			ozRunButtons;		// Oz: the buttons of the last command that ran, as it was sent, and those
++	int			ozTapButtons;		// pressed since in commands pmove_fixed dropped (ClientThink_real)
+ 
+ 	vec3_t		oldOrigin;
+ 

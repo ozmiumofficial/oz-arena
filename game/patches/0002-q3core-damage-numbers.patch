@@ -1,20 +1,132 @@
 diff --git a/code/game/g_combat.c b/code/game/g_combat.c
 --- a/code/game/g_combat.c
 +++ b/code/game/g_combat.c
-@@ -1037,5 +1037,16 @@
+@@ -1037,6 +1037,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
  		targ->client->lasthurt_mod = mod;
  	}
  
 +	// q3core addition (not gameplay): tell a human attacker what the hit did (and with what, and when: the
 +	// scoreboard's per-weapon damage and accuracy), for damage numbers,
-+	// and everyone when armor took part of a hit, for the armor shell (armor left after the hit)
-+	if ( attacker && attacker->client && targ->client && attacker != targ && ( take + asave ) > 0
-+		&& !( attacker->r.svFlags & SVF_BOT ) ) {
-+		trap_SendServerCommand( attacker - g_entities, va( "dmg %i %i %i %i %i", targ->s.number, take + asave, asave, mod, level.time ) );
-+	}
-+	if ( targ->client && asave > 0 ) {
-+		trap_SendServerCommand( -1, va( "armorhit %i %i", targ->s.number, targ->client->ps.stats[STAT_ARMOR] ) );
-+	}
++	// and everyone when armor took part of a hit, for the armor shell (G_OzHitCommands, below)
++	G_OzHitCommands( targ, attacker, take, asave, mod );
 +
  	// do the damage
  	if (take) {
+ 		targ->health = targ->health - take;
+@@ -1062,6 +1067,92 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
+ }
+ 
+ 
++/*
++============
++G_OzHitCommands
++
++Oz: the "dmg" and "armorhit" commands of a hit. Both are reliable commands, and a client holds 64 the server
++hasn't seen acknowledged: sent one a pellet and to everyone, a client still loading the map, or one that
++stalled for a moment in a busy fight, was dropped with "Server command overflow". So only to players in the
++game (never a bot, which reads none), and:
++ - "dmg <target> <damage> <armor's part> <means of death> <time>": one for each shooter, target and means of
++   death a server frame, the hits between added up (a shotgun blast is one command, not eleven). The HUD
++   adds a number's hits up anyway and counts a hit once a weapon and time. Sent as the frame ends
++   (G_OzFlushDamage, from G_RunFrame), which is before the server sends anything.
++ - "armorhit <target> <armor left>": at most one a target every 100 ms, or when the shell's color changes
++   (the shell lasts 400 ms). The armor left is only what the shell shows: none, under 50, or more. It used
++   to be the exact number, which told everyone on the server the armor of anyone hit.
++============
++*/
++#define OZ_ARMORHIT_MSEC	100
++
++static struct {
++	int		target, total, armor, mod, time;	// total 0: nothing waiting
++} ozDmg[MAX_CLIENTS];
++static int	ozArmorHitTime[MAX_CLIENTS], ozArmorHitShown[MAX_CLIENTS];
++
++static qboolean G_OzReadsCommands( int clientNum ) {
++	return level.clients[clientNum].pers.connected == CON_CONNECTED && !( g_entities[clientNum].r.svFlags & SVF_BOT );
++}
++
++static void G_OzSendDamage( int clientNum ) {
++	if ( ozDmg[clientNum].total > 0 && G_OzReadsCommands( clientNum ) ) {
++		trap_SendServerCommand( clientNum, va( "dmg %i %i %i %i %i", ozDmg[clientNum].target, ozDmg[clientNum].total,
++			ozDmg[clientNum].armor, ozDmg[clientNum].mod, ozDmg[clientNum].time ) );
++	}
++	ozDmg[clientNum].total = 0;
++}
++
++void G_OzFlushDamage( void ) {
++	int		i;
++
++	for ( i = 0; i < level.maxclients && i < MAX_CLIENTS; i++ ) {
++		if ( ozDmg[i].total > 0 ) {
++			G_OzSendDamage( i );
++		}
++	}
++}
++
++void G_OzHitCommands( gentity_t *targ, gentity_t *attacker, int take, int asave, int mod ) {
++	const int	now = G_RealTime();
++	int			n, i, shown;
++
++	if ( !targ->client ) {
++		return;
++	}
++	if ( attacker && attacker->client && attacker != targ && ( take + asave ) > 0 && !( attacker->r.svFlags & SVF_BOT ) ) {
++		n = attacker - g_entities;
++		if ( n >= 0 && n < MAX_CLIENTS ) {
++			if ( ozDmg[n].total > 0 && ( ozDmg[n].target != targ->s.number || ozDmg[n].mod != mod || ozDmg[n].time != now ) ) {
++				G_OzSendDamage( n );
++			}
++			if ( ozDmg[n].total <= 0 ) {
++				ozDmg[n].target = targ->s.number;
++				ozDmg[n].mod = mod;
++				ozDmg[n].time = now;
++				ozDmg[n].total = 0;
++				ozDmg[n].armor = 0;
++			}
++			ozDmg[n].total += take + asave;
++			ozDmg[n].armor += asave;
++		}
++	}
++	n = targ - g_entities;
++	if ( asave > 0 && n >= 0 && n < MAX_CLIENTS ) {
++		shown = targ->client->ps.stats[STAT_ARMOR] <= 0 ? 0 : targ->client->ps.stats[STAT_ARMOR] < 50 ? 25 : 100;
++		if ( shown != ozArmorHitShown[n] || now - ozArmorHitTime[n] >= OZ_ARMORHIT_MSEC || now < ozArmorHitTime[n] ) {
++			ozArmorHitShown[n] = shown;
++			ozArmorHitTime[n] = now;
++			for ( i = 0; i < level.maxclients; i++ ) {
++				if ( G_OzReadsCommands( i ) ) {
++					trap_SendServerCommand( i, va( "armorhit %i %i", n, shown ) );
++				}
++			}
++		}
++	}
++}
++
++
+ /*
+ ============
+ CanDamage
+diff --git a/code/game/g_local.h b/code/game/g_local.h
+--- a/code/game/g_local.h
++++ b/code/game/g_local.h
+@@ -491,6 +491,8 @@ const char *BuildShaderStateConfig( void );
+ qboolean CanDamage (gentity_t *targ, vec3_t origin);
+ void G_Damage (gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_t dir, vec3_t point, int damage, int dflags, int mod);
+ qboolean G_RadiusDamage (vec3_t origin, gentity_t *attacker, float damage, float radius, gentity_t *ignore, int mod);
++void G_OzHitCommands( gentity_t *targ, gentity_t *attacker, int take, int asave, int mod );	// Oz: "dmg" and "armorhit"
++void G_OzFlushDamage( void );
+ int G_InvulnerabilityEffect( gentity_t *targ, vec3_t dir, vec3_t point, vec3_t impactpoint, vec3_t bouncedir );
+ void body_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int meansOfDeath );
+ void TossClientItems( gentity_t *self );
+diff --git a/code/game/g_main.c b/code/game/g_main.c
+--- a/code/game/g_main.c
++++ b/code/game/g_main.c
+@@ -1876,6 +1876,8 @@ void G_RunFrame( int levelTime ) {
+ 		}
+ 	}
+ 
++	G_OzFlushDamage();	// Oz: each shooter's hits of this frame, added up (g_combat.c)
++
+ 	// see if it is time to do a tournement restart
+ 	CheckTournament();
+ 

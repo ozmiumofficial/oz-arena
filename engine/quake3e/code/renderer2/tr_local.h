@@ -1333,7 +1333,7 @@ void		R_Modellist_f (void);
 
 //====================================================
 
-#define	MAX_DRAWIMAGES			2048
+#define	MAX_DRAWIMAGES			4096	// Oz: was 2048; a remastered texture is up to four images
 #define	MAX_SKINS				1024
 
 
@@ -2396,6 +2396,7 @@ void R_OzEdViewLight( trRefEntity_t *ent );
 const struct ozEdRender_s *R_OzEd_GetRender( void );
 void R_OzEd_Shutdown( void );
 shader_t *R_OzEdLook( const char *name );	// tr_shader.c: "$oz_ed_lines" and the others, or NULL
+shader_t *R_OzDefineShader( const char *name, const char *text );	// tr_shader.c: the map editor's glow variants
 qboolean R_OzRigLerpTag( orientation_t *tag, const model_t *mod, int startFrame, int endFrame,
                          float frac, const char *tagName );
 

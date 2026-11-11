@@ -33,6 +33,8 @@ void Menu_Dirty( const char *path );
 }
 using namespace OzUI;
 
+extern "C" int OzMods_Imported( const char *mod );	// oz_mods.c: Oz's own import brought it (Remove deletes only those)
+
 namespace {
 
 const char *const PAGE = "mods";
@@ -93,6 +95,7 @@ void Fill() {
 		cJSON_AddStringToObject( o, "state_text", m.ready ? "Ready" : m.nested ? "Needs import" : "Paks only" );
 		cJSON_AddBoolToObject( o, "ready", m.ready != 0 );
 		cJSON_AddBoolToObject( o, "imported", m.imported != 0 );
+		cJSON_AddBoolToObject( o, "removable", m.imported && OzMods_Imported( m.dir ) );	// what Remove takes
 		cJSON_AddBoolToObject( o, "nested", m.nested != 0 );
 		cJSON_AddBoolToObject( o, "supported", m.supported != 0 );
 		cJSON_AddBoolToObject( o, "known", m.known != 0 );
@@ -232,6 +235,13 @@ void Play( const std::string &dir ) {
 		OpenPageByName( "offline_bots" );
 		return;
 	}
+	// the folder's name goes into a command: letters, digits and _ - + . only (a ; or a quote would run as its own)
+	for ( const char *c = m->dir; *c; c++ ) {
+		if ( !( ( *c >= 'a' && *c <= 'z' ) || ( *c >= 'A' && *c <= 'Z' ) || ( *c >= '0' && *c <= '9' ) || *c == '_' || *c == '-' || *c == '+' || *c == '.' ) ) {
+			Refuse( "That folder's name has characters a mod's can't have." );
+			return;
+		}
+	}
 	Printf( "UI: mods: playing under %s\n", m->dir );
 	Menu_Toast( ( std::string( m->name ) + " runs with its own rules; Oz makes no promise it plays right." ).c_str(), "info" );
 	CloseAllPages();
@@ -242,6 +252,12 @@ void AskRemove( const std::string &dir ) {
 	const ozModInfo_t *m = Find( dir );
 	if ( !m || !m->imported ) {
 		Refuse( "Only an imported mod, in your user folder, can be removed." );
+		return;
+	}
+	// A folder in the user folder that Import didn't bring may hold only what a server sent, with the
+	// player's settings and demos: asked about as an import, Remove deleted those
+	if ( !OzMods_Imported( m->dir ) ) {
+		Refuse( "Remove deletes only what Import brought. This folder wasn't imported here: delete it yourself if you mean to." );
 		return;
 	}
 	SetText( "mods.remove.dir", m->dir );

@@ -103,6 +103,25 @@ typedef struct {
 	// at least atLeast texels across, as a new handle or into the handle "into" (its texture replaced);
 	// NULL where the renderer has none (the page then loads the image whole)
 	int		(*LoadReduced)( const char *name, int atLeast, int *width, int *height, int into );
+
+	// the map editor's thumbnail cache (oz_ui_thumbs.cpp): the copy LoadThumbnail would make, as bytes
+	// into buffer: its texels (ozUiThumbFormat_t, *format) and how many bytes; 0 when there's no such
+	// image, -1 when it can't be kept (too big for buffer, a format the cache doesn't hold, the renderer
+	// down): LoadThumbnail then makes it. And a texture made from such bytes, drawn opaque; 0 on failure.
+	// NULL where the renderer has none.
+	int		(*ReadThumbnail)( const char *name, int size, int *width, int *height, int *format, void *buffer, int bufferSize );
+	int		(*CreateThumbnail)( int format, int width, int height, const void *data, int dataSize );
 } ozUiRender_t;
+
+// the texels a thumbnail's bytes hold: RGBA8 rows from the top, or 4x4 blocks (BC1 is DXT1, BC2 DXT3,
+// BC3 DXT5) in rows of ceil(width / 4)
+typedef enum {
+	OZ_UI_THUMB_NONE,
+	OZ_UI_THUMB_RGBA8,
+	OZ_UI_THUMB_BC1,
+	OZ_UI_THUMB_BC2,
+	OZ_UI_THUMB_BC3,
+	OZ_UI_THUMB_BC7
+} ozUiThumbFormat_t;
 
 #endif

@@ -350,6 +350,9 @@ void Session::prefab_thumb_tick(int x, int y, int w, int h, int now) {
 		if (thumb_queue_.empty() || shot_.state != SHOT_IDLE) {
 			return;  // nothing to draw, or the map's own thumbnail is on its way (ed_thumb.cpp)
 		}
+		if (page_over) {
+			return;  // a menu, a list or a dialog of the page is over the view: the screenshot would catch it
+		}
 		thumb_name_ = thumb_queue_.front();
 		thumb_queue_.erase(thumb_queue_.begin());
 		thumb_tried_.insert(thumb_name_);

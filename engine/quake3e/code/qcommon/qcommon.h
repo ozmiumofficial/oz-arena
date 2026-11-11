@@ -207,6 +207,7 @@ void		OzIce_SendPacket( int length, const void *data, const netadr_t *to );
 qboolean	OzIce_GetPacket( netadr_t *from, void *data, int *length, int maxsize );
 qboolean	OzIce_Active( void );
 void		OzIce_Kicked( const netadr_t *adr );	// the server kicked this client (SV_DropClient)
+extern void	( *OzIce_LinkLost )( const netadr_t *adr );	// a joiner's link went: the server drops its client (sv_client.c)
 #endif
 
 void		NET_Init( void );
@@ -730,6 +731,7 @@ typedef enum {
 #define FS_MAX_SUBDIRS		8 /* should be enough for practical use with FS_MATCH_SUBDIRS */
 
 char	**FS_OzListTree( const char *dir, const char *ext, int *numfiles );	// Oz: files under dir, subfolders too
+unsigned	FS_OzSearchStamp( void );	// Oz: changes when the search path's paks or folders do (the map editor's caches)
 
 #define	MAX_FILE_HANDLES	64
 #define	FS_INVALID_HANDLE	0
@@ -778,6 +780,7 @@ qboolean FS_FileExists( const char *file );
 char   *FS_BuildOSPath( const char *base, const char *game, const char *qpath );
 
 qboolean FS_CompareZipChecksum( const char *zipfile );
+void	FS_OzRemoveBadPak( const char *zipfile );	// Oz: a downloaded pak that failed that comparison
 int		FS_GetZipChecksum( const char *zipfile );
 
 int		FS_LoadStack( void );
@@ -799,6 +802,7 @@ void	FS_SV_Rename( const char *from, const char *to );
 qboolean FS_OS_FileExists( const char *ospath );			// Oz: the three for full OS paths (the Maps folder)
 fileHandle_t FS_OS_FOpenFileWrite( const char *ospath );
 void	FS_OS_Rename( const char *from_ospath, const char *to_ospath );
+int		FS_SV_OzOpenMapsPak( const char *filename, fileHandle_t *fp );	// Oz: a Maps folder pak ("baseq3/<pak>.pk3") for a client's download
 int		FS_FOpenFileRead( const char *qpath, fileHandle_t *file, qboolean uniqueFILE );
 // if uniqueFILE is true, then a new FILE will be fopened even if the file
 // is found in an already open pak file.  If uniqueFILE is false, you must call
@@ -815,6 +819,7 @@ int FS_Home_FOpenFileRead( const char *filename, fileHandle_t *file );
 
 qboolean FS_FileIsInPAK( const char *filename, int *pChecksum, char *pakName );
 qboolean FS_FileIsInIdPak( const char *filename );	// Oz: baseq3/pak0 to pak8 have it (the map editor)
+qboolean FS_OzRelightFile( const char *name );		// Oz: a map's relight (maps/<map>/oz_relight.bsp), not a map
 // returns qtrue if a file is in the PAK file, otherwise qfalse
 
 int		FS_PakIndexForHandle( fileHandle_t f );

@@ -108,8 +108,8 @@ starts a match under any other mod (its own rules, the Oz HUD, no promise it pla
 									<div class="uses">{{ m.uses }}</div>
 								</div>
 								<div class="acts">
-									<button class="btn small" data-attr-id="'ml_play_' + i" data-style-nav-left="'#ml_row_' + i" data-style-nav-right="m.imported ? '#ml_remove_' + i : 'none'" data-attr-onclick="'modlib_play ' + m.dir">{{ m.ready ? 'Play' : (m.nested ? 'Import' : 'Play') }}</button>
-									<button class="btn small" data-if="m.imported" data-attr-id="'ml_remove_' + i" data-style-nav-left="'#ml_play_' + i" data-attr-onclick="'modlib_remove ' + m.dir">Remove</button>
+									<button class="btn small" data-attr-id="'ml_play_' + i" data-style-nav-left="'#ml_row_' + i" data-style-nav-right="m.removable ? '#ml_remove_' + i : 'none'" data-attr-onclick="'modlib_play ' + m.dir">{{ m.ready ? 'Play' : (m.nested ? 'Import' : 'Play') }}</button>
+									<button class="btn small" data-if="m.removable" data-attr-id="'ml_remove_' + i" data-style-nav-left="'#ml_play_' + i" data-attr-onclick="'modlib_remove ' + m.dir">Remove</button>
 								</div>
 							</div>
 						</div>

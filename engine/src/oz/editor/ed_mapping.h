@@ -35,6 +35,9 @@ enum class MapOp {
 	Flip,    // which: 0 s, 1 t: mirrored in place
 	Reset,   // q3map's default projection at half scale
 	Field,   // which: the TexFields index set to a
+	Natural, // the game's texel size (a texel half a unit, as id's maps) along the face both ways, its
+	         // turn and its place on the world kept: a texture painted at another's size, or stretched
+	         // on a slanted face by its projection, back to its own size
 };
 struct MapEdit {
 	MapOp op = MapOp::Shift;
@@ -53,12 +56,28 @@ bool map_faces(Doc &doc, const std::vector<FaceRef> &faces, const MapEdit &e, co
 // The same edits on curves' texture coordinates: shift (texels), rotate, scale, fit (this many times
 // across its columns and down its rows), flip, reset (natural); align and the typed numbers are faces'.
 bool map_patches(Doc &doc, const std::vector<Id> &patches, const MapEdit &e, const std::string &label);
-// The shader onto the faces and curves, each keeping its numbers (Radiant's way: a Quake or Valve
-// 220 face counts in texels, so a texture of another size keeps its texel scale).
+// The shader onto the faces and curves, each keeping its texel size: a texture of another size keeps
+// the texels the same size in the world (a brushDef face and a curve count in repeats, so their
+// numbers are scaled by the old size over the new), the texture still on the world as it was.
 bool paint(Doc &doc, const std::vector<FaceRef> &faces, const std::vector<Id> &patches, ShaderId shader, const std::string &label);
+// One face as paint() leaves it with that shader (the paint tool's preview draws it before the click).
+void painted(const Doc &doc, Face &f, const q3map::Winding &w, const Vec3 &origin, ShaderId shader);
 // The source face's shader and mapping onto the faces (the eyedropper's paint): a face parallel to
-// it takes its texture coordinates, so the texture runs on across; the others its numbers on their
-// own plane. Each keeps its plane and flags. src_origin: where q3map2 maps the source from.
-bool copy_mapping(Doc &doc, const std::vector<FaceRef> &faces, const Face &src, const Vec3 &src_origin, const std::string &label);
+// it takes its texture coordinates, so the texture runs on across; a face sharing an edge with it
+// (src_w, the source's polygon, when given) its texture wrapped round that edge (wrap_faces); the
+// others its numbers on their own plane. Each keeps its plane and flags. src_origin: where q3map2
+// maps the source from.
+bool copy_mapping(Doc &doc, const std::vector<FaceRef> &faces, const Face &src, const Vec3 &src_origin, const std::string &label,
+		const q3map::Winding *src_w = nullptr);
+// The first face's texture wrapped onto the others across the edges they share, as if the faces were
+// unfolded flat round each edge: it runs on round corners and chamfers with no seam and no stretch,
+// but where the wrap comes round to itself again. Spreads face to face through shared edges (the first
+// face reached from wins); faces it can't reach, and Oz's dev textures (always on the world's grid),
+// stay as they are. Each face keeps its material: another size of texture keeps the texel grid.
+bool wrap_faces(Doc &doc, const std::vector<FaceRef> &faces, const std::string &label);
+// Face a's texture coordinates carried onto face b, unfolded across the edge their polygons (wa, wb)
+// share, in b's texels (tw, th: each one's texture size); false when they share none. Pure.
+bool unfold_st(const Face &a, const q3map::Winding &wa, int tw_a, int th_a, const Face &b, const q3map::Winding &wb,
+		int tw_b, int th_b, StAxes &out);
 
 }  // namespace oz::ed

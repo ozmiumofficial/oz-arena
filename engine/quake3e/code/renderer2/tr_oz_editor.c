@@ -10,11 +10,17 @@ RB_SurfaceVaoMdvMesh draws an md3's.
 
 Model slots live until the renderer shuts down (R_AllocModel has no free), so a freed mesh keeps its
 slot for the next CreateMesh, and its buffers go back to GL.
+
+The live light's pages are lightmaps in tr.lightmaps after the world's (a thumbnail's compile, when one
+is loaded), so a shader found with a page's index (RegisterLitShader) is drawn as a map's lit surface:
+the same collapse into lightall, the same overbright shift of the texels.
 ===========================================================================
 */
 #include "tr_local.h"
 
 #define OZ_ED_MAX_MESHES	768
+#define OZ_ED_MAX_LIGHTMAPS	32
+#define OZ_ED_PROBE_REACH	96.0f
 
 typedef struct srfOzEdRange_s {
 	surfaceType_t		surfaceType;	// SF_OZ_EDMESH
@@ -39,6 +45,13 @@ static struct {
 	ozEdMesh_t		meshes[OZ_ED_MAX_MESHES];
 	ozEdMesh_t		*byModel[MAX_MOD_KNOWN];
 	vec3_t			ambient, directed, dir;
+	// the live light: its pages, after the world's lightmaps in lmArray (tr.lightmaps while it has pages)
+	image_t			*pages[OZ_ED_MAX_LIGHTMAPS];
+	int				numPages;
+	int				worldLightmaps;
+	image_t			**lmArray;
+	ozEdLightProbe_t	*probes;
+	int				numProbes, maxProbes;
 } ozEd;
 
 
@@ -61,6 +74,12 @@ static int OzEd_RegisterShader( const char *name ) {
 		sh = R_FindShader( name, LIGHTMAP_OZ_EDITOR, qtrue );
 	}
 	return sh->defaultShader ? 0 : sh->index;
+}
+
+
+static int OzEd_DefineShader( const char *name, const char *text ) {
+	const shader_t *sh = R_OzDefineShader( name, text );
+	return sh ? sh->index : 0;
 }
 
 
@@ -240,7 +259,7 @@ static void OzEd_UploadMesh( int handle, const ozEdVertex_t *verts, int numVerts
 		vec4_t t, c;
 		int16_t packed[4];
 		uint16_t color[4];
-		float lm[2] = { 0, 0 };
+		const float *lm = v->lm;	// the live light's page, for a lit shader's range
 
 		AddPointToBounds( v->xyz, m->bounds[0], m->bounds[1] );
 		Com_Memcpy( p, v->xyz, 12 ); p += 12;
@@ -295,6 +314,138 @@ static void OzEd_SetViewLight( const float ambient[3], const float directed[3], 
 	VectorCopy( ambient, ozEd.ambient );
 	VectorCopy( directed, ozEd.directed );
 	VectorNormalize2( dir, ozEd.dir );
+}
+
+
+/*
+** the live light's pages and probes
+*/
+
+// The pages are still the renderer's lightmaps: no world was loaded over them since they were made.
+static qboolean PagesValid( void ) {
+	return ozEd.numPages > 0 && ozEd.lmArray && tr.lightmaps == ozEd.lmArray ? qtrue : qfalse;
+}
+
+
+static int OzEd_CreateLightmap( int width, int height ) {
+	image_t **arr, *img;
+	byte *black;
+	int i;
+
+	if ( width <= 0 || height <= 0 || width > glConfig.maxTextureSize || height > glConfig.maxTextureSize ) {
+		return -1;
+	}
+	if ( ozEd.numPages && !PagesValid() ) {
+		ozEd.numPages = 0;	// a world came in over them (its own lightmaps): start again after it
+		ozEd.lmArray = NULL;
+	}
+	if ( ozEd.numPages >= OZ_ED_MAX_LIGHTMAPS ) {
+		return -1;
+	}
+	if ( !ozEd.numPages ) {
+		ozEd.worldLightmaps = tr.lightmaps ? tr.numLightmaps : 0;
+	}
+	R_IssuePendingRenderCommands();
+	black = ri.Hunk_AllocateTempMemory( width * height * 4 );
+	Com_Memset( black, 0, width * height * 4 );
+	for ( i = 0; i < width * height; i++ ) {
+		black[i * 4 + 3] = 255;
+	}
+	img = R_CreateImage( va( "*ozEdLightmap%d", ozEd.numPages ), black, width, height, IMGTYPE_COLORALPHA,
+		IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA8 );
+	ri.Hunk_FreeTempMemory( black );
+	if ( !img ) {
+		return -1;
+	}
+	ozEd.pages[ozEd.numPages] = img;
+
+	// the world's lightmaps, then the pages
+	arr = ri.Malloc( ( ozEd.worldLightmaps + ozEd.numPages + 1 ) * sizeof( *arr ) );
+	for ( i = 0; i < ozEd.worldLightmaps; i++ ) {
+		arr[i] = tr.lightmaps[i];
+	}
+	for ( i = 0; i <= ozEd.numPages; i++ ) {
+		arr[ozEd.worldLightmaps + i] = ozEd.pages[i];
+	}
+	if ( ozEd.lmArray ) {
+		ri.Free( ozEd.lmArray );
+	}
+	ozEd.lmArray = arr;
+	tr.lightmaps = arr;
+	tr.numLightmaps = ozEd.worldLightmaps + ozEd.numPages + 1;
+	return ozEd.numPages++;
+}
+
+
+// a map's lightmap texel as the renderer shifts it (tr_bsp.c R_ColorShiftLightingBytes): by the map's
+// overbright bits less the screen's, normalized by color past 255
+static void ShiftTexel( const byte in[3], byte out[4] ) {
+	const int shift = r_mapOverBrightBits->integer - tr.overbrightBits;
+	int r = shift >= 0 ? in[0] << shift : in[0] >> -shift;
+	int g = shift >= 0 ? in[1] << shift : in[1] >> -shift;
+	int b = shift >= 0 ? in[2] << shift : in[2] >> -shift;
+
+	if ( ( r | g | b ) > 255 ) {
+		int max = r > g ? r : g;
+		max = max > b ? max : b;
+		r = r * 255 / max;
+		g = g * 255 / max;
+		b = b * 255 / max;
+	}
+	out[0] = r;
+	out[1] = g;
+	out[2] = b;
+	out[3] = 255;
+}
+
+
+static void OzEd_UploadLightmap( int lightmap, int x, int y, int width, int height, const unsigned char *rgb ) {
+	image_t *img;
+	byte *data;
+	int i;
+
+	if ( !PagesValid() || lightmap < 0 || lightmap >= ozEd.numPages || !rgb || width <= 0 || height <= 0 ) {
+		return;
+	}
+	img = ozEd.pages[lightmap];
+	if ( x < 0 || y < 0 || x + width > img->width || y + height > img->height ) {
+		return;
+	}
+	R_IssuePendingRenderCommands();	// what's queued draws with the texels as they were
+	data = ri.Hunk_AllocateTempMemory( width * height * 4 );
+	for ( i = 0; i < width * height; i++ ) {
+		ShiftTexel( rgb + i * 3, data + i * 4 );
+	}
+	R_UpdateSubImage( img, data, x, y, width, height, GL_RGBA8 );
+	ri.Hunk_FreeTempMemory( data );
+}
+
+
+static int OzEd_RegisterLitShader( const char *name, int lightmap ) {
+	shader_t *sh;
+
+	if ( !name || !name[0] || !PagesValid() || lightmap < 0 || lightmap >= ozEd.numPages ) {
+		return 0;
+	}
+	sh = R_FindShader( name, ozEd.worldLightmaps + lightmap, qtrue );
+	return sh->defaultShader ? 0 : sh->index;
+}
+
+
+static void OzEd_SetLightProbes( const ozEdLightProbe_t *probes, int count ) {
+	if ( count <= 0 || !probes ) {
+		ozEd.numProbes = 0;
+		return;
+	}
+	if ( count > ozEd.maxProbes ) {
+		if ( ozEd.probes ) {
+			ri.Free( ozEd.probes );
+		}
+		ozEd.maxProbes = count + 64;
+		ozEd.probes = ri.Malloc( ozEd.maxProbes * sizeof( *ozEd.probes ) );
+	}
+	Com_Memcpy( ozEd.probes, probes, count * sizeof( *probes ) );
+	ozEd.numProbes = count;
 }
 
 
@@ -362,6 +513,36 @@ qboolean R_OzEdMeshBounds( const model_t *model, vec3_t mins, vec3_t maxs ) {
 
 
 void R_OzEdViewLight( trRefEntity_t *ent ) {
+	const ozEdLightProbe_t *best = NULL;
+
+	// a model (not the editor's own meshes) where the live light reaches: the nearest probe's light
+	if ( ozEd.numProbes > 0 && ent->e.reType == RT_MODEL ) {
+		const model_t *mod = R_GetModelByHandle( ent->e.hModel );
+		if ( mod && mod->type != MOD_OZEDMESH ) {
+			const float *at = ( ent->e.renderfx & RF_LIGHTING_ORIGIN ) ? ent->e.lightingOrigin : ent->e.origin;
+			float bestD = OZ_ED_PROBE_REACH * OZ_ED_PROBE_REACH;
+			int i;
+			for ( i = 0; i < ozEd.numProbes; i++ ) {
+				vec3_t d;
+				float dd;
+				VectorSubtract( at, ozEd.probes[i].origin, d );
+				dd = DotProduct( d, d );
+				if ( dd < bestD ) {
+					bestD = dd;
+					best = &ozEd.probes[i];
+				}
+			}
+		}
+	}
+	if ( best ) {
+		VectorScale( best->ambient, tr.identityLight, ent->ambientLight );
+		VectorScale( best->directed, tr.identityLight, ent->directedLight );
+		VectorNormalize2( best->dir, ent->lightDir );
+		if ( VectorLength( ent->lightDir ) == 0.0f ) {
+			VectorCopy( ozEd.dir, ent->lightDir );
+		}
+		return;
+	}
 	VectorScale( ozEd.ambient, tr.identityLight, ent->ambientLight );
 	VectorScale( ozEd.directed, tr.identityLight, ent->directedLight );
 	VectorCopy( ozEd.dir, ent->lightDir );
@@ -376,6 +557,11 @@ static const ozEdRender_t ozEdRender = {
 	OzEd_UploadMesh,
 	OzEd_FreeMesh,
 	OzEd_SetViewLight,
+	OzEd_DefineShader,
+	OzEd_CreateLightmap,
+	OzEd_UploadLightmap,
+	OzEd_RegisterLitShader,
+	OzEd_SetLightProbes,
 };
 
 const ozEdRender_t *R_OzEd_GetRender( void ) {
@@ -406,4 +592,22 @@ void R_OzEd_Shutdown( void ) {
 	// the model slots go with the renderer (R_ModelInit starts the list again)
 	Com_Memset( ozEd.meshes, 0, sizeof( ozEd.meshes ) );
 	Com_Memset( ozEd.byModel, 0, sizeof( ozEd.byModel ) );
+
+	// the live light's pages go with the images (R_DeleteTextures); the list naming them with the world's
+	if ( ozEd.lmArray ) {
+		if ( tr.lightmaps == ozEd.lmArray ) {
+			tr.lightmaps = NULL;
+			tr.numLightmaps = 0;
+		}
+		ri.Free( ozEd.lmArray );
+	}
+	ozEd.lmArray = NULL;
+	ozEd.numPages = 0;
+	ozEd.worldLightmaps = 0;
+	Com_Memset( ozEd.pages, 0, sizeof( ozEd.pages ) );
+	if ( ozEd.probes ) {
+		ri.Free( ozEd.probes );
+	}
+	ozEd.probes = NULL;
+	ozEd.numProbes = ozEd.maxProbes = 0;
 }

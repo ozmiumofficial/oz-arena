@@ -1,5 +1,6 @@
 // The multiplayer map editor's session (ed_together.h, ENGINE_PLAN.md PE).
 #include "ed_together.h"
+#include "ed_mapfile.h"
 #include "ed_net.h"
 
 #include <algorithm>
@@ -8,6 +9,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 
 extern "C" {
 #include "../ui/oz_ui_engine.h"
@@ -39,7 +41,79 @@ const int PLAY_AFTER_MS = 15000;
 const int GHOST_MS = 100;          // a reshaping drag's objects sent at most ten times a second
 const int RECENT_MS = 1500;        // what another player changed stays outlined this long, fading
 const size_t GHOST_MAX = 128;      // a drag's objects sent as ghosts at most (a big group's push: the first ones)
+// id blocks a player gets in a session, the first with the welcome: eight million ids. Asked for without
+// end (each ask gave a block, as did each hello said again), a member ran the host out of ids. Eight players'
+// seven more each is under the 64 blocks a player taking over skips past the last roster's (migrate)
+const int MAX_BLOCKS = 8;
+const int WELCOME_AGAIN_MS = 2000; // the session's map goes to one player no more often than this
+const int RESYNC_ASK_MS = 3000;    // a joiner waiting for the map again asks again this often
+
+// The date and time for a kept file's name: 20261110_142530
+std::string file_stamp() {
+	char buf[32];
+	const std::time_t t = std::time(nullptr);
+	const std::tm *tm = std::localtime(&t);
+	if (!tm || !std::strftime(buf, sizeof buf, "%Y%m%d_%H%M%S", tm)) {
+		std::snprintf(buf, sizeof buf, "%lld", (long long)t);
+	}
+	return buf;
+}
+
+// A session's map's name as its host sent it, made a name the editor's own Save as would give (letters,
+// digits, _ - and ., ed_files.cpp's saved_as) with blanks let through, as an opened file's name may have
+// them: it becomes this player's map's name, a file's title and part of the paths their Save writes
+std::string safe_map_name(const std::string &from) {
+	std::string n;
+	for (unsigned char c : from) {
+		if (std::isalnum(c) || c == '_' || c == '-' || c == '.' || c == ' ') {
+			n += char(c);
+		}
+	}
+	n = n.substr(0, 64);
+	return n.find_first_not_of(". ") == std::string::npos ? "untitled" : n;
+}
 }  // namespace
+
+std::string keep_unsaved_map(Session &s) {
+	if (!s.doc.dirty) {
+		return "";
+	}
+	std::string n;
+	for (unsigned char c : s.name) {
+		if (std::isalnum(c) || c == '_' || c == '-') {
+			n += char(c);
+		}
+	}
+	n = n.empty() ? "untitled" : n.substr(0, 48);
+	const std::string file = n + "_kept_" + file_stamp() + ".map", path = s.maps_dir() + "/" + file;
+	WriteOptions wo;
+	wo.title = n + ", kept by the Oz Arena map editor (it was unsaved when a session's map took its place)";
+	const std::string text = write_map(s.doc, wo);
+	OzEd_MakeDirs(path.c_str());
+	if (!OzEd_WriteOSFile(path.c_str(), text.data(), int(text.size()))) {
+		log("^3map editor: the unsaved map couldn't be kept (%s)\n", path.c_str());
+		return "";
+	}
+	log("map editor: the unsaved map was kept as %s\n", path.c_str());
+	return file;
+}
+
+std::string recover_together_autosave() {
+	Session &s = together_session();
+	const std::string from = std::string(OzEd_HomePath()) + "/oz/editor/autosave/" + s.autosave_name;
+	if (!OzEd_FileExists((from + ".map").c_str())) {
+		return "";
+	}
+	const std::string file = "together_recovered_" + file_stamp() + ".map", path = s.maps_dir() + "/" + file;
+	OzEd_MakeDirs(path.c_str());
+	if (std::rename((from + ".map").c_str(), path.c_str()) != 0) {
+		log("^3map editor: the map an earlier session left couldn't be moved to %s\n", path.c_str());
+		return "";
+	}
+	std::remove((from + ".txt").c_str());
+	log("map editor: the map an earlier session left was kept as %s\n", path.c_str());
+	return file;
+}
 
 Session &solo_session() {
 	static Session s;
@@ -386,6 +460,9 @@ void Together::start_sharing(uint32_t num, uint32_t seq) {
 			host_->take(e);
 			return;
 		}
+		if (resync_) {
+			return;  // waiting for the session's map again: it goes to the host after that (the welcome sends what's unanswered)
+		}
 		sync::Writer w;
 		w.u8(M_EDIT);
 		sync::put_edit(w, e, true);
@@ -460,13 +537,18 @@ bool Together::host(const std::string &name, const std::string &password, int ma
 	p.color = 0;
 	p.linked = true;
 	players[1] = p;
+	resync_ = false;
+	answered_.clear();
+	play_starter_ = 0;
 	start_sharing(1, 0);
 	host_ = std::make_unique<sync::Host>(*rep_);
 	host_->start(0);
 	host_->deliver = [this](const sync::Edit &e) { deliver(e); };
-	Id from, end;
+	Id from = 0, end = 0;
 	host_->grant(from, end);
-	s.doc.lease(from, end);
+	if (end > from) {
+		s.doc.lease(from, end);
+	}
 	state = State::Live;
 	relist();
 	OzEdNet_Presence((std::string("edit:") + host_pid + (password_.empty() ? "" : " locked")).c_str(), ("Editing " + map_name).c_str());
@@ -497,6 +579,9 @@ void Together::join(const std::string &pid, const std::string &password, const s
 	host_name = name;
 	players.clear();
 	claims_.clear();
+	resync_ = false;
+	answered_.clear();
+	play_starter_ = 0;
 	state = State::Joining;
 	joined_at_ = OzEdNet_Milliseconds();
 	OzEdNet_Join(pid.c_str(), password.c_str());
@@ -516,6 +601,10 @@ void Together::ended(const std::string &reason) {
 	claims_.clear();
 	claimed_.clear();
 	follow = 0;
+	resync_ = false;
+	answered_.clear();
+	play_starter_ = 0;
+	drop_play_files();  // the session's play-test maps aren't left in the player's maps folder
 	const bool was_host = hosting;
 	hosting = false;
 	state = State::Ended;
@@ -562,6 +651,10 @@ void Together::kick(uint32_t num) {
 	note(name_of(num) + " is out of the session");
 	players.erase(it);
 	host_->release(num);
+	host_->set_viewer(num, false);
+	if (play_starter_ == num) {
+		play_starter_ = 0;
+	}
 	OzEdNet_Leave(pid.c_str());
 	roster();
 }
@@ -603,12 +696,28 @@ void Together::deliver(const sync::Edit &e) {
 	}
 }
 
-void Together::welcome(Player &p) {
+bool Together::lease_for(Player &p, Id &from, Id &end) {
+	from = end = 0;
+	if (p.blocks >= MAX_BLOCKS) {
+		return false;
+	}
+	host_->grant(from, end);
+	if (end <= from) {
+		from = end = 0;
+		return false;
+	}
+	p.blocks++;
+	return true;
+}
+
+void Together::welcome(Player &p, bool again) {
 	Session &s = together_session();
 	sync::Writer snap;
 	rep_->snapshot(snap);
-	Id from, end;
-	host_->grant(from, end);
+	Id from = 0, end = 0;  // 0, 0: no block with this one (the map sent again, or they've had their share)
+	if (!again) {
+		lease_for(p, from, end);
+	}
 	sync::Writer w;
 	w.u8(M_WELCOME);
 	w.var(p.num);
@@ -626,7 +735,14 @@ void Together::welcome(Player &p) {
 		w.var(kv.second);
 	}
 	send_to(p.pid, w);
+	p.welcomed_at = OzEdNet_Milliseconds();
+	if (again) {
+		log("together: the session's map sent to %s again (a snapshot of %zu objects at %u, %zu KB)\n", name_of(p.num).c_str(),
+			rep_->state().size(), rep_->seq(), w.out.size() / 1024);
+		return;
+	}
 	p.linked = true;
+	host_->set_viewer(p.num, p.role == Role::Viewer);  // a viewer coming back to a player who took the session over stays one
 	log("together: %s joined as player %u (a snapshot of %zu objects at %u, %zu KB)\n", name_of(p.num).c_str(), p.num,
 		rep_->state().size(), rep_->seq(), w.out.size() / 1024);
 	note(name_of(p.num) + " joined the session");
@@ -685,6 +801,10 @@ void Together::on_down(const std::string &pid, bool failed, const std::string &r
 			note(name_of(n) + " left the session");
 			players.erase(n);
 			host_->release(n);
+			host_->set_viewer(n, false);
+			if (play_starter_ == n) {
+				play_starter_ = 0;
+			}
 			sync::Writer c;
 			c.u8(M_CLAIMS);
 			c.var(n);
@@ -741,21 +861,35 @@ void Together::migrate(const std::string &why) {
 		migrating_ = false;
 		host_ = std::make_unique<sync::Host>(*rep_);
 		host_->start(rep_->seq());
-		host_->set_next_block(known_block_ + 64 * sync::BLOCK);  // past any block given since the last roster heard
+		// past any block given since the last roster heard (none once that would pass the last id: grant gives no more)
+		host_->set_next_block(known_block_ > 0 && known_block_ < (1 << 30) ? known_block_ + 64 * sync::BLOCK : 0);
 		host_->deliver = [this](const sync::Edit &e) { deliver(e); };
 		next_num_ = 2;
 		for (auto &kv : players) {
 			kv.second.linked = kv.first == me;
+			kv.second.blocks = 0;
+			kv.second.welcomed_at = 0;
 			next_num_ = std::max(next_num_, kv.first + 1);
+			// the viewers stay viewers under the new host (its order refuses their edits as the old one's did)
+			host_->set_viewer(kv.first, kv.first != me && kv.second.role == Role::Viewer);
 		}
 		players[me].role = Role::Owner;
+		// in a play-test another player hosts: theirs is the one that's on
+		play_starter_ = play.stage == 4 && play.starter != me ? play.starter : 0;
 		for (const sync::Edit &e : rep_->unanswered()) {
+			if (resync_ && answered_.count(e.local)) {
+				continue;  // answered by the old host while this copy waited for the map again
+			}
 			host_->take(e);  // this player's own edits the old host never answered, first in the new order
 		}
-		Id from, end;
+		resync_ = false;
+		answered_.clear();
+		Id from = 0, end = 0;
 		host_->grant(from, end);
 		s.doc.lease(0, 0);
-		s.doc.lease(from, end);
+		if (end > from) {
+			s.doc.lease(from, end);
+		}
 		relist();
 		OzEdNet_Presence((std::string("edit:") + host_pid + (password_.empty() ? "" : " locked")).c_str(), ("Editing " + map_name).c_str());
 		note(gone_name + " left: you host the session now");
@@ -798,8 +932,17 @@ void Together::on_message(const std::string &pid, const sync::Bytes &b) {
 		if (!hosting && pid != host_pid) {
 			return;
 		}
-		if (hosting && !num_of(pid)) {
-			return;
+		if (hosting) {
+			// a play-test is an editor's to start, feed and reload: a viewer's messages for one went to
+			// everyone as any member's did (a map file written on every PC, everyone sent into a match)
+			const Player *sender = player(num_of(pid));
+			if (!sender || !sender->linked) {
+				return;
+			}
+			if (sender->role == Role::Viewer) {
+				log("together: a play-test message from %s, who is watching, refused\n", name_of(sender->num).c_str());
+				return;
+			}
 		}
 		on_play(pid, type, r, b);
 		return;
@@ -828,6 +971,9 @@ void Together::on_message(const std::string &pid, const sync::Bytes &b) {
 				send_to(pid, w);
 				return;
 			}
+			if (p && p->linked && OzEdNet_Milliseconds() - p->welcomed_at < WELCOME_AGAIN_MS) {
+				return;  // said again by a player just welcomed: a hello a frame was a snapshot and an id block a frame
+			}
 			if (!p) {
 				Player np;
 				np.num = next_num_++;
@@ -848,7 +994,8 @@ void Together::on_message(const std::string &pid, const sync::Bytes &b) {
 			}
 			p->name = name.empty() ? "Player" : name.substr(0, 40);
 			p->model = model.empty() ? "sarge/default" : model.substr(0, 63);
-			p->role = Role::Editor;
+			// a new player is an editor (Player's own start); one already known keeps their role: a viewer
+			// became an editor by saying hello again
 			welcome(*p);
 			return;
 		}
@@ -865,12 +1012,22 @@ void Together::on_message(const std::string &pid, const sync::Bytes &b) {
 			host_->take(e);
 			return;
 		}
+		case M_RESYNC: {
+			// a joiner whose copy missed an edit: the session's map again, no more often than they ask
+			if (!p || !p->linked || OzEdNet_Milliseconds() - p->welcomed_at < WELCOME_AGAIN_MS) {
+				return;
+			}
+			welcome(*p, true);
+			return;
+		}
 		case M_LEASE_ASK: {
-			if (!p) {
+			if (!p || !p->linked) {
 				return;
 			}
 			Id f, en;
-			host_->grant(f, en);
+			if (!lease_for(*p, f, en)) {
+				return;  // they've had their share (or the ids ran out): no answer, and they don't ask again
+			}
 			sync::Writer w;
 			w.u8(M_LEASE);
 			w.i32(f);
@@ -995,10 +1152,15 @@ void Together::on_message(const std::string &pid, const sync::Bytes &b) {
 	}
 	switch (type) {
 	case M_WELCOME: {
+		if (state != State::Syncing && !migrating_ && !resync_) {
+			return;  // not asked for (a join's hello, a takeover's, a resync): this player's map isn't replaced unasked
+		}
 		const uint32_t num = uint32_t(r.var());
 		const Id from = r.i32(), end = r.i32();
-		session_name = r.str();
-		map_name = r.str();
+		session_name = r.str().substr(0, 64);
+		// the host's word, and it becomes this player's map's name (part of the paths their Save writes): a
+		// name only, as Save as would make it
+		map_name = safe_map_name(r.str());
 		const uint8_t form = r.u8();
 		if (!get_roster(r)) {
 			ended("The session's welcome didn't read");
@@ -1029,23 +1191,51 @@ void Together::on_message(const std::string &pid, const sync::Bytes &b) {
 			s.drop_drag("");
 		}
 		const bool rejoined = migrating_;
+		// the map asked for again after a missed edit (ask_resync): this player stays who they were, as after a takeover
+		const bool resynced = resync_ && !migrating_ && rep_ && state == State::Live;
 		// taken over: the edits the old host never answered go to the new one, on its copy of the session
-		const std::vector<sync::Edit> again = rejoined && rep_ ? rep_->unanswered() : std::vector<sync::Edit>();
+		// (after a resync: those the host didn't answer while this copy waited)
+		std::vector<sync::Edit> again;
+		if ((rejoined || resynced) && rep_) {
+			for (const sync::Edit &e : rep_->unanswered()) {
+				if (!answered_.count(e.local)) {
+					again.push_back(e);
+				}
+			}
+		}
+		// a map of this player's own with unsaved changes, about to be replaced by the session's: written aside first
+		const std::string kept = rejoined || resynced ? std::string() : keep_unsaved_map(s);
 		s.select_none();
 		s.doc.plain_form = form <= uint8_t(TexForm::Valve) ? TexForm(form) : TexForm::Valve;
 		s.doc.reset(world, objects);
-		if (!rejoined) {
+		s.doc_replaced();
+		if (!rejoined && !resynced) {
 			s.path.clear();  // the host's file isn't this PC's: Save asks for a name of this player's own
 		}
 		s.name = map_name;
+		resync_ = false;
+		answered_.clear();
+		const Doc::Lease lease = s.doc.lease_now();
 		start_sharing(num, seq);
-		s.doc.lease(from, end);
+		if (resynced) {
+			s.doc.lease_put(lease);  // the id blocks this player holds stay theirs (the old copy's end let them go)
+		}
+		if (end > from) {
+			s.doc.lease(from, end);  // 0, 0: no block came with this one (Doc::lease would take that as "no more blocks")
+		}
 		for (const sync::Edit &e : again) {
 			rep_->resend(e);
 		}
 		migrating_ = false;
 		host_heard_ = OzEdNet_Milliseconds();
 		state = State::Live;
+		if (resynced) {
+			log("together: the session's map taken from the host again: %zu objects at %u (%zu edits sent again)\n", objects.size(), seq,
+				again.size());
+			note("The session's map was taken from the host again (an edit had gone missing)");
+			changed_rev++;
+			return;
+		}
 		if (rejoined) {
 			log("together: back in the session, hosted by %s now (%zu edits sent again)\n", name_of(num_of(host_pid)).c_str(), again.size());
 			note(name_of(num_of(host_pid)) + " hosts the session now");
@@ -1060,6 +1250,9 @@ void Together::on_message(const std::string &pid, const sync::Bytes &b) {
 		log("together: joined \"%s\" as player %u: %zu objects at %u, %zu KB\n", session_name.c_str(), num, objects.size(), seq,
 			b.size() / 1024);
 		note("Joined " + name_of(1) + "'s session: " + map_name);
+		if (!kept.empty()) {
+			note("Your unsaved map was kept as " + kept + " (Open, your maps)");
+		}
 		return;
 	}
 	case M_ROSTER:
@@ -1072,19 +1265,35 @@ void Together::on_message(const std::string &pid, const sync::Bytes &b) {
 		sync::Edit e;
 		if (!sync::get_edit(r, e)) {
 			log("together: an edit from the host didn't read\n");
+			ask_resync("an edit from the host didn't read");  // the ones after it would land on a map without it
+			return;
+		}
+		if (resync_) {
+			// the map is coming again and has this edit in it; an answer to one of this player's own: not to send again
+			if (e.player == me) {
+				answered_.insert(e.local);
+			}
 			return;
 		}
 		rep_->receive(e);
+		if (rep_->lost) {
+			ask_resync("an edit from the host never came");
+		}
 		return;
 	}
 	case M_LEASE: {
 		const Id from = r.i32(), end = r.i32();
-		if (r.ok) {
+		if (r.ok && end > from) {
 			s.doc.lease(from, end);
 		}
 		asked_lease_ = false;
 		return;
 	}
+	case M_BUSY:
+		// the host's game stands still for a moment (its own play-test's map loading): its silence is allowed
+		// as a play-test together's is
+		played_at_ = OzEdNet_Milliseconds();
+		return;
 	case M_CLAIMS: {
 		const uint32_t who = uint32_t(r.var());
 		const uint64_t n = r.var();
@@ -1402,6 +1611,31 @@ std::string play_file_path(const std::string &name, bool defrag) {
 	return std::string(OzEd_HomePath()) + "/defrag/" + (defi ? "scripts/" : "maps/") + name;
 }
 
+// what a peer's play-test message may name (M_PLAY, M_RELOAD), since it ends up in console commands
+bool hex_word(const std::string &t) {
+	if (t.empty() || t.size() > 64) {
+		return false;
+	}
+	for (char c : t) {
+		if (!std::isxdigit((unsigned char)c)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool map_word(const std::string &t) {
+	if (t.empty() || t.size() > 64) {
+		return false;
+	}
+	for (char c : t) {
+		if (!std::isalnum((unsigned char)c) && c != '_' && c != '-') {
+			return false;
+		}
+	}
+	return true;
+}
+
 std::string random_password() {
 	char buf[16];
 	std::snprintf(buf, sizeof buf, "%08x", unsigned(OzEdNet_Milliseconds()) * 2654435761u ^ 0x5bd1e995u);
@@ -1410,6 +1644,71 @@ std::string random_password() {
 
 }  // namespace
 
+// A play-test's file onto this PC, and remembered. Every Play together and Reload left its
+// ed_<name>_r<revision> files in each member's maps folder for good, each one a map in Skirmish's list: the
+// revisions before the last two go as a new one comes (the one before may still be the map a tester is
+// loading), and the rest when the play-test or the session ends (drop_play_files).
+void Together::play_file(const std::string &name, const sync::Bytes &data, bool defrag) {
+	const std::string path = play_file_path(name, defrag);
+	const std::string stem = name.substr(0, name.rfind('.'));
+	std::string before;  // the newest revision already here
+	for (const auto &f : play_files_) {
+		if (f.second != stem) {
+			before = f.second;
+		}
+	}
+	for (auto it = play_files_.begin(); it != play_files_.end();) {
+		if (it->second != stem && it->second != before) {
+			OzEd_RemoveOSFile(it->first.c_str());
+			it = play_files_.erase(it);
+		} else {
+			++it;
+		}
+	}
+	OzEd_MakeDirs(path.c_str());
+	OzEd_WriteOSFile(path.c_str(), data.data(), int(data.size()));
+	for (const auto &f : play_files_) {
+		if (f.first == path) {
+			return;
+		}
+	}
+	play_files_.emplace_back(path, stem);
+}
+
+void Together::drop_play_files() {
+	for (const auto &f : play_files_) {
+		OzEd_RemoveOSFile(f.first.c_str());
+	}
+	play_files_.clear();
+}
+
+void Together::busy() {
+	if (!live() || !hosting) {
+		return;
+	}
+	sync::Writer w;
+	w.u8(M_BUSY);
+	to_all(w);
+}
+
+void Together::ask_resync(const char *why) {
+	if (hosting || migrating_ || !rep_ || state != State::Live) {
+		return;
+	}
+	const int now = OzEdNet_Milliseconds();
+	if (!resync_) {
+		resync_ = true;
+		answered_.clear();
+		log("together: %s: asking the host for the session's map again\n", why);
+	} else if (now - resync_at_ < RESYNC_ASK_MS) {
+		return;
+	}
+	resync_at_ = now;
+	sync::Writer w;
+	w.u8(M_RESYNC);
+	to_host(w);
+}
+
 bool Together::play_together(std::string &why, bool defrag) {
 	Session &s = together_session();
 	if (defrag && !s.defrag_ready(why)) {
@@ -1417,6 +1716,10 @@ bool Together::play_together(std::string &why, bool defrag) {
 	}
 	if (!live()) {
 		why = "Play together is a session's: host or join one";
+		return false;
+	}
+	if (my_role() == Role::Viewer) {
+		why = "You're watching this session: the host can make you an editor";  // the host refuses a viewer's play-test anyway
 		return false;
 	}
 	if (play.stage != 0) {
@@ -1462,6 +1765,11 @@ void Together::play_compiled(bool ok, const std::string &dir, const std::string 
 		note("Play together: the compile failed: " + out);
 		return;
 	}
+	if (play.starter != me || play.stage != (reloading ? 3 : 1)) {
+		// while it compiled, the play-test it was for ended, or another player's began and this one joined it
+		log("together: the compile's play-test is no longer this player's to start: nothing sent\n");
+		return;
+	}
 	char rev[32];
 	std::snprintf(rev, sizeof rev, "_r%u", seq());
 	const std::string map = out + rev;
@@ -1474,11 +1782,7 @@ void Together::play_compiled(bool ok, const std::string &dir, const std::string 
 	const bool defrag = play.defrag;
 	const bool bots = !defrag && read_file(dir + "/maps/" + out + ".aas", aas);  // Defrag runs without bots
 	const sync::Bytes defi = defrag ? s.defrag_defi(map) : sync::Bytes();
-	auto keep = [&](const std::string &name, const sync::Bytes &data) {
-		const std::string path = play_file_path(name, defrag);
-		OzEd_MakeDirs(path.c_str());
-		OzEd_WriteOSFile(path.c_str(), data.data(), int(data.size()));
-	};
+	auto keep = [&](const std::string &name, const sync::Bytes &data) { play_file(name, data, defrag); };
 	keep(map + ".bsp", bsp);
 	if (bots) {
 		keep(map + ".aas", aas);
@@ -1596,13 +1900,12 @@ void Together::join_play() {
 }
 
 void Together::on_play(const std::string &from, uint8_t type, sync::Reader &r, const sync::Bytes &b) {
-	// the host passes a joiner's on to the others first
-	if (hosting) {
-		const uint32_t n = num_of(from);
-		sync::Writer w;
-		w.out = b;
-		to_all(w, n);
-	}
+	// The host passes a joiner's on to the others, but only once it has read it and found it that player's to
+	// send, and with the player the link says in it: it used to pass the bytes on unread, whatever they were.
+	// sender: on the host, the joiner it came from. running: on the host, whose play-test is on (0: none, or
+	// not known after taking the session over).
+	const uint32_t sender = hosting ? num_of(from) : 0;
+	const uint32_t running = !hosting ? 0 : (play.starter == me && (play.stage == 2 || play.stage == 3)) ? me : play_starter_;
 	switch (type) {
 	case M_PAK: {
 		const std::string name = r.str();
@@ -1613,10 +1916,34 @@ void Together::on_play(const std::string &from, uint8_t type, sync::Reader &r, c
 			log("together: a play-test file didn't arrive whole (%s)\n", name.c_str());
 			return;
 		}
-		const std::string path = play_file_path(name, defrag);
-		OzEd_MakeDirs(path.c_str());
-		OzEd_WriteOSFile(path.c_str(), raw.data(), int(raw.size()));
+		if (hosting) {
+			if (running && running != sender) {
+				// a play-test's files come from the player who started it, not from any member while it's on
+				log("together: a play-test file from %s refused: %s's play-test is on\n", name_of(sender).c_str(), name_of(running).c_str());
+				return;
+			}
+			sync::Writer w;
+			w.out = b;
+			to_all(w, sender);
+		}
+		play_file(name, raw, defrag);
 		log("together: play-test file %s, %zu KB\n", name.c_str(), raw.size() / 1024);
+		if (name.size() > 4 && name.compare(name.size() - 4, 4, ".bsp") == 0) {
+			// the faces' glow copies the map draws with, made here from the session's map (this PC's own
+			// materials): the game reads them from oz/scripts, Defrag's from its own folder
+			const Doc &d = together_session().doc;
+			for (Id id : d.ids_of(Kind::Brush)) {
+				for (const Face &f : d.get(id)->brush.faces) {
+					int brightness, light;
+					if (face_glow(f, brightness, light)) {
+						shaders_lib().glow_variant(shader_name(f.shader), brightness, light);
+					}
+				}
+			}
+			if (defrag) {
+				shaders_lib().copy_glow_scripts(std::string(OzEd_HomePath()) + "/defrag/scripts");
+			}
+		}
 		return;
 	}
 	case M_PLAY: {
@@ -1628,34 +1955,106 @@ void Together::on_play(const std::string &from, uint8_t type, sync::Reader &r, c
 		p.password = r.str();
 		p.rev = uint32_t(r.var());
 		p.defrag = r.left() ? r.u8() != 0 : false;
-		if (!r.ok || starter == me) {
+		if (!r.ok || (!hosting && starter == me)) {
 			return;
+		}
+		// These go into console commands (join_play: connect, oz_join, set password), and the console splits a
+		// line on ; and newlines: a member's "x; unbindall" as the password ran on every other member's game.
+		// A player id and a play-test's password are hex digits, a map's name letters, digits and _
+		if (!hex_word(p.host_pid) || !hex_word(p.password) || !map_word(p.map)) {
+			log("together: a play-test's message wasn't one (refused)\n");
+			return;
+		}
+		if (hosting) {
+			// the player who starts a play-test hosts its match on their own PC: the link's player, at the link's id
+			if (p.host_pid != from) {
+				log("together: a play-test's message wasn't one (refused)\n");
+				return;
+			}
+			if (running && running != sender) {
+				log("together: %s's play-test refused: %s's is on\n", name_of(sender).c_str(), name_of(running).c_str());
+				return;
+			}
+			p.starter = sender;
+			play_starter_ = sender;
+			sync::Writer w;
+			w.u8(M_PLAY);
+			w.var(sender);
+			w.str(p.host_pid);
+			w.str(p.map);
+			w.str(p.password);
+			w.var(p.rev);
+			w.u8(p.defrag ? 1 : 0);
+			to_all(w, sender);
 		}
 		play = p;
 		join_play();
 		return;
 	}
 	case M_PLAYEND: {
-		const uint32_t starter = uint32_t(r.var());
+		uint32_t starter = uint32_t(r.var());
+		if (hosting) {
+			if (running && running != sender) {
+				return;  // only the player whose play-test it is ends it
+			}
+			starter = sender;
+			if (play_starter_ == sender) {
+				play_starter_ = 0;
+			}
+			sync::Writer w;
+			w.u8(M_PLAYEND);
+			w.var(sender);
+			to_all(w, sender);
+		}
 		if (play.stage == 4 && play.starter == starter) {
 			play.stage = 0;
 			OzEdNet_Command("disconnect\neditor_together\n");
 			OzEdNet_ClearError();
 			note(name_of(starter) + " ended the play-test: back to the map");
 		}
+		if (play.stage == 0) {
+			drop_play_files();  // the play-test is over: its maps go (a game still in it has them loaded)
+		}
 		return;
 	}
 	case M_RELOAD_ASK: {
+		if (hosting && running != me) {
+			// for the player whose play-test it is; not known (the session was taken over): everyone, as before
+			sync::Writer w;
+			w.u8(M_RELOAD_ASK);
+			const Player *to = running ? player(running) : nullptr;
+			if (to) {
+				send_to(to->pid, w);
+			} else {
+				to_all(w, sender);
+			}
+			return;
+		}
 		if (play.stage == 3 && play.starter == me) {
 			reload();
 		}
 		return;
 	}
 	case M_RELOAD: {
-		const uint32_t starter = uint32_t(r.var());
+		uint32_t starter = uint32_t(r.var());
 		const std::string map = r.str();
 		const uint32_t rev = uint32_t(r.var());
-		if (!r.ok || starter == me || play.stage != 4) {
+		if (!r.ok || !map_word(map)) {
+			return;
+		}
+		if (hosting) {
+			if (running && running != sender) {
+				return;  // only the player whose play-test it is loads another map in it
+			}
+			starter = sender;
+			sync::Writer w;
+			w.u8(M_RELOAD);
+			w.var(sender);
+			w.str(map);
+			w.var(rev);
+			to_all(w, sender);
+		}
+		if (starter == me || play.stage != 4 || play.starter != starter) {
 			return;
 		}
 		// where this player stood is what put_back kept while the old map ran
@@ -1713,6 +2112,10 @@ void Together::reload() {
 		return;
 	}
 	if (play.stage == 4) {
+		if (my_role() == Role::Viewer) {
+			note("You're watching this session: an editor reloads the play-test");
+			return;
+		}
 		sync::Writer w;
 		w.u8(M_RELOAD_ASK);
 		if (hosting) {
@@ -1827,6 +2230,7 @@ void Together::play_tick() {
 				OzEdNet_Command("oz_unhost\n");
 			}
 			play.stage = 0;
+			drop_play_files();  // its match is down: the maps it ran on go
 			log("together: the play-test together ended\n");
 		}
 		break;
@@ -1898,12 +2302,20 @@ void Together::frame() {
 	if (play.stage) {
 		played_at_ = now;
 	}
-	const int silent = played_at_ && now - played_at_ < PLAY_AFTER_MS ? PLAY_SILENT_MS : HOST_SILENT_MS;
+	// the host in a play-test of its own (F5, not Play together) stalls the same way: its presence said it was
+	// in a match (testing) when last heard, or it said its map was about to load (M_BUSY sets played_at_ here).
+	// It was taken for gone after 8 s and the session taken over under it
+	const Player *hp = hosting ? nullptr : player(num_of(host_pid));
+	const bool host_testing = hp && hp->pres.heard && hp->pres.testing;
+	const int silent = (played_at_ && now - played_at_ < PLAY_AFTER_MS) || host_testing ? PLAY_SILENT_MS : HOST_SILENT_MS;
 	if (!hosting && !migrating_ && host_heard_ && now - host_heard_ > silent) {
 		migrate("The host stopped answering");
 	}
 	if (!live()) {
 		return;
+	}
+	if (resync_) {
+		ask_resync("");  // again, until the map comes (the host answers one a couple of seconds at most)
 	}
 	rep_->tick();
 	if (s.compiling()) {
@@ -1917,9 +2329,11 @@ void Together::frame() {
 	// a new block of ids well before this one runs out
 	if (!s.doc.lease_spare() && s.doc.lease_left() < sync::BLOCK / 2) {
 		if (hosting) {
-			Id f, e;
+			Id f = 0, e = 0;
 			host_->grant(f, e);
-			s.doc.lease(f, e);
+			if (e > f) {
+				s.doc.lease(f, e);  // none left: Doc::lease would take 0, 0 as "no more blocks" and forget the one in use
+			}
 		} else if (!asked_lease_) {
 			asked_lease_ = true;
 			sync::Writer w;

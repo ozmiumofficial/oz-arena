@@ -23,7 +23,7 @@
     "profile_menu": { "title": "Profile", "items": [
       { "id": "player_card", "label": "Player Card", "hint": "Card, character, achievements and career stats", "do": "page profile" },
       { "id": "leaderboards", "label": "Leaderboards", "hint": "The top players by level and by ranked MMR", "do": "page leaderboards" },
-      { "id": "replays", "label": "Replays", "hint": "Watch your recorded matches from any player's view", "do": "page replays" }
+      { "id": "replays", "label": "Replays", "hint": "Watch your recorded matches: your own games from any player's eyes", "do": "page replays" }
     ] },
     "map_editor": { "title": "Map Editor", "items": [
       { "id": "editor_solo", "label": "Single Player", "hint": "Build arenas on your own, or import the original game's maps", "do": "append editor" },

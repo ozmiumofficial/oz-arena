@@ -346,6 +346,8 @@ void CL_cURL_BeginDownload( const char *localName, const char *remoteURL )
 	qcurl_easy_setopt_warn(clc.downloadCURL, CURLOPT_FAILONERROR, 1);
 	qcurl_easy_setopt_warn(clc.downloadCURL, CURLOPT_FOLLOWLOCATION, 1);
 	qcurl_easy_setopt_warn(clc.downloadCURL, CURLOPT_MAXREDIRS, 5);
+	// Oz: a site that never answers is given up on after 10 s (curl's own wait is 5 minutes)
+	qcurl_easy_setopt_warn(clc.downloadCURL, CURLOPT_CONNECTTIMEOUT, 10L);
 #if CURL_AT_LEAST_VERSION(7, 85, 0)
 	qcurl_easy_setopt_warn(clc.downloadCURL, CURLOPT_PROTOCOLS_STR, ALLOWED_PROTOCOLS_STR);
 #else
@@ -356,7 +358,7 @@ void CL_cURL_BeginDownload( const char *localName, const char *remoteURL )
 	qcurl_easy_setopt_warn(clc.downloadCURL, CURLOPT_BUFFERSIZE, CURL_MAX_READ_SIZE);
 #endif
 
-	clc.downloadCURLM = qcurl_multi_init();	
+	clc.downloadCURLM = qcurl_multi_init();
 	if( !clc.downloadCURLM ) {
 		qcurl_easy_cleanup( clc.downloadCURL );
 		clc.downloadCURL = NULL;
@@ -411,10 +413,18 @@ void CL_cURL_PerformDownload( void )
 		long code;
 
 		qcurl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE,
-			&code);	
-		Com_Error(ERR_DROP, "Download Error: %s Code: %ld URL: %s",
+			&code);
+		// Oz: the server's site (sv_dlURL) not giving a pak doesn't end the join, as it did ("Download
+		// Error: Could not connect to server" for a site that had moved): the pak is asked of the server
+		// itself next (CL_NextDownload), and whatever is still missing of the map archives
+		Com_Printf( S_COLOR_YELLOW "Download Error: %s Code: %ld URL: %s\n",
 			qcurl_easy_strerror(msg->data.result),
 			code, clc.downloadURL);
+		CL_OzRedirectFailed( clc.downloadName );
+		if ( clc.downloadTempName[0] && FS_SV_FileExists( clc.downloadTempName ) ) {
+			FS_Remove( FS_BuildOSPath( Cvar_VariableString( "fs_homepath" ), clc.downloadTempName, NULL ) );
+		}
+		clc.downloadName[0] = clc.downloadTempName[0] = '\0';	// nothing arrived: no checksum to compare
 	}
 
 	CL_NextDownload();

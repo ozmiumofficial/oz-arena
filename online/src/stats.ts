@@ -15,7 +15,8 @@
 // (within KEY_WINDOW_MS). "local" (the reporter's own listen server, not hosted online) is never anyone else's match.
 //
 // Trust (step 7): a match counts for nothing shared until two or more Oz players' reports agree on its scoreboard
-// (Corroborated), decided by ranked.ts decide(), the hub's one agreement check. A lone report (Self-reported) stays in
+// (Corroborated), decided by ranked.ts decide(), the hub's one agreement check; two of them must come from games the
+// hub saw seated in that match as they reported (the Hub's `seat`, report()). A lone report (Self-reported) stays in
 // its player's own history. A match that counted keeps counting; a later report that disagrees just doesn't count.
 // Verified (step 8): the Oz Server Agent beside a server posts each match's result from the server's own games.log,
 // signed with the server's key (the Hub checks it: /agent/report). It is one more reporter of the match: it can't know
@@ -140,12 +141,19 @@ export class Stats extends DurableObject<Env> {
     const cols = new Set(this.rows<{ name: string }>('PRAGMA table_info(matches)').map((c) => c.name));
     if (!cols.has('agent')) this.sql.exec("ALTER TABLE matches ADD COLUMN agent TEXT NOT NULL DEFAULT ''");
     if (!cols.has('agent_at')) this.sql.exec('ALTER TABLE matches ADD COLUMN agent_at INTEGER NOT NULL DEFAULT 0');
+    // whether the reporter's game sat in the reported match as the report came (report())
+    if (!this.rows<{ name: string }>('PRAGMA table_info(reports)').some((c) => c.name === 'seated'))
+      this.sql.exec('ALTER TABLE reports ADD COLUMN seated INTEGER NOT NULL DEFAULT 0');
   }
 
   // ------------------------------------------------------------------ reports
 
-  /** One player's signed report (the Hub has checked `sig` against their key): stored, and the match decided again. */
-  report(pid: string, text: string, sig: string): Stored {
+  /** One player's signed report (the Hub has checked `sig` against their key): stored, and the match decided again.
+   *  `seat` is the match the reporter's game sits in as the report comes ("<server>|<serverid>", the Hub's seat; "" for
+   *  none): a report from a game seated in the match it reports is `seated`, and only those make a match Corroborated.
+   *  Two keys that were never on a server could agree on any scoreboard. A report sent later (the game was offline at
+   *  the match's end) stays in its player's history and counts once the match is Corroborated or Verified by others. */
+  report(pid: string, text: string, sig: string, seat = ''): Stored {
     let raw: unknown;
     try {
       raw = JSON.parse(text);
@@ -175,7 +183,8 @@ export class Stats extends DurableObject<Env> {
       // a second report of the same match from the same player: the first counts
       return this.answer(match, r.rid, false, []);
     }
-    this.sql.exec('INSERT INTO reports(match, pid, rid, at, report, sig) VALUES (?, ?, ?, ?, ?, ?)', match, pid, r.rid, now, JSON.stringify(r), sig);
+    const seated = seat !== '' && seat === `${r.server}|${r.serverid}` ? 1 : 0;
+    this.sql.exec('INSERT INTO reports(match, pid, rid, at, report, sig, seated) VALUES (?, ?, ?, ?, ?, ?, ?)', match, pid, r.rid, now, JSON.stringify(r), sig, seated);
     return this.resolve(match, r.rid);
   }
 
@@ -183,7 +192,7 @@ export class Stats extends DurableObject<Env> {
   private resolve(match: number, rid: string): Stored {
     const m = this.one<{ trust: Trust; mode: string; mod: string; map: string; seconds: number; agent: string }>(
       'SELECT trust, mode, mod, map, seconds, agent FROM matches WHERE id = ?', match)!;
-    const rows = this.rows<{ pid: string; report: string; counted: number }>('SELECT pid, report, counted FROM reports WHERE match = ?', match);
+    const rows = this.rows<{ pid: string; report: string; counted: number; seated: number }>('SELECT pid, report, counted, seated FROM reports WHERE match = ?', match);
     const cleanBy: Record<string, Clean> = {};
     const reports: Record<string, Report> = {};
     for (const x of rows) {
@@ -203,7 +212,8 @@ export class Stats extends DurableObject<Env> {
       agreed = Object.keys(cleanBy).filter((p) => !reports[p].left && canonical(reports[p].rows) === want);
       decided = cleanBy[agreed[0]]?.rows ?? decided;
       if (agentRows && canonical(agentRows) === want) trust = 'verified';
-      else if (agreed.length >= 2 && trust !== 'verified') trust = 'corroborated';
+      // two of the agreeing reports from games that sat in the match (report()'s `seated`)
+      else if (rows.filter((x) => x.seated && agreed.includes(x.pid)).length >= 2 && trust !== 'verified') trust = 'corroborated';
     } else if (rows.length + (agentRows ? 1 : 0) >= 2 && trust === 'self') {
       trust = 'disputed';
     }

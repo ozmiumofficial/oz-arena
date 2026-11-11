@@ -3566,11 +3566,31 @@ return NULL if not found
 If found, it will return a valid shader
 =====================
 */
+/*
+Oz: shaders defined from text while the renderer runs (R_OzDefineShader: the map editor's glow variants,
+a material's script with its glow changed). FindShaderInShaderText looks here first. Their texts go
+with the renderer (ri.FreeAll); R_InitShaders forgets them.
+*/
+#define OZ_MAX_DEFINED	1024
+static struct {
+	char	name[MAX_QPATH];
+	char	*text;
+} ozDefined[OZ_MAX_DEFINED];
+static int ozNumDefined;
+
 static const char *FindShaderInShaderText( const char *shadername ) {
 
 	const char *token, *p;
 
 	int i, hash;
+
+	for ( i = 0; i < ozNumDefined; i++ ) {
+		if ( !Q_stricmp( ozDefined[i].name, shadername ) ) {
+			p = ozDefined[i].text;
+			COM_ParseExt( &p, qtrue );	// its name
+			return p;
+		}
+	}
 
 	hash = generateHashValue(shadername, MAX_SHADERTEXT_HASH);
 
@@ -4358,6 +4378,25 @@ static void CreateInternalShaders( void ) {
 	stages[0].alphaGen = AGEN_IDENTITY;
 	stages[0].stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_EQUAL;
 	FinishShader();
+
+	// Oz: an outline around a player (Gameplay > Enemy outline): the body's back faces alone, pushed
+	// out along its normals and drawn flat in the entity's color, so only a rim shows around the
+	// model as it is; the client's HUD adds it as a second entity (oz_hud.c EnemyOutline)
+	InitShader( "oz_outline", LIGHTMAP_2D );
+	shader.cullType = CT_BACK_SIDED;
+	shader.numDeforms = 1;
+	shader.deforms[0].deformation = DEFORM_WAVE;
+	shader.deforms[0].deformationWave.func = GF_SIN;
+	shader.deforms[0].deformationWave.base = 1.0f;
+	shader.deforms[0].deformationWave.amplitude = 0;
+	shader.deforms[0].deformationWave.frequency = 0;
+	shader.deforms[0].deformationSpread = 0;
+	stages[0].bundle[0].image[0] = tr.whiteImage;
+	stages[0].active = qtrue;
+	stages[0].rgbGen = CGEN_ENTITY;
+	stages[0].alphaGen = AGEN_IDENTITY;
+	stages[0].stateBits = GLS_DEFAULT;
+	FinishShader();
 }
 
 
@@ -4486,9 +4525,53 @@ static void CreateExternalShaders( void ) {
 R_InitShaders
 ==================
 */
+/*
+===============
+R_OzDefineShader
+
+Oz: a shader from text ("name { ... }", a script's block), under name for the renderer's life: the map
+editor's glow variants. A shader made under that name before (a default one, asked for too soon) is
+taken out of the lookup, so the next R_FindShader makes it from the text. NULL when there's no room or
+the text doesn't parse.
+===============
+*/
+shader_t *R_OzDefineShader( const char *name, const char *text ) {
+	char		stripped[MAX_QPATH];
+	shader_t	*sh;
+	int			i;
+
+	if ( !name || !*name || !text ) {
+		return NULL;
+	}
+	COM_StripExtension( name, stripped, sizeof( stripped ) );
+	for ( i = 0; i < ozNumDefined && Q_stricmp( ozDefined[i].name, stripped ); i++ ) {
+	}
+	if ( i == ozNumDefined ) {
+		if ( ozNumDefined == OZ_MAX_DEFINED ) {
+			ri.Printf( PRINT_WARNING, "WARNING: R_OzDefineShader: no room for %s\n", stripped );
+			return NULL;
+		}
+		ozNumDefined++;
+	} else {
+		ri.Free( ozDefined[i].text );
+	}
+	Q_strncpyz( ozDefined[i].name, stripped, sizeof( ozDefined[i].name ) );
+	ozDefined[i].text = ri.Malloc( strlen( text ) + 1 );
+	strcpy( ozDefined[i].text, text );
+	for ( sh = hashTable[generateHashValue( stripped, FILE_HASH_SIZE )]; sh; sh = sh->next ) {
+		if ( !Q_stricmp( sh->name, stripped ) ) {
+			sh->name[0] = '\0';	// never found again by name
+		}
+	}
+	sh = R_FindShader( stripped, LIGHTMAP_OZ_EDITOR, qtrue );
+	return sh->defaultShader ? NULL : sh;
+}
+
+
 void R_InitShaders( void ) {
 	ri.Printf( PRINT_ALL, "Initializing Shaders\n" );
 
+	ozNumDefined = 0;	// their texts went with the last renderer
 	Com_Memset(hashTable, 0, sizeof(hashTable));
 
 	CreateInternalShaders();

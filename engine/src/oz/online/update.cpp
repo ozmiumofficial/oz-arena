@@ -5,13 +5,23 @@ Oz Arena: the update check. GPL-2.0.
 At launch the game asks GitHub for the latest release (api.github.com's releases/latest) on a thread
 of its own, and compares its tag with the build's OZ_VERSION. "Update now" downloads the release's
 OzArenaSetup.exe, which the client (oz_online_engine.c) runs in its update mode as the game quits.
-Nothing here blocks a frame: the client polls.
+The download is checked against what the release's JSON says of the file before anything runs it: its
+size, and its SHA-256 when GitHub gives one (the asset's "digest"). Nothing here blocks a frame: the
+client polls.
 ===========================================================================
 */
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include "oz_online.h"
 
 #include <curl/curl.h>
 #include "cJSON.h"
+#include <mbedtls/sha256.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include <atomic>
 #include <cctype>
@@ -46,13 +56,49 @@ size_t ToString( char *data, size_t size, size_t n, void *user ) {
 	return size * n;
 }
 
+// a download's file, and its SHA-256 as it's written
+struct Sink {
+	FILE					*f;
+	mbedtls_sha256_context	sha;
+};
+
 size_t ToFile( char *data, size_t size, size_t n, void *user ) {
 	if ( stopping ) {
 		return 0;
 	}
-	const size_t w = fwrite( data, size, n, static_cast<FILE *>( user ) );
+	Sink *s = static_cast<Sink *>( user );
+	const size_t w = fwrite( data, size, n, s->f );
+	mbedtls_sha256_update( &s->sha, (const unsigned char *)data, w * size );
 	downloadDone += (long long)( w * size );
 	return w * size;
+}
+
+#ifdef _WIN32
+// The path is UTF-8 (oz_update.c makes it from Windows' wide one). fopen and remove read it in the system's code
+// page, so the download failed for a player whose user name has a letter outside it.
+std::wstring Wide( const std::string &utf8 ) {
+	std::wstring w( utf8.size() + 1, L'\0' );
+	const int n = MultiByteToWideChar( CP_UTF8, 0, utf8.c_str(), -1, &w[0], (int)w.size() );
+	w.resize( n > 0 ? n - 1 : 0 );
+	return w;
+}
+#endif
+
+FILE *OpenWrite( const std::string &path ) {
+#ifdef _WIN32
+	const std::wstring w = Wide( path );
+	return w.empty() ? nullptr : _wfopen( w.c_str(), L"wb" );
+#else
+	return fopen( path.c_str(), "wb" );
+#endif
+}
+
+void Remove( const std::string &path ) {
+#ifdef _WIN32
+	_wremove( Wide( path ).c_str() );
+#else
+	remove( path.c_str() );
+#endif
 }
 
 int Progress( void *, curl_off_t total, curl_off_t, curl_off_t, curl_off_t ) {
@@ -74,6 +120,9 @@ CURL *Easy( const std::string &url ) {
 	curl_easy_setopt( c, CURLOPT_URL, url.c_str() );
 	curl_easy_setopt( c, CURLOPT_FOLLOWLOCATION, 1L );
 	curl_easy_setopt( c, CURLOPT_MAXREDIRS, 8L );
+	if ( !url.compare( 0, 8, "https://" ) ) {
+		curl_easy_setopt( c, CURLOPT_REDIR_PROTOCOLS_STR, "https" );	// GitHub's redirects never leave https
+	}
 	curl_easy_setopt( c, CURLOPT_CONNECTTIMEOUT, 10L );
 	curl_easy_setopt( c, CURLOPT_SSL_OPTIONS, (long)CURLSSLOPT_REVOKE_BEST_EFFORT );
 	curl_easy_setopt( c, CURLOPT_USERAGENT, "OzArena-update" );	// GitHub's API refuses a request without one
@@ -182,12 +231,24 @@ void Check( std::string url ) {
 		const cJSON *an = cJSON_GetObjectItemCaseSensitive( a, "name" );
 		const cJSON *au = cJSON_GetObjectItemCaseSensitive( a, "browser_download_url" );
 		const cJSON *as = cJSON_GetObjectItemCaseSensitive( a, "size" );
+		const cJSON *ad = cJSON_GetObjectItemCaseSensitive( a, "digest" );
 		if ( !cJSON_IsString( an ) || !cJSON_IsString( au ) ) {
 			continue;
 		}
 		if ( !strcmp( an->valuestring, "OzArenaSetup.exe" ) ) {
 			Copy( release.setup, sizeof( release.setup ), au->valuestring );
 			release.setupSize = cJSON_IsNumber( as ) ? (long long)as->valuedouble : 0;
+			// "sha256:<64 hex digits>", on releases GitHub made since it began giving one
+			release.setupSha256[0] = '\0';
+			if ( cJSON_IsString( ad ) && !strncmp( ad->valuestring, "sha256:", 7 ) && strlen( ad->valuestring + 7 ) == 64 ) {
+				bool hex = true;
+				for ( int i = 0; i < 64; i++ ) {
+					const unsigned char ch = (unsigned char)ad->valuestring[7 + i];
+					hex = hex && isxdigit( ch );
+					release.setupSha256[i] = (char)tolower( ch );
+				}
+				release.setupSha256[hex ? 64 : 0] = '\0';
+			}
 		}
 		if ( cJSON_IsNumber( as ) ) {
 			release.size += (long long)as->valuedouble;
@@ -197,19 +258,26 @@ void Check( std::string url ) {
 	checkState = OZ_UPDATE_DONE;
 }
 
-void Download( std::string url, std::string path ) {
-	FILE *f = fopen( path.c_str(), "wb" );
-	if ( !f ) {
+// `size` and `sha256` are what the release says of the file (0 and "" where it says nothing): a download that
+// isn't that is removed and fails. The installer runs with the player's rights the moment it's down, so it is
+// only ever the file the release lists.
+void Download( std::string url, std::string path, long long size, std::string sha256 ) {
+	Sink sink;
+	sink.f = OpenWrite( path );
+	if ( !sink.f ) {
 		std::lock_guard<std::mutex> g( lock );
 		downloadError = "couldn't write " + path;
 		downloadState = OZ_UPDATE_FAILED;
 		return;
 	}
+	FILE *f = sink.f;
+	mbedtls_sha256_init( &sink.sha );
+	mbedtls_sha256_starts( &sink.sha, 0 );
 	long code = 0;
 	CURLcode r = CURLE_FAILED_INIT;
 	if ( CURL *c = Easy( url ) ) {
 		curl_easy_setopt( c, CURLOPT_WRITEFUNCTION, ToFile );
-		curl_easy_setopt( c, CURLOPT_WRITEDATA, f );
+		curl_easy_setopt( c, CURLOPT_WRITEDATA, &sink );
 		curl_easy_setopt( c, CURLOPT_NOPROGRESS, 0L );
 		curl_easy_setopt( c, CURLOPT_XFERINFOFUNCTION, Progress );
 		curl_easy_setopt( c, CURLOPT_LOW_SPEED_LIMIT, 1L );	// stalled for a minute: give up
@@ -219,14 +287,27 @@ void Download( std::string url, std::string path ) {
 		curl_easy_cleanup( c );
 	}
 	const bool closed = fclose( f ) == 0;
+	unsigned char hash[32];
+	char hex[65];
+	const bool hashed = mbedtls_sha256_finish( &sink.sha, hash ) == 0;
+	mbedtls_sha256_free( &sink.sha );
+	for ( int i = 0; i < 32; i++ ) {
+		snprintf( hex + i * 2, 3, "%02x", hash[i] );
+	}
+	const long long got = downloadDone;
 	std::lock_guard<std::mutex> g( lock );
-	if ( r != CURLE_OK || code != 200 || !closed || downloadDone <= 0 ) {
+	if ( r != CURLE_OK || code != 200 || !closed || got <= 0 ) {
 		downloadError = r != CURLE_OK ? curl_easy_strerror( r ) : code != 200 ? "HTTP " + std::to_string( code ) : "the file came empty";
-		remove( path.c_str() );
-		downloadState = OZ_UPDATE_FAILED;
+	} else if ( size > 0 && got != size ) {
+		downloadError = "it isn't the release's file: " + std::to_string( got ) + " bytes, not " + std::to_string( size );
+	} else if ( !sha256.empty() && ( !hashed || sha256 != hex ) ) {
+		downloadError = "it isn't the release's file: its SHA-256 differs";
+	} else {
+		downloadState = OZ_UPDATE_DONE;
 		return;
 	}
-	downloadState = OZ_UPDATE_DONE;
+	Remove( path );
+	downloadState = OZ_UPDATE_FAILED;
 }
 
 // 0.7.5-beta -> {0, 7, 5}, "beta"
@@ -279,7 +360,7 @@ int OzUpdate_Checked( ozRelease_t *out ) {
 	return s;
 }
 
-void OzUpdate_Download( const char *url, const char *path ) {
+void OzUpdate_Download( const char *url, const char *path, long long size, const char *sha256 ) {
 	if ( downloadState == OZ_UPDATE_BUSY ) {
 		return;
 	}
@@ -288,7 +369,7 @@ void OzUpdate_Download( const char *url, const char *path ) {
 	downloadDone = downloadTotal = 0;
 	downloadError.clear();
 	downloadState = OZ_UPDATE_BUSY;
-	downloader = std::thread( Download, std::string( url ), std::string( path ) );
+	downloader = std::thread( Download, std::string( url ), std::string( path ), size, std::string( sha256 ? sha256 : "" ) );
 }
 
 int OzUpdate_Downloaded( long long *done, long long *total, char *error, int size ) {

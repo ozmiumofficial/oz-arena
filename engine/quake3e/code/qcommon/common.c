@@ -3164,6 +3164,11 @@ static const char *const com_engineCvars[] = {
 	"r_ext_multisample", "r_gamma", "vid_xpos", "vid_ypos", "r_dxgi", "oz_video_capture",
 	"cl_ozCustomTextures", "oz_graphics_custom_textures",	// Oz: the custom_textures folder, under every mod
 	"s_volume", "s_musicVolume", "s_useOpenAL", "s_alHRTF", "s_alDevice", "s_khz",
+	// Oz: the Settings page's own cvars for the settings above (oz_settings_apply.c), and the two engine
+	// cvars they set that weren't listed. A mod switch put them back to their defaults while the engine's
+	// kept the player's, and the difference was applied: the window went to 1600x900 on joining a mod's server
+	"oz_video_display_mode", "oz_video_resolution", "oz_video_monitor", "oz_graphics_antialiasing", "r_ozFxaa",
+	"oz_audio_spatial", "oz_audio_output_device", "s_sdlDevice",
 	"in_joystick", "cl_demoPlayer",
 	// Oz: joining any server takes what it needs, under every mod: a mod's first config is the install's
 	// baseq3/q3config.cfg, whose id default (cl_allowDownload 0) refused every OSP and CPMA server's paks
@@ -3182,10 +3187,12 @@ static const char *const com_engineCvars[] = {
 	"oz_crosshair_weapon_rocketl", "oz_crosshair_weapon_lightning", "oz_crosshair_weapon_railgun",
 	"oz_crosshair_weapon_plasma", "oz_crosshair_weapon_bfg", "oz_accessibility_subtitles",
 	"oz_accessibility_subtitle_size", "oz_profile_xp", "oz_audio_hit_sound", "oz_gameplay_draw_gun",
-	"oz_gameplay_gun_offset", "oz_gameplay_bright_skins", "oz_gameplay_enemy_color", "oz_gameplay_team_color",
+	"oz_gameplay_gun_offset", "oz_gameplay_bright_skins", "oz_gameplay_enemy_outline", "oz_gameplay_outline_color", "oz_gameplay_enemy_color", "oz_gameplay_team_color",
 	"oz_mouse_zoom_sensitivity", "oz_controls_toggle_zoom",
 	// Oz: the player's color lights the menus, which are the same under every mod (P12)
-	"oz_profile_team_color"
+	"oz_profile_team_color",
+	// Oz: replays are recorded under every mod, kept in one library (P10)
+	"sv_ozReplay", "sv_ozReplayKeep", "oz_gameplay_record_replays", "oz_gameplay_replays_kept"
 };
 
 
@@ -3195,6 +3202,7 @@ the file keeps the player's own choice, what it held before or what the Settings
 */
 static char com_engineRenderer[MAX_CVAR_VALUE_STRING];	// cl_renderer as the file had it
 static char com_startupRenderer[MAX_CVAR_VALUE_STRING];	// cl_renderer as the command line sets it
+qboolean com_ozWindowSaved;	// the file held the window's settings: not a first run (oz_settings_apply.c)
 
 
 static void Com_WriteEngineConfig( void ) {
@@ -3242,6 +3250,9 @@ static void Com_ExecuteEngineConfig( void ) {
 		text = Z_Malloc( len + 1 );
 		FS_Read( text, len, f );
 		text[ len ] = '\0';
+		if ( Q_stristr( text, "seta r_fullscreen \"" ) ) {
+			com_ozWindowSaved = qtrue;
+		}
 		// a setting the file doesn't hold yet (one listed since it was written) takes Oz's default,
 		// not the mod config's value, which the next write would save for every mod
 		for ( i = 0; i < ARRAY_LEN( com_engineCvars ); i++ ) {
@@ -3350,6 +3361,9 @@ Change to a new mod properly with cleaning up cvars before switching.
 */
 // Oz: no config writes while a mod switch has cvars at their defaults (Com_GameRestart)
 static qboolean com_holdConfigWrites;
+// Oz: counts the mod switches, so the Settings page's cvars are noted again after one, not applied
+// (oz_settings_apply.c): the switch resets and reloads them, which isn't the player changing a setting
+int com_ozGameRestarts;
 
 void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 {
@@ -3422,6 +3436,8 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 		if ( clientRestart )
 			CL_StartHunkUsers();
 #endif
+
+		com_ozGameRestarts++;	// Oz
 
 		Cbuf_Unstash();	// Oz
 

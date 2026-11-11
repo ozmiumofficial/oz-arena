@@ -29,6 +29,8 @@ namespace OzSetup
         /// <summary>/update: the game's Update now (oz_update.c) started Setup and is closing. Setup waits for it,
         /// updates the folder with the choices it was installed with, and starts the game again.</summary>
         bool updateMode;
+        /// <summary>/offline: install from the files beside Setup, never asking GitHub.</summary>
+        bool offlineOnly;
         Release release;
         Progress prog;
         CancellationTokenSource cts;
@@ -50,6 +52,8 @@ namespace OzSetup
                 else if (a.StartsWith("/links=")) opts.Links = a.EndsWith("1");
                 else if (a == "/go") autoStart = true;
                 else if (a == "/update") updateMode = true;
+                else if (a == "/offline") offlineOnly = true;
+                else if (a == "/filesonly") opts.FilesOnly = true;
             }
             ticker.Tick += (s, e) => Tick();
             Loaded += OnLoaded;
@@ -200,13 +204,22 @@ namespace OzSetup
             relName.Text = "CHECKING THE LATEST RELEASE";
             relInfo.Text = "Asking GitHub for the newest Oz Arena...";
             btnInstall.IsEnabled = false;
-            Task.Run(() => Release.Fetch()).ContinueWith(t =>
+            bool offline = offlineOnly;
+            Task.Run(() => Release.Fetch(offline)).ContinueWith(t =>
             {
                 if (t.IsFaulted)
                 {
                     release = null;
-                    relName.Text = "CAN'T REACH GITHUB";
-                    relInfo.Text = (t.Exception.GetBaseException() is System.Net.WebException
+                    var web = t.Exception.GetBaseException() as System.Net.WebException;
+                    var answer = web != null ? web.Response as System.Net.HttpWebResponse : null;
+                    int status = answer != null ? (int)answer.StatusCode : 0;
+                    // GitHub answers 403 or 429 once an address has asked too often in an hour: the
+                    // connection is fine, and "check your connection" sent players looking at it
+                    bool limited = status == 403 || status == 429;
+                    relName.Text = offline ? "NOTHING BESIDE SETUP" : limited ? "GITHUB SAYS WAIT" : "CAN'T REACH GITHUB";
+                    relInfo.Text = limited
+                        ? "GitHub is limiting requests from this address for now. Try again later."
+                        : (web != null
                         ? "Setup downloads Oz Arena from GitHub, and couldn't get there. Check your connection."
                         : t.Exception.GetBaseException().Message);
                     installLabel.Text = "TRY AGAIN";
@@ -251,7 +264,8 @@ namespace OzSetup
 
             string have = Installer.InstalledVersion(opts.Dir);
             bool installedHere = File.Exists(Path.Combine(opts.Dir, "OzArena.exe"));
-            btnPlayHome.Visibility = installedHere ? Visibility.Visible : Visibility.Collapsed;
+            // no PLAY while an update lies unpacked beside the game: its files may be of two versions
+            btnPlayHome.Visibility = installedHere && !Installer.Unfinished(opts.Dir) ? Visibility.Visible : Visibility.Collapsed;
             if (release == null)
                 return;
             relName.Text = "OZ ARENA " + release.Version.ToUpperInvariant();
@@ -260,7 +274,7 @@ namespace OzSetup
             string what = release.Offline ? "Installs from the files beside Setup" : dl > 0 ? Size(dl) + " to download" : "Nothing to download";
             relInfo.Text = what + "  ·  " + Size(free) + " free on " + drive + (free < need ? "  ·  needs " + Size(need) : "");
             relInfo.Foreground = (Brush)FindResource(free < need ? "RedHot" : "Muted");
-            if (installedHere && have == release.Version)
+            if (installedHere && Release.Same(have, release.Version))
                 installLabel.Text = "REPAIR";
             else if (installedHere)
                 installLabel.Text = "UPDATE";
@@ -328,8 +342,12 @@ namespace OzSetup
             }
             if (!Installer.Writable(opts.Dir) && !Installer.IsAdmin)
             {
-                var up = new[] { "/dir=" + opts.Dir, "/desktop=" + (opts.Desktop ? 1 : 0), "/links=" + (opts.Links ? 1 : 0), "/go" };
-                Elevate(updateMode ? up.Concat(new[] { "/update" }).ToArray() : up);
+                var up = new[] { "/dir=" + opts.Dir, "/desktop=" + (opts.Desktop ? 1 : 0), "/links=" + (opts.Links ? 1 : 0), "/go" }.ToList();
+                if (updateMode)
+                    up.Add("/update");
+                if (offlineOnly)
+                    up.Add("/offline");
+                Elevate(up.ToArray());
                 return;
             }
             Work((updateMode ? "UPDATING TO " : "INSTALLING ") + release.Version.ToUpperInvariant(), ct => Installer.Install(release, opts, prog, ct), () =>
@@ -352,7 +370,7 @@ namespace OzSetup
         /// straight back into the game when the folder already has this release.</summary>
         void UpdateWhenClosed()
         {
-            if (Installer.InstalledVersion(opts.Dir) == release.Version && File.Exists(Path.Combine(opts.Dir, "OzArena.exe")))
+            if (Release.Same(Installer.InstalledVersion(opts.Dir), release.Version) && File.Exists(Path.Combine(opts.Dir, "OzArena.exe")) && !Installer.Unfinished(opts.Dir))
             {
                 Play_Click(null, null);
                 return;
@@ -370,15 +388,57 @@ namespace OzSetup
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
-        /// <summary>Setup again with administrator rights, for a folder that needs them; this one closes.</summary>
+        /// <summary>Setup again with administrator rights, for a folder that needs them. That one does the files
+        /// only (/filesonly) and shows the window; this one hides, and does what is the player's own as the
+        /// files are done: the shortcuts, the ozarena:// links and the Apps &amp; features entry. Windows may
+        /// have asked for another administrator's name and password, and then the elevated Setup's desktop,
+        /// Start Menu and registry are that administrator's, not the player's.</summary>
         void Elevate(params string[] args)
         {
             try
             {
                 string exe = Process.GetCurrentProcess().MainModule.FileName;
-                var all = (mode == Mode.Uninstall ? new[] { "/uninstall" } : new string[0]).Concat(args).Concat(new[] { "/elevated" });
-                Process.Start(new ProcessStartInfo(exe, string.Join(" ", all.Select(a => "\"" + a + "\""))) { Verb = "runas", UseShellExecute = true });
-                Application.Current.Shutdown();
+                var all = (mode == Mode.Uninstall ? new[] { "/uninstall" } : new string[0]).Concat(args).Concat(new[] { "/filesonly", "/elevated" });
+                var child = Process.Start(new ProcessStartInfo(exe, string.Join(" ", all.Select(a => "\"" + a + "\""))) { Verb = "runas", UseShellExecute = true });
+                if (child == null)
+                {
+                    Application.Current.Shutdown();
+                    return;
+                }
+                Hide();
+                bool removing = mode == Mode.Uninstall;
+                string dir = removing ? uninstallDir : opts.Dir;
+                long bytes = release != null ? release.Size : 0;
+                DateTime started = DateTime.UtcNow.AddSeconds(-2);
+                Task.Run(() =>
+                {
+                    string record = Path.Combine(dir, Installer.Manifest), game = Path.Combine(dir, "OzArena.exe");
+                    DateTime seen = DateTime.MinValue;
+                    for (bool gone = false; !gone;)
+                    {
+                        try { gone = child.WaitForExit(300); }
+                        catch { gone = true; }
+                        try
+                        {
+                            if (removing)
+                            {
+                                if (gone && !File.Exists(game))
+                                    Uninstall.Forget();
+                            }
+                            else if (File.Exists(record) && File.Exists(game))
+                            {
+                                // the record is written as the files are done, before the window says so
+                                DateTime written = File.GetLastWriteTimeUtc(record);
+                                if (written > started && written != seen)
+                                {
+                                    Installer.PerUser(dir, bytes);
+                                    seen = written;
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }).ContinueWith(_ => Application.Current.Shutdown(), TaskScheduler.FromCurrentSynchronizationContext());
             }
             catch (Win32Exception)
             {
@@ -577,7 +637,7 @@ namespace OzSetup
                 return;
             }
             UninstallSteps(2);
-            Work("REMOVING", ct => Uninstall.Remove(uninstallDir, prog, ct), () =>
+            Work("REMOVING", ct => Uninstall.Remove(uninstallDir, prog, ct, opts.FilesOnly), () =>
             {
                 UninstallSteps(3);
                 btnMsgMain.Visibility = Visibility.Collapsed;

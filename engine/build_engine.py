@@ -384,6 +384,16 @@ def stage(engine_build, qvm_build, libs):
             print("  %-36s %9d" % (f, os.path.getsize(p)))
 
 
+def settings_rate(option):
+    """the engine's rate for a Network > Rate option, from oz_settings_apply.c's own table ("" if it isn't there)"""
+    src = open(os.path.join(HERE, "src", "oz", "ui", "oz_settings_apply.c"), encoding="utf-8").read()
+    m = re.search(r"static void Rate\(.*?names\[\]\s*=\s*\{(.*?)\};.*?rates\[\]\s*=\s*\{(.*?)\};", src, re.S)
+    if not m:
+        return ""
+    names, rates = re.findall(r'"([^"]*)"', m.group(1)), re.findall(r'"([^"]*)"', m.group(2))
+    return rates[names.index(option)] if option in names and names.index(option) < len(rates) else ""
+
+
 def default_cfg():
     """Oz's game's default.cfg, run in place of id's (pak0's): the binds and the engine settings' defaults
     from engine/ui/settings.json, so a first run plays as the Settings page shows it. The player's own
@@ -391,6 +401,7 @@ def default_cfg():
     settings = json.load(open(os.path.join(HERE, "ui", "settings.json"), encoding="utf-8"))["settings"]
     lines = ["// Oz Arena's defaults, made by engine/build_engine.py from engine/ui/settings.json", "unbindall",
              'bind "ESCAPE" "togglemenu"']   # as id's: the page has no entry for it
+    own = {}   # the oz_ settings' defaults: applied only when they change, so the engine cvars they stand for start here
     for s in settings:
         if not s.get("wired") or s["tab"] == "profile":   # the profile's name and model are the player's
             continue
@@ -398,6 +409,19 @@ def default_cfg():
             lines += ['bind "%s" "%s"' % (key, s["command"]) for key in s["default"] if key]
         elif s.get("cvar") and not s["cvar"].startswith("oz_") and "cvar_default" in s:
             lines.append('seta %s "%s"' % (s["cvar"], s["cvar_default"]))
+        elif s.get("cvar") and "cvar_default" in s:
+            own[s["key"]] = str(s["cvar_default"])
+    # The window and the rate as Settings shows them on a first run. The engine's own defaults were exclusive
+    # full screen and rate 25000 under a page that said Windowed and Fast, and picking Windowed did nothing
+    # (it was the shown value already). oz_settings_apply.c's Window sets the same cvars for "windowed", and
+    # fits the window on a first run where the screen is smaller (FirstWindow). The saved configs run after.
+    size = re.match(r"(\d+)x(\d+)$", own.get("video/resolution", ""))
+    if own.get("video/display_mode") == "windowed" and size:
+        lines += ['seta r_fullscreen "0"', 'seta r_noborder "0"', 'seta r_mode "-1"',
+                  'seta r_customwidth "%s"' % size.group(1), 'seta r_customheight "%s"' % size.group(2)]
+    rate = settings_rate(own.get("network/rate", ""))
+    if rate:
+        lines.append('seta rate "%s"' % rate)
     # no Settings entry: trilinear, as the look test draws (id's default jumps between mip levels in bands)
     lines.append('seta r_textureMode "GL_LINEAR_MIPMAP_LINEAR"')
     return "\n".join(lines) + "\n"

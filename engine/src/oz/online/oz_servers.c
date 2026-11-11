@@ -48,6 +48,7 @@ typedef struct {
 	netadr_t	adr;
 	char		address[NET_ADDRSTRMAXLEN + 8];
 	int			sent;		// Sys_Milliseconds of the last getinfo
+	int			first;		// of the first one: the ping counts from it unless the answer is the second's
 	int			tries;
 	int			ping;
 	char		*info;		// its infoResponse, NULL until it answers
@@ -183,7 +184,9 @@ static void AskMasters( void ) {
 		if ( !*name ) {
 			continue;
 		}
-		if ( strcmp( masters[i].name, name ) ) {
+		// a lookup that failed is tried again at the next refresh: kept as failed for the run, a browser
+		// opened before the network was up stayed empty until the game was restarted
+		if ( strcmp( masters[i].name, name ) || !masters[i].ok ) {
 			Q_strncpyz( masters[i].name, name, sizeof( masters[i].name ) );
 			r = NET_StringToAdr( name, &masters[i].adr, NA_IP );
 			if ( r == 2 ) {
@@ -230,8 +233,16 @@ static void TakeAddresses( void ) {
 }
 
 
+// The second getinfo's challenge tells its answer from a late answer to the first (a server echoes
+// it): a server slower than ANSWER_WAIT answered the first one just after the second went out, and its
+// ping, counted from the second, read a second too low.
+#define SECOND_ASK		"xx2"
+
 static void Ask( ozServer_t *s, int now ) {
-	NET_OutOfBandPrint( NS_CLIENT, &s->adr, "getinfo xxx" );
+	NET_OutOfBandPrint( NS_CLIENT, &s->adr, s->tries ? "getinfo " SECOND_ASK : "getinfo xxx" );
+	if ( !s->tries ) {
+		s->first = now;
+	}
 	s->sent = now;
 	s->tries++;
 	credit -= 1.0f;
@@ -244,8 +255,9 @@ OzServers_Frame
 ==================
 */
 void OzServers_Frame( void ) {
+	static qboolean wasConnecting;
 	int now, i;
-	qboolean pending;
+	qboolean pending, connecting;
 
 	now = Sys_Milliseconds();
 	if ( lanState == OZS_SERVERS && now - lanSent > LAN_WAIT ) {
@@ -253,6 +265,17 @@ void OzServers_Frame( void ) {
 		generation++;
 		Com_Printf( "oz_servers: %d on the LAN\n", numLan );
 	}
+	// a connection that begins, or a server coming up on this PC, ends the sweep with what it has: it
+	// went on sending getinfo at its pace through the join, and a local server takes every answer
+	connecting = cls.state >= CA_CONNECTING && cls.state != CA_CINEMATIC;
+	if ( active && ( com_sv_running->integer || ( connecting && !wasConnecting ) ) ) {
+		active = qfalse;
+		state = OZS_DONE;
+		generation++;
+		Com_Printf( "oz_servers: the sweep stopped for a %s, %d of %d had answered\n",
+			com_sv_running->integer ? "server on this PC" : "connection", numAnswered, numServers );
+	}
+	wasConnecting = connecting;
 	if ( !active ) {
 		return;
 	}
@@ -308,7 +331,8 @@ void OzServers_InfoResponse( const netadr_t *from, const char *info ) {
 	for ( i = 0; i < nextAsk; i++ ) {
 		s = &servers[i];
 		if ( !s->info && NET_CompareAdr( from, &s->adr ) ) {
-			s->ping = Sys_Milliseconds() - s->sent;
+			const qboolean second = s->tries > 1 && !strcmp( Info_ValueForKey( info, "challenge" ), SECOND_ASK );
+			s->ping = Sys_Milliseconds() - ( second ? s->sent : s->first );
 			if ( s->ping < 1 ) {
 				s->ping = 1;
 			}
@@ -320,6 +344,11 @@ void OzServers_InfoResponse( const netadr_t *from, const char *info ) {
 	}
 	// not asked by the sweep (or answered it already): an answer to the LAN broadcast, while it's open
 	if ( lanState != OZS_SERVERS || numLan >= MAX_OTHER_SERVERS ) {
+		return;
+	}
+	// an internet server the sweep asks may answer both of its getinfos while the LAN tab listens: its
+	// second answer isn't a LAN server's
+	if ( !Sys_IsLANAddress( from ) && Known( from, numServers ) ) {
 		return;
 	}
 	for ( i = 0; i < numLan; i++ ) {

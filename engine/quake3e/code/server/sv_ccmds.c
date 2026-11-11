@@ -175,6 +175,10 @@ static void SV_Map_f( void ) {
 		Com_Printf( "Can't find map %s\n", expanded );
 		return;
 	}
+	if ( FS_OzRelightFile( map ) ) {	// Oz: the lighting Oz adds to a map, not a map of its own
+		Com_Printf( "%s is the relight of a map, not a map\n", expanded );
+		return;
+	}
 
 	// force latched values to get set
 	Cvar_Get ("g_gametype", "0", CVAR_SERVERINFO | CVAR_USERINFO | CVAR_LATCH );
@@ -290,6 +294,12 @@ static void SV_MapRestart_f( void ) {
 
 		SV_SpawnServer( mapname, qfalse );
 		return;
+	}
+
+	{
+		// Oz: after an intermission this starts the next match: its replay is a file of its own (sv_oz_replay.c)
+		void SV_OzReplayRestart( void );
+		SV_OzReplayRestart();
 	}
 
 	// toggle the server bit so clients can detect that a

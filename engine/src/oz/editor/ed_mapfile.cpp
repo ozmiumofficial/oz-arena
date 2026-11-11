@@ -73,6 +73,14 @@ struct Tokens {
 		}
 	}
 
+	// whether only blanks are left on the line from at (or the file ends, or a comment starts)
+	bool ends_line(size_t at) const {
+		while (at < s.size() && (s[at] == ' ' || s[at] == '\t' || s[at] == '\r')) {
+			at++;
+		}
+		return at >= s.size() || s[at] == '\n' || (s[at] == '/' && at + 1 < s.size() && s[at + 1] == '/');
+	}
+
 	void read(std::string &out, bool &q, bool &nl) {
 		nl = false;
 		skip_space(nl);
@@ -83,15 +91,21 @@ struct Tokens {
 		}
 		char c = s[i];
 		if (c == '"') {
-			size_t j = s.find('"', i + 1);
-			if (j == std::string_view::npos) {
-				j = s.size();
+			// to the closing quote. TrenchBroom writes a quote inside a value as \" (such a map didn't open: the
+			// string ended there and the rest was read out of step); it's read as the quote it stands for. A \"
+			// with only the rest of its line after it is still the end: a value ending in a backslash
+			// ("models\"), as Radiant's files have them
+			size_t j = i + 1;
+			for (; j < s.size() && s[j] != '"'; j++) {
+				if (s[j] == '\\' && j + 1 < s.size() && s[j + 1] == '"' && !ends_line(j + 2)) {
+					out.push_back('"');
+					j++;
+					continue;
+				}
+				line += s[j] == '\n';
+				out.push_back(s[j]);
 			}
-			out.assign(s.substr(i + 1, j - i - 1));
-			for (char k : out) {
-				line += k == '\n';
-			}
-			i = j + 1;
+			i = j < s.size() ? j + 1 : s.size();
 			q = true;
 			return;
 		}
@@ -459,6 +473,25 @@ struct Out {
 		}
 		s += "\"\n";
 	}
+	// A face's or a curve's material. A plain name goes as it is, as every map has them. One the reader would
+	// split or lose (blanks, a bracket, a quote, nothing at all: an image's path with a space in it) goes in
+	// quotes, which this reader and q3map2's take as one token; written bare, the file didn't open again.
+	void shader(const std::string &name) {
+		bool plain = !name.empty() && name.compare(0, 2, "//") != 0;  // a name starting // would read as a comment
+		for (char c : name) {
+			plain &= !(c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '(' || c == ')' || c == '{' || c == '}' || c == '[' ||
+				c == ']' || c == '"');
+		}
+		if (plain) {
+			s += name;
+			return;
+		}
+		s += '"';
+		for (char c : name) {
+			s += c == '"' ? '\'' : (c == '\n' || c == '\r') ? ' ' : c;
+		}
+		s += '"';
+	}
 };
 
 void write_brush(Out &out, const Doc &doc, Id id, const Object &o, const Vec3 &origin, bool all_bp) {
@@ -501,14 +534,14 @@ void write_brush(Out &out, const Doc &doc, Id id, const Object &o, const Vec3 &o
 		if (bp) {
 			out.raw("( ( "), out.num(r[0]), out.raw(" "), out.num(r[1]), out.raw(" "), out.num(r[2]);
 			out.raw(" ) ( "), out.num(r[3]), out.raw(" "), out.num(r[4]), out.raw(" "), out.num(r[5]), out.raw(" ) ) ");
-			out.raw(shader_name(f.shader));
+			out.shader(shader_name(f.shader));
 		} else if (f.form == TexForm::Valve) {
-			out.raw(shader_name(f.shader));
+			out.shader(shader_name(f.shader));
 			out.raw(" [ "), out.num(r[0]), out.raw(" "), out.num(r[1]), out.raw(" "), out.num(r[2]), out.raw(" "), out.num(r[3]);
 			out.raw(" ] [ "), out.num(r[4]), out.raw(" "), out.num(r[5]), out.raw(" "), out.num(r[6]), out.raw(" "), out.num(r[7]);
 			out.raw(" ] "), out.num(r[8]), out.raw(" "), out.num(r[9]), out.raw(" "), out.num(r[10]);
 		} else {
-			out.raw(shader_name(f.shader));
+			out.shader(shader_name(f.shader));
 			for (int k = 0; k < 5; k++) {
 				out.raw(" "), out.num(r[k]);
 			}
@@ -525,7 +558,8 @@ void write_patch(Out &out, const Object &o) {
 	const Patch &p = o.patch;
 	out.raw("{\n");
 	out.raw(p.def3 ? "patchDef3\n{\n" : "patchDef2\n{\n");
-	out.raw(shader_name(p.shader) + "\n( ");
+	out.shader(shader_name(p.shader));
+	out.raw("\n( ");
 	for (int k = 0; k < (p.def3 ? 7 : 5); k++) {
 		out.num(p.info[k]), out.raw(" ");
 	}
@@ -578,6 +612,21 @@ std::string write_map(const Doc &doc, const WriteOptions &opts) {
 			break;
 		}
 	}
+	// brushes and curves whose entity is gone, or isn't one (a paste from another map, an edit crossing a
+	// delete): written with the world's (the file's first entity). They were left out of the file, though the
+	// editor drew them
+	std::vector<Id> orphans;
+	for (Id id : doc.ids()) {
+		const Object *o = doc.get(id);
+		if (o->kind == Kind::Entity) {
+			continue;
+		}
+		const Object *owner = doc.get(o->owner);
+		if (!owner || owner->kind != Kind::Entity) {
+			orphans.push_back(id);
+		}
+	}
+	const Id home = ents.empty() ? 0 : ents[0];
 	int n = 0;
 	for (Id eid : ents) {
 		if (opts.only && eid != world && !opts.only(eid)) {
@@ -594,7 +643,11 @@ std::string write_map(const Doc &doc, const WriteOptions &opts) {
 		}
 		Vec3 origin = doc.model_origin(eid);
 		int b = 0;
-		for (Id pid : doc.owned(eid)) {
+		std::vector<Id> own = doc.owned(eid);
+		if (eid == home) {
+			own.insert(own.end(), orphans.begin(), orphans.end());
+		}
+		for (Id pid : own) {
 			if (opts.only && !opts.only(pid)) {
 				continue;
 			}

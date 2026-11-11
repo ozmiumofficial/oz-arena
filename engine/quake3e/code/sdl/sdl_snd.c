@@ -39,8 +39,22 @@ cvar_t *s_sdlDevSamps;
 cvar_t *s_sdlMixSamps;
 
 /* The audio callback. All the magic happens here. */
-static int dmapos = 0;
+// Oz: the callback counts every sample it has played (dmatotal); its place in the ring is that count
+// wrapped (dma.samples is a power of two). dmavalid is how many samples ahead of it the mixer has
+// painted, set at each SNDDMA_Submit under the audio lock (-1: not known, play the ring as it is);
+// dmaread is the count SNDDMA_GetDMAPos last handed the mixer, which s_soundtime was made from
+static unsigned int dmatotal = 0;
+static unsigned int dmaread = 0;
+static int dmavalid = 0;
 static int dmasize = 0;
+
+// Oz: the device may change the rate, the format and the callback's size, never the channel count: the
+// mixer writes mono or stereo only, and a 5.1 or 7.1 device handed over as it is played noise
+#ifdef SDL_AUDIO_ALLOW_SAMPLES_CHANGE
+#define OZ_AUDIO_ALLOW ( SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_FORMAT_CHANGE | SDL_AUDIO_ALLOW_SAMPLES_CHANGE )
+#else
+#define OZ_AUDIO_ALLOW ( SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_FORMAT_CHANGE )
+#endif
 
 static SDL_AudioDeviceID sdlPlaybackDevice;
 
@@ -60,38 +74,47 @@ SNDDMA_AudioCallback
 */
 static void SNDDMA_AudioCallback(void *userdata, Uint8 *stream, int len)
 {
-	int pos = (dmapos * (dma.samplebits/8));
-	if (pos >= dmasize)
-		dmapos = pos = 0;
+	const int bytes = dma.samplebits / 8;	// a sample's
 
-	if (!snd_inited)  /* shouldn't happen, but just in case... */
+	if (!snd_inited || bytes <= 0 || dmasize <= 0)  /* shouldn't happen, but just in case... */
 	{
 		memset(stream, '\0', len);
 		return;
 	}
 	else
 	{
-		int tobufend = dmasize - pos;  /* bytes to buffer's end. */
-		int len1 = len;
-		int len2 = 0;
+		// Oz: the ring from the callback's place on, around its end as often as it takes
+		const int samples = len / bytes;
+		int pos = (int)( dmatotal & ( dma.samples - 1 ) ) * bytes;
+		int done = 0;
 
-		if (len1 > tobufend)
+		while (done < len)
 		{
-			len1 = tobufend;
-			len2 = len - len1;
+			int n = dmasize - pos;  /* bytes to buffer's end. */
+			if (n > len - done)
+				n = len - done;
+			memcpy(stream + done, dma.buffer + pos, n);
+			done += n;
+			pos += n;
+			if (pos >= dmasize)
+				pos = 0;
 		}
-		memcpy(stream, dma.buffer + pos, len1);
-		if (len2 <= 0)
-			dmapos += (len1 / (dma.samplebits/8));
-		else  /* wraparound? */
+
+		// Oz: past what the mixer painted the ring holds sound already played. When the game stalled
+		// longer than the mix ahead, that old stretch was played again, over and over (a stutter or a
+		// crackle); it is silence now, until the mixer paints again
+		if (dmavalid >= 0)
 		{
-			memcpy(stream+len1, dma.buffer, len2);
-			dmapos = (len2 / (dma.samplebits/8));
+			if (samples > dmavalid)
+			{
+				memset(stream + dmavalid * bytes, (dma.samplebits == 8) ? 0x80 : 0, (samples - dmavalid) * bytes);
+				dmavalid = 0;
+			}
+			else
+				dmavalid -= samples;
 		}
+		dmatotal += samples;
 	}
-
-	if (dmapos >= dmasize)
-		dmapos = 0;
 
 #ifdef USE_SDL_AUDIO_CAPTURE
 	if (sdlMasterGain != 1.0f)
@@ -268,11 +291,11 @@ qboolean SNDDMA_Init( void )
 	{
 		// Oz: the device the Settings page picked (Audio > Output device), else the system's
 		const char *device = Cvar_Get( "s_sdlDevice", "", CVAR_ARCHIVE_ND )->string;
-		sdlPlaybackDevice = SDL_OpenAudioDevice( device[0] ? device : NULL, SDL_FALSE, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE );
+		sdlPlaybackDevice = SDL_OpenAudioDevice( device[0] ? device : NULL, SDL_FALSE, &desired, &obtained, OZ_AUDIO_ALLOW );
 		if ( sdlPlaybackDevice == 0 && device[0] )
 		{
 			Com_Printf( "SDL_OpenAudioDevice( \"%s\" ) failed: %s, trying the default\n", device, SDL_GetError() );
-			sdlPlaybackDevice = SDL_OpenAudioDevice( NULL, SDL_FALSE, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE );
+			sdlPlaybackDevice = SDL_OpenAudioDevice( NULL, SDL_FALSE, &desired, &obtained, OZ_AUDIO_ALLOW );
 		}
 	}
 	if ( sdlPlaybackDevice == 0 )
@@ -293,14 +316,21 @@ qboolean SNDDMA_Init( void )
 	//  reasonable...this is why I let the user override.
 	tmp = s_sdlMixSamps->integer;
 	if ( !tmp )
+	{
 		tmp = (obtained.samples * obtained.channels) * 10;
+		// Oz: and at least half a second. Ten callbacks were 186 ms at 22 kHz, less than the 0.2 s the
+		// mixer paints ahead (s_mixAhead), so every update painted the ring all the way around
+		if ( tmp < ( obtained.freq / 2 ) * obtained.channels )
+			tmp = ( obtained.freq / 2 ) * obtained.channels;
+	}
 
 	// samples must be divisible by number of channels
 	tmp -= tmp % obtained.channels;
 	// round up to next power of 2
 	tmp = log2pad( tmp, 1 );
 
-	dmapos = 0;
+	dmatotal = dmaread = 0;
+	dmavalid = 0;
 	dma.samplebits = SDL_AUDIO_BITSIZE( obtained.format );
 	dma.isfloat = SDL_AUDIO_ISFLOAT( obtained.format );
 	dma.channels = obtained.channels;
@@ -310,6 +340,15 @@ qboolean SNDDMA_Init( void )
 	dma.speed = obtained.freq;
 	dmasize = (dma.samples * (dma.samplebits/8));
 	dma.buffer = calloc(1, dmasize);
+
+	// Oz: what the device gave, in plain words, once a sound start
+	Com_Printf( "Sound device: %d Hz, %d channel%s, %d-bit %s, a mix buffer of %d ms\n", (int) obtained.freq,
+		(int) obtained.channels, obtained.channels == 1 ? "" : "s", dma.samplebits, dma.isfloat ? "float" : "integer",
+		obtained.freq > 0 ? (int)( (double) dma.fullsamples * 1000.0 / obtained.freq ) : 0 );
+	if ( obtained.freq > 48000 )
+		Com_Printf( S_COLOR_YELLOW "WARNING: the sound device runs at %d Hz: the mixer is made for 48000 Hz at most\n", (int) obtained.freq );
+	if ( obtained.channels > 2 )
+		Com_Printf( S_COLOR_YELLOW "WARNING: the sound device has %d channels: the mixer plays on the first two only\n", (int) obtained.channels );
 
 #ifdef USE_SDL_AUDIO_CAPTURE
 	// !!! FIXME: some of these SDL_OpenAudioDevice() values should be cvars.
@@ -364,7 +403,14 @@ SNDDMA_GetDMAPos
 */
 int SNDDMA_GetDMAPos( void )
 {
-	return dmapos;
+	// Oz: one read of the callback's count gives both the place in the ring and the count SNDDMA_Submit
+	// measures from, so the two always belong together
+	const unsigned int total = dmatotal;
+
+	if ( !snd_inited )
+		return 0;
+	dmaread = total;
+	return (int)( total & ( dma.samples - 1 ) );
 }
 
 
@@ -429,7 +475,8 @@ void SNDDMA_Shutdown( void )
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 	free(dma.buffer);
 	dma.buffer = NULL;
-	dmapos = dmasize = 0;
+	dmatotal = dmaread = 0;
+	dmavalid = dmasize = 0;
 	snd_inited = qfalse;
 	Com_Printf("SDL audio shut down.\n");
 }
@@ -444,6 +491,31 @@ Send sound to device if buffer isn't really the dma buffer
 */
 void SNDDMA_Submit( void )
 {
+	// Oz: tell the callback how far ahead of it the ring is painted (the audio lock is still held, so
+	// it isn't running). The mixer painted up to s_paintedtime, counted in frames from s_soundtime,
+	// which is the place SNDDMA_GetDMAPos read; the callback has played dmatotal - dmaread samples
+	// since that read. A video recording runs the mixer on its own clock: the ring plays as it is
+	if ( snd_inited )
+	{
+		if ( CL_VideoRecording() )
+			dmavalid = -1;
+		else
+		{
+			const int ahead = s_paintedtime - s_soundtime;	// frames
+			const int played = (int)( dmatotal - dmaread );	// samples
+			int valid;
+
+			if ( ahead <= 0 || played < 0 )
+				valid = 0;
+			else if ( ahead >= dma.fullsamples )
+				valid = (int) dma.samples - played;
+			else
+				valid = ahead * (int) dma.channels - played;
+			if ( valid < 0 )
+				valid = 0;
+			dmavalid = valid;
+		}
+	}
 	SDL_UnlockAudioDevice( sdlPlaybackDevice );
 }
 

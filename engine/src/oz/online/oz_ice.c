@@ -76,6 +76,9 @@ typedef pthread_mutex_t iceLock_t;
 #define ICE_RELAYS			4
 #define ICE_CONNECT_MS		30000		// a link that doesn't connect in this time fails
 #define ICE_IDLE_MS			40000		// a connected link that hears nothing this long is closed
+#define RELAY_MIN_LEFT_MS	600000		// no agent starts on relay credentials with less life left than this
+#define RELAY_RETRY_MS		10000		// after a refused or failed net_ice, before the hub is asked again
+#define RELAY_WAIT_MS		8000		// how long a link waits for the hub's net_ice before it goes without
 
 typedef struct {
 	int			used;
@@ -130,6 +133,8 @@ static volatile int	lagMs, lossPct;				// copies of the cvars for libjuice's thr
 static struct {
 	qboolean	have, asked;
 	int			askedAt, expires;
+	int			failedAt;			// when the hub last refused or failed (0: it didn't), for RELAY_RETRY_MS
+	int			ttlMs;				// how long the credentials were made for
 	int			count;
 	char		host[ICE_RELAYS][128], user[ICE_RELAYS][160], pass[ICE_RELAYS][256];
 	uint16_t	port[ICE_RELAYS];
@@ -139,9 +144,16 @@ static struct {
 
 static struct {
 	qboolean	on;
-	char		last[1024];
+	char		last[1024];			// the listing the hub has, without the round trip
+	int			rtt;				// the round trip it has
 	int			checkedAt;
 } host;
+
+static int		hubGeneration;		// the hub connection (OzOnline_Generation) the listing went to
+
+// The server's hook for a hosting link that closed (NULL until server code sets it): the client whose address
+// the link was is dropped, instead of standing in the match as a ghost until sv_timeout.
+void		( *OzIce_LinkLost )( const netadr_t *adr );
 
 // the editing session this player hosts (PE): listed as mode "edit" (one listing a player: never beside a match's)
 static struct {
@@ -149,6 +161,7 @@ static struct {
 	char		name[64], map[64], password[64];
 	int			players, max;
 	char		last[1024];
+	int			rtt;
 	int			checkedAt;
 	char		join[64], detail[96];	// presence while editing together: "edit:<host>", "Editing <map>"
 } edit;
@@ -255,6 +268,16 @@ static void FreeLink( iceLink_t *l, const char *why ) {
 	}
 	if ( why ) {
 		Com_Printf( "ice: link with %s closed (%s)\n", l->pid, why );
+	}
+	if ( why && l->hosting && l->connectedAt && OzIce_LinkLost ) {
+		// the joiner's game connection ran over this link: its client goes with it (not while quitting: why is NULL)
+		netadr_t a;
+		Com_Memset( &a, 0, sizeof( a ) );
+		a.type = NA_ICE;
+		a.ipv._4[0] = 0xff;
+		a.ipv._4[2] = (byte)( l->gen & 0xff );
+		a.ipv._4[3] = (byte)SlotOf( l );
+		OzIce_LinkLost( &a );
 	}
 #ifdef USE_OZ_EDLINK
 	if ( l->edit ) {
@@ -540,6 +563,18 @@ static void AddTurnCvar( void ) {
 }
 
 
+// Credentials an agent may start on: the hub's answer, with enough of its life left to play a match on. A link
+// begun on ones about to run out lost its relay mid-match (nothing renews a running link's).
+static qboolean RelayGood( void ) {
+	int need;
+	if ( !relay.have ) {
+		return qfalse;
+	}
+	need = relay.ttlMs / 2 < RELAY_MIN_LEFT_MS ? relay.ttlMs / 2 : RELAY_MIN_LEFT_MS;	// a hub that makes short ones (tests)
+	return relay.expires - Sys_Milliseconds() > need;
+}
+
+
 static void AskRelay( void ) {
 	int now = Sys_Milliseconds();
 	if ( relay.have && relay.expires - now > 15 * 60 * 1000 ) {
@@ -548,9 +583,23 @@ static void AskRelay( void ) {
 	if ( relay.asked && now - relay.askedAt < 3000 ) {
 		return;		// one request every 2 s per player at the hub
 	}
+	if ( relay.failedAt && now - relay.failedAt < RELAY_RETRY_MS ) {
+		return;		// refused a moment ago: the same answer would come
+	}
 	relay.asked = qtrue;
 	relay.askedAt = now;
 	SendJson( Msg( "net_ice" ) );
+}
+
+
+// Whether a link waiting for relay credentials may start its agent: at once on good ones; else when the hub has
+// answered (TakeRelay), refused a moment ago, or kept silent for RELAY_WAIT_MS. Without good ones StartAgent
+// goes without the hub's relays: a direct link, or Hide my IP's sentence. No join hangs on the hub.
+static qboolean RelaySettled( void ) {
+	if ( RelayGood() ) {
+		return qtrue;
+	}
+	return !( relay.asked && Sys_Milliseconds() - relay.askedAt < RELAY_WAIT_MS );
 }
 
 
@@ -559,14 +608,21 @@ static void TakeRelay( const cJSON *m ) {
 	const cJSON *servers = cJSON_GetObjectItemCaseSensitive( m, "servers" ), *s;
 	const cJSON *err = cJSON_GetObjectItemCaseSensitive( m, "error" );
 	const cJSON *ttl = cJSON_GetObjectItemCaseSensitive( m, "ttl" );
+	int now = Sys_Milliseconds(), seconds;
 
 	relay.asked = qfalse;
 	if ( cJSON_IsString( err ) ) {
 		Com_Printf( "ice: relay: %s\n", err->valuestring );
 	}
-	if ( !cJSON_IsArray( servers ) && relay.have ) {
-		return;		// refused (too soon, the month's budget): what we have stays
+	if ( !cJSON_IsArray( servers ) ) {
+		// Refused or failed (too soon, the month's budget, the relay down): no list to keep. What we have stays
+		// while it's good, and the hub is asked again after a moment. This used to be kept as "no relays" for
+		// an hour, so one failed answer ended Hide my IP joins until the game was started again.
+		Q_strncpyz( relay.error, cJSON_IsString( err ) ? err->valuestring : "the online service gave no relay", sizeof( relay.error ) );
+		relay.failedAt = now ? now : 1;
+		return;
 	}
+	relay.failedAt = 0;
 	Q_strncpyz( relay.error, cJSON_IsString( err ) ? err->valuestring : "", sizeof( relay.error ) );
 	relay.count = 0;
 	cJSON_ArrayForEach( s, servers ) {
@@ -603,7 +659,10 @@ static void TakeRelay( const cJSON *m ) {
 	}
 	AddTurnCvar();
 	relay.have = qtrue;
-	relay.expires = Sys_Milliseconds() + ( cJSON_IsNumber( ttl ) ? ttl->valueint : 3600 ) * 1000;
+	seconds = cJSON_IsNumber( ttl ) ? ttl->valueint : 3600;
+	seconds = seconds < 1 ? 1 : seconds > 172800 ? 172800 : seconds;	// the hub's own bounds: the sum stays an int
+	relay.ttlMs = seconds * 1000;
+	relay.expires = now + relay.ttlMs;
 }
 
 
@@ -622,6 +681,12 @@ static qboolean StartAgent( iceLink_t *l ) {
 	char desc[JUICE_MAX_SDP_STRING_LEN];
 	int i;
 
+	if ( !RelayGood() ) {
+		// the hub refused, never answered, or what it gave is about to run out: none of its relays, only oz_net_turn's
+		relay.have = qfalse;
+		relay.count = 0;
+		AddTurnCvar();
+	}
 	if ( HideIp() && !relay.count ) {
 		Com_Printf( S_COLOR_YELLOW "ice: Hide my IP needs the relay, and %s\n", relay.error[0] ? relay.error : "this hub gave none" );
 		JoinFailed( l, "Hide my IP needs the relay, and the online service has none right now." );
@@ -721,14 +786,20 @@ void		OzUpnp_Shutdown( void );
 void		OzUpnp_Print( void );
 #endif
 
-// net_host {name, mode, map, players, max, password, ranked, version, rtt, address, relay}
+// net_host {name, mode, map, players, max, password, ranked, version, address, relay, rtt}
+// Sent when what it says changes. The hub round trip isn't part of that: it moves at every pong, and the listing
+// went out (and "ice: listed" was printed) every ten seconds for it; a round trip that moved a lot goes quietly.
 static void Listing( qboolean force ) {
 	cJSON *m;
-	char *text;
+	char *text, *key;
 	const char *address = "";
+	const int rtt = OzOnline_Rtt();
 
 #ifdef _WIN32
-	address = OzUpnp_Address();
+	// Hide my IP: the listing never names this PC's public address, a port forward or not
+	if ( !HideIp() ) {
+		address = OzUpnp_Address();
+	}
 #endif
 	m = Msg( "net_host" );
 	cJSON_AddStringToObject( m, "name", Cvar_VariableString( "sv_hostname" ) );
@@ -739,19 +810,28 @@ static void Listing( qboolean force ) {
 	cJSON_AddBoolToObject( m, "password", Cvar_VariableString( "g_password" )[0] != '\0' );
 	cJSON_AddBoolToObject( m, "ranked", qfalse );
 	cJSON_AddStringToObject( m, "version", OZ_P2P_VERSION );
-	cJSON_AddNumberToObject( m, "rtt", OzOnline_Rtt() );
 	cJSON_AddStringToObject( m, "address", address );
 	cJSON_AddBoolToObject( m, "relay", HideIp() );
+	key = cJSON_PrintUnformatted( m );
+	cJSON_AddNumberToObject( m, "rtt", rtt );
 	text = cJSON_PrintUnformatted( m );
-	if ( text && ( force || strcmp( text, host.last ) ) ) {
-		Q_strncpyz( host.last, text, sizeof( host.last ) );
-		if ( OzOnline_Send( text ) ) {
-			Com_Printf( "ice: listed %s on %s, %s\n", Cvar_VariableString( "sv_hostname" ), Cvar_VariableString( "mapname" ),
-				address[0] ? va( "open at %s", address ) : "peer-to-peer only" );
+	if ( text && key ) {
+		const qboolean changed = force || strcmp( key, host.last ) != 0;
+		// host.last is what the hub has: a send that failed (the hub away) is tried again, not remembered as sent
+		if ( ( changed || abs( rtt - host.rtt ) >= 25 ) && OzOnline_Send( text ) ) {
+			Q_strncpyz( host.last, key, sizeof( host.last ) );
+			host.rtt = rtt;
+			if ( changed ) {
+				Com_Printf( "ice: listed %s on %s, %s\n", Cvar_VariableString( "sv_hostname" ), Cvar_VariableString( "mapname" ),
+					address[0] ? va( "open at %s", address ) : "peer-to-peer only" );
+			}
 		}
 	}
 	if ( text ) {
 		cJSON_free( text );
+	}
+	if ( key ) {
+		cJSON_free( key );
 	}
 	cJSON_Delete( m );
 }
@@ -797,7 +877,12 @@ static void Request( const cJSON *m ) {
 			cJSON_IsString( password ) ? password->valuestring : "", cJSON_IsString( version ) ? version->valuestring : "" );
 		return;
 	}
-	if ( !host.on || !com_sv_running->integer ) {
+	if ( !host.on ) {
+		// Not this game's match: the player has another game open that hosts it, and a hub from before it picked
+		// the hosting game's socket asks every one of them. Refusing here ended the join the other was accepting.
+		return;
+	}
+	if ( !com_sv_running->integer ) {
 		refuse = "That match has ended.";
 	} else if ( want[0] && ( !cJSON_IsString( password ) || strcmp( password->valuestring, want ) ) ) {
 		refuse = "Wrong password.";
@@ -885,7 +970,7 @@ static void SignalIn( const cJSON *m ) {
 			l->numPending = 0;
 		} else if ( l->hosting && !l->offer ) {
 			l->offer = CopyString( sdp->valuestring );	// StartAgent takes it once the relay's credentials are in
-			if ( relay.have && !StartAgent( l ) ) {
+			if ( RelaySettled() && !StartAgent( l ) ) {
 				FreeLink( l, "no agent" );
 			}
 		}
@@ -965,7 +1050,8 @@ qboolean OzIce_HubMessage( const char *type, const cJSON *m ) {
 			l->accepted = qtrue;
 			JoinState( "connecting", l->pid, "" );
 			AskRelay();
-			if ( relay.have && relay.expires - Sys_Milliseconds() > 60000 && !StartAgent( l ) ) {
+			// on good credentials at once; else when the hub's answer is in (net_ice below, or the frame's wait)
+			if ( RelaySettled() && !StartAgent( l ) ) {
 				FreeLink( l, "no agent" );
 			}
 		}
@@ -1121,10 +1207,11 @@ const char *OzIce_EditVersion( void ) {
 }
 
 
-// net_host {name, mode "edit", map, players, max, password, version, rtt, relay}
+// net_host {name, mode "edit", map, players, max, password, version, relay, rtt}; sent as Listing sends a match's
 static void EditListing( qboolean force ) {
 	cJSON *m = Msg( "net_host" );
-	char *text;
+	char *text, *key;
+	const int rtt = OzOnline_Rtt();
 	cJSON_AddStringToObject( m, "name", edit.name );
 	cJSON_AddStringToObject( m, "mode", "edit" );
 	cJSON_AddStringToObject( m, "map", edit.map );
@@ -1133,18 +1220,26 @@ static void EditListing( qboolean force ) {
 	cJSON_AddBoolToObject( m, "password", edit.password[0] != '\0' );
 	cJSON_AddBoolToObject( m, "ranked", qfalse );
 	cJSON_AddStringToObject( m, "version", OzIce_EditVersion() );
-	cJSON_AddNumberToObject( m, "rtt", OzOnline_Rtt() );
 	cJSON_AddStringToObject( m, "address", "" );
 	cJSON_AddBoolToObject( m, "relay", HideIp() );
+	key = cJSON_PrintUnformatted( m );
+	cJSON_AddNumberToObject( m, "rtt", rtt );
 	text = cJSON_PrintUnformatted( m );
-	if ( text && ( force || strcmp( text, edit.last ) ) ) {
-		Q_strncpyz( edit.last, text, sizeof( edit.last ) );
-		if ( OzOnline_Send( text ) ) {
-			Com_Printf( "ice: editing session listed: %s on %s, %i of %i\n", edit.name, edit.map, edit.players, edit.max );
+	if ( text && key ) {
+		const qboolean changed = force || strcmp( key, edit.last ) != 0;
+		if ( ( changed || abs( rtt - edit.rtt ) >= 25 ) && OzOnline_Send( text ) ) {
+			Q_strncpyz( edit.last, key, sizeof( edit.last ) );
+			edit.rtt = rtt;
+			if ( changed ) {
+				Com_Printf( "ice: editing session listed: %s on %s, %i of %i\n", edit.name, edit.map, edit.players, edit.max );
+			}
 		}
 	}
 	if ( text ) {
 		cJSON_free( text );
+	}
+	if ( key ) {
+		cJSON_free( key );
 	}
 	cJSON_Delete( m );
 }
@@ -1320,12 +1415,29 @@ void OzIce_Frame( void ) {
 	}
 	DrainEvents();
 
+	if ( OzOnline_Generation() != hubGeneration ) {
+		// A new connection to the hub: its socket there has no listing. Listed again now, or the match was gone
+		// from the Server Browser until its map or player count next changed.
+		hubGeneration = OzOnline_Generation();
+		if ( host.on && com_sv_running->integer ) {
+			Listing( qtrue );
+		}
+		if ( edit.on ) {
+			EditListing( qtrue );
+		}
+	}
+
 	for ( i = 0; i < ICE_LINKS; i++ ) {
 		iceLink_t *l = &links[i];
 		if ( !l->used ) {
 			continue;
 		}
-		if ( !l->connectedAt && now - l->created > ICE_CONNECT_MS ) {
+		if ( !l->agent && ( ( !l->hosting && l->accepted ) || ( l->hosting && l->offer ) ) && RelaySettled() ) {
+			// waiting for relay credentials, and the hub's answer never came (or its wait ran out): on without it
+			if ( !StartAgent( l ) ) {
+				FreeLink( l, "no agent" );
+			}
+		} else if ( !l->connectedAt && now - l->created > ICE_CONNECT_MS ) {
 			JoinFailed( l, l->accepted ? "The connection didn't come up in time." : "The host didn't answer in time." );
 			FreeLink( l, "it didn't connect in time" );
 		} else if ( l->connectedAt && now - l->lastRecv > ICE_IDLE_MS ) {
@@ -1519,6 +1631,7 @@ static void OzJoin_f( void ) {
 	const char *pid = Cmd_Argv( 1 );
 	iceLink_t *l;
 	cJSON *m;
+	int i;
 
 	if ( Cmd_Argc() < 2 || !pid[0] ) {
 		Com_Printf( "usage: oz_join <host's player id> [password]\n" );
@@ -1531,6 +1644,16 @@ static void OzJoin_f( void ) {
 	l = FindLink( pid );
 	if ( l ) {
 		FreeLink( l, "joining again" );
+	}
+	// one join at a time: two quick Joins both went on to connect, and the game ended up in whichever came last
+	for ( i = 0; i < ICE_LINKS; i++ ) {
+		iceLink_t *o = &links[i];
+		if ( o->used && !o->hosting && !o->edit && !( o->wasActive && cls.state == CA_ACTIVE ) ) {
+			m = Msg( "net_leave" );
+			cJSON_AddStringToObject( m, "peer", o->pid );
+			SendJson( m );
+			FreeLink( o, "joining another match" );
+		}
 	}
 	l = NewLink( pid, qfalse );
 	if ( !l ) {

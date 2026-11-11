@@ -39,6 +39,7 @@ static struct {
 	char		name[MAX_QPATH];
 	char		map[MAX_QPATH];
 	char		game[MAX_QPATH];
+	char		mapChecksum[32];			// the server's sv_mapChecksum as it recorded, "" if the header has none
 	byte		*data;
 	int			len;
 	int			numFrames;
@@ -430,8 +431,12 @@ static qboolean Open( const char *path, const char *name ) {
 	fseek( f, 0, SEEK_END );
 	n = ftell( f );
 	fseek( f, 0, SEEK_SET );
-	rp.data = n > 12 ? malloc( n ) : NULL;
+	// 8 bytes to spare: reading the last block's last bits, msg.c's Huffman reader looks a byte or two past it
+	rp.data = n > 12 ? malloc( (size_t)n + 8 ) : NULL;
 	rp.len = rp.data ? (int)fread( rp.data, 1, n, f ) : 0;
+	if ( rp.data ) {
+		memset( rp.data + rp.len, 0, 8 );
+	}
 	fclose( f );
 	if ( rp.len < 12 || memcmp( rp.data, OZ_REPLAY_MAGIC, 4 ) || GetU32( rp.data + 4 ) != OZ_REPLAY_VERSION ) {
 		Com_Printf( "replay: %s isn't a replay\n", name );
@@ -446,6 +451,7 @@ static qboolean Open( const char *path, const char *name ) {
 	}
 	HeaderField( (const char *)rp.data + 12, hlen, "map", rp.map, sizeof( rp.map ) );
 	HeaderField( (const char *)rp.data + 12, hlen, "game", rp.game, sizeof( rp.game ) );
+	HeaderField( (const char *)rp.data + 12, hlen, "map_checksum", rp.mapChecksum, sizeof( rp.mapChecksum ) );
 
 	// the blocks: each is length-prefixed, so the file is its own index; a recording cut short ends at its
 	// last whole frame, and the trailer isn't a block (its first bytes don't make a kind 0 or 1)
@@ -540,18 +546,52 @@ static void Replay_f( void ) {
 	Com_sprintf( path, sizeof( path ), "%s%c%s", Folder(), PATH_SEP, name );
 	view = Cmd_Argc() > 2 ? atoi( Cmd_Argv( 2 ) ) : -1;
 
-	// a file that isn't there, or isn't a replay, leaves the game as it was
+	// a file that isn't there, or isn't a replay, leaves the game as it was; so does one another mod
+	// recorded, and one whose map isn't installed
 	{
+		static char head[16384];
+		char game[MAX_QPATH], map[MAX_QPATH];
+		const char *now = Cvar_VariableString( "fs_game" ), *recorded;
 		FILE *f0 = Sys_FOpen( path, "rb" );
-		byte magic[4] = { 0 };
+		byte start[12];
+		int hlen, got = 0;
+
+		memset( start, 0, sizeof( start ) );
 		if ( f0 ) {
-			if ( fread( magic, 1, 4, f0 ) != 4 ) {
-				magic[0] = 0;
+			if ( fread( start, 1, 12, f0 ) != 12 ) {
+				start[0] = 0;
+			} else if ( !memcmp( start, OZ_REPLAY_MAGIC, 4 ) ) {
+				hlen = (int)GetU32( start + 8 );
+				if ( hlen < 0 || hlen > (int)sizeof( head ) ) {
+					hlen = (int)sizeof( head );
+				}
+				got = (int)fread( head, 1, hlen, f0 );
 			}
 			fclose( f0 );
 		}
-		if ( memcmp( magic, OZ_REPLAY_MAGIC, 4 ) ) {
+		if ( memcmp( start, OZ_REPLAY_MAGIC, 4 ) ) {
 			Com_Printf( "replay: no replay %s in %s\n", name, Folder() );
+			return;
+		}
+		HeaderField( head, got, "game", game, sizeof( game ) );
+		HeaderField( head, got, "map", map, sizeof( map ) );
+		// A replay holds one mod's entities, events and commands as that mod's game code means them: under
+		// another's it played as garbage, with only a console line to say so. baseq3 is Oz's own game.
+		recorded = Q_stricmp( game, BASEGAME ) ? game : DEFAULT_GAME;
+		if ( !now[0] || !Q_stricmp( now, BASEGAME ) ) {
+			now = DEFAULT_GAME;
+		}
+		if ( game[0] && Q_stricmp( recorded, now ) ) {
+			Com_Printf( S_COLOR_YELLOW "replay: %s was recorded in %s: switch to it from the Mod Library to watch\n", name, recorded );
+			if ( cls.state == CA_DISCONNECTED ) {
+				Cvar_Set( "com_errorMessage", va( "This replay was recorded in %s: switch to it from the Mod Library to watch.", recorded ) );
+			}
+			return;
+		}
+		// from the menus (in a match, the files a pure server allows aren't the ones playback will have)
+		if ( cls.state == CA_DISCONNECTED && map[0] && FS_FOpenFileRead( va( "maps/%s.bsp", map ), NULL, qfalse ) == -1 ) {
+			Com_Printf( S_COLOR_YELLOW "replay: %s was recorded on %s, a map that isn't installed\n", name, map );
+			Cvar_Set( "com_errorMessage", va( "This replay was recorded on %s, a map that isn't installed.", map ) );
 			return;
 		}
 	}
@@ -559,11 +599,9 @@ static void Replay_f( void ) {
 	Cvar_Set( "sv_killserver", "2" );		// a local server stops; 2: the client isn't disconnected again
 	SV_Frame( 0 );
 	if ( !Open( path, name ) ) {
+		// the page that started it has closed: the menus say why nothing plays
+		Cvar_Set( "com_errorMessage", "This replay is damaged and can't be played." );
 		return;
-	}
-	if ( rp.game[0] && Q_stricmp( rp.game, BASEGAME ) && Q_stricmp( rp.game, Cvar_VariableString( "fs_game" ) ) ) {
-		Com_Printf( S_COLOR_YELLOW "replay: %s was recorded in %s; plays in %s\n", name, rp.game,
-					Cvar_VariableString( "fs_game" ) );
 	}
 	f = CL_OzReplay_Decode( 0 );
 	if ( view < 0 || view >= MAX_CLIENTS || !f || !f->psPresent[view] ) {
@@ -582,7 +620,28 @@ static void Replay_f( void ) {
 	clc.demoplaying = qtrue;
 	clc.compat = qfalse;
 	if ( !CL_NDP_StartReplay() ) {
+		char map[MAX_QPATH];
+		Q_strncpyz( map, rp.map, sizeof( map ) );	// the disconnect closes the replay
 		CL_Disconnect( qtrue );
+		// it said why in the console only, and the page that started it just closed
+		if ( map[0] && FS_FOpenFileRead( va( "maps/%s.bsp", map ), NULL, qfalse ) == -1 ) {
+			Cvar_Set( "com_errorMessage", va( "This replay was recorded on %s, a map that isn't installed.", map ) );
+		} else {
+			Cvar_Set( "com_errorMessage", "This replay couldn't be played." );
+		}
+		return;
+	}
+	// the header's checksum is the map's as the server had it: another file by that name plays the match
+	// through other walls
+	if ( rp.mapChecksum[0] && rp.map[0] ) {
+		void *bsp = NULL;
+		const int len = FS_ReadFile( va( "maps/%s.bsp", rp.map ), &bsp );
+		if ( bsp ) {
+			if ( len > 0 && (int)LittleLong( (int)Com_BlockChecksum( bsp, len ) ) != atoi( rp.mapChecksum ) ) {	// as CM_LoadMap's
+				Com_Printf( S_COLOR_YELLOW "replay: %s has changed since this was recorded: it may not play as it was\n", rp.map );
+			}
+			FS_FreeFile( bsp );
+		}
 	}
 }
 

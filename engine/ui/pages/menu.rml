@@ -38,7 +38,8 @@ The main column on the left; a submenu opens beside it (Right, or Enter); the pa
 		</button>
 	</div>
 
-	<!-- the main column -->
+	<!-- the main column. An item's hint is part of the item: a click on it runs the item's action too
+	(a main item's hint opens under it as it takes the focus, where the next item was a moment before) -->
 	<div class="column" data-class-deep="state.sub != '' || state.wide" data-class-wide="state.wide">
 		<div class="logo">
 			<div class="mark"/>
@@ -51,7 +52,7 @@ The main column on the left; a submenu opens beside it (Right, or Enter); the pa
 					<span class="bar"/><span class="wash"/>
 					<div class="row"><span class="num">{{ it.num }}</span><span class="label">{{ it.label }}</span></div>
 				</button>
-				<div class="hint">{{ it.hint }}</div>
+				<div class="hint" data-attr-onclick="it.do">{{ it.hint }}</div>
 			</div>
 		</div>
 	</div>
@@ -67,7 +68,7 @@ The main column on the left; a submenu opens beside it (Right, or Enter); the pa
 						<span class="bar"/><span class="wash"/>
 						<div class="row"><span class="label">{{ it.label }}</span><span class="lock" data-if="it.lock != ''">{{ it.lock }}</span></div>
 					</button>
-					<div class="hint">{{ it.hint }}</div>
+					<div class="hint" data-attr-onclick="it.do">{{ it.hint }}</div>
 				</div>
 			</div>
 		</div>
@@ -80,7 +81,7 @@ The main column on the left; a submenu opens beside it (Right, or Enter); the pa
 					<span class="bar"/><span class="wash"/>
 					<div class="row"><span class="label">{{ it.label }}</span></div>
 				</button>
-				<div class="hint">{{ it.hint }}</div>
+				<div class="hint" data-attr-onclick="it.do">{{ it.hint }}</div>
 			</div>
 		</div>
 	</div>
@@ -92,7 +93,7 @@ The main column on the left; a submenu opens beside it (Right, or Enter); the pa
 					<span class="bar"/><span class="wash"/>
 					<div class="row"><span class="label">{{ it.label }}</span></div>
 				</button>
-				<div class="hint">{{ it.hint }}</div>
+				<div class="hint" data-attr-onclick="it.do">{{ it.hint }}</div>
 			</div>
 		</div>
 	</div>
@@ -104,7 +105,7 @@ The main column on the left; a submenu opens beside it (Right, or Enter); the pa
 					<span class="bar"/><span class="wash"/>
 					<div class="row"><span class="label">{{ it.label }}</span></div>
 				</button>
-				<div class="hint">{{ it.hint }}</div>
+				<div class="hint" data-attr-onclick="it.do">{{ it.hint }}</div>
 			</div>
 		</div>
 	</div>

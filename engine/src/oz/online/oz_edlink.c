@@ -19,7 +19,8 @@ window): the links are few and the traffic light but for a joiner's snapshot and
 #define ED_LINKS		32			// as oz_ice.c's ICE_LINKS: the slot is the link's
 #define ED_MTU			1196		// a packet's room for KCP, less the prefix (1200 in all: relays and tunnels take it)
 #define ED_CHUNK		(32 * 1024)	// KCP takes a send of fewer than 128 segments
-#define ED_EVENTS		1024
+#define ED_EVENTS		1024		// the queue's first size
+#define ED_EVENTS_MAX	16384		// waiting events past which no more messages are taken off the streams
 #define ED_MESSAGE_MAX	(64 * 1024 * 1024)	// a stream message larger than this is a broken stream
 #define ED_FAST_MAX		1100
 #define ED_CONV			0x0ED1
@@ -42,7 +43,8 @@ typedef struct {
 } edEvent_t;
 
 static edLink_t		ed[ED_LINKS];
-static edEvent_t	events[ED_EVENTS];
+static edEvent_t	*events;			// a ring of evCap, grown when the stream's messages fill it
+static int			evCap;
 static int			evHead, evTail;
 static unsigned		clockBase;
 static qboolean		clockSet;
@@ -56,15 +58,72 @@ static IUINT32 Now( void ) {
 }
 
 
-static void Push( int kind, const char *pid, void *data, int len, int fast ) {
-	int next = ( evHead + 1 ) % ED_EVENTS;
-	edEvent_t *e;
-	if ( next == evTail ) {
-		Com_Printf( S_COLOR_YELLOW "edlink: events full, one dropped\n" );
-		if ( data ) {
-			free( data );
+static int EventCount( void ) {
+	return evCap ? ( evHead - evTail + evCap ) % evCap : 0;
+}
+
+
+// the oldest fast message (presence: the next one says it all again) taken out of the queue; qfalse when it holds none
+static qboolean DropOldestFast( void ) {
+	const int count = EventCount();
+	int k;
+	for ( k = 0; k < count; k++ ) {
+		edEvent_t *e = &events[( evTail + k ) % evCap];
+		if ( e->kind == OZ_EDEV_MESSAGE && e->fast ) {
+			if ( e->data ) {
+				free( e->data );
+			}
+			for ( ; k + 1 < count; k++ ) {
+				events[( evTail + k ) % evCap] = events[( evTail + k + 1 ) % evCap];
+			}
+			evHead = ( evHead - 1 + evCap ) % evCap;
+			return qtrue;
 		}
-		return;
+	}
+	return qfalse;
+}
+
+
+// room for more events; qfalse when there's no memory for it
+static qboolean GrowEvents( void ) {
+	const int count = EventCount();
+	const int cap = evCap ? evCap * 2 : ED_EVENTS;
+	edEvent_t *bigger = (edEvent_t *)malloc( sizeof( edEvent_t ) * cap );
+	int k;
+	if ( !bigger ) {
+		return qfalse;
+	}
+	for ( k = 0; k < count; k++ ) {
+		bigger[k] = events[( evTail + k ) % evCap];
+	}
+	if ( events ) {
+		free( events );
+	}
+	events = bigger;
+	evCap = cap;
+	evTail = 0;
+	evHead = count;
+	return qtrue;
+}
+
+
+// A full queue never loses a stream message or a link's up or down: an edit dropped here left that player's
+// map different from everyone's for good, with nothing said. A fast message (presence) gives way instead,
+// the oldest first, and with none left to drop the queue grows (Drain stops taking messages off the
+// stream at ED_EVENTS_MAX, so the stream's own window holds the sender back).
+static void Push( int kind, const char *pid, void *data, int len, int fast ) {
+	edEvent_t *e;
+	if ( !evCap || ( evHead + 1 ) % evCap == evTail ) {
+		const qboolean droppable = kind == OZ_EDEV_MESSAGE && fast;
+		if ( !evCap ? !GrowEvents() : ( !DropOldestFast() && ( droppable || !GrowEvents() ) ) ) {
+			if ( !droppable ) {
+				Com_Printf( S_COLOR_YELLOW "edlink: events full, one dropped\n" );
+			}
+			if ( data ) {
+				free( data );
+			}
+			return;
+		}
 	}
 	e = &events[evHead];
 	e->kind = kind;
@@ -72,7 +131,7 @@ static void Push( int kind, const char *pid, void *data, int len, int fast ) {
 	e->data = data;
 	e->len = len;
 	e->fast = fast;
-	evHead = next;
+	evHead = ( evHead + 1 ) % evCap;
 }
 
 
@@ -164,8 +223,13 @@ void OzEdLink_Failed( const char *pid, const char *why ) {
 
 // whole messages out of the stream's bytes
 static void Drain( edLink_t *l ) {
+	if ( l->broken ) {
+		return;	// nothing of it is a message any more: OzEdLink_Frame closes the link
+	}
+	// the session isn't taking its events (a long stall): the rest waits in KCP, whose window holds the sender
+	// back, and in rbuf; OzEdLink_Frame comes here again each frame
 	for ( ;; ) {
-		int n = ikcp_peeksize( l->kcp );
+		int n = EventCount() < ED_EVENTS_MAX ? ikcp_peeksize( l->kcp ) : 0;
 		if ( n <= 0 ) {
 			break;
 		}
@@ -185,8 +249,8 @@ static void Drain( edLink_t *l ) {
 		}
 		l->rlen += n;
 	}
-	while ( l->rlen >= 4 ) {
-		const int len = l->rbuf[0] | ( l->rbuf[1] << 8 ) | ( l->rbuf[2] << 16 ) | ( l->rbuf[3] << 24 );
+	while ( l->rlen >= 4 && EventCount() < ED_EVENTS_MAX ) {
+		const int len = (int)( (unsigned)l->rbuf[0] | ( (unsigned)l->rbuf[1] << 8 ) | ( (unsigned)l->rbuf[2] << 16 ) | ( (unsigned)l->rbuf[3] << 24 ) );
 		byte *msg;
 		if ( len < 0 || len > ED_MESSAGE_MAX ) {
 			Com_Printf( S_COLOR_YELLOW "edlink: %s's stream is broken (a message of %i bytes)\n", l->pid, len );
@@ -198,6 +262,12 @@ static void Drain( edLink_t *l ) {
 			break;
 		}
 		msg = (byte *)malloc( len + 1 );
+		if ( !msg ) {
+			Com_Printf( S_COLOR_YELLOW "edlink: no memory for %s's message of %i bytes\n", l->pid, len );
+			l->broken = qtrue;
+			l->rlen = 0;
+			break;
+		}
 		memcpy( msg, l->rbuf + 4, len );
 		msg[len] = 0;
 		Push( OZ_EDEV_MESSAGE, l->pid, msg, len, 0 );
@@ -216,6 +286,9 @@ void OzEdLink_Input( int slot, int gen, const char *pid, const unsigned char *da
 	if ( !l->used || l->gen != gen ) {
 		return;	// a link the session never took up
 	}
+	if ( l->broken ) {
+		return;	// its stream made no sense: nothing more is read from it, and the next frame closes it
+	}
 	if ( data[3] == 'F' ) {
 		const int n = len - OZ_EDLINK_PREFIX_LEN;
 		byte *msg = (byte *)malloc( n + 1 );
@@ -233,9 +306,26 @@ void OzEdLink_Frame( void ) {
 	const IUINT32 now = Now();
 	int i;
 	for ( i = 0; i < ED_LINKS; i++ ) {
-		if ( ed[i].used && ed[i].kcp ) {
-			ikcp_update( ed[i].kcp, now );
+		if ( !ed[i].used || !ed[i].kcp ) {
+			continue;
 		}
+		if ( ed[i].broken ) {
+			// a stream that stopped making sense (a length past any message's) was only marked: the link
+			// stayed, its player still in the session and never heard again. Closed here, outside the packets'
+			// handling: the session gets the link's down as for any lost link
+			char pid[24];
+			Q_strncpyz( pid, ed[i].pid, sizeof( pid ) );
+			Com_Printf( S_COLOR_YELLOW "edlink: closing the link with %s (its stream is broken)\n", pid );
+			OzIce_EditLeave( pid );
+			if ( ed[i].used && ed[i].broken ) {
+				// the link was gone from oz_ice.c already: the session is told all the same
+				Free( &ed[i] );
+				Push( OZ_EDEV_DOWN, pid, NULL, 0, 0 );
+			}
+			continue;
+		}
+		ikcp_update( ed[i].kcp, now );
+		Drain( &ed[i] );	// what waited for room in the events
 	}
 }
 
@@ -278,7 +368,7 @@ int OzEdLink_Poll( char *pid, int pidSize, void **data, int *len, int *fast ) {
 		return OZ_EDEV_NONE;
 	}
 	e = events[evTail];
-	evTail = ( evTail + 1 ) % ED_EVENTS;
+	evTail = ( evTail + 1 ) % evCap;
 	Q_strncpyz( pid, e.pid, pidSize );
 	*data = e.data;
 	*len = e.len;
@@ -298,6 +388,6 @@ void OzEdLink_Clear( void ) {
 		if ( events[evTail].data ) {
 			free( events[evTail].data );
 		}
-		evTail = ( evTail + 1 ) % ED_EVENTS;
+		evTail = ( evTail + 1 ) % evCap;
 	}
 }

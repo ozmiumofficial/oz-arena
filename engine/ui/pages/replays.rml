@@ -9,11 +9,14 @@
 		.bar .tabs { flex: 1; }
 		.bar .tabs .tab { margin-right: 0.25rem; padding: 0.5rem 0.75rem; font-size: 0.8rem; letter-spacing: 0.12em; }
 		.bar .tabs .tab .under { left: 0.5rem; right: 0.5rem; bottom: -1dp; background-color: #ff4a1c; }
+		.bar .count { margin-right: 1rem; font-size: 0.8rem; color: #8d847c; }
 		.bar kbd { min-width: 0; margin-left: 0.375rem; font-family: OzDisplay; font-size: 0.6rem; color: #8d847c; background-color: transparent; border-color: #ffffff26; }
 		.bar button.btn { margin-right: 0.5rem; }
 		.hr { margin: 0 2.5rem; height: 1dp; background-color: #ffffff0f; }
-		.rcols { flex: 1; min-height: 0; display: flex; padding: 1rem 2.5rem; }
-		.list { flex: 1; min-width: 0; overflow-y: auto; padding-right: 0.5rem; }
+		.rcols { position: relative; flex: 1; min-height: 0; display: flex; padding: 1rem 2.5rem; }
+		.list { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; padding-right: 0.5rem; }
+		.list.under, .detail.under { visibility: hidden; }
+		.empty { margin-top: 2rem; font-size: 0.95rem; line-height: 1.5; color: #8d847c; }
 
 		button.rrow {
 			display: flex;
@@ -28,7 +31,8 @@
 		}
 		button.rrow:focus, button.rrow:hover { border-color: #ff4a1c99; }
 		button.rrow.picked { border-color: #ff4a1c99; background-color: #db24101a; }
-		.rrow .thumb { width: 7.5rem; height: 5.625rem; border-radius: 2dp; background-color: #1a0d0b; }
+		.rrow .thumb { position: relative; width: 7.5rem; height: 5.625rem; border-radius: 2dp; background-color: #1a0d0b; }
+		.rrow .thumb .img { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
 		.rrow .mid { flex: 1; min-width: 0; margin: 0 1rem; line-height: 1.35; }
 		.rrow .nm { display: flex; align-items: center; }
 		.rrow .nm .t { font-family: OzDisplay; font-size: 1rem; letter-spacing: 0.04em; color: #fff3e6; }
@@ -37,6 +41,7 @@
 		.rrow .when { margin-top: 0.125rem; font-size: 0.72rem; color: #5d554f; }
 		.rrow .end { display: flex; flex-direction: column; align-items: flex-end; padding-right: 0.5rem; }
 		.rrow .len { margin-top: 0.375rem; font-size: 0.8rem; color: #8d847c; }
+		.rrow .kind { margin-top: 0.25rem; font-family: OzDisplay; font-size: 0.55rem; letter-spacing: 0.18em; color: #5d554f; }
 
 		.detail { width: 30rem; margin-left: 2rem; overflow-y: auto; padding-right: 0.25rem; }
 		.hero { position: relative; height: 9.3rem; overflow: hidden; border: 1dp #ffffff1a; border-radius: 2dp; background-color: #1a0d0b; }
@@ -48,31 +53,51 @@
 		.acts button.btn { margin-right: 0.5rem; }
 		.detail .section { margin-top: 1.5rem; }
 		.stats { display: flex; gap: 0.5rem; }
-		.stat { flex: 1; padding: 0.5rem 0.75rem; border: 1dp #ffffff0f; border-radius: 2dp; background-color: #00000033; }
+		.stats + .stats { margin-top: 0.5rem; }
+		.stat { flex: 1; min-width: 0; padding: 0.5rem 0.75rem; border: 1dp #ffffff0f; border-radius: 2dp; background-color: #00000033; }
 		.stat .k { font-family: OzDisplay; font-size: 0.55rem; letter-spacing: 0.2em; color: #5d554f; }
 		.stat .v { margin-top: 0.25rem; font-size: 0.85rem; color: #e6ddd2; }
 		.prow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; padding: 0.375rem 0.75rem; border-radius: 2dp; background-color: #ffffff08; }
 		.prow.me { background-color: #db241026; }
-		.prow .l { display: flex; align-items: center; }
+		.prow .l { display: flex; align-items: center; min-width: 0; }
+		.prow .r { display: flex; align-items: center; }
 		.prow .n { width: 1.25rem; margin-right: 0.75rem; font-size: 0.8rem; color: #5d554f; }
 		.prow .p { font-family: OzDisplay; font-size: 0.95rem; letter-spacing: 0.04em; color: #fff3e6; }
 		.prow .bot { margin-left: 0.75rem; font-family: OzDisplay; font-size: 0.55rem; letter-spacing: 0.18em; color: #5d554f; }
 		.prow .s { font-size: 0.95rem; color: #e6ddd2; }
-		.note { margin-top: 1rem; font-size: 0.85rem; color: #8d847c; }
+		.prow button.btn.small { margin-left: 0.75rem; padding: 0.2rem 0.6rem; font-size: 0.7rem; }
+		.note { margin-top: 1rem; font-size: 0.85rem; line-height: 1.45; color: #8d847c; }
+
+		/* the delete question, over the list (a modal: the d-pad stays in it) */
+		.card {
+			position: absolute;
+			left: 12%; right: 12%; top: 18%;
+			z-index: 5;
+			display: flex;
+			flex-direction: column;
+			padding: 1rem 1.25rem;
+			border: 1dp #db241066;
+			background-color: #0a0807f7;
+		}
+		.card .cname { font-family: OzDisplay; font-size: 1.3rem; letter-spacing: 0.05em; color: #fff3e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.card .mtext { margin-top: 0.6rem; font-size: 0.95rem; line-height: 1.45; color: #e6ddd2; }
+		.card .cfoot { display: flex; margin-top: 1rem; }
+		.card .cfoot button { margin-right: 0.75rem; nav-up: none; nav-down: none; }
 	</style>
 </head>
 <!--
-Replays (ReplaysPage.tsx): every match recorded, newest first, the picked one on the right. Replays
-come with the replay system (P10): the list is stand-in data as the web's mock makes it
-(ui/data/replays.json) and Watch, Favorite, Delete and the folder are refused. Q and E switch
-All and Favorites.
+Replays (ENGINE_PLAN.md P10 steps 4 and 6): every match recorded, newest first, the picked one on the
+right (oz_ui_replays.cpp fills replays.list and replays.cur). A match on this game's own server is a
+.q3replay, every player, watchable from anyone's eyes (a Watch beside each player); a match on
+someone else's server is a demo of your own view (cl_oz_demos.c). Rename, Favorite, Delete (to the
+Recycle Bin) and Show folder; the name is kept as it's typed. Q and E switch All and Favorites.
 -->
 <body data-model="menu">
 	<div class="panel">
 		<div class="corners"><div class="tl"/><div class="tr"/><div class="bl"/><div class="br"/></div>
 		<div class="topline"/>
 		<div class="phead">
-			<div><banner text="Replays"/><p class="subtitle">Every match you play is recorded whole: every player, watchable from anyone's eyes or a free camera. The last {{ replays.kept }} are kept; favorites stay forever.</p></div>
+			<div><banner text="Replays"/><p class="subtitle">A match on your own game is recorded whole: every player, watchable from anyone's eyes. On someone else's server, your own view is recorded. The last {{ replays.kept }} of each are kept; favorites stay forever.</p></div>
 			<div class="backbtn" onclick="back"><kbd>Esc</kbd><span>Back</span></div>
 		</div>
 		<div class="divider"/>
@@ -80,54 +105,72 @@ All and Favorites.
 			<div class="wrap">
 				<div class="bar">
 					<div class="tabs">
-						<button id="rp_tab_all" class="tab" data-class-active="replays.tab == 'all'" data-event-click="replays.tab = 'all'"><span>All</span><span class="under"/></button>
-						<button id="rp_tab_fav" class="tab" data-class-active="replays.tab == 'favorites'" data-event-click="replays.tab = 'favorites'; replays.pick = replays.first_fav"><span>Favorites</span><span class="under"/></button>
+						<button id="rp_tab_all" class="tab" data-class-active="replays.tab == 'all'" onclick="replay_tab all"><span>All</span><span class="under"/></button>
+						<button id="rp_tab_fav" class="tab" data-class-active="replays.tab == 'favorites'" onclick="replay_tab favorites"><span>Favorites</span><span class="under"/></button>
 					</div>
-					<button id="rp_folder" class="btn small" onclick="soon replays">Show folder</button>
+					<span class="count mono">{{ replays.count }}</span>
+					<button id="rp_folder" class="btn small" onclick="replay_folder">Show folder</button>
 					<kbd>Q</kbd><kbd>E</kbd>
 				</div>
 				<div class="hr"/>
 				<div class="rcols">
-					<div class="list">
+					<div class="list" data-class-under="replays.confirm.open">
+						<p class="empty" data-if="replays.shown == 0">{{ replays.note }}</p>
 						<button class="rrow" data-for="r : replays.list" data-if="replays.tab == 'all' || r.favorite" data-attr-id="'rp_' + r.id"
-							data-class-picked="r.id == replays.pick" data-event-click="replays.pick = r.id" ondblclick="soon replays">
-							<div class="thumb" data-style-decorator="'image(' + r.shot + ' cover)'"/>
+							data-class-picked="r.id == replays.pick" data-attr-onclick="'replay_pick ' + r.id" data-attr-ondblclick="'replay_watch ' + r.id">
+							<div class="thumb"><div class="img" data-if="r.tile != ''" data-style-decorator="'image(' + r.tile + ' fill)'"/></div>
 							<div class="mid">
 								<div class="nm"><span class="fav" data-if="r.favorite"/><span class="t trunc">{{ r.name != '' ? r.name : r.map_name }}</span></div>
 								<div class="sub trunc">{{ r.sub }}</div>
 								<div class="when mono">{{ r.when }}</div>
 							</div>
 							<div class="end">
-								<span class="badge" data-class-red="r.tone == 'red'" data-class-dimb="r.tone == 'dim'">{{ r.badge }}</span>
+								<span class="badge" data-if="r.badge != ''" data-class-red="r.tone == 'red'" data-class-dimb="r.tone == 'dim'">{{ r.badge }}</span>
 								<span class="len mono">{{ r.length }}</span>
+								<span class="kind">{{ r.kind_text }}</span>
 							</div>
 						</button>
 					</div>
-					<div class="detail">
-						<div data-for="r : replays.list" data-if="r.id == replays.pick">
+					<div class="detail" data-class-under="replays.confirm.open">
+						<div data-if="replays.has_cur">
 							<div class="hero">
-								<div class="art" data-style-decorator="'image(' + r.shot + ' cover)'"/>
-								<div class="low"><div class="mn">{{ r.map_name }}</div><div class="md">{{ r.mode_name }}  -  {{ r.when }}</div></div>
+								<div class="art" data-if="replays.cur.shot != ''" data-style-decorator="'image(' + replays.cur.shot + ' cover)'"/>
+								<div class="low"><div class="mn">{{ replays.cur.map_name }}</div><div class="md">{{ replays.cur.mode_name }}  -  {{ replays.cur.when }}</div></div>
 							</div>
 							<div class="acts">
-								<button class="btn primary" autofocus="" onclick="soon replays">Watch</button>
-								<button class="btn" onclick="soon replays">{{ r.favorite ? 'Unfavorite' : 'Favorite' }}</button>
-								<button class="btn" onclick="soon replays">Delete</button>
+								<button id="rp_watch" class="btn primary" autofocus="" onclick="replay_watch">Watch</button>
+								<button id="rp_fav" class="btn" onclick="replay_fav">{{ replays.cur.favorite ? 'Unfavorite' : 'Favorite' }}</button>
+								<button id="rp_delete" class="btn" onclick="replay_delete">Delete</button>
 							</div>
 							<div class="section"><span class="t">Name</span><span class="rule"/></div>
-							<input class="text wide" type="text" maxlength="64" data-value="r.name" data-attr-placeholder="r.map_name"/>
+							<input id="rp_name" class="text wide" type="text" maxlength="64" data-value="replays.cur.name" data-attr-placeholder="replays.cur.map_name"/>
 							<div class="section"><span class="t">Match</span><span class="rule"/></div>
 							<div class="stats">
-								<div class="stat"><div class="k">Length</div><div class="v mono">{{ r.length }}</div></div>
-								<div class="stat"><div class="k">Result</div><div class="v mono">{{ r.result }}</div></div>
-								<div class="stat"><div class="k">File</div><div class="v mono">{{ r.size }}</div></div>
+								<div class="stat"><div class="k">Length</div><div class="v mono">{{ replays.cur.length }}</div></div>
+								<div class="stat"><div class="k">Result</div><div class="v mono">{{ replays.cur.result }}</div></div>
+								<div class="stat"><div class="k">File</div><div class="v mono">{{ replays.cur.size }}</div></div>
+							</div>
+							<div class="stats">
+								<div class="stat"><div class="k">Played on</div><div class="v trunc" data-rml="replays.cur.where | q3name"/></div>
+								<div class="stat"><div class="k">Views</div><div class="v">{{ replays.cur.views }}</div></div>
 							</div>
 							<div class="section"><span class="t">Players</span><span class="rule"/></div>
-							<div class="prow" data-for="p : r.players" data-class-me="p.local">
-								<span class="l"><span class="n mono">{{ p.n }}</span><span class="p" data-rml="p.name | q3name"/><span class="bot" data-if="p.bot">Bot</span></span>
-								<span class="s mono">{{ p.score }}</span>
+							<p class="note" data-if="replays.cur.players.size == 0">The recording doesn't say who played.</p>
+							<div class="prow" data-for="p : replays.cur.players" data-class-me="p.local">
+								<span class="l"><span class="n mono">{{ p.n }}</span><span class="p trunc" data-rml="p.name | q3name"/><span class="bot" data-if="p.bot">Bot</span></span>
+								<span class="r"><span class="s mono">{{ p.score }}</span><button class="btn small" data-if="p.eyes" data-attr-id="'rp_eyes_' + p.client" data-attr-onclick="'replay_watch ' + replays.cur.id + ' ' + p.client">Watch</button></span>
 							</div>
-							<p class="note" data-if="!r.complete">The game closed during this match; it plays up to where the recording stopped.</p>
+							<p class="note" data-if="replays.cur.kind == 'demo'">Recorded on your side of {{ replays.cur.server_kind }}: only the server sees every player, so this one plays from your eyes.</p>
+							<p class="note" data-if="!replays.cur.complete">The game closed during this match; it plays up to where the recording stopped.</p>
+						</div>
+					</div>
+					<!-- the delete question -->
+					<div class="card modal" data-if="replays.confirm.open">
+						<div class="cname">Delete {{ replays.confirm.name }}?</div>
+						<p class="mtext">{{ replays.confirm.text }}</p>
+						<div class="cfoot">
+							<button id="rp_del_go" class="btn small" onclick="replay_delete_go">Delete</button>
+							<button id="rp_del_no" class="btn small" onclick="replay_delete_no">Keep it</button>
 						</div>
 					</div>
 				</div>

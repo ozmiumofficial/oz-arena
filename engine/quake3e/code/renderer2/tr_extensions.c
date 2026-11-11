@@ -71,10 +71,6 @@ void GLimp_InitExtraExtensions( void )
 	glRefConfig.vaoCacheGlIndexType = GL_UNSIGNED_INT;
 	glRefConfig.vaoCacheGlIndexSize = sizeof(unsigned int);
 
-	// Oz: AMD FSR 1's shaders (textureGather, bit casts, half packing) on GLSL 1.50
-	glRefConfig.ozFsr = GLimp_HaveExtension( "GL_ARB_gpu_shader5" ) && GLimp_HaveExtension( "GL_ARB_shading_language_packing" )
-		&& GLimp_HaveExtension( "GL_ARB_shader_bit_encoding" );
-
 	// set DSA fallbacks
 #define GLE(ret, name, ...) qgl##name = GLDSA_##name;
 	QGL_EXT_direct_state_access_PROCS;
@@ -113,6 +109,11 @@ void GLimp_InitExtraExtensions( void )
 
 	Q_strncpyz( gl_extensions, (char *)qglGetString( GL_EXTENSIONS ), sizeof( gl_extensions ) );
 	Q_strncpyz( glConfig.extensions_string, gl_extensions, sizeof( glConfig.extensions_string ) );
+
+	// Oz: AMD FSR 1's shaders (textureGather, bit casts, half packing) on GLSL 1.50; asked once the
+	// extension list is read (asked above it, a first start found none and upscaled without FSR)
+	glRefConfig.ozFsr = GLimp_HaveExtension( "GL_ARB_gpu_shader5" ) && GLimp_HaveExtension( "GL_ARB_shading_language_packing" )
+		&& GLimp_HaveExtension( "GL_ARB_shader_bit_encoding" );
 
 	sscanf( glConfig.version_string, "%d.%d", &qglMajorVersion, &qglMinorVersion );
 

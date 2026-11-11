@@ -18,7 +18,8 @@ light_colors()).
 
 The result, maps/<map>/oz_relight.bsp in the world pak (tools/make_pk3s.py --relight), is read
 only by the oz renderer, which takes those four lumps from it when its geometry matches the map
-being loaded (tr_bsp.c, r_ozRelight). Lightmaps stay 128 x 128 pages inside the BSP: rend2 reads
+being loaded (tr_bsp.c, r_ozRelight). The file holds those four lumps alone (light_only()): the
+rest of id's map never ships. Lightmaps stay 128 x 128 pages inside the BSP: rend2 reads
 internal pages only, and q3map2's -external rewrites the BSP's shader names to its own scripts.
 """
 import os, re, sys, glob, json, math, struct, shutil, argparse, subprocess
@@ -60,6 +61,21 @@ def build(parts):
         head += struct.pack("<ii", off + len(body), len(p))
         body += p + b"\0" * (-len(p) % 4)
     return bytes(head + body)
+
+
+def light_only(data):
+    """A relit BSP -> the file the game ships as maps/<map>/oz_relight.bsp: its header and the four lumps
+    the oz renderer's R_OzRelight reads (LIT: the vertices and surfaces, which it matches against the
+    loaded map's and takes the lightmap places, numbers and vertex light from, the lightmaps and the
+    light grid), every other lump empty. It checks nothing else of the file but that each lump lies
+    inside it. The whole BSP was id's map with new light, which a console could load and play; this
+    one has no entities, planes, nodes, brushes or shaders, so nothing loads it as a map."""
+    parts = lumps(data)
+    return build([p if i in LIT else b"" for i, p in enumerate(parts)])
+
+
+def is_light_only(data):
+    return not any(p for i, p in enumerate(lumps(data)) if i not in LIT)
 
 
 def worldspawn(data):
@@ -496,7 +512,7 @@ def main():
         relit, scales = relight(m, bsp, baseq3, a.q3map2, a.work, a.samplesize,
                                 a.options.split() if a.options is not None else OPTIONS)
         out = os.path.join(a.work, m, "oz_relight.bsp")
-        open(out, "wb").write(relit)
+        open(out, "wb").write(light_only(relit))     # as it ships: the light alone, not id's map
         save_scales(m, scales)
         print("%s: %s -> %s" % (m, describe(bsp, relit, scales), out), flush=True)
 

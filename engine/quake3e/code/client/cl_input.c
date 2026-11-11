@@ -88,6 +88,7 @@ static cvar_t *j_lookTurns;		// Oz: Settings > Controls > Stick look speed
 
 static cvar_t *cl_maxpackets;
 static cvar_t *cl_packetdup;
+static cvar_t *cl_ozMergeCommands;	// Oz: CL_MergeCommands under Oz's own cgame (0: a command a frame, to compare)
 
 static cvar_t *m_pitch;
 static cvar_t *m_yaw;
@@ -748,13 +749,25 @@ the snapshot's command is older than all of them, and it stops predicting ("exce
 commands"), the view standing still. Above 250 fps under it, the frames between 8 ms marks of the server's
 clock make one command, as at 125 fps: 64 of them reach half a second back, and the newest still takes
 every frame's look and keys for the view. Packets carry only the commands that closed (CL_SendCmd), so the
-server runs exactly what the cgame predicts. Oz's cgame reads 512 (game patch 0025); a mod's movement is
-the mod's.
+server runs exactly what the cgame predicts. A mod's movement is the mod's.
+
+Under Oz's own cgame too (Ozmium, 2026-11-10: every server), above 125 fps on a remote server that doesn't step
+the movement itself (pmove_fixed 0: id's game on a community server). It reads 512 commands (game patch 0025)
+and never stood still, but id's game moves by the command: at 1,000 fps a jump rose 36 units where 125 fps's
+rises 46, and no footstep played. With 8 ms commands that end on the marks every frame rate moves as 125 fps
+does there, as on Oz's own servers (pmove_fixed 1, which need none of this), and a server that rounds at the
+marks itself (Area 51's, game patch 0033) gets commands that end on them.
 =================
 */
 static qboolean CL_MergeCommands( void ) {
-	return frame_msec < 4 && cls.state == CA_ACTIVE && !cls.cgameOzDemoSeek && !clc.demoplaying &&
-		clc.netchan.remoteAddress.type != NA_LOOPBACK && !Q_stricmp( FS_GetCurrentGameDir(), "oz" ) && !cls.cgameClientMod;
+	if ( cls.state != CA_ACTIVE || clc.demoplaying || clc.netchan.remoteAddress.type == NA_LOOPBACK
+			|| Q_stricmp( FS_GetCurrentGameDir(), "oz" ) || cls.cgameClientMod ) {
+		return qfalse;
+	}
+	if ( cls.cgameOzDemoSeek ) {
+		return frame_msec < 8 && !Cvar_VariableIntegerValue( "pmove_fixed" ) && cl_ozMergeCommands->integer;
+	}
+	return frame_msec < 4;
 }
 
 
@@ -1158,6 +1171,7 @@ void CL_InitInput( void ) {
 	Cvar_SetDescription( cl_maxpackets, "Set how many client packets are sent to the server per second, can't exceed \\com_maxFPS." );
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( cl_packetdup, "0", "5", CV_INTEGER );
+	cl_ozMergeCommands = Cvar_Get( "cl_ozMergeCommands", "1", CVAR_TEMP );	// Oz
 	Cvar_SetDescription( cl_packetdup, "Limits the number of previous client commands added in packet, helps in packet loss mitigation, increases client command packets size a bit." );
 
 	cl_run = Cvar_Get( "cl_run", "1", CVAR_ARCHIVE_ND );

@@ -4,8 +4,10 @@ Oz: the Settings page's own cvars applied to the engine's (ENGINE_PLAN.md P4).
 
 The page (engine/ui/settings.json) keeps every setting in an oz_<tab>_<name> cvar. Those that stand
 for engine settings are applied here: the window, the renderer's quality, sound, the controller and
-the network. A setting is applied when it changes, never at startup, so the engine's own defaults
-(the tuned look) stay until the player picks something else; settings.json's defaults match them.
+the network. A setting is applied when it changes, not at startup or after a mod switch, so the
+engine's own defaults (the tuned look) stay until the player picks something else; settings.json's
+defaults match them (the window's and the rate's through Oz's default.cfg). The exceptions at startup:
+the interp, whose engine cvar is never saved, and a first run's window on a small screen (FirstWindow).
 Settings read where they act (the HUD's, the cgame's, the renderer's own oz_ cvars) aren't here.
 
 The renderer's latched settings (shadows, reflections, AO, MSAA) take effect at the next
@@ -22,9 +24,14 @@ qboolean	GLimp_DisplayBounds( int index, int *x, int *y, int *w, int *h );
 qboolean	GLimp_UsableBounds( int index, int *x, int *y, int *w, int *h );
 #endif
 
+// common.c
+extern int		com_ozGameRestarts;		// counts the mod switches
+extern qboolean	com_ozWindowSaved;		// ozengine.cfg held the window's settings: not a first run
+
 typedef struct {
 	const char	*name;
 	void		(*apply)( const char *value );
+	qboolean	atStart;	// applied at startup too: its engine cvar isn't saved (cl_timeNudge)
 	cvar_t		*cv;
 	int			applied;	// the modificationCount applied
 } ozSetting_t;
@@ -134,6 +141,53 @@ static void Window( const char *unused ) {
 	}
 }
 
+/*
+================
+The window at startup. A first run starts as Oz's default.cfg sets it (build_engine.py): Settings'
+own defaults, a 1600x900 window, where the engine's own default was exclusive full screen under a
+page that said Windowed. On a screen too small for that window it's fitted once, as Apply fits it.
+Nothing is touched when the window's settings were saved before, or the command line or a config
+asked for a window of its own.
+A player from before that has full screen as the engine made it: there the setting follows what
+runs, so Settings shows Exclusive (and picking Windowed is a change again).
+================
+*/
+static void FirstWindow( void ) {
+	char	res[32];
+	int		w = 0, h = 0;
+
+	if ( Cvar_Flags( "oz_video_display_mode" ) == CVAR_NONEXISTENT ) {
+		return;
+	}
+	if ( Cvar_VariableIntegerValue( "r_fullscreen" ) ) {
+		if ( Q_stricmp( Cvar_VariableString( "oz_video_display_mode" ), "exclusive" ) ) {
+			Cvar_Set( "oz_video_display_mode", "exclusive" );	// before the settings are first looked at: noted, not applied
+		}
+		return;
+	}
+	Cvar_VariableStringBuffer( "oz_video_resolution", res, sizeof( res ) );
+	if ( com_ozWindowSaved || Q_stricmp( Cvar_VariableString( "oz_video_display_mode" ), "windowed" )
+		|| sscanf( res, "%dx%d", &w, &h ) != 2 || Cvar_VariableIntegerValue( "r_mode" ) != -1
+		|| Cvar_VariableIntegerValue( "r_noborder" ) || Cvar_VariableIntegerValue( "r_customwidth" ) != w
+		|| Cvar_VariableIntegerValue( "r_customheight" ) != h ) {
+		return;
+	}
+#ifdef USE_SDL
+	{
+		int ux, uy, uw, uh, x, y, fw = w, fh = h;
+
+		if ( !GLimp_UsableBounds( Cvar_VariableIntegerValue( "oz_video_monitor" ), &ux, &uy, &uw, &uh )
+			&& !GLimp_UsableBounds( 0, &ux, &uy, &uw, &uh ) ) {
+			return;
+		}
+		FitWindow( ux, uy, uw, uh, qtrue, &fw, &fh, &x, &y );
+		if ( fw != w || fh != h ) {
+			Window( NULL );
+		}
+	}
+#endif
+}
+
 // Recording-friendly display: OpenGL frames through DXGI (sdl_dxgi.c), at the renderer's restart.
 // The Video tab's Apply restarts it at once, as it does the window.
 static void Capture( const char *v ) {
@@ -177,6 +231,10 @@ static void AmbientOcclusion( const char *v ) {
 }
 
 static void Bloom( const char *v ) { Set( "r_ozBloom", atoi( v ) ? "1" : "0" ); }
+
+// replays (P10): this game's server records its matches whole, the client records your view of another server's
+static void RecordReplays( const char *v ) { Set( "sv_ozReplay", atoi( v ) || !Q_stricmp( v, "true" ) ? "1" : "0" ); }
+static void ReplaysKept( const char *v ) { Set( "sv_ozReplayKeep", va( "%i", atoi( v ) ) ); }
 
 // Experimental: the upgraded fighters' models (tr_oz_rig.c loads them as their rigs register: at the next vid_restart)
 static void ModernModels( const char *v ) { SetLatched( "r_ozModernFighters", atoi( v ) ? "1" : "0" ); }
@@ -297,7 +355,9 @@ static ozSetting_t settings[] = {
 	{ "oz_controls_toggle_crouch", ToggleCrouch },
 	{ "oz_controls_stick_layout", StickLayout },
 	{ "oz_gameplay_autoswitch", Autoswitch },
-	{ "oz_network_interp", Interp },
+	{ "oz_gameplay_record_replays", RecordReplays },
+	{ "oz_gameplay_replays_kept", ReplaysKept },
+	{ "oz_network_interp", Interp, qtrue },	// cl_timeNudge is never saved: the slider showed 40 after a restart while the nudge was 0
 	{ "oz_network_rate", Rate },
 	{ "oz_gameplay_intro", Intro },
 	{ "oz_accessibility_colorblind", Colorblind },
@@ -309,13 +369,22 @@ static ozSetting_t settings[] = {
 OzSettings_Frame
 
 Every frame (CL_Frame): a setting whose cvar changed since it was last seen is applied. The first
-look only notes where each stands.
+look only notes where each stands, and so does the look after a mod switch: the switch puts every
+cvar back to its default and runs the configs again, which isn't the player changing a setting (the
+defaults were applied over the window, the sound device and the anti-aliasing every mod shares). The
+few whose engine cvar isn't saved (atStart) are applied at those looks too.
 ================
 */
 void OzSettings_Frame( void ) {
 	static qboolean started;
+	static int restarts;
+	const qboolean resync = restarts != com_ozGameRestarts;
 	ozSetting_t *s;
 
+	restarts = com_ozGameRestarts;
+	if ( !started ) {
+		FirstWindow();
+	}
 	for ( s = settings; s < settings + ARRAY_LEN( settings ); s++ ) {
 		if ( !s->cv ) {
 			// the Settings page makes them (oz_ui_settings.cpp); an existing cvar's Cvar_Get changes nothing
@@ -324,6 +393,16 @@ void OzSettings_Frame( void ) {
 			}
 			s->cv = Cvar_Get( s->name, "", 0 );
 			s->applied = s->cv->modificationCount;
+			if ( s->atStart ) {
+				s->apply( s->cv->string );
+			}
+			continue;
+		}
+		if ( resync ) {
+			s->applied = s->cv->modificationCount;
+			if ( s->atStart ) {
+				s->apply( s->cv->string );
+			}
 			continue;
 		}
 		if ( s->cv->modificationCount != s->applied ) {
@@ -334,11 +413,14 @@ void OzSettings_Frame( void ) {
 		}
 	}
 	started = qtrue;
-	// inserted, so they run at the next frame's commands, not after whatever a script queued
-	if ( sndRestart && !vidRestart ) {
+	// inserted, so they run at the next frame's commands, not after whatever a script queued. A window
+	// change and a sound change in one frame need both: vid_restart leaves the sound system as it is, and
+	// snd_restart (which restarts the renderer too) keeps the window. The sound change was dropped
+	if ( sndRestart && vidRestart ) {
+		Cbuf_InsertText( "vid_restart\nsnd_restart\n" );
+	} else if ( sndRestart ) {
 		Cbuf_InsertText( "snd_restart\n" );
-	}
-	if ( vidRestart ) {
+	} else if ( vidRestart ) {
 		Cbuf_InsertText( "vid_restart\n" );
 	}
 	vidRestart = sndRestart = qfalse;
@@ -349,6 +431,12 @@ int OzSettings_TakeRestart( void ) {
 	const qboolean r = restartPending;
 	restartPending = qfalse;
 	return r;
+}
+
+// a setting the page binds straight to a latched renderer cvar (texture quality, anisotropy, vsync)
+// changed: it waits for the same restart
+void OzSettings_NeedRestart( void ) {
+	restartPending = qtrue;
 }
 
 #ifdef USE_SDL

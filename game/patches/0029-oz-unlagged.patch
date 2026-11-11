@@ -681,7 +681,7 @@ diff --git a/code/cgame/cg_unlagged.c b/code/cgame/cg_unlagged.c
 new file mode 100644
 --- /dev/null
 +++ b/code/cgame/cg_unlagged.c
-@@ -0,0 +1,273 @@
+@@ -0,0 +1,294 @@
 +/*
 +===========================================================================
 +Copyright (C) 2006 Neil Toronto.
@@ -763,6 +763,25 @@ new file mode 100644
 +
 +/*
 +=================
++CG_UnlaggedRail
++
++Oz: the player's own rail is drawn as he fires on every server, Unlagged's or not (Ozmium, 2026-11-10): the
++trail is a straight line from his muzzle to the first wall, the same whoever traces it, and every game's rail
++event names its shooter as id's does. cg_delag 0 turns it off with the rest
++=================
++*/
++static qboolean CG_UnlaggedRail( void ) {
++	if ( !( cg_delag.integer & ( 1 | 16 ) ) ) {
++		return qfalse;
++	}
++	if ( cg.demoPlayback || cg_nopredict.integer || cg_synchronousClients.integer ) {
++		return qfalse;
++	}
++	return cg.snap && !( cg.snap->ps.pm_flags & PMF_FOLLOW );
++}
++
++/*
++=================
 +CG_UnlaggedFor
 +
 +Whether this shooter's shots with this weapon are drawn as he fires them
@@ -778,7 +797,9 @@ new file mode 100644
 +	case WP_SHOTGUN:
 +		return CG_UnlaggedOn( 4 );
 +	case WP_RAILGUN:
-+		return CG_UnlaggedOn( 16 );
++		// Oz: on every server. Bullets and pellets only on Unlagged's: how another game seeds their spread
++		// isn't known
++		return CG_UnlaggedRail();
 +	default:
 +		return qfalse;
 +	}
@@ -1266,7 +1287,7 @@ diff --git a/code/cgame/cg_local.h b/code/cgame/cg_local.h
 diff --git a/code/cgame/cg_weapons.c b/code/cgame/cg_weapons.c
 --- a/code/cgame/cg_weapons.c
 +++ b/code/cgame/cg_weapons.c
-@@ -1782,6 +1782,9 @@ void CG_FireWeapon( centity_t *cent ) {
+@@ -1786,6 +1786,9 @@ void CG_FireWeapon( centity_t *cent ) {
  	if ( weap->ejectBrassFunc && cg_brassTime.integer > 0 ) {
  		weap->ejectBrassFunc( cent );
  	}

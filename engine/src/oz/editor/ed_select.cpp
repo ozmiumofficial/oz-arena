@@ -542,6 +542,9 @@ void Session::motion(int m) {
 }
 
 void Session::begin_drag(int m) {
+	if (eyedrop_armed_) {
+		return;  // the eyedropper's click when let go
+	}
 	{
 		// the press becomes a drag: what it does depends on what it grabbed
 		const Handle &h = press_handle_;
@@ -549,9 +552,18 @@ void Session::begin_drag(int m) {
 			if (!faces_drag()) {
 				return;  // nothing to push: a click when let go
 			}
+		} else if (tool == Tool::Paint) {
+			if (!paint_begin()) {
+				return;  // Alt: the eyedropper's click when let go
+			}
 		} else if (tool == Tool::Place) {
 			return;  // a click when let go
 		} else if (tool == Tool::Create) {
+			if (create_state_ == 2) {
+				// the height step: still its click when let go, though the pointer went a few pixels meanwhile
+				// (the press used to be dropped, and the brush wasn't made until a second, steadier click)
+				return;
+			}
 			drag_ = create_state_ == 1 ? Drag::Footprint : Drag::None;
 		} else if (tool == Tool::Clip && clip_drag_ >= 0) {
 			drag_ = Drag::ClipPoint;
@@ -572,8 +584,12 @@ void Session::begin_drag(int m) {
 			}
 			start_push({{press_hit_.id, press_hit_.face}}, press_hit_.point, press_hit_.normal, "Push face");
 		} else if (press_hit_ok_ && tool == Tool::Select && (press_mods_ & CTRL) && sel.count(press_hit_.id)) {
-			// Ctrl drag from the selection: copies of it, dragged off the originals
+			// Ctrl drag from the selection: copies of it, dragged off the originals. One undo step holds the
+			// copies and their move, open until the drag ends: let go where it began or called off, the copies
+			// go again inside it and it ends empty (it used to leave Duplicate and Delete in the history)
+			doc.begin("Duplicate");
 			std::vector<Id> made = oz::ed::paste(doc, copy_of(doc, selected()), Vec3(), "Duplicate");
+			changed(made);  // nothing announces them while the step is open
 			corners.clear();
 			select(made, SelMode::Set);
 			// start_move would select the brush under the pointer again: the original
@@ -705,6 +721,14 @@ void Session::drag_motion(int m) {
 	case Drag::Pan:
 		pan_to(mx_, my_);
 		break;
+	case Drag::Paint:
+		paint_motion(m);
+		break;
+	case Drag::Pending:
+		if (tool == Tool::Create && create_state_ == 2) {
+			create_motion();  // the height follows the pointer while the button is down too
+		}
+		break;
 	case Drag::Footprint:
 		create_motion();
 		break;
@@ -752,6 +776,9 @@ void Session::release(int m) {
 		} else if (copy_move_) {
 			remove_selection();  // let go where it began: no copies lying inside the originals
 		}
+		if (copy_move_) {
+			doc.end();  // the Ctrl drag's step: the copies where they were dragged to, or nothing
+		}
 		copy_move_ = false;
 		delta_ = Vec3();
 		break;
@@ -768,6 +795,9 @@ void Session::release(int m) {
 		doc.end();
 		start_.clear();
 		corners.clear();  // the brush numbers its corners anew
+		break;
+	case Drag::Paint:
+		paint_end(false);
 		break;
 	case Drag::Corners:
 		doc.end();
@@ -801,6 +831,29 @@ void Session::release(int m) {
 }
 
 void Session::click(int m, bool twice) {
+	if (eyedrop_armed_) {
+		// the eyedropper's button armed it: this click takes the material under the pointer, whatever the tool
+		Hit h;
+		if (pick(mx_, my_, h, false)) {
+			eyedrop_armed_ = false;
+			eyedrop(h);
+		} else {
+			say("Eyedropper: click a face to take its material \xc2\xb7 Esc puts it away");
+		}
+		return;
+	}
+	if (m & ALT) {
+		// Alt+click takes the material under the pointer, in every tool; Alt+Shift+click paints that face with it
+		Hit h;
+		if (!pick(mx_, my_, h, false)) {
+			say("Point at a face to take its material");
+		} else if (m & SHIFT) {
+			paint_face(h);  // with the eyedropped face's mapping when that's the material
+		} else {
+			eyedrop(h);
+		}
+		return;
+	}
 	if (tool == Tool::Create) {
 		if (create_state_ == 2) {
 			create_commit();
@@ -828,6 +881,10 @@ void Session::click(int m, bool twice) {
 	}
 	if (tool == Tool::Faces) {
 		faces_click(m, twice);
+		return;
+	}
+	if (tool == Tool::Paint) {
+		paint_click(m);
 		return;
 	}
 	if (tool == Tool::Place) {
@@ -873,7 +930,7 @@ void Session::click(int m, bool twice) {
 		sel.count(hits[size_t(cycle_)].id);
 	cycle_ = again ? (cycle_ + 1) % int(hits.size()) : 0;
 	const Hit &hit = hits[size_t(cycle_)];
-	std::vector<Id> ids = twice || (m & ALT) ? std::vector<Id>{hit.id} : group_of(hit.id);
+	std::vector<Id> ids = twice ? std::vector<Id>{hit.id} : group_of(hit.id);  // a double-click: the one brush of a group
 	if (!m) {
 		corners.clear();
 	}
@@ -891,6 +948,11 @@ void Session::cancel_drag() {
 		drag_ = Drag::None;
 		drag_note_.clear();
 		end_apex_drag(true);
+		break;
+	case Drag::Paint:
+		drag_ = Drag::None;
+		drag_note_.clear();
+		paint_end(true);
 		break;
 	case Drag::Push:
 	case Drag::Corners: {
@@ -911,6 +973,7 @@ void Session::cancel_drag() {
 		if (copy_move_) {
 			drag_ = Drag::None;
 			remove_selection();  // a Ctrl drag called off: its copies go too
+			doc.end();           // made and taken out in the one step: it leaves nothing in the history
 		}
 		break;
 	default:
@@ -1299,7 +1362,7 @@ void Session::build_entities() {
 }
 
 void Session::build_hover() {
-	const bool face = tool == Tool::Faces && hover_ok_ && hover_.kind == Kind::Brush && drag_ == Drag::None;
+	const bool face = face_mode() && hover_ok_ && hover_.kind == Kind::Brush && drag_ == Drag::None;
 	const int64_t target = face ? -(int64_t(hover_.id) * 4096 + hover_.face + 2)  // the face under the pointer alone
 		: hover_ok_ && drag_ == Drag::None && !sel.count(hover_.id) && (tool == Tool::Select || tool == Tool::Clip) ? hover_.id : 0;
 	if (target == hover_built_ && doc.revision == hover_doc_rev_ && sel_rev == hover_sel_rev_ && int(tool) == hover_tool_) {

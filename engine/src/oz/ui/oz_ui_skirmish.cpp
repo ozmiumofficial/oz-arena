@@ -99,6 +99,20 @@ std::string Str( const char *path ) {
 	return Menu_Get( path );
 }
 
+// A map's name as it may go into a console command: letters, digits and _ - + . / only. A race map's name
+// is a file name out of a pak: one with a quote, a semicolon or a line break would run as its own command.
+bool CommandSafe( const std::string &name ) {
+	if ( name.empty() || name.size() > 63 ) {
+		return false;
+	}
+	for ( const unsigned char c : name ) {
+		if ( !( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) || c == '_' || c == '-' || c == '+' || c == '.' || c == '/' ) ) {
+			return false;
+		}
+	}
+	return true;
+}
+
 // a string value, never read as a number or a bool as Menu_Set would (a map can be called "1337")
 void SetText( const char *path, const std::string &value ) {
 	cJSON *j = Menu_Node( path );
@@ -372,7 +386,7 @@ void FillView( const char *path, const std::vector<int> &order, int shown, const
 void BuildViews() {
 	const std::string mod = Str( "skirmish.mod" ), sort = Str( "skirmish.sort" ), q = Lower( Str( "skirmish.q" ) );
 	std::vector<int> order, hidden;
-	int total = 0;
+	int total = 0, offMod = 0;	// offMod: the player's own maps, not counted on another mod's tab
 
 	if ( mod == "defrag" ) {
 		total = (int)races.size();
@@ -403,9 +417,13 @@ void BuildViews() {
 			const std::string name = Plain( cJSON_GetStringValue( cJSON_GetObjectItem( m, "name" ) ) );
 			const char *id = cJSON_GetStringValue( cJSON_GetObjectItem( m, "map" ) );
 			names.push_back( Lower( name ) + "\n" + Lower( id ? id : "" ) );
-			const bool shows = q.empty() || names.back().find( q ) != std::string::npos;
+			// The maps the player compiled are loose files in Oz's own folder, which another mod's game doesn't
+			// load: picked on the CPMA tab, the match never started and the game stayed under CPMA
+			const bool user = cJSON_IsTrue( cJSON_GetObjectItem( m, "user" ) );
+			const bool shows = ( q.empty() || names.back().find( q ) != std::string::npos ) && ( !user || mod == "oz" );
 			( shows ? order : hidden ).push_back( total );
-			users += shows && cJSON_IsTrue( cJSON_GetObjectItem( m, "user" ) );
+			users += shows && user;
+			offMod += user && mod != "oz";
 			fits.emplace_back();
 			cJSON *types = cJSON_GetObjectItem( m, "types" );
 			for ( cJSON *t = types ? types->child : nullptr; t; t = t->next ) {
@@ -425,7 +443,29 @@ void BuildViews() {
 		SetNumber( "skirmish.shown", shown );
 		SetNumber( "skirmish.user_shown", users );
 	}
-	SetNumber( "skirmish.count", total );
+	SetNumber( "skirmish.count", total - offMod );
+}
+
+// A map of the player's own stays picked only on Oz's tab: on another mod's the pick goes back to the
+// mode's own arena, so Fight can't start a map that mod's game doesn't load
+void KeepPickLoadable( const std::string &mod ) {
+	if ( mod == "oz" || mod == "defrag" ) {
+		return;
+	}
+	const std::string picked = "maps." + Str( "create_match_pick.skirmish.mapi" );
+	if ( !cJSON_IsTrue( cJSON_GetObjectItem( Menu_Node( picked.c_str() ), "user" ) ) ) {
+		return;
+	}
+	int arena = atoi( Menu_Get( ( "create_match.modes." + Str( "create_match.skirmish.mi" ) + ".pick" ).c_str() ) );
+	if ( cJSON_IsTrue( cJSON_GetObjectItem( Menu_Node( ( "maps." + std::to_string( arena ) ).c_str() ), "user" ) ) ) {
+		arena = 0;	// the arenas come first in maps
+	}
+	if ( cJSON_IsTrue( cJSON_GetObjectItem( Menu_Node( ( "maps." + std::to_string( arena ) ).c_str() ), "user" ) ) ) {
+		return;	// no arenas at all
+	}
+	SetNumber( "create_match_pick.skirmish.mapi", arena );
+	Printf( "UI: skirmish: the maps you made play under Oz Arena only: the pick went back to an arena\n" );
+	Menu_Toast( "The maps you made play under Oz Arena only.", "info" );
 }
 
 // the line in place of the race cards while there are none, and the looking's progress
@@ -480,6 +520,12 @@ void Race() {
 	if ( strcmp( Menu_Get( "skirmish.have.defrag.state" ), "ready" ) ) {
 		PlaySound( Sound::Buzz );
 		Menu_Toast( "Defrag has to be imported first.", "warn" );
+		return;
+	}
+	if ( !CommandSafe( races[i].map ) ) {
+		PlaySound( Sound::Buzz );
+		Printf( "UI: skirmish: that race map's name can't go into a command\n" );
+		Menu_Toast( "That map's file name has characters the game can't load.", "warn" );
 		return;
 	}
 	Printf( "UI: skirmish: racing %s under Defrag\n", races[i].map.c_str() );
@@ -568,6 +614,7 @@ void Skirmish_Frame() {
 	if ( mod != keptMod ) {
 		ModChanged();
 	}
+	KeepPickLoadable( mod );
 	keptQuery = Str( "skirmish.q" );
 	keptSort = Str( "skirmish.sort" );
 	keptArena = Str( "create_match_pick.skirmish.mapi" );

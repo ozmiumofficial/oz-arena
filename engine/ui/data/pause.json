@@ -11,6 +11,7 @@
     "status": "",
     "join": "",
     "join_hint": "",
+    "join_toast": "",
     "switch": "",
     "switch_hint": "",
     "can_spectate": false,

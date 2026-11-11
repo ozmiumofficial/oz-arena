@@ -78,8 +78,9 @@ struct PresetTable {
 };
 static const char *const presetNames[] = { "low", "medium", "high", "ultra", "classic" };
 static std::vector<PresetTable> presets;
-// Video's window settings, kept 15 s only if the player says so (display_confirm.rml)
-static int displayDeadline;					// OzE_Milliseconds; 0 with nothing to confirm
+// Video's window settings, kept only if the player says so within 15 s of seeing them (display_confirm.rml)
+static bool displayAsked;					// the question is waiting for its answer
+static int displayLeft, displayLast;		// ms left to answer, and OzE_Milliseconds at the last frame looked at
 static Rml::String displayOld[3];
 static const char *const displayKeys[3] = { "video/display_mode", "video/resolution", "video/monitor" };
 // the Video tab's changes, waiting for Apply: entry -> its cvar's new value
@@ -312,7 +313,10 @@ void Settings_Init() {
 
 		// the cvar: created archived with its range and description, or only bound when the engine owns it
 		if ( !e.cvar.empty() && e.create ) {
-			const bool numeric = ( e.type == "int" || e.type == "float" ) && e.hasRange;
+			// The range is enforced only on Oz's own cvars. On a game's cvar made here ahead of the game code
+			// (cg_fov) the slider's range stayed as the cvar's own under every mod: a Defrag player's cg_fov 140
+			// came back as 130. The page still clamps what it sets itself (CvarValue)
+			const bool numeric = ( e.type == "int" || e.type == "float" ) && e.hasRange && !e.cvar.compare( 0, 3, "oz_" );
 			const Rml::String lo = Fmt( "%g", e.min * e.scale ), hi = Fmt( "%g", e.max * e.scale );
 			OzE_CvarCreate( e.cvar.c_str(), e.def.c_str(), e.restart, e.tip.c_str(), numeric ? lo.c_str() : nullptr,
 				numeric ? hi.c_str() : nullptr, e.type == "int" && e.scale == 1.0f );
@@ -471,6 +475,11 @@ static void MakeRow( size_t i, const Rml::String &cv ) {
 static void SetCvar( const Entry &e, const Rml::String &value ) {
 	if ( !e.cvar.empty() && strcmp( OzE_CvarString( e.cvar.c_str() ), value.c_str() ) ) {
 		OzE_CvarSet( e.cvar.c_str(), value.c_str() );
+		// a row with the restart badge that is the renderer's own cvar (texture quality, anisotropy, vsync): no
+		// oz_ cvar stands for it, so nothing asked for the restart at Settings' close and it waited for the next start
+		if ( e.restart && e.cvar.compare( 0, 3, "oz_" ) ) {
+			OzE_SettingsNeedRestart();
+		}
 	}
 }
 
@@ -642,23 +651,37 @@ static void FillDynamic() {
 
 void Settings_Frame() {
 	// opening: the engine's lists; closing: a renderer setting that waits for a restart gets it
-	static bool wasShown;
+	// Closing is the page leaving the stack, not going out of sight: the Crosshair or Gun editor opened
+	// from it hides it, and the restart then closed every page under the player's hands
+	static bool wasShown, wasOpen;
 	const bool shown = page && page->IsVisible();
+	const bool open = IsPageOpen( "settings" );
 	if ( shown && !wasShown ) {
 		FillDynamic();
 	}
-	if ( !shown && wasShown && OzE_SettingsRestart() ) {
+	if ( !open && wasOpen && OzE_SettingsRestart() ) {
 		OzE_InsertText( "vid_restart\n" );
 	}
 	wasShown = shown;
+	wasOpen = open;
 	if ( !staged.empty() && !IsPageOpen( "settings" ) ) {
 		Settings_Discard();		// closed some other way than Back (which asks): ui_close, a map load
 	}
 	PickerFrame();
-	if ( displayDeadline ) {
-		const int left = displayDeadline - OzE_Milliseconds();
-		if ( left > 0 ) {
-			Menu_Set( "display.seconds", Fmt( "%d", ( left + 999 ) / 1000 ).c_str() );
+	if ( displayAsked ) {
+		// The 15 s are the player's to answer in: they count only on frames drawn outside a load, a tenth
+		// of a second a frame at most. The renderer's restart for the new window takes seconds in a match
+		// (every texture read again), and by the clock alone a slow one left little or nothing to answer in
+		const int now = OzE_Milliseconds();
+		if ( OzE_ClientState() != 1 ) {
+			if ( !IsPageOpen( "display_confirm" ) ) {
+				OpenPageByName( "display_confirm" );	// closed under the question (a disconnect's CloseAll): asked again
+			}
+			displayLeft -= Rml::Math::Clamp( now - displayLast, 0, 100 );
+		}
+		displayLast = now;
+		if ( displayLeft > 0 ) {
+			Menu_Set( "display.seconds", Fmt( "%d", ( displayLeft + 999 ) / 1000 ).c_str() );
 		} else {
 			Settings_DisplayRevert();
 			if ( IsPageOpen( "display_confirm" ) ) {
@@ -740,7 +763,9 @@ static void PresetToCustom( int i ) {
 /*
 ================
 Video's window settings: the window changes as they're applied (oz_settings_apply.c restarts the
-renderer), and goes back unless the player keeps it within 15 s (display_confirm.rml)
+renderer), and goes back unless the player keeps it within 15 s (display_confirm.rml). In a match the
+restart loads the map's pictures again: the pause menu's pages stay open through it (oz_ui.cpp
+FollowClientState), or the question closed with them and the window went back unasked 15 s later.
 ================
 */
 static bool IsDisplayKey( const Rml::String &key ) {
@@ -753,14 +778,14 @@ static bool IsDisplayKey( const Rml::String &key ) {
 }
 
 void Settings_DisplayKeep() {
-	displayDeadline = 0;
+	displayAsked = false;
 }
 
 void Settings_DisplayRevert() {
-	if ( !displayDeadline ) {
+	if ( !displayAsked ) {
 		return;
 	}
-	displayDeadline = 0;
+	displayAsked = false;
 	for ( int k = 0; k < 3; k++ ) {
 		const int i = Find( displayKeys[k] );
 		if ( i >= 0 ) {
@@ -771,7 +796,7 @@ void Settings_DisplayRevert() {
 }
 
 int Settings_DisplayPending() {
-	return displayDeadline != 0;
+	return displayAsked;
 }
 
 /*
@@ -853,7 +878,7 @@ static void SetNow( int i, const Rml::String &value ) {
 	const Entry &e = entries[i];
 	const bool display = IsDisplayKey( e.key );
 
-	if ( display && !displayDeadline ) {
+	if ( display && !displayAsked ) {
 		for ( int k = 0; k < 3; k++ ) {
 			const int d = Find( displayKeys[k] );
 			displayOld[k] = d >= 0 ? Rml::String( OzE_CvarString( entries[d].cvar.c_str() ) ) : Rml::String();
@@ -871,7 +896,9 @@ static void SetNow( int i, const Rml::String &value ) {
 		PresetToCustom( i );
 	}
 	if ( display ) {
-		displayDeadline = OzE_Milliseconds() + 15000;
+		displayAsked = true;
+		displayLeft = 15000;
+		displayLast = OzE_Milliseconds();
 		Menu_Set( "display.seconds", "15" );
 		if ( !IsPageOpen( "display_confirm" ) ) {
 			OpenPageByName( "display_confirm" );
@@ -1000,14 +1027,31 @@ static bool CaptureKey( int key ) {
 	const int i = captureRow;
 	keyHook = nullptr;
 	captureRow = -1;
-	if ( key != K_ESCAPE && key != K_PAD0_B && i >= 0 ) {
+	if ( key != K_ESCAPE && key != K_PAD0_B && i >= 0 && IsPadKey( key ) != ( captureSlot == 2 ) ) {
+		// the first two slots are the keyboard's and the mouse's, the third the controller's: the other kind
+		// went in as a third key the row can't show (BoundKeys), and never came out again
+		PlaySound( Sound::Buzz );
+		Menu_Toast( captureSlot == 2 ? "This slot takes a controller button." : "This slot takes a key or a mouse button.", "warn" );
+	} else if ( key != K_ESCAPE && key != K_PAD0_B && i >= 0 ) {
 		const Entry &e = entries[i];
 		int keys[3];
 		BoundKeys( e.command, keys );
-		if ( keys[captureSlot] >= 0 ) {
-			OzE_SetBinding( keys[captureSlot], "" );
+		// what the key did until now, to say so: it's taken from that action
+		const char *was = OzE_Binding( key );
+		Rml::String other = was && was[0] && StrICmp( was, e.command.c_str() ) ? was : "";
+		if ( keys[captureSlot] >= 0 && keys[captureSlot] != key ) {
+			OzE_SetBinding( keys[captureSlot], "" );	// only the slot's own key
 		}
 		OzE_SetBinding( key, e.command.c_str() );
+		if ( !other.empty() ) {
+			for ( const Entry &o : entries ) {
+				if ( o.type == "bind" && !StrICmp( o.command.c_str(), other.c_str() ) ) {
+					other = o.label;
+					break;
+				}
+			}
+			Menu_Toast( ( KeyLabel( key ) + " was " + other + ". It's " + e.label + " now." ).c_str(), "info" );
+		}
 		PlaySound( Sound::Move );
 	} else {
 		PlaySound( Sound::Out );
@@ -1602,6 +1646,8 @@ public:
 					PlaySound( Sound::Buzz );
 				}
 				Printf( n < 0 ? "That isn't a config code\n" : "Applied %d settings from the code\n", n );
+				// said on the page too, as the crosshair editor's paste says it: the console's line was all there was
+				Menu_Toast( n < 0 ? "That isn't a config code." : Fmt( "Applied %d settings from the code.", n ).c_str(), n < 0 ? "warn" : "info" );
 			} else if ( id == "q3import" ) {
 				Menu_Q3Import( false );		// the player's Quake III config, over the page (oz_q3import.c)
 			} else if ( id == "tex_folder" ) {

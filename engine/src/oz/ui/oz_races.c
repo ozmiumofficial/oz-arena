@@ -77,6 +77,26 @@ static struct {
 
 static byte chunk[CHUNK];
 
+/*
+A map's name as it may go into a console command (Skirmish's Race runs map "<name>"): letters, digits
+and _ - + . / only. A pak's file names are whatever its maker wrote: one with a quote, a semicolon or a
+line break would have run as a command of its own.
+*/
+static qboolean ValidMapName( const char *name ) {
+	const char *c;
+
+	if ( !name || !name[0] || strlen( name ) >= MAX_QPATH ) {
+		return qfalse;
+	}
+	for ( c = name; *c; c++ ) {
+		if ( !( ( *c >= 'a' && *c <= 'z' ) || ( *c >= 'A' && *c <= 'Z' ) || ( *c >= '0' && *c <= '9' ) ||
+				*c == '_' || *c == '-' || *c == '+' || *c == '.' || *c == '/' ) ) {
+			return qfalse;
+		}
+	}
+	return qtrue;
+}
+
 
 /*
 ==================
@@ -397,7 +417,7 @@ static qboolean OpenPak( const source_t *s ) {
 			*c = *c == '\\' ? '/' : *c;
 		}
 		if ( Stem( name, "maps/", ".bsp", stem, sizeof( stem ) ) ) {
-			if ( pak.numMaps < MAX_PAK_MAPS ) {
+			if ( ValidMapName( stem ) && pak.numMaps < MAX_PAK_MAPS ) {
 				unzGetCurrentFileInfoPosition( pak.z, &pak.maps[pak.numMaps++] );
 			}
 		} else if ( Stem( name, "levelshots/", ".jpg", stem, sizeof( stem ) ) || Stem( name, "levelshots/", ".tga", stem, sizeof( stem ) ) ||
@@ -427,6 +447,9 @@ static qboolean OpenMap( void ) {
 	}
 	pak.open = qtrue;
 	COM_StripExtension( COM_SkipPath( name ), pak.name, sizeof( pak.name ) );
+	if ( !ValidMapName( pak.name ) ) {
+		return qfalse;
+	}
 	if ( unzReadCurrentFile( pak.z, pak.header, BSP_HEADER ) != BSP_HEADER || memcmp( pak.header, "IBSP", 4 ) ) {
 		return qfalse;
 	}
@@ -521,7 +544,7 @@ static void LooseRead( const source_t *s ) {
 	memset( &pak, 0, sizeof( pak ) );
 	pak.entry = NewEntry( s );
 	COM_StripExtension( COM_SkipPath( (char *)s->path ), pak.name, sizeof( pak.name ) );
-	if ( f && fread( pak.header, 1, BSP_HEADER, f ) == BSP_HEADER && !memcmp( pak.header, "IBSP", 4 ) ) {
+	if ( f && ValidMapName( pak.name ) && fread( pak.header, 1, BSP_HEADER, f ) == BSP_HEADER && !memcmp( pak.header, "IBSP", 4 ) ) {
 		qboolean ok = qtrue;
 		for ( i = 0; i < BSP_LUMPS; i++ ) {
 			memcpy( &pak.ofs[i], pak.header + 8 + i * 8, 4 );
@@ -558,6 +581,37 @@ static const char *CachePath( void ) {
 	return FS_BuildOSPath( Cvar_VariableString( "fs_homepath" ), "oz", "race_maps.json" );
 }
 
+// a source's entry as NewEntry makes it and Rebuild reads it: its three lists, each map named as a command takes it
+static qboolean ValidEntry( const cJSON *e ) {
+	const cJSON *maps, *m;
+
+	if ( !cJSON_IsObject( e ) ) {
+		return qfalse;
+	}
+	maps = cJSON_GetObjectItem( e, "maps" );
+	if ( !cJSON_IsArray( maps ) || !cJSON_IsArray( cJSON_GetObjectItem( e, "defi" ) ) || !cJSON_IsArray( cJSON_GetObjectItem( e, "shots" ) ) ) {
+		return qfalse;
+	}
+	for ( m = maps->child; m; m = m->next ) {
+		if ( !cJSON_IsObject( m ) || !ValidMapName( cJSON_GetStringValue( cJSON_GetObjectItem( m, "map" ) ) ) ) {
+			return qfalse;
+		}
+	}
+	return qtrue;
+}
+
+// a list of an entry, for walking: NULL when it isn't there
+static cJSON *Kids( const cJSON *e, const char *list ) {
+	const cJSON *l = cJSON_IsObject( e ) ? cJSON_GetObjectItem( e, list ) : NULL;
+	return cJSON_IsArray( l ) ? l->child : NULL;
+}
+
+// a text of an entry, "" when it isn't there
+static const char *Text( const cJSON *e, const char *key ) {
+	const char *s = cJSON_IsObject( e ) ? cJSON_GetStringValue( cJSON_GetObjectItem( e, key ) ) : NULL;
+	return s ? s : "";
+}
+
 static void LoadCache( void ) {
 	FILE *f = Sys_FOpen( CachePath(), "rb" );
 	long len;
@@ -569,6 +623,9 @@ static void LoadCache( void ) {
 		fseek( f, 0, SEEK_END );
 		len = ftell( f );
 		fseek( f, 0, SEEK_SET );
+		if ( len < 0 ) {
+			len = 0;
+		}
 		text = Z_Malloc( len + 1 );
 		text[fread( text, 1, len, f )] = '\0';
 		fclose( f );
@@ -581,18 +638,42 @@ static void LoadCache( void ) {
 		cache = cJSON_CreateObject();
 		cJSON_AddNumberToObject( cache, "version", CACHE_VERSION );
 		cJSON_AddItemToObject( cache, "sources", cJSON_CreateObject() );
+	} else {
+		// An entry that isn't as this code writes it (a file edited by hand, an older game's) is dropped,
+		// so its pak is read again: Skirmish crashed on a source without its lists
+		cJSON *all = cJSON_GetObjectItem( cache, "sources" ), *e, *next;
+		for ( e = all->child; e; e = next ) {
+			next = e->next;
+			if ( !ValidEntry( e ) ) {
+				cJSON_Delete( cJSON_DetachItemViaPointer( all, e ) );
+			}
+		}
 	}
 }
 
 static void SaveCache( void ) {
-	const char *path = CachePath();
+	char path[MAX_OSPATH], tmp[MAX_OSPATH];
 	char *text = cJSON_PrintUnformatted( fresh );
 	FILE *f;
 
+	// written beside the file and renamed over it: a cut-off cache was read as no cache, and every pak again
+	Q_strncpyz( path, CachePath(), sizeof( path ) );
+	Q_strncpyz( tmp, path, sizeof( tmp ) );
+	Q_strcat( tmp, sizeof( tmp ), ".tmp" );
 	FS_CreatePath( path );
-	if ( text && ( f = Sys_FOpen( path, "wb" ) ) != NULL ) {
-		fwrite( text, 1, strlen( text ), f );
-		fclose( f );
+	if ( text && ( f = Sys_FOpen( tmp, "wb" ) ) != NULL ) {
+		const size_t len = strlen( text );
+		qboolean ok = fwrite( text, 1, len, f ) == len;
+		if ( fclose( f ) != 0 ) {
+			ok = qfalse;
+		}
+		if ( ok && rename( tmp, path ) != 0 ) {
+			remove( path );		// Windows' rename doesn't replace a file; a cache lost between the two is only read again
+			ok = rename( tmp, path ) == 0;
+		}
+		if ( !ok ) {
+			remove( tmp );
+		}
 	}
 	cJSON_free( text );
 }
@@ -686,12 +767,12 @@ static void Rebuild( void ) {
 	for ( i = 0; i < numSources; i++ ) {
 		const source_t *s = &sources[i];
 		cJSON *e = cJSON_GetObjectItemCaseSensitive( all, s->path ), *m;
-		for ( m = e ? cJSON_GetObjectItem( e, "maps" )->child : NULL; m && numRaces < MAX_RACES; m = m->next ) {
-			const char *map = cJSON_GetStringValue( cJSON_GetObjectItem( m, "map" ) );
+		for ( m = Kids( e, "maps" ); m && numRaces < MAX_RACES; m = m->next ) {
+			const char *map = Text( m, "map" );
 			ozRace_t *r = &races[numRaces];
 			cJSON *shot, *src, *d;
 			int j;
-			if ( !map ) {
+			if ( !ValidMapName( map ) ) {
 				continue;
 			}
 			for ( j = 0; j < numRaces && Q_stricmp( races[j].map, map ); j++ );
@@ -700,7 +781,7 @@ static void Rebuild( void ) {
 			}
 			memset( r, 0, sizeof( *r ) );
 			Q_strncpyz( r->map, map, sizeof( r->map ) );
-			Q_strncpyz( r->author, cJSON_GetStringValue( cJSON_GetObjectItem( m, "author" ) ), sizeof( r->author ) );
+			Q_strncpyz( r->author, Text( m, "author" ), sizeof( r->author ) );
 			Q_strncpyz( r->where, s->path, sizeof( r->where ) );
 			r->checkpoints = (int)cJSON_GetNumberValue( cJSON_GetObjectItem( m, "checkpoints" ) );
 			r->length = (int)cJSON_GetNumberValue( cJSON_GetObjectItem( m, "length" ) );
@@ -709,16 +790,17 @@ static void Rebuild( void ) {
 			r->hurts = (int)cJSON_GetNumberValue( cJSON_GetObjectItem( m, "hurts" ) );
 			r->lava = (int)cJSON_GetNumberValue( cJSON_GetObjectItem( m, "lava" ) );
 			r->slick = (int)cJSON_GetNumberValue( cJSON_GetObjectItem( m, "slick" ) );
-			for ( shot = s->onPath ? cJSON_GetObjectItem( e, "shots" )->child : NULL; shot; shot = shot->next ) {
-				if ( !Q_stricmp( cJSON_GetStringValue( shot ), map ) ) {
+			for ( shot = s->onPath ? Kids( e, "shots" ) : NULL; shot; shot = shot->next ) {
+				const char *name = cJSON_GetStringValue( shot );
+				if ( name && !Q_stricmp( name, map ) ) {
 					Com_sprintf( r->shot, sizeof( r->shot ), "/levelshots/%s", map );
 				}
 			}
 			// Defrag's map info, from whichever pak has it
-			for ( src = all->child; src; src = src->next ) {
-				for ( d = cJSON_GetObjectItem( src, "defi" )->child; d; d = d->next ) {
+			for ( src = all ? all->child : NULL; src; src = src->next ) {
+				for ( d = Kids( src, "defi" ); d; d = d->next ) {
 					const char *v;
-					if ( Q_stricmp( cJSON_GetStringValue( cJSON_GetObjectItem( d, "map" ) ), map ) ) {
+					if ( !cJSON_IsObject( d ) || Q_stricmp( Text( d, "map" ), map ) ) {
 						continue;
 					}
 					if ( ( v = cJSON_GetStringValue( cJSON_GetObjectItem( d, "longname" ) ) ) != NULL && Q_stricmp( v, map ) ) {
@@ -746,6 +828,7 @@ OzRaces_Step
 */
 int OzRaces_Step( int msec ) {
 	const int start = Sys_Milliseconds(), until = start + msec;
+	qboolean changed = qfalse;	// a source was read in this call: the list is made again once, at its end
 
 	if ( state == OZR_IDLE ) {
 		workMsec = 0;
@@ -756,6 +839,9 @@ int OzRaces_Step( int msec ) {
 	while ( state == OZR_LOOKING && Sys_Milliseconds() < until ) {
 		const source_t *s;
 		if ( nextSource >= numSources ) {
+			if ( changed ) {
+				Rebuild();
+			}
 			if ( toRead || cJSON_GetArraySize( cJSON_GetObjectItem( cache, "sources" ) ) ) {
 				SaveCache();	// something was read, or a pak went away
 			}
@@ -782,6 +868,9 @@ int OzRaces_Step( int msec ) {
 		}
 		nextSource++;
 		numRead++;
+		changed = qtrue;	// made again after each source, the list's making ran outside the slice's time
+	}
+	if ( changed ) {
 		Rebuild();
 	}
 	workMsec += Sys_Milliseconds() - start;

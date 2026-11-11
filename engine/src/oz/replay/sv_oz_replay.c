@@ -22,6 +22,17 @@ msg.c, what a network client receives. Every 2 s a keyframe deltas from nothing,
 #include "../../../quake3e/code/server/server.h"
 #include "oz_replay.h"
 #include <time.h>
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+#if !defined( DEDICATED ) && defined( USE_OZ_UI )
+#include "oz_replay_lib.h"		// the client's library: a trimmed replay's entry goes with its file
+#define OZ_REPLAY_LIBRARY
+#endif
+
+#define KEEP_PLAYTESTS	10		// the newest replays kept of the map editor's play-tests (maps named ed_*)
 
 #define MSG_BYTES	( 1 << 20 )
 #define MAX_PENDING	512
@@ -35,6 +46,7 @@ static struct {
 	cvar_t		*enabled, *keep, *log;
 	qboolean	active;
 	qboolean	halted;						// a write failed: nothing more is recorded until the map ends
+	qboolean	intermission;				// the match ended: a map_restart now starts the next one's replay
 	FILE		*file;
 	char		name[MAX_QPATH];
 	char		path[MAX_OSPATH];
@@ -181,6 +193,13 @@ static void GatherEntities( ozReplayFrame_t *f ) {
 }
 
 
+// everyone who played in the recording, as last seen: the trailer's standings keep a player who left before the end
+static struct {
+	qboolean	seen;
+	char		name[36];
+	int			score, team;
+} played[MAX_CLIENTS];
+
 static int GatherPlayers( ozReplayFrame_t *f ) {
 	int i, n = 0;
 
@@ -191,6 +210,13 @@ static int GatherPlayers( ozReplayFrame_t *f ) {
 		}
 		f->psPresent[i] = 1;
 		f->ps[i] = *SV_GameClientNum( i );
+		played[i].seen = qtrue;
+		Q_strncpyz( played[i].name, Info_ValueForKey( sv.configstrings[CS_PLAYERS + i] ? sv.configstrings[CS_PLAYERS + i] : "", "n" ), sizeof( played[i].name ) );
+		played[i].score = f->ps[i].persistant[PERS_SCORE];
+		played[i].team = f->ps[i].persistant[PERS_TEAM];
+		if ( f->ps[i].pm_type == PM_INTERMISSION ) {
+			rec.intermission = qtrue;
+		}
 		n++;
 	}
 	return n;
@@ -222,6 +248,7 @@ static qboolean WriteFrame( qboolean key ) {
 	entityState_t nullES;
 	msg_t msg;
 	int i, e, n;
+	long start;
 
 	MSG_Init( &msg, msgBuf, sizeof( msgBuf ) );
 	n = 0;
@@ -294,8 +321,25 @@ static qboolean WriteFrame( qboolean key ) {
 	PutU32( header, (unsigned)msg.cursize );
 	header[4] = (byte)key;
 	PutU32( header + 5, (unsigned)recCur.time );
+	start = ftell( rec.file );
 	if ( fwrite( header, 1, sizeof( header ), rec.file ) != sizeof( header ) ||
 		 fwrite( msg.data, 1, msg.cursize, rec.file ) != (size_t)msg.cursize ) {
+		// A full disk left part of a block, and the trailer went over it: the file is cut back to its
+		// last whole block, where the trailer belongs
+		if ( start >= 0 ) {
+			int cut;
+			fflush( rec.file );
+			clearerr( rec.file );
+#ifdef _WIN32
+			cut = _chsize( _fileno( rec.file ), start );
+#else
+			cut = ftruncate( fileno( rec.file ), (off_t)start );
+#endif
+			if ( cut ) {
+				Com_Printf( S_COLOR_YELLOW "replay: couldn't cut %s back to its last whole frame\n", rec.name );
+			}
+			fseek( rec.file, start, SEEK_SET );
+		}
 		return qfalse;
 	}
 	rec.bytes += sizeof( header ) + msg.cursize;
@@ -435,17 +479,15 @@ static void WriteTrailer( const char *why ) {
 	J_Key( &j, "standings" );
 	J_Raw( &j, "[" );
 	for ( i = 0; i < MAX_CLIENTS; i++ ) {
-		const char *info;
-		if ( !recLast.psPresent[i] ) {
-			continue;
+		if ( !played[i].seen ) {
+			continue;		// everyone who played, those who left before the end too, as last seen
 		}
-		info = rec.cs[CS_PLAYERS + i] ? rec.cs[CS_PLAYERS + i] : "";
 		J_Raw( &j, first ? "{" : ",{" );
 		first = qfalse;
 		J_KeyInt( &j, "client", i );
-		J_KeyString( &j, "name", Info_ValueForKey( info, "n" ) );
-		J_KeyInt( &j, "score", recLast.ps[i].persistant[PERS_SCORE] );
-		J_KeyInt( &j, "team", recLast.ps[i].persistant[PERS_TEAM] );
+		J_KeyString( &j, "name", played[i].name );
+		J_KeyInt( &j, "score", played[i].score );
+		J_KeyInt( &j, "team", played[i].team );
 		J_Raw( &j, "}" );
 	}
 	J_Raw( &j, "]}" );
@@ -482,43 +524,161 @@ static qboolean Favorite( const char *library, const char *file ) {
 	return fav && !Q_strncmp( fav, "true", 4 );
 }
 
-static int QDECL CompareNames( const void *a, const void *b ) {
-	return Q_stricmp( *(const char **)a, *(const char **)b );
+typedef struct {
+	const char	*name;
+	double		when;
+	qboolean	playtest;
+} trimFile_t;
+
+// the moment in a name the recorder made ("2026-11-08_100801_q3dm17_ffa.q3replay"), -1 for any other name
+static double NameTime( const char *name ) {
+	static const char pattern[] = "dddd-dd-dd_dddddd_";
+	struct tm tm;
+	time_t t;
+	int i;
+
+	for ( i = 0; pattern[i]; i++ ) {
+		if ( pattern[i] == 'd' ? ( name[i] < '0' || name[i] > '9' ) : name[i] != pattern[i] ) {
+			return -1;
+		}
+	}
+	memset( &tm, 0, sizeof( tm ) );
+	tm.tm_year = atoi( name ) - 1900;
+	tm.tm_mon = atoi( name + 5 ) - 1;
+	tm.tm_mday = atoi( name + 8 );
+	tm.tm_hour = ( name[11] - '0' ) * 10 + ( name[12] - '0' );
+	tm.tm_min = ( name[13] - '0' ) * 10 + ( name[14] - '0' );
+	tm.tm_sec = ( name[15] - '0' ) * 10 + ( name[16] - '0' );
+	tm.tm_isdst = -1;
+	t = mktime( &tm );
+	return t == (time_t)-1 ? -1 : (double)t;
 }
 
-// keeps the newest sv_ozReplayKeep replays that aren't favorites; the names begin with their date
+static int QDECL NewestFirst( const void *a, const void *b ) {
+	const trimFile_t *x = (const trimFile_t *)a, *y = (const trimFile_t *)b;
+	if ( x->when != y->when ) {
+		return x->when < y->when ? 1 : -1;
+	}
+	return Q_stricmp( y->name, x->name );
+}
+
+/*
+Keeps the newest sv_ozReplayKeep replays that aren't favorites. A replay is as old as the date its name
+begins with, or as its file when the name is someone else's: sorted by name alone, a replay brought in
+under another name counted as the newest forever. The map editor's play-tests (maps named ed_*) are
+counted apart, the newest KEEP_PLAYTESTS kept: an evening of them pushed the real matches out.
+*/
 static void Trim( void ) {
-	char dir[MAX_OSPATH], **list, *library = NULL;
-	int n, i, kept = 0;
+	static qboolean said;
+	char dir[MAX_OSPATH], path[MAX_OSPATH], **list, *library = NULL;
+	trimFile_t *files;
+	qboolean unread = qfalse;
+	int n, i, kept = 0, keptTests = 0;
 	FILE *f;
 
 	if ( rec.keep->integer <= 0 ) {
 		return;
 	}
 	Q_strncpyz( dir, Folder(), sizeof( dir ) );
-	f = Sys_FOpen( va( "%s%clibrary.json", dir, PATH_SEP ), "rb" );
+	Com_sprintf( path, sizeof( path ), "%s%clibrary.json", dir, PATH_SEP );
+	f = Sys_FOpen( path, "rb" );
 	if ( f ) {
 		fseek( f, 0, SEEK_END );
 		n = (int)ftell( f );
 		fseek( f, 0, SEEK_SET );
-		if ( n > 0 && n < ( 8 << 20 ) ) {
+		if ( n > 0 && n < ( 16 << 20 ) ) {
 			library = Z_Malloc( n + 1 );
-			n = (int)fread( library, 1, n, f );
+			if ( (int)fread( library, 1, n, f ) != n ) {
+				unread = qtrue;
+			}
 			library[n] = 0;
+			// an object from its first brace to its last, or it was cut short
+			for ( i = 0; library[i] == ' ' || library[i] == '\t' || library[i] == '\r' || library[i] == '\n'; i++ ) {
+			}
+			if ( library[i] != '{' ) {
+				unread = qtrue;
+			}
+			for ( i = n - 1; i > 0 && ( library[i] == ' ' || library[i] == '\t' || library[i] == '\r' || library[i] == '\n' ); i-- ) {
+			}
+			if ( library[i] != '}' ) {
+				unread = qtrue;
+			}
+		} else if ( n != 0 ) {
+			unread = qtrue;
 		}
 		fclose( f );
 	}
-	list = Sys_ListFiles( dir, "." OZ_REPLAY_EXT, NULL, &n, qfalse );
-	if ( n > 1 ) {
-		qsort( list, n, sizeof( list[0] ), CompareNames );
+#ifdef OZ_REPLAY_LIBRARY
+	if ( OzLib_Broken() ) {
+		unread = qtrue;
 	}
-	for ( i = n - 1; i >= 0; i-- ) {		// by name: newest last
-		if ( !Q_stricmp( list[i], rec.name ) || Favorite( library, list[i] ) || ++kept <= rec.keep->integer ) {
+#endif
+	// A library that doesn't read was taken as an empty one, and the trim deleted every former favorite:
+	// nothing is deleted while the favorites aren't known
+	if ( unread ) {
+		if ( !said ) {
+			said = qtrue;
+			Com_Printf( S_COLOR_YELLOW "replay: %s/library.json doesn't read, so the favorites aren't known: no old replay is deleted\n", OZ_REPLAY_DIR );
+		}
+		if ( library ) {
+			Z_Free( library );
+		}
+		return;
+	}
+	list = Sys_ListFiles( dir, "." OZ_REPLAY_EXT, NULL, &n, qfalse );
+	if ( !list || n <= 0 ) {
+		Sys_FreeFileList( list );
+		if ( library ) {
+			Z_Free( library );
+		}
+		return;
+	}
+	files = Z_Malloc( n * sizeof( files[0] ) );
+	for ( i = 0; i < n; i++ ) {
+		files[i].name = list[i];
+		files[i].when = NameTime( list[i] );
+		files[i].playtest = files[i].when >= 0 && !Q_stricmpn( list[i] + 18, "ed_", 3 );
+		if ( files[i].when < 0 ) {
+			fileOffset_t size;
+			fileTime_t mtime, ctime;
+			Com_sprintf( path, sizeof( path ), "%s%c%s", dir, PATH_SEP, list[i] );
+			files[i].when = Sys_GetFileStats( path, &size, &mtime, &ctime ) ? (double)mtime : 0;
+		}
+	}
+	qsort( files, n, sizeof( files[0] ), NewestFirst );
+	for ( i = 0; i < n; i++ ) {
+		const char *name = files[i].name;
+		if ( Favorite( library, name ) ) {
 			continue;
 		}
-		FS_Remove( va( "%s%c%s", dir, PATH_SEP, list[i] ) );
-		Com_Printf( "replay: deleted %s (sv_ozReplayKeep %i)\n", list[i], rec.keep->integer );
+		// the one just written counts as one of the kept (it didn't, so one more than the setting stayed)
+		if ( files[i].playtest ? ++keptTests <= KEEP_PLAYTESTS : ++kept <= rec.keep->integer ) {
+			continue;
+		}
+		if ( !Q_stricmp( name, rec.name ) ) {
+			continue;
+		}
+#ifdef OZ_REPLAY_LIBRARY
+		{
+			// as the Replays page deletes one: to the Recycle Bin from the player's own folder, and its
+			// library entry with it
+			char why[128];
+			if ( !OzLib_Delete( name, why, sizeof( why ) ) ) {
+				Com_Printf( "replay: %s stays: %s\n", name, why );
+				continue;
+			}
+		}
+#else
+		Com_sprintf( path, sizeof( path ), "%s%c%s", dir, PATH_SEP, name );
+		FS_Remove( path );
+#endif
+		if ( files[i].playtest ) {
+			Com_Printf( "replay: deleted %s (the newest %i play-tests are kept)\n", name, KEEP_PLAYTESTS );
+		} else {
+			Com_Printf( "replay: deleted %s (sv_ozReplayKeep %i)\n", name, rec.keep->integer );
+		}
 	}
+	Z_Free( files );
 	Sys_FreeFileList( list );
 	if ( library ) {
 		Z_Free( library );
@@ -526,7 +686,7 @@ static void Trim( void ) {
 }
 
 static qboolean Start( void ) {
-	char dir[MAX_OSPATH], base[MAX_QPATH];
+	char dir[MAX_OSPATH], base[MAX_QPATH], file[MAX_QPATH];
 	qtime_t t;
 	int i;
 
@@ -536,8 +696,16 @@ static qboolean Start( void ) {
 	Q_strncpyz( rec.map, sv_mapname->string, sizeof( rec.map ) );
 	Sys_Mkdir( va( "%s", Cvar_VariableString( "fs_homepath" ) ) );
 	Sys_Mkdir( dir );
+	// a map in a folder of maps/ ("devmap pack/arena") is one file's name here, not a folder's: its
+	// slash made every frame's Start fail, a yellow line a frame
+	Q_strncpyz( file, rec.map, sizeof( file ) );
+	for ( i = 0; file[i]; i++ ) {
+		if ( strchr( "/\\:*?\"<>|", file[i] ) || (unsigned char)file[i] < ' ' ) {
+			file[i] = '_';
+		}
+	}
 	Com_sprintf( base, sizeof( base ), "%04i-%02i-%02i_%02i%02i%02i_%s_%s", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
-				 t.tm_hour, t.tm_min, t.tm_sec, rec.map, ModeKey( Cvar_VariableIntegerValue( "g_gametype" ), qfalse ) );
+				 t.tm_hour, t.tm_min, t.tm_sec, file, ModeKey( Cvar_VariableIntegerValue( "g_gametype" ), qfalse ) );
 	for ( i = 1; i < 100; i++ ) {		// two matches in one second: <name>_2, ...
 		FILE *f;
 		if ( i == 1 ) {
@@ -554,7 +722,8 @@ static qboolean Start( void ) {
 	}
 	rec.file = Sys_FOpen( rec.path, "wb" );
 	if ( !rec.file ) {
-		Com_Printf( S_COLOR_YELLOW "replay: can't write %s\n", rec.path );
+		Com_Printf( S_COLOR_YELLOW "replay: can't write %s; this map isn't recorded\n", rec.path );
+		rec.halted = qtrue;		// said once, not every frame until the map ends
 		return qfalse;
 	}
 	for ( i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
@@ -563,7 +732,9 @@ static qboolean Start( void ) {
 			rec.cs[i] = NULL;
 		}
 	}
+	Com_Memset( played, 0, sizeof( played ) );
 	rec.active = qtrue;
+	rec.intermission = qfalse;
 	rec.nextTime = 0;
 	rec.frames = 0;
 	rec.bytes = 0;
@@ -632,7 +803,33 @@ void SV_OzReplayStop( const char *why ) {
 			rec.cs[i] = NULL;
 		}
 	}
+	// Under 10 s it isn't kept, as the client's recorder has it (cl_oz_demos.c MIN_LENGTH_MS): every
+	// map load with a player wrote a replay, so an evening of the map editor's play-tests or quick
+	// devmaps filled sv_ozReplayKeep's 50 and the trim below deleted the real matches for them
+	if ( recLast.time - rec.startTime < 10000 ) {
+		remove( rec.path );
+		Com_Printf( "replay: %s was under 10 s, not kept\n", rec.name );
+		return;
+	}
 	Trim();
+}
+
+/*
+map_restart, before the game restarts (sv_ccmds.c). After an intermission it starts the next match on the
+same map, as a duel server does after every match: that match gets a replay of its own, as the client's
+recorder gives it one (cl_oz_demos.c). Back-to-back matches were one file and one row of the Replays page.
+A restart in a warmup or mid-match doesn't split.
+*/
+void SV_OzReplayRestart( void ) {
+	if ( rec.active && rec.intermission ) {
+		SV_OzReplayStop( "match end" );
+	}
+}
+
+// the replay this server is writing, as its file's name ("" when none): the replay library links the
+// match's report to it (cl_oz_demos.c)
+const char *SV_OzReplayCurrent( void ) {
+	return rec.active ? rec.name : "";
 }
 
 void SV_OzReplayFrame( void ) {

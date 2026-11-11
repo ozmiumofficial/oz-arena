@@ -25,6 +25,7 @@ into the match the leader hosts (party_follow, net_follow).
 #include "cJSON.h"
 #include "../editor/ed_together.h"
 
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -104,6 +105,54 @@ std::string Seen( double ms ) {
 	if ( s < 172800 ) { snprintf( buf, sizeof( buf ), "Last seen %d hours ago", (int)( s / 3600 ) ); return buf; }
 	snprintf( buf, sizeof( buf ), "Last seen %d days ago", (int)( s / 86400 ) );
 	return buf;
+}
+
+// a player's id as the hub makes them: 20 lowercase hex digits
+bool PlayerId( const std::string &s ) {
+	if ( s.size() != 20 ) {
+		return false;
+	}
+	for ( const char c : s ) {
+		if ( !( c >= '0' && c <= '9' ) && !( c >= 'a' && c <= 'f' ) ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+// a server's address as the hub takes one (hub.ts isAddress): a host name or an IP (v6 in brackets), a colon
+// and a port's digits
+bool ServerAddress( const std::string &s ) {
+	const size_t colon = s.rfind( ':' );
+	if ( colon == std::string::npos || colon == 0 || colon + 1 >= s.size() || s.size() - colon - 1 > 5 ) {
+		return false;
+	}
+	for ( size_t k = colon + 1; k < s.size(); k++ ) {
+		if ( s[k] < '0' || s[k] > '9' ) {
+			return false;
+		}
+	}
+	const std::string name = s.substr( 0, colon );
+	if ( name[0] == '[' ) {
+		if ( name.size() < 4 || name.size() > 47 || name.back() != ']' ) {
+			return false;
+		}
+		for ( size_t k = 1; k + 1 < name.size(); k++ ) {
+			if ( !isxdigit( (unsigned char)name[k] ) && name[k] != ':' && name[k] != '.' ) {
+				return false;
+			}
+		}
+		return true;
+	}
+	if ( name.size() > 64 ) {
+		return false;
+	}
+	for ( const char c : name ) {
+		if ( !isalnum( (unsigned char)c ) && c != '.' && c != '-' && c != '_' ) {
+			return false;
+		}
+	}
+	return true;
 }
 
 cJSON *Person( const cJSON *p, const std::string &sub ) {
@@ -194,11 +243,17 @@ void Social( const cJSON *m ) {
 		// on (oz_online_engine.c): "server:<address>"; " locked" with a password
 		std::string join = on ? Str( i, "join" ) : "";
 		const bool locked = join.size() > 7 && join.compare( join.size() - 7, 7, " locked" ) == 0;
-		const std::string target = join.substr( join.find( ':' ) + 1, join.find( ' ' ) == std::string::npos ? std::string::npos : join.find( ' ' ) - join.find( ':' ) - 1 );
-		std::string host = !join.compare( 0, 4, "ice:" ) ? target : "";
-		const std::string server = !join.compare( 0, 7, "server:" ) ? target : "";
+		if ( locked ) {
+			join.erase( join.size() - 7 );
+		}
+		// The target goes into the Join button's action ('serverjoin ' + f.server), which the menu splits on ;
+		// and fills in {model paths}, and from there into a connect command. A friend's client sends this text
+		// (and a hub from before it checked passes anything on): only the three shapes are a way to join, a
+		// player id exactly as the hub makes them, a server's address as host:port
+		std::string host = !join.compare( 0, 4, "ice:" ) && PlayerId( join.substr( 4 ) ) ? join.substr( 4 ) : "";
+		const std::string server = !join.compare( 0, 7, "server:" ) && ServerAddress( join.substr( 7 ) ) ? join.substr( 7 ) : "";
 		// an editing session (PE): "edit:<host>", joined in the multiplayer map editor
-		std::string edit = !join.compare( 0, 5, "edit:" ) ? target : "";
+		std::string edit = !join.compare( 0, 5, "edit:" ) && PlayerId( join.substr( 5 ) ) ? join.substr( 5 ) : "";
 		if ( host == myId ) {
 			host.clear();	// they're in your own match
 		}
@@ -605,6 +660,16 @@ void Follow( const cJSON *m ) {
 		return;
 	}
 	if ( host.empty() ) {
+		if ( !ServerAddress( server ) ) {
+			return;		// the hub checks it; a hub that didn't would hand this text to connect
+		}
+		if ( atoi( OzE_CvarString( "oz_network_hide_ip" ) ) ) {
+			// Hide my IP: a server sees the address of everyone who connects, and the leader, not this player,
+			// picked it. Never without a click of the player's own.
+			Printf( "UI: party: %s is on a server, not followed (Hide my IP is on)\n", who.c_str() );
+			Menu_Toast( ( who + " joined a server. Hide my IP is on: join it from Friends if you want to." ).c_str(), "info" );
+			return;
+		}
 		// a community server (PH step 3): joined as from the Server Browser, with the leader's password
 		Printf( "UI: party: following %s onto %s\n", who.c_str(), server.c_str() );
 		Menu_Toast( ( "Joining " + who + "'s server" ).c_str(), "info" );
@@ -902,6 +967,22 @@ extern "C" void OzUI_OnlineStatus( int status, const char *reason ) {
 		Menu_Set( "social.status", names[status] );
 		Menu_Set( "social.status_label", labels[status] );
 	}
+}
+
+// Why online play isn't there or isn't as it was, when the frame's status change alone wouldn't say (the hub
+// refused this game before it was ever online, the identity file was replaced): a toast, once per sentence, so
+// a refusal met again at every retry isn't said again. 0 while the menus can't show one yet (asked again).
+extern "C" int OzUI_OnlineNotice( const char *reason ) {
+	static std::string said;
+	if ( !reason || !reason[0] || said == reason ) {
+		return 1;
+	}
+	if ( !Menu_Node( "toasts" ) ) {
+		return 0;
+	}
+	said = reason;
+	Menu_Toast( reason, "warn" );
+	return 1;
 }
 
 extern "C" void OzUI_HubMessage( const char *type, const cJSON *msg ) {

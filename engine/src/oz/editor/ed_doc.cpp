@@ -150,14 +150,47 @@ std::vector<Id> Doc::ids_of(Kind kind) const {
 }
 
 std::vector<Id> Doc::owned(Id entity) const {
-	std::vector<Id> out;
-	for (const auto &kv : objects_) {
-		if (kv.second->kind != Kind::Entity && kv.second->owner == entity) {
-			out.push_back(kv.first);
+	if (owned_rev_ != revision) {
+		owned_index_.clear();
+		for (const auto &kv : objects_) {
+			if (kv.second->kind != Kind::Entity) {
+				owned_index_[kv.second->owner].push_back(kv.first);
+			}
 		}
+		for (auto &kv : owned_index_) {
+			std::sort(kv.second.begin(), kv.second.end());
+		}
+		owned_rev_ = revision;
 	}
-	std::sort(out.begin(), out.end());
-	return out;
+	auto it = owned_index_.find(entity);
+	return it == owned_index_.end() ? std::vector<Id>() : it->second;
+}
+
+Doc Doc::copy_objects() const {
+	Doc d;
+	d.tex_size = tex_size;
+	d.objects_ = objects_;
+	d.windings_ = windings_;  // the faces' polygons made so far: a save of the copy needs them all
+	d.next_ = next_;
+	d.world_ = world_;
+	d.plain_form = plain_form;
+	d.dirty = dirty;
+	d.revision = revision;
+	d.history_limit = history_limit;
+	d.history_bytes = history_bytes;
+	return d;
+}
+
+// about what a stored object takes, for the history's size
+static size_t object_bytes(const ObjectPtr &o) {
+	if (!o) {
+		return 0;
+	}
+	size_t n = sizeof(Object) + o->brush.faces.size() * sizeof(Face) + o->patch.ctrl.size() * sizeof(double);
+	for (const auto &kv : o->entity.keys) {
+		n += 2 * sizeof(std::string) + kv.first.size() + kv.second.size();
+	}
+	return n;
 }
 
 // ---------------------------------------------------------------- undo
@@ -189,8 +222,14 @@ void Doc::end() {
 	if (!open_.changes.empty()) {
 		const std::string label = open_.label;
 		const std::vector<Change> made = open_.changes;
+		open_.bytes = 0;
+		for (const Change &c : open_.changes) {
+			open_.bytes += object_bytes(c.before) + object_bytes(c.after);
+		}
+		undo_bytes_ += open_.bytes;
 		undo_.push_back(std::move(open_));
-		if (undo_.size() > history_limit) {
+		while (undo_.size() > history_limit || (undo_bytes_ > history_bytes && undo_.size() > 1)) {
+			undo_bytes_ -= std::min(undo_bytes_, undo_.front().bytes);
 			undo_.erase(undo_.begin());
 		}
 		redo_.clear();
@@ -285,6 +324,7 @@ bool Doc::undo() {
 	}
 	Step s = std::move(undo_.back());
 	undo_.pop_back();
+	undo_bytes_ -= std::min(undo_bytes_, s.bytes);
 	if (get_selection) {
 		s.sel_after = get_selection();
 	}
@@ -316,6 +356,7 @@ bool Doc::redo() {
 	if (set_selection) {
 		set_selection(s.sel_after);
 	}
+	undo_bytes_ += s.bytes;
 	undo_.push_back(std::move(s));
 	return true;
 }
@@ -405,6 +446,7 @@ std::vector<std::string> Doc::redo_labels() const {
 void Doc::clear_history() {
 	undo_.clear();
 	redo_.clear();
+	undo_bytes_ = 0;
 }
 
 void Doc::announce(std::vector<Id> ids) {

@@ -1,6 +1,6 @@
 """The Linux game's release file: a staged build/linux/ packed as OzArena-<version>-linux.tar.gz.
 
-python engine/tools/make_linux_release.py [--stage build/linux] [--out <tar.gz>]
+python engine/tools/make_linux_release.py [--stage build/linux] [--out <tar.gz>] [--no-pak-check]
 
 Runs on Windows or Linux. What goes in: OzArena.x86_64, OzArena.ded.x86_64, the renderer modules
 (OzArena_<renderer>_x86_64.so), libSDL2-2.0.so.0, libopenal.so.1, oz/*.pk3, oz-arena-launcher,
@@ -12,12 +12,14 @@ as for Windows; the launcher fetches them beside this.
 It stops when: an id pak or a baseq3 folder is staged; the staged OzArena.x86_64 doesn't carry
 OZ_VERSION (engine/quake3e/code/qcommon/q_shared.h); or a staged oz/ pak differs from the main
 build's (build/engine/oz), since a pure server checks paks by checksum and the Windows and Linux
-games must carry the same ones. Ozmium's local-only CZ45 paks (pak_oz_zz_cz*) never go in.
+games must carry the same ones (with no main build to check against it stops too, unless
+--no-pak-check is given). It warns when the checkout differs from its last commit. Ozmium's local-only CZ45 paks (pak_oz_zz_cz*) never go in.
 """
 import argparse
 import filecmp
 import os
 import re
+import subprocess
 import sys
 import tarfile
 
@@ -42,9 +44,22 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--stage", default=os.path.join(ROOT, "build", "linux"))
     ap.add_argument("--out", help="default build/release/OzArena-<version>-linux.tar.gz")
+    ap.add_argument("--no-pak-check", action="store_true",
+                    help="pack without the main build (build/engine/oz) to check the paks against")
     a = ap.parse_args()
     stage = os.path.abspath(a.stage)
     v = version()
+    # The paks are checked against the main build's. Without one the check used to be skipped without a
+    # word, and a release could go out with paks a pure server refuses.
+    if not os.path.isdir(MAIN_OZ) and not a.no_pak_check:
+        sys.exit("no main build in %s to check the paks against: build it first (python engine/build_engine.py), "
+                 "or pass --no-pak-check" % MAIN_OZ)
+    try:
+        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    except OSError:
+        dirty = ""
+    if dirty:
+        print("WARNING: %d files differ from the last commit: this release isn't a commit's build" % len(dirty.splitlines()))
 
     files = []
     for name in FILES:
@@ -64,7 +79,7 @@ def main():
         if not f.lower().endswith(".pk3") or WORLD.match(f) or f.startswith("pak_oz_zz_cz"):
             continue
         main_pak = os.path.join(MAIN_OZ, f)
-        if os.path.isdir(MAIN_OZ) and (not os.path.isfile(main_pak) or not filecmp.cmp(main_pak, os.path.join(stage, "oz", f), shallow=False)):
+        if not a.no_pak_check and (not os.path.isfile(main_pak) or not filecmp.cmp(main_pak, os.path.join(stage, "oz", f), shallow=False)):
             sys.exit("oz/%s isn't the main build's: rebuild on Linux after the Windows build" % f)
         files.append("oz/" + f)
     if "oz/pak_oz_code.pk3" not in files:

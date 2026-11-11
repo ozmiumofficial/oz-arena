@@ -4466,6 +4466,26 @@ static void CreateInternalShaders( void ) {
 	stages[0].bundle[0].alphaGen = AGEN_IDENTITY;
 	stages[0].stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_EQUAL;
 	FinishShader();
+
+	// Oz: an outline around a player (Gameplay > Enemy outline): the body's back faces alone, pushed
+	// out along its normals and drawn flat in the entity's color, so only a rim shows around the
+	// model as it is; the client's HUD adds it as a second entity (oz_hud.c EnemyOutline)
+	InitShader( "oz_outline", LIGHTMAP_2D );
+	shader.cullType = CT_BACK_SIDED;
+	shader.numDeforms = 1;
+	shader.deforms[0].deformation = DEFORM_WAVE;
+	shader.deforms[0].deformationWave.func = GF_SIN;
+	shader.deforms[0].deformationWave.base = 1.0f;
+	shader.deforms[0].deformationWave.amplitude = 0;
+	shader.deforms[0].deformationWave.frequency = 0;
+	shader.deforms[0].deformationSpread = 0;
+	stages[0].bundle[0].image[0] = tr.whiteImage;
+	stages[0].active = qtrue;
+	stages[0].bundle[0].tcGen = TCGEN_TEXTURE;
+	stages[0].bundle[0].rgbGen = CGEN_ENTITY;
+	stages[0].bundle[0].alphaGen = AGEN_IDENTITY;
+	stages[0].stateBits = GLS_DEFAULT;
+	FinishShader();
 }
 
 

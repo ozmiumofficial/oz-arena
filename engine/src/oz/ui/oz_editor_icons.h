@@ -55,4 +55,5 @@ static const struct { const char *name; unsigned code; } OZ_EDITOR_ICONS[] = {
 	{ "keys", 0xE031 },
 	{ "guide", 0xE032 },
 	{ "star", 0xE033 },
+	{ "roller", 0xE034 },
 };

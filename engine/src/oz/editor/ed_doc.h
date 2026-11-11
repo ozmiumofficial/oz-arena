@@ -140,6 +140,13 @@ public:
 	bool redo();
 	void clear_history();
 	size_t history_limit = 200;
+	// and by size: the oldest steps go once the steps' objects come to more than this (an estimate: each step's
+	// before and after objects, counted as if none were shared). Two hundred moves of a whole large map were
+	// gigabytes. The last step always stays.
+	size_t history_bytes = size_t(256) << 20;
+	// The objects alone, as a document of its own: no undo history, no hooks, no lease (what the compile
+	// copies to add its sky box to: copying the history too was most of that copy)
+	Doc copy_objects() const;
 
 	// Every change (an edit, undo or redo) is announced with the ids it touched; empty: everything.
 	std::function<void(const std::vector<Id> &)> on_change;
@@ -208,6 +215,18 @@ public:
 		return (lease_end_ > lease_next_ ? lease_end_ - lease_next_ : 0) + (spare_end_ > spare_next_ ? spare_end_ - spare_next_ : 0);
 	}
 	bool lease_spare() const { return spare_end_ > spare_next_; }
+	// The blocks held, to put back as they were (a session's map taken from its host again: the ids used stay used)
+	struct Lease {
+		Id next = 0, end = 0, spare_next = 0, spare_end = 0;
+	};
+	Lease lease_now() const {
+		Lease l;
+		l.next = lease_next_, l.end = lease_end_, l.spare_next = spare_next_, l.spare_end = spare_end_;
+		return l;
+	}
+	void lease_put(const Lease &l) {
+		lease_next_ = l.next, lease_end_ = l.end, spare_next_ = l.spare_next, spare_end_ = l.spare_end;
+	}
 	bool leasing() const { return lease_end_ != 0; }
 	// In a session undo and redo are each player's own: they put back only the objects still as the step
 	// left them (someone else changed the rest since); skipped counts the last one's left alone.
@@ -221,6 +240,7 @@ private:
 		std::string label;
 		std::vector<Change> changes;
 		std::vector<Id> sel_before, sel_after;
+		size_t bytes = 0;  // its objects' size, about (history_bytes)
 	};
 	void record(Id id, ObjectPtr before, ObjectPtr after);
 	void apply(const Step &s, bool forward);
@@ -237,7 +257,13 @@ private:
 	Step open_;
 	std::unordered_map<Id, size_t> open_index_;
 	std::vector<Step> undo_, redo_;
+	size_t undo_bytes_ = 0;  // the undo steps' bytes together
 	mutable std::unordered_map<Id, std::pair<ObjectPtr, std::vector<q3map::Winding>>> windings_;
+	// owned()'s answers: every entity's brushes and curves, made once per revision (every change to objects_
+	// bumps revision: record, apply, apply_shared, apply_remote, reset). owned() scanned and sorted every
+	// object at each call, inside loops over the entities (a save, a delete, a paste).
+	mutable std::unordered_map<Id, std::vector<Id>> owned_index_;
+	mutable uint64_t owned_rev_ = ~0ull;
 
 	friend struct MapReader;
 };

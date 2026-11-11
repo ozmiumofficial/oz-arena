@@ -482,6 +482,8 @@ void CL_StopRecord_f( void );
 
 void CL_InitDownloads( void );
 void CL_NextDownload( void );
+void CL_OzRedirectFailed( const char *localName );	// Oz: the server's site didn't give this pak (cl_curl.c)
+qboolean CL_OzDownloadRefused( void );	// Oz: the server refused the pak being downloaded (cl_parse.c)
 
 void CL_GetPing( int n, char *buf, int buflen, int *pingtime );
 void CL_GetPingInfo( int n, char *buf, int buflen );
@@ -652,6 +654,12 @@ qboolean CL_NDP_Pause( int on );
 void CL_NDP_Step( void );
 void CL_OzReplay_Init( void );
 void CL_OzReplay_Close( void );
+// Oz: your view of a match on another server, recorded (engine/src/oz/replay/cl_oz_demos.c, oz_replay_lib.h)
+void CL_OzDemo_Init( void );
+void CL_OzDemo_Frame( void );
+int CL_OzDemo_StopAtGamestate( void );
+int CL_OzDemo_Recording( void );
+void CL_OzDemo_Stopped( const char *finalName );
 
 // Oz: the player's custom_textures folder (engine/src/oz/textures/cl_oz_textures.c)
 void OzTex_Init( void );

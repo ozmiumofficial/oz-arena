@@ -372,6 +372,11 @@ static void SCR_DrawDemoRecording( void ) {
 	if ( clc.spDemoRecording ) {
 		return;
 	}
+	// Oz: every match on someone else's server is recorded for the Replays page (cl_oz_demos.c), so
+	// the line stood on the screen the whole time; it shows only for a demo the player started (record)
+	if ( CL_OzDemo_Recording() ) {
+		return;
+	}
 
 	pos = FS_FTell( clc.recordfile );
 

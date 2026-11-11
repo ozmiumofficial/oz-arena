@@ -580,10 +580,22 @@ static void S_Base_StartSound( const vec3_t origin, int entityNum, int entchanne
 
 		oldest = sfx->lastTimeUsed;
 		chosen = -1;
+		// Oz: first a sound nobody hears (a channel is held for its sound's whole length, however far
+		// away it plays): taking a heard one cuts it with a click
 		for ( i = 0 ; i < MAX_CHANNELS ; i++, ch++ ) {
-			if (ch->entnum != listener_number && ch->entnum == entityNum && ch->allocTime - oldest < 0 && ch->entchannel != CHAN_ANNOUNCER) {
+			if (ch->thesfx && !ch->leftvol && !ch->rightvol && ch->entnum != listener_number && ch->allocTime - oldest < 0 && ch->entchannel != CHAN_ANNOUNCER) {
 				oldest = ch->allocTime;
 				chosen = i;
+			}
+		}
+		if (chosen == -1) {
+			oldest = sfx->lastTimeUsed;
+			ch = s_channels;
+			for ( i = 0 ; i < MAX_CHANNELS ; i++, ch++ ) {
+				if (ch->entnum != listener_number && ch->entnum == entityNum && ch->allocTime - oldest < 0 && ch->entchannel != CHAN_ANNOUNCER) {
+					oldest = ch->allocTime;
+					chosen = i;
+				}
 			}
 		}
 		if (chosen == -1) {
@@ -1473,6 +1485,22 @@ void S_FreeOldestSound( void ) {
 	int	i, oldest, used;
 	sfx_t	*sfx;
 	sndBuffer	*buffer, *nbuffer;
+	static byte	playing[MAX_SFX];	// Oz
+	static qboolean	warned;
+
+	// Oz: a sound a channel is playing is passed over: freed, it stopped in the middle (the oldest
+	// loaded is often a long one still going)
+	Com_Memset( playing, 0, sizeof( playing ) );
+	for ( i = 0 ; i < MAX_CHANNELS ; i++ ) {
+		if ( s_channels[i].thesfx ) {
+			playing[ s_channels[i].thesfx - s_knownSfx ] = 1;
+		}
+	}
+	for ( i = 0 ; i < numLoopChannels && i < MAX_CHANNELS ; i++ ) {
+		if ( loop_channels[i].thesfx ) {
+			playing[ loop_channels[i].thesfx - s_knownSfx ] = 1;
+		}
+	}
 
 	// all sounds may be loaded with (s_soundtime + 1) at this moment
 	// so we need to trigger match condition at least once
@@ -1482,9 +1510,24 @@ void S_FreeOldestSound( void ) {
 
 	for ( i = 1 ; i < s_numSfx ; i++ ) {
 		sfx = &s_knownSfx[i];
-		if ( sfx->inMemory && sfx->lastTimeUsed - oldest < 0 ) {
+		if ( sfx->inMemory && !playing[i] && sfx->lastTimeUsed - oldest < 0 ) {
 			used = i;
 			oldest = sfx->lastTimeUsed;
+		}
+	}
+
+	if ( used == 0 ) {
+		// Oz: everything loaded is playing: the oldest goes as before, said once
+		if ( !warned ) {
+			warned = qtrue;
+			Com_Printf( S_COLOR_YELLOW "WARNING: the sound memory is full of sounds still playing, one is cut off: raise com_soundMegs\n" );
+		}
+		for ( i = 1 ; i < s_numSfx ; i++ ) {
+			sfx = &s_knownSfx[i];
+			if ( sfx->inMemory && sfx->lastTimeUsed - oldest < 0 ) {
+				used = i;
+				oldest = sfx->lastTimeUsed;
+			}
 		}
 	}
 

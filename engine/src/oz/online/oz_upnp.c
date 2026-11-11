@@ -58,6 +58,16 @@ static qboolean LocalAddress( char *out, int size ) {
 }
 
 
+// an IPv4 address nobody on the internet can reach: private (10/8, 172.16/12, 192.168/16), the providers'
+// shared range (100.64/10, carrier-grade NAT), this PC's own or none at all
+static qboolean NotPublic( const char *ip ) {
+	const char *dot = strchr( ip, '.' );
+	const int a = atoi( ip ), b = dot ? atoi( dot + 1 ) : 0;
+	return a == 10 || ( a == 172 && b >= 16 && b <= 31 ) || ( a == 192 && b == 168 ) || ( a == 100 && b >= 64 && b <= 127 )
+		|| a == 127 || ( a == 169 && b == 254 ) || a == 0;
+}
+
+
 static IStaticPortMappingCollection *Mappings( IUPnPNAT **nat ) {
 	IStaticPortMappingCollection *coll = NULL;
 	if ( FAILED( CoCreateInstance( &CLSID_UPnPNAT, NULL, CLSCTX_ALL, &IID_IUPnPNAT, (void **)nat ) ) ) {
@@ -102,16 +112,25 @@ static DWORD WINAPI Open( LPVOID arg ) {
 		if ( SUCCEEDED( IStaticPortMappingCollection_Add( coll, port, proto, port, client, VARIANT_TRUE, desc, &map ) ) && map
 			&& SUCCEEDED( IStaticPortMapping_get_ExternalIPAddress( map, &ext ) ) && ext && ext[0] ) {
 			char ip[48];
+			ip[0] = '\0';
 			WideCharToMultiByte( CP_ACP, 0, ext, -1, ip, sizeof( ip ), NULL, NULL );
-			Com_sprintf( address, sizeof( address ), "%s:%i", ip, port );
-			mappedPort = port;
-			if ( InterlockedCompareExchange( &state, 2, 1 ) != 1 ) {
-				// hosting ended while the router was asked: the forward comes down here, or it stays
-				// on the router (NATUPnP's static forwards don't expire)
+			ip[sizeof( ip ) - 1] = '\0';
+			if ( NotPublic( ip ) ) {
+				// The router sits behind another one (or the provider's): its "external" address is a private one
+				// nobody outside can reach. It was listed as "open at 192.168..." and every join there timed out.
 				IStaticPortMappingCollection_Remove( coll, port, proto );
-				address[0] = '\0';
-				mappedPort = 0;
-				InterlockedExchange( &state, 0 );
+				Refused( "the router's own address isn't a public one" );
+			} else {
+				Com_sprintf( address, sizeof( address ), "%s:%i", ip, port );
+				mappedPort = port;
+				if ( InterlockedCompareExchange( &state, 2, 1 ) != 1 ) {
+					// hosting ended while the router was asked: the forward comes down here, or it stays
+					// on the router (NATUPnP's static forwards don't expire)
+					IStaticPortMappingCollection_Remove( coll, port, proto );
+					address[0] = '\0';
+					mappedPort = 0;
+					InterlockedExchange( &state, 0 );
+				}
 			}
 		} else {
 			Refused( "the router refused the port" );

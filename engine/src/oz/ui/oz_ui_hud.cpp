@@ -88,6 +88,7 @@ struct Item {
 };
 
 std::vector<Rml::String> imageNames;			// handle - 1
+std::unordered_map<Rml::String, int> imageIndex;	// a name's place in them (the board asks a few for every row, every frame)
 std::vector<Rml::Texture> images;
 std::vector<int> imagesAsked;		// the renderer start each was last asked for in
 std::deque<int> readAhead;			// images asked for since the renderer started, to read (Hud_Render)
@@ -191,10 +192,37 @@ Rml::FontEffectsHandle GetOutline( Rml::FontFaceHandle face, int width, int alph
 	return h;
 }
 
-// the text cut at its color codes (id 1.32's Q_IsColorString: "^" and anything but "^")
+int Hex( char c ) {
+	return c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
+}
+
+// the text cut at its color codes (id 1.32's Q_IsColorString: "^" and anything but "^"). OSP's too, under
+// every mod (oz_hud.c's OspCode is the same rule): ^xRRGGBB (^X) is a color of its own, only with its six
+// hex digits, and ^B ^b ^F ^f ^N ^n, its blink switches, change nothing. Read as id's codes each picked a
+// color by 3 bits, and the hex digits showed as text
 void Runs( const char *s, Rml::Colourb base, bool codes, std::vector<Run> &out ) {
 	Run cur{ "", base };
 	for ( ; *s; s++ ) {
+		if ( codes && s[0] == '^' && ( s[1] == 'x' || s[1] == 'X' ) ) {
+			int digits = 0;
+			while ( digits < 6 && Hex( s[2 + digits] ) >= 0 ) {
+				digits++;
+			}
+			if ( digits == 6 ) {
+				if ( !cur.text.empty() ) {
+					out.push_back( cur );
+				}
+				const Rml::Colourb c( (Rml::byte)( Hex( s[2] ) * 16 + Hex( s[3] ) ), (Rml::byte)( Hex( s[4] ) * 16 + Hex( s[5] ) ),
+					(Rml::byte)( Hex( s[6] ) * 16 + Hex( s[7] ) ), base.alpha );
+				cur = Run{ "", c };
+				s += 7;
+				continue;
+			}
+		}
+		if ( codes && s[0] == '^' && ( s[1] == 'B' || s[1] == 'b' || s[1] == 'F' || s[1] == 'f' || s[1] == 'N' || s[1] == 'n' ) ) {
+			s++;
+			continue;
+		}
 		if ( codes && s[0] == '^' && s[1] && s[1] != '^' ) {
 			if ( !cur.text.empty() ) {
 				out.push_back( cur );
@@ -414,6 +442,7 @@ void Hud_Shutdown() {
 	texts.clear();
 	images.clear();
 	imageNames.clear();
+	imageIndex.clear();
 	imagesAsked.clear();
 	readAhead.clear();
 	layersDrawn.clear();
@@ -437,15 +466,16 @@ int OzUI_HudImage( const char *name ) {
 	if ( !m || !name || !*name ) {
 		return 0;
 	}
-	for ( size_t i = 0; i < imageNames.size(); i++ ) {
-		if ( imageNames[i] == name ) {
-			if ( imagesAsked[i] != rendererStart ) {
-				imagesAsked[i] = rendererStart;
-				readAhead.push_back( (int)i );
-			}
-			return (int)i + 1;
+	const auto found = imageIndex.find( name );
+	if ( found != imageIndex.end() ) {
+		const int i = found->second;
+		if ( imagesAsked[i] != rendererStart ) {
+			imagesAsked[i] = rendererStart;
+			readAhead.push_back( i );
 		}
+		return i + 1;
 	}
+	imageIndex[name] = (int)imageNames.size();
 	imageNames.push_back( name );
 	images.push_back( m->LoadTexture( name ) );
 	imagesAsked.push_back( rendererStart );

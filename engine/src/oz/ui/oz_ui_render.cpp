@@ -99,6 +99,12 @@ int ThumbFailedRev() {
 	return thumbFailedRev;
 }
 
+void ThumbMarkFailed( const std::string &image ) {
+	if ( thumbFailed.insert( Rml::StringUtilities::ToLower( image ) ).second ) {
+		thumbFailedRev++;
+	}
+}
+
 // a page's src="/textures/..." is a path in the pk3s; relative ones were joined to the page's folder
 Rml::TextureHandle RenderInterface::LoadTexture( Rml::Vector2i &dimensions, const Rml::String &source ) {
 	int w = 0, h = 0;
@@ -134,8 +140,13 @@ Rml::TextureHandle RenderInterface::LoadTexture( Rml::Vector2i &dimensions, cons
 		dimensions = Rml::Vector2i( 640, 480 );
 		return Wrap( t );
 	}
-	const int t = thumb && r->LoadThumbnail ? r->LoadThumbnail( path, 128, &w, &h )
-		: tile && r->LoadReduced ? r->LoadReduced( path, 640, &w, &h, 0 ) : r->LoadTexture( path, &w, &h );
+	// a thumbnail the map editor's cache holds: made from its bytes, in microseconds (oz_ui_thumbs.cpp)
+	bool missing = false;
+	int t = thumb ? Thumbs_Texture( path, w, h, missing ) : 0;
+	if ( !t && !missing ) {
+		t = thumb && r->LoadThumbnail ? r->LoadThumbnail( path, 128, &w, &h )
+			: tile && r->LoadReduced ? r->LoadReduced( path, 640, &w, &h, 0 ) : r->LoadTexture( path, &w, &h );
+	}
 	if ( !t ) {
 		if ( !thumb ) {	// a tool material's tile has no image: its color shows
 			Printf( "^3UI: no image %s\n", path );

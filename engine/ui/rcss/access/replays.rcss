@@ -36,14 +36,18 @@ body.hc .box { background-color: #000000; }
 body.hc .lbl { color: #d9d0c6; }
 
 /* pages/replays.rml */
+body.hc .bar .count { color: #d9d0c6; }
 body.hc .bar kbd { color: #d9d0c6; }
+body.hc .empty { color: #d9d0c6; }
 body.hc button.rrow { background-color: #000000; }
 body.hc .rrow .sub { color: #d9d0c6; }
 body.hc .rrow .when { color: #b0a79e; }
 body.hc .rrow .len { color: #d9d0c6; }
+body.hc .rrow .kind { color: #b0a79e; }
 body.hc .hero .md { color: #d9d0c6; }
 body.hc .stat { background-color: #000000; }
 body.hc .stat .k { color: #b0a79e; }
 body.hc .prow .n { color: #b0a79e; }
 body.hc .prow .bot { color: #b0a79e; }
 body.hc .note { color: #d9d0c6; }
+body.hc .card { background-color: #0a0807; }

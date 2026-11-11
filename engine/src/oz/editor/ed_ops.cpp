@@ -1260,7 +1260,31 @@ Clip copy_of(const Doc &doc, const std::vector<Id> &ids) {
 			out.emplace_back(id, p);
 		}
 	}
+	// the entities of the brushes and curves copied without them, by class (paste)
+	for (const auto &c : out) {
+		if (c.second->kind == Kind::Entity) {
+			continue;
+		}
+		const Object *owner = doc.get(c.second->owner);
+		if (owner && owner->kind == Kind::Entity) {
+			out.owner_class[c.second->owner] = owner->entity.classname();
+		}
+	}
 	return out;
+}
+
+// Whether a pasted brush or curve stays in the entity it was copied out of: the world, or an entity still
+// there under that id and still of the class it had when copied (see Clip)
+static bool keeps_owner(const Doc &doc, const Clip &clip, Id owner) {
+	const Object *o = doc.get(owner);
+	if (!o || o->kind != Kind::Entity) {
+		return false;
+	}
+	if (owner == doc.worldspawn()) {
+		return true;
+	}
+	auto it = clip.owner_class.find(owner);
+	return it == clip.owner_class.end() || it->second == o->entity.classname();
 }
 
 std::vector<Id> paste(Doc &doc, const Clip &clip, const Vec3 &offset, const std::string &label) {
@@ -1332,8 +1356,9 @@ std::vector<Id> paste(Doc &doc, const Clip &clip, const Vec3 &offset, const std:
 			continue;
 		}
 		auto it = ents.find(c.second->owner);
-		const Id owner = it != ents.end() ? it->second : doc.get(c.second->owner) ? c.second->owner : doc.worldspawn();
-		const Vec3 origin = doc.get(c.second->owner) ? doc.model_origin(c.second->owner) : Vec3();
+		const bool copied = it != ents.end(), kept = !copied && keeps_owner(doc, clip, c.second->owner);
+		const Id owner = copied ? it->second : kept ? c.second->owner : doc.worldspawn();
+		const Vec3 origin = (copied || kept) && doc.get(c.second->owner) ? doc.model_origin(c.second->owner) : Vec3();
 		auto o = transformed(doc, *c.second, xf, true, origin);
 		o->owner = owner;
 		made.push_back(doc.add(o));

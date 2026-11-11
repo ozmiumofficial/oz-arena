@@ -1005,16 +1005,48 @@ int main( int argc, const char* argv[] )
 #endif
 
 	// merge the command line, this is kinda silly
+	// Oz: each argument stays one word, as Windows' command line carries a quoted one. Joined bare,
+	// the engine split them again at every '+', ';' and space: an ozarena:// link ending in +quit
+	// ran quit, "//" in a link cut the line as a comment, and a Quake III folder with a '+' or a
+	// space in its name broke +set fs_steampath. Such an argument goes in quotes (its own '"'
+	// dropped); a bare +command stays as it is, so commands still split.
 	for ( len = 1, i = 1; i < argc; i++ )
-		len += strlen( argv[i] ) + 1;
+		len += strlen( argv[i] ) + 3;
 
 	cmdline = malloc( len );
 	*cmdline = '\0';
 	for ( i = 1; i < argc; i++ )
 	{
+		const char *arg = argv[i];
+		char *out = cmdline + strlen( cmdline );
+		qboolean quote;
+
+		if ( *arg == '+' )
+			quote = strpbrk( arg, " \t\n\r" ) != NULL ? qtrue : qfalse;
+		else
+			quote = ( *arg == '\0' || strpbrk( arg, " \t\n\r;+\"" ) != NULL
+				|| strstr( arg, "//" ) != NULL || strstr( arg, "/*" ) != NULL ) ? qtrue : qfalse;
+
 		if ( i > 1 )
-			strcat( cmdline, " " );
-		strcat( cmdline, argv[i] );
+			*out++ = ' ';
+		if ( quote )
+		{
+			*out++ = '"';
+			for ( ; *arg; arg++ )
+			{
+				if ( *arg == '"' )
+					continue;
+				// a line break ends a command even inside quotes
+				*out++ = ( *arg == '\n' || *arg == '\r' ) ? ' ' : *arg;
+			}
+			*out++ = '"';
+		}
+		else
+		{
+			while ( *arg )
+				*out++ = *arg++;
+		}
+		*out = '\0';
 	}
 
 	/*useXYpos = */ Com_EarlyParseCmdLine( cmdline, con_title, sizeof( con_title ), &xpos, &ypos );

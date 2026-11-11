@@ -25,7 +25,15 @@ namespace OzSetup
 
         public static bool HasBaseq3(string dir) => !string.IsNullOrEmpty(dir) && File.Exists(Path.Combine(dir, "baseq3", "pak0.pk3"));
 
-        static string Tidy(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim().Replace('/', '\\').TrimEnd('\\');
+        static string Tidy(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return null;
+            s = s.Trim().Replace('/', '\\').TrimEnd('\\');
+            // a drive's root keeps its backslash: "D:" alone is whatever folder is current on D:, and
+            // choosing D:\ installed there
+            return s.Length == 2 && s[1] == ':' ? s + "\\" : s;
+        }
 
         static string Reg(RegistryHive hive, RegistryView view, string key, string value)
         {
@@ -162,19 +170,82 @@ namespace OzSetup
         public long Size => Assets.Sum(a => a.Size);
 
         static readonly Regex ZipName = new Regex(@"^OzArena-(.+)-windows\.zip$", RegexOptions.IgnoreCase);
+        static readonly Regex WorldName = new Regex(@"^pak_oz_world\d*\.pk3$", RegexOptions.IgnoreCase);
 
-        public static Release Fetch()
+        /// <summary>Does the release list its world packs? One caught while its files are still going up lists
+        /// none, and a zip alone beside Setup has none: then nothing installed is taken for outdated.</summary>
+        public bool ListsWorld => Zip != null && Assets.Any(a => WorldName.IsMatch(a.Name));
+
+        public static bool IsWorld(string name) => WorldName.IsMatch(name);
+
+        static string Bare(string v) => v.Trim().TrimStart('v', 'V');
+
+        /// <summary>Two versions as one: GitHub's tag has a v the zip's name doesn't.</summary>
+        public static bool Same(string a, string b) => a != null && b != null && string.Equals(Bare(a), Bare(b), StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Below zero when a is older than b, zero when they're the same, above when newer: by their
+        /// numbers, then a plain 0.8.0 past 0.8.0-beta. A version it can't read is older.</summary>
+        static int Compare(string a, string b)
         {
-            var offline = Beside();
-            if (offline != null)
-                return offline;
+            a = Bare(a);
+            b = Bare(b);
+            Match ma = Regex.Match(a, @"^\d+(\.\d+)*"), mb = Regex.Match(b, @"^\d+(\.\d+)*");
+            if (!ma.Success || !mb.Success)
+                return string.Equals(a, b, StringComparison.OrdinalIgnoreCase) ? 0 : -1;
+            string[] na = ma.Value.Split('.'), nb = mb.Value.Split('.');
+            for (int i = 0; i < Math.Max(na.Length, nb.Length); i++)
+            {
+                long x = 0, y = 0;
+                if (i < na.Length)
+                    long.TryParse(na[i], out x);
+                if (i < nb.Length)
+                    long.TryParse(nb[i], out y);
+                if (x != y)
+                    return x < y ? -1 : 1;
+            }
+            string sa = a.Substring(ma.Length), sb = b.Substring(mb.Length);
+            if (string.Equals(sa, sb, StringComparison.OrdinalIgnoreCase))
+                return 0;
+            if (sa.Length == 0)
+                return 1;
+            if (sb.Length == 0)
+                return -1;
+            return string.Compare(sa, sb, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>GitHub's latest release. The files beside Setup stand in only when asked for (/offline),
+        /// when GitHub can't be reached, or when they are that release or a newer one: an old zip left in
+        /// Downloads used to be installed without a question, over a newer game.</summary>
+        public static Release Fetch(bool offlineOnly)
+        {
+            var beside = Beside();
+            if (offlineOnly)
+            {
+                if (beside == null)
+                    throw new Exception("There's no OzArena-<version>-windows.zip beside Setup to install from.");
+                return beside;
+            }
+            Release latest;
+            try
+            {
+                latest = Latest();
+            }
+            catch when (beside != null)
+            {
+                return beside;
+            }
+            return beside != null && Compare(beside.Version, latest.Version) >= 0 ? beside : latest;
+        }
+
+        static Release Latest()
+        {
             var req = Http.Request("https://api.github.com/repos/" + Repo + "/releases/latest");
             req.Accept = "application/vnd.github+json";
             GitHubRelease doc;
             using (var resp = req.GetResponse())
             using (var s = resp.GetResponseStream())
                 doc = (GitHubRelease)new DataContractJsonSerializer(typeof(GitHubRelease)).ReadObject(s);
-            var rel = new Release { Version = doc.tag_name };
+            var rel = new Release { Version = doc.tag_name ?? "" };
             foreach (var a in doc.assets ?? new GitHubAsset[0])
             {
                 if (!ZipName.IsMatch(a.name) && !a.name.EndsWith(".pk3", StringComparison.OrdinalIgnoreCase))
@@ -254,6 +325,10 @@ namespace OzSetup
     {
         public string Dir;
         public bool Desktop = true, Links = true;
+        /// <summary>/filesonly: this Setup was started with administrator rights by the player's own, which
+        /// does the shortcuts, the links and the Apps &amp; features entry itself. Asked for by another
+        /// administrator's name and password, this one would put them in that administrator's profile.</summary>
+        public bool FilesOnly;
     }
 
     static class Installer
@@ -360,13 +435,72 @@ namespace OzSetup
             catch { return long.MaxValue; }
         }
 
+        /// <summary>An update still unpacked beside the install (.oz-setup\new): the files in place may be half
+        /// of one version and half of the next, until Setup has run to its end again.</summary>
+        public static bool Unfinished(string dir)
+        {
+            try { return Directory.Exists(Path.Combine(dir, Staging, "new")); }
+            catch { return false; }
+        }
+
+        /// <summary>The per-user half of an install, read from its record: the shortcuts, the links and the
+        /// Apps &amp; features entry.</summary>
+        public static void PerUser(string dir, long bytes)
+        {
+            string version = null;
+            bool desktop = true, links = true;
+            foreach (var l in File.ReadAllLines(Path.Combine(dir, Manifest)))
+            {
+                if (l.StartsWith("version="))
+                    version = l.Substring(8);
+                else if (l == "desktop=0")
+                    desktop = false;
+                else if (l == "links=0")
+                    links = false;
+            }
+            if (version == null)
+                return;
+            Shell.Shortcuts(dir, desktop);
+            Uninstall.Register(dir, version, links, bytes);
+        }
+
+        /// <summary>Files an update set aside (.oz-setup\old) go back where nothing took their place; the rest
+        /// of that folder goes.</summary>
+        static void PutBack(string aside, string dir)
+        {
+            try
+            {
+                if (!Directory.Exists(aside))
+                    return;
+                foreach (var f in Directory.GetFiles(aside, "*", SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        string dest = Path.Combine(dir, f.Substring(aside.Length).TrimStart('\\'));
+                        if (File.Exists(dest))
+                            continue;
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                        File.Move(f, dest);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            TryDeleteDir(aside);
+        }
+
         public static void Install(Release rel, Options o, Progress p, CancellationToken ct)
         {
             string dir = Path.GetFullPath(o.Dir);
+            string inDir = dir.EndsWith("\\") ? dir : dir + "\\"; // a drive's root ends in one already
             string oz = Path.Combine(dir, "oz"), stage = Path.Combine(dir, Staging);
+            string fresh = Path.Combine(stage, "new"), aside = Path.Combine(stage, "old");
             Directory.CreateDirectory(oz);
             var st = Directory.CreateDirectory(stage);
             st.Attributes |= FileAttributes.Hidden;
+            // what a run that was cut off in its last step (a crash, the power) left
+            PutBack(aside, dir);
+            TryDeleteDir(fresh);
 
             var paks = rel.Assets.Where(a => !a.IsZip).ToList();
             var fetch = paks.Where(a => !Have(dir, a)).ToList();
@@ -381,84 +515,168 @@ namespace OzSetup
             {
                 ct.ThrowIfCancellationRequested();
                 p.Step = Describe(a, rel.Offline);
-                string part = Path.Combine(stage, a.Name + ".part"), whole = Path.Combine(stage, a.Name);
+                string whole = Path.Combine(stage, a.Name);
                 if (a.Local != null)
                 {
                     if (a.IsZip)
                         continue; // unpacked straight from where it sits
-                    Copy(a.Local, part, p, ct);
+                    string copy = Path.Combine(stage, a.Name + ".part");
+                    Copy(a.Local, copy, p, ct);
+                    if (File.Exists(whole))
+                        File.Delete(whole);
+                    File.Move(copy, whole);
+                    continue;
                 }
-                else if (!SameSize(whole, a.Size))
-                {
-                    p.Downloading = true;
-                    Download(a, part, p, ct);
-                    p.Downloading = false;
-                }
-                else
+                // A part is named for the size the release gives: one an older release of that name left
+                // is dropped, never carried on from (it gave a file with a stale head and a new tail).
+                string part = Path.Combine(stage, a.Name + "." + a.Size + ".part");
+                foreach (var old in Directory.GetFiles(stage, a.Name + "*.part"))
+                    if (!string.Equals(old, part, StringComparison.OrdinalIgnoreCase))
+                        TryDelete(old);
+                if (SameSize(whole, a.Size) && (a.Sha256 == null || Sha256Of(whole) == a.Sha256))
                 {
                     Interlocked.Add(ref p.Done, a.Size);
                     Interlocked.Add(ref p.Downloaded, a.Size);
                     Interlocked.Add(ref p.Resumed, a.Size);
                     continue;
                 }
-                if (File.Exists(whole))
-                    File.Delete(whole);
+                TryDelete(whole);
+                // Checked against the release's SHA-256 when it gives one (the size alone let a damaged or
+                // swapped file through); one that doesn't match is fetched once more from its start.
+                for (int round = 0; ; round++)
+                {
+                    p.Downloading = true;
+                    long resumed = Download(a, part, p, ct);
+                    p.Downloading = false;
+                    if (a.Sha256 == null)
+                        break;
+                    p.Step = Describe(a, "Checking");
+                    ct.ThrowIfCancellationRequested();
+                    if (Sha256Of(part) == a.Sha256)
+                        break;
+                    File.Delete(part);
+                    if (round >= 1)
+                        throw new Exception(a.Name + " came down twice, and neither time as the file the release lists (its checksum is wrong). Try again later; if it stays that way, tell us at https://github.com/" + Release.Repo + "/issues.");
+                    Interlocked.Add(ref p.Done, -a.Size);
+                    Interlocked.Add(ref p.Downloaded, -a.Size);
+                    Interlocked.Add(ref p.Resumed, -resumed);
+                    p.Step = Describe(a, rel.Offline);
+                }
                 File.Move(part, whole);
             }
             p.Downloading = false;
 
-            // 2. the game: the zip's OzArena\ folder unpacked into the install
+            // 2. the game: the zip's OzArena\ folder unpacked beside the install (.oz-setup\new), so the
+            // installed game stays whole until every new file is there. Unpacked straight onto it, a zip
+            // that broke off halfway, a full disk or a cancel left half of each version.
             ct.ThrowIfCancellationRequested();
             p.Step = "Unpacking the game";
             var files = new List<string>();
+            var moves = new List<KeyValuePair<string, string>>(); // where a new file waits, and its place in the install
+            var placed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string zipPath = rel.Zip.Local ?? Path.Combine(stage, rel.Zip.Name);
-            using (var zip = ZipFile.OpenRead(zipPath))
+            try
             {
-                long total = zip.Entries.Sum(e => e.Length), weighted = (long)(zipBytes * UnpackWeight);
-                double scale = total > 0 ? (double)weighted / total : 0;
-                string top = zip.Entries.Select(e => e.FullName.Split('/')[0]).Distinct().Count() == 1 ? zip.Entries[0].FullName.Split('/')[0] + "/" : "";
-                foreach (var e in zip.Entries)
+                using (var zip = ZipFile.OpenRead(zipPath))
                 {
-                    ct.ThrowIfCancellationRequested();
-                    if (e.FullName.EndsWith("/"))
-                        continue;
-                    string rel1 = e.FullName.Substring(top.Length).Replace('/', '\\');
-                    string dest = Path.GetFullPath(Path.Combine(dir, rel1));
-                    if (!dest.StartsWith(dir + "\\", StringComparison.OrdinalIgnoreCase))
-                        continue; // never outside the install
-                    if (IsIdPak(rel1))
-                        continue; // never the game's own files
-                    Directory.CreateDirectory(Path.GetDirectoryName(dest));
-                    using (var src = e.Open())
-                    using (var dst = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20))
-                        Pump(src, dst, n => Interlocked.Add(ref p.Done, (long)(n * scale)), ct);
-                    File.SetLastWriteTime(dest, e.LastWriteTime.DateTime);
-                    files.Add(rel1);
+                    long total = zip.Entries.Sum(e => e.Length), weighted = (long)(zipBytes * UnpackWeight);
+                    double scale = total > 0 ? (double)weighted / total : 0;
+                    string top = zip.Entries.Select(e => e.FullName.Split('/')[0]).Distinct().Count() == 1 ? zip.Entries[0].FullName.Split('/')[0] + "/" : "";
+                    foreach (var e in zip.Entries)
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        if (e.FullName.EndsWith("/"))
+                            continue;
+                        string rel1 = e.FullName.Substring(top.Length).Replace('/', '\\');
+                        string dest = Path.GetFullPath(Path.Combine(dir, rel1));
+                        if (!dest.StartsWith(inDir, StringComparison.OrdinalIgnoreCase))
+                            continue; // never outside the install
+                        if (IsIdPak(rel1))
+                            continue; // never the game's own files
+                        rel1 = dest.Substring(inDir.Length);
+                        if (!placed.Add(rel1))
+                            continue;
+                        string wait = Path.Combine(fresh, rel1);
+                        Directory.CreateDirectory(Path.GetDirectoryName(wait));
+                        using (var src = e.Open())
+                        using (var dst = new FileStream(wait, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20))
+                            Pump(src, dst, n => Interlocked.Add(ref p.Done, (long)(n * scale)), ct);
+                        File.SetLastWriteTime(wait, e.LastWriteTime.DateTime);
+                        files.Add(rel1);
+                        moves.Add(new KeyValuePair<string, string>(wait, rel1));
+                    }
                 }
             }
+            catch
+            {
+                TryDeleteDir(fresh); // the installed game was never touched
+                throw;
+            }
 
-            // 3. the world paks into oz\, beside the zip's
-            p.Step = "Placing the world textures";
+            // 3. the world paks go into oz\ with them, beside the zip's
             foreach (var a in paks)
             {
-                string staged = Path.Combine(stage, a.Name), dest = Path.Combine(oz, a.Name);
-                if (File.Exists(staged))
-                {
-                    if (File.Exists(dest))
-                        File.Delete(dest);
-                    File.Move(staged, dest);
-                }
+                string staged = Path.Combine(stage, a.Name);
+                if (File.Exists(staged) && placed.Add("oz\\" + a.Name))
+                    moves.Add(new KeyValuePair<string, string>(staged, "oz\\" + a.Name));
                 files.Add("oz\\" + a.Name);
             }
 
-            // 4. an older version's Oz files this one doesn't ship (never the player's own)
-            var keep = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
-            foreach (var f in Directory.GetFiles(oz, "*.pk3"))
+            // Everything into place in one short step, renames only: each installed file set aside
+            // (.oz-setup\old), the new one moved in. If one won't go (a file something holds open), all
+            // of it is taken back and the game is as it was. Never stopped halfway by Cancel.
+            p.Step = "Placing the new files";
+            int at = 0;
+            try
             {
-                string n = Path.GetFileName(f).ToLowerInvariant();
-                if ((n.StartsWith("pak_oz_") || n.StartsWith("zz-oz-")) && !keep.Contains("oz\\" + Path.GetFileName(f)))
-                    TryDelete(f);
+                for (; at < moves.Count; at++)
+                {
+                    string dest = Path.Combine(dir, moves[at].Value), was = Path.Combine(aside, moves[at].Value);
+                    Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                    if (File.Exists(dest))
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(was));
+                        if (File.Exists(was))
+                            File.Delete(was);
+                        File.Move(dest, was);
+                    }
+                    File.Move(moves[at].Key, dest);
+                }
             }
+            catch
+            {
+                for (int i = Math.Min(at, moves.Count - 1); i >= 0; i--)
+                {
+                    try
+                    {
+                        string dest = Path.Combine(dir, moves[i].Value), was = Path.Combine(aside, moves[i].Value);
+                        // the new file back to where it waited (a world pack stays downloaded), then the old one
+                        if (!File.Exists(moves[i].Key) && File.Exists(dest))
+                            File.Move(dest, moves[i].Key);
+                        if (File.Exists(was) && !File.Exists(dest))
+                            File.Move(was, dest);
+                    }
+                    catch { }
+                }
+                PutBack(aside, dir);
+                TryDeleteDir(fresh);
+                throw;
+            }
+
+            // 4. an older version's Oz files this one doesn't ship (never the player's own). Only when the
+            // release lists its world packs: one caught while its files were still going up, or a zip alone
+            // beside Setup, lists none, and every installed pack was deleted as outdated. From the files
+            // beside Setup the installed world packs always stay.
+            var keep = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
+            if (rel.ListsWorld)
+                foreach (var f in Directory.GetFiles(oz, "*.pk3"))
+                {
+                    string n = Path.GetFileName(f).ToLowerInvariant();
+                    if (rel.Offline && n.StartsWith("pak_oz_world"))
+                        continue;
+                    if ((n.StartsWith("pak_oz_") || n.StartsWith("zz-oz-")) && !keep.Contains("oz\\" + Path.GetFileName(f)))
+                        TryDelete(f);
+                }
             foreach (var f in Directory.GetFiles(dir, "OzArena_*_x86_64.dll"))
                 if (!keep.Contains(Path.GetFileName(f)))
                     TryDelete(f);
@@ -466,16 +684,29 @@ namespace OzSetup
             // 5. what makes it an installed game: the uninstaller, the record, shortcuts, links
             p.Step = "Adding shortcuts";
             Directory.CreateDirectory(Path.Combine(dir, "Maps"));
+            // the game reads a baseq3 folder beside it too (fs_basepath): where a player's own paks for the
+            // base game go, so it's there to find (a tester looked for it; it never holds id's files)
+            Directory.CreateDirectory(Path.Combine(dir, "baseq3"));
             string self = Process.GetCurrentProcess().MainModule.FileName;
             string unins = Path.Combine(dir, Installer.Uninstaller);
             if (!string.Equals(self, unins, StringComparison.OrdinalIgnoreCase))
                 File.Copy(self, unins, true);
-            File.WriteAllLines(Path.Combine(dir, Manifest),
+            // the record whole or not at all: the Setup that asked for administrator rights reads it
+            string record = Path.Combine(dir, Manifest);
+            File.WriteAllLines(record + ".new",
                 new[] { "version=" + rel.Version, "desktop=" + (o.Desktop ? 1 : 0), "links=" + (o.Links ? 1 : 0) }
                 .Concat(files.Select(f => "file=" + f)));
-            Shell.Shortcuts(dir, o.Desktop);
-            Uninstall.Register(dir, rel.Version, o.Links, rel.Size);
+            if (File.Exists(record))
+                File.Delete(record);
+            File.Move(record + ".new", record);
+            if (!o.FilesOnly)
+            {
+                Shell.Shortcuts(dir, o.Desktop);
+                Uninstall.Register(dir, rel.Version, o.Links, rel.Size);
+            }
 
+            TryDeleteDir(fresh);
+            TryDeleteDir(aside);
             TryDeleteDir(stage);
             p.Step = "Done";
             Interlocked.Exchange(ref p.Done, p.Total);
@@ -484,9 +715,10 @@ namespace OzSetup
         static bool IsIdPak(string rel) => Regex.IsMatch(Path.GetFileName(rel), @"^pak[0-8]\.pk3$", RegexOptions.IgnoreCase)
             || rel.Split('\\').Any(s => s.Equals("baseq3", StringComparison.OrdinalIgnoreCase));
 
-        static string Describe(Asset a, bool offline)
+        static string Describe(Asset a, bool offline) => Describe(a, offline ? "Copying" : "Downloading");
+
+        static string Describe(Asset a, string verb)
         {
-            string verb = offline ? "Copying" : "Downloading";
             if (a.IsZip)
                 return verb + " the game";
             var m = Regex.Match(a.Name, @"^pak_oz_world(\d*)\.pk3$", RegexOptions.IgnoreCase);
@@ -495,8 +727,9 @@ namespace OzSetup
             return verb + " " + a.Name;
         }
 
-        /// <summary>One file over HTTPS into part, resumed from what part already holds; retried on a dropped connection.</summary>
-        static void Download(Asset a, string part, Progress p, CancellationToken ct)
+        /// <summary>One file over HTTPS into part, resumed from what part already holds; retried on a dropped connection.
+        /// Returns how much of it an earlier run had.</summary>
+        static long Download(Asset a, string part, Progress p, CancellationToken ct)
         {
             long have = File.Exists(part) ? new FileInfo(part).Length : 0;
             if (have > a.Size)
@@ -555,6 +788,7 @@ namespace OzSetup
             }
             if (new FileInfo(part).Length != a.Size)
                 throw new Exception(a.Name + " didn't download whole. Try again: it carries on where it stopped.");
+            return resumed;
         }
 
         static void Copy(string from, string to, Progress p, CancellationToken ct)
@@ -633,9 +867,18 @@ namespace OzSetup
 
         /// <summary>Takes away everything Setup put in: the manifest's files, shortcuts, the entry, the links.
         /// The player's own files (Maps, %APPDATA%\Oz Arena) stay.</summary>
-        public static void Remove(string dir, Progress p, CancellationToken ct)
+        /// <summary>The per-user half of an uninstall: this player's shortcuts, entry and links.</summary>
+        public static void Forget()
+        {
+            Shell.RemoveShortcuts();
+            Unregister(Key);
+            Unregister(Scheme);
+        }
+
+        public static void Remove(string dir, Progress p, CancellationToken ct, bool filesOnly = false)
         {
             dir = Path.GetFullPath(dir);
+            string inDir = dir.EndsWith("\\") ? dir : dir + "\\"; // a drive's root ends in one already
             var files = new List<string>();
             try { files = File.ReadLines(Path.Combine(dir, Installer.Manifest)).Where(l => l.StartsWith("file=")).Select(l => l.Substring(5)).ToList(); }
             catch { }
@@ -649,7 +892,7 @@ namespace OzSetup
             {
                 ct.ThrowIfCancellationRequested();
                 string full = Path.GetFullPath(Path.Combine(dir, f));
-                if (full.StartsWith(dir + "\\", StringComparison.OrdinalIgnoreCase))
+                if (full.StartsWith(inDir, StringComparison.OrdinalIgnoreCase))
                     Installer.TryDelete(full);
                 Interlocked.Increment(ref p.Done);
             }
@@ -657,13 +900,15 @@ namespace OzSetup
             foreach (var f in SafeFiles(Path.Combine(dir, "oz"), "pak_oz_*.pk3").Concat(SafeFiles(Path.Combine(dir, "oz"), "zz-oz-*.pk3")))
                 Installer.TryDelete(f);
             Installer.TryDeleteDir(Path.Combine(dir, ".oz-setup"));
-            foreach (var sub in new[] { "tools", "oz", "Maps" })
+            foreach (var sub in new[] { "tools", "oz", "Maps", "baseq3" })
                 RemoveIfEmpty(Path.Combine(dir, sub));
             Installer.TryDelete(Path.Combine(dir, Installer.Manifest));
+            Installer.TryDelete(Path.Combine(dir, Installer.Manifest + ".new"));
             Installer.TryDelete(Path.Combine(dir, Installer.Uninstaller));
-            Shell.RemoveShortcuts();
-            Unregister(Key);
-            Unregister(Scheme);
+            // with administrator rights asked for by the player's own Setup, that one forgets the
+            // player's shortcuts and links: here they could be another administrator's
+            if (!filesOnly)
+                Forget();
             RemoveIfEmpty(dir);
             Interlocked.Increment(ref p.Done);
             p.Step = "Done";

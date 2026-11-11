@@ -737,6 +737,13 @@ void SV_Init( void )
 {
 	int index;
 
+#ifdef USE_OZ_ICE
+	{
+		void SV_OzIceLinkLost( const netadr_t *adr );	// Oz: sv_client.c
+		OzIce_LinkLost = SV_OzIceLinkLost;
+	}
+#endif
+
 	SV_AddOperatorCommands();
 
 	if ( com_dedicated->integer )

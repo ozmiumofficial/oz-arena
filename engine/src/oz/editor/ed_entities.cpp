@@ -194,7 +194,32 @@ void Session::draw_models(const float moved[3], int now, bool spawns) {
 // ---------------------------------------------------------------- links and arcs
 
 // The first solid brush a segment meets (triggers, hint and the like let players through).
-bool solid_hit(const Doc &doc, const Vec3 &a, const Vec3 &b, double &frac) {
+// The brushes a throw can meet, with their bounds: listed once for a whole arc (and once for all the arcs
+// build_links traces), not at each of its 160 steps. Each step used to list and sort every brush of the map
+// and work out its bounds again, for every pad, at every change of the document: a drag stalled on a big map.
+struct ThrowBrush {
+	const Object *o;
+	Bounds bb;
+};
+static std::vector<ThrowBrush> throw_brushes(const Doc &doc) {
+	std::vector<ThrowBrush> out;
+	for (Id id : doc.ids_of(Kind::Brush)) {
+		const Object *o = doc.get(id);
+		const Object *owner = doc.get(o->owner);
+		if ((owner && owner->entity.classname().compare(0, 8, "trigger_") == 0) || is_nocollide(*o)) {
+			continue;  // a trigger, or a brush with its collision off: thrown players go through
+		}
+		const Bounds bb = bounds_of(doc, id);
+		if (!bb.empty()) {
+			out.push_back({o, bb});
+		}
+	}
+	return out;
+}
+// build_links' list while it runs (the document doesn't change under it), else null
+static const std::vector<ThrowBrush> *g_throw_brushes;
+
+static bool solid_hit_in(const std::vector<ThrowBrush> &brushes, const Vec3 &a, const Vec3 &b, double &frac) {
 	const Vec3 d = b - a;
 	const double len = d.length();
 	if (len < 1e-6) {
@@ -206,14 +231,9 @@ bool solid_hit(const Doc &doc, const Vec3 &a, const Vec3 &b, double &frac) {
 	seg.add(b);
 	double best = len;
 	bool hit = false;
-	for (Id id : doc.ids_of(Kind::Brush)) {
-		const Object *o = doc.get(id);
-		const Object *owner = doc.get(o->owner);
-		if ((owner && owner->entity.classname().compare(0, 8, "trigger_") == 0) || is_nocollide(*o)) {
-			continue;  // a trigger, or a brush with its collision off: thrown players go through
-		}
-		const Bounds bb = bounds_of(doc, id);
-		if (bb.empty() || !bb.overlaps(seg, 1)) {
+	for (const ThrowBrush &tb : brushes) {
+		const Object *o = tb.o;
+		if (!tb.bb.overlaps(seg, 1)) {
 			continue;
 		}
 		bool solid = false;
@@ -230,6 +250,13 @@ bool solid_hit(const Doc &doc, const Vec3 &a, const Vec3 &b, double &frac) {
 	}
 	frac = best / len;
 	return hit;
+}
+
+bool solid_hit(const Doc &doc, const Vec3 &a, const Vec3 &b, double &frac) {
+	if (g_throw_brushes) {
+		return solid_hit_in(*g_throw_brushes, a, b, frac);
+	}
+	return solid_hit_in(throw_brushes(doc), a, b, frac);
 }
 
 // The middle of the first entity named `name` that has one (a pusher's target).
@@ -249,11 +276,16 @@ static bool throw_path(const Doc &doc, const Vec3 &from, const Vec3 &v, double g
 	out.clear();
 	out.push_back(from);
 	Vec3 last = from;
+	std::vector<ThrowBrush> own;
+	if (!g_throw_brushes) {
+		own = throw_brushes(doc);
+	}
+	const std::vector<ThrowBrush> &brushes = g_throw_brushes ? *g_throw_brushes : own;
 	for (int i = 1; i <= 160; i++) {
 		const double t = i * 0.04;
 		const Vec3 p = from + v * t - Vec3(0, 0, 0.5 * g * t * t);
 		double frac;
-		if (solid_hit(doc, last, p, frac)) {
+		if (solid_hit_in(brushes, last, p, frac)) {
 			out.push_back(last + (p - last) * frac);
 			return true;
 		}
@@ -452,11 +484,41 @@ Id Session::aim_pad_top(Id p, const Vec3 &top) {
 	return t;
 }
 
+// A landing or top drag begins: the pad and its target as they are, to put back if the drag is called off.
+void Session::keep_pad(Id pad) {
+	start_.clear();
+	pad_made_.clear();
+	const Object *o = doc.get(pad);
+	if (!o) {
+		return;
+	}
+	start_[pad] = doc.ptr(pad);
+	const std::string name = o->entity.get("target");
+	const Id t = name.empty() ? 0 : entity_named(doc, name);
+	if (t) {
+		start_[t] = doc.ptr(t);
+	}
+}
+
+// Called off: the pad and its target back as they were, a target the drag made for it gone, all inside the
+// drag's open step, which then ends empty. (An undo of the ended step put them back too, but left a Redo.)
+void Session::restore_pad() {
+	for (Id id : pad_made_) {
+		if (doc.get(id)) {
+			doc.remove(id);
+		}
+	}
+	for (auto &kv : start_) {
+		doc.put(kv.first, std::const_pointer_cast<Object>(kv.second));
+	}
+}
+
 void Session::start_land_drag(Id pad) {
 	land_drag_pad_ = pad;
 	land_drag_moved_ = false;
 	land_drag_at_ = Vec3(1e30, 1e30, 1e30);
 	doc.begin("Land here");
+	keep_pad(pad);
 	drag_ = Drag::Land;
 }
 
@@ -482,6 +544,9 @@ void Session::land_drag(int m) {
 	}
 	land_drag_at_ = at;
 	const Id t = aim_pad(land_drag_pad_, at);
+	if (t && !start_.count(t) && std::find(pad_made_.begin(), pad_made_.end(), t) == pad_made_.end()) {
+		pad_made_.push_back(t);  // a target of its own, made by this drag
+	}
 	land_drag_moved_ = true;
 	changed({land_drag_pad_, t});
 	Vec3 from;
@@ -492,10 +557,12 @@ void Session::land_drag(int m) {
 }
 
 void Session::end_land_drag(bool cancel) {
-	doc.end();
 	if (cancel && land_drag_moved_) {
-		doc.undo();  // called off: the pad aimed as it was
+		restore_pad();  // called off: the pad aimed as it was
 	}
+	doc.end();
+	start_.clear();
+	pad_made_.clear();
 	changed({});
 	if (doc.get(land_drag_pad_)) {
 		select(group_of(land_drag_pad_), SelMode::Set);  // its target too, if it got one of its own
@@ -531,6 +598,7 @@ void Session::start_apex_drag(const Handle &h) {
 	double frac;
 	apex_drag_max_ = solid_hit(doc, h.at, h.at + Vec3(0, 0, 8192), frac) ? std::max(h.at.z + 8192 * frac - 40, h.at.z) : 1e30;
 	doc.begin("Jump height");
+	keep_pad(h.id);
 	drag_ = Drag::Apex;
 }
 
@@ -575,6 +643,9 @@ void Session::apex_drag(int m) {
 		}
 		if (lands) {
 			const Id t = aim_pad_top(p, next);
+			if (t && !start_.count(t) && std::find(pad_made_.begin(), pad_made_.end(), t) == pad_made_.end()) {
+				pad_made_.push_back(t);  // a target of its own, made by this drag
+			}
 			apex_drag_top_ = top;
 			apex_drag_moved_ = true;
 			changed({p, t});
@@ -592,10 +663,12 @@ void Session::apex_drag(int m) {
 }
 
 void Session::end_apex_drag(bool cancel) {
-	doc.end();
 	if (cancel && apex_drag_moved_) {
-		doc.undo();  // called off: the throw as it was
+		restore_pad();  // called off: the throw as it was
 	}
+	doc.end();
+	start_.clear();
+	pad_made_.clear();
 	changed({});
 	if (doc.get(apex_drag_pad_)) {
 		select(group_of(apex_drag_pad_), SelMode::Set);  // its target too, if it got one of its own
@@ -653,9 +726,13 @@ void Session::build_links() {
 	if (doc.revision == links_doc_ && sel_rev == links_sel_) {
 		return;
 	}
+	if ((drag_ == Drag::Push || drag_ == Drag::Corners) && links_doc_ != ~0ull) {
+		return;  // a face or a corner being dragged changes the map at every step: the throws are traced again when it's let go
+	}
 	links_doc_ = doc.revision;
 	links_sel_ = sel_rev;
 	links_.begin();
+	std::vector<ThrowBrush> solids;  // listed at the first throw to trace, for all of them
 	std::map<std::string, std::vector<Id>> named;
 	for (Id e : doc.ids_of(Kind::Entity)) {
 		if (const std::string *n = doc.get(e)->entity.find("targetname")) {
@@ -673,6 +750,13 @@ void Session::build_links() {
 		bool bad = false;
 		if (cn == "trigger_push" || cn == "target_push") {
 			// a pusher shows the throw it makes, not a line to the top of it
+			if (!g_throw_brushes) {
+				const auto cached = arcs_.find(e);
+				if (cached == arcs_.end() || cached->second.first != doc.revision + 1) {
+					solids = throw_brushes(doc);
+					g_throw_brushes = &solids;
+				}
+			}
 			const std::vector<Vec3> &arc = push_arc(e);
 			for (size_t i = 1; i < arc.size(); i++) {
 				links_.line(arc[i - 1], arc[i], C_ARC);
@@ -706,6 +790,7 @@ void Session::build_links() {
 			}
 		}
 	}
+	g_throw_brushes = nullptr;
 	// a selected light's reach: where it adds about a sixteenth of full brightness (q3map's
 	// inverse square: intensity times 7500 over the distance squared), or where a linear one ends
 	for (Id e : sel) {

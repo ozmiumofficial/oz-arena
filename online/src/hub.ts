@@ -81,6 +81,9 @@ const RELAY_RATE_PLAYER = 100_000;
 const RELAY_RATE_HOST = 500_000;
 const RELAY_RATE_WINDOW_MS = 6 * 60_000;
 const RELAY_MINTS_PER_HOUR = 30;
+/** By address too: a new key is a new player, so the limit a player was one a script never met. Room for a household
+ *  or a LAN party behind one address. */
+const RELAY_MINTS_PER_HOUR_IP = 60;
 const RELAY_MINTS_PER_10_MIN = 300;
 const RELAY_TTL_USAGE_S = 12 * 3600;
 const RELAY_TTL_WORST_S = 3600;
@@ -98,6 +101,13 @@ const CHAT_GAP_MS = 400;
 /** Rate limit per socket: a bucket of this many messages, refilled this many per second. */
 const BUCKET = 20;
 const REFILL_PER_S = 5;
+/** Signaling (net_signal) has a budget of its own: a link is an offer or answer and a dozen candidates, and a host
+ *  answers a whole party at once. In the shared bucket the candidates past the twentieth were dropped, and those
+ *  joins never connected. */
+const SIGNAL_BUCKET = 240;
+const SIGNAL_REFILL_PER_S = 40;
+/** A match's password, as long as the game allows one (64 with its end). */
+const PASSWORD_MAX = 64;
 /** Leaderboards: rows sent per board, and how big a card or its showcase stats may be. */
 const BOARD_ROWS = 50;
 const CARD_MAX = 2048;
@@ -201,6 +211,11 @@ interface Tag {
   tokens: number;
   at: number;
   chat: number;
+  /** the signaling budget (SIGNAL_BUCKET), filled on the first net_signal */
+  sigTokens?: number;
+  sigAt?: number;
+  /** who asks for relay credentials, for the limit by address: a short hash of the address Cloudflare saw ("" locally) */
+  ip?: string;
 }
 
 interface Player {
@@ -284,6 +299,9 @@ export class Hub extends DurableObject<Env> {
     for (const [col, def] of [['server', "TEXT NOT NULL DEFAULT ''"], ['shortlist', "TEXT NOT NULL DEFAULT '[]'"], ['pings', "TEXT NOT NULL DEFAULT '{}'"],
       ['deadline', 'INTEGER NOT NULL DEFAULT 0'], ['qgroup', "TEXT NOT NULL DEFAULT '[]'"]])
       if (!cols.has(col)) this.sql.exec(`ALTER TABLE rmatches ADD COLUMN ${col} ${def}`);
+    // the relay credentials' asker, for the limit by address
+    if (!this.rows<{ name: string }>('PRAGMA table_info(relay_creds)').some((c) => c.name === 'ip'))
+      this.sql.exec("ALTER TABLE relay_creds ADD COLUMN ip TEXT NOT NULL DEFAULT ''");
   }
 
   /** The community server registry (servers.ts): what the Oz games' sweeps saw, kept in memory for its 5-minute life. */
@@ -331,11 +349,15 @@ export class Hub extends DurableObject<Env> {
       this.sql.exec('INSERT INTO players(id, code, name, model, color, created, seen, last_ts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         pid, code, name, model, color, now, now, ts);
     }
+    // who asks for relay credentials: Cloudflare's own header (a client can't set it), hashed, so no player's address is kept
+    const ip = h.get('cf-connecting-ip') ?? '';
+    const ipHash = ip ? hex(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`relay|${ip}`)))).slice(0, 16) : '';
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server, [pid]);
     const tag: Tag = { pid, status: 'online', detail: '', join: '', since: now, region: regionHeader(h.get('x-region')), listing: '', iceAt: 0, queue: '',
       tokens: BUCKET, at: now, chat: 0, engine: engineHeader(h.get('x-engine')) };
     if (tag.engine === 'oz') tag.key = String(h.get('x-key') ?? '').slice(0, 1400);
+    tag.ip = ipHash;
     server.serializeAttachment(tag);
     this.prune(this.partyOf(pid));
     this.send(server, this.snapshot(pid));
@@ -348,23 +370,30 @@ export class Hub extends DurableObject<Env> {
   async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer) {
     const tag = ws.deserializeAttachment() as Tag | null;
     if (!tag) return;
-    // token bucket: a burst of BUCKET, then REFILL_PER_S a second
+    // read first: signaling is counted apart from everything else
+    const m = parseMsg(data);
     const now = Date.now();
-    tag.tokens = Math.min(BUCKET, tag.tokens + ((now - tag.at) / 1000) * REFILL_PER_S);
-    tag.at = now;
-    if (tag.tokens < 1) {
-      ws.serializeAttachment(tag);
-      return this.notice(ws, 'Slow down.', 'warn');
+    if (m && typeof m === 'object' && m.type === 'net_signal') {
+      // its own bucket: a burst of SIGNAL_BUCKET, then SIGNAL_REFILL_PER_S a second
+      tag.sigTokens = Math.min(SIGNAL_BUCKET, (tag.sigTokens ?? SIGNAL_BUCKET) + ((now - (tag.sigAt ?? now)) / 1000) * SIGNAL_REFILL_PER_S);
+      tag.sigAt = now;
+      if (tag.sigTokens < 1) {
+        ws.serializeAttachment(tag);
+        return this.notice(ws, 'Slow down.', 'warn');
+      }
+      tag.sigTokens -= 1;
+    } else {
+      // token bucket: a burst of BUCKET, then REFILL_PER_S a second
+      tag.tokens = Math.min(BUCKET, tag.tokens + ((now - tag.at) / 1000) * REFILL_PER_S);
+      tag.at = now;
+      if (tag.tokens < 1) {
+        ws.serializeAttachment(tag);
+        return this.notice(ws, 'Slow down.', 'warn');
+      }
+      tag.tokens -= 1;
     }
-    tag.tokens -= 1;
     ws.serializeAttachment(tag);
-    let m: Msg;
-    try {
-      m = JSON.parse(typeof data === 'string' ? data : new TextDecoder().decode(data));
-    } catch {
-      return;
-    }
-    if (!m || typeof m.type !== 'string') return;
+    if (!m || typeof m !== 'object' || typeof m.type !== 'string') return;
     const me = tag.pid;
     const id = typeof m.id === 'string' ? m.id : '';
     const party = typeof m.party === 'string' ? m.party : '';
@@ -512,7 +541,7 @@ export class Hub extends DurableObject<Env> {
   private presence(ws: WebSocket, tag: Tag, m: Msg) {
     const status = STATUSES.includes(m.status as Status) ? (m.status as Status) : 'online';
     const detail = clean(m.detail, 80);
-    const join = clean(m.join, 120);
+    const join = cleanJoin(m.join);
     // the match's mod, map and server (PH step 3): short tokens, or nothing
     const mod = status === 'match' ? token(m.mod, 32) : '';
     const map = status === 'match' ? token(m.map, 64) : '';
@@ -641,7 +670,8 @@ export class Hub extends DurableObject<Env> {
       }
       return this.send(ws, { type: 'stats_report', rid, ok: false, reason: 'That match report failed its signature check.' });
     }
-    const r = await this.stats().report(tag.pid, text, String(m.sig));
+    // with the match the reporter's game sits in right now (seat): only a report from its own match counts toward Corroborated
+    const r = await this.stats().report(tag.pid, text, String(m.sig), tag.seat ?? '');
     if (!r.ok) return this.send(ws, { type: 'stats_report', ...r });
     const { reporters, changed, counted, rows, who, ...answer } = r;
     this.send(ws, { type: 'stats_report', ...answer });
@@ -935,7 +965,7 @@ export class Hub extends DurableObject<Env> {
     } else if (!server) {
       return;
     }
-    const msg = { type: 'net_follow', host, server, leader: me, name: this.player(me)?.name ?? 'Player', password: clean(m.password, 40) };
+    const msg = { type: 'net_follow', host, server, leader: me, name: this.player(me)?.name ?? 'Player', password: clean(m.password, PASSWORD_MAX) };
     for (const p of this.memberIds(party)) if (p !== me && p !== host) this.sendTo(p, msg);
   }
 
@@ -1042,6 +1072,8 @@ export class Hub extends DurableObject<Env> {
   private netHost(ws: WebSocket, tag: Tag, m: Msg) {
     const num = (v: unknown, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.floor(Number(v) || 0)));
     const id = (v: unknown) => (/^[a-z0-9_]{1,32}$/.test(String(v ?? '')) ? String(v) : '');
+    // a host that hides its address (relayed connections only) never lists one, whatever its game sent
+    const relay = m.relay === true;
     const listing = {
       name: clean(m.name, 40) || 'Match', mode: id(m.mode), map: id(m.map), players: num(m.players, 0, 64), max: num(m.max, 1, 64),
       password: m.password === true, ranked: m.ranked === true, version: clean(m.version, 24), dedicated: m.dedicated === true,
@@ -1051,9 +1083,9 @@ export class Hub extends DurableObject<Env> {
       match: this.ownMatch(tag.pid, String(m.match ?? '')),
       engine: engineOf(tag),
       // an Oz host whose UDP port is open (UPnP or forwarded): any game can join it at this address too
-      address: engineOf(tag) === 'oz' && /^\d{1,3}(\.\d{1,3}){3}:\d{1,5}$/.test(String(m.address ?? '')) ? String(m.address) : '',
+      address: !relay && engineOf(tag) === 'oz' &&/^\d{1,3}(\.\d{1,3}){3}:\d{1,5}$/.test(String(m.address ?? '')) ? String(m.address) : '',
       // Oz: whether the host hides its address (relayed connections only)
-      relay: m.relay === true,
+      relay,
     };
     tag.listing = JSON.stringify(listing);
     ws.serializeAttachment(tag);
@@ -1119,7 +1151,7 @@ export class Hub extends DurableObject<Env> {
       // the joiner's connection is about to outlive a relay credential: a second connection beside it, same match, same slot
       const link = this.one<{ accepted: number }>('SELECT accepted FROM links WHERE host = ? AND peer = ?', host, tag.pid);
       if (!link?.accepted) return refuse('That connection is gone.');
-      this.sendTo(host, { type: 'net_request', peer: tag.pid, name: this.player(tag.pid)?.name ?? 'Player', renew: true, gen: gen(m.gen) });
+      this.sendToHost(host, { type: 'net_request', peer: tag.pid, name: this.player(tag.pid)?.name ?? 'Player', renew: true, gen: gen(m.gen) });
       return this.send(ws, { type: 'net_wait', host });
     }
     const listing = this.listings().find((l) => l.host === host);
@@ -1138,7 +1170,7 @@ export class Hub extends DurableObject<Env> {
     if (this.count('SELECT COUNT(*) AS n FROM links WHERE host = ?', host) >= 64) return refuse('The match is full.');
     this.sql.exec('INSERT OR REPLACE INTO links(host, peer, at, accepted) VALUES (?, ?, ?, 0)', host, tag.pid, now);
     const me = this.player(tag.pid);
-    this.sendTo(host, { type: 'net_request', peer: tag.pid, name: me?.name ?? 'Player', password: clean(m.password, 40), version: clean(m.version, 24) });
+    this.sendToHost(host, { type: 'net_request', peer: tag.pid, name: me?.name ?? 'Player', password: clean(m.password, PASSWORD_MAX), version: clean(m.version, 24) });
     this.send(ws, { type: 'net_wait', host });
   }
 
@@ -1193,7 +1225,7 @@ export class Hub extends DurableObject<Env> {
       return this.send(ws, { type: 'net_ice', error: 'Relayed play is not set up on this hub.' });
     }
     const isHost = tag.listing !== '';
-    const refusal = this.relayRefusal(tag.pid, isHost);
+    const refusal = this.relayRefusal(tag.pid, isHost, tag.ip ?? '');
     if (refusal) return this.send(ws, { type: 'net_ice', error: refusal });
     const ttl = this.relayTtl();
     try {
@@ -1209,8 +1241,8 @@ export class Hub extends DurableObject<Env> {
         .map((s) => ({ urls: ([] as string[]).concat(s.urls ?? []), username: s.username, credential: s.credential }));
       if (!servers.length) return this.send(ws, { type: 'net_ice', error: 'The relay gave no servers.' });
       const now = Date.now();
-      this.sql.exec('INSERT OR REPLACE INTO relay_creds(username, pid, host, minted, expires, worst) VALUES (?, ?, ?, ?, ?, ?)',
-        String(servers[0].username), tag.pid, isHost ? 1 : 0, now, now + ttl * 1000, isHost ? RELAY_GB_HOST : RELAY_GB_PLAYER);
+      this.sql.exec('INSERT OR REPLACE INTO relay_creds(username, pid, host, minted, expires, worst, ip) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        String(servers[0].username), tag.pid, isHost ? 1 : 0, now, now + ttl * 1000, isHost ? RELAY_GB_HOST : RELAY_GB_PLAYER, tag.ip ?? '');
       this.sql.exec('DELETE FROM relay_creds WHERE expires < ?', now - 40 * 86_400_000);
       this.send(ws, { type: 'net_ice', servers, relay_only: !direct && engineOf(tag) !== 'oz', ttl });
       // only when no check is pending: until one comes, the credential counts at its worst case, so there is no hurry,
@@ -1250,9 +1282,11 @@ export class Hub extends DurableObject<Env> {
   }
 
   /** Why a credential can't be minted now, or "" (the mint limits, then the budget). */
-  private relayRefusal(pid: string, host: boolean): string {
+  private relayRefusal(pid: string, host: boolean, ip: string): string {
     const now = Date.now();
     if (this.count('SELECT COUNT(*) AS n FROM relay_creds WHERE pid = ? AND minted > ?', pid, now - 3_600_000) >= RELAY_MINTS_PER_HOUR)
+      return 'Too many relay requests from you; try again later.';
+    if (ip && this.count('SELECT COUNT(*) AS n FROM relay_creds WHERE ip = ? AND minted > ?', ip, now - 3_600_000) >= RELAY_MINTS_PER_HOUR_IP)
       return 'Too many relay requests from you; try again later.';
     if (this.count('SELECT COUNT(*) AS n FROM relay_creds WHERE minted > ?', now - 600_000) >= RELAY_MINTS_PER_10_MIN)
       return 'The relay is busy; try again in a few minutes.';
@@ -1377,8 +1411,10 @@ export class Hub extends DurableObject<Env> {
   private netSignal(ws: WebSocket, tag: Tag, m: Msg) {
     const me = tag.pid;
     const to = String(m.to ?? '');
-    const link = this.one<{ accepted: number }>('SELECT accepted FROM links WHERE (host = ? AND peer = ?) OR (host = ? AND peer = ?)', me, to, to, me);
+    const link = this.one<{ host: string; accepted: number }>('SELECT host, accepted FROM links WHERE (host = ? AND peer = ?) OR (host = ? AND peer = ?)', me, to, to, me);
     if (!link || !link.accepted) return;
+    // to the host: its game that hosts, not every game the player has open
+    const deliver = (msg: object) => (link.host === to ? this.sendToHost(to, msg) : this.sendTo(to, msg));
     // the Oz engine's Hide my IP is the sender's own choice: it offers only relay candidates then, and leaves direct off
     const direct = this.env.NET_DIRECT === '1' || (engineOf(tag) === 'oz' && m.direct === true);
     const kind = String(m.kind ?? '');
@@ -1387,18 +1423,28 @@ export class Hub extends DurableObject<Env> {
       if (sdp.length > 12_000) return;
       if (!direct)
         sdp = sdp.split(/\r?\n/).filter((l) => !l.startsWith('a=candidate')).map((l) => (l.startsWith('c=IN IP') ? 'c=IN IP4 0.0.0.0' : l)).join('\r\n') + '\r\n';
-      return this.sendTo(to, { type: 'net_signal', from: me, kind, sdp, gen: gen(m.gen) });
+      return deliver({ type: 'net_signal', from: me, kind, sdp, gen: gen(m.gen) });
     }
     if (kind === 'candidate') {
       const candidate = String(m.candidate ?? '');
       if (candidate.length > 400 || (!direct && !/ typ relay\b/.test(candidate))) return;
-      return this.sendTo(to, { type: 'net_signal', from: me, kind, candidate, direct: direct && !/ typ relay\b/.test(candidate), mid: clean(m.mid, 32), index: Math.max(0, Math.min(8, Math.floor(Number(m.index) || 0))), gen: gen(m.gen) });
+      return deliver({ type: 'net_signal', from: me, kind, candidate, direct: direct && !/ typ relay\b/.test(candidate), mid: clean(m.mid, 32), index: Math.max(0, Math.min(8, Math.floor(Number(m.index) || 0))), gen: gen(m.gen) });
     }
   }
 
   private sendTo(pid: string, msg: object) {
     const data = JSON.stringify(msg);
     for (const s of this.sockets(pid)) trySend(s, data);
+  }
+
+  /** To a host's game: the socket its listing is on. A player with two games open got every join request and signal on
+   *  both, and the one that hosts nothing refused the joiner the other was accepting. With no listing (taken down, a
+   *  link that outlived it), every socket as before. */
+  private sendToHost(pid: string, msg: object) {
+    const socks = this.sockets(pid);
+    const hosting = socks.filter((s) => !!(s.deserializeAttachment() as Tag | null)?.listing);
+    const data = JSON.stringify(msg);
+    for (const s of hosting.length ? hosting : socks) trySend(s, data);
   }
 
   // ------------------------------------------------------------------ matchmaking and ranked
@@ -1975,6 +2021,15 @@ async function hmacOk(secret: string, text: string, sig: string): Promise<boolea
   return a.length === b.length && crypto.subtle.timingSafeEqual(a, b);
 }
 
+/** A socket's message as JSON, or null when it isn't any. */
+function parseMsg(data: string | ArrayBuffer): Msg | null {
+  try {
+    return JSON.parse(typeof data === 'string' ? data : new TextDecoder().decode(data)) as Msg | null;
+  } catch {
+    return null;
+  }
+}
+
 function trySend(ws: WebSocket, data: string) {
   try {
     ws.send(data);
@@ -1996,6 +2051,19 @@ function clean(v: unknown, max: number): string {
 function token(v: unknown, max: number): string {
   const s = String(v ?? '').toLowerCase();
   return new RegExp(`^[a-z0-9_.\\-]{1,${max}}$`).test(s) ? s : '';
+}
+
+/**
+ * Presence's `join`, how a friend's Join button reaches the player's match: "ice:<host id>" (a peer-to-peer match),
+ * "edit:<host id>" (an editing session) or "server:<address>" (a listed community server), each with " locked" after it
+ * when it takes a password. Anything else is no way to join: a friend's game builds a command from this text, and a
+ * changed client could send one of its own.
+ */
+function cleanJoin(v: unknown): string {
+  const s = clean(v, 120);
+  const target = s.endsWith(' locked') ? s.slice(0, -7) : s;
+  if (/^(ice|edit):[0-9a-f]{20}$/.test(target)) return s;
+  return target.startsWith('server:') && isAddress(target.slice(7)) ? s : '';
 }
 
 /** A community server's address as the game names it: a host name or an IP (v6 in brackets) and a port. */

@@ -12,6 +12,7 @@
 #include "ed_doc.h"
 #include "ed_engine.h"
 #include "ed_entdefs.h"
+#include "ed_light.h"
 #include "ed_mapping.h"
 #include "ed_ops.h"
 #include "ed_shaders.h"
@@ -57,6 +58,12 @@ public:
 	// unset, or true for an object: its faces in their materials; false: its tint and edges alone (the lit
 	// preview's selected objects the compile already has)
 	std::function<bool(Id)> materials;
+	// the live light (ed_light.h): set, faces it has texels for draw lit by them
+	const LiveLight *light = nullptr;
+	// set: a brush's faces it gives nothing for are left out, the others drawn as it gives them, lifted
+	// off their plane toward the eye by lift units (the paint tool's preview over the map's own faces)
+	std::function<const Face *(Id, int)> face_as;
+	double lift = 0;
 
 	void changed(const Doc &doc, const std::vector<Id> &ids);  // empty: everything
 	void flush(const Doc &doc);                                 // rebuild what changed
@@ -77,11 +84,14 @@ private:
 	struct Material {
 		int shader = 0;  // a renderer handle: the face's shader, or one of the editor's looks
 		unsigned char color[4] = {255, 255, 255, 255};
+		std::string name;         // a material's (not a tool's): what it's drawn lit by a page as
+		std::map<int, int> lit;   // lightmap page -> the renderer's handle for it lit by that page
 	};
 	Key key_of(const Doc &doc, Id id) const;
 	void build(const Doc &doc, Cell &cell);
 	void build_wire(const Doc &doc, Cell &cell);
 	const Material &material(ShaderId s);
+	int lit_shader(ShaderId s, int page);  // 0: draw it with the plain one
 
 	std::map<Key, Cell> cells_;
 	std::unordered_map<Id, Key> where_;
@@ -118,7 +128,7 @@ private:
 	uint64_t tri_hash_ = 0, line_hash_ = 0;  // what's uploaded: an unchanged overlay isn't sent again
 };
 
-enum class Tool { Select, Create, Clip, Faces, Place };
+enum class Tool { Select, Create, Clip, Faces, Place, Paint };  // the page's tool strip counts on this order
 enum class SelMode { Set, Add, Toggle, Remove };
 
 // What a ray from the view meets first.
@@ -169,14 +179,29 @@ public:
 	Tool tool = Tool::Select;
 	bool texture_lock = true;                     // moves, turns and mirrors carry the textures along
 	std::string shader = "base_wall/concrete";    // what new brushes are made of
+	// a material dragged from the browser, while the page drags it: the face under the pointer shows it
+	std::string drop_material;
+	// the dragged material let go over the view: painted on the face under the pointer (Shift: its
+	// brush; a curve whole), and held
+	void drop_at_pointer(int mods);
+	// the preview's faces, as "id face,face ... material" (empty: none), for tests
+	std::string paint_preview_text() const;
 	std::set<Id> sel;                             // the selected objects
 	uint64_t sel_rev = 0;                         // bumps when the selection changes
 	std::set<std::pair<Id, int>> corners;         // selected corners of selected brushes
-	std::set<FaceRef> faces;                      // the faces tool's faces (the objects' selection is empty meanwhile)
+	std::set<FaceRef> faces;                      // the faces tool's and the paint tool's faces (the objects' selection is empty meanwhile)
 	std::string place_class;                      // what the place tool puts down: a class, "jump_pad" or "teleporter"
 	std::function<void(const std::string &, bool error)> notify;
 
 	Session();
+	// The faces tool or the paint tool: what the panel, the mapping and the inspector act on are the faces
+	// picked, not brushes (the paint tool's are the faces its strokes painted).
+	bool face_mode() const { return tool == Tool::Faces || tool == Tool::Paint; }
+	// The paint tool's marked area (Inspect shows it): its size and the faces it covers ("64 x 128, 3 faces")
+	bool paint_area_on() const { return area_.on; }
+	std::string paint_area_text() const;
+	bool paint_area_apply();  // the area painted (cutting blocks on its edges); false, and why said, when there's none
+	void paint_area_clear();
 	// The view's rectangle in window pixels; moves the camera, rebuilds what changed, draws.
 	void frame(int x, int y, int w, int h);
 	// Keys and buttons (true: taken). over: the pointer is over the view.
@@ -185,6 +210,15 @@ public:
 	void look(int dx, int dy);   // the mouse while looking
 	bool looking() const { return looking_; }
 	bool dragging() const { return drag_ != Drag::None; }
+	// The page is gone from under the pointer (closed, covered by another page, a play-test began): the look
+	// ends and the mouse is let go of, a drag under way is called off as Escape calls it off. The buttons'
+	// releases never reach the editor then.
+	void release_all();
+	// The document was replaced from outside (a session's snapshot): everything kept by its revision starts over
+	void doc_replaced() { attach(); }
+	// Counts the documents this session has had (New, Open, a session's map), over every session: what's
+	// keyed on doc.revision is keyed on this too, as a new document's revision can equal the old one's.
+	uint64_t doc_serial = 0;
 
 	// ed <action> [args]: false when there's no such action
 	bool run(const std::string &action, const std::vector<std::string> &args);
@@ -281,6 +315,12 @@ public:
 	// the size tag by the pointer while a brush is drawn or a drag runs (window pixels): false when none
 	bool size_tag(std::string &text, double &sx, double &sy) const;
 	std::string render_stats() const;  // the view's meshes and triangles (ed_stats)
+	// what the view left out at a limit since the map was opened (faces past a mesh's vertexes, overlay
+	// shapes, meshes) and the faces the live light has no page for; "" when nothing (ed_stats limits:)
+	std::string limit_stats() const;
+	// The page has a menu, a list or a dialog over the view (it says so each frame): the thumbnails, cut out
+	// of a screenshot of the whole window, wait until it's gone.
+	bool page_over = false;
 	bool renderer_ok() const;          // the renderer can draw the view (only the oz renderer can)
 	void load_defs();                  // the mods' .def files into the entity catalog, once
 
@@ -381,6 +421,17 @@ public:
 	// is drawn by the editor over it. Compiles first when the map changed since.
 	void toggle_preview();
 	bool previewing() const;
+	// the eyedropper's button armed it: the next click on a face in a view takes its material
+	bool eyedropping() const { return eyedrop_armed_; }
+	// the material the eyedropper last took, until the materials panel shows it (its page turned to it)
+	bool want_mat_show = false;
+	// The live light (ed_light.h, Ozmium 2026-11-08): the map always lit by its own lights, as Play lights
+	// it, and lit again as it changes. Lighting off (F6) shows it in the view's own light instead.
+	bool live_light = true;
+	void set_live_light(bool on);
+	LiveLight &live() { return live_; }
+	SkyLight sky_light() const;      // ed_compile.cpp: the light q3map2 gets from the sky and worldspawn
+	LightMat light_mat(ShaderId s);  // what the light needs of a material (ed_view.cpp)
 	bool changed_since(Id id) const;  // since the compile the preview shows
 	int changes_since_compile() const;
 	// While it shows: a light changed, added or taken out since compiles again on its own, a moment
@@ -409,7 +460,7 @@ public:
 	bool no_recovery = false;                 // no offer of what an earlier session left (a session's map is the host's)
 
 private:
-	enum class Drag { None, Pending, Move, Box, Push, Corners, Pan, Footprint, ClipPoint, Land, Apex };
+	enum class Drag { None, Pending, Move, Box, Push, Corners, Pan, Footprint, ClipPoint, Land, Apex, Paint };
 	struct Shape {  // a selected brush's corners, edges and faces, cached until it changes
 		ObjectPtr of;
 		std::vector<Vec3> corners;
@@ -483,7 +534,47 @@ private:
 	void map_targets(const MapEdit &e, const std::string &label);
 	void tex_nudge(double dx, double dy, double step);
 	void tex_turn(double degrees);
+	void tex_wrap();
 	std::string faces_hint() const;
+	// the paint tool (ed_faces.cpp): a drag on a block's surface draws a rectangle on the grid there, as the
+	// create tool's footprint (a click: one grid cell). It stays marked; Enter, P or Inspect's Paint area
+	// paints the current material on that area alone: the faces in line with the one it began on (Ctrl:
+	// every face facing its way inside it, at any depth), each block cut on the rectangle's edges so only
+	// the part inside takes it. The faces painted are the picked faces after.
+	struct PaintArea {
+		bool on = false;
+		int axis = 2;       // the surface's main axis: the area spans the other two
+		Plane plane;        // the surface it began on
+		double u0 = 0, u1 = 0, v0 = 0, v1 = 0;  // along axes (axis + 1) % 3 and (axis + 2) % 3
+		bool flat = false;  // Ctrl: only the faces level with the surface it began on (else it follows steps)
+	};
+	struct PaintPart {
+		Id id;
+		int face;
+		Winding inside;  // the part of the face inside the area
+	};
+	void paint_click(int mods);
+	bool paint_begin();
+	void paint_motion(int mods);
+	void paint_end(bool cancel);
+	bool paint_surface(double sx, double sy, Hit &hit) const;  // the block face there (through clip, triggers ...)
+	void paint_rect(const Vec3 &a, const Vec3 &b);             // the area over two points of the surface, on the grid
+	std::vector<Plane> paint_sides() const;                    // the area's four sides, facing out
+	std::vector<PaintPart> paint_parts() const;                // what it covers
+	void build_paint_area();
+	std::string paint_hint() const;
+	PaintArea area_, area_before_;
+	Vec3 paint_grab_;
+	Overlay paint_lines_;
+	std::string paint_built_;
+	// the paint tool's preview, and a dragged material's: the face under the pointer drawn painted
+	// with it, lit as the map's (Shift: its brush's faces)
+	void build_paint_preview();
+	Mesher paint_preview_;
+	Id preview_id_ = 0;
+	std::map<std::pair<Id, int>, Face> preview_faces_;
+	std::string preview_key_, preview_mat_;
+	int paint_count_ = 0;  // the faces the area covers, as last built
 	// entities (ed_entities.cpp)
 	bool entities_action(const std::string &action, const std::vector<std::string> &args);
 	int model_handle(const std::string &name);
@@ -546,6 +637,10 @@ public:
 	void check_map();             // map_problems into the warnings' list, said
 private:
 	std::vector<Id> land_pushers_;  // push_land's pads
+	// a landing or top drag: the pad and its target as the drag began (start_), the target it made (pad_made_)
+	void keep_pad(Id pad);
+	void restore_pad();
+	std::vector<Id> pad_made_;
 	Id land_drag_pad_ = 0;          // the pad whose landing is being dragged
 	Vec3 land_drag_at_;
 	bool land_drag_moved_ = false;
@@ -765,10 +860,20 @@ private:
 	std::unordered_map<Id, ObjectPtr> compiled_;  // the last good compile's document, and its name
 	std::string compiled_name_;
 	bool lit_ = false;
+	LiveLight live_;
+	bool live_built_ = true;  // the meshes are built lit
+	uint64_t probes_rev_ = ~0ull;
+	uint64_t sky_light_rev_ = ~0ull;  // the revision sky_light_ was worked out at
+	SkyLight sky_light_;
+	std::unordered_map<ShaderId, LightMat> light_mats_;
+	void live_frame();
+	int light_full_seen_ = 0;       // live_.place_failures() as this document was opened
+	bool light_full_said_ = false;  // "N faces unlit" said for this document
 	uint64_t preview_rev_ = 0;  // the revision the lit preview last looked at
 	int preview_due_ = 0;       // when it compiles again for a changed light (0: not waiting)
 	std::map<std::string, std::string> keymap_;  // action -> keys, the player's own
 	bool keymap_loaded_ = false;
+	int keymap_serial_ = 0;  // the shared keymap (ed_keys.cpp) as this session last copied it
 	void load_keymap();
 	void save_keymap();
 	const Action *action_for(const std::string &combo);
@@ -802,10 +907,13 @@ private:
 	void collect_warnings(const std::string &log, const std::string &stage);
 	std::vector<CompileWarning> warnings_;
 	void build_leak();
-	// the eyedropper's last face: Alt+Shift+click pastes its mapping with the material
+	// the eyedropper's last face: Alt+Shift+click pastes its mapping with the material (wrapped round
+	// the edge a face shares with it), and the face painted becomes it, so a row of clicks wraps on
 	Face picked_;
 	bool picked_ok_ = false;
+	bool eyedrop_armed_ = false;
 	Vec3 picked_origin_;
+	Winding picked_w_;
 };
 
 Session &session();  // the one the page shows: the map editor alone's, or the multiplayer one's (ed_together.h)
@@ -832,6 +940,27 @@ inline bool face_tint(const Face &f, unsigned char rgb[3]) {
 	}
 	rgb[0] = (unsigned char)((f.value >> 16) & 255), rgb[1] = (unsigned char)((f.value >> 8) & 255), rgb[2] = (unsigned char)(f.value & 255);
 	return true;
+}
+// A face's glow (GLOW in Inspect): its flags number holds 0x02 << 24, the light it casts at bits 12 to 23 and
+// its glow's brightness at bits 0 to 11, each in percent of its material's own (100 and 100: no mark). The
+// view draws, and the compile writes, the material's glow copy (ShaderLib::glow_variant).
+inline constexpr int32_t GLOW_MARK = 0x02000000;
+inline bool face_glow(const Face &f, int &brightness, int &light) {
+	if (!f.has_flags || (f.flags & 0x7f000000) != GLOW_MARK) {
+		return false;
+	}
+	brightness = f.flags & 4095, light = (f.flags >> 12) & 4095;
+	return true;
+}
+inline void set_face_glow(Face &f, int brightness, int light) {
+	brightness = brightness < 0 ? 0 : brightness > 4095 ? 4095 : brightness;
+	light = light < 0 ? 0 : light > 4095 ? 4095 : light;
+	if (brightness == 100 && light == 100) {
+		f.flags = (f.flags & 0x7f000000) == GLOW_MARK ? 0 : f.flags;
+	} else {
+		f.flags = GLOW_MARK | (light << 12) | brightness;
+		f.has_flags = true;
+	}
 }
 inline bool is_nocollide(const Object &o) {
 	if (o.kind != Kind::Brush || o.brush.faces.empty()) {

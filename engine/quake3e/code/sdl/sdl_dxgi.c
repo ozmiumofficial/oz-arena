@@ -157,7 +157,11 @@ static struct {
 	unsigned				frame;
 	qboolean				scissor;			// GL_SCISSOR_TEST as the renderers left it, known without asking GL
 	int						failures;
+	int						badFrames;			// frames in a row whose wait, signal or present failed
 } dx;
+
+// a present kept failing in this run: OpenGL presents until the game is started again
+static qboolean dxOff;
 
 static struct {
 	pGenFramebuffers		GenFramebuffers;
@@ -586,6 +590,9 @@ qboolean DXGI_Start( SDL_Window *window, int width, int height, int swapInterval
 	if ( !r_dxgi->integer ) {
 		return qfalse;
 	}
+	if ( dxOff ) {
+		return Fail( "presenting failed earlier in this run", 0 );
+	}
 
 	SDL_VERSION( &info.version );
 	if ( !SDL_GetWindowWMInfo( window, &info ) || info.subsystem != SDL_SYSWM_WINDOWS ) {
@@ -750,7 +757,7 @@ void DXGI_Present( void ) {
 	const GLenum_ drawLayout = GL_LAYOUT_COLOR_ATTACHMENT_EXT_, srcLayout = GL_LAYOUT_TRANSFER_SRC_EXT_;
 	GLuint64_ value;
 	GLboolean_ scissor;
-	HRESULT hr;
+	HRESULT hr, hrWait, hrSignal;
 
 	if ( !dx.active ) {
 		return;
@@ -780,10 +787,10 @@ void DXGI_Present( void ) {
 	gl.SignalSemaphoreEXT( dx.semaphore[0], 0, NULL, 1, &dx.texture[n], &srcLayout );
 	gl.Flush();	// the signal reaches the GPU now, not at GL's next flush
 
-	ID3D11DeviceContext4_Wait( dx.context, dx.fence[0], value );
+	hrWait = ID3D11DeviceContext4_Wait( dx.context, dx.fence[0], value );
 	ID3D11DeviceContext4_CopyResource( dx.context, (ID3D11Resource *)dx.backBuffer, (ID3D11Resource *)dx.shared[n] );
 	dx.copied[n] = ++dx.copies;
-	ID3D11DeviceContext4_Signal( dx.context, dx.fence[1], dx.copied[n] );
+	hrSignal = ID3D11DeviceContext4_Signal( dx.context, dx.fence[1], dx.copied[n] );
 	hr = IDXGISwapChain1_Present( dx.swapChain, dx.interval, dx.presentFlags );
 	dx.frame++;
 
@@ -793,6 +800,18 @@ void DXGI_Present( void ) {
 			Com_Printf( S_COLOR_YELLOW "DXGI presentation lost (0x%08lx): restarting the renderer\n", (unsigned long)hr );
 			Cbuf_AddText( "vid_restart\n" );
 		}
+	} else if ( FAILED( hr ) || FAILED( hrWait ) || FAILED( hrSignal ) ) {
+		// any other failure, three frames in a row: nothing would show. The window has had a flip-model
+		// swap chain, so OpenGL gets a new one to present in (a vid_restart), and DXGI stays off this run
+		if ( ++dx.badFrames == 3 ) {
+			const HRESULT why = FAILED( hr ) ? hr : FAILED( hrWait ) ? hrWait : hrSignal;
+			dxOff = qtrue;
+			Com_Printf( "DXGI presentation off: %s failed (0x%08lx); OpenGL presents\n",
+				FAILED( hr ) ? "Present" : FAILED( hrWait ) ? "the wait for GL's frame" : "the copy's signal", (unsigned long)why );
+			Cbuf_AddText( "vid_restart\n" );
+		}
+	} else {
+		dx.badFrames = 0;
 	}
 }
 

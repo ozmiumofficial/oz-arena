@@ -252,6 +252,7 @@ typedef struct pack_s {
 	int				referenced;					// referenced file flags
 	qboolean		exclude;					// found in \fs_excludeReference list
 	qboolean		ozAsset;					// Oz: a remastered asset pak loaded under another mod: on no pak list
+	qboolean		ozMapsPak;					// Oz: from the Maps folder (FS_AddMapsDirectory): maps and their art, never ui/, vm/ or a .cfg
 	int				hashSize;					// hash table size (power of 2)
 	fileInPack_t*	*hashTable;					// hash table
 	fileInPack_t*	buildBuffer;				// buffer with the filenames etc.
@@ -1144,6 +1145,68 @@ void FS_OS_Rename( const char *from_ospath, const char *to_ospath ) {
 
 /*
 ===========
+FS_SV_OzOpenMapsPak
+
+Oz: FS_SV_FOpenFileRead for a pak of the Maps folder a client asks to download. Such a pak is listed
+to joiners as "baseq3/<pak>.pk3", but it lies in fs_mapspath, not under the home, base or Steam path:
+the server answered "not found on server for autodownloading" and a joiner without the map was out.
+Only a pak this server loaded from the Maps folder is opened, by the path it was loaded from.
+===========
+*/
+int FS_SV_OzOpenMapsPak( const char *filename, fileHandle_t *fp ) {
+	const searchpath_t *search;
+	fileHandleData_t *fd;
+	char base[ MAX_OSPATH ];
+	const char *name;
+	size_t len;
+	FILE *o;
+
+	if ( !fp ) {
+		return -1;
+	}
+	*fp = FS_INVALID_HANDLE;
+
+	len = strlen( BASEGAME );
+	if ( !fs_searchpaths || Q_stricmpn( filename, BASEGAME, len ) || ( filename[len] != '/' && filename[len] != '\\' ) ) {
+		return -1;
+	}
+	name = filename + len + 1;
+	if ( strchr( name, '/' ) || strchr( name, '\\' ) ) {
+		return -1;
+	}
+	Q_strncpyz( base, name, sizeof( base ) );
+	len = strlen( base );
+	if ( len <= 4 || Q_stricmp( base + len - 4, ".pk3" ) ) {
+		return -1;
+	}
+	base[ len - 4 ] = '\0';
+
+	for ( search = fs_searchpaths; search; search = search->next ) {
+		if ( !search->pack || !search->pack->ozMapsPak || FS_FilenameCompare( search->pack->pakBasename, base ) ) {
+			continue;
+		}
+		o = Sys_FOpen( search->pack->pakFilename, "rb" );
+		if ( !o ) {
+			return -1;
+		}
+		*fp = FS_HandleForFile();
+		fd = &fsh[ *fp ];
+		FS_InitHandle( fd );
+		fd->handleFiles.file.o = o;
+		Q_strncpyz( fd->name, filename, sizeof( fd->name ) );
+		fd->handleSync = qfalse;
+		fd->zipFile = qfalse;
+		if ( fs_debug->integer ) {
+			Com_Printf( "FS_SV_OzOpenMapsPak: %s\n", search->pack->pakFilename );
+		}
+		return FS_FileLength( o );
+	}
+	return -1;
+}
+
+
+/*
+===========
 FS_Rename
 ===========
 */
@@ -1701,6 +1764,57 @@ static qboolean FS_BannedPakFile( const char *filename )
 }
 
 
+/*
+============
+FS_OzDeniedName, FS_OzPakDenied
+
+Oz: names only some paks may give. A pak in the Maps folder (where map downloads land) brings maps and
+their art: its ui/ pages, vm/ code and .cfg files are never read, or a downloaded map pack could replace
+the menus or the game code for good. And under Oz's own game default.cfg, which runs at every start,
+comes from Oz's code pak (or id's paks, on a pure server that lists only those), never from a pak a
+server sent into the oz folder. Loose files and mods (their own and id's paks, as before) are untouched.
+============
+*/
+#define OZ_DENY_MAPS_PAK	1
+#define OZ_DENY_DEFAULT_CFG	2
+
+static int FS_OzDeniedName( const char *filename )
+{
+	int deny = 0;
+	const size_t len = strlen( filename );
+
+	if ( !Q_stricmpn( filename, "ui/", 3 ) || !Q_stricmpn( filename, "ui\\", 3 )
+		|| !Q_stricmpn( filename, "vm/", 3 ) || !Q_stricmpn( filename, "vm\\", 3 )
+		|| ( len >= 4 && !Q_stricmp( filename + len - 4, ".cfg" ) ) ) {
+		deny |= OZ_DENY_MAPS_PAK;
+	}
+	if ( !Q_stricmp( filename, "default.cfg" ) && fs_gamedirvar && !Q_stricmp( fs_gamedirvar->string, DEFAULT_GAME ) ) {
+		deny |= OZ_DENY_DEFAULT_CFG;
+	}
+	return deny;
+}
+
+
+static qboolean FS_OzPakDenied( const pack_t *pak, int deny )
+{
+	if ( ( deny & OZ_DENY_MAPS_PAK ) && pak->ozMapsPak ) {
+		return qtrue;
+	}
+	if ( deny & OZ_DENY_DEFAULT_CFG ) {
+		char name[ MAX_OSPATH ];
+
+		if ( !Q_stricmp( pak->pakGamename, DEFAULT_GAME ) && !Q_stricmp( pak->pakBasename, "pak_oz_code" ) ) {
+			return qfalse;
+		}
+		Com_sprintf( name, sizeof( name ), "%s/%s", pak->pakGamename, pak->pakBasename );	// FS_idPak's va() would overwrite a va()'s
+		if ( !FS_idPak( name, BASEGAME, NUM_ID_PAKS ) ) {
+			return qtrue;
+		}
+	}
+	return qfalse;
+}
+
+
 #ifdef DEDICATED
 static pack_t *FS_LoadMapPak( const char *filename );
 #endif
@@ -1736,7 +1850,8 @@ FS_UiPakFile
 
 Oz: a file of the native UI (ui/...) from oz/zz-oz-ui.pk3, under any mod and on pure servers.
 The pak is off the search path, so mods never see it and it's in no pure, reference or download
-list; it's asked last, and only for names under ui/.
+list; it's asked only for names under ui/, and first (FS_OzLooseUiFile): asked last, any pak with a
+ui/pages/menu.rml, a server's download included, replaced Oz's menus, whose buttons run commands.
 ===========
 */
 static fileInPack_t *FS_UiPakFile( const char *filename, long fullHash, pack_t **pak ) {
@@ -1755,6 +1870,30 @@ static fileInPack_t *FS_UiPakFile( const char *filename, long fullHash, pack_t *
 		}
 	}
 	return NULL;
+}
+
+
+/*
+===========
+FS_OzLooseUiFile
+
+Oz: with "developer" on, a loose file in a folder of the search path still comes before the UI pak's,
+for working on a page without packing it: the search path is then asked first, as it was.
+===========
+*/
+static qboolean FS_OzLooseUiFile( const char *filename ) {
+	const searchpath_t *search;
+
+	if ( !com_developer || !com_developer->integer ) {
+		return qfalse;
+	}
+	for ( search = fs_searchpaths; search; search = search->next ) {
+		if ( search->dir && search->policy != DIR_DENY &&
+			FS_OS_FileExists( FS_BuildOSPath( search->dir->path, search->dir->gamedir, filename ) ) ) {
+			return qtrue;
+		}
+	}
+	return qfalse;
 }
 
 
@@ -1796,6 +1935,9 @@ static fileInPack_t *FS_OzClientModFile( const char *filename, long fullHash, pa
 		if ( !search->pack || Q_stricmp( search->pack->pakGamename, BASEGAME ) || !FS_PakIsPure( search->pack ) ) {
 			continue;
 		}
+		if ( search->pack->ozMapsPak ) {
+			continue;	// a Maps folder pak gives no game code (FS_OzPakDenied)
+		}
 		Com_sprintf( name, sizeof( name ), "%s/%s", search->pack->pakGamename, search->pack->pakBasename );
 		if ( FS_idPak( name, BASEGAME, NUM_ID_PAKS ) ) {
 			continue;
@@ -1834,6 +1976,10 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	FILE			*temp;
 	int				length;
 	fileHandleData_t *f;
+	int				ozDeny;		// Oz: FS_OzPakDenied
+#ifndef DEDICATED
+	pack_t			*uiPak;
+#endif
 
 	if ( !fs_searchpaths ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
@@ -1861,6 +2007,19 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	// we will calculate full hash only once then just mask it by current pack->hashSize
 	// we can do that as long as we know properties of our hash function
 	fullHash = FS_HashFileName( filename, 0U );
+	ozDeny = FS_OzDeniedName( filename );
+
+#ifndef DEDICATED
+	// Oz: the native UI's own files first (FS_UiPakFile)
+	uiPak = NULL;
+	pakFile = FS_UiPakFile( filename, fullHash, &uiPak );
+	if ( pakFile != NULL && !FS_OzLooseUiFile( filename ) ) {
+		if ( file == NULL ) {
+			return pakFile->size;
+		}
+		return FS_OpenFileInPak( file, uiPak, pakFile, uniqueFILE );
+	}
+#endif
 
 	if ( file == NULL ) {
 		// just wants to see if file is there
@@ -1869,6 +2028,8 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			if ( search->pack && search->pack->hashTable[ (hash = fullHash & (search->pack->hashSize-1)) ] ) {
 				// skip non-pure files
 				if ( !FS_PakIsPure( search->pack ) )
+					continue;
+				if ( ozDeny && FS_OzPakDenied( search->pack, ozDeny ) )	// Oz
 					continue;
 				// look through all the pak file elements
 				pak = search->pack;
@@ -1934,6 +2095,9 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			if ( !FS_PakIsPure( search->pack ) ) {
 				continue;
 			}
+			if ( ozDeny && FS_OzPakDenied( search->pack, ozDeny ) ) {	// Oz
+				continue;
+			}
 			// look through all the pak file elements
 			pak = search->pack;
 			pakFile = pak->hashTable[hash];
@@ -1977,11 +2141,9 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	}
 
 #ifndef DEDICATED
-	{
-		pack_t *uiPak;
-		if ( ( pakFile = FS_UiPakFile( filename, fullHash, &uiPak ) ) != NULL ) {	// Oz
-			return FS_OpenFileInPak( file, uiPak, pakFile, uniqueFILE );
-		}
+	// Oz: a developer's loose file was looked for first and isn't readable after all
+	if ( ( pakFile = FS_UiPakFile( filename, fullHash, &uiPak ) ) != NULL ) {
+		return FS_OpenFileInPak( file, uiPak, pakFile, uniqueFILE );
 	}
 #endif
 
@@ -3657,8 +3819,56 @@ qboolean FS_CompareZipChecksum(const char *zipfile)
 		if(checksum == fs_serverReferencedPaks[index])
 			return qtrue;
 	}
-	
+
 	return qfalse;
+}
+
+
+/*
+=================
+FS_OzRemoveBadPak
+
+Oz: a pak just downloaded that isn't the one the server listed (FS_CompareZipChecksum failed,
+CL_NextDownload) is deleted: it stayed in the game's folder under its final name and loaded at the next
+start. The pk3 cache holds the file open after the comparison, so it lets go first. A pak the search
+path already has is no fresh download and is left alone.
+=================
+*/
+void FS_OzRemoveBadPak( const char *zipfile )
+{
+	char path[ MAX_OSPATH ];
+#ifdef USE_PK3_CACHE
+	const searchpath_t *search;
+	pack_t *pak;
+#ifndef DEDICATED
+	int i;
+#endif
+#endif
+
+	Q_strncpyz( path, zipfile, sizeof( path ) );	// zipfile may be FS_BuildOSPath's own buffer
+#ifdef USE_PK3_CACHE
+	pak = FS_FindInCache( path );
+	if ( pak ) {
+		for ( search = fs_searchpaths; search; search = search->next ) {
+			if ( search->pack == pak ) {
+				return;
+			}
+		}
+#ifndef DEDICATED
+		for ( i = 0; i < ARRAY_LEN( fs_uiPaks ); i++ ) {
+			if ( fs_uiPaks[i] == pak ) {
+				return;
+			}
+		}
+#endif
+		FS_RemoveFromCache( pak );
+		FS_FreePak( pak );
+	}
+#endif
+	if ( !FS_IsExt( path, ".pk3", strlen( path ) ) ) {
+		return;
+	}
+	FS_Remove( path );
 }
 
 
@@ -4645,6 +4855,16 @@ static void FS_AddMapsDirectory( const char *path ) {
 			continue;
 		}
 		pak->pakGamename = BASEGAME;	// a map pack belongs to the base game, for pure checks and downloads
+		// Oz: no ui/, vm/ or .cfg from it (FS_OzPakDenied); not a pak a game folder loaded already
+		// (fs_mapspath set to one: the pk3 cache hands back the same pak)
+		for ( search = fs_searchpaths; search; search = search->next ) {
+			if ( search->pack == pak ) {
+				break;
+			}
+		}
+		if ( !search ) {
+			pak->ozMapsPak = qtrue;
+		}
 		pak->index = fs_packCount;
 		pak->referenced = 0;
 		pak->exclude = qfalse;
@@ -4719,7 +4939,7 @@ static void FS_AddOzAssets( const char *path ) {
 FS_LoadUiPak
 
 Oz: the native UI's pak, oz/zz-oz-ui.pk3 in the home path or else the base path, whichever mod
-runs. It stays off the search path: FS_UiPakFile serves its ui/ files after the search path.
+runs. It stays off the search path: FS_UiPakFile serves its ui/ files, ahead of the search path.
 ================
 */
 static void FS_LoadUiPak( void ) {
@@ -6373,6 +6593,43 @@ void FS_Flush( fileHandle_t f )
 
 /*
 ================
+FS_OzSearchStamp
+
+Oz: a number for the search path as it stands (every pak's file, checksum and file count, every
+folder), which changes when a pak is added, removed or replaced: the map editor keeps what it read of
+the game's images while it stays the same (the material pictures, their sizes).
+================
+*/
+unsigned FS_OzSearchStamp( void ) {
+	const searchpath_t	*search;
+	const char			*s;
+	unsigned			h = 2166136261u;
+
+#define OZ_MIX( v ) ( h = ( h ^ (unsigned)( v ) ) * 16777619u )
+	for ( search = fs_searchpaths; search; search = search->next ) {
+		if ( search->pack ) {
+			for ( s = search->pack->pakFilename; *s; s++ ) {
+				OZ_MIX( tolower( (unsigned char)*s ) );
+			}
+			OZ_MIX( search->pack->checksum );
+			OZ_MIX( search->pack->numfiles );
+		} else if ( search->dir ) {
+			for ( s = search->dir->path; *s; s++ ) {
+				OZ_MIX( tolower( (unsigned char)*s ) );
+			}
+			for ( s = search->dir->gamedir; *s; s++ ) {
+				OZ_MIX( tolower( (unsigned char)*s ) );
+			}
+		}
+		OZ_MIX( 0x5f );
+	}
+#undef OZ_MIX
+	return h;
+}
+
+
+/*
+================
 FS_OzListTree
 
 Oz: every file under dir, its subfolders' too, with the extension (the map editor's sound and model
@@ -6384,6 +6641,27 @@ char **FS_OzListTree( const char *dir, const char *ext, int *numfiles ) {
 
 	Com_sprintf( filter, sizeof( filter ), "%s/*.%s", dir, ext );
 	return FS_ListFilteredFiles( "", "", filter, numfiles, FS_MATCH_ANY | FS_MATCH_SUBDIRS );
+}
+
+
+/*
+================
+FS_OzRelightFile
+
+Oz: whether a name's last part is a map's relight, maps/<map>/oz_relight.bsp in the world pak, which
+holds only what the oz renderer takes from it (tr_bsp.c R_OzRelight). The console offered each as a
+map, "q3dm0/oz_relight", and loaded it as one.
+================
+*/
+qboolean FS_OzRelightFile( const char *name ) {
+	const char *last = name, *s;
+
+	for ( s = name; *s; s++ ) {
+		if ( *s == '/' || *s == '\\' ) {
+			last = s + 1;
+		}
+	}
+	return !Q_stricmp( last, "oz_relight" ) || !Q_stricmp( last, "oz_relight.bsp" );
 }
 
 
@@ -6405,6 +6683,10 @@ void FS_FilenameCompletion( const char *dir, const char *ext, qboolean stripExt,
 
 		if ( stripExt ) {
 			COM_StripExtension( filename, filename, sizeof( filename ) );
+		}
+
+		if ( FS_OzRelightFile( filename ) ) {	// Oz: a map's relight is no map to offer (map, devmap)
+			continue;
 		}
 
 		callback( filename );

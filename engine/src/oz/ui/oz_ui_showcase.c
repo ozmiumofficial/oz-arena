@@ -463,7 +463,8 @@ void OzE_ShowcaseDraw( int width, int height, const float *accent ) {
 	// meters tall): from a flat box around the feet, up at 0.15-0.5 m/s within 25 degrees of
 	// straight up, a little faster as they go, wandering; in by 15% of their 7 s, orange to red to nothing;
 	// none with Settings > Accessibility > Reduced flashing
-	for ( i = 0; i < ( Cvar_VariableIntegerValue( "oz_accessibility_reduced_flashing" ) ? 0 : NUM_EMBERS ); i++ ) {
+	const int embers = Cvar_VariableIntegerValue( "oz_accessibility_reduced_flashing" ) ? 0 : NUM_EMBERS;	// one cvar lookup a frame, not one an ember
+	for ( i = 0; i < embers; i++ ) {
 		refEntity_t ember;
 		const float m = size / 1.8f;
 		const float age = sc.t / EMBER_LIFE + Hash( i, 0 );

@@ -962,6 +962,64 @@ char *Sys_GetClipboardData( void )
 
 /*
 ===============
+Sys_GetClipboardText
+
+Oz: the clipboard's text whole, its line ends taken out, for the menus' paste. The console's read above
+stops at the first line end, so a config code a chat had wrapped onto two lines imported cut short.
+Free with Z_Free; NULL when the clipboard holds no text.
+===============
+*/
+char *Sys_GetClipboardText( void )
+{
+#ifdef DEDICATED
+	return NULL;
+#else
+	char *data = NULL;
+	char *cliptext;
+
+	if ( ( cliptext = SDL_GetClipboardText() ) != NULL ) {
+		if ( cliptext[0] != '\0' ) {
+			const char *in;
+			char *out;
+
+			data = Z_Malloc( strlen( cliptext ) + 1 );
+			for ( in = cliptext, out = data; *in; in++ ) {
+				if ( *in != '\n' && *in != '\r' && *in != '\b' ) {
+					*out++ = *in;
+				}
+			}
+			*out = '\0';
+			if ( data[0] == '\0' ) {
+				Z_Free( data );
+				data = NULL;
+			}
+		}
+		SDL_free( cliptext );
+	}
+	return data;
+#endif
+}
+
+
+/*
+===============
+Sys_SetClipboardText
+
+Oz: text onto the system's clipboard (UTF-8), for the menus' Copy buttons: without it RmlUi kept a
+copy only inside the game, and nothing a player copied (a config code, a friend code, a session's link)
+could be pasted anywhere else
+===============
+*/
+void Sys_SetClipboardText( const char *text )
+{
+#ifndef DEDICATED
+	SDL_SetClipboardText( text );
+#endif
+}
+
+
+/*
+===============
 Sys_SetClipboardBitmap
 ===============
 */

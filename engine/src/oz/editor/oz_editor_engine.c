@@ -10,11 +10,15 @@ Compiled with the client (its defines and headers), so the editor's C++ only see
 #include <windows.h>
 #include <direct.h>
 #else
+#include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 #endif
 
 const ozEdRender_t *OzEd_Renderer( void ) {
@@ -469,25 +473,54 @@ static struct {
 	HANDLE	process;
 	HANDLE	out;
 } procs[4];
+
+// The tools die with the game: a job that kills what's in it when its last handle closes, and the game's
+// is the only one (it isn't inherited). q3map2 and mbspc ran on for minutes after the game quit or crashed
+// in the middle of a compile, a core each. NULL when Windows gives none: the tools then run as before.
+static HANDLE OzEd_ToolJob( void ) {
+	static HANDLE job;
+	static qboolean tried;
+
+	if ( !tried ) {
+		JOBOBJECT_EXTENDED_LIMIT_INFORMATION info;
+		tried = qtrue;
+		job = CreateJobObjectA( NULL, NULL );
+		if ( job ) {
+			Com_Memset( &info, 0, sizeof( info ) );
+			info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+			if ( !SetInformationJobObject( job, JobObjectExtendedLimitInformation, &info, sizeof( info ) ) ) {
+				CloseHandle( job );
+				job = NULL;
+			}
+		}
+	}
+	return job;
+}
 #else
-static pid_t procs[4];	// Oz: Linux, through /bin/sh as Windows' command line
+static pid_t procs[4];	// Oz: Linux, the tool run directly with its arguments split as Windows splits a command line
 #endif
 
 int OzEd_Start( const char *exe, const char *args, const char *dir, const char *log ) {
 #ifdef _WIN32
-	char cmd[8192];
+	static char cmd[32768];	// Windows' longest command line; q3map2's grows with every map pack (-fs_forbiddenpath)
 	STARTUPINFOA si;
 	PROCESS_INFORMATION pi;
 	SECURITY_ATTRIBUTES sa;
 	HANDLE out;
-	int slot;
+	int slot, n;
 
 	for ( slot = 0; slot < (int)ARRAY_LEN( procs ) && procs[slot].process; slot++ ) {
 	}
 	if ( slot == (int)ARRAY_LEN( procs ) ) {
 		return 0;
 	}
-	Com_sprintf( cmd, sizeof( cmd ), "\"%s\" %s", exe, args );
+	// not Com_sprintf: it formats into 32000 bytes on the stack unchecked, and cut the line at 8191
+	// characters with only a console warning (about 200 map packs: every compile and import failed)
+	n = snprintf( cmd, sizeof( cmd ), "\"%s\" %s", exe, args );
+	if ( n < 0 || n >= (int)sizeof( cmd ) ) {
+		Com_Printf( S_COLOR_YELLOW "editor: the tool's command line is too long (%d characters): too many paks in baseq3\n", n );
+		return 0;
+	}
 	Com_Memset( &sa, 0, sizeof( sa ) );
 	sa.nLength = sizeof( sa );
 	sa.bInheritHandle = TRUE;
@@ -506,32 +539,86 @@ int OzEd_Start( const char *exe, const char *args, const char *dir, const char *
 		}
 		return 0;
 	}
+	if ( OzEd_ToolJob() ) {
+		AssignProcessToJobObject( OzEd_ToolJob(), pi.hProcess );	// refused (a job of its own already): it runs as before
+	}
 	CloseHandle( pi.hThread );
 	procs[slot].process = pi.hProcess;
 	procs[slot].out = out;
 	return slot + 1;
 #else
-	char cmd[8192];
-	pid_t pid;
-	int slot, fd;
+	static char cmd[32768];	// Windows' longest command line; q3map2's grows with every map pack (-fs_forbiddenpath)
+	static char shell[] = "sh";
+	pid_t pid, parent;
+	int slot, fd, n, argc, quoted;
+	char **argv, *p, *out;
 
 	for ( slot = 0; slot < (int)ARRAY_LEN( procs ) && procs[slot]; slot++ ) {
 	}
 	if ( slot == (int)ARRAY_LEN( procs ) ) {
 		return 0;
 	}
-	// args is a command line, quoted as Windows' is: the shell splits it the same way
-	Com_sprintf( cmd, sizeof( cmd ), "exec \"%s\" %s", exe, args );
+	// args is a command line, quoted as Windows' is ("..." keeps blanks in one argument). It's split here
+	// and the tool run with the pieces: it used to go through sh -c, where $ and ` in a pak's or a folder's
+	// name were the shell's to expand and run.
+	n = (int)strlen( args );
+	if ( n >= (int)sizeof( cmd ) ) {
+		Com_Printf( S_COLOR_YELLOW "editor: the tool's command line is too long (%d characters): too many paks in baseq3\n", n );
+		return 0;
+	}
+	memcpy( cmd, args, n + 1 );
+	// an argument is a character and a blank at least: n / 2 + 1 of them, and sh, the tool and the end
+	argv = (char **)malloc( sizeof( char * ) * ( n / 2 + 5 ) );
+	if ( !argv ) {
+		return 0;
+	}
+	argc = 0;
+	argv[argc++] = shell;			// only for a tool that is a script without a #! line (below)
+	argv[argc++] = (char *)exe;
+	p = out = cmd;	// split in place: an argument never grows (its quotes go)
+	for ( ;; ) {
+		while ( *p == ' ' || *p == '\t' ) {
+			p++;
+		}
+		if ( !*p ) {
+			break;
+		}
+		argv[argc++] = out;
+		quoted = 0;
+		while ( *p && ( quoted || ( *p != ' ' && *p != '\t' ) ) ) {
+			if ( *p == '"' ) {
+				quoted = !quoted;
+			} else {
+				*out++ = *p;
+			}
+			p++;
+		}
+		if ( *p ) {
+			p++;	// the blank that ended it: its place may be this argument's end
+		}
+		*out++ = '\0';
+	}
+	argv[argc] = NULL;
 	OzEd_MakeDirs( log );
 	fd = open( log, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644 );
+	parent = getpid();
 	pid = fork();
 	if ( pid < 0 ) {
 		if ( fd >= 0 ) {
 			close( fd );
 		}
+		free( argv );
 		return 0;
 	}
 	if ( pid == 0 ) {
+#ifdef __linux__
+		// the tool dies with the game (it ran on after the game quit or crashed mid-compile); the game gone
+		// already, between the fork and here: the same
+		prctl( PR_SET_PDEATHSIG, SIGTERM );
+		if ( getppid() != parent ) {
+			_exit( 127 );
+		}
+#endif
 		if ( fd >= 0 ) {
 			dup2( fd, STDOUT_FILENO );
 			dup2( fd, STDERR_FILENO );
@@ -541,12 +628,16 @@ int OzEd_Start( const char *exe, const char *args, const char *dir, const char *
 		}
 		if ( nice( 5 ) == -1 ) {	// below the game, as BELOW_NORMAL_PRIORITY_CLASS
 		}
-		execl( "/bin/sh", "sh", "-c", cmd, (char *)NULL );
+		execv( exe, argv + 1 );
+		if ( errno == ENOEXEC ) {
+			execv( "/bin/sh", argv );	// a script without a #! line: sh <tool> <arguments>, nothing for sh to expand
+		}
 		_exit( 127 );
 	}
 	if ( fd >= 0 ) {
 		close( fd );
 	}
+	free( argv );
 	procs[slot] = pid;
 	return slot + 1;
 #endif

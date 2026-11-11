@@ -927,6 +927,46 @@ static void FillReplaySnapshot( ndpSnapshot_t* snap, const ozReplayFrame_t* f, i
 		snap->entities[i] = f->ents[i];
 	}
 
+	// Oz: the cgame takes MAX_ENTITIES_IN_SNAPSHOT entities, the lowest numbers first (CL_NDP_GetSnapshot),
+	// and the frame has every one in the map: on a crowded map the last spawned, the missiles and the
+	// events, were the ones left out. Over that, the items farthest from the eyes go first, then the
+	// speakers and what playback never draws (triggers, invisible ones), as a server's snapshot leaves out
+	// what is out of sight. Players, missiles, events and movers always stay.
+	n = 0;
+	for (i = 0; i < MAX_GENTITIES - 1; ++i) {
+		n += snap->entities[i].number == i;
+	}
+	for (t = 0; t < 2 && n > MAX_ENTITIES_IN_SNAPSHOT; ++t) {
+		while (n > MAX_ENTITIES_IN_SNAPSHOT) {
+			int drop = -1;
+			float dropDist = -1.0f;
+			for (i = 0; i < MAX_GENTITIES - 1; ++i) {
+				const entityState_t* const es = &snap->entities[i];
+				vec3_t d;
+				float dist;
+				if (es->number != i) {
+					continue;
+				}
+				if (t == 0 ? es->eType != ET_ITEM :
+				    (es->eType != ET_SPEAKER && es->eType != ET_PUSH_TRIGGER &&
+				     es->eType != ET_TELEPORT_TRIGGER && es->eType != ET_INVISIBLE)) {
+					continue;
+				}
+				VectorSubtract(es->pos.trBase, snap->ps.origin, d);
+				dist = DotProduct(d, d);
+				if (dist > dropDist) {
+					dropDist = dist;
+					drop = i;
+				}
+			}
+			if (drop < 0) {
+				break;
+			}
+			snap->entities[drop].number = MAX_GENTITIES - 1;
+			--n;
+		}
+	}
+
 	// as SV_BuildClientSnapshot: the areas connected to the eyes' one, inverted into the renderer's mask
 	Com_Memset(snap->areaMask, 0, sizeof(snap->areaMask));
 	snap->numAreaMaskBytes = 0;

@@ -365,13 +365,13 @@ void Session::thumb_tick(int x, int y, int w, int h, int now) {
 			shot_.frames = 0;
 			shot_.t0 = OzE_Milliseconds();
 		} else if (waited > 60000) {
-			shot_failed("the compiled map didn't load as the lit preview");
+			shot_failed("the compiled map didn't load for the picture");
 		}
 		return;
 	}
 	// drawing: the camera's view, every frame until the screenshot has it
 	if (shot_.bsp != OzEd_World()) {
-		shot_failed("the lit preview closed before it was taken");
+		shot_failed("the compiled map's view closed before it was taken");
 		return;
 	}
 	if (thumb_state_) {
@@ -410,6 +410,9 @@ void Session::thumb_tick(int x, int y, int w, int h, int now) {
 	const float axis[3][3] = {{float(f.x), float(f.y), float(f.z)}, {float(l.x), float(l.y), float(l.z)}, {float(u.x), float(u.y), float(u.z)}};
 	OzEd_RenderScene(rc[0], rc[1], rc[2], rc[3], org, axis, float(FOV_X), float(FOV_Y), now, 0);
 	shot_.frames++;
+	if (shot_.frames == 3 && page_over) {
+		shot_.frames = 2;  // a menu, a list or a dialog of the page is over the view: it would be in the picture. Taken once it's gone
+	}
 	if (shot_.frames == 3) {
 		OzE_InsertText((std::string("screenshot ") + SHOT + "\n").c_str());  // a frame or two in: the world's images all up
 	}

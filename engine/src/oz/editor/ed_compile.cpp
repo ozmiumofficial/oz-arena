@@ -9,6 +9,7 @@
 #include "ed_view.h"
 #include "ed_engine.h"
 #include "ed_mapfile.h"
+#include "ed_together.h"
 
 #include <algorithm>
 #include <array>
@@ -296,6 +297,60 @@ static std::string sky_light_shaders(const Doc &d) {
 	return out;
 }
 
+// The same light for the editor's live light (ed_light.h): the sun, the sky's own glow, the ambient and the
+// fill light, as q3map2 reads them from the scripts above and the worldspawn.
+SkyLight Session::sky_light() const {
+	const SkySun s = sky_sun_of(doc);
+	SkyLight L;
+	auto toward = [](double direction, double height) {
+		const double a = direction * 3.14159265358979323846 / 180, e = height * 3.14159265358979323846 / 180;
+		return Vec3(std::cos(e) * std::cos(a), std::cos(e) * std::sin(a), std::sin(e));
+	};
+	auto normalized = [](const double in[3], double out[3]) {
+		const double m = std::max({in[0], in[1], in[2]});
+		for (int i = 0; i < 3; i++) {
+			out[i] = m > 0 ? in[i] / m : 1;
+		}
+	};
+	if (!s.own) {
+		L.sun = s.brightness;
+		normalized(s.color, L.sun_color);
+		L.sun_dir = toward(s.direction, s.height);
+		L.sky = s.sky_light;
+		normalized(s.glow, L.sky_color);
+	} else {
+		// a sky painted on the map with no settings (a stock map's): its own script's light
+		const std::string name = "textures/" + s.sky;
+		std::string script = shaders_lib().script(name);
+		for (char &c : script) {
+			c = char(std::tolower((unsigned char)c));
+		}
+		double v[6];
+		if (script_numbers(script, "q3map_sun", v, 6)) {
+			normalized(v, L.sun_color);
+			L.sun = v[3];
+			L.sun_dir = toward(v[4], v[5]);
+		}
+		L.sky = shaders_lib().surface_light(name);
+		if (script_numbers(script, "q3map_lightrgb", v, 3)) {
+			normalized(v, L.sky_color);
+		}
+	}
+	for (int i = 0; i < 3; i++) {
+		L.ambient[i] = s.ambient_color[i] * s.ambient;
+	}
+	if (s.fill_on) {
+		double f[5];
+		L.flood = std::sscanf(FILL_LIGHT, "%lf %lf %lf %lf %lf", &f[0], &f[1], &f[2], &f[3], &f[4]) == 5;
+		if (L.flood) {
+			normalized(f, L.flood_color);
+			L.flood_dist = f[3];
+			L.flood_amount = f[4];
+		}
+	}
+	return L;
+}
+
 static void add_sky_box(Doc &d, const Bounds &b) {
 	const ShaderId s = shader_id(sky_sun_of(d).sky);
 	const Vec3 lo = b.lo - Vec3(SKY_SIDE, SKY_SIDE, SKY_BELOW), hi = b.hi + Vec3(SKY_SIDE, SKY_SIDE, SKY_TOP);
@@ -574,14 +629,29 @@ bool Session::compile(bool full, bool play, bool here, bool defrag) {
 	// the map as it is now, and q3map2's tool shaders
 	WriteOptions wo;
 	wo.title = "compiled by the Oz Arena map editor";
-	Doc boxed = doc;
-	boxed.shared = false;  // a copy for the compile: its sky box and copies are no one's edits (it has no on_local)
-	boxed.lease(0, 0);
-	boxed.on_change = nullptr;
-	boxed.get_selection = nullptr;
-	boxed.set_selection = nullptr;
-	boxed.clear_history();
+	// a copy for the compile: its sky box and copies are no one's edits (it has no on_local, no lease, no
+	// hooks), and it leaves the undo history behind (copied whole here, on the main thread, at every compile)
+	Doc boxed = doc.copy_objects();
 	add_sky_box(boxed, all.empty() ? Bounds{Vec3(-256, -256, -64), Vec3(256, 256, 256)} : all);
+	// faces with a glow of their own (GLOW in Inspect): their material's glow copy, its script handed to q3map2
+	// below as a map pack's is (its light scaled) and kept for the game in oz/scripts/oz_glow.shader and .ozmtr
+	boxed.begin("glow");
+	for (Id id : boxed.ids_of(Kind::Brush)) {
+		const Object *o = boxed.get(id);
+		int brightness, light;
+		if (std::none_of(o->brush.faces.begin(), o->brush.faces.end(), [&](const Face &f) { return face_glow(f, brightness, light); })) {
+			continue;
+		}
+		auto e = boxed.edit(id);
+		for (Face &f : e->brush.faces) {
+			if (face_glow(f, brightness, light)) {
+				f.flags = 0;
+				f.shader = shader_id(shaders_lib().glow_variant(shader_name(f.shader), brightness, light));
+			}
+		}
+		boxed.put(id, e);
+	}
+	boxed.end();
 	// faces with a color: a colored copy of their material each (written below with the scripts, and for the
 	// game beside the map), then brushes with their collision off: their materials' non-solid copies
 	std::map<std::string, std::string> tint_scripts;
@@ -888,6 +958,7 @@ void Session::compile_done(bool ok, const std::string &why) {
 		const std::string df = std::string(OzEd_HomePath()) + "/defrag";
 		const std::string defi = defrag_defi(j.out);
 		OzEd_MakeDirs((df + "/scripts/x").c_str());
+		shaders_lib().copy_glow_scripts(df + "/scripts");  // the faces' glow copies, where Defrag's game reads scripts
 		if (!copy_file(j.dir + "/maps/" + j.out + ".bsp", df + "/maps/" + j.out + ".bsp") ||
 				!OzEd_WriteOSFile((df + "/scripts/" + j.out + ".defi").c_str(), defi.data(), int(defi.size()))) {
 			say("Can't put the map in " + df, true);
@@ -897,6 +968,9 @@ void Session::compile_done(bool ok, const std::string &why) {
 			std::remove((df + "/maps/" + j.out + ".aas").c_str());  // the bots' file, when there is one
 		}
 		say("Playing " + j.out + " under Defrag, its own timer and all: Disconnect comes back to Oz, where the Map Editor keeps the map");
+		if (this == &together_session()) {
+			together().busy();  // a session's host: the others are told its game stands still for the load
+		}
 		OzE_InsertText(("game_restart defrag\nmap " + j.out + "\n").c_str());  // a plain map: Defrag times runs without cheats
 		return;
 	}
@@ -910,6 +984,10 @@ void Session::compile_done(bool ok, const std::string &why) {
 				j.cam.pitch, j.cam.yaw);
 			cmd += pos;
 		}
+		if (this == &together_session()) {
+			together().busy();  // a session's host: the others are told its game stands still for the load
+		}
+		release_all();  // a look or a drag held as the match starts: its button's release never reaches the editor
 		OzE_InsertText(cmd.c_str());  // before anything queued after the compile (a test script)
 		return;
 	}
@@ -938,8 +1016,11 @@ void Session::compile_poll() {
 	if (s.name == "BSP") {
 		// q3map2 writes the line it traced from an entity out to the void beside the map
 		leak_.clear();
-		if (log.find("leaked") != std::string::npos) {
-			const std::string lin = read_text(j.dir + "/maps/" + j.out + ".lin");
+		// its own banner, or the line file it writes only for a leak (the last run's is deleted before each
+		// compile). The word "leaked" alone was also in the log's paths: a map named "leaked", or a user folder
+		// with the word in it, compiled without vis and bots every time
+		const std::string lin = read_text(j.dir + "/maps/" + j.out + ".lin");
+		if (log.find("******* leaked *******") != std::string::npos || !lin.empty()) {
 			size_t at = 0;
 			while (at < lin.size()) {
 				const size_t eol = lin.find('\n', at);
@@ -1177,7 +1258,7 @@ void Session::toggle_preview() {
 	// the map changed since: a quick compile first, then the preview
 	if (compile(false, false, false)) {
 		job_.preview = true;
-		say("Compiling for the lit preview");
+		say("Compiling for the compiled map's view");
 	}
 }
 
@@ -1214,7 +1295,7 @@ void Session::preview_tick() {
 	preview_due_ = 0;
 	if (lights_changed_since() && compile(false, false, false)) {
 		job_.preview = true;
-		say("The lights changed: compiling the lit preview again");
+		say("The lights changed: compiling the compiled map's view again");
 	}
 }
 

@@ -1210,6 +1210,13 @@ void OzView_ProbeSnapshot( void ) {
 		ps->origin[0], ps->origin[1], ps->origin[2], sqrt( ps->velocity[0] * ps->velocity[0] + ps->velocity[1] * ps->velocity[1] ),
 		ps->velocity[2], ps->groundEntityNum != ENTITYNUM_NONE, ps->weapon, ps->weapon > 0 && ps->weapon < MAX_WEAPONS ? ps->ammo[ps->weapon] : 0,
 		events[0] ? events : "-", ps->persistant[PERS_HITS], ps->damageEvent, ps->stats[STAT_HEALTH] );
+	// 4: the whole movement state, to work out how a server's game moves a player from what it sends: "ozps <server
+	// time> <command time> <origin> <velocity> <pm_type> <pm_flags> <pm_time> <ground> <ping> <snap flags>"
+	if ( cl_ozProbe->integer == 4 ) {
+		Com_Printf( "ozps %d %d %.4f %.4f %.4f %.4f %.4f %.4f %d 0x%x %d %d %d %d\n", cl.snap.serverTime, ps->commandTime,
+			ps->origin[0], ps->origin[1], ps->origin[2], ps->velocity[0], ps->velocity[1], ps->velocity[2], ps->pm_type,
+			ps->pm_flags, ps->pm_time, ps->groundEntityNum, cl.snap.ping, cl.snap.snapFlags );
+	}
 }
 
 // ================================================================ the ragdolls' push

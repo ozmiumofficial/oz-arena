@@ -1,7 +1,9 @@
 #include "ed_sync.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
+#include <limits>
 
 #ifdef OZ_ED_MINIZ
 #include "miniz.h"
@@ -194,6 +196,44 @@ bool same_face(const Face &a, const Face &b) {
 	return a.contents == b.contents && a.flags == b.flags && a.value == b.value;
 }
 
+bool finite_vec(const Vec3 &v) {
+	return std::isfinite(v.x) && std::isfinite(v.y) && std::isfinite(v.z);
+}
+
+// What a peer's object may be, checked once as it's read (get_object): a brush's planes and points and a
+// curve's control points are numbers (a NaN or an infinity from a peer went into every bounds box, mesh and
+// compile after), an entity's keys and values are a key's and a value's size. The counts are capped where
+// they're read, before anything is allocated for them.
+bool valid_object(const Object &o) {
+	switch (o.kind) {
+	case Kind::Entity:
+		for (const auto &kv : o.entity.keys) {
+			if (kv.first.size() > MAX_KEY_SIZE || kv.second.size() > MAX_VALUE_SIZE) {
+				return false;
+			}
+		}
+		return true;
+	case Kind::Brush:
+		for (const Face &f : o.brush.faces) {
+			if (!finite_vec(f.plane.n) || !std::isfinite(f.plane.d)) {
+				return false;
+			}
+			if (f.pts_valid && (!finite_vec(f.pts[0]) || !finite_vec(f.pts[1]) || !finite_vec(f.pts[2]))) {
+				return false;
+			}
+		}
+		return true;
+	case Kind::Patch:
+		for (size_t i = 0; i + 4 < o.patch.ctrl.size(); i += 5) {
+			if (!std::isfinite(o.patch.ctrl[i]) || !std::isfinite(o.patch.ctrl[i + 1]) || !std::isfinite(o.patch.ctrl[i + 2])) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
 }  // namespace
 
 void put_object(Writer &w, const Object &o) {
@@ -240,7 +280,7 @@ ObjectPtr get_object(Reader &r) {
 	switch (o->kind) {
 	case Kind::Entity: {
 		const uint64_t n = r.var();
-		if (n > r.left()) {
+		if (n > r.left() || n > MAX_KEYS) {
 			r.ok = false;
 			return nullptr;
 		}
@@ -253,7 +293,8 @@ ObjectPtr get_object(Reader &r) {
 	}
 	case Kind::Brush: {
 		const uint64_t n = r.var();
-		if (n > r.left()) {
+		// a face is some 400 bytes here and one byte's count on the wire: a peer's count of millions took gigabytes
+		if (n > r.left() || n > MAX_FACES) {
 			r.ok = false;
 			return nullptr;
 		}
@@ -277,12 +318,22 @@ ObjectPtr get_object(Reader &r) {
 			r.ok = false;
 			return nullptr;
 		}
+		// a curve is width x height control points of 5 numbers (as read_patch limits a file's): a peer's with
+		// other counts was read past its points at the next save, autosave or compile
+		if (o->patch.width < 1 || o->patch.height < 1 || o->patch.width > 1024 || o->patch.height > 1024
+			|| n != uint64_t(o->patch.width) * uint64_t(o->patch.height) * 5) {
+			r.ok = false;
+			return nullptr;
+		}
 		o->patch.ctrl.resize(size_t(n));
 		for (double &v : o->patch.ctrl) {
 			v = r.f64();
 		}
 		break;
 	}
+	}
+	if (r.ok && !valid_object(*o)) {
+		r.ok = false;
 	}
 	return r.ok ? ObjectPtr(o) : nullptr;
 }
@@ -361,8 +412,14 @@ bool unpack(const Bytes &packed, Bytes &raw) {
 		for (int i = 0; i < 8; i++) {
 			n |= uint64_t(uint8_t(packed[1 + i])) << (8 * i);
 		}
-		if (n > (uint64_t(1) << 31)) {
+		// the size is a peer's word: no more than a session's files are (UNPACK_MAX), nor than deflate can make
+		// of what came (1032 to 1 at its best). It was 2 GB allocated on the word of a 9-byte message
+		if (n > UNPACK_MAX || n > uint64_t(packed.size()) * 1100 + 65536) {
 			return false;
+		}
+		if (n == 0) {
+			raw.clear();
+			return false;  // pack() never deflates nothing
 		}
 		raw.assign(size_t(n), '\0');
 		mz_ulong len = mz_ulong(n);
@@ -403,7 +460,7 @@ bool get_edit(Reader &r, Edit &e) {
 	e.refused = r.u8() != 0;
 	e.label = r.str();
 	const uint64_t n = r.var();
-	if (!r.ok || n > r.left()) {
+	if (!r.ok || n > r.left() / 2 || n > uint64_t(BLOCK)) {  // an object is two bytes at least, and a map holds a block of them
 		return false;
 	}
 	e.objects.resize(size_t(n));
@@ -441,6 +498,7 @@ void Replica::start(uint32_t me, uint32_t seq) {
 	sent_.clear();
 	held_.clear();
 	log.clear();
+	lost = false;
 	doc_.shared = true;
 	doc_.on_local = [this](const std::string &label, const std::vector<Doc::Change> &changes) { local(label, changes); };
 	running_ = true;
@@ -508,6 +566,9 @@ void Replica::receive(const Edit &e) {
 	if (!e.refused) {
 		if (e.seq <= seq_) {
 			return;  // had it (a new host's replay overlapping)
+		}
+		if (e.seq != seq_ + 1) {
+			lost = true;  // an edit before this one never came: this copy isn't the session's any more (the session asks for it again)
 		}
 		seq_ = e.seq;
 	}
@@ -606,7 +667,7 @@ bool Replica::read_snapshot(Reader &r, uint32_t &seq, Id &world, std::vector<std
 	seq = uint32_t(r.var());
 	world = r.i32();
 	const uint64_t n = r.var();
-	if (!r.ok || n > r.left()) {
+	if (!r.ok || n > r.left() / 4) {  // an object is four bytes at least (the room kept below is by this count)
 		return false;
 	}
 	objects.clear();
@@ -740,6 +801,10 @@ void Host::take(const Edit &in) {
 }
 
 void Host::grant(Id &from, Id &end) {
+	if (next_block_ <= 0 || next_block_ > (std::numeric_limits<Id>::max)() - BLOCK) {
+		from = end = 0;  // the ids ran out (2,047 blocks): none, rather than a block wrapped onto the map's own ids
+		return;
+	}
 	from = next_block_;
 	end = next_block_ + BLOCK;
 	next_block_ = end;
